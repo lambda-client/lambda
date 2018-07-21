@@ -22,12 +22,12 @@ On linux, run `chmod +x gradlew` and for the following commands use `./gradlew` 
 ```
 Import KAMI into your IDE of choice. If you use intelliJ, import from the `build.gradle` file and run `./gradlew.bat genIntellijRuns`
 
-If you do not wish to run from an IDE, use './gradlew.bat runClient` to run KAMI.
+If you do not wish to run from an IDE, use `./gradlew.bat runClient` to run KAMI.
 
-### Building
+### Building1.12.2
 
 ```
 ./gradlew.bat build
 cd build/libs
 ```
-In `build/libs` you will find the `.jar` file which you can copy to the `mods` folder of a minecraft instance that has forge installed.
+In `build/libs` you will find a file `KAMI-<minecraftVersion>-<kamiVersion>-full.jar` which you can copy to the `mods` folder of a minecraft instance that has forge installed.
