@@ -6,6 +6,10 @@ See [forgehax](https://github.com/fr1kin/forgehax) for a more polished equivalen
 
 This is by no means a finished project and isn't fully ready for release.
 
+## Troubleshooting
+Please reference the main troubleshooting page: [Troubleshooting](https://github.com/zeroeightysix/KAMI/blob/master/TROUBLESHOOTING.md)
+If you experience an issue and it's not listed there, please [open a new issue](https://github.com/zeroeightysix/KAMI/issues/new) and a contributor will help you further.
+
 ## Contributing
 
 You are free to clone, modify KAMI and make pull requests as you wish. To set up your development environment, make use of the following commands:
@@ -24,7 +28,7 @@ Import KAMI into your IDE of choice. If you use intelliJ, import from the `build
 
 If you do not wish to run from an IDE, use `./gradlew.bat runClient` to run KAMI.
 
-### Building1.12.2
+### Building
 
 ```
 ./gradlew.bat build
