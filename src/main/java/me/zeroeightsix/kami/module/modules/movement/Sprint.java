@@ -11,10 +11,12 @@ public class Sprint extends Module {
 
     @Override
     public void onUpdate() {
-        if (!mc.player.collidedHorizontally && mc.player.moveForward > 0)
-            mc.player.setSprinting(true);
-        else
-            mc.player.setSprinting(false);
+        try {
+            if (!mc.player.collidedHorizontally && mc.player.moveForward > 0)
+                mc.player.setSprinting(true);
+            else
+                mc.player.setSprinting(false);
+        } catch (Exception e) {}
     }
 
 }
