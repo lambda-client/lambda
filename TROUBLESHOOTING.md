@@ -13,12 +13,3 @@ What `.jar` are you using in your `mods` folder? Make sure to use the one that e
 ## Crashes in-game
 
 **Please make sure you're on the latest version of forge before proceeding!**
-
-###### java.lang.NoSuchMethodError: net.minecraft.client.multiplayer.WorldClient.isPlayerUpdate()Z
-Are you using MultiMC? If so, move minecraft above LWJGL 2 to solve this issue.
-Start on the main screen of MultiMC.
-1. Select your KAMI instance.
-2. Press `Edit Instance`
-3. Press `Version` (Top left)
-4. Select `Minecraft`
-5. Press `Move up` until it is the first entry in the list.
