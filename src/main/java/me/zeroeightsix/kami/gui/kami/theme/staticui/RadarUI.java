@@ -40,7 +40,7 @@ public class RadarUI extends AbstractComponentUI<Radar> {
         GlStateManager.pushMatrix();
         //GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
 
-        glColor4f(0,0,0,0.6f);
+        glColor4f(.11f,.11f,.11f,0.6f);
         RenderHelper.drawCircle(0,0,radius);
 
         GL11.glRotatef(Wrapper.getPlayer().rotationYaw+180, 0,0,-1);

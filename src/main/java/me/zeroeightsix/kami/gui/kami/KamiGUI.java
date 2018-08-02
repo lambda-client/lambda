@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.gui.kami;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.rgui.GUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Scrollpane;
@@ -359,6 +360,15 @@ public class KamiGUI extends GUI {
         coordsLabel.setFontRenderer(fontRenderer);
         coordsLabel.setShadow(true);
         frame.setHeight(20);
+        frames.add(frame);
+
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "Radar");
+        frame.setCloseable(false);
+        frame.setMinimizeable(true);
+        frame.setPinneable(true);
+        frame.addChild(new Radar());
+        frame.setWidth(100);
+        frame.setHeight(100);
         frames.add(frame);
 
         for (Frame frame1 : frames){
