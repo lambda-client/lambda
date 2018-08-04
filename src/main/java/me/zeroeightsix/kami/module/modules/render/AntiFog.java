@@ -10,7 +10,7 @@ import me.zeroeightsix.kami.setting.Setting;
 public class AntiFog extends Module {
 
     @Setting(name = "Mode") public static VisionMode mode = VisionMode.NOFOG;
-    private static AntiFog INSTANCE;
+    private static AntiFog INSTANCE = new AntiFog();
 
     public AntiFog() {
         INSTANCE = this;
