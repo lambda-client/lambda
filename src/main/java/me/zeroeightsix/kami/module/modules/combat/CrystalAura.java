@@ -40,16 +40,11 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT)
 public class CrystalAura extends Module {
 
-    @Setting(name = "Range")
-    private double range = 4;
-    @Setting(name = "Place")
-    private boolean place = false;
-    @Setting(name = "Players")
-    private boolean players = true;
-    @Setting(name = "Mobs")
-    private boolean mobs = false;
-    @Setting(name = "Animals")
-    private boolean animals = false;
+    @Setting(name = "Range") private double range = 4;
+    @Setting(name = "Place") private boolean place = false;
+    @Setting(name = "Players") private boolean players = true;
+    @Setting(name = "Mobs") private boolean mobs = false;
+    @Setting(name = "Animals") private boolean animals = false;
 
     private BlockPos render;
     private Entity renderEnt;
