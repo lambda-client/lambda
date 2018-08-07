@@ -23,16 +23,18 @@ public class Velocity extends Module {
     private float vertical = 0;
 
     @EventHandler
-    private Listener<PacketEvent.Receive> packetEventListener = new Listener<PacketEvent.Receive>(event -> {
+    private Listener<PacketEvent.Receive> packetEventListener = new Listener<>(event -> {
         if (event.getEra() == KamiEvent.Era.PRE) {
             if (event.getPacket() instanceof SPacketEntityVelocity) {
                 SPacketEntityVelocity velocity = (SPacketEntityVelocity) event.getPacket();
                 if (velocity.getEntityID() == mc.player.entityId) {
+                    if (horizontal == 0 && vertical == 0) event.cancel();
                     velocity.motionX *= horizontal;
                     velocity.motionY *= vertical;
                     velocity.motionZ *= horizontal;
                 }
-            }else if (event.getPacket() instanceof SPacketExplosion) {
+            } else if (event.getPacket() instanceof SPacketExplosion) {
+                if (horizontal == 0 && vertical == 0) event.cancel();
                 SPacketExplosion velocity = (SPacketExplosion) event.getPacket();
                 velocity.motionX *= horizontal;
                 velocity.motionY *= vertical;
