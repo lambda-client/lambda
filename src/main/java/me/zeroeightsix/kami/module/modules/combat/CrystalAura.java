@@ -130,10 +130,8 @@ public class CrystalAura extends Module {
             if (result == null || result.sideHit == null) f = EnumFacing.UP;
             else f = result.sideHit;
             //Small delay
-            if (((System.nanoTime() / 1000000) - systemTime) >= 10) {
-                mc.playerController.processRightClickBlock(mc.player, mc.world, q, f, new Vec3d(0, 0, 0), EnumHand.MAIN_HAND);
-                systemTime = System.nanoTime() / 1000000;
-            }
+                //mc.playerController.processRightClickBlock(mc.player, mc.world, q, f, new Vec3d(0, 0, 0), EnumHand.MAIN_HAND);
+                mc.player.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(q, f, offhand ? EnumHand.OFF_HAND : EnumHand.MAIN_HAND, 0, 0, 0));
         }
         //this sends a constant packet flow for default packets
         if (isSpoofingAngles) {
