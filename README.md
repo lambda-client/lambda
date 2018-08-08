@@ -19,8 +19,6 @@ KAMI is a forge mod. Start by downloading the latest version of [forge](https://
    * By **building** it: see [Building](#building).
 5. Place the `.jar` file in your mods directory.
 
-In your .minecraft directory (windows: press `win+r`, type `%appdata%` and hit enter. Find `.minecraft`.; linux: `~/.minecraft`), create a `mods` directory if it doesn't exist yet, and in it put KAMI's `.jar` file
-
 ## Troubleshooting
 Please reference the main troubleshooting page: [Troubleshooting](https://github.com/zeroeightysix/KAMI/blob/master/TROUBLESHOOTING.md)
 If you experience an issue and it's not listed there, please [open a new issue](https://github.com/zeroeightysix/KAMI/issues/new) and a contributor will help you further.
