@@ -20,6 +20,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class ChunkFinder extends Module {
 
     @Setting(name = "Y Offset", integer = true) private int yOffset = 0;
+    @Setting(name = "Relative") private boolean relative = true;
 
     static ArrayList<Chunk> chunks = new ArrayList<>();
 
@@ -67,10 +68,11 @@ public class ChunkFinder extends Module {
         }
 
         double x = mc.getRenderManager().renderPosX;
+        double y = relative ? 0 : mc.getRenderManager().renderPosY;
         double z = mc.getRenderManager().renderPosZ;
-        GL11.glTranslated(-x, yOffset, -z);
+        GL11.glTranslated(-x, y+yOffset, -z);
         GL11.glCallList(list);
-        GL11.glTranslated(x, -yOffset, z);
+        GL11.glTranslated(x, -(y+yOffset), z);
     }
 
     public static void newChunk(Chunk chunk) {
