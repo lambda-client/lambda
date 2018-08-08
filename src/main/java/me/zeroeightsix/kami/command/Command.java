@@ -16,13 +16,15 @@ public abstract class Command {
 	protected String description;
 
 	protected SyntaxChunk[] syntaxChunks;
-	
+
+	public static String COMMAND_PREFIX = ".";
+
 	public Command(String label, SyntaxChunk[] syntaxChunks) {
 		this.label = label;
 		this.syntaxChunks = syntaxChunks;
 		this.description = "Descriptionless";
 	}
-	
+
 	public static void sendChatMessage(String message){
 		sendRawChatMessage("&7[&a" + KamiMod.KAMI_KANJI + "&7] &r" + message);
 	}
@@ -35,17 +37,15 @@ public abstract class Command {
 	public static void sendRawChatMessage(String message){
 		Wrapper.getPlayer().sendMessage(new ChatMessage(message));
 	}
-	
+
 	protected void setDescription(String description) {
 		this.description = description;
 	}
-	
+
 	public String getDescription() {
 		return description;
 	}
-	
-	public static String COMMAND_PREFIX = ".";
-	
+
 	public static String getCommandPrefix() {
 		return COMMAND_PREFIX;
 	}

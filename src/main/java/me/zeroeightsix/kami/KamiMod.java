@@ -8,6 +8,7 @@ import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.SettingsPool;
+import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraftforge.common.MinecraftForge;
@@ -67,6 +68,7 @@ public class KamiMod {
         commandManager = new CommandManager();
 
         File file = new File("kami.settings");
+        Friends.INSTANCE.initSettings();
         if (file.exists()) {
             try {
                 SettingsPool.load(file);

@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.rgui.component.AlignedComponent;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
@@ -70,6 +71,12 @@ public class SettingsPool {
                 System.err.println("failed to convert: " + staticSetting.field + " -> " + setting.converter().getSimpleName() + " -> " + staticSetting.getField().getType());
             }
             staticSetting.setValue(value);
+        }
+
+        try {
+            Command.COMMAND_PREFIX = String.valueOf(rootObject.get("command_prefix").getAsCharacter());
+        }catch (Exception e) {
+            KamiMod.log.error("Couldn't load command prefix! Please make sure it is only one character long.");
         }
 
         JsonObject guiMap = rootObject.get("gui").getAsJsonObject();
@@ -145,6 +152,8 @@ public class SettingsPool {
             gui.add(frame.getTitle() + ".docking", new JsonPrimitive(frame.getDocking().ordinal()));
         });
         root.add("gui", gui);
+
+        root.add("command_prefix", new JsonPrimitive(Command.COMMAND_PREFIX));
 
         BufferedWriter writer = new BufferedWriter(new FileWriter(file));
         writer.write(root.toString());

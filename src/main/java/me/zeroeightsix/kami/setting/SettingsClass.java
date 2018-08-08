@@ -150,6 +150,15 @@ public class SettingsClass {
                 }
             }
 
+            if (value.getClass() == ArrayList.class) {
+                try {
+                    field.set(holder, value);
+                    return;
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+
             Class primitiveType = typeMap.get(value.getClass());
             if (primitiveType == null)
                 throw new RuntimeException("Unsupported value: " + value.getClass().getSimpleName());

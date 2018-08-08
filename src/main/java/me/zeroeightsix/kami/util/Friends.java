@@ -18,13 +18,12 @@ import java.util.regex.Pattern;
  * Created by 086 on 13/12/2017.
  */
 public class Friends extends SettingsClass {
-    public static final Friends INSTANCE = new Friends(); // Static -> non static -> settingsclass -> added to settingspool
+    public static final Friends INSTANCE = new Friends();
 
     @Setting(name = "Friends", converter = FriendListConverter.class)
     public List<Friend> friends = new ArrayList<>();
 
     public Friends() {
-        initSettings();
     }
 
     public static boolean isFriend(String name) {
@@ -63,10 +62,12 @@ public class Friends extends SettingsClass {
             String[] pairs = v.split(Pattern.quote("$"));
             List<Friend> friends = new ArrayList<>();
             for (String pair : pairs) {
-                String[] split = pair.split(";");
-                String username = split[0];
-                UUID uuid = UUID.fromString(split[1]);
-                friends.add(new Friend(getUsernameByUUID(uuid, username),uuid));
+                try {
+                    String[] split = pair.split(";");
+                    String username = split[0];
+                    UUID uuid = UUID.fromString(split[1]);
+                    friends.add(new Friend(getUsernameByUUID(uuid, username),uuid));
+                } catch (Exception e) {} // Empty line, wrong formatting or something, we don't care
             }
             return friends;
         }
