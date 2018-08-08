@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.InventoryEffectRenderer;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
@@ -17,11 +18,11 @@ public class AutoTotem extends Module {
     boolean moving = false;
     boolean returnI = false;
     @Setting(name = "Soft")
-    private boolean soft;
+    private boolean soft = true;
 
     @Override
     public void onUpdate() {
-        if (mc.currentScreen instanceof InventoryEffectRenderer) return;
+        if (mc.currentScreen instanceof GuiContainer) return;
         if (returnI) {
             int t = -1;
             for (int i = 0; i < 45; i++) if (mc.player.inventory.getStackInSlot(i).isEmpty) {
