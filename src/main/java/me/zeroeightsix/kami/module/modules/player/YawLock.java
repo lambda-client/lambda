@@ -15,6 +15,7 @@ public class YawLock extends Module {
 
     @Override
     public void onUpdate() {
+        if (slice == 0) return;
         if (auto) {
             int angle = 360/slice;
             float yaw = mc.player.rotationYaw;

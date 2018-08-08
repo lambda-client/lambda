@@ -321,7 +321,6 @@ public class KamiGUI extends GUI {
             @Override
             public void onTick() {
                 boolean inHell = (mc.world.getBiome(mc.player.getPosition()).getBiomeName().equals("Hell"));
-                //" " + Command.SECTIONSIGN() + "7" +  + " / " +  + " / " + (Math.floor(mc.player.posZ*10)/10)
 
                 int posX = (int) mc.player.posX;
                 int posY = (int) mc.player.posY;

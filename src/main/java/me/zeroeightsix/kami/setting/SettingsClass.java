@@ -212,10 +212,7 @@ public class SettingsClass {
             }
         }
 
-        throw new IllegalArgumentException(String.format(
-                "There is no value with name '%s' in Enum %s",
-                name, enumeration.getName()
-        ));
+        throw new IllegalArgumentException("There is no value with name '" + name + "' in Enum " + enumeration.getName());
     }
 
 }

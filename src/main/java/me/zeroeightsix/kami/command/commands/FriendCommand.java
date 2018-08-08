@@ -45,6 +45,7 @@ public class FriendCommand extends Command {
         }else{
             if (args[1] == null) {
                 Command.sendChatMessage(String.format(Friends.isFriend(args[0]) ? "Yes, %s is your friend." : "No, %s isn't a friend of yours.", args[0]));
+                Command.sendChatMessage(String.format(Friends.isFriend(args[0]) ? "Yes, %s is your friend." : "No, %s isn't a friend of yours.", args[0]));
                 return;
             }
 
