@@ -18,6 +18,7 @@
     "MixinBlockLiquid",
     "MixinRenderPlayer",
     "MixinGuiPlayerTabOverlay",
-    "MixinC00Handshake"
+    "MixinC00Handshake",
+    "MixinNetHandlerPlayClient"
   ]
 }

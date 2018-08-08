@@ -44,12 +44,15 @@ public class Velocity extends Module {
     });
 
     @EventHandler
-    private Listener<EntityEvent.EntityCollision> entityCollisionListener = new Listener<EntityEvent.EntityCollision>(event -> {
+    private Listener<EntityEvent.EntityCollision> entityCollisionListener = new Listener<>(event -> {
         if (event.getEntity() == mc.player) {
-            if (horizontal == 0 && vertical == 0) {event.cancel(); return; }
-            event.setX(-event.getX()*horizontal);
+            if (horizontal == 0 && vertical == 0) {
+                event.cancel();
+                return;
+            }
+            event.setX(-event.getX() * horizontal);
             event.setY(0);
-            event.setZ(-event.getZ()*horizontal);
+            event.setZ(-event.getZ() * horizontal);
         }
     });
 

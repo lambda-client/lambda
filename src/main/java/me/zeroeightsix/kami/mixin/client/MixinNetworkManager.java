@@ -22,10 +22,6 @@ public class MixinNetworkManager {
     @Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void onSendPacket(Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.Send(packet);
-        System.out.println("C -> S: " + packet.getClass().getSimpleName());
-        if (packet instanceof CPacketCustomPayload) {
-            System.out.println("==> " + ((CPacketCustomPayload) packet).getChannelName());
-        }
         KamiMod.EVENT_BUS.post(event);
 
         if (event.isCancelled()) {
@@ -36,13 +32,6 @@ public class MixinNetworkManager {
     @Inject(method = "channelRead0", at = @At("HEAD"), cancellable = true)
     private void onChannelRead(ChannelHandlerContext context, Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.Receive(packet);
-        System.out.println("S -> C: " + packet.getClass().getSimpleName());
-        if (packet instanceof SPacketCustomPayload) {
-            System.out.println("==> " + ((SPacketCustomPayload) packet).getChannelName());
-        }
-        if (packet instanceof SPacketTimeUpdate) {
-            System.out.println(" ( " + ((SPacketTimeUpdate) packet).getTotalWorldTime() + " )");
-        }
         KamiMod.EVENT_BUS.post(event);
 
         if (event.isCancelled()) {
