@@ -331,7 +331,7 @@ public class KamiGUI extends GUI {
                 int hposX = (int) (mc.player.posX * f);
                 int hposZ = (int) (mc.player.posZ * f);
 
-                coordsLabel.setText(String.format(" %sf%d%s7, %sf%d%s7, %sf%d %s7(%sf%d%s7, %sf%d%s7, %sf%d%s7)",
+                coordsLabel.setText(String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
                         Command.SECTIONSIGN(),
                         posX,
                         Command.SECTIONSIGN(),
