@@ -2,11 +2,11 @@ package me.zeroeightsix.kami.module.modules.render;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.event.events.ChunkEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.event.world.ChunkEvent;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
@@ -68,21 +68,22 @@ public class ChunkFinder extends Module {
         }
 
         double x = mc.getRenderManager().renderPosX;
-        double y = relative ? 0 : mc.getRenderManager().renderPosY;
+        double y = relative ? 0 : -mc.getRenderManager().renderPosY;
         double z = mc.getRenderManager().renderPosZ;
         GL11.glTranslated(-x, y+yOffset, -z);
         GL11.glCallList(list);
         GL11.glTranslated(x, -(y+yOffset), z);
     }
 
-    public static void newChunk(Chunk chunk) {
-        chunks.add(chunk);
-        dirty = true;
-    }
+    @EventHandler
+    public Listener<ChunkEvent> listener = new Listener<>(event -> {
+        if (!event.getPacket().isFullChunk()) {
+            chunks.add(event.getChunk());
+            dirty = true;
+        }
+    });
 
     @EventHandler
-    private Listener<ChunkEvent.Unload> unloadListener = new Listener<>(event -> {
-        dirty = chunks.remove(event.getChunk());
-    });
+    private Listener<net.minecraftforge.event.world.ChunkEvent.Unload> unloadListener = new Listener<>(event -> dirty = chunks.remove(event.getChunk()));
 
 }
