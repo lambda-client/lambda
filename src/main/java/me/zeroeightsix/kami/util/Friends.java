@@ -67,7 +67,7 @@ public class Friends extends SettingsClass {
                     String username = split[0];
                     UUID uuid = UUID.fromString(split[1]);
                     friends.add(new Friend(getUsernameByUUID(uuid, username),uuid));
-                } catch (Exception e) {} // Empty line, wrong formatting or something, we don't care
+                } catch (Exception ignored) {} // Empty line, wrong formatting or something, we don't care
             }
             return friends;
         }
