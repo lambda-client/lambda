@@ -16,7 +16,7 @@ KAMI is a forge mod. Start by downloading the latest version of [forge](https://
 3. Navigate to the `mods` directory. If it doesn't exist, create it.
 4. Obtain the KAMI `.jar` file.
    * By **downloading** it: see [releases](../../releases)
-   * By **building** it: see [Building](#building).
+   * By **building** it: see [building](#building).
 5. Place the `.jar` file in your mods directory.
 
 ## Troubleshooting
