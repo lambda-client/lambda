@@ -2,17 +2,21 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.AddCollisionBoxToListEvent;
+import me.zeroeightsix.kami.event.events.ShouldSideBeRenderedEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import javax.annotation.Nullable;
@@ -32,6 +36,13 @@ public class MixinStateImplementation {
         KamiMod.EVENT_BUS.post(event);
         if (!event.isCancelled())
             block.addCollisionBoxToList(state, worldIn, pos, entityBox, collidingBoxes, entityIn, isActualState);
+    }
+
+    @Redirect(method = "shouldSideBeRendered", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/Block;shouldSideBeRendered(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z"))
+    public boolean shouldSideBeRendered(Block block, IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
+        ShouldSideBeRenderedEvent event = new ShouldSideBeRenderedEvent(block, block.shouldSideBeRendered(blockState, blockAccess, pos, side));
+        KamiMod.EVENT_BUS.post(event);
+        return event.isDoRender();
     }
 
 }
