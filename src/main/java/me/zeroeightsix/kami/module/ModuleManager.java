@@ -13,10 +13,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Created by 086 on 23/08/2017.
@@ -31,22 +29,18 @@ public class ModuleManager {
     static HashMap<String, Module> lookup = new HashMap<>();
 
     public static void initialize() {
-        List<Class> classList = ClassFinder.generateClassList(ClickGUI.class.getPackage().getName());
-
-        classList.stream().forEach(aClass -> {
-            if (Module.class.isAssignableFrom(aClass)) {
-                try {
-                    Module module = (Module) aClass.getConstructor().newInstance();
-                    modules.add(module);
-                    lookup.put(module.getName().toLowerCase(), module);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
-                }
+        Set<Class> classList = ClassFinder.findClasses(ClickGUI.class.getPackage().getName(), Module.class);
+        classList.forEach(aClass -> {
+            try {
+                Module module = (Module) aClass.getConstructor().newInstance();
+                modules.add(module);
+                lookup.put(module.getName().toLowerCase(), module);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
             }
         });
         KamiMod.log.info("Modules initialized");
-
         getModules().sort(Comparator.comparing(Module::getName));
     }
 

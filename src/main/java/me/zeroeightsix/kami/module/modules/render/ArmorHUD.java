@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.module.modules.render;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.util.ColourHolder;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderItem;
@@ -14,7 +15,8 @@ import net.minecraft.item.ItemStack;
 @Module.Info(name = "ArmorHUD", category = Module.Category.RENDER)
 public class ArmorHUD extends Module {
 
-    static RenderItem itemRender = mc.getRenderItem();
+    static RenderItem itemRender = Minecraft.getMinecraft()
+            .getRenderItem();
 
     @Setting(name = "Damage") private boolean damage = false;
 

@@ -4,9 +4,11 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.commands.BindCommand;
 import me.zeroeightsix.kami.util.ClassFinder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 public class CommandManager {
 	
@@ -15,7 +17,7 @@ public class CommandManager {
 	public CommandManager() {
 		commands = new ArrayList<>();
 
-		List<Class> classList = ClassFinder.generateClassList(BindCommand.class.getPackage().getName());
+		Set<Class> classList = ClassFinder.findClasses(BindCommand.class.getPackage().getName(), Command.class);
 		for (Class s : classList) {
 			if (Command.class.isAssignableFrom(s)){
 				try {

@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
+import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.SettingsClass;
 import net.minecraft.client.Minecraft;
@@ -15,22 +16,26 @@ import java.lang.annotation.RetentionPolicy;
  */
 public class Module extends SettingsClass {
 
-    private final String name = ((Info)getClass().getAnnotation(Info.class)).name();
-    private final String description = ((Info)getClass().getAnnotation(Info.class)).description();
-    private final Category category = ((Info)getClass().getAnnotation(Info.class)).category();
+    private final String name = getAnnotation().name();
+    private final String description = getAnnotation().description();
+    private final Category category = getAnnotation().category();
     @Setting(name = "Bind", hidden = true)
-    private int bind = ((Info)getClass().getAnnotation(Info.class)).bind();
+    private int bind = getAnnotation().bind();
     @Setting(name = "Enabled", hidden = true)
     private boolean enabled;
     public boolean alwaysListening = false;
     protected static final Minecraft mc = Minecraft.getMinecraft();
 
     public Module() {
-        alwaysListening = (getClass().getAnnotation(Info.class)).alwaysListening();
+        alwaysListening = getAnnotation().alwaysListening();
 
         enabled = false;
 //        FMLCommonHandler.instance().bus().register(this);
         initSettings();
+    }
+
+    private Info getAnnotation() {
+        return getClass().isAnnotationPresent(Info.class) ? getClass().getAnnotation(Info.class) : Sprint.class.getAnnotation(Info.class); // dummy annotation
     }
 
     public void onUpdate() {}
