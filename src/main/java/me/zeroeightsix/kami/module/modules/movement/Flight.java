@@ -62,7 +62,7 @@ public class Flight extends Module {
         }
     }
 
-    public static enum FlightMode {
+    public enum FlightMode {
         VANILLA, STATIC
     }
 
