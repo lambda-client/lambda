@@ -22,7 +22,7 @@ KAMI is a forge mod. Start by downloading the latest version of [forge](https://
 ## Troubleshooting
 Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
 
-If you experience an issue and it's not listed there, please [open a new issue](https://github.com/zeroeightysix/KAMI/issues/new) and a contributor will help you further.
+If you experience an issue and it's not listed there, please [open a new issue](issues/new) and a contributor will help you further.
 
 ## Contributing
 
