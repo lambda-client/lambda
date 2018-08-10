@@ -20,7 +20,8 @@ KAMI is a forge mod. Start by downloading the latest version of [forge](https://
 5. Place the `.jar` file in your mods directory.
 
 ## Troubleshooting
-Please reference the main troubleshooting page: [Troubleshooting](https://github.com/zeroeightysix/KAMI/blob/master/TROUBLESHOOTING.md)
+Please reference the main [troubleshooting page](https://github.com/zeroeightysix/KAMI/blob/master/TROUBLESHOOTING.md)
+
 If you experience an issue and it's not listed there, please [open a new issue](https://github.com/zeroeightysix/KAMI/issues/new) and a contributor will help you further.
 
 ## Contributing
