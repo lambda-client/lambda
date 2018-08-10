@@ -34,20 +34,4 @@ public class MixinStateImplementation {
             block.addCollisionBoxToList(state, worldIn, pos, entityBox, collidingBoxes, entityIn, isActualState);
     }
 
-//    @Inject(method = "shouldSideBeRendered", at = @At("HEAD"), cancellable = true)
-//    public void shouldSideBeRendered(IBlockAccess blockAccess, BlockPos pos, EnumFacing facing, CallbackInfoReturnable callbackInfoReturnable) {
-//        if (ModuleManager.isModuleEnabled("Xray")) {
-//            callbackInfoReturnable.setReturnValue(Xray.isXrayBlock(block));
-//            callbackInfoReturnable.cancel();
-//        }
-//    }
-//
-//    @Inject(method = "getLightValue()I", at = @At("HEAD"), cancellable = true)
-//    public void getLightValue(CallbackInfoReturnable callbackInfoReturnable) {
-//        if (ModuleManager.isModuleEnabled("Xray")) {
-//            callbackInfoReturnable.setReturnValue(16);
-//            callbackInfoReturnable.cancel();
-//        }
-//    }
-
 }
