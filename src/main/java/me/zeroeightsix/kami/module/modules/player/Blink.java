@@ -7,6 +7,8 @@ import me.zeroeightsix.kami.module.Module;
 import net.minecraft.network.play.client.CPacketPlayer;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * Created by 086 on 24/01/2018.
@@ -14,7 +16,7 @@ import java.util.ArrayList;
 @Module.Info(name = "Blink", category = Module.Category.PLAYER)
 public class Blink extends Module {
 
-    ArrayList<CPacketPlayer> packets = new ArrayList<>();
+    Queue<CPacketPlayer> packets = new LinkedList<>();
 
     @EventHandler
     public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
@@ -26,9 +28,8 @@ public class Blink extends Module {
 
     @Override
     protected void onDisable() {
-        for (CPacketPlayer cPacketPlayer : packets)
-            mc.player.connection.sendPacket(cPacketPlayer);
-        packets.clear();
+        while (!packets.isEmpty())
+            mc.player.connection.sendPacket(packets.poll());
     }
 
     @Override
