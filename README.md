@@ -38,7 +38,7 @@ On linux, run `chmod +x gradlew` and for the following commands use `./gradlew` 
 ```
 gradlew.bat setupDecompWorkspace
 ```
-Import KAMI into your IDE of choice. If you use intelliJ, import from the `build.gradle` file and run `gradlew.bat genIntellijRuns`
+Import KAMI into your IDE of choice. If you use IntelliJ, import from the `build.gradle` file and run `gradlew.bat genIntellijRuns`
 
 If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
 
