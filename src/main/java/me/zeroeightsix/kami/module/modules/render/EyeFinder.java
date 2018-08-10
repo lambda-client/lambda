@@ -68,10 +68,10 @@ public class EyeFinder extends Module {
             KamiTessellator.prepare(GL11.GL_QUADS);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
             BlockPos b = result.getBlockPos();
-            float x = b.x - .003f;
-            float y = b.y - .003f;
-            float z = b.z - .003f;
-            KamiTessellator.drawBox(KamiTessellator.getBufferBuilder(), x, y, z, 1.006f, 1.006f, 1.006f, 51, 25, 73, 200, GeometryMasks.Quad.ALL);
+            float x = b.x - .01f;
+            float y = b.y - .01f;
+            float z = b.z - .01f;
+            KamiTessellator.drawBox(KamiTessellator.getBufferBuilder(), x, y, z, 1.01f, 1.01f, 1.01f, 51, 25, 73, 200, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
         }
 
