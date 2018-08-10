@@ -13,31 +13,31 @@ public class Brightness extends Module {
     public float brightness = 8;
 
     @Setting(name = "prev_brightness", hidden = true)
-    public float prevbrightness = 1;
+    public float prevBrightness = 1;
     boolean goingDown = false;
 
     @Override
     protected void onEnable() {
         if (goingDown) {
-            mc.gameSettings.gammaSetting=prevbrightness;
+            mc.gameSettings.gammaSetting = prevBrightness;
             alwaysListening = false;
             goingDown = false;
         }
-        prevbrightness = mc.gameSettings.gammaSetting;
+        prevBrightness = mc.gameSettings.gammaSetting;
     }
 
     @Override
     public void onUpdate() {
         if (goingDown) {
-            float dif = (prevbrightness-mc.gameSettings.gammaSetting);
-            mc.gameSettings.gammaSetting += dif*0.1f;
-            if (Math.abs(dif) <= .05f) {
-                mc.gameSettings.gammaSetting = prevbrightness;
+            float diff = (prevBrightness - mc.gameSettings.gammaSetting);
+            mc.gameSettings.gammaSetting += diff * 0.1f;
+            if (Math.abs(diff) <= .05f) {
+                mc.gameSettings.gammaSetting = prevBrightness;
                 setAlwaysListening(false);
                 goingDown = false;
             }
         }else
-            mc.gameSettings.gammaSetting += (brightness-mc.gameSettings.gammaSetting)*0.1f;
+            mc.gameSettings.gammaSetting += (brightness - mc.gameSettings.gammaSetting) * 0.1f;
     }
 
     @Override
