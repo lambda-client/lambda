@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.AddCollisionBoxToListEvent;
-import me.zeroeightsix.kami.event.events.ShouldSideBeRenderedEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
@@ -36,13 +35,6 @@ public class MixinStateImplementation {
         KamiMod.EVENT_BUS.post(event);
         if (!event.isCancelled())
             block.addCollisionBoxToList(state, worldIn, pos, entityBox, collidingBoxes, entityIn, isActualState);
-    }
-
-    @Redirect(method = "shouldSideBeRendered", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/Block;shouldSideBeRendered(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z"))
-    public boolean shouldSideBeRendered(Block block, IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
-        ShouldSideBeRenderedEvent event = new ShouldSideBeRenderedEvent(block, block.shouldSideBeRendered(blockState, blockAccess, pos, side));
-        KamiMod.EVENT_BUS.post(event);
-        return event.isDoRender();
     }
 
 }
