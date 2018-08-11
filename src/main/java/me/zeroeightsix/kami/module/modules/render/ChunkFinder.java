@@ -86,4 +86,8 @@ public class ChunkFinder extends Module {
     @EventHandler
     private Listener<net.minecraftforge.event.world.ChunkEvent.Unload> unloadListener = new Listener<>(event -> dirty = chunks.remove(event.getChunk()));
 
+    @Override
+    public void destroy() {
+        GL11.glDeleteLists(1, 1);
+    }
 }

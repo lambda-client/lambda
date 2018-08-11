@@ -2,6 +2,8 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
+import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.SettingsPool;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
@@ -113,6 +115,7 @@ public class MixinMinecraft {
             if (!f.exists())
                 f.createNewFile();
             SettingsPool.save(f);
+            ModuleManager.getModules().forEach(Module::destroy);
         }catch (IOException e) {
             e.printStackTrace();
         }
