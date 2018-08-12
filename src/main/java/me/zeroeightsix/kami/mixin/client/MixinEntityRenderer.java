@@ -3,20 +3,19 @@ package me.zeroeightsix.kami.mixin.client;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.render.AntiFog;
 import me.zeroeightsix.kami.module.modules.render.NoHurtCam;
-import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.EntityRenderer;
-import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
+import net.minecraft.potion.Potion;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -28,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(EntityRenderer.class)
 public class MixinEntityRenderer {
 
-    Minecraft mc = Wrapper.getMinecraft();
+    private boolean nightVision = false;
 
     @Redirect(method = "orientCamera", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/WorldClient;rayTraceBlocks(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/RayTraceResult;"))
     public RayTraceResult rayTraceBlocks(WorldClient world, Vec3d start, Vec3d end) {
@@ -53,6 +52,17 @@ public class MixinEntityRenderer {
     @Inject(method = "hurtCameraEffect", at = @At("HEAD"), cancellable = true)
     public void hurtCameraEffect(float ticks, CallbackInfo info) {
         if (NoHurtCam.shouldDisable()) info.cancel();
+    }
+
+    @Redirect(method = "updateLightmap", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isPotionActive(Lnet/minecraft/potion/Potion;)Z"))
+    public boolean isPotionActive(EntityPlayerSP player, Potion potion) {
+        return (nightVision = ModuleManager.isModuleEnabled("Brightness")) || player.isPotionActive(potion);
+    }
+
+    @Redirect(method = "updateLightmap", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;getNightVisionBrightness(Lnet/minecraft/entity/EntityLivingBase;F)F"))
+    public float getNightVisionBrightnessMixin(EntityRenderer renderer, EntityLivingBase entity, float partialTicks) {
+        if (nightVision) return 1;
+        return renderer.getNightVisionBrightness(entity, partialTicks);
     }
 
 }
