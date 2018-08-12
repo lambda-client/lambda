@@ -13,11 +13,11 @@ public class Brightness extends Module {
     public float brightness = 16;
 
     @Setting(name = "prev_brightness", hidden = true)
-    public float prevbrightness = 1;
+    public float prevBrightness = 1;
 
     @Override
     protected void onEnable() {
-        prevbrightness = mc.gameSettings.gammaSetting;
+        prevBrightness = mc.gameSettings.gammaSetting;
     }
 
     @Override
@@ -27,7 +27,7 @@ public class Brightness extends Module {
 
     @Override
     protected void onDisable() {
-        mc.gameSettings.gammaSetting = prevbrightness;
+        mc.gameSettings.gammaSetting = prevBrightness;
     }
 
 }
