@@ -151,4 +151,10 @@ public class Module extends SettingsClass {
         if (alwaysListening) KamiMod.EVENT_BUS.subscribe(this);
         if (!alwaysListening && isDisabled()) KamiMod.EVENT_BUS.unsubscribe(this);
     }
+
+    /**
+     * Cleanup method in case this module wants to do something when the client closes down
+     */
+    public void destroy(){};
+
 }

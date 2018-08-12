@@ -1,4 +1,6 @@
 # KAMI
+[![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/gmBRk2s)
+
 
 A minecraft 'hacked' client in the form of a forge mod.
 
