@@ -1,7 +1,6 @@
 # KAMI
 [![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/gmBRk2s)
 
-
 A minecraft 'hacked' client in the form of a forge mod.
 
 See [forgehax](https://github.com/fr1kin/forgehax) for a more polished equivalent. Some features in KAMI may be based on those of forgehax, as I sometimes used it as reference.
@@ -20,6 +19,20 @@ KAMI is a forge mod. Start by downloading the latest version of [forge](https://
    * By **downloading** it: see [releases](../../releases)
    * By **building** it: see [building](#building).
 5. Place the `.jar` file in your mods directory.
+
+## How do I
+
+##### Open the GUI
+Press Y.
+
+##### Use commands
+The default prefix is `.`. Commands are used through chat, use `.commands` for a list of commands.
+
+##### Bind modules
+Run `.bind <module> <key>`.
+
+##### Change command prefix
+After having ran KAMI (make sure it's closed), edit `kami.settings` and find `command_prefix` to change the prefix.
 
 ## Troubleshooting
 Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
