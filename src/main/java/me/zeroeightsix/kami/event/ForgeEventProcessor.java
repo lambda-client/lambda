@@ -128,7 +128,7 @@ public class ForgeEventProcessor {
     @SubscribeEvent
     public void onInputUpdate(InputUpdateEvent event) { KamiMod.EVENT_BUS.post(event); }
     @SubscribeEvent
-    public void onLivingEntityUseItemEventTick(LivingEntityUseItemEvent.Tick entityUseItemEvent) {
+    public void onLivingEntityUseItemEventTick(LivingEntityUseItemEvent.Start entityUseItemEvent) {
         KamiMod.EVENT_BUS.post(entityUseItemEvent);
     }
     @SubscribeEvent

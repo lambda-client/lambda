@@ -19,6 +19,7 @@
     "MixinRenderPlayer",
     "MixinGuiPlayerTabOverlay",
     "MixinC00Handshake",
-    "MixinNetHandlerPlayClient"
+    "MixinNetHandlerPlayClient",
+    "MixinItemBow"
   ]
 }
