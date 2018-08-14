@@ -74,7 +74,7 @@ public class ForgeEventProcessor {
         if (event.isCanceled()) return;
 
         RenderGameOverlayEvent.ElementType target = RenderGameOverlayEvent.ElementType.EXPERIENCE;
-        if (Wrapper.getPlayer().getRidingEntity() instanceof EntityHorse) target = RenderGameOverlayEvent.ElementType.HEALTHMOUNT;
+        if (!Wrapper.getPlayer().isCreative() && Wrapper.getPlayer().getRidingEntity() instanceof EntityHorse) target = RenderGameOverlayEvent.ElementType.HEALTHMOUNT;
 
         if (event.getType() == target) {
             ModuleManager.onRender();
