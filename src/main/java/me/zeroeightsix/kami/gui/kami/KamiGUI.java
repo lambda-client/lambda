@@ -29,8 +29,11 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityWitherSkull;
+import net.minecraft.util.text.TextFormatting;
 
+import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by 086 on 25/06/2017.
@@ -250,59 +253,30 @@ public class KamiGUI extends GUI {
             @Override
             public void onTick() {
                 if (mc.player == null || !entityLabel.isVisible()) return;
-                List<Entity> entityList = mc.world.loadedEntityList;
+
+                final List<Entity> entityList = new ArrayList<>(mc.world.loadedEntityList);
                 if (entityList.size() <= 1) {
                     entityLabel.setText("");
                     return;
                 }
-
-                Map<String, Integer> entityMap = new HashMap<>();
-                List<Entity> copy = new ArrayList<>(entityList);
-                for (Entity e : copy) {
-                    if (e instanceof EntityPlayer) continue;
-
-                    String name = e.getName();
-
-                    int add = 1;
-
-                    if (e instanceof EntityItem) {
-                        name = Command.SECTIONSIGN() + "3" + ((EntityItem) e).getItem().getItem().getItemStackDisplayName(((EntityItem) e).getItem());
-                        add = ((EntityItem) e).getItem().getCount();
-                    }
-                    if (e instanceof EntityWitherSkull) {
-                        name = Command.SECTIONSIGN() + "8" + "Wither skull";
-                    }
-                    if (e instanceof EntityEnderCrystal) {
-                        name = Command.SECTIONSIGN() + "d" + "End crystal";
-                    }
-                    if (e instanceof EntityEnderPearl) {
-                        name = "Thrown ender pearl";
-                    }
-                    if (e instanceof EntityMinecart) {
-                        name = "Minecart";
-                    }
-                    if (e instanceof EntityItemFrame) {
-                        name = "Item frame";
-                    }
-                    if (e instanceof EntityEgg) {
-                        name = "Thrown egg";
-                    }
-                    if (e instanceof EntitySnowball) {
-                        name = "Thrown snowball";
-                    }
-
-                    int count = entityMap.containsKey(name) ? entityMap.get(name) : 0;
-                    entityMap.put(name, count + add);
-                }
-
-                entityMap = sortByValue(entityMap);
+                final Map<String, Integer> entityCounts = entityList.stream()
+                        .filter(Objects::nonNull)
+                        .filter(e -> !(e instanceof EntityPlayer))
+                        .collect(Collectors.groupingBy(KamiGUI::getEntityName,
+                                Collectors.reducing(0, ent -> {
+                                    if (ent instanceof EntityItem)
+                                        return ((EntityItem)ent).getItem().getCount();
+                                    return 1;
+                                }, Integer::sum)
+                        ));
 
                 entityLabel.setText("");
-                for (Map.Entry<String, Integer> entry : entityMap.entrySet()) {
-                    entityLabel.addLine(Command.SECTIONSIGN() + "7" + entry.getKey() + " " + Command.SECTIONSIGN() + "8x" + entry.getValue());
-                }
+                entityCounts.entrySet().stream()
+                        .sorted(Map.Entry.comparingByValue())
+                        .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
+                        .forEach(entityLabel::addLine);
 
-//                entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
+                //entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
             }
         });
         frame.addChild(entityLabel);
@@ -381,6 +355,35 @@ public class KamiGUI extends GUI {
 
             addChild(frame1);
         }
+    }
+
+    private static String getEntityName(@Nonnull Entity entity) {
+        if (entity instanceof EntityItem) {
+            return TextFormatting.DARK_AQUA + ((EntityItem) entity).getItem().getItem().getItemStackDisplayName(((EntityItem) entity).getItem());
+        }
+        if (entity instanceof EntityWitherSkull) {
+            return TextFormatting.DARK_GRAY + "Wither skull";
+        }
+        if (entity instanceof EntityEnderCrystal) {
+            return TextFormatting.LIGHT_PURPLE + "End crystal";
+        }
+        if (entity instanceof EntityEnderPearl) {
+            return "Thrown ender pearl";
+        }
+        if (entity instanceof EntityMinecart) {
+            return "Minecart";
+        }
+        if (entity instanceof EntityItemFrame) {
+            return "Item frame";
+        }
+        if (entity instanceof EntityEgg) {
+            return "Thrown egg";
+        }
+        if (entity instanceof EntitySnowball) {
+            return "Thrown snowball";
+        }
+
+        return entity.getName();
     }
 
     public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
