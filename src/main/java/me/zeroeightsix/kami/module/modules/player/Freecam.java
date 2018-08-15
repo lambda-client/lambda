@@ -2,8 +2,8 @@ package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zero.alpine.type.Cancellable;
-import me.zeroeightsix.kami.event.events.*;
+import me.zeroeightsix.kami.event.events.PacketEvent;
+import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
@@ -11,7 +11,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.client.CPacketInput;
 import net.minecraft.network.play.client.CPacketPlayer;
-import net.minecraft.network.play.server.SPacketPlayerPosLook;
 import net.minecraftforge.client.event.PlayerSPPushOutOfBlocksEvent;
 
 /**

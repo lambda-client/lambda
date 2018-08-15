@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.gui.rgui.component.container.use;
 
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.OrganisedContainer;
 import me.zeroeightsix.kami.gui.rgui.component.listen.MouseListener;
@@ -12,7 +13,6 @@ import me.zeroeightsix.kami.gui.rgui.poof.use.FramePoof;
 import me.zeroeightsix.kami.gui.rgui.poof.use.Poof;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
-import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.gui;
 
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
+import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.component.listen.RenderListener;
-import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
-import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.GL11;

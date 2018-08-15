@@ -6,7 +6,6 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.network.play.client.CPacketPlayer;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 

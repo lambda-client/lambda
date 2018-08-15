@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.gui.kami.component;
 
+import me.zeroeightsix.kami.gui.kami.Stretcherlayout;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.OrganisedContainer;
 import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.component.use.Slider;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
-import me.zeroeightsix.kami.gui.kami.Stretcherlayout;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.SettingsClass;

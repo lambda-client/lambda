@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zeroeightsix.kami.module.Module;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * @author 086

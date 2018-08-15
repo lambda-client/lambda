@@ -1,6 +1,8 @@
 package me.zeroeightsix.kami.util;
 
-import com.google.gson.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.setting.FieldConverter;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.SettingsClass;

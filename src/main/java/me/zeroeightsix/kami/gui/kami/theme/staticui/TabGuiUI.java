@@ -1,9 +1,9 @@
 package me.zeroeightsix.kami.gui.kami.theme.staticui;
 
-import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
-import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.kami.component.TabGUI;
+import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
+import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.opengl.GL11;

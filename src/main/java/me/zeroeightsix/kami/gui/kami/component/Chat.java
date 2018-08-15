@@ -1,13 +1,13 @@
 package me.zeroeightsix.kami.gui.kami.component;
 
-import org.lwjgl.input.Keyboard;
+import me.zeroeightsix.kami.gui.kami.Stretcherlayout;
 import me.zeroeightsix.kami.gui.rgui.component.container.AbstractContainer;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Scrollpane;
 import me.zeroeightsix.kami.gui.rgui.component.listen.KeyListener;
 import me.zeroeightsix.kami.gui.rgui.component.use.InputField;
 import me.zeroeightsix.kami.gui.rgui.component.use.Label;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
-import me.zeroeightsix.kami.gui.kami.Stretcherlayout;
+import org.lwjgl.input.Keyboard;
 
 /**
  * Created by 086 on 2/08/2017.

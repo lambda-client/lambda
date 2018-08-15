@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.ChunkEvent;
-import me.zeroeightsix.kami.module.modules.render.ChunkFinder;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.network.play.server.SPacketChunkData;
 import net.minecraft.world.chunk.Chunk;

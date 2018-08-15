@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.gui.rgui.component.use;
 
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 import me.zeroeightsix.kami.gui.rgui.GUI;
 import me.zeroeightsix.kami.gui.rgui.component.AbstractComponent;
 import me.zeroeightsix.kami.gui.rgui.component.listen.KeyListener;
@@ -8,7 +9,6 @@ import me.zeroeightsix.kami.gui.rgui.component.listen.RenderListener;
 import me.zeroeightsix.kami.gui.rgui.poof.PoofInfo;
 import me.zeroeightsix.kami.gui.rgui.poof.use.Poof;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
-import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;

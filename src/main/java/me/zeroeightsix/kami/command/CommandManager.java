@@ -4,7 +4,6 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.commands.BindCommand;
 import me.zeroeightsix.kami.util.ClassFinder;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
