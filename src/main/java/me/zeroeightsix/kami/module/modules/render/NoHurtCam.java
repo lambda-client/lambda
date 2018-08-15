@@ -15,7 +15,7 @@ public class NoHurtCam extends Module {
     }
 
     public static boolean shouldDisable() {
-        return INSTANCE.isEnabled();
+        return INSTANCE != null && INSTANCE.isEnabled();
     }
 
 }
