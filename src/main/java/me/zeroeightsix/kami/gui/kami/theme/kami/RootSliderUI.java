@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
+import me.zeroeightsix.kami.gui.kami.RenderHelper;
+import me.zeroeightsix.kami.gui.kami.RootSmallFontRenderer;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.use.Slider;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
-import me.zeroeightsix.kami.gui.kami.RenderHelper;
-import me.zeroeightsix.kami.gui.kami.RootSmallFontRenderer;
 
 import static org.lwjgl.opengl.GL11.*;
 

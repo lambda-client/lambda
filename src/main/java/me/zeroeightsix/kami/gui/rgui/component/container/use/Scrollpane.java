@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.gui.rgui.component.container.use;
 
-import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.GL11;
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 import me.zeroeightsix.kami.gui.rgui.GUI;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
@@ -11,7 +10,8 @@ import me.zeroeightsix.kami.gui.rgui.component.listen.RenderListener;
 import me.zeroeightsix.kami.gui.rgui.component.listen.UpdateListener;
 import me.zeroeightsix.kami.gui.rgui.layout.Layout;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
-import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
+import org.lwjgl.opengl.Display;
+import org.lwjgl.opengl.GL11;
 
 /**
  * Created by 086 on 27/06/2017.

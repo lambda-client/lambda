@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.gui.rgui.component;
 
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 import me.zeroeightsix.kami.gui.rgui.GUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.listen.*;
@@ -7,7 +8,6 @@ import me.zeroeightsix.kami.gui.rgui.poof.IPoof;
 import me.zeroeightsix.kami.gui.rgui.poof.PoofInfo;
 import me.zeroeightsix.kami.gui.rgui.render.ComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
-import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 import me.zeroeightsix.kami.setting.Setting;
 
 import java.util.ArrayList;

@@ -1,10 +1,10 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
-import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
-import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.kami.RootSmallFontRenderer;
 import me.zeroeightsix.kami.gui.kami.component.ColorizedCheckButton;
+import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
+import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
 import java.awt.*;
 

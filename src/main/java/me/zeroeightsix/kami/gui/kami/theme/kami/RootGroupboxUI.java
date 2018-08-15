@@ -1,10 +1,10 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
-import org.lwjgl.opengl.GL11;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Groupbox;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
+import org.lwjgl.opengl.GL11;
 
 /**
  * Created by 086 on 26/06/2017.

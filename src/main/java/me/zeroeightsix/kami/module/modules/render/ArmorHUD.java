@@ -15,7 +15,7 @@ import net.minecraft.item.ItemStack;
 @Module.Info(name = "ArmorHUD", category = Module.Category.RENDER)
 public class ArmorHUD extends Module {
 
-    static RenderItem itemRender = Minecraft.getMinecraft()
+    private static RenderItem itemRender = Minecraft.getMinecraft()
             .getRenderItem();
 
     @Setting(name = "Damage") private boolean damage = false;

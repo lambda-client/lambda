@@ -1,10 +1,6 @@
 package me.zeroeightsix.kami.module.modules.player;
 
-import me.zero.alpine.listener.EventHandler;
-import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.util.LagCompensator;
-import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 
 /**
  * Created by 086 on 9/04/2018.

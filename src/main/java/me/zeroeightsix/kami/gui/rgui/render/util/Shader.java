@@ -3,11 +3,11 @@ package me.zeroeightsix.kami.gui.rgui.render.util;
 import java.util.HashMap;
 import java.util.Map;
 
+import static me.zeroeightsix.kami.gui.rgui.render.util.ShaderHelper.createProgram;
+import static me.zeroeightsix.kami.gui.rgui.render.util.ShaderHelper.loadShader;
 import static org.lwjgl.opengl.ARBFragmentShader.GL_FRAGMENT_SHADER_ARB;
 import static org.lwjgl.opengl.ARBShaderObjects.*;
 import static org.lwjgl.opengl.ARBVertexShader.GL_VERTEX_SHADER_ARB;
-import static me.zeroeightsix.kami.gui.rgui.render.util.ShaderHelper.createProgram;
-import static me.zeroeightsix.kami.gui.rgui.render.util.ShaderHelper.loadShader;
 
 /**
  * Used to create ARB Shader Programs with OpenGL

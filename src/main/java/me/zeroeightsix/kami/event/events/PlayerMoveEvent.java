@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.event.events;
 
 import me.zeroeightsix.kami.event.KamiEvent;
 import net.minecraft.entity.MoverType;
-import net.minecraft.util.math.BlockPos;
 
 /**
  * @author 086

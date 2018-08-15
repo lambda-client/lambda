@@ -1,13 +1,13 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
+import me.zeroeightsix.kami.gui.kami.KamiGUI;
+import me.zeroeightsix.kami.gui.kami.theme.staticui.RadarUI;
+import me.zeroeightsix.kami.gui.kami.theme.staticui.TabGuiUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.component.use.Button;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.gui.rgui.render.theme.AbstractTheme;
-import me.zeroeightsix.kami.gui.kami.KamiGUI;
-import me.zeroeightsix.kami.gui.kami.theme.staticui.RadarUI;
-import me.zeroeightsix.kami.gui.kami.theme.staticui.TabGuiUI;
 
 /**
  * Created by 086 on 26/06/2017.
