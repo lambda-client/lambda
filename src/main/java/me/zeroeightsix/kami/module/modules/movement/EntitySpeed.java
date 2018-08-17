@@ -19,6 +19,7 @@ import net.minecraft.world.chunk.EmptyChunk;
 public class EntitySpeed extends Module {
 
     @Setting(name = "Speed") private float speed = 1;
+    @Setting(name = "AntiStuck") private boolean antiStuck = true;
 
     @Override
     public void onUpdate() {
@@ -37,7 +38,7 @@ public class EntitySpeed extends Module {
         }
     }
 
-    public static void setMoveSpeedEntity(double speed) {
+    private void setMoveSpeedEntity(double speed) {
         if (mc.player.getRidingEntity() != null)
         {
             MovementInput movementInput = mc.player.movementInput;
@@ -62,7 +63,7 @@ public class EntitySpeed extends Module {
                     strafe = 0.0D;
                     if (forward > 0.0D) {
                         forward = 1.0D;
-                    } else if (forward < 0.0D) {
+                    } else {
                         forward = -1.0D;
                     }
                 }
@@ -70,7 +71,7 @@ public class EntitySpeed extends Module {
                 double motX = (forward * speed * Math.cos(Math.toRadians(yaw + 90.0F)) + strafe * speed * Math.sin(Math.toRadians(yaw + 90.0F)));
                 double motZ = (forward * speed * Math.sin(Math.toRadians(yaw + 90.0F)) - strafe * speed * Math.cos(Math.toRadians(yaw + 90.0F)));
 
-                if (mc.world.getChunkFromChunkCoords((int) (mc.player.getRidingEntity().posX + motX) >> 4, (int) (mc.player.getRidingEntity().posZ + motZ) >> 4) instanceof EmptyChunk)
+                if (antiStuck && mc.world.getChunkFromChunkCoords((int) (mc.player.getRidingEntity().posX + motX) >> 4, (int) (mc.player.getRidingEntity().posZ + motZ) >> 4) instanceof EmptyChunk)
                     motX = motZ = 0;
 
                 mc.player.getRidingEntity().motionX = motX;
