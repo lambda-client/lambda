@@ -2,8 +2,8 @@ buildscript {
     repositories {
         jcenter()
         maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
+            name = 'forge'
+            url = 'http://files.minecraftforge.net/maven'
         }
         maven {
             name = 'SpongePowered'
@@ -11,38 +11,30 @@ buildscript {
         }
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
         classpath 'org.spongepowered:mixingradle:0.4-SNAPSHOT'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
     }
 }
 
-ext.configFile = file "project.properties"
-apply plugin: "net.minecraftforge.gradle.forge"
+apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-configFile.withReader { 
-    // read config.  it shall from now on be referenced as simply config or as project.config 
-    def prop = new Properties() 
-    prop.load(it) 
-    project.ext.config = new ConfigSlurper().parse prop 
-} 
- 
-version = "${config.minecraft_version}-${config.mod_version}" 
-if (hasProperty('appendBuildNumber')) { 
-    version = version + "-" + appendBuildNumber.toString() 
+version project.modVersion
+group project.modGroup // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
 }
- 
-group = "${config.group_id}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html 
-archivesBaseName = "${config.mod_id_cap}"
 
 minecraft {
     version = project.forgeVersion
-    runDir = "run"
+    runDir = 'run'
     mappings = project.mcpVersion
-    coreMod = "me.zeroeightsix.kami.mixin.MixinLoaderForge"
-	// makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+    coreMod = 'me.zeroeightsix.kami.mixin.MixinLoaderForge'
+    makeObfSourceJar = false
 }
 
 repositories {
@@ -83,62 +75,24 @@ dependencies {
 
 processResources {
     // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
+    inputs.property 'version', project.version
+    inputs.property 'mcversion', project.minecraft.version
 
     // replace stuff in mcmod.info, nothing else
     from(sourceSets.main.resources.srcDirs) {
-        include "mcmod.info"
+        include 'mcmod.info'
 
         // replace version and mcversion
-        expand "version": project.version, "mcversion": project.minecraft.version
+        expand 'version': project.version, 'mcversion': project.minecraft.version
     }
 
     // copy everything else, thats not the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
-        exclude "mcmod.info"
+        exclude 'mcmod.info'
     }
 
     // move _at.cfg into META-INF
     rename '(.+_at.cfg)', 'META-INF/$1'
-}
-
-mixin {
-    defaultObfuscationEnv searge
-    add sourceSets.main, "mixins.kami.refmap.json"
-}
-
-reobf {
-    shadowJar {
-        mappingType = 'SEARGE'
-        classpath = sourceSets.main.compileClasspath
-    }
-}
-
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
-task shadowDevJar(type: ShadowJar) {
-    classifier = 'dev-shaded'
-
-    from sourceSets.main.output
-    //from sourceSets.java8.output
-
-    // Default settings for shadow tasks
-    configurations = [project.configurations.runtime]
-    manifest.inheritFrom tasks.jar.manifest
-    exclude 'META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
-}
-
-//shadowDevJar shadowConfiguration
-
-// Upload shadowDevJar to Maven repository
-artifacts {
-    archives shadowDevJar
-}
-
-allprojects {
-    // Re-obfuscate only after creating the shadowDevJar
-    tasks.findByName('reobfJar')?.mustRunAfter rootProject.tasks.shadowDevJar
 }
 
 shadowJar {
@@ -152,22 +106,33 @@ shadowJar {
     }
     exclude 'dummyThing'
     exclude 'LICENSE.txt'
-    classifier = 'full'
+    classifier = 'release'
 }
 
-build.dependsOn(shadowJar)
+mixin {
+    defaultObfuscationEnv searge
+    add sourceSets.main, 'mixins.kami.refmap.json'
+}
+
+reobf {
+    shadowJar {
+        mappingType = 'SEARGE'
+        classpath = sourceSets.main.compileClasspath
+    }
+}
 
 jar {
     manifest {
         attributes(
-                "MixinConfigs": 'mixins.kami.json',
-                "tweakClass": 'org.spongepowered.asm.launch.MixinTweaker',
-                "TweakOrder": 0,
+                'MixinConfigs': 'mixins.kami.json',
+                'tweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
+                'TweakOrder': 0,
                 'FMLCorePluginContainsFMLMod': 'true',
                 'FMLCorePlugin': 'me.zeroeightsix.kami.mixin.MixinLoaderForge',
-				'ForceLoadAsMod': 'true',
+                'ForceLoadAsMod': 'true',
                 'FMLAT': 'kami_at.cfg'
         )
     }
 }
-sourceCompatibility = targetCompatibility = "1.8"
+
+build.dependsOn(shadowJar)
