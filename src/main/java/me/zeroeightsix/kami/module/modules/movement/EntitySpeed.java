@@ -1,11 +1,16 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
+import me.zero.alpine.listener.EventHandler;
+import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import net.minecraft.entity.passive.AbstractHorse;
 import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.util.MovementInput;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.chunk.EmptyChunk;
 
 /**
  * Created by 086 on 16/12/2017.
@@ -32,8 +37,7 @@ public class EntitySpeed extends Module {
         }
     }
 
-    public static void setMoveSpeedEntity(double speed)
-    {
+    public static void setMoveSpeedEntity(double speed) {
         if (mc.player.getRidingEntity() != null)
         {
             MovementInput movementInput = mc.player.movementInput;
@@ -62,9 +66,17 @@ public class EntitySpeed extends Module {
                         forward = -1.0D;
                     }
                 }
-                mc.player.getRidingEntity().motionX = (forward * speed * Math.cos(Math.toRadians(yaw + 90.0F)) + strafe * speed * Math.sin(Math.toRadians(yaw + 90.0F)));
-                mc.player.getRidingEntity().motionZ = (forward * speed * Math.sin(Math.toRadians(yaw + 90.0F)) - strafe * speed * Math.cos(Math.toRadians(yaw + 90.0F)));
+
+                double motX = (forward * speed * Math.cos(Math.toRadians(yaw + 90.0F)) + strafe * speed * Math.sin(Math.toRadians(yaw + 90.0F)));
+                double motZ = (forward * speed * Math.sin(Math.toRadians(yaw + 90.0F)) - strafe * speed * Math.cos(Math.toRadians(yaw + 90.0F)));
+
+                if (mc.world.getChunkFromChunkCoords((int) (mc.player.getRidingEntity().posX + motX) >> 4, (int) (mc.player.getRidingEntity().posZ + motZ) >> 4) instanceof EmptyChunk)
+                    motX = motZ = 0;
+
+                mc.player.getRidingEntity().motionX = motX;
+                mc.player.getRidingEntity().motionZ = motZ;
             }
         }
     }
+
 }
