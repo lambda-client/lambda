@@ -1,7 +1,7 @@
 # KAMI
 [![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/gmBRk2s)
 
-A minecraft 'hacked' client in the form of a forge mod.
+A minecraft utility mod for anarchy servers.
 
 See [forgehax](https://github.com/fr1kin/forgehax) for a more polished equivalent. Some features in KAMI may be based on those of forgehax, as I sometimes used it as reference.
 
