@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.event;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.command.commands.PeekCommand;
 import me.zeroeightsix.kami.event.events.DisplaySizeChangedEvent;
 import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
@@ -11,6 +12,8 @@ import me.zeroeightsix.kami.module.modules.render.BossStack;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.gui.inventory.GuiShulkerBox;
 import net.minecraft.entity.passive.EntityHorse;
 import net.minecraftforge.client.event.*;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -46,6 +49,16 @@ public class ForgeEventProcessor {
             KamiMod.getInstance().getGuiManager().getChildren().stream()
                     .filter(component -> component instanceof Frame)
                     .forEach(component -> KamiGUI.dock((Frame) component));
+        }
+
+        if (PeekCommand.sb != null) {
+            ScaledResolution scaledresolution = new ScaledResolution(Minecraft.getMinecraft());
+            int i = scaledresolution.getScaledWidth();
+            int j = scaledresolution.getScaledHeight();
+            GuiShulkerBox gui = new GuiShulkerBox(Wrapper.getPlayer().inventory, PeekCommand.sb);
+            gui.setWorldAndResolution(Wrapper.getMinecraft(), i, j);
+            Minecraft.getMinecraft().displayGuiScreen(gui);
+            PeekCommand.sb = null;
         }
     }
 
