@@ -20,6 +20,8 @@ import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -87,7 +89,8 @@ public class ForgeEventProcessor {
         if (event.isCanceled()) return;
 
         RenderGameOverlayEvent.ElementType target = RenderGameOverlayEvent.ElementType.EXPERIENCE;
-        if (!Wrapper.getPlayer().isCreative() && Wrapper.getPlayer().getRidingEntity() instanceof EntityHorse) target = RenderGameOverlayEvent.ElementType.HEALTHMOUNT;
+        if (!Wrapper.getPlayer().isCreative() && Wrapper.getPlayer().getRidingEntity() instanceof EntityHorse)
+            target = RenderGameOverlayEvent.ElementType.HEALTHMOUNT;
 
         if (event.getType() == target) {
             ModuleManager.onRender();
@@ -95,14 +98,13 @@ public class ForgeEventProcessor {
             UIRenderer.renderAndUpdateFrames();
             GL11.glPopMatrix();
             KamiTessellator.releaseGL();
-        }else if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && ModuleManager.isModuleEnabled("BossStack")) {
+        } else if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && ModuleManager.isModuleEnabled("BossStack")) {
             BossStack.render(event);
         }
     }
 
-    @SubscribeEvent(priority= EventPriority.NORMAL, receiveCanceled=true)
-    public void onKeyInput(InputEvent.KeyInputEvent event)
-    {
+    @SubscribeEvent(priority = EventPriority.NORMAL, receiveCanceled = true)
+    public void onKeyInput(InputEvent.KeyInputEvent event) {
         if (Keyboard.getEventKeyState())
             ModuleManager.onBind(Keyboard.getEventKey());
     }
@@ -111,14 +113,14 @@ public class ForgeEventProcessor {
     public void onChatSent(ClientChatEvent event) {
         if (event.getMessage().startsWith(Command.COMMAND_PREFIX)) {
             event.setCanceled(true);
-            try{
+            try {
                 Wrapper.getMinecraft().ingameGUI.getChatGUI().addToSentMessages(event.getMessage());
 
                 if (event.getMessage().length() > 1)
-                    KamiMod.getInstance().commandManager.callCommand(event.getMessage().substring(Command.COMMAND_PREFIX.length()-1));
+                    KamiMod.getInstance().commandManager.callCommand(event.getMessage().substring(Command.COMMAND_PREFIX.length() - 1));
                 else
                     Command.sendChatMessage("Please enter a command.");
-            }catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Command.sendChatMessage("Error occured while running command! (" + e.getMessage() + ")");
             }
@@ -130,31 +132,55 @@ public class ForgeEventProcessor {
     public void onPlayerDrawn(RenderPlayerEvent.Pre event) {
         KamiMod.EVENT_BUS.post(event);
     }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onPlayerDrawn(RenderPlayerEvent.Post event) {
         KamiMod.EVENT_BUS.post(event);
     }
+
     @SubscribeEvent()
-    public void onChunkLoaded(ChunkEvent.Load event) { KamiMod.EVENT_BUS.post(event); }
+    public void onChunkLoaded(ChunkEvent.Load event) {
+        KamiMod.EVENT_BUS.post(event);
+    }
+
     @SubscribeEvent()
-    public void onChunkLoaded(ChunkEvent.Unload event) { KamiMod.EVENT_BUS.post(event); }
+    public void onChunkLoaded(ChunkEvent.Unload event) {
+        KamiMod.EVENT_BUS.post(event);
+    }
+
     @SubscribeEvent
-    public void onInputUpdate(InputUpdateEvent event) { KamiMod.EVENT_BUS.post(event); }
+    public void onInputUpdate(InputUpdateEvent event) {
+        KamiMod.EVENT_BUS.post(event);
+    }
+
     @SubscribeEvent
     public void onLivingEntityUseItemEventTick(LivingEntityUseItemEvent.Start entityUseItemEvent) {
         KamiMod.EVENT_BUS.post(entityUseItemEvent);
     }
+
     @SubscribeEvent
     public void onLivingDamageEvent(LivingDamageEvent event) {
         KamiMod.EVENT_BUS.post(event);
     }
+
     @SubscribeEvent
     public void onEntityJoinWorldEvent(EntityJoinWorldEvent entityJoinWorldEvent) {
         KamiMod.EVENT_BUS.post(entityJoinWorldEvent);
     }
+
     @SubscribeEvent
     public void onPlayerPush(PlayerSPPushOutOfBlocksEvent event) {
         KamiMod.EVENT_BUS.post(event);
+    }
+
+    @SubscribeEvent
+    public void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
+        KamiMod.EVENT_BUS.post(event);
+    }
+
+    @SubscribeEvent
+    public void onAttackEntity(AttackEntityEvent entityEvent) {
+        KamiMod.EVENT_BUS.post(entityEvent);
     }
 
 }

@@ -1,6 +1,8 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.misc.AutoTool;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Friends;
@@ -53,6 +55,7 @@ public class Aura extends Module {
                 return;
             }else{
                 if (EntityUtil.isPassive(target) ? animals : (EntityUtil.isMobAggressive(target) && mobs)) {
+                    if (ModuleManager.isModuleEnabled("AutoTool")) AutoTool.equipBestWeapon();
                     attack(target);
                     return;
                 }
