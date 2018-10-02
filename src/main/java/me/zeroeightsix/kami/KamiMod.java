@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami;
 
-import me.zero.alpine.EventBus;
-import me.zero.alpine.EventManager;
+import me.zero.alpine.bus.EventBus;
+import me.zero.alpine.bus.EventManager;
 import me.zeroeightsix.kami.command.CommandManager;
 import me.zeroeightsix.kami.event.ForgeEventProcessor;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
