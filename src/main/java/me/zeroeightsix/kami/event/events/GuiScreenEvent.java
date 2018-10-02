@@ -7,7 +7,7 @@ import net.minecraft.client.gui.GuiScreen;
  */
 public class GuiScreenEvent {
 
-    GuiScreen screen;
+    private GuiScreen screen;
 
     public GuiScreenEvent(GuiScreen screen) {
         super();
