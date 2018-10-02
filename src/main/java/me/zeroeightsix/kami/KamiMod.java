@@ -58,7 +58,6 @@ public class KamiMod {
         ModuleManager.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
         MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
         LagCompensator.INSTANCE = new LagCompensator();
-        EVENT_BUS.subscribe(LagCompensator.INSTANCE);
 
         Wrapper.init();
 

@@ -14,9 +14,9 @@ import java.util.TreeMap;
 
 public class KamiGuiChat extends GuiChat {
 
-    String startString;
-    String currentFillinLine;
-    int cursor;
+    private String startString;
+    private String currentFillinLine;
+    private int cursor;
 
     public KamiGuiChat(String startString, String historybuffer, int sentHistoryCursor) {
         super(startString);

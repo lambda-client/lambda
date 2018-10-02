@@ -12,11 +12,11 @@ import org.lwjgl.input.Keyboard;
  */
 public class Wrapper {
 
-    static FontRenderer cfr;
+    private static FontRenderer fontRenderer;
 
     public static void init() {
-//        cfr = new CFontRenderer(new Font("Segoe UI", Font.PLAIN, 19), true, false);
-        cfr = KamiGUI.fontRenderer;
+//      fontRenderer = new CFontRenderer(new Font("Segoe UI", Font.PLAIN, 19), true, false);
+        fontRenderer = KamiGUI.fontRenderer;
     }
     public static Minecraft getMinecraft() {
         return Minecraft.getMinecraft();
@@ -32,6 +32,6 @@ public class Wrapper {
     }
 
     public static FontRenderer getFontRenderer() {
-        return cfr;
+        return fontRenderer;
     }
 }
