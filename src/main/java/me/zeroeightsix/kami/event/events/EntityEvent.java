@@ -8,7 +8,7 @@ import net.minecraft.entity.Entity;
  */
 public class EntityEvent extends KamiEvent {
 
-    Entity entity;
+    private Entity entity;
 
     public EntityEvent(Entity entity) {
         super();

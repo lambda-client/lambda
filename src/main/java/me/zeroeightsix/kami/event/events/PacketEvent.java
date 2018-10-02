@@ -8,7 +8,7 @@ import net.minecraft.network.Packet;
  */
 public class PacketEvent extends KamiEvent {
 
-    final Packet packet;
+    private final Packet packet;
 
     public PacketEvent(Packet packet) {
         super();

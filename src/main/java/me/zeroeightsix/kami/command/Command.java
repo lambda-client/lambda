@@ -99,7 +99,7 @@ public abstract class Command {
 		return null;
 	}
 
-	public static final char SECTIONSIGN() {
+	public static char SECTIONSIGN() {
     	return '\u00A7';
 	}
 }

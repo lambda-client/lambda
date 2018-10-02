@@ -1,8 +1,14 @@
 buildscript {
     repositories {
         jcenter()
-        maven { url = 'http://files.minecraftforge.net/maven' }
-        maven { url = 'http://repo.spongepowered.org/maven' }
+        maven {
+            name = 'forge'
+            url = 'http://files.minecraftforge.net/maven'
+        }
+        maven {
+            name = 'SpongePowered'
+            url = 'http://repo.spongepowered.org/maven'
+        }
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
@@ -32,27 +38,37 @@ minecraft {
 }
 
 repositories {
+    maven {
+        name = 'spongepowered-repo'
+        url = 'http://repo.spongepowered.org/maven/'
+    }
+    maven {
+        name = 'impactdevelopment-repo'
+        url = 'https://impactdevelopment.github.io/maven/'
+    }
+    maven {
+        name = 'swt-repo'
+        url = "http://maven-eclipse.github.io/maven"
+    }
+    maven {
+        name = "jitpack.io"
+        url = "https://jitpack.io"
+    }
     mavenCentral()
-    maven { url = 'http://repo.spongepowered.org/maven/' }
-    maven { url = 'https://impactdevelopment.github.io/maven/' }
-    maven { url = 'http://maven-eclipse.github.io/maven' }
-    maven { url = 'https://jitpack.io' }
 }
 
 dependencies {
     //mixin needs to be distributed with the mod, very important
-    compile('org.spongepowered:mixin:0.7.4-SNAPSHOT') {
+    compile("org.spongepowered:mixin:0.7.4-SNAPSHOT") {
         exclude module: 'launchwrapper'
         exclude module: 'guava'
         exclude module: 'gson'
         exclude module: 'commons-io'
     }
-    
-    compile 'com.github.ZeroMemes:Alpine:1.8'
+    compile "com.github.ZeroMemes:Alpine:1.5"
     compile group: 'net.jodah', name: 'typetools', version: '0.5.0'
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.23'
-    
-    compile('org.reflections:reflections:0.9.11') {
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.19'
+    compile(group: 'org.reflections', name: 'reflections', version: '0.9.11') {
         exclude group: 'com.google.guava', module: 'guava'
     }
 }

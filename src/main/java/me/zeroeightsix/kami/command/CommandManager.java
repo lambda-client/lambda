@@ -63,7 +63,7 @@ public class CommandManager {
 	}
 	
 	
-	public static String strip(String str, String key){
+	private static String strip(String str, String key){
 		if (str.startsWith(key) && str.endsWith(key)) return str.substring(key.length(), str.length()-key.length());
 		return str;
 	}
