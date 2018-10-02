@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module;
 
+import me.zero.alpine.listener.Listenable;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
@@ -14,7 +15,7 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Created by 086 on 23/08/2017.
  */
-public class Module extends SettingsClass {
+public class Module extends SettingsClass implements Listenable {
 
     private final String name = getAnnotation().name();
     private final String description = getAnnotation().description();
