@@ -8,8 +8,8 @@ import net.minecraft.entity.MoverType;
  */
 public class PlayerMoveEvent extends KamiEvent {
 
-    MoverType type;
-    double x, y, z;
+    private MoverType type;
+    private double x, y, z;
 
     public PlayerMoveEvent(MoverType type, double x, double y, double z) {
         this.type = type;
