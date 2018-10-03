@@ -8,8 +8,8 @@ import me.zeroeightsix.kami.util.Wrapper;
  */
 public class KamiEvent extends Cancellable {
 
-    public Era era = Era.PRE;
-    final float partialTicks;
+    private Era era = Era.PRE;
+    private final float partialTicks;
 
     public KamiEvent() {
         partialTicks = Wrapper.getMinecraft().getRenderPartialTicks();
