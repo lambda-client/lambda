@@ -54,7 +54,7 @@ public class Module extends SettingsClass {
         this.bind = key;
     }
 
-    public static enum Category
+    public enum Category
     {
         COMBAT("Combat", false),
         EXPLOITS("Exploits", false),
