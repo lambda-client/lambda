@@ -51,7 +51,7 @@ cd KAMI
 
 On GNU/Linux, run `chmod +x gradlew` and for the following commands use `./gradlew` instead of `gradlew.bat`
 
-Of-course you can also use a Gradle installation if you for some reason want another verison of gradle
+Of-course you can also use a Gradle installation if you for some reason want another version of gradle
 
 ```
 gradlew.bat setupDecompWorkspace
