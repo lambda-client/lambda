@@ -2,6 +2,9 @@ package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.util.EntityUtil;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.play.client.CPacketPlayer;
 
 /**
  * Created by 086 on 25/08/2017.
@@ -47,6 +50,32 @@ public class Flight extends Module {
                 if (mc.player.capabilities.isCreativeMode) return;
                 mc.player.capabilities.allowFlying = true;
                 break;
+            case PACKET:
+                int angle;
+
+                boolean forward = mc.gameSettings.keyBindForward.isKeyDown();
+                boolean left = mc.gameSettings.keyBindLeft.isKeyDown();
+                boolean right = mc.gameSettings.keyBindRight.isKeyDown();
+                boolean back = mc.gameSettings.keyBindBack.isKeyDown();
+
+                if (left && right) angle = forward ? 0 : back ? 180 : -1;
+                else if (forward && back) angle = left ? -90 : (right ? 90 : -1);
+                else {
+                    angle = left ? -90 : (right ? 90 : 0);
+                    if (forward) angle /= 2;
+                    else if (back) angle = 180-(angle/2);
+                }
+
+                if (angle != -1 && (forward || left || right || back)) {
+                    float yaw = mc.player.rotationYaw+angle;
+                    mc.player.motionX = EntityUtil.getRelativeX(yaw)*0.2f;
+                    mc.player.motionZ = EntityUtil.getRelativeZ(yaw)*0.2f;
+                }
+
+                mc.player.motionY = 0;
+                mc.player.connection.sendPacket(new CPacketPlayer.PositionRotation(mc.player.posX + mc.player.motionX, mc.player.posY + (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() ? 0.0622 : 0) - (Minecraft.getMinecraft().gameSettings.keyBindSneak.isKeyDown() ? 0.0622 : 0), mc.player.posZ + mc.player.motionZ, mc.player.rotationYaw, mc.player.rotationPitch, false));
+                mc.player.connection.sendPacket(new CPacketPlayer.PositionRotation(mc.player.posX + mc.player.motionX, mc.player.posY - 42069, mc.player.posZ + mc.player.motionZ, mc.player.rotationYaw , mc.player.rotationPitch, true));
+                break;
         }
     }
 
@@ -62,8 +91,12 @@ public class Flight extends Module {
         }
     }
 
+    public double[] moveLooking() {
+        return new double[] { mc.player.rotationYaw * 360.0F / 360.0F * 180.0F / 180.0F, 0.0D };
+    }
+
     public enum FlightMode {
-        VANILLA, STATIC
+        VANILLA, STATIC, PACKET
     }
 
 }
