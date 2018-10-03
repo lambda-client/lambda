@@ -20,6 +20,7 @@
     "MixinGuiPlayerTabOverlay",
     "MixinC00Handshake",
     "MixinNetHandlerPlayClient",
-    "MixinRenderLiving"
+    "MixinRenderLiving",
+    "MixinPlayerControllerMP"
   ]
 }
