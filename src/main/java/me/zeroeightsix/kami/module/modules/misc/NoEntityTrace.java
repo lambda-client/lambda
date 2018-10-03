@@ -18,7 +18,7 @@ public class NoEntityTrace extends Module {
     }
 
     public static boolean shouldBlock() {
-        return INSTANCE.mode != TraceMode.STATIC && mc.playerController.curBlockDamageMP == 0;
+        return INSTANCE.mode == TraceMode.STATIC || mc.playerController.isHittingBlock;
     }
 
     private enum TraceMode {
