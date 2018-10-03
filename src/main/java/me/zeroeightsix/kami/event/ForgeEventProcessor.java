@@ -65,7 +65,7 @@ public class ForgeEventProcessor {
     }
 
     @SubscribeEvent
-    public void onTick(TickEvent event) {
+    public void onTick(TickEvent.ClientTickEvent event) {
         if (Wrapper.getPlayer() == null) return;
         ModuleManager.onUpdate();
         KamiMod.getInstance().getGuiManager().callTick(KamiMod.getInstance().getGuiManager());
