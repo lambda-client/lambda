@@ -49,7 +49,9 @@ git clone https://github.com/zeroeightysix/KAMI/
 cd KAMI
 ```
 
-On linux, run `chmod +x gradlew` and for the following commands use `./gradlew` instead of `gradlew.bat`
+On GNU/Linux, run `chmod +x gradlew` and for the following commands use `./gradlew` instead of `gradlew.bat`
+
+Of-course you can also use a Gradle installation if you for some reason want another verison of gradle
 
 ```
 gradlew.bat setupDecompWorkspace
