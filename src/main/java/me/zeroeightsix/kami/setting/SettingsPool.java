@@ -74,7 +74,7 @@ public class SettingsPool {
         }
 
         try {
-            Command.COMMAND_PREFIX = String.valueOf(rootObject.get("command_prefix").getAsCharacter());
+            Command.COMMAND_PREFIX = String.valueOf(rootObject.get("command_prefix").getAsString());
         }catch (Exception e) {
             KamiMod.log.error("Couldn't load command prefix! Please make sure it is only one character long.");
         }
