@@ -98,8 +98,11 @@ public class ModuleManager {
     public static void onBind(int eventKey) {
         if (eventKey == 0) return; // if key is the 'none' key (stuff like mod key in i3 might return 0)
         modules.forEach(module -> {
-            if (module.getBind() == eventKey)
+            if (module.getBind().isDown()) {
+                System.out.println(module.getBind() + " is down!");
+
                 module.toggle();
+            }
         });
     }
 

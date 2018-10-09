@@ -5,8 +5,8 @@ import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.SettingsClass;
+import me.zeroeightsix.kami.util.Bind;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.input.Keyboard;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -20,7 +20,7 @@ public class Module extends SettingsClass {
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
     @Setting(name = "Bind", hidden = true)
-    private int bind = getAnnotation().bind();
+    private Bind bind = Bind.none();
     @Setting(name = "Enabled", hidden = true)
     private boolean enabled;
     public boolean alwaysListening = false;
@@ -42,16 +42,12 @@ public class Module extends SettingsClass {
     public void onRender() {}
     public void onWorldRender(RenderEvent event) {}
 
-    public int getBind() {
+    public Bind getBind() {
         return bind;
     }
 
     public String getBindName() {
-        return bind == -1 ? "NONE" : Keyboard.getKeyName(bind);
-    }
-
-    public void setKey(int key) {
-        this.bind = key;
+        return bind.toString();
     }
 
     public enum Category
@@ -87,7 +83,6 @@ public class Module extends SettingsClass {
     {
         String name();
         String description() default "Descriptionless";
-        int bind() default 0;
         Module.Category category();
         boolean alwaysListening() default false;
     }
