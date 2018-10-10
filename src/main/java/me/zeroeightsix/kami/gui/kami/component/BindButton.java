@@ -33,13 +33,13 @@ public class BindButton extends EnumButton {
 
                 if (isShift(key)) {
                     shift = true;
-                    modes = new String[]{(ctrl ? "Ctrl + " : "") + (alt ? "Alt + " : "") + "Shift + "};
+                    modes = new String[]{(ctrl ? "Ctrl+" : "") + (alt ? "Alt+" : "") + "Shift+"};
                 } else if (isCtrl(key)) {
                     ctrl = true;
-                    modes = new String[]{"Ctrl + " + (alt ? "Alt + " : "") + (shift ? "Shift + " : "")};
+                    modes = new String[]{"Ctrl+" + (alt ? "Alt+" : "") + (shift ? "Shift+" : "")};
                 } else if (isAlt(key)) {
                     alt = true;
-                    modes = new String[]{(ctrl ? "Ctrl + " : "") + "Alt + " + (shift ? "Shift + " : "")};
+                    modes = new String[]{(ctrl ? "Ctrl+" : "") + "Alt+" + (shift ? "Shift+" : "")};
                 } else if (key == Keyboard.KEY_BACK) {
                     m.getBind().setCtrl(false);
                     m.getBind().setShift(false);

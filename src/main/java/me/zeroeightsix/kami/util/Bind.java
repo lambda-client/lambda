@@ -57,7 +57,7 @@ public class Bind {
 
     @Override
     public String toString() {
-        return isEmpty() ? "None" : (isCtrl() ? "Ctrl + " : "") + (isAlt() ? "Alt + " : "") + (isShift() ? "Shift + " : "") + (key < 0 ? "None" : Keyboard.getKeyName(key));
+        return isEmpty() ? "None" : (isCtrl() ? "Ctrl+" : "") + (isAlt() ? "Alt+" : "") + (isShift() ? "Shift+" : "") + (key < 0 ? "None" : capitalise(Keyboard.getKeyName(key)));
     }
 
     public boolean isDown() {
@@ -73,6 +73,11 @@ public class Bind {
 
     private boolean isAltDown() {
         return Keyboard.isKeyDown(Keyboard.KEY_LMENU) || Keyboard.isKeyDown(Keyboard.KEY_RMENU);
+    }
+
+    public String capitalise(String str) {
+        if (str.isEmpty()) return "";
+        return Character.toUpperCase(str.charAt(0)) + (str.length() != 1 ? str.substring(1).toLowerCase() : "");
     }
 
     public static Bind none() {
