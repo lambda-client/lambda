@@ -1,15 +1,14 @@
 package me.zeroeightsix.kami.module;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.google.common.base.Converter;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
-import me.zeroeightsix.kami.setting.ISetting;
+import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Bind;
 import net.minecraft.client.Minecraft;
+import org.lwjgl.input.Keyboard;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -22,7 +21,7 @@ public class Module {
     private final String name = getAnnotation().name();
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
-    private Bind bind = Settings.custom("Bind", Bind.none(), new BindConverter(), true);
+    private Setting<Bind> bind = Settings.custom("Bind", Bind.none(), new BindConverter(), true);
     private boolean enabled;
     public boolean alwaysListening;
     protected static final Minecraft mc = Minecraft.getMinecraft();
@@ -42,11 +41,11 @@ public class Module {
     public void onWorldRender(RenderEvent event) {}
 
     public Bind getBind() {
-        return bind;
+        return bind.getValue();
     }
 
     public String getBindName() {
-        return bind.toString();
+        return bind.getValue().toString();
     }
 
     public enum Category
@@ -151,33 +150,38 @@ public class Module {
      */
     public void destroy(){};
 
-    public static class BindsConverter implements FieldConverter {
-
-        public BindsConverter() {
+    private class BindConverter extends Converter<Bind, String> {
+        @Override
+        protected String doForward(Bind bind) {
+            return bind.toString();
         }
 
         @Override
-        public JsonElement toJson(StaticSetting setting) {
-            Bind bind = (Bind) setting.getValue();
-            if (bind.isEmpty()) return null;
-            JsonObject object = new JsonObject();
-            object.add("shift", new JsonPrimitive(bind.isShift()));
-            object.add("alt", new JsonPrimitive(bind.isAlt()));
-            object.add("ctrl", new JsonPrimitive(bind.isCtrl()));
-            object.add("key", new JsonPrimitive(bind.getKey()));
-            return object;
-        }
+        protected Bind doBackward(String s) {
+            s = s.toLowerCase();
+            if (s.equals("None")) return Bind.none();
+            boolean ctrl = false, alt = false, shift = false;
 
-        @Override
-        public Object fromJson(StaticSetting setting, JsonElement value) {
-            if (value == null || value.isJsonNull()) return Bind.none();
-            JsonObject object = value.getAsJsonObject();
-            boolean shift = object.get("shift").getAsBoolean();
-            boolean alt = object.get("alt").getAsBoolean();
-            boolean ctrl = object.get("ctrl").getAsBoolean();
-            int key = object.get("key").getAsInt();
+            if (s.startsWith("Ctrl+")) {
+                ctrl = true;
+                s = s.substring(5);
+            }
+            if (s.startsWith("Alt+")) {
+                alt = true;
+                s = s.substring(4);
+            }
+            if (s.startsWith("Shift+")) {
+                shift = true;
+                s = s.substring(6);
+            }
+
+            int key = -1;
+            try {
+                key = Keyboard.getKeyIndex(s);
+            } catch (Exception ignored) {}
+
+            if (key == -1) return Bind.none();
             return new Bind(ctrl, alt, shift, key);
         }
     }
-
 }
