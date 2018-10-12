@@ -9,6 +9,6 @@ import me.zeroeightsix.kami.setting.boxed.numerical.BoxedNumberSavableListeningN
 public class IntegerSettingBuilder extends NumericalSettingBuilder<Integer> {
     @Override
     public BoxedNumberSavableListeningNamedSettingRestrictable build() {
-        return new BoxedIntegerSavableListeningNamedSettingRestrictable(initialValue, predicate(), consumer(), name);
+        return new BoxedIntegerSavableListeningNamedSettingRestrictable(initialValue, predicate(), consumer(), name, visibilityPredicate());
     }
 }

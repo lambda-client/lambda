@@ -13,8 +13,8 @@ public class BoxedDoubleSavableListeningNamedSettingRestrictable extends BoxedNu
 
     private static final BoxedDoubleConverter converter = new BoxedDoubleConverter();
 
-    public BoxedDoubleSavableListeningNamedSettingRestrictable(Double value, Predicate<Double> restriction, BiConsumer<Double, Double> consumer, String name) {
-        super(value, restriction, consumer, name);
+    public BoxedDoubleSavableListeningNamedSettingRestrictable(Double value, Predicate<Double> restriction, BiConsumer<Double, Double> consumer, String name, Predicate<Double> visibilityPredicate) {
+        super(value, restriction, consumer, name, visibilityPredicate);
     }
 
     @Override

@@ -16,6 +16,11 @@ public interface ISetting<T> {
     boolean setValue(T value);
 
     /**
+     * @return Whether or not this setting should be displayed to the user
+     */
+    boolean isVisible();
+
+    /**
      * @return A consumer that expects first the previous value and then the new value
      */
     BiConsumer<T, T> changeListener();

@@ -17,6 +17,7 @@ public abstract class SettingBuilder<T> {
     protected T initialValue;
     protected BiConsumer<T, T> consumer;
     protected List<Predicate<T>> predicateList = new ArrayList<>();
+    private Predicate<T> visibilityPredicate;
 
     public SettingBuilder<T> withValue(T value) {
         this.initialValue = value;
@@ -25,6 +26,10 @@ public abstract class SettingBuilder<T> {
 
     protected Predicate<T> predicate() {
         return predicateList.isEmpty() ? (t) -> true : (t) -> predicateList.stream().allMatch(tPredicate -> tPredicate.test(t));
+    }
+
+    protected Predicate<T> visibilityPredicate() {
+        return MoreObjects.firstNonNull(visibilityPredicate, t -> true);
     }
 
     protected BiConsumer<T, T> consumer() {

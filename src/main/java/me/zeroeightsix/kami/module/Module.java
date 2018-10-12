@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import me.zeroeightsix.kami.setting.ISetting;
+import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Bind;
 import net.minecraft.client.Minecraft;
 
@@ -16,24 +17,20 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Created by 086 on 23/08/2017.
  */
-public class Module extends SettingsClass {
+public class Module {
 
     private final String name = getAnnotation().name();
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
-    @ISetting(name = "Bind", hidden = true, converter = BindsConverter.class)
-    private Bind bind = Bind.none();
-    @ISetting(name = "Enabled", hidden = true)
+    private Bind bind = Settings.custom("Bind", Bind.none(), new BindConverter(), true);
     private boolean enabled;
-    public boolean alwaysListening = false;
+    public boolean alwaysListening;
     protected static final Minecraft mc = Minecraft.getMinecraft();
 
     public Module() {
         alwaysListening = getAnnotation().alwaysListening();
 
         enabled = false;
-//        FMLCommonHandler.instance().bus().register(this);
-        initSettings();
     }
 
     private Info getAnnotation() {

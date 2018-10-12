@@ -13,8 +13,8 @@ public class BoxedFloatSavableListeningNamedSettingRestrictable extends BoxedNum
 
     private static final BoxedFloatConverter converter = new BoxedFloatConverter();
 
-    public BoxedFloatSavableListeningNamedSettingRestrictable(Float value, Predicate<Float> restriction, BiConsumer<Float, Float> consumer, String name) {
-        super(value, restriction, consumer, name);
+    public BoxedFloatSavableListeningNamedSettingRestrictable(Float value, Predicate<Float> restriction, BiConsumer<Float, Float> consumer, String name, Predicate<Float> visibilityPredicate) {
+        super(value, restriction, consumer, name, visibilityPredicate);
     }
 
     @Override

@@ -17,6 +17,11 @@ public abstract class Setting<T> implements ISetting<T> {
     }
 
     @Override
+    public boolean isVisible() {
+        return true;
+    }
+
+    @Override
     public boolean setValue(T value) {
         this.value = value;
         return true;

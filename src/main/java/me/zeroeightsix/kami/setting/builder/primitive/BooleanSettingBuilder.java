@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 public class BooleanSettingBuilder extends SettingBuilder<Boolean> {
     @Override
     public BoxedBooleanSavableListeningNamedSettingRestrictable build() {
-        return new BoxedBooleanSavableListeningNamedSettingRestrictable(initialValue, predicate(), consumer(), name);
+        return new BoxedBooleanSavableListeningNamedSettingRestrictable(initialValue, predicate(), consumer(), name, visibilityPredicate());
     }
 
     @Override

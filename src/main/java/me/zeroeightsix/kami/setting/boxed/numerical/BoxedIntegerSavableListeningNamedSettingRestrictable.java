@@ -13,8 +13,8 @@ public class BoxedIntegerSavableListeningNamedSettingRestrictable extends BoxedN
 
     private static final BoxedIntegerConverter converter = new BoxedIntegerConverter();
 
-    public BoxedIntegerSavableListeningNamedSettingRestrictable(Integer value, Predicate<Integer> restriction, BiConsumer<Integer, Integer> consumer, String name) {
-        super(value, restriction, consumer, name);
+    public BoxedIntegerSavableListeningNamedSettingRestrictable(Integer value, Predicate<Integer> restriction, BiConsumer<Integer, Integer> consumer, String name, Predicate<Integer> visibilityPredicate) {
+        super(value, restriction, consumer, name, visibilityPredicate);
     }
 
     @Override
