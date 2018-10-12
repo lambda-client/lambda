@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.entity.player.EnumPlayerModelParts;
 
 import java.util.Random;
@@ -12,8 +12,8 @@ import java.util.Random;
 @Module.Info(name = "SkinFlicker", description = "Toggle the jacket layer rapidly for a cool skin effect", category = Module.Category.MISC)
 public class SkinFlicker extends Module {
 
-    @Setting(name = "Mode") private static FlickerMode mode = FlickerMode.HORIZONTAL;
-    @Setting(name = "Slowness", min = 1) private int slowness = 2;
+    @ISetting(name = "Mode") private static FlickerMode mode = FlickerMode.HORIZONTAL;
+    @ISetting(name = "Slowness", min = 1) private int slowness = 2;
 
     private final static EnumPlayerModelParts[] PARTS_HORIZONTAL = new EnumPlayerModelParts[]{
             EnumPlayerModelParts.LEFT_SLEEVE,

@@ -4,7 +4,7 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.client.gui.GuiDisconnected;
 import net.minecraft.client.multiplayer.GuiConnecting;
 import net.minecraft.client.multiplayer.ServerData;
@@ -15,7 +15,7 @@ import net.minecraft.client.multiplayer.ServerData;
 @Module.Info(name = "AutoReconnect", description = "Automatically reconnects after being disconnected", category = Module.Category.MISC, alwaysListening = true)
 public class AutoReconnect extends Module {
 
-    @Setting(name = "Seconds", min = 0) public static int seconds = 5;
+    @ISetting(name = "Seconds", min = 0) public static int seconds = 5;
     private static ServerData cServer;
 
     @EventHandler

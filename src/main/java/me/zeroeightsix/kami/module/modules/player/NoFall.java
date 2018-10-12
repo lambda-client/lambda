@@ -4,7 +4,7 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import net.minecraft.init.Items;
 import net.minecraft.network.play.client.CPacketPlayer;
@@ -18,10 +18,10 @@ import net.minecraft.util.math.Vec3d;
 @Module.Info(category = Module.Category.PLAYER, description = "Prevents fall damage", name = "NoFall")
 public class NoFall extends Module {
 
-    @Setting(name = "Packet") private boolean packet = false;
+    @ISetting(name = "Packet") private boolean packet = false;
 
-    @Setting(name = "Bucket") private boolean bucket = true;
-    @Setting(name = "Distance") private int distance = 15;
+    @ISetting(name = "Bucket") private boolean bucket = true;
+    @ISetting(name = "Distance") private int distance = 15;
 
     private long last = 0;
 

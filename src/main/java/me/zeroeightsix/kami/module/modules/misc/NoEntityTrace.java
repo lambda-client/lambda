@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 
 /**
  * Created by 086 on 8/04/2018.
@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.setting.Setting;
 @Module.Info(name = "NoEntityTrace", category = Module.Category.MISC, description = "Blocks entities from stopping you from mining")
 public class NoEntityTrace extends Module {
 
-    @Setting(name = "Mode") private TraceMode mode = TraceMode.DYNAMIC;
+    @ISetting(name = "Mode") private TraceMode mode = TraceMode.DYNAMIC;
 
     private static NoEntityTrace INSTANCE;
 

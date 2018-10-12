@@ -5,7 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.ChunkEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.block.BlockPortal;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 @Module.Info(name = "PortalTracers", category = Module.Category.RENDER)
 public class PortalTracers extends Module {
 
-    @Setting(name = "Range") private int range = 5000;
+    @ISetting(name = "Range") private int range = 5000;
 
     private ArrayList<BlockPos> portals = new ArrayList<>();
 

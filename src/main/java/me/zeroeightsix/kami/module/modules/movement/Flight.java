@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.play.client.CPacketPlayer;
@@ -12,9 +12,9 @@ import net.minecraft.network.play.client.CPacketPlayer;
 @Module.Info(category = Module.Category.MOVEMENT, description = "Makes the player fly", name = "Flight")
 public class Flight extends Module {
 
-    @Setting(name = "Speed")
+    @ISetting(name = "Speed")
     public float speed = 10;
-    @Setting(name = "Mode")
+    @ISetting(name = "Mode")
     public FlightMode mode = FlightMode.VANILLA;
 
     @Override

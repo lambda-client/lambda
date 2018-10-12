@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
-import me.zeroeightsix.kami.setting.SettingsPool;
 
 import java.io.File;
 import java.io.IOException;

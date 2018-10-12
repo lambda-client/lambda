@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.network.play.client.CPacketAnimation;
 import net.minecraft.util.EnumHand;
 
@@ -13,8 +13,8 @@ import java.util.Random;
 @Module.Info(name = "AntiAFK", category = Module.Category.MISC, description = "Moves in order not to get kicked. (May be invisible client-sided)")
 public class AntiAFK extends Module {
 
-    @Setting(name = "Swing") private boolean swing = true;
-    @Setting(name = "Turn") private boolean turn = true;
+    @ISetting(name = "Swing") private boolean swing = true;
+    @ISetting(name = "Turn") private boolean turn = true;
 
     private Random random = new Random();
 

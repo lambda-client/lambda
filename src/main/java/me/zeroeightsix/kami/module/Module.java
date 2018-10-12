@@ -6,9 +6,7 @@ import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
-import me.zeroeightsix.kami.setting.FieldConverter;
-import me.zeroeightsix.kami.setting.Setting;
-import me.zeroeightsix.kami.setting.SettingsClass;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.Bind;
 import net.minecraft.client.Minecraft;
 
@@ -23,9 +21,9 @@ public class Module extends SettingsClass {
     private final String name = getAnnotation().name();
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
-    @Setting(name = "Bind", hidden = true, converter = BindsConverter.class)
+    @ISetting(name = "Bind", hidden = true, converter = BindsConverter.class)
     private Bind bind = Bind.none();
-    @Setting(name = "Enabled", hidden = true)
+    @ISetting(name = "Enabled", hidden = true)
     private boolean enabled;
     public boolean alwaysListening = false;
     protected static final Minecraft mc = Minecraft.getMinecraft();

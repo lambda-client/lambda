@@ -4,7 +4,7 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.network.play.client.CPacketChatMessage;
 
 /**
@@ -13,7 +13,7 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 @Module.Info(name = "CustomChat", category = Module.Category.MISC, description = "Modifies your chat messages")
 public class CustomChat extends Module {
 
-    @Setting(name = "Commands")
+    @ISetting(name = "Commands")
     public boolean commands = false;
 
     private final String KAMI_SUFFIX = " \u23D0 \u1D0B\u1D00\u1D0D\u026A";

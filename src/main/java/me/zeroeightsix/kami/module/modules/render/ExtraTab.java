@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.Friends;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.scoreboard.ScorePlayerTeam;
@@ -13,7 +13,7 @@ import net.minecraft.scoreboard.ScorePlayerTeam;
 @Module.Info(name = "ExtraTab", description = "Expands the player tab menu", category = Module.Category.RENDER)
 public class ExtraTab extends Module {
 
-    @Setting(name = "Players", min = 1, integer = true) public int tabSize = 80;
+    @ISetting(name = "Players", min = 1, integer = true) public int tabSize = 80;
 
     public static ExtraTab INSTANCE;
 

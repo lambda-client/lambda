@@ -5,7 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.render.Pathfind;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.pathfinding.PathPoint;
 import net.minecraftforge.client.event.InputUpdateEvent;
 
@@ -17,7 +17,7 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 @Module.Info(name = "AutoWalk", category = Module.Category.PLAYER)
 public class AutoWalk extends Module {
 
-    @Setting(name = "Mode") private AutoWalkMode mode = AutoWalkMode.FORWARD;
+    @ISetting(name = "Mode") private AutoWalkMode mode = AutoWalkMode.FORWARD;
 
     @EventHandler
     private Listener<InputUpdateEvent> inputUpdateEventListener = new Listener<>(event -> {

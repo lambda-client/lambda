@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.GeometryMasks;
 import me.zeroeightsix.kami.util.KamiTessellator;
@@ -21,9 +21,9 @@ import org.lwjgl.opengl.GL11;
 @Module.Info(name = "EyeFinder", description = "Draw lines from entity's heads to where they are looking", category = Module.Category.RENDER)
 public class EyeFinder extends Module {
 
-    @Setting(name = "Players") private boolean players = true;
-    @Setting(name = "Mobs") private boolean mobs = false;
-    @Setting(name = "Animals") private boolean animals = false;
+    @ISetting(name = "Players") private boolean players = true;
+    @ISetting(name = "Mobs") private boolean mobs = false;
+    @ISetting(name = "Animals") private boolean animals = false;
 
     @Override
     public void onWorldRender(RenderEvent event) {

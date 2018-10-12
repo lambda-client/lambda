@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 
 /**
  * Created by 086 on 9/04/2018.
@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.setting.Setting;
 @Module.Info(name = "AntiFog", description = "Disables or reduces fog", category = Module.Category.RENDER)
 public class AntiFog extends Module {
 
-    @Setting(name = "Mode") public static VisionMode mode = VisionMode.NOFOG;
+    @ISetting(name = "Mode") public static VisionMode mode = VisionMode.NOFOG;
     private static AntiFog INSTANCE = new AntiFog();
 
     public AntiFog() {

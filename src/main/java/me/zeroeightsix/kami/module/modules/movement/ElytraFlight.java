@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.util.math.MathHelper;
 
@@ -11,7 +11,7 @@ import net.minecraft.util.math.MathHelper;
 @Module.Info(name = "ElytraFlight", description = "Allows infinite elytra flying", category = Module.Category.MOVEMENT)
 public class ElytraFlight extends Module {
 
-    @Setting(name = "Mode") private ElytraFlightMode mode = ElytraFlightMode.BOOST;
+    @ISetting(name = "Mode") private ElytraFlightMode mode = ElytraFlightMode.BOOST;
 
     @Override
     public void onUpdate() {

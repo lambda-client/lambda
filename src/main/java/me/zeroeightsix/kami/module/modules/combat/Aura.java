@@ -3,7 +3,9 @@ package me.zeroeightsix.kami.module.modules.combat;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.misc.AutoTool;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
@@ -23,12 +25,12 @@ import java.util.Iterator;
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
 
-    @Setting(name = "Players") private boolean players = true;
-    @Setting(name = "Animals") private boolean animals = false;
-    @Setting(name = "Mobs") private boolean mobs = false;
-    @Setting(name = "Range") private double range = 5.5d;
-    @Setting(name = "Wait") private boolean wait = true;
-    @Setting(name = "Walls") private boolean walls = false;
+    @ISetting(name = "Players") private boolean players = true;
+    @ISetting(name = "Animals") private boolean animals = false;
+    @ISetting(name = "Mobs") private boolean mobs = false;
+    @ISetting(name = "Range") private double range = 5.5d;
+    @ISetting(name = "Wait") private boolean wait = true;
+    @ISetting(name = "Walls") private boolean walls = false;
 
     @Override
     public void onUpdate() {

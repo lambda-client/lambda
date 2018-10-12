@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import net.minecraft.entity.item.EntityBoat;
 
@@ -11,8 +11,8 @@ import net.minecraft.entity.item.EntityBoat;
 @Module.Info(name = "BoatSpeed", category = Module.Category.MOVEMENT)
 public class BoatSpeed extends Module {
 
-    @Setting(name = "Speed") public float speed = .5f;
-    @Setting(name = "Opacity") private static float opacity = .5f;
+    @ISetting(name = "Speed") public float speed = .5f;
+    @ISetting(name = "Opacity") private static float opacity = .5f;
 
     @Override
     public void onRender() {

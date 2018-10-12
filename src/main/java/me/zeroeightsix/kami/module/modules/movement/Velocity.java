@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.event.KamiEvent;
 import me.zeroeightsix.kami.event.events.EntityEvent;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.network.play.server.SPacketEntityVelocity;
 import net.minecraft.network.play.server.SPacketExplosion;
 
@@ -16,10 +16,10 @@ import net.minecraft.network.play.server.SPacketExplosion;
 @Module.Info(name = "Velocity", description = "Modify knockback impact", category = Module.Category.MOVEMENT)
 public class Velocity extends Module {
 
-    @Setting(name = "Horizontal")
+    @ISetting(name = "Horizontal")
     private float horizontal = 0;
 
-    @Setting(name = "Vertical")
+    @ISetting(name = "Vertical")
     private float vertical = 0;
 
     @EventHandler

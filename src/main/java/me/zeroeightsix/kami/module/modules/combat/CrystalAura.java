@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.render.Tracers;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.GeometryMasks;
@@ -41,12 +41,12 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT)
 public class CrystalAura extends Module {
 
-    @Setting(name = "Range") private double range = 4;
-    @Setting(name = "Place") private boolean place = false;
-    @Setting(name = "Players") private boolean players = true;
-    @Setting(name = "Mobs") private boolean mobs = false;
-    @Setting(name = "Animals") private boolean animals = false;
-    @Setting(name = "Auto switch") private boolean autoSwitch = true;
+    @ISetting(name = "Range") private double range = 4;
+    @ISetting(name = "Place") private boolean place = false;
+    @ISetting(name = "Players") private boolean players = true;
+    @ISetting(name = "Mobs") private boolean mobs = false;
+    @ISetting(name = "Animals") private boolean animals = false;
+    @ISetting(name = "Auto switch") private boolean autoSwitch = true;
 
     private BlockPos render;
     private Entity renderEnt;

@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.gui.rgui.poof.IPoof;
 import me.zeroeightsix.kami.gui.rgui.poof.PoofInfo;
 import me.zeroeightsix.kami.gui.rgui.render.ComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 
 import java.util.ArrayList;
 
@@ -28,7 +28,7 @@ public abstract class AbstractComponent implements Component {
     int maxHeight = Integer.MAX_VALUE;
 
     protected int priority = 0;
-    @Setting(name = "Visible")
+    @ISetting(name = "Visible")
     private boolean visible = true;
     float opacity = 1f;
     private boolean focus = false;

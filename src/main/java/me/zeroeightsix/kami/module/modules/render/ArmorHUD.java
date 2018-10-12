@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.ColourHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
@@ -18,7 +18,7 @@ public class ArmorHUD extends Module {
     private static RenderItem itemRender = Minecraft.getMinecraft()
             .getRenderItem();
 
-    @Setting(name = "Damage") private boolean damage = false;
+    @ISetting(name = "Damage") private boolean damage = false;
 
     @Override
     public void onRender() {

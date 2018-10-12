@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
@@ -16,7 +16,7 @@ public class AutoTotem extends Module {
     int totems;
     boolean moving = false;
     boolean returnI = false;
-    @Setting(name = "Soft")
+    @ISetting(name = "Soft")
     private boolean soft = true;
 
     @Override

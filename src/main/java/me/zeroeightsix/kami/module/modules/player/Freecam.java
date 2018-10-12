@@ -5,7 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -19,7 +19,7 @@ import net.minecraftforge.client.event.PlayerSPPushOutOfBlocksEvent;
 @Module.Info(name = "Freecam", category = Module.Category.PLAYER, description = "Leave your body and trascend into the realm of the gods")
 public class Freecam extends Module {
 
-    @Setting(name = "Speed") public static int speed = 5; // /100 in practice
+    @ISetting(name = "Speed") public static int speed = 5; // /100 in practice
 
     private double posX, posY, posZ;
     private float pitch, yaw;

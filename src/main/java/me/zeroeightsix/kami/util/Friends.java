@@ -3,9 +3,7 @@ package me.zeroeightsix.kami.util;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import me.zeroeightsix.kami.setting.FieldConverter;
-import me.zeroeightsix.kami.setting.Setting;
-import me.zeroeightsix.kami.setting.SettingsClass;
+import me.zeroeightsix.kami.setting.ISetting;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -22,7 +20,7 @@ import java.util.regex.Pattern;
 public class Friends extends SettingsClass {
     public static final Friends INSTANCE = new Friends();
 
-    @Setting(name = "Friends", converter = FriendListConverter.class)
+    @ISetting(name = "Friends", converter = FriendListConverter.class)
     public List<Friend> friends = new ArrayList<>();
 
     public Friends() {

@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.command.syntax.parsers;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.setting.SettingsClass;
 
 import java.util.HashMap;
 import java.util.TreeMap;

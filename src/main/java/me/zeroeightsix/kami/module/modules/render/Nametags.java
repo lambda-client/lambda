@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.render;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Friends;
 import net.minecraft.client.Minecraft;
@@ -32,11 +32,11 @@ import static org.lwjgl.opengl.GL11.*;
 @Module.Info(name = "Nametags", description = "Draws descriptive nametags above entities", category = Module.Category.RENDER)
 public class Nametags extends Module {
 
-    @Setting(name = "Players") private boolean players = true;
-    @Setting(name = "Animals") private boolean animals = false;
-    @Setting(name = "Mobs") private boolean mobs = false;
-    @Setting(name = "Range") private double range = 200;
-    @Setting(name = "Health") private boolean health = true;
+    @ISetting(name = "Players") private boolean players = true;
+    @ISetting(name = "Animals") private boolean animals = false;
+    @ISetting(name = "Mobs") private boolean mobs = false;
+    @ISetting(name = "Range") private double range = 200;
+    @ISetting(name = "Health") private boolean health = true;
 
     RenderItem itemRenderer = mc.getRenderItem();
 

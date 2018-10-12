@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.BossInfoClient;
@@ -21,8 +21,8 @@ import java.util.UUID;
 @Module.Info(name = "BossStack", description = "Modify the boss health GUI to take up less space", category = Module.Category.MISC)
 public class BossStack extends Module {
 
-    @Setting(name = "Mode") private static BossStackMode mode = BossStackMode.STACK;
-    @Setting(name = "Scale", min = .1d) private static double scale = .5d;
+    @ISetting(name = "Mode") private static BossStackMode mode = BossStackMode.STACK;
+    @ISetting(name = "Scale", min = .1d) private static double scale = .5d;
 
     private static final ResourceLocation GUI_BARS_TEXTURES = new ResourceLocation("textures/gui/bars.png");
 

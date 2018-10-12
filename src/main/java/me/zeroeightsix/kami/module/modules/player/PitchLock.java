@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.player;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.util.math.MathHelper;
 
 /**
@@ -9,9 +9,9 @@ import net.minecraft.util.math.MathHelper;
  */
 @Module.Info(name = "PitchLock", category = Module.Category.PLAYER)
 public class PitchLock extends Module {
-    @Setting(name = "Auto") boolean auto = true;
-    @Setting(name = "Pitch") float pitch = 180;
-    @Setting(name = "Slice") int slice = 8;
+    @ISetting(name = "Auto") boolean auto = true;
+    @ISetting(name = "Pitch") float pitch = 180;
+    @ISetting(name = "Slice") int slice = 8;
 
     @Override
     public void onUpdate() {

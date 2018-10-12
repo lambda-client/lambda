@@ -5,7 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.ChunkEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.world.chunk.Chunk;
 import org.lwjgl.opengl.GL11;
 
@@ -19,8 +19,8 @@ import static org.lwjgl.opengl.GL11.*;
 @Module.Info(name = "ChunkFinder", description = "Highlights newly generated chunks", category = Module.Category.RENDER)
 public class ChunkFinder extends Module {
 
-    @Setting(name = "Y Offset", integer = true) private int yOffset = 0;
-    @Setting(name = "Relative") private boolean relative = true;
+    @ISetting(name = "Y Offset", integer = true) private int yOffset = 0;
+    @ISetting(name = "Relative") private boolean relative = true;
 
     static ArrayList<Chunk> chunks = new ArrayList<>();
 

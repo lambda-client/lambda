@@ -5,7 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.client.gui.GuiGameOver;
 
 /**
@@ -14,8 +14,8 @@ import net.minecraft.client.gui.GuiGameOver;
 @Module.Info(name = "AutoRespawn", description = "Automatically respawns upon death and tells you where you died", category = Module.Category.MISC)
 public class AutoRespawn extends Module {
 
-    @Setting(name = "DeathCoords") private boolean deathCoords = false;
-    @Setting(name = "Respawn") private boolean respawn = true;
+    @ISetting(name = "DeathCoords") private boolean deathCoords = false;
+    @ISetting(name = "Respawn") private boolean respawn = true;
 
     @EventHandler
     public Listener<GuiScreenEvent.Displayed> listener = new Listener<>(event -> {

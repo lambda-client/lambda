@@ -1,15 +1,11 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
-import me.zero.alpine.listener.EventHandler;
-import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.entity.passive.AbstractHorse;
 import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.entity.passive.EntityPig;
 import net.minecraft.util.MovementInput;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.chunk.EmptyChunk;
 
 /**
@@ -18,8 +14,8 @@ import net.minecraft.world.chunk.EmptyChunk;
 @Module.Info(name = "EntitySpeed", category = Module.Category.MOVEMENT, description = "Abuse client-sided movement to shape sound barrier breaking rideables")
 public class EntitySpeed extends Module {
 
-    @Setting(name = "Speed") private float speed = 1;
-    @Setting(name = "AntiStuck") private boolean antiStuck = true;
+    @ISetting(name = "Speed") private float speed = 1;
+    @ISetting(name = "AntiStuck") private boolean antiStuck = true;
 
     @Override
     public void onUpdate() {

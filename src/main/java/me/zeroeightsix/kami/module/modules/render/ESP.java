@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.renderer.GlStateManager;
@@ -19,11 +19,11 @@ import static org.lwjgl.opengl.GL11.*;
 @Module.Info(name = "ESP", category = Module.Category.RENDER)
 public class ESP extends Module {
 
-    @Setting(name = "Mode")
+    @ISetting(name = "Mode")
     private ESPMode mode = ESPMode.RECTANGLE;
-    @Setting(name = "Players") private boolean players = true;
-    @Setting(name = "Animals") private boolean animals = false;
-    @Setting(name = "Mobs") private boolean mobs = false;
+    @ISetting(name = "Players") private boolean players = true;
+    @ISetting(name = "Animals") private boolean animals = false;
+    @ISetting(name = "Mobs") private boolean mobs = false;
 
     public enum ESPMode {
         RECTANGLE

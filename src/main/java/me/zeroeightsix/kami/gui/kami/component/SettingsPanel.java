@@ -7,8 +7,7 @@ import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.component.use.Slider;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
-import me.zeroeightsix.kami.setting.SettingsClass;
+import me.zeroeightsix.kami.setting.ISetting;
 
 import java.util.Arrays;
 
@@ -47,7 +46,7 @@ public class SettingsPanel extends OrganisedContainer {
                 boolean isNumber = type == int.class || type == double.class || type == float.class || type == short.class || type == long.class || type == byte.class;
                 boolean isBoolean = type == boolean.class;
                 boolean isEnum = type.isEnum();
-                Setting settingAnnotation = staticSetting.getField().getAnnotation(Setting.class);
+                ISetting settingAnnotation = staticSetting.getField().getAnnotation(ISetting.class);
                 if (settingAnnotation.hidden()) {
                     if (settingAnnotation.name().equalsIgnoreCase("Bind")) {
                         addChild(new BindButton("Bind", module));

@@ -5,7 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.network.play.client.CPacketChatMessage;
 import net.minecraft.network.play.server.SPacketChat;
 import net.minecraft.util.ChatAllowedCharacters;
@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 @Module.Info(name = "ChatEncryption", description = "Encrypts and decrypts chat messages (Delimiter %)", category = Module.Category.MISC)
 public class ChatEncryption extends Module {
 
-    @Setting(name = "Mode") private EncryptionMode mode = EncryptionMode.SHUFFLE;
-    @Setting(name = "Key", integer = true) private int key = 6;
-    @Setting(name = "Delimiter") private boolean delim = true;
+    @ISetting(name = "Mode") private EncryptionMode mode = EncryptionMode.SHUFFLE;
+    @ISetting(name = "Key", integer = true) private int key = 6;
+    @ISetting(name = "Delimiter") private boolean delim = true;
 
     private final Pattern CHAT_PATTERN = Pattern.compile("<.*?> ");
 

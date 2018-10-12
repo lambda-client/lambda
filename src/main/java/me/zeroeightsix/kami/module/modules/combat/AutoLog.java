@@ -4,7 +4,7 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.ISetting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.item.EntityEnderCrystal;
 import net.minecraft.network.play.server.SPacketDisconnect;
@@ -18,7 +18,7 @@ import net.minecraftforge.event.entity.living.LivingDamageEvent;
 @Module.Info(name = "AutoLog", description = "Automatically log when in danger or on low health", category = Module.Category.COMBAT)
 public class AutoLog extends Module {
 
-    @Setting(name = "Health", min = 0, max = 36) private int health = 6;
+    @ISetting(name = "Health", min = 0, max = 36) private int health = 6;
     private boolean shouldLog = false;
     long lastLog = System.currentTimeMillis();
 
