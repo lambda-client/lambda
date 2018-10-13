@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.setting.builder.primitive;
 
-import me.zeroeightsix.kami.setting.boxed.BoxedBooleanSavableListeningNamedSettingRestrictable;
+import me.zeroeightsix.kami.setting.impl.BoxedBooleanSavableListeningNamedSettingRestrictable;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 
 /**

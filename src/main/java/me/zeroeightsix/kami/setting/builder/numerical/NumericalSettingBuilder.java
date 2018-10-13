@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.setting.builder.numerical;
 
-import me.zeroeightsix.kami.setting.boxed.numerical.BoxedNumberSavableListeningNamedSettingRestrictable;
+import me.zeroeightsix.kami.setting.impl.numerical.BoxedNumberSavableListeningNamedSettingRestrictable;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 
 import java.util.function.BiConsumer;

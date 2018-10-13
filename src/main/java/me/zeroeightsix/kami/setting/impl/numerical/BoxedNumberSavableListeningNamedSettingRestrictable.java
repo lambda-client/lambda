@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.setting.boxed.numerical;
+package me.zeroeightsix.kami.setting.impl.numerical;
 
 import me.zeroeightsix.kami.setting.HideableSavableListeningNamedSettingRestrictable;
 import me.zeroeightsix.kami.setting.converter.AbstractBoxedNumberConverter;

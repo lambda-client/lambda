@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.builder.numerical.FloatSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.numerical.IntegerSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.numerical.NumericalSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.primitive.BooleanSettingBuilder;
+import me.zeroeightsix.kami.setting.builder.primitive.StringSettingBuilder;
 
 import java.util.function.BiConsumer;
 
@@ -31,6 +32,10 @@ public class Settings {
         return new BooleanSettingBuilder();
     }
 
+    public static StringSettingBuilder stringBuilder() {
+        return new StringSettingBuilder();
+    }
+
     public static NumericalSettingBuilder<Float> floatBuilder(String name) {
         return new FloatSettingBuilder().withName(name);
     }
@@ -45,6 +50,10 @@ public class Settings {
 
     public static BooleanSettingBuilder booleanBuilder(String name) {
         return new BooleanSettingBuilder().withName(name);
+    }
+
+    public static StringSettingBuilder stringBuilder(String name) {
+        return (StringSettingBuilder) new StringSettingBuilder().withName(name);
     }
 
     public static <T> Setting<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, BiConsumer<T, T> consumer, Predicate<T> visibilityPredicate) {

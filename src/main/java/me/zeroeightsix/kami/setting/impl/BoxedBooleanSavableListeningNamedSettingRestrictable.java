@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.setting.boxed;
+package me.zeroeightsix.kami.setting.impl;
 
 import me.zeroeightsix.kami.setting.HideableSavableListeningNamedSettingRestrictable;
 import me.zeroeightsix.kami.setting.converter.BooleanConverter;
