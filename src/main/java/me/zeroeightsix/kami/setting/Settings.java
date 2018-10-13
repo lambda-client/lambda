@@ -46,11 +46,11 @@ public class Settings {
         return floatBuilder(name).withValue(value).build();
     }
 
-    public static Setting<Float> d(String name, double value) {
+    public static Setting<Double> d(String name, double value) {
         return doubleBuilder(name).withValue(value).build();
     }
 
-    public static Setting<Float> i(String name, int value) {
+    public static Setting<Integer> i(String name, int value) {
         return integerBuilder(name).withValue(value).build();
     }
 

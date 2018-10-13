@@ -1,7 +1,8 @@
 package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.ISetting;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.BossInfoClient;
@@ -21,17 +22,17 @@ import java.util.UUID;
 @Module.Info(name = "BossStack", description = "Modify the boss health GUI to take up less space", category = Module.Category.MISC)
 public class BossStack extends Module {
 
-    @ISetting(name = "Mode") private static BossStackMode mode = BossStackMode.STACK;
-    @ISetting(name = "Scale", min = .1d) private static double scale = .5d;
+    private Setting<BossStackMode> mode = register(Settings.e("Mode", BossStackMode.STACK));
+    private Setting<Double> scale = register(Settings.d("Scale", .5d));
 
-    private static final ResourceLocation GUI_BARS_TEXTURES = new ResourceLocation("textures/gui/bars.png");
+    private final ResourceLocation GUI_BARS_TEXTURES = new ResourceLocation("textures/gui/bars.png");
 
-    public static boolean pre(RenderGameOverlayEvent.Pre event) {
+    public boolean pre(RenderGameOverlayEvent.Pre event) {
         return true;
     }
 
-    public static void render(RenderGameOverlayEvent.Post event) {
-        if (mode == BossStackMode.MINIMIZE) {
+    public void render(RenderGameOverlayEvent.Post event) {
+        if (mode.getValue() == BossStackMode.MINIMIZE) {
             Map<UUID, BossInfoClient> map = Minecraft.getMinecraft().ingameGUI.getBossOverlay().mapBossInfos;
             if (map == null) return;
             ScaledResolution scaledresolution = new ScaledResolution(Minecraft.getMinecraft());
@@ -43,18 +44,18 @@ public class BossStack extends Module {
                 String text = info.getName().getFormattedText();
                 if (text == null || info == null) continue;
 
-                int k = (int) ((i/scale) / 2 - 91);
-                GL11.glScaled(scale,scale,1);
+                int k = (int) ((i / scale.getValue()) / 2 - 91);
+                GL11.glScaled(scale.getValue(), scale.getValue(), 1);
                 if (!event.isCanceled()) {
                     GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
                     Minecraft.getMinecraft().getTextureManager().bindTexture(GUI_BARS_TEXTURES);
                     Minecraft.getMinecraft().ingameGUI.getBossOverlay().render(k, j, info);
-                    Minecraft.getMinecraft().fontRenderer.drawStringWithShadow(text, (float)((i/scale) / 2 - Minecraft.getMinecraft().fontRenderer.getStringWidth(text) / 2), (float)(j - 9), 16777215);
+                    Minecraft.getMinecraft().fontRenderer.drawStringWithShadow(text, (float) ((i / scale.getValue()) / 2 - Minecraft.getMinecraft().fontRenderer.getStringWidth(text) / 2), (float) (j - 9), 16777215);
                 }
-                GL11.glScaled(1d/scale,1d/scale,1);
+                GL11.glScaled(1d / scale.getValue(), 1d / scale.getValue(), 1);
                 j += 10 + Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
             }
-        }else if (mode == BossStackMode.STACK) {
+        } else if (mode.getValue() == BossStackMode.STACK) {
             Map<UUID, BossInfoClient> map = Minecraft.getMinecraft().ingameGUI.getBossOverlay().mapBossInfos;
             HashMap<String, Pair<BossInfoClient, Integer>> to = new HashMap<>();
 
@@ -64,7 +65,7 @@ public class BossStack extends Module {
                     Pair<BossInfoClient, Integer> p = to.get(s);
                     p = new Pair<>(p.getKey(), p.getValue() + 1);
                     to.put(s, p);
-                }else{
+                } else {
                     Pair<BossInfoClient, Integer> p = new Pair<>(entry.getValue(), 1);
                     to.put(s, p);
                 }
@@ -80,15 +81,15 @@ public class BossStack extends Module {
                 int a = entry.getValue().getValue();
                 text += " x" + a;
 
-                int k = (int) ((i/scale) / 2 - 91);
-                GL11.glScaled(scale,scale,1);
+                int k = (int) ((i / scale.getValue()) / 2 - 91);
+                GL11.glScaled(scale.getValue(), scale.getValue(), 1);
                 if (!event.isCanceled()) {
                     GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
                     Minecraft.getMinecraft().getTextureManager().bindTexture(GUI_BARS_TEXTURES);
                     Minecraft.getMinecraft().ingameGUI.getBossOverlay().render(k, j, info);
-                    Minecraft.getMinecraft().fontRenderer.drawStringWithShadow(text, (float)((i/scale) / 2 - Minecraft.getMinecraft().fontRenderer.getStringWidth(text) / 2), (float)(j - 9), 16777215);
+                    Minecraft.getMinecraft().fontRenderer.drawStringWithShadow(text, (float) ((i / scale.getValue()) / 2 - Minecraft.getMinecraft().fontRenderer.getStringWidth(text) / 2), (float) (j - 9), 16777215);
                 }
-                GL11.glScaled(1d/scale,1d/scale,1);
+                GL11.glScaled(1d / scale.getValue(), 1d / scale.getValue(), 1);
                 j += 10 + Minecraft.getMinecraft().fontRenderer.FONT_HEIGHT;
             }
         }
@@ -96,6 +97,6 @@ public class BossStack extends Module {
     }
 
     private enum BossStackMode {
-        REMOVE,STACK,MINIMIZE
+        REMOVE, STACK, MINIMIZE
     }
 }
