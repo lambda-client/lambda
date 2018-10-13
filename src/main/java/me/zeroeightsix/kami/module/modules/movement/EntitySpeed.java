@@ -1,7 +1,8 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.ISetting;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.entity.passive.AbstractHorse;
 import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.entity.passive.EntityPig;
@@ -14,8 +15,8 @@ import net.minecraft.world.chunk.EmptyChunk;
 @Module.Info(name = "EntitySpeed", category = Module.Category.MOVEMENT, description = "Abuse client-sided movement to shape sound barrier breaking rideables")
 public class EntitySpeed extends Module {
 
-    @ISetting(name = "Speed") private float speed = 1;
-    @ISetting(name = "AntiStuck") private boolean antiStuck = true;
+    private Setting<Float> speed = register(Settings.f("Speed", 1));
+    private Setting<Boolean> antiStuck = register(Settings.b("AntiStuck"));
 
     @Override
     public void onUpdate() {
@@ -26,7 +27,7 @@ public class EntitySpeed extends Module {
             }
             mc.player.getRidingEntity().motionY = -0.4D;
 
-            setMoveSpeedEntity(speed * 3.8D);
+            setMoveSpeedEntity(speed.getValue() * 3.8D);
 
             if (mc.player.getRidingEntity() instanceof EntityHorse){
                 mc.player.getRidingEntity().rotationYaw = mc.player.rotationYaw;
@@ -67,7 +68,7 @@ public class EntitySpeed extends Module {
                 double motX = (forward * speed * Math.cos(Math.toRadians(yaw + 90.0F)) + strafe * speed * Math.sin(Math.toRadians(yaw + 90.0F)));
                 double motZ = (forward * speed * Math.sin(Math.toRadians(yaw + 90.0F)) - strafe * speed * Math.cos(Math.toRadians(yaw + 90.0F)));
 
-                if (antiStuck && mc.world.getChunkFromChunkCoords((int) (mc.player.getRidingEntity().posX + motX) >> 4, (int) (mc.player.getRidingEntity().posZ + motZ) >> 4) instanceof EmptyChunk)
+                if (antiStuck.getValue() && mc.world.getChunkFromChunkCoords((int) (mc.player.getRidingEntity().posX + motX) >> 4, (int) (mc.player.getRidingEntity().posZ + motZ) >> 4) instanceof EmptyChunk)
                     motX = motZ = 0;
 
                 mc.player.getRidingEntity().motionX = motX;
