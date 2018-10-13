@@ -1,6 +1,8 @@
 package me.zeroeightsix.kami.module;
 
 import com.google.common.base.Converter;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
@@ -150,14 +152,15 @@ public class Module {
      */
     public void destroy(){};
 
-    private class BindConverter extends Converter<Bind, String> {
+    private class BindConverter extends Converter<Bind, JsonElement> {
         @Override
-        protected String doForward(Bind bind) {
-            return bind.toString();
+        protected JsonElement doForward(Bind bind) {
+            return new JsonPrimitive(bind.toString());
         }
 
         @Override
-        protected Bind doBackward(String s) {
+        protected Bind doBackward(JsonElement jsonElement) {
+            String s = jsonElement.getAsString();
             s = s.toLowerCase();
             if (s.equals("None")) return Bind.none();
             boolean ctrl = false, alt = false, shift = false;

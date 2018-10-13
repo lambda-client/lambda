@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.event.ForgeEventProcessor;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.setting.config.Configuration;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
 import me.zeroeightsix.kami.util.Wrapper;
@@ -66,11 +67,11 @@ public class KamiMod {
 
         commandManager = new CommandManager();
 
-        File file = new File("kami.settings");
-        Friends.INSTANCE.initSettings();
+        File file = new File("KAMISettings.json");
+        Friends.initFriends();
         if (file.exists()) {
             try {
-                SettingsPool.load(file);
+                Configuration.loadConfiguration(file);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -82,10 +83,10 @@ public class KamiMod {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                File f = new File("kami.settings");
-                if (!f.exists())
-                    f.createNewFile();
-                SettingsPool.save(f);
+                File outputFile = new File("kami.settings");
+                if (!outputFile.exists())
+                    outputFile.createNewFile();
+                Configuration.saveConfiguration(outputFile);
                 ModuleManager.getModules().forEach(Module::destroy);
             }catch (IOException e) {
                 e.printStackTrace();

@@ -1,0 +1,15 @@
+package me.zeroeightsix.kami.setting.builder.primitive;
+
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.builder.SettingBuilder;
+import me.zeroeightsix.kami.setting.impl.EnumSetting;
+
+/**
+ * Created by 086 on 14/10/2018.
+ */
+public class EnumSettingBuilder<T extends Enum> extends SettingBuilder<T> {
+    @Override
+    public Setting<T> build() {
+        return new EnumSetting<>(initialValue, predicate(), consumer(), name, visibilityPredicate());
+    }
+}

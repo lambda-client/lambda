@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.builder.numerical.FloatSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.numerical.IntegerSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.numerical.NumericalSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.primitive.BooleanSettingBuilder;
+import me.zeroeightsix.kami.setting.builder.primitive.EnumSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.primitive.StringSettingBuilder;
 
 import java.util.function.BiConsumer;
@@ -35,6 +36,38 @@ public class Settings {
 
     public static StringSettingBuilder stringBuilder() {
         return new StringSettingBuilder();
+    }
+
+    public static EnumSettingBuilder enumBuilder() {
+        return new EnumSettingBuilder();
+    }
+
+    public static Setting<Float> f(String name, float value) {
+        return floatBuilder(name).withValue(value).build();
+    }
+
+    public static Setting<Float> d(String name, double value) {
+        return doubleBuilder(name).withValue(value).build();
+    }
+
+    public static Setting<Float> i(String name, int value) {
+        return integerBuilder(name).withValue(value).build();
+    }
+
+    public static Setting<Boolean> b(String name, boolean value) {
+        return booleanBuilder(name).withValue(value).build();
+    }
+
+    public static Setting<Boolean> b(String name) {
+        return booleanBuilder(name).withValue(true).build();
+    }
+
+    public static Setting<String> s(String name, String value) {
+        return stringBuilder(name).withValue(value).build();
+    }
+
+    public static <T extends Enum> Setting<T> e(String name, Enum value) {
+        return enumBuilder().withName(name).withValue(value).build();
     }
 
     public static NumericalSettingBuilder<Float> floatBuilder(String name) {
