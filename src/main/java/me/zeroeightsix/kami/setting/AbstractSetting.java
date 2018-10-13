@@ -6,11 +6,11 @@ import java.util.function.Predicate;
 /**
  * Created by 086 on 12/10/2018.
  */
-public abstract class HideableSavableListeningNamedSettingRestrictable<T> extends SavableListeningNamedSettingRestrictable<T> {
+public abstract class AbstractSetting<T> extends SavableListeningNamedSettingRestrictable<T> {
 
-    Predicate<T> visibilityPredicate;
+    private Predicate<T> visibilityPredicate;
 
-    public HideableSavableListeningNamedSettingRestrictable(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate) {
+    public AbstractSetting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate) {
         super(value, restriction, consumer, name);
         this.visibilityPredicate = visibilityPredicate;
     }

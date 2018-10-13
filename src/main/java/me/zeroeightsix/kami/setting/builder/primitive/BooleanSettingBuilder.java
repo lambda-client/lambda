@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.setting.builder.primitive;
 
-import me.zeroeightsix.kami.setting.impl.BoxedBooleanSavableListeningNamedSettingRestrictable;
+import me.zeroeightsix.kami.setting.impl.BooleanSetting;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 
 /**
@@ -8,8 +8,8 @@ import me.zeroeightsix.kami.setting.builder.SettingBuilder;
  */
 public class BooleanSettingBuilder extends SettingBuilder<Boolean> {
     @Override
-    public BoxedBooleanSavableListeningNamedSettingRestrictable build() {
-        return new BoxedBooleanSavableListeningNamedSettingRestrictable(initialValue, predicate(), consumer(), name, visibilityPredicate());
+    public BooleanSetting build() {
+        return new BooleanSetting(initialValue, predicate(), consumer(), name, visibilityPredicate());
     }
 
     @Override

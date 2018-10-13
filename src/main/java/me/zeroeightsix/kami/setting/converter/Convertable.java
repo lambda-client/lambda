@@ -5,8 +5,8 @@ import com.google.common.base.Converter;
 /**
  * Created by 086 on 12/10/2018.
  */
-public interface Convertable<T, String> {
+public interface Convertable<T, JsonElement> {
 
-    Converter<T, String> converter();
+    Converter<T, JsonElement> converter();
 
 }

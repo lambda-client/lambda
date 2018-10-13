@@ -8,7 +8,7 @@ import java.util.function.Predicate;
  */
 public class ListeningSettingRestrictable<T> extends SettingRestrictable<T> {
 
-    BiConsumer<T, T> consumer;
+    private BiConsumer<T, T> consumer;
 
     public ListeningSettingRestrictable(T value, Predicate<T> restriction, BiConsumer<T, T> consumer) {
         super(value, restriction);

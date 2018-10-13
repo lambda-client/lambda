@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.setting.builder.numerical;
 
-import me.zeroeightsix.kami.setting.impl.numerical.BoxedNumberSavableListeningNamedSettingRestrictable;
+import me.zeroeightsix.kami.setting.impl.numerical.NumberSetting;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 
 import java.util.function.BiConsumer;
@@ -43,6 +43,6 @@ public abstract class NumericalSettingBuilder<T extends Number> extends SettingB
         return (NumericalSettingBuilder) super.withName(name);
     }
 
-    public abstract BoxedNumberSavableListeningNamedSettingRestrictable build();
+    public abstract NumberSetting build();
 
 }

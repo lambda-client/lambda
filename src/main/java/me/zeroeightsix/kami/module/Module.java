@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 import me.zeroeightsix.kami.util.Bind;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.input.Keyboard;
@@ -21,7 +22,7 @@ public class Module {
     private final String name = getAnnotation().name();
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
-    private Setting<Bind> bind = Settings.custom("Bind", Bind.none(), new BindConverter(), true);
+    private Setting<Bind> bind = register(Settings.custom("Bind", Bind.none(), new BindConverter(), true));
     private boolean enabled;
     public boolean alwaysListening;
     protected static final Minecraft mc = Minecraft.getMinecraft();
@@ -60,7 +61,6 @@ public class Module {
 
         boolean hidden;
         String name;
-        private int bind;
 
         Category(String name, boolean hidden) {
             this.name = name;
@@ -184,4 +184,13 @@ public class Module {
             return new Bind(ctrl, alt, shift, key);
         }
     }
+
+    protected <T> Setting<T> register(Setting<T> setting) {
+        return SettingBuilder.register(setting, "modules." + name);
+    }
+
+    protected <T> Setting<T> register(SettingBuilder<T> builder) {
+        return builder.buildAndRegister("modules." + name);
+    }
+
 }

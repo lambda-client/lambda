@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.setting;
 
 import com.google.common.base.Converter;
-import com.google.common.base.Predicate;
+import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 import me.zeroeightsix.kami.setting.builder.numerical.DoubleSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.numerical.FloatSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.numerical.IntegerSettingBuilder;
@@ -10,6 +10,7 @@ import me.zeroeightsix.kami.setting.builder.primitive.BooleanSettingBuilder;
 import me.zeroeightsix.kami.setting.builder.primitive.StringSettingBuilder;
 
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 /**
  * Created by 086 on 13/10/2018.
@@ -56,28 +57,33 @@ public class Settings {
         return (StringSettingBuilder) new StringSettingBuilder().withName(name);
     }
 
-    public static <T> Setting<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, BiConsumer<T, T> consumer, Predicate<T> visibilityPredicate) {
-        return new HideableSavableListeningNamedSettingRestrictable<T>(initialValue, restriction, consumer, name, visibilityPredicate) {
+    public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, BiConsumer<T, T> consumer, Predicate<T> visibilityPredicate) {
+        return new SettingBuilder<T>() {
             @Override
-            public Converter converter() {
-                return converter;
+            public Setting<T> build() {
+                return new AbstractSetting<T>(initialValue, predicate(), consumer, name, visibilityPredicate()) {
+                    @Override
+                    public Converter converter() {
+                        return converter;
+                    }
+                };
             }
-        };
+        }.withName(name).withValue(initialValue).withConsumer(consumer).withVisibility(visibilityPredicate).withRestriction(restriction);
     }
 
-    public static <T> Setting<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, BiConsumer<T, T> consumer, boolean hidden) {
+    public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, BiConsumer<T, T> consumer, boolean hidden) {
         return custom(name, initialValue, converter, restriction, consumer, t -> !hidden);
     }
 
-    public static <T> Setting<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, boolean hidden) {
+    public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, boolean hidden) {
         return custom(name, initialValue, converter, restriction, (t, t2) -> {}, hidden);
     }
 
-    public static <T> Setting<T> custom(String name, T initialValue, Converter converter, boolean hidden) {
+    public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter, boolean hidden) {
         return custom(name, initialValue, converter, input -> true, (t, t2) -> {}, hidden);
     }
 
-    public static <T> Setting<T> custom(String name, T initialValue, Converter converter) {
+    public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter) {
         return custom(name, initialValue, converter, input -> true, (t, t2) -> {}, false);
     }
 

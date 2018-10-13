@@ -9,11 +9,11 @@ import java.util.function.Predicate;
 /**
  * Created by 086 on 12/10/2018.
  */
-public class BoxedFloatSavableListeningNamedSettingRestrictable extends BoxedNumberSavableListeningNamedSettingRestrictable<Float> {
+public class FloatSetting extends NumberSetting<Float> {
 
     private static final BoxedFloatConverter converter = new BoxedFloatConverter();
 
-    public BoxedFloatSavableListeningNamedSettingRestrictable(Float value, Predicate<Float> restriction, BiConsumer<Float, Float> consumer, String name, Predicate<Float> visibilityPredicate) {
+    public FloatSetting(Float value, Predicate<Float> restriction, BiConsumer<Float, Float> consumer, String name, Predicate<Float> visibilityPredicate) {
         super(value, restriction, consumer, name, visibilityPredicate);
     }
 
