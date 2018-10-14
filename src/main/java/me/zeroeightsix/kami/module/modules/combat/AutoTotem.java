@@ -17,7 +17,7 @@ public class AutoTotem extends Module {
     int totems;
     boolean moving = false;
     boolean returnI = false;
-    private Setting<Boolean> soft = Settings.b("Soft");
+    private Setting<Boolean> soft = register(Settings.b("Soft"));
 
     @Override
     public void onUpdate() {
