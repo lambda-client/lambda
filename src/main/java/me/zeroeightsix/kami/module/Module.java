@@ -188,6 +188,12 @@ public class Module {
         }
     }
 
+    protected void registerAll(Setting... settings) {
+        for (Setting setting : settings) {
+            register(setting);
+        }
+    }
+
     protected <T> Setting<T> register(Setting<T> setting) {
         return SettingBuilder.register(setting, "modules." + name);
     }
