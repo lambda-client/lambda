@@ -20,4 +20,11 @@ public class ListeningSettingRestrictable<T> extends SettingRestrictable<T> {
         return consumer;
     }
 
+    @Override
+    public boolean setValue(T value) {
+        T old = getValue();
+        boolean b = super.setValue(value);
+        if (b) consumer.accept(old, value);
+        return b;
+    }
 }

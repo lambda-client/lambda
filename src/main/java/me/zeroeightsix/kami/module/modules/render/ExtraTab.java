@@ -14,7 +14,7 @@ import net.minecraft.scoreboard.ScorePlayerTeam;
 @Module.Info(name = "ExtraTab", description = "Expands the player tab menu", category = Module.Category.RENDER)
 public class ExtraTab extends Module {
 
-    private Setting<Integer> tabSize = register(Settings.integerBuilder("Players").withMinimum(1).withValue(80).build());
+    public Setting<Integer> tabSize = register(Settings.integerBuilder("Players").withMinimum(1).withValue(80).build());
 
     public static ExtraTab INSTANCE;
 

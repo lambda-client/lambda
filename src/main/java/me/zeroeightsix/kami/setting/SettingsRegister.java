@@ -17,7 +17,9 @@ public class SettingsRegister {
 
     public SettingsRegister subregister(String name) {
         if (registerHashMap.containsKey(name)) return registerHashMap.get(name);
-        return registerHashMap.put(name, new SettingsRegister());
+        SettingsRegister register = new SettingsRegister();
+        registerHashMap.put(name, register);
+        return register;
     }
 
     private void put(String name, Setting setting) {
@@ -51,7 +53,7 @@ public class SettingsRegister {
                 previousToken = token;
             }
         }
-        return new Pair<>(previousToken, current);
+        return new Pair<>(previousToken == null ? "" : previousToken, current);
     }
 
 }

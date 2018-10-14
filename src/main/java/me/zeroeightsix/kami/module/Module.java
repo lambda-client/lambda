@@ -15,6 +15,8 @@ import org.lwjgl.input.Keyboard;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by 086 on 23/08/2017.
@@ -24,15 +26,16 @@ public class Module {
     private final String name = getAnnotation().name();
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
-    private Setting<Bind> bind = register(Settings.custom("Bind", Bind.none(), new BindConverter(), true));
-    private boolean enabled;
+    private Setting<Bind> bind = Settings.custom("Bind", Bind.none(), new BindConverter(), true).build();
+    private Setting<Boolean> enabled = Settings.b("Enabled", false);
     public boolean alwaysListening;
     protected static final Minecraft mc = Minecraft.getMinecraft();
 
+    public List<Setting> settingList = new ArrayList<>();
+
     public Module() {
         alwaysListening = getAnnotation().alwaysListening();
-
-        enabled = false;
+        registerAll(bind, enabled);
     }
 
     private Info getAnnotation() {
@@ -100,7 +103,7 @@ public class Module {
     }
 
     public boolean isEnabled() {
-        return enabled;
+        return enabled.getValue();
     }
 
     protected void onEnable() {}
@@ -111,14 +114,14 @@ public class Module {
     }
 
     public void enable() {
-        enabled = true;
+        enabled.setValue(true);
         onEnable();
         if (!alwaysListening)
             KamiMod.EVENT_BUS.subscribe(this);
     }
 
     public void disable() {
-        enabled = false;
+        enabled.setValue(false);
         onDisable();
         if (!alwaysListening)
             KamiMod.EVENT_BUS.unsubscribe(this);
@@ -129,7 +132,7 @@ public class Module {
     }
 
     public void setEnabled(boolean enabled) {
-        boolean prev = this.enabled;
+        boolean prev = this.enabled.getValue();
         if (prev != enabled)
             if (enabled)
                 enable();
@@ -195,11 +198,16 @@ public class Module {
     }
 
     protected <T> Setting<T> register(Setting<T> setting) {
+        if (settingList == null) settingList = new ArrayList<>();
+        settingList.add(setting);
         return SettingBuilder.register(setting, "modules." + name);
     }
 
     protected <T> Setting<T> register(SettingBuilder<T> builder) {
-        return builder.buildAndRegister("modules." + name);
+        if (settingList == null) settingList = new ArrayList<>();
+        Setting<T> setting = builder.buildAndRegister("modules." + name);
+        settingList.add(setting);
+        return setting;
     }
 
 }

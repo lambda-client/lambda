@@ -1,9 +1,9 @@
 package me.zeroeightsix.kami.command.commands;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -18,8 +18,7 @@ public class SaveCommand extends Command {
     @Override
     public void call(String[] args) {
         try {
-            SettingsPool.save(new File("kami.settings"));
-            Command.sendChatMessage("Configuration saved.");
+            KamiMod.saveConfigurationUnsafe();
         } catch (IOException e) {
             e.printStackTrace();
             Command.sendChatMessage("Failed to save! " + e.getMessage());

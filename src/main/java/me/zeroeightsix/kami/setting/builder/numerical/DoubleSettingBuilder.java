@@ -9,6 +9,6 @@ import me.zeroeightsix.kami.setting.impl.numerical.NumberSetting;
 public class DoubleSettingBuilder extends NumericalSettingBuilder<Double> {
     @Override
     public NumberSetting build() {
-        return new DoubleSetting(initialValue, predicate(), consumer(), name, visibilityPredicate());
+        return new DoubleSetting(initialValue, predicate(), consumer(), name, visibilityPredicate(), min, max);
     }
 }

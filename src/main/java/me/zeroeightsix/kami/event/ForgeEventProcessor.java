@@ -80,7 +80,7 @@ public class ForgeEventProcessor {
     @SubscribeEvent
     public void onRenderPre(RenderGameOverlayEvent.Pre event) {
         if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && ModuleManager.isModuleEnabled("BossStack")) {
-            if (BossStack.pre(event)) event.setCanceled(true);
+            event.setCanceled(true);
         }
     }
 

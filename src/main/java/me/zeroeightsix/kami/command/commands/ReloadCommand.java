@@ -5,8 +5,6 @@ import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 
-import java.io.File;
-
 /**
  * Created by 086 on 26/12/2017.
  */
@@ -20,15 +18,6 @@ public class ReloadCommand extends Command {
     public void call(String[] args) {
         KamiMod.getInstance().guiManager = new KamiGUI();
         KamiMod.getInstance().guiManager.initializeGUI();
-        File file = new File("kami.settings");
-        if (file.exists()) {
-            try {
-                SettingsPool.save(file);
-                SettingsPool.load(file);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
+        KamiMod.loadConfiguration();
     }
 }

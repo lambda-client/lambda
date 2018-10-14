@@ -22,16 +22,16 @@ import java.util.UUID;
 @Module.Info(name = "BossStack", description = "Modify the boss health GUI to take up less space", category = Module.Category.MISC)
 public class BossStack extends Module {
 
-    private Setting<BossStackMode> mode = register(Settings.e("Mode", BossStackMode.STACK));
-    private Setting<Double> scale = register(Settings.d("Scale", .5d));
+    private static Setting<BossStackMode> mode = Settings.e("Mode", BossStackMode.STACK);
+    private static Setting<Double> scale = Settings.d("Scale", .5d);
 
-    private final ResourceLocation GUI_BARS_TEXTURES = new ResourceLocation("textures/gui/bars.png");
+    private static final ResourceLocation GUI_BARS_TEXTURES = new ResourceLocation("textures/gui/bars.png");
 
-    public boolean pre(RenderGameOverlayEvent.Pre event) {
-        return true;
+    public BossStack() {
+        registerAll(mode, scale);
     }
 
-    public void render(RenderGameOverlayEvent.Post event) {
+    public static void render(RenderGameOverlayEvent.Post event) {
         if (mode.getValue() == BossStackMode.MINIMIZE) {
             Map<UUID, BossInfoClient> map = Minecraft.getMinecraft().ingameGUI.getBossOverlay().mapBossInfos;
             if (map == null) return;
@@ -42,7 +42,6 @@ public class BossStack extends Module {
             for (Map.Entry<UUID, BossInfoClient> entry : map.entrySet()) {
                 BossInfoClient info = entry.getValue();
                 String text = info.getName().getFormattedText();
-                if (text == null || info == null) continue;
 
                 int k = (int) ((i / scale.getValue()) / 2 - 91);
                 GL11.glScaled(scale.getValue(), scale.getValue(), 1);

@@ -13,10 +13,12 @@ import java.util.function.Predicate;
 public class EnumSetting<T extends Enum> extends AbstractSetting<T> {
 
     private EnumConverter converter;
+    public final Class<? extends Enum> clazz;
 
     public EnumSetting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate, Class<? extends Enum> clazz) {
         super(value, restriction, consumer, name, visibilityPredicate);
         this.converter = new EnumConverter(clazz);
+        this.clazz = clazz;
     }
 
     @Override

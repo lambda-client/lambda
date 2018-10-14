@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 public class Friends {
     public static final Friends INSTANCE = new Friends();
 
-    private static Setting<ArrayList<Friend>> friends;
+    public static Setting<ArrayList<Friend>> friends;
 
     private Friends() {
     }

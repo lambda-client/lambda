@@ -10,21 +10,32 @@ import java.util.function.BiConsumer;
  */
 public abstract class NumericalSettingBuilder<T extends Number> extends SettingBuilder<T> {
 
+    protected T min;
+    protected T max;
+
     public NumericalSettingBuilder<T> withMinimum(T minimum) {
         predicateList.add((t -> t.doubleValue() >= minimum.doubleValue()));
+        if (min == null || minimum.doubleValue() > min.doubleValue())
+            min = minimum;
         return this;
     }
 
     public NumericalSettingBuilder<T> withMaximum(T maximum) {
         predicateList.add((t -> t.doubleValue() <= maximum.doubleValue()));
+        if (max == null || maximum.doubleValue() < max.doubleValue())
+            max = maximum;
         return this;
     }
 
-    public NumericalSettingBuilder<T> withRange(T from, T to) {
+    public NumericalSettingBuilder<T> withRange(T minimum, T maximum) {
         predicateList.add((t -> {
             double doubleValue = t.doubleValue();
-            return doubleValue >= from.doubleValue() && doubleValue <= to.doubleValue();
+            return doubleValue >= minimum.doubleValue() && doubleValue <= maximum.doubleValue();
         }));
+        if (min == null || minimum.doubleValue() > min.doubleValue())
+            min = minimum;
+        if (max == null || maximum.doubleValue() < max.doubleValue())
+            max = maximum;
         return this;
     }
 
