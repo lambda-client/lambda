@@ -39,6 +39,7 @@ public class Configuration {
         String json = gson.toJson(produceConfig());
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stream));
         writer.write(json);
+        writer.close();
     }
 
     public static void loadConfiguration(File file) throws IOException {

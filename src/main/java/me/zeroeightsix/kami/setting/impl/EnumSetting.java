@@ -4,7 +4,6 @@ import com.google.common.base.Converter;
 import me.zeroeightsix.kami.setting.AbstractSetting;
 import me.zeroeightsix.kami.setting.converter.EnumConverter;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
@@ -15,9 +14,9 @@ public class EnumSetting<T extends Enum> extends AbstractSetting<T> {
 
     private EnumConverter converter;
 
-    public EnumSetting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate) {
+    public EnumSetting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate, Class<? extends Enum> clazz) {
         super(value, restriction, consumer, name, visibilityPredicate);
-        this.converter = new EnumConverter((Class<T>) ((ParameterizedType) this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
+        this.converter = new EnumConverter(clazz);
     }
 
     @Override
