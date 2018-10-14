@@ -111,13 +111,13 @@ public class ForgeEventProcessor {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onChatSent(ClientChatEvent event) {
-        if (event.getMessage().startsWith(Command.COMMAND_PREFIX)) {
+        if (event.getMessage().startsWith(Command.getCommandPrefix())) {
             event.setCanceled(true);
             try {
                 Wrapper.getMinecraft().ingameGUI.getChatGUI().addToSentMessages(event.getMessage());
 
                 if (event.getMessage().length() > 1)
-                    KamiMod.getInstance().commandManager.callCommand(event.getMessage().substring(Command.COMMAND_PREFIX.length() - 1));
+                    KamiMod.getInstance().commandManager.callCommand(event.getMessage().substring(Command.getCommandPrefix().length() - 1));
                 else
                     Command.sendChatMessage("Please enter a command.");
             } catch (Exception e) {

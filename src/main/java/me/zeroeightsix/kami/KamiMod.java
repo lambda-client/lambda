@@ -1,12 +1,25 @@
 package me.zeroeightsix.kami;
 
+import com.google.common.base.Converter;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import me.zero.alpine.EventBus;
 import me.zero.alpine.EventManager;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.CommandManager;
 import me.zeroeightsix.kami.event.ForgeEventProcessor;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
+import me.zeroeightsix.kami.gui.rgui.component.AlignedComponent;
+import me.zeroeightsix.kami.gui.rgui.component.Component;
+import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
+import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
+import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
@@ -19,6 +32,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
@@ -45,6 +61,17 @@ public class KamiMod {
 
     public KamiGUI guiManager;
     public CommandManager commandManager;
+    private Setting<JsonObject> guiStateSetting = Settings.custom("gui", new JsonObject(), new Converter<JsonObject, JsonObject>() {
+        @Override
+        protected JsonObject doForward(JsonObject jsonObject) {
+            return jsonObject;
+        }
+
+        @Override
+        protected JsonObject doBackward(JsonObject jsonObject) {
+            return jsonObject;
+        }
+    }).buildAndRegister("");
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -68,11 +95,9 @@ public class KamiMod {
 
         commandManager = new CommandManager();
 
-        File file = new File("KAMISettings.json");
         Friends.initFriends();
-        if (file.exists()) {
-
-        }
+        SettingsRegister.register("commandPrefix", Command.commandPrefix);
+        loadConfiguration();
         KamiMod.log.info("Settings loaded");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
@@ -112,6 +137,26 @@ public class KamiMod {
         File kamiConfig = new File(kamiConfigName);
         if (!kamiConfig.exists()) return;
         Configuration.loadConfiguration(kamiConfig);
+
+        JsonObject gui = KamiMod.INSTANCE.guiStateSetting.getValue();
+        for (Map.Entry<String, JsonElement> entry : gui.entrySet()) {
+            Optional<Component> optional = KamiMod.INSTANCE.guiManager.getChildren().stream().filter(component -> component instanceof Frame).filter(component -> ((Frame) component).getTitle().equals(entry.getKey())).findFirst();
+            if (optional.isPresent()) {
+                JsonObject object = entry.getValue().getAsJsonObject();
+                Frame frame = (Frame) optional.get();
+                frame.setX(object.get("x").getAsInt());
+                frame.setY(object.get("y").getAsInt());
+                Docking docking = Docking.values()[object.get("docking").getAsInt()];
+                if (docking.isLeft()) ContainerHelper.setAlignment(frame, AlignedComponent.Alignment.LEFT);
+                else if (docking.isRight()) ContainerHelper.setAlignment(frame, AlignedComponent.Alignment.RIGHT);
+                frame.setDocking(docking);
+                frame.setMinimized(object.get("minimized").getAsBoolean());
+                frame.setPinned(object.get("pinned").getAsBoolean());
+            } else {
+                System.err.println("Found GUI config entry for " + entry.getKey() + ", but found no frame with that name");
+            }
+        }
+        KamiMod.getInstance().getGuiManager().getChildren().stream().filter(component -> (component instanceof Frame) && (((Frame) component).isPinneable()) && component.isVisible()).forEach(component -> component.setOpacity(0f));
     }
 
     public static void saveConfiguration() {
@@ -123,6 +168,18 @@ public class KamiMod {
     }
 
     public static void saveConfigurationUnsafe() throws IOException {
+        JsonObject object = new JsonObject();
+        KamiMod.INSTANCE.guiManager.getChildren().stream().filter(component -> component instanceof Frame).map(component -> (Frame) component).forEach(frame -> {
+            JsonObject frameObject = new JsonObject();
+            frameObject.add("x", new JsonPrimitive(frame.getX()));
+            frameObject.add("y", new JsonPrimitive(frame.getY()));
+            frameObject.add("docking", new JsonPrimitive(Arrays.asList(Docking.values()).indexOf(frame.getDocking())));
+            frameObject.add("minimized", new JsonPrimitive(frame.isMinimized()));
+            frameObject.add("pinned", new JsonPrimitive(frame.isPinned()));
+            object.add(frame.getTitle(), frameObject);
+        });
+        KamiMod.INSTANCE.guiStateSetting.setValue(object);
+
         File outputFile = new File(getConfigName());
         if (!outputFile.exists())
             outputFile.createNewFile();

@@ -26,8 +26,8 @@ public class Module {
     private final String name = getAnnotation().name();
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
-    private Setting<Bind> bind = Settings.custom("Bind", Bind.none(), new BindConverter(), true).build();
-    private Setting<Boolean> enabled = Settings.b("Enabled", false);
+    private Setting<Bind> bind = register(Settings.custom("Bind", Bind.none(), new BindConverter()).build());
+    private Setting<Boolean> enabled = register(Settings.booleanBuilder("Enabled").withVisibility(aBoolean -> false).withValue(false).build());
     public boolean alwaysListening;
     protected static final Minecraft mc = Minecraft.getMinecraft();
 
@@ -164,8 +164,7 @@ public class Module {
         @Override
         protected Bind doBackward(JsonElement jsonElement) {
             String s = jsonElement.getAsString();
-            s = s.toLowerCase();
-            if (s.equals("None")) return Bind.none();
+            if (s.equalsIgnoreCase("None")) return Bind.none();
             boolean ctrl = false, alt = false, shift = false;
 
             if (s.startsWith("Ctrl+")) {
@@ -186,7 +185,7 @@ public class Module {
                 key = Keyboard.getKeyIndex(s);
             } catch (Exception ignored) {}
 
-            if (key == -1) return Bind.none();
+            if (key == 0) return Bind.none();
             return new Bind(ctrl, alt, shift, key);
         }
     }
