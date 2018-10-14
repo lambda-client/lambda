@@ -106,7 +106,7 @@ public class KamiMod {
         KamiMod.log.info("KAMI Mod initialized!\n");
     }
 
-    private static String getConfigName() {
+    public static String getConfigName() {
         File configNameFile = new File("KAMILastConfig.txt");
         String kamiConfigName = KAMI_CONFIG_NAME_DEFAULT;
         try(BufferedReader reader = new BufferedReader(new FileReader(configNameFile))) {
