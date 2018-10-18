@@ -61,7 +61,11 @@ Import KAMI into your IDE of choice. If you use IntelliJ, import from the `build
 If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
 
 ### Building
-
+You can build on Windows by running
+```
+autobuild.bat
+```
+Or opening CMD prompt inside the extracted folder and typing
 ```
 gradlew.bat build
 cd build/libs
