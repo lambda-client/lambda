@@ -12,6 +12,8 @@ import me.zeroeightsix.kami.setting.Named;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.impl.BooleanSetting;
 import me.zeroeightsix.kami.setting.impl.EnumSetting;
+import me.zeroeightsix.kami.setting.impl.numerical.DoubleSetting;
+import me.zeroeightsix.kami.setting.impl.numerical.FloatSetting;
 import me.zeroeightsix.kami.setting.impl.numerical.IntegerSetting;
 import me.zeroeightsix.kami.setting.impl.numerical.NumberSetting;
 import me.zeroeightsix.kami.util.Bind;
@@ -68,7 +70,13 @@ public class SettingsPanel extends OrganisedContainer {
                         slider.addPoof(new Slider.SliderPoof<UnboundSlider, Slider.SliderPoof.SliderPoofInfo>() {
                             @Override
                             public void execute(UnboundSlider component, SliderPoofInfo info) {
-                                setting.setValue(info.getNewValue());
+                                if (setting instanceof IntegerSetting)
+                                    setting.setValue(new Integer((int) info.getNewValue()));
+                                else if (setting instanceof FloatSetting)
+                                    setting.setValue(new Float(info.getNewValue()));
+                                else if (setting instanceof DoubleSetting)
+                                    setting.setValue(info.getNewValue());
+                                setModule(module);
                             }
                         });
                         if (numberSetting.getMax() != null) slider.setMax(numberSetting.getMax().doubleValue());
@@ -79,7 +87,13 @@ public class SettingsPanel extends OrganisedContainer {
                         slider.addPoof(new Slider.SliderPoof<Slider, Slider.SliderPoof.SliderPoofInfo>() {
                             @Override
                             public void execute(Slider component, SliderPoofInfo info) {
-                                setting.setValue(info.getNewValue());
+                                if (setting instanceof IntegerSetting)
+                                    setting.setValue(new Integer((int) info.getNewValue()));
+                                else if (setting instanceof FloatSetting)
+                                    setting.setValue(new Float(info.getNewValue()));
+                                else if (setting instanceof DoubleSetting)
+                                    setting.setValue(info.getNewValue());
+                                setModule(module);
                             }
                         });
                         addChild(slider);
@@ -90,8 +104,10 @@ public class SettingsPanel extends OrganisedContainer {
                     checkButton.addPoof(new CheckButton.CheckButtonPoof<CheckButton, CheckButton.CheckButtonPoof.CheckButtonPoofInfo>() {
                         @Override
                         public void execute(CheckButton checkButton1, CheckButtonPoofInfo info) {
-                            if (info.getAction() == CheckButtonPoofInfo.CheckButtonPoofInfoAction.TOGGLE)
+                            if (info.getAction() == CheckButtonPoofInfo.CheckButtonPoofInfoAction.TOGGLE) {
                                 setting.setValue(checkButton.isToggled());
+                                setModule(module);
+                            }
                         }
                     });
                     addChild(checkButton);
@@ -104,6 +120,7 @@ public class SettingsPanel extends OrganisedContainer {
                         @Override
                         public void execute(EnumButton component, EnumbuttonInfo info) {
                             setting.setValue(con[info.getNewIndex()]);
+                            setModule(module);
                         }
                     });
                     enumbutton.setIndex(Arrays.asList(con).indexOf(setting.getValue()));
