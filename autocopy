@@ -1,2 +1,2 @@
-rm ~/.minecraft/mods/1.12.2/kami*
+rm ~/.minecraft/mods/1.12.2/KAMI*
 cp build/libs/*-release.jar ~/.minecraft/mods/1.12.2/
