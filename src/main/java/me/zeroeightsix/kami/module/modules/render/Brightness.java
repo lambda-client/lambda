@@ -1,16 +1,11 @@
 package me.zeroeightsix.kami.module.modules.render;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import scala.actors.threadpool.Arrays;
 
 import java.util.Stack;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
-import java.util.stream.Stream;
 
 /**
  * Created by 086 on 12/12/2017.
@@ -19,11 +14,11 @@ import java.util.stream.Stream;
 @Module.Info(name = "Brightness", description = "Makes everything brighter!", category = Module.Category.RENDER)
 public class Brightness extends Module {
 
-    Setting<Boolean> transition = register(Settings.b("Transition", true));
-    Setting<Float> seconds = register(Settings.floatBuilder("Seconds").withMinimum(0f).withMaximum(10f).withValue(1f).withVisibility(o -> transition.getValue()).build());
-    Setting<Transition> mode = register(Settings.enumBuilder(Transition.class).withName("Mode").withValue(Transition.SINE).withVisibility(o -> transition.getValue()).build());
+    private Setting<Boolean> transition = register(Settings.b("Transition", true));
+    private Setting<Float> seconds = register(Settings.floatBuilder("Seconds").withMinimum(0f).withMaximum(10f).withValue(1f).withVisibility(o -> transition.getValue()).build());
+    private Setting<Transition> mode = register(Settings.enumBuilder(Transition.class).withName("Mode").withValue(Transition.SINE).withVisibility(o -> transition.getValue()).build());
 
-    Stack<Float> transitionStack = new Stack<>();
+    private Stack<Float> transitionStack = new Stack<>();
 
     private static float currentBrightness = 0;
     private static boolean inTransition = false;
@@ -41,6 +36,7 @@ public class Brightness extends Module {
                     break;
                 default:
                     values = new float[]{0};
+                    break;
             }
             for (float v : values) {
                 transitionStack.add(v);
