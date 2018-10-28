@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.EntityUtil;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityBoat;
 import net.minecraft.entity.passive.AbstractHorse;
 import net.minecraft.entity.passive.EntityHorse;
@@ -30,51 +31,59 @@ public class EntitySpeed extends Module {
     @Override
     public void onUpdate() {
         if ((mc.world != null) && (mc.player.getRidingEntity() != null)) {
-            if (mc.player.getRidingEntity() instanceof EntityPig || mc.player.getRidingEntity() instanceof AbstractHorse) {
-                if (!flight.getValue()) {
-                    mc.player.getRidingEntity().motionY = -0.4D;
-                }
-
-                if (flight.getValue()) {
-                    if (mc.gameSettings.keyBindJump.isKeyDown())
-                        mc.player.getRidingEntity().motionY = speed.getValue();
-                    else if (mc.gameSettings.keyBindForward.isKeyDown() || mc.gameSettings.keyBindBack.isKeyDown())
-                        mc.player.getRidingEntity().motionY = wobble.getValue() ? Math.sin(mc.player.ticksExisted) : 0;
-                }
-
-                setMoveSpeedEntity(speed.getValue() * 3.8D);
-
-                if (mc.player.getRidingEntity() instanceof EntityHorse){
-                    mc.player.getRidingEntity().rotationYaw = mc.player.rotationYaw;
-                }
-            } else if (mc.player.getRidingEntity() instanceof EntityBoat) {
-                EntityBoat boat = getBoat();
-                if (boat == null) return;
-
-                int angle;
-
-                boolean forward = mc.gameSettings.keyBindForward.isKeyDown();
-                boolean left = mc.gameSettings.keyBindLeft.isKeyDown();
-                boolean right = mc.gameSettings.keyBindRight.isKeyDown();
-                boolean back = mc.gameSettings.keyBindBack.isKeyDown();
-                if (!(forward && back)) boat.motionY = 0;
-                if (mc.gameSettings.keyBindJump.isKeyDown()) boat.motionY += speed.getValue() / 2f;
-
-                if (!forward && !left && !right && !back) return;
-                if (left && right) angle = forward ? 0 : back ? 180 : -1;
-                else if (forward && back) angle = left ? -90 : (right ? 90 : -1);
-                else {
-                    angle = left ? -90 : (right ? 90 : 0);
-                    if (forward) angle /= 2;
-                    else if (back) angle = 180 - (angle / 2);
-                }
-
-                if (angle == -1) return;
-                float yaw = mc.player.rotationYaw + angle;
-                boat.motionX = EntityUtil.getRelativeX(yaw) * speed.getValue();
-                boat.motionZ = EntityUtil.getRelativeZ(yaw) * speed.getValue();
+            Entity riding = mc.player.getRidingEntity();
+            if (riding instanceof EntityPig || riding instanceof AbstractHorse) {
+                steerEntity(riding);
+            } else if (riding instanceof EntityBoat) {
+                steerBoat(getBoat());
             }
         }
+    }
+
+    private void steerEntity(Entity entity) {
+        if (!flight.getValue()) {
+            entity.motionY = -0.4D;
+        }
+
+        if (flight.getValue()) {
+            if (mc.gameSettings.keyBindJump.isKeyDown())
+                entity.motionY = speed.getValue();
+            else if (mc.gameSettings.keyBindForward.isKeyDown() || mc.gameSettings.keyBindBack.isKeyDown())
+                entity.motionY = wobble.getValue() ? Math.sin(mc.player.ticksExisted) : 0;
+        }
+
+        moveForward(entity, speed.getValue() * 3.8D);
+
+        if (entity instanceof EntityHorse){
+            entity.rotationYaw = mc.player.rotationYaw;
+        }
+    }
+
+    private void steerBoat(EntityBoat boat) {
+        if (boat == null) return;
+
+        int angle;
+
+        boolean forward = mc.gameSettings.keyBindForward.isKeyDown();
+        boolean left = mc.gameSettings.keyBindLeft.isKeyDown();
+        boolean right = mc.gameSettings.keyBindRight.isKeyDown();
+        boolean back = mc.gameSettings.keyBindBack.isKeyDown();
+        if (!(forward && back)) boat.motionY = 0;
+        if (mc.gameSettings.keyBindJump.isKeyDown()) boat.motionY += speed.getValue() / 2f;
+
+        if (!forward && !left && !right && !back) return;
+        if (left && right) angle = forward ? 0 : back ? 180 : -1;
+        else if (forward && back) angle = left ? -90 : (right ? 90 : -1);
+        else {
+            angle = left ? -90 : (right ? 90 : 0);
+            if (forward) angle /= 2;
+            else if (back) angle = 180 - (angle / 2);
+        }
+
+        if (angle == -1) return;
+        float yaw = mc.player.rotationYaw + angle;
+        boat.motionX = EntityUtil.getRelativeX(yaw) * speed.getValue();
+        boat.motionZ = EntityUtil.getRelativeZ(yaw) * speed.getValue();
     }
 
     @Override
@@ -91,23 +100,20 @@ public class EntitySpeed extends Module {
         return null;
     }
 
-    private void setMoveSpeedEntity(double speed) {
-        if (mc.player.getRidingEntity() != null)
-        {
+    private void moveForward(Entity entity, double speed) {
+        if (entity != null) {
             MovementInput movementInput = mc.player.movementInput;
 
             double forward = movementInput.moveForward;
             double strafe = movementInput.moveStrafe;
+            boolean movingForward = forward != 0;
+            boolean movingStrafe = strafe != 0;
             float yaw = mc.player.rotationYaw;
-            if ((forward == 0.0D) && (strafe == 0.0D))
-            {
-                mc.player.getRidingEntity().motionX = 0.0D;
-                mc.player.getRidingEntity().motionZ = 0.0D;
-            }
-            else
-            {
-                if (forward != 0.0D)
-                {
+
+            if (!movingForward && !movingStrafe) {
+                setEntitySpeed(entity, 0, 0);
+            } else {
+                if (forward != 0.0D) {
                     if (strafe > 0.0D) {
                         yaw += (forward > 0.0D ? -45 : 45);
                     } else if (strafe < 0.0D) {
@@ -124,13 +130,21 @@ public class EntitySpeed extends Module {
                 double motX = (forward * speed * Math.cos(Math.toRadians(yaw + 90.0F)) + strafe * speed * Math.sin(Math.toRadians(yaw + 90.0F)));
                 double motZ = (forward * speed * Math.sin(Math.toRadians(yaw + 90.0F)) - strafe * speed * Math.cos(Math.toRadians(yaw + 90.0F)));
 
-                if (antiStuck.getValue() && mc.world.getChunkFromChunkCoords((int) (mc.player.getRidingEntity().posX + motX) >> 4, (int) (mc.player.getRidingEntity().posZ + motZ) >> 4) instanceof EmptyChunk)
+                if (isBorderingChunk(entity, motX, motZ))
                     motX = motZ = 0;
 
-                mc.player.getRidingEntity().motionX = motX;
-                mc.player.getRidingEntity().motionZ = motZ;
+                setEntitySpeed(entity, motX, motZ);
             }
         }
+    }
+
+    private void setEntitySpeed(Entity entity, double motX, double motZ) {
+        entity.motionX = motX;
+        entity.motionZ = motZ;
+    }
+
+    private boolean isBorderingChunk(Entity entity, double motX, double motZ) {
+        return antiStuck.getValue() && mc.world.getChunkFromChunkCoords((int) (entity.posX + motX) >> 4, (int) (entity.posZ + motZ) >> 4) instanceof EmptyChunk;
     }
 
     public static float getOpacity() {
