@@ -1,5 +1,5 @@
 # KAMI
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b796e23b2a5e43a0badc60cc52520d26)](https://app.codacy.com/app/zeroeightysix/KAMI?utm_source=github.com&utm_medium=referral&utm_content=zeroeightysix/KAMI&utm_campaign=Badge_Grade_Dashboard)
+[![Maintainability](https://api.codeclimate.com/v1/badges/81228111eb82b7ca391e/maintainability)](https://codeclimate.com/github/zeroeightysix/KAMI/maintainability)
 [![Issues](https://img.shields.io/github/issues/zeroeightysix/kami.svg)](https://github.com/zeroeightysix/kami/issues)
 [![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg)
 
