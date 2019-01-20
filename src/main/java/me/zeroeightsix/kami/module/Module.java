@@ -61,6 +61,10 @@ public class Module {
         ModuleManager.updateLookup();
     }
 
+    public String getOriginalName() {
+        return originalName;
+    }
+
     public enum Category
     {
         COMBAT("Combat", false),

@@ -18,9 +18,6 @@ public class RenameModuleCommand extends Command {
         if (args.length == 0) {
             sendChatMessage("Please specify a module!");
             return;
-        } else if (args.length == 1) {
-            sendChatMessage("Please specify a name!");
-            return;
         }
 
         Module module = ModuleManager.getModuleByName(args[0]);
@@ -29,7 +26,7 @@ public class RenameModuleCommand extends Command {
             return;
         }
 
-        String name = args[1];
+        String name = args.length == 1 ? module.getOriginalName() : args[1];
 
         if (!(name.matches("[a-zA-Z]+"))) {
             sendChatMessage("Name must be alphabetic!");
