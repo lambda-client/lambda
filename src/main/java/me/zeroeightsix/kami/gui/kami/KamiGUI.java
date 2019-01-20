@@ -74,7 +74,11 @@ public class KamiGUI extends GUI {
             CheckButton checkButton = new CheckButton(module.getName());
             checkButton.setToggled(module.isEnabled());
 
-            checkButton.addTickListener(() -> checkButton.setToggled(module.isEnabled()));
+            checkButton.addTickListener(() -> { // dear god
+                checkButton.setToggled(module.isEnabled());
+                checkButton.setName(module.getName());
+            });
+
             checkButton.addMouseListener(new MouseListener() {
                 @Override
                 public void onMouseDown(MouseButtonEvent event) {

@@ -100,6 +100,8 @@ public class KamiMod {
         loadConfiguration();
         KamiMod.log.info("Settings loaded");
 
+        ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
+
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
