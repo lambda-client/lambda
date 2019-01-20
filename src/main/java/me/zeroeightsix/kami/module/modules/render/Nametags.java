@@ -37,6 +37,7 @@ public class Nametags extends Module {
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Double> range = register(Settings.d("Range", 200));
+    private Setting<Float> scale = register(Settings.floatBuilder("Scale").withMinimum(.5f).withMaximum(10f).withValue(1f).build());
     private Setting<Boolean> health = register(Settings.b("Health", true));
 
     RenderItem itemRenderer = mc.getRenderItem();
@@ -78,7 +79,7 @@ public class Nametags extends Module {
         GlStateManager.rotate((float) (isThirdPersonFrontal ? -1 : 1) * viewerPitch, 1.0F, 0.0F, 0.0F);
 
         float f = mc.player.getDistance(entityIn);
-        float m = f / 8f;
+        float m = (f / 8f) * (float) (Math.pow(1.2589254f, this.scale.getValue()));
         GlStateManager.scale(m, m, m);
 
         FontRenderer fontRendererIn = mc.fontRenderer;
