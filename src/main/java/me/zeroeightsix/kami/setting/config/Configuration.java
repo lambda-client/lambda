@@ -6,6 +6,8 @@ import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.converter.Convertable;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -30,8 +32,8 @@ public class Configuration {
         return object;
     }
 
-    public static void saveConfiguration(File file) throws IOException {
-        saveConfiguration(new FileOutputStream(file));
+    public static void saveConfiguration(Path path) throws IOException {
+        saveConfiguration(Files.newOutputStream(path));
     }
 
     public static void saveConfiguration(OutputStream stream) throws IOException {
@@ -42,8 +44,8 @@ public class Configuration {
         writer.close();
     }
 
-    public static void loadConfiguration(File file) throws IOException {
-        InputStream stream = new FileInputStream(file);
+    public static void loadConfiguration(Path path) throws IOException {
+        InputStream stream = Files.newInputStream(path);
         loadConfiguration(stream);
         stream.close();
     }

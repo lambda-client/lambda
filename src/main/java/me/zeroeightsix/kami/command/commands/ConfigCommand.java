@@ -8,9 +8,10 @@ import me.zeroeightsix.kami.command.syntax.parsers.EnumParser;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Created by 086 on 14/10/2018.
@@ -46,15 +47,15 @@ public class ConfigCommand extends Command {
                 break;
             case "path":
                 if (args[1] == null) {
-                    File file = new File(KamiMod.getConfigName());
-                    Command.sendChatMessage("Path to configuration: &b" + file.getAbsolutePath());
+                    Path file = Paths.get(KamiMod.getConfigName());
+                    Command.sendChatMessage("Path to configuration: &b" + file.toAbsolutePath().toString());
                 } else {
                     String newPath = args[1];
                     if (!KamiMod.isFilenameValid(newPath)) {
                         Command.sendChatMessage("&b" + newPath + "&r is not a valid path");
                         break;
                     }
-                    try(BufferedWriter writer = new BufferedWriter(new FileWriter(new File("KAMILastConfig.txt")))) {
+                    try(BufferedWriter writer = Files.newBufferedWriter(Paths.get("KAMILastConfig.txt"))) {
                         writer.write(newPath);
                         reload();
                         Command.sendChatMessage("Configuration path set to &b" + newPath + "&r!");
