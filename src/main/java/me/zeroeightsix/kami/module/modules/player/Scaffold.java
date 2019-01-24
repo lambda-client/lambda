@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
@@ -55,7 +56,7 @@ public class Scaffold extends Module {
 
     @Override
     public void onUpdate() {
-        if (isDisabled() || mc.player == null) return;
+        if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) return;
         Vec3d vec3d = EntityUtil.getInterpolatedPos(mc.player, future.getValue());
         BlockPos blockPos = new BlockPos(vec3d).down();
         BlockPos belowBlockPos = blockPos.down();
