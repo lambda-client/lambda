@@ -80,7 +80,7 @@ You can build by running `autobuild.bat`, or if you prefer the manual way, do th
 gradlew.bat build
 cd build/libs
 ```
-In `build/libs` you will find a file `KAMI-<minecraftVersion>-<kamiVersion>-full.jar` which you can copy to the `mods` folder of a minecraft instance that has forge installed.
+To copy the release  jar in `build/libs` you can run `autocopy.bat` or, if you prefer doing it manually, find a file `KAMI-<minecraftVersion>-<kamiVersion>-release.jar` which you can copy to the `mods` folder of a minecraft instance that has forge installed.
 
 ## Thank you
 [ZeroMemes](https://github.com/ZeroMemes) for [Alpine](https://github.com/ZeroMemes/Alpine)
