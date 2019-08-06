@@ -51,7 +51,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> place = register(Settings.b("Place", false));
     private Setting<Boolean> explode = register(Settings.b("Explode", false));
     private Setting<Double>  range = register(Settings.d("Range", 4));
-    private Setting<Boolean> antiweakness = register(Settings.b("Anti Weakness", false));
+    private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
 
     private BlockPos render;
     private Entity renderEnt;
@@ -71,7 +71,7 @@ public class CrystalAura extends Module {
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue()) {
             //Added delay to stop ncp from flagging "hitting too fast"
             if (((System.nanoTime() / 1000000) - systemTime) >= 250) {
-                if (antiweakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
+                if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
                     // search blocks in hotbar
                     newSlot = -1;
                     for (int i = 0; i < 9; i++) {
