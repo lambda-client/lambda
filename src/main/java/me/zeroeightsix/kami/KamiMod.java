@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -117,7 +118,7 @@ public class KamiMod {
         try(BufferedReader reader = Files.newBufferedReader(config)) {
             kamiConfigName = reader.readLine();
             if (!isFilenameValid(kamiConfigName)) kamiConfigName = KAMI_CONFIG_NAME_DEFAULT;
-        } catch (FileNotFoundException e) {
+        } catch (NoSuchFileException e) {
             try(BufferedWriter writer = Files.newBufferedWriter(config)) {
                 writer.write(KAMI_CONFIG_NAME_DEFAULT);
             } catch (IOException e1) {
