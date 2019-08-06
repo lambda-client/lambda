@@ -23,7 +23,7 @@ This is by no means a finished project and is still in rapid development.
 
 ## Installing
 
-KAMI is a forge mod. Start by downloading the latest version of [forge](https://files.minecraftforge.net/).
+KAMI is a forge mod. Start by downloading the latest version of [1.12.2 forge](https://files.minecraftforge.net/).
 1. Install forge
 2. Navigate to your `.minecraft` directory.
    * **Windows**: `%appdata%/.minecraft`
@@ -74,13 +74,24 @@ Import KAMI into your IDE of choice. If you use IntelliJ, import from the `build
 If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
 
 ### Building
-You can build by running `autobuild.bat`, or if you prefer the manual way, do the following:
+#### Windows
+You can build by running `autobuild.bat` and then `autocopy.bat`, or if you prefer the manual way, do the following:
 
 ```
 gradlew.bat build
 cd build/libs
 ```
 To copy the release  jar in `build/libs` you can run `autocopy.bat` or, if you prefer doing it manually, find a file `KAMI-<minecraftVersion>-<kamiVersion>-release.jar` which you can copy to the `mods` folder of a minecraft instance that has forge installed.
+#### Linux
+```
+git clone https://github.com/zeroeightysix/KAMI.git
+cd KAMI
+chmod +x auto*
+./autobuild
+mkdir ~/.minecraft/mods
+./autocopy
+```
+Note: This assumes your minecraft folder is in the default location under your home folder.
 
 ## Thank you
 [ZeroMemes](https://github.com/ZeroMemes) for [Alpine](https://github.com/ZeroMemes/Alpine)
