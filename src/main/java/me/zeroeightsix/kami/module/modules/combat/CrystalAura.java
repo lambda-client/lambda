@@ -59,6 +59,8 @@ public class CrystalAura extends Module {
     private static boolean togglePitch = false;
 	// we need this cooldown to not place from old hotbar slot, before we have switched to crystals
     private boolean switchCooldown = false;
+    private boolean isAttacking = false;
+    private int oldSlot = -1;
     private int newSlot;
 
     @Override
@@ -72,7 +74,12 @@ public class CrystalAura extends Module {
             //Added delay to stop ncp from flagging "hitting too fast"
             if (((System.nanoTime() / 1000000) - systemTime) >= 250) {
                 if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
-                    // search blocks in hotbar
+                    if (!isAttacking) {
+                        // save initial player hand
+                        oldSlot = Wrapper.getPlayer().inventory.currentItem;
+                        isAttacking = true;
+                    }
+                    // search for sword and tools in hotbar
                     newSlot = -1;
                     for (int i = 0; i < 9; i++) {
                         ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
@@ -102,6 +109,11 @@ public class CrystalAura extends Module {
             return;
         } else {
             resetRotation();
+			if (oldSlot != -1) {
+                Wrapper.getPlayer().inventory.currentItem = oldSlot;
+                oldSlot = -1;
+			}
+            isAttacking = false;
         }
 
         int crystalSlot = mc.player.getHeldItemMainhand().getItem() == Items.END_CRYSTAL ? mc.player.inventory.currentItem : -1;
