@@ -86,6 +86,7 @@ To copy the release  jar in `build/libs` you can run `autocopy.bat` or, if you p
 ```
 git clone https://github.com/zeroeightysix/KAMI.git
 cd KAMI
+chmod +x auto*
 ./autobuild
 mkdir ~/.minecraft/mods
 ./autocopy
