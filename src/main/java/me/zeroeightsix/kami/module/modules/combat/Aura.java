@@ -137,11 +137,9 @@ public class Aura extends Module {
                     }
                 }
 
-                if (newSlot == -1) {
-                    return;
+                if (newSlot != -1) {
+                    mc.player.inventory.currentItem = newSlot;
                 }
-
-                mc.player.inventory.currentItem = newSlot;
 
             }
 
