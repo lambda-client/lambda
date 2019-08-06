@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
+import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -23,7 +24,8 @@ import java.util.List;
  */
 public class Module {
 
-    private final String name = getAnnotation().name();
+    private final String originalName = getAnnotation().name();
+    private final Setting<String> name = register(Settings.s("Name", originalName));
     private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
     private Setting<Bind> bind = register(Settings.custom("Bind", Bind.none(), new BindConverter()).build());
@@ -52,6 +54,15 @@ public class Module {
 
     public String getBindName() {
         return bind.getValue().toString();
+    }
+
+    public void setName(String name) {
+        this.name.setValue(name);
+        ModuleManager.updateLookup();
+    }
+
+    public String getOriginalName() {
+        return originalName;
     }
 
     public enum Category
@@ -91,7 +102,7 @@ public class Module {
     }
 
     public String getName() {
-        return name;
+        return name.getValue();
     }
 
     public String getDescription() {
@@ -155,6 +166,26 @@ public class Module {
      */
     public void destroy(){};
 
+    protected void registerAll(Setting... settings) {
+        for (Setting setting : settings) {
+            register(setting);
+        }
+    }
+
+    protected <T> Setting<T> register(Setting<T> setting) {
+        if (settingList == null) settingList = new ArrayList<>();
+        settingList.add(setting);
+        return SettingBuilder.register(setting, "modules." + originalName);
+    }
+
+    protected <T> Setting<T> register(SettingBuilder<T> builder) {
+        if (settingList == null) settingList = new ArrayList<>();
+        Setting<T> setting = builder.buildAndRegister("modules." + name);
+        settingList.add(setting);
+        return setting;
+    }
+
+
     private class BindConverter extends Converter<Bind, JsonElement> {
         @Override
         protected JsonElement doForward(Bind bind) {
@@ -189,24 +220,4 @@ public class Module {
             return new Bind(ctrl, alt, shift, key);
         }
     }
-
-    protected void registerAll(Setting... settings) {
-        for (Setting setting : settings) {
-            register(setting);
-        }
-    }
-
-    protected <T> Setting<T> register(Setting<T> setting) {
-        if (settingList == null) settingList = new ArrayList<>();
-        settingList.add(setting);
-        return SettingBuilder.register(setting, "modules." + name);
-    }
-
-    protected <T> Setting<T> register(SettingBuilder<T> builder) {
-        if (settingList == null) settingList = new ArrayList<>();
-        Setting<T> setting = builder.buildAndRegister("modules." + name);
-        settingList.add(setting);
-        return setting;
-    }
-
 }

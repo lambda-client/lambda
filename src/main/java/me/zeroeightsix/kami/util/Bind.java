@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.util;
 
+import me.zeroeightsix.kami.command.commands.BindCommand;
 import org.lwjgl.input.Keyboard;
 
 /**
@@ -61,7 +62,7 @@ public class Bind {
     }
 
     public boolean isDown() {
-        return !isEmpty() && (isShift() == isShiftDown()) && (isCtrl() == isCtrlDown()) && (isAlt() == isAltDown()) && Keyboard.isKeyDown(getKey());
+        return !isEmpty() && (!BindCommand.modifiersEnabled.getValue() || (isShift() == isShiftDown()) && (isCtrl() == isCtrlDown()) && (isAlt() == isAltDown())) && Keyboard.isKeyDown(getKey());
     }
 
     private boolean isShiftDown() {

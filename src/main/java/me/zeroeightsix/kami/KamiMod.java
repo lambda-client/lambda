@@ -32,6 +32,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -100,6 +103,8 @@ public class KamiMod {
         loadConfiguration();
         KamiMod.log.info("Settings loaded");
 
+        ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
+
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
@@ -107,13 +112,13 @@ public class KamiMod {
     }
 
     public static String getConfigName() {
-        File configNameFile = new File("KAMILastConfig.txt");
+        Path config = Paths.get("KAMILastConfig.txt");
         String kamiConfigName = KAMI_CONFIG_NAME_DEFAULT;
-        try(BufferedReader reader = new BufferedReader(new FileReader(configNameFile))) {
+        try(BufferedReader reader = Files.newBufferedReader(config)) {
             kamiConfigName = reader.readLine();
             if (!isFilenameValid(kamiConfigName)) kamiConfigName = KAMI_CONFIG_NAME_DEFAULT;
         } catch (FileNotFoundException e) {
-            try(BufferedWriter writer = new BufferedWriter(new FileWriter(configNameFile))) {
+            try(BufferedWriter writer = Files.newBufferedWriter(config)) {
                 writer.write(KAMI_CONFIG_NAME_DEFAULT);
             } catch (IOException e1) {
                 e1.printStackTrace();
@@ -134,8 +139,8 @@ public class KamiMod {
 
     public static void loadConfigurationUnsafe() throws IOException {
         String kamiConfigName = getConfigName();
-        File kamiConfig = new File(kamiConfigName);
-        if (!kamiConfig.exists()) return;
+        Path kamiConfig = Paths.get(kamiConfigName);
+        if (!Files.exists(kamiConfig)) return;
         Configuration.loadConfiguration(kamiConfig);
 
         JsonObject gui = KamiMod.INSTANCE.guiStateSetting.getValue();
@@ -180,9 +185,9 @@ public class KamiMod {
         });
         KamiMod.INSTANCE.guiStateSetting.setValue(object);
 
-        File outputFile = new File(getConfigName());
-        if (!outputFile.exists())
-            outputFile.createNewFile();
+        Path outputFile = Paths.get(getConfigName());
+        if (!Files.exists(outputFile))
+            Files.createFile(outputFile);
         Configuration.saveConfiguration(outputFile);
         ModuleManager.getModules().forEach(Module::destroy);
     }

@@ -31,13 +31,19 @@ public class ModuleManager {
      */
     static HashMap<String, Module> lookup = new HashMap<>();
 
+    public static void updateLookup() {
+        lookup.clear();
+        for (Module m : modules)
+            lookup.put(m.getName().toLowerCase(), m);
+    }
+
     public static void initialize() {
         Set<Class> classList = ClassFinder.findClasses(ClickGUI.class.getPackage().getName(), Module.class);
         classList.forEach(aClass -> {
             try {
                 Module module = (Module) aClass.getConstructor().newInstance();
                 modules.add(module);
-                lookup.put(module.getName().toLowerCase(), module);
+                // lookup.put(module.getName().toLowerCase(), module);
             } catch (InvocationTargetException e) {
                 e.getCause().printStackTrace();
                 System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());

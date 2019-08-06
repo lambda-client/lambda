@@ -10,6 +10,17 @@ See [forgehax](https://github.com/fr1kin/forgehax) for a more polished equivalen
 
 This is by no means a finished project and is still in rapid development.
 
+## Preview
+
+<details>
+ <summary>Click to view images</summary>
+
+ ![GUI](.github/IMAGES/gui.png)
+ 
+ ![CrystalAura](.github/IMAGES/crystalAura.png)
+
+</details>
+
 ## Installing
 
 KAMI is a forge mod. Start by downloading the latest version of [forge](https://files.minecraftforge.net/).
