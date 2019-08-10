@@ -76,6 +76,11 @@ public class ChunkFinder extends Module {
         GL11.glTranslated(x, -(y + yOffset.getValue()), z);
     }
 
+    @Override
+    protected void onDisable() {
+        chunks.clear();
+    }
+
     @EventHandler
     public Listener<ChunkEvent> listener = new Listener<>(event -> {
         if (!event.getPacket().isFullChunk()) {
