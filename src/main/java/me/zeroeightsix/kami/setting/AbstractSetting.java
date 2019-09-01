@@ -6,7 +6,7 @@ import java.util.function.Predicate;
 /**
  * Created by 086 on 12/10/2018.
  */
-public abstract class AbstractSetting<T> extends SavableListeningNamedSettingRestrictable<T> {
+public abstract class AbstractSetting<T> extends Setting<T> {
 
     private Predicate<T> visibilityPredicate;
 

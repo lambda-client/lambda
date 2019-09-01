@@ -1,11 +1,13 @@
 package me.zeroeightsix.kami.setting;
 
 /**
- * Used as a non-generic base class for ISetting that prevents weird type issues.
- * Raw ISetting instances are too easy to screw up.
+ * Used as a non-generic base class for Setting that prevents weird type issues.
+ * Raw Setting instances are too easy to screw up (they accept Object with no type check)
  * @author 20kdc
  */
 public interface ISettingUnknown {
+    String getName();
+
     /**
      * @return The Class of the internal value (used for .set's output)
      */
