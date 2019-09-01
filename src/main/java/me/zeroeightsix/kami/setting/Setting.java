@@ -7,13 +7,21 @@ public abstract class Setting<T> implements ISetting<T> {
 
     T value;
 
+    private final Class valueType;
+
     public Setting(T value) {
         this.value = value;
+        this.valueType = value.getClass();
     }
 
     @Override
     public T getValue() {
         return value;
+    }
+
+    @Override
+    public Class getValueClass() {
+        return valueType;
     }
 
     @Override

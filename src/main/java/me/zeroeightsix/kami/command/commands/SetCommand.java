@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.setting.ISettingUnknown;
 import me.zeroeightsix.kami.setting.Named;
 import me.zeroeightsix.kami.setting.Setting;
 
@@ -55,15 +56,15 @@ public class SetCommand extends Command {
             return;
         }
 
-        Setting setting = optionalSetting.get();
+        ISettingUnknown setting = optionalSetting.get();
 
         if (args[2] == null) {
-            Command.sendChatMessage("&b" + ((Named) setting).getName() + "&r is a &3" + setting.getValue().getClass().getSimpleName() + "&r. Its current value is &3" + setting.getValue());
+            Command.sendChatMessage("&b" + ((Named) setting).getName() + "&r is a &3" + setting.getValueClass().getSimpleName() + "&r. Its current value is &3" + setting.getValueAsString());
             return;
         }
 
         try {
-            setting.setValue(args[2]);
+            setting.setValueFromString(args[2]);
             Command.sendChatMessage("Set &b" + ((Named) setting).getName() + "&r to &3" + args[2] + "&r.");
         } catch (Exception e) {
             e.printStackTrace();

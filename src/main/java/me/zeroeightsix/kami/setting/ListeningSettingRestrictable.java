@@ -6,7 +6,7 @@ import java.util.function.Predicate;
 /**
  * Created by 086 on 12/10/2018.
  */
-public class ListeningSettingRestrictable<T> extends SettingRestrictable<T> {
+public abstract class ListeningSettingRestrictable<T> extends SettingRestrictable<T> {
 
     private BiConsumer<T, T> consumer;
 
