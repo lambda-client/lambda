@@ -20,16 +20,19 @@ public abstract class Setting<T> implements ISettingUnknown, Convertable<T> {
      */
     private Predicate<T> restriction;
 
+    private Predicate<T> visibilityPredicate;
+
     private BiConsumer<T, T> consumer;
 
     private final Class valueType;
 
-    public Setting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name) {
+    public Setting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate) {
         this.value = value;
         this.valueType = value.getClass();
         this.restriction = restriction;
         this.consumer = consumer;
         this.name = name;
+        this.visibilityPredicate = visibilityPredicate;
     }
 
     @Override
@@ -61,7 +64,7 @@ public abstract class Setting<T> implements ISettingUnknown, Convertable<T> {
 
     @Override
     public boolean isVisible() {
-        return true;
+        return visibilityPredicate.test(getValue());
     }
 
     /**

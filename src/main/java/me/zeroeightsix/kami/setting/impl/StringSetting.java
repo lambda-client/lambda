@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.setting.impl;
 
-import me.zeroeightsix.kami.setting.AbstractSetting;
+import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.converter.StringConverter;
 
 import java.util.function.BiConsumer;
@@ -9,7 +9,7 @@ import java.util.function.Predicate;
 /**
  * Created by 086 on 12/10/2018.
  */
-public class StringSetting extends AbstractSetting<String> {
+public class StringSetting extends Setting<String> {
 
     private static final StringConverter converter = new StringConverter();
 

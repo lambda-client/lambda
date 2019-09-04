@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.setting.impl;
 
-import me.zeroeightsix.kami.setting.AbstractSetting;
+import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.converter.BooleanConverter;
 
 import java.util.function.BiConsumer;
@@ -9,7 +9,7 @@ import java.util.function.Predicate;
 /**
  * Created by 086 on 12/10/2018.
  */
-public class BooleanSetting extends AbstractSetting<Boolean> {
+public class BooleanSetting extends Setting<Boolean> {
 
     private static final BooleanConverter converter = new BooleanConverter();
 
