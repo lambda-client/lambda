@@ -94,7 +94,7 @@ public class Settings {
         return new SettingBuilder<T>() {
             @Override
             public Setting<T> build() {
-                return new AbstractSetting<T>(initialValue, predicate(), consumer, name, visibilityPredicate()) {
+                return new Setting<T>(initialValue, predicate(), consumer, name, visibilityPredicate()) {
                     @Override
                     public Converter converter() {
                         return converter;

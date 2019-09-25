@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.setting.builder;
 
 import com.google.common.base.MoreObjects;
-import me.zeroeightsix.kami.setting.Named;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 
@@ -65,8 +64,7 @@ public abstract class SettingBuilder<T> {
     }
 
     public static <T> Setting<T> register(Setting<T> setting, String group) {
-        if (!(setting instanceof Named)) throw new RuntimeException("Can't register unnamed setting");
-        String name = ((Named) setting).getName();
+        String name = setting.getName();
         if (name == null || name.isEmpty()) throw new RuntimeException("Can't register nameless setting");
         SettingsRegister.register(group + "." + name, setting);
         return setting;
