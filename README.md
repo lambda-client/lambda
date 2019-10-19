@@ -93,15 +93,15 @@ mkdir
 rmOld
 copy
 ```
-If you use more then one then it must be in that order.
+If you use more then one then it must be in that order. 
 
-Build is required, mkdir makes the mods/1.12.2 directory, rmOld removes old versions of KAMI in that directory, and copy copies the build release to the mods/1.12.2 directory. 
+Build is required, `mkdir` makes the `mods/1.12.2` directory, `rmOld` removes old versions of KAMI\* in that directory, and `copy` copies the build release to the `mods/1.12.2` directory. 
+
+\*`rmOld` removes any jars ending in `-release.jar`, which is the format KAMI uses. If you use any other mod that uses that naming scheme please remove old versions manually.
 
 If you prefer copying it manually, find a file in `build/libs` called `KAMI-<minecraftVersion>-<kamiVersion>-**release**.jar` which you can copy to the `mods/1.12.2` folder of a minecraft instance that has forge installed.
 
 Note: This assumes your minecraft folder is in the default location under your home folder.
-
-Note: Any argument other then `build` assumes you downloaded KAMI to a nested folder inside your home folder. For example `~/Downloads/KAMI` or `~/Documents/KAMI`
 
 #### Windows
 You can build by running these commands in a terminal with the current directory being KAMI. (EG. `cd C:\Users\Username\Downloads\KAMI`)
@@ -113,7 +113,7 @@ To copy on windows run `autocopy.bat`
 
 If you prefer copying it manually, find a file in `build/libs` called `KAMI-<minecraftVersion>-<kamiVersion>-**release**.jar` which you can copy to the `mods\1.12.2` folder of a minecraft instance that has forge installed.
 
-Note: This assumes your minecraft folder is in the default location under your appdata folder.
+Note: This assumes your minecraft folder is in the default location under your %appdata% folder.
 
 ## Thank you
 [ZeroMemes](https://github.com/ZeroMemes) for [Alpine](https://github.com/ZeroMemes/Alpine)
