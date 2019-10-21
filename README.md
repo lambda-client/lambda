@@ -79,8 +79,11 @@ If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
 
 ### Building
 #### Linux
-You can build by running these commands (without the <>) in a terminal with the current directory being KAMI. (EG. `cd ~/Downloads/KAMI`)
+You can build by running these commands (without the <>) in a terminal.
 ```
+git clone https://github.com/zeroeightysix/KAMI/
+cd KAMI
+
 chmod +x gradlew
 ./gradlew <args>
 ```
