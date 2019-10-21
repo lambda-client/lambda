@@ -5,7 +5,7 @@
 
 A minecraft utility mod for anarchy servers.
 
-This is by no means a finished project and is still in rapid development.
+Development has slowed down considerably. KAMI will likely no longer be updated. Pull requests are still welcome.
 
 ## Preview
 
