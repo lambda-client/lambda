@@ -94,7 +94,7 @@ mkdir
 rmOld
 copy
 ```
-If you use more then one then it must be in that order. 
+If you use more than one then it must be in that order. 
 
 Build is required, `mkdir` makes the `mods/1.12.2` directory, `rmOld` removes old versions of KAMI\* in that directory, and `copy` copies the build release to the `mods/1.12.2` directory. 
 
