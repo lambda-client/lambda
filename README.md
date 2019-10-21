@@ -4,17 +4,15 @@
 [![Issues](https://img.shields.io/github/issues/zeroeightysix/kami.svg)](https://github.com/zeroeightysix/kami/issues)
 [![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg)
 
-A minecraft utility mod for anarchy servers.
+## A minecraft utility mod for anarchy servers.
 
-<<<<<<< HEAD
 Development has slowed down considerably. KAMI will likely no longer be updated. Pull requests are still welcome.
-=======
+
 See [forgehax](https://github.com/fr1kin/forgehax) for a more polished equivalent. Some features in KAMI may be based on those of forgehax, as I sometimes used it as reference.
 
 Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
 
 This is by no means a finished project and is still in rapid development.
->>>>>>> 1bfff16... Add section about baritone to intro
 
 ## Preview
 
