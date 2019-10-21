@@ -48,6 +48,8 @@ The default prefix is `.`. Commands are used through chat, use `.commands` for a
 ##### Bind modules
 Run `.bind <module> <key>`.
 
+You can also use `.bind modifiers on` to change binds to something like `ctrl + shift + w` or `ctrl + c`.
+
 ##### Change command prefix
 By using the command `prefix <prefix>` or after having ran KAMI (make sure it's closed), editing your configuration file (find it using `config path` in-game) and changing the value of `commandPrefix` to change the prefix.
 
