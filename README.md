@@ -19,6 +19,8 @@ Development has slowed down considerably. KAMI will likely no longer be updated.
  <summary>Click to view images</summary>
 
  ![GUI](.github/IMAGES/gui.png)
+
+ ![ShulkerPreview](.github/IMAGES/shulkerChat.png)
  
  ![CrystalAura](.github/IMAGES/crystalAura.png)
 
