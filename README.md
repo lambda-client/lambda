@@ -63,7 +63,7 @@ Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
 
 If you experience an issue and it's not listed there, please [open a new issue](../../issues/new) and a contributor will help you further.
 
-## Contributing
+## Contributing / Editing the client
 
 You are free to clone, modify KAMI and make pull requests as you wish. To set up your development environment, make use of the following commands:
 
@@ -79,7 +79,11 @@ Of-course you can also use a Gradle installation if you for some reason want ano
 ```
 gradlew.bat setupDecompWorkspace
 ```
-Import KAMI into your IDE of choice. If you use IntelliJ, import from the `build.gradle` file and run `gradlew.bat genIntellijRuns`
+Import KAMI into your IDE of choice. 
+
+If you use IntelliJ, import from the `build.gradle` file and run `gradlew.bat genIntellijRuns`
+
+If you use Eclipse run `gradlew.bat eclipse`
 
 If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
 
