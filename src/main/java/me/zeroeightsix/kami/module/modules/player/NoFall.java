@@ -55,21 +55,23 @@ public class NoFall extends Module {
 				mc.player.rotationPitch = 90;
 				mc.playerController.processRightClick(mc.player, mc.world, hand);
 				last = System.currentTimeMillis();
-				/**try {
-				 *	Thread.sleep(300);
-				 *} catch (InterruptedException e) {
-				 *	// TODO Auto-generated catch block
-				 *	e.printStackTrace();
-				 *}
-				 **/
-				try {
-					wait(300);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				mc.player.rotationPitch = 90;
-				mc.playerController.processRightClick(mc.player, mc.world, hand);
+				
+				//try {
+				//	Thread.sleep(300);
+				//} catch (InterruptedException e) {
+				//	// TODO Auto-generated catch block
+				//	e.printStackTrace();
+				//}
+
+				//try {
+				//	wait(300);
+				//} catch (InterruptedException e) {
+				//	// TODO Auto-generated catch block
+				//	e.printStackTrace();
+				//}
+				
+				//mc.player.rotationPitch = 90;
+				//mc.playerController.processRightClick(mc.player, mc.world, hand);
 			}
 		}
 	}
