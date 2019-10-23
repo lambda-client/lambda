@@ -12,7 +12,7 @@ import net.minecraft.init.Items;
  */
 
 @Module.Info(category = Module.Category.PLAYER, description = "Removes delay when holding right click", name = "FastUse")
-public class FastExp
+public class FastUse
 extends Module
 {
 	@EventHandler
