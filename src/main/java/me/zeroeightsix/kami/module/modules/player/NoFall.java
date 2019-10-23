@@ -56,12 +56,12 @@ public class NoFall extends Module {
 				mc.playerController.processRightClick(mc.player, mc.world, hand);
 				last = System.currentTimeMillis();
 				/**try {
-				*	Thread.sleep(300);
-				*} catch (InterruptedException e) {
-				*	// TODO Auto-generated catch block
-				*	e.printStackTrace();
-				*}
-				**/
+				 *	Thread.sleep(300);
+				 *} catch (InterruptedException e) {
+				 *	// TODO Auto-generated catch block
+				 *	e.printStackTrace();
+				 *}
+				 **/
 				//mc.player.rotationPitch = 90;
 				//mc.playerController.processRightClick(mc.player, mc.world, hand);
 			}
