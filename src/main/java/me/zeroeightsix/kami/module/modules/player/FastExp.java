@@ -1,3 +1,4 @@
+
 package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
@@ -14,12 +15,11 @@ extends Module
 	@EventHandler
 	private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event ->
 	{
-		if (mc.player != null && (mc.player.getHeldItemMainhand().getItem() == Items.EXPERIENCE_BOTTLE || mc.player.getHeldItemOffhand().getItem() == Items.EXPERIENCE_BOTTLE)) {
 
+		if (mc.player != null && (mc.player.getHeldItemMainhand().getItem() == Items.EXPERIENCE_BOTTLE || mc.player.getHeldItemOffhand().getItem() == Items.EXPERIENCE_BOTTLE))
+		{
 			mc.rightClickDelayTimer = 0;
 		}
-		else {
-			mc.player.getHeldItemMainhand().getItem()
-		}
 	}
+			);
 }
