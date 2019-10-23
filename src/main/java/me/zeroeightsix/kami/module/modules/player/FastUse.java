@@ -10,7 +10,6 @@ import net.minecraft.init.Items;
 /**
  * Created by S-B99 on 23/10/2019
  */
-
 @Module.Info(category = Module.Category.PLAYER, description = "Removes delay when holding right click", name = "FastUse")
 public class FastUse
 extends Module
