@@ -1,12 +1,10 @@
-# KAMI 
-
-<div id="container" style="white-space:normal">
+<div id="container" style="white-space:nowrap">
 
 <div id="image" style="display:inline;">
 <img src="assets/kami.png" width="120"/>
 </div>
 
-<div id="texts" style="display:inline; white-space:normal;"> 
+<div id="texts" style="display:inline; white-space:nowrap;"> 
     <h1>Blue KAMI</h1>
 </div>
 
