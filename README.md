@@ -1,28 +1,48 @@
 # KAMI
-[![Build Status](https://travis-ci.com/zeroeightysix/KAMI.svg?branch=master)](https://travis-ci.com/zeroeightysix/KAMI)
-[![Issues](https://img.shields.io/github/issues/zeroeightysix/kami.svg)](https://github.com/zeroeightysix/kami/issues)
-[![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg)
+
+This repo:
+[![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/features-master?label=build%20features-master)](https://travis-ci.com/S-B99/KAMI/tree/features-master)
+[![Build Status master](https://img.shields.io/travis/com/S-B99/KAMI/master?label=build%20master)](https://travis-ci.com/S-B99/KAMI/tree/master)
+[![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues%20mine)](https://github.com/S-B99/kami/issues)
+[![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat%20on%20mine&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
+![GitHub stars](https://img.shields.io/github/stars/S-B99/KAMI?style=social)
+
+Upstream repo:
+[![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?branch=master)](https://travis-ci.com/zeroeightysix/KAMI)
+[![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?label=issues%20086)](https://github.com/zeroeightysix/kami/issues)
+[![Discord 086](https://img.shields.io/badge/chat%20on%20086-discord-brightgreen.svg)](http://discord.gg/9hvwgeg)
 
 ## A minecraft utility mod for anarchy servers.
 
-Development has slowed down considerably. KAMI will likely no longer be updated. Pull requests are still welcome.
+This will be frequently updated as long as I'm not on vacation or anything
 
-See [forgehax](https://github.com/fr1kin/forgehax) for a more polished equivalent. Some features in KAMI may be based on those of forgehax, as I sometimes used it as reference.
+This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
 
 Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
 
-Development has slowed down considerably. KAMI will likely no longer be updated. Pull requests are still welcome.
+See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI has some features it doesn't.
+
+## Status
+
+<details>
+	<summary>Click to view current development status</summary>
+
+[Everything here is planned for sure.](https://github.com/zeroeightysix/KAMI/pull/114), [along with here](https://github.com/S-B99/KAMI/issues/12)
+
+This is currently in slowed development. Maintainance and further development is planned in the next couple months.
+
+</details>
 
 ## Preview
 
 <details>
- <summary>Click to view images</summary>
+	<summary>Click to view images</summary>
 
- ![GUI](.github/IMAGES/gui.png)
+	![GUI](.github/IMAGES/gui.png)
 
- ![ShulkerPreview](.github/IMAGES/shulkerChat.png)
+	![ShulkerPreview](.github/IMAGES/shulkerChat.png)
  
- ![CrystalAura](.github/IMAGES/crystalAura.png)
+	![CrystalAura](.github/IMAGES/crystalAura.png)
 
 </details>
 
@@ -30,59 +50,53 @@ Development has slowed down considerably. KAMI will likely no longer be updated.
 
 KAMI is a forge mod. Start by downloading the latest version of [1.12.2 forge](https://files.minecraftforge.net/).
 1. Install forge
-2. Navigate to your `.minecraft` directory.
+2. Go to your `.minecraft` directory.
    * **Linux**: `~/.minecraft`
    * **Windows**: `%appdata%/.minecraft`
 3. Navigate to the `mods` directory. If it doesn't exist, create it.
-4. Obtain the KAMI `.jar` file.
+4. Get the KAMI `.jar` file.
    * By **downloading** it: see [releases](../../releases)
    * By **building** it: see [building](#building).
-5. Place the `.jar` file in your mods directory.
+5. Drag the `-release.jar` file into your mods directory.
 
 ## How do I
 
-##### Open the GUI
-Press Y.
+<details>
+	<summary>Click to see the frequently asked questions or basic stuff</summary>
 
-##### Use commands
-The default prefix is `.`. Commands are used through chat, use `.commands` for a list of commands.
+	##### Open the GUI
+	Press Y.
 
-##### Bind modules
-Run `.bind <module> <key>`.
+	##### Use commands
+	The default prefix is `.`. Commands are used through chat, use `.commands` for a list of commands.
 
-You can also use `.bind modifiers on` to allow modules to be bound to keybinds with modifiers, e.g `ctrl + shift + w` or `ctrl + c`.
+	##### Bind modules
+	Run `.bind <module> <key>`.
 
-##### Change command prefix
-By using the command `prefix <prefix>` or after having ran KAMI (make sure it's closed), editing your configuration file (find it using `config path` in-game) and changing the value of `commandPrefix` to change the prefix.
+	You can also use `.bind modifiers on` to allow modules to be bound to keybinds with modifiers, e.g `ctrl + shift + w` or `ctrl + c`.
+
+	##### Change command prefix
+	By using the command `prefix <prefix>` or after having ran KAMI (make sure it's closed), editing your configuration file (find it using `config path` in-game) and changing the value of `commandPrefix` to change the prefix.
+
+	##### Change Custom Chat ending
+	Edit line 19 in `kami/src/main/java/me/zeroeightysix/kami/module/modules/misc/CustomChat.java`
+	Change the `\u23D0` characters to something else you want, [use this website to do it](https://www.branah.com/unicode-converter).
+	Paste text in the first box and copy the output from the second.
+
+	This will be implemented with a command in the near future, see issue [#11](https://github.com/S-B99/KAMI/issues/11)
+
+</details>
 
 ## Troubleshooting
-Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
 
-If you experience an issue and it's not listed there, please [open a new issue](../../issues/new) and a contributor will help you further.
+<details>
+	<summary>Please read this before opening an issue</summary>
 
-## Contributing
+	Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
 
-You are free to clone, modify KAMI and make pull requests as you wish. To set up your development environment, make use of the following commands:
+	If you have an issue or problem and it's not listed there, please [open a new issue](../../issues/new/choose) and a contributor will help you further.
 
-```
-git clone https://github.com/zeroeightysix/KAMI/
-cd KAMI
-```
-
-On GNU/Linux, run `chmod +x gradlew` and for the following commands use `./gradlew` instead of `gradlew.bat`
-
-Of-course you can also use a Gradle installation if you for some reason want another version of gradle
-
-```
-gradlew.bat setupDecompWorkspace
-```
-Import KAMI into your IDE of choice. 
-
-If you use IntelliJ, import from the `build.gradle` file and run `gradlew.bat genIntellijRuns`
-
-If you use Eclipse run `gradlew.bat eclipse`
-
-If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
+</details>
 
 ### Building
 #### Linux
@@ -107,9 +121,11 @@ Build is required, `mkdir` makes the `mods/1.12.2` directory, `rmOld` removes ol
 
 \*`rmOld` removes any jars ending in `-release.jar`, which is the format KAMI uses. If you use any other mod that uses that naming scheme please remove old versions manually.
 
-If you prefer copying it manually, find a file in `build/libs` called `KAMI-<minecraftVersion>-<kamiVersion>-**release**.jar` which you can copy to the `mods/1.12.2` folder of a minecraft instance that has forge installed.
+If you prefer copying it manually, find a file in `build/libs` called `KAMI-<kamiVersion>-**release**.jar` which you can copy to the `mods/1.12.2` folder of a minecraft instance that has forge installed.
 
 Note: This assumes your minecraft folder is in the default location under your home folder.
+
+Note: Any argument other then `build` assumes you downloaded KAMI to a nested folder inside your home folder. For example `~/Downloads/KAMI` or `~/Documents/KAMI`. This will be fixed as per [issue #15](https://github.com/S-B99/KAMI/issues/15)
 
 #### Windows
 You can build by running these commands in a terminal with the current directory being KAMI. (EG. `cd C:\Users\Username\Downloads\KAMI`)
@@ -119,13 +135,41 @@ gradlew.bat build
 
 To copy on windows run `autocopy.bat`
 
-If you prefer copying it manually, find a file in `build/libs` called `KAMI-<minecraftVersion>-<kamiVersion>-**release**.jar` which you can copy to the `mods\1.12.2` folder of a minecraft instance that has forge installed.
+If you prefer copying it manually, find a file in `build/libs` called `KAMI-<kamiVersion>-**release**.jar` which you can copy to the `mods\1.12.2` folder of a minecraft instance that has forge installed.
 
 Note: This assumes your minecraft folder is in the default location under your %appdata% folder.
 
+## Contributing
+
+You are free to clone, modify KAMI and make pull requests as you wish. To set up your development environment, make use of the following commands:
+
+On GNU/Linux, run `chmod +x gradlew` and for the following commands use `./gradlew` instead of `gradlew.bat`
+
+Of-course you can also use a Gradle installation if you for some reason want another version of gradle
+```
+git clone https://github.com/zeroeightysix/KAMI/
+cd KAMI
+```
+Import KAMI into your IDE of choice. 
+```
+gradlew.bat setupDecompWorkspace
+gradlew.bat genIntellijRuns #for intellij
+gradlew.bat eclipse #for eclipse
+```
+If you use IntelliJ, import `build.gradle`
+
+If you use Eclipse, import a new gradle project and select the kami folder. 
+
+If you have gradle related issues with either of these force your gradle version to `4.8.1`
+
+If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
+
 ## Thank you
+
+[zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
+
 [ZeroMemes](https://github.com/ZeroMemes) for [Alpine](https://github.com/ZeroMemes/Alpine)
 
 [ronmamo](https://github.com/ronmamo/) for [Reflections](https://github.com/ronmamo/reflections)
 
-The [minecraft forge team](https://github.com/MinecraftForge) for [forge](https://files.minecraftforge.net/)
+The [Minecraft Forge team](https://github.com/MinecraftForge) for [forge](https://files.minecraftforge.net/)
