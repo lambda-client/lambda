@@ -6,19 +6,24 @@
 | Issues       | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?label=issues)](https://github.com/zeroeightysix/kami/issues) |
 | Media        | ![GitHub stars](https://img.shields.io/github/stars/S-B99/KAMI?style=social) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |
 
-## How to download
-
-Press the releases button along the yellow bar above ^
-
 ## A minecraft utility mod for anarchy servers.
 
 This will be frequently updated as long as I'm not on vacation or anything
 
-This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
+<details>
+	<summary>Click to view disclaimers</summary>
 
-Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
+	This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
 
-See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI has some features it doesn't.
+	Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
+
+	See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI has some features it doesn't.
+
+</details>
+
+## How to download
+
+Press the releases button along the yellow bar above ^
 
 ## Status
 
