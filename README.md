@@ -16,11 +16,15 @@ This will be frequently updated as long as I'm not on vacation or anything
 <details>
 	<summary>Click to view disclaimers</summary>
 
+***
+
 This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
 
 Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
 
 See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI / Blue KAMI have some features it doesn't. Blue KAMI won't be based off of other mods unless said otherwise.
+
+***
 
 </details>
 
@@ -35,9 +39,13 @@ Scroll alll the way up
 <details>
 	<summary>Click to view current development status</summary>
 
+***
+
 [Everything here is planned for sure,](https://github.com/zeroeightysix/KAMI/pull/114) [along with here](https://github.com/S-B99/KAMI/issues/12)
 
 This is currently in slowed development. Maintainance and further development is planned in the next couple months.
+
+***
 
 </details>
 
@@ -46,11 +54,15 @@ This is currently in slowed development. Maintainance and further development is
 <details>
 	<summary>Click to view images</summary>
 
+***
+
 ![GUI](.github/IMAGES/gui.png "The GUI")
 
 ![ShulkerPreview](.github/IMAGES/shulkerChat.png "Shulker preview being used in chat")
 
 ![CrystalAura](.github/IMAGES/crystalAura.png "CrystalAura targeting")
+
+***
 
 </details>
 
@@ -71,6 +83,8 @@ Blue KAMI is a forge mod. Start by downloading the latest version of [1.12.2 for
 
 <details>
 	<summary>Click to see the frequently asked questions or basic stuff</summary>
+
+***
 
 ##### Open the GUI
 Press Y.
@@ -93,6 +107,8 @@ Paste text in the first box and copy the output from the second.
 
 This will be implemented with a command in the near future, see issue [#11](https://github.com/S-B99/KAMI/issues/11)
 
+***
+
 </details>
 
 ## Troubleshooting
@@ -100,9 +116,13 @@ This will be implemented with a command in the near future, see issue [#11](http
 <details>
 	<summary>Please read this before opening an issue</summary>
 
+***
+
 Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
 
 If you have an issue or problem and it's not listed there, please [open a new issue](../../issues/new/choose) and a contributor will help you further.
+
+***
 
 </details>
 
