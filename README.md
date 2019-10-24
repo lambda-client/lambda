@@ -1,3 +1,4 @@
+[![GUI](assets/kami.png)]()
 # KAMI 
 
 ### A minecraft utility mod for anarchy servers.
