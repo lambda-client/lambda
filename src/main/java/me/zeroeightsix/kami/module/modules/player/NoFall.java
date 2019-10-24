@@ -13,6 +13,8 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 
+//import java.util.concurrent.TimeUnit;
+
 /**
  * Created by 086 on 19/11/2017.
  * Updated by S-B99 on 24/10/2019
@@ -54,22 +56,33 @@ public class NoFall extends Module {
 
 				mc.player.rotationPitch = 90;
 				mc.playerController.processRightClick(mc.player, mc.world, hand);
-				last = System.currentTimeMillis();
-				
-				//try {
-				//	Thread.sleep(300);
-				//} catch (InterruptedException e) {
-				//	// TODO Auto-generated catch block
-				//	e.printStackTrace();
-				//}
 
-				//try {
-				//	wait(300);
-				//} catch (InterruptedException e) {
-				//	// TODO Auto-generated catch block
-				//	e.printStackTrace();
-				//}
-				
+				// this is where i want to run the above 2 lines again after 300 milliseconds 
+
+				// this was tried individually
+				// result: forgot but it was either a crash or lag
+				//TimeUnit.MILLISECONDS.sleep(400);
+
+				// result: lag thread
+				long lastNanoTime = System.nanoTime();
+				long nowTime = System.nanoTime();
+				while(nowTime/1000000 - lastNanoTime /1000000 < 300 )
+				{
+					nowTime = System.nanoTime();
+					System.out.println("KAMI: Tried to pick up bucket");
+					mc.player.rotationPitch = 90;
+					mc.playerController.processRightClick(mc.player, mc.world, hand);
+
+				}  
+
+				// this was tried individually
+				// result: freeze
+				//Thread.sleep(300);
+
+				// this was tried individually
+				// result: clean exit
+				//wait(300);
+
 				//mc.player.rotationPitch = 90;
 				//mc.playerController.processRightClick(mc.player, mc.world, hand);
 			}
