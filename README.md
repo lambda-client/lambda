@@ -1,4 +1,9 @@
 # KAMI
+
+[![Build Status](https://travis-ci.com/S-B99/KAMI.svg?branch=features-master)](https://travis-ci.com/S-B99/KAMI)
+[![Issues](https://img.shields.io/github/issues/S-B99/kami.svg)](https://github.com/S-B99/kami/issues)
+[![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat%20on%20mine&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
+
 [![Build Status](https://travis-ci.com/zeroeightysix/KAMI.svg?branch=master)](https://travis-ci.com/zeroeightysix/KAMI)
 [![Issues](https://img.shields.io/github/issues/zeroeightysix/kami.svg)](https://github.com/zeroeightysix/kami/issues)
 [![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg)

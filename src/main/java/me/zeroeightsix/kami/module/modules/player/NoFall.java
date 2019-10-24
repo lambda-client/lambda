@@ -64,16 +64,16 @@ public class NoFall extends Module {
 				//TimeUnit.MILLISECONDS.sleep(400);
 
 				// result: lag thread
-				long lastNanoTime = System.nanoTime();
-				long nowTime = System.nanoTime();
-				while(nowTime/1000000 - lastNanoTime /1000000 < 300 )
-				{
-					nowTime = System.nanoTime();
-					System.out.println("KAMI: Tried to pick up bucket");
-					mc.player.rotationPitch = 90;
-					mc.playerController.processRightClick(mc.player, mc.world, hand);
+				//long lastNanoTime = System.nanoTime();
+				//long nowTime = System.nanoTime();
+				//while(nowTime/1000000 - lastNanoTime /1000000 < 300 )
+				//{
+				//	nowTime = System.nanoTime();
+				//	System.out.println("KAMI: Tried to pick up bucket");
+				//	mc.player.rotationPitch = 90;
+				//	mc.playerController.processRightClick(mc.player, mc.world, hand);
 
-				}  
+				//}  
 
 				// this was tried individually
 				// result: freeze
