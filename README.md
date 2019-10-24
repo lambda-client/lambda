@@ -26,6 +26,8 @@ This will be frequently updated as long as I'm not on vacation or anything
 
 Press the releases button along the yellow bar above ^
 
+Scroll alll the way up
+
 ## Status
 
 <details>
