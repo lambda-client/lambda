@@ -1,4 +1,4 @@
-# KAMI
+# Blue KAMI
 
 |              | S-B99 (this)  | S-B99 (master) | 086 (upstream) |
 |:------------:|:-------------:|:--------------:|:--------------:|
@@ -17,7 +17,7 @@ This will be frequently updated as long as I'm not on vacation or anything
 
 	Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
 
-	See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI has some features it doesn't.
+	See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI / Blue KAMI have some features it doesn't. Blue KAMI won't be based off of other mods unless said otherwise.
 
 </details>
 
@@ -51,13 +51,13 @@ This is currently in slowed development. Maintainance and further development is
 
 ## Installing
 
-KAMI is a forge mod. Start by downloading the latest version of [1.12.2 forge](https://files.minecraftforge.net/).
+Blue KAMI is a forge mod. Start by downloading the latest version of [1.12.2 forge](https://files.minecraftforge.net/).
 1. Install forge
 2. Go to your `.minecraft` directory.
    * **Linux**: `~/.minecraft`
    * **Windows**: `%appdata%/.minecraft`
 3. Navigate to the `mods` directory. If it doesn't exist, create it.
-4. Get the KAMI `.jar` file.
+4. Get the Blue KAMI `.jar` file.
    * By **downloading** it: see [releases](../../releases)
    * By **building** it: see [building](#building).
 5. Drag the `-release.jar` file into your mods directory.
@@ -79,7 +79,7 @@ KAMI is a forge mod. Start by downloading the latest version of [1.12.2 forge](h
 	You can also use `.bind modifiers on` to allow modules to be bound to keybinds with modifiers, e.g `ctrl + shift + w` or `ctrl + c`.
 
 	##### Change command prefix
-	By using the command `prefix <prefix>` or after having ran KAMI (make sure it's closed), editing your configuration file (find it using `config path` in-game) and changing the value of `commandPrefix` to change the prefix.
+	By using the command `prefix <prefix>` or after having ran Blue KAMI (make sure it's closed), editing your configuration file (find it using `config path` in-game) and changing the value of `commandPrefix` to change the prefix.
 
 	##### Change Custom Chat ending
 	Edit line 19 in `kami/src/main/java/me/zeroeightysix/kami/module/modules/misc/CustomChat.java`
@@ -120,15 +120,15 @@ copy
 ```
 If you use more than one then it must be in that order. 
 
-Build is required, `mkdir` makes the `mods/1.12.2` directory, `rmOld` removes old versions of KAMI\* in that directory, and `copy` copies the build release to the `mods/1.12.2` directory. 
+Build is required, `mkdir` makes the `mods/1.12.2` directory, `rmOld` removes old versions of KAMI and Blue KAMI\* in that directory, and `copy` copies the build release to the `mods/1.12.2` directory. 
 
-\*`rmOld` removes any jars ending in `-release.jar`, which is the format KAMI uses. If you use any other mod that uses that naming scheme please remove old versions manually.
+\*`rmOld` removes any jars ending in `-release.jar`, which is the format KAMI used and that Blue KAMI uses. If you use any other mod that uses that naming scheme please remove old versions manually.
 
 If you prefer copying it manually, find a file in `build/libs` called `KAMI-<kamiVersion>-**release**.jar` which you can copy to the `mods/1.12.2` folder of a minecraft instance that has forge installed.
 
 Note: This assumes your minecraft folder is in the default location under your home folder.
 
-Note: Any argument other then `build` assumes you downloaded KAMI to a nested folder inside your home folder. For example `~/Downloads/KAMI` or `~/Documents/KAMI`. This will be fixed as per [issue #15](https://github.com/S-B99/KAMI/issues/15)
+Note: Any argument other then `build` assumes you downloaded Blue KAMI to a nested folder inside your home folder. For example `~/Downloads/KAMI` or `~/Documents/KAMI`. This will be fixed as per [issue #15](https://github.com/S-B99/KAMI/issues/15)
 
 #### Windows
 You can build by running these commands in a terminal with the current directory being KAMI. (EG. `cd C:\Users\Username\Downloads\KAMI`)
@@ -144,7 +144,7 @@ Note: This assumes your minecraft folder is in the default location under your %
 
 ## Contributing
 
-You are free to clone, modify KAMI and make pull requests as you wish. To set up your development environment, make use of the following commands:
+You are free to clone, modify KAMI and Blue KAMI and make pull requests as you wish. To set up your development environment, make use of the following commands:
 
 On GNU/Linux, run `chmod +x gradlew` and for the following commands use `./gradlew` instead of `gradlew.bat`
 
@@ -153,7 +153,7 @@ Of-course you can also use a Gradle installation if you for some reason want ano
 git clone https://github.com/S-B99/KAMI/
 cd KAMI
 ```
-Import KAMI into your IDE of choice. 
+Import Blue KAMI into your IDE of choice. 
 ```
 gradlew.bat setupDecompWorkspace
 gradlew.bat genIntellijRuns #for intellij
@@ -161,11 +161,11 @@ gradlew.bat eclipse #for eclipse
 ```
 If you use IntelliJ, import `build.gradle`
 
-If you use Eclipse, import a new gradle project and select the kami folder. 
+If you use Eclipse, import a new gradle project and select the KAMI folder. 
 
 If you have gradle related issues with either of these force your gradle version to `4.8.1`
 
-If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI.
+If you do not wish to run from an IDE, use `gradlew.bat runClient` to run Blue KAMI.
 
 ## Thank you
 
