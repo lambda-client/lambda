@@ -1,6 +1,5 @@
-[![GUI](assets/kami.png width="120")]()
-<img src="assets/kami.png" width="120"/>
 # KAMI 
+<img src="assets/kami.png" width="120"/>
 
 ### A minecraft utility mod for anarchy servers.
 
