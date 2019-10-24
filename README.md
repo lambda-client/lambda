@@ -96,7 +96,7 @@ KAMI is a forge mod. Start by downloading the latest version of [1.12.2 forge](h
 #### Linux
 You can build by running these commands (without the <>) in a terminal.
 ```
-git clone https://github.com/zeroeightysix/KAMI/
+git clone https://github.com/S-B99/KAMI/
 cd KAMI
 
 chmod +x gradlew
@@ -141,7 +141,7 @@ On GNU/Linux, run `chmod +x gradlew` and for the following commands use `./gradl
 
 Of-course you can also use a Gradle installation if you for some reason want another version of gradle
 ```
-git clone https://github.com/zeroeightysix/KAMI/
+git clone https://github.com/S-B99/KAMI/
 cd KAMI
 ```
 Import KAMI into your IDE of choice. 
