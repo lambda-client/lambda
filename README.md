@@ -14,11 +14,11 @@ This will be frequently updated as long as I'm not on vacation or anything
 <details>
 	<summary>Click to view disclaimers</summary>
 
-	This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
+This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
 
-	Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
+Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
 
-	See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI / Blue KAMI have some features it doesn't. Blue KAMI won't be based off of other mods unless said otherwise.
+See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI / Blue KAMI have some features it doesn't. Blue KAMI won't be based off of other mods unless said otherwise.
 
 </details>
 
@@ -44,11 +44,11 @@ This is currently in slowed development. Maintainance and further development is
 <details>
 	<summary>Click to view images</summary>
 
-	![GUI](.github/IMAGES/gui.png "The GUI")
+![GUI](.github/IMAGES/gui.png "The GUI")
 
-	![ShulkerPreview](.github/IMAGES/shulkerChat.png "Shulker preview being used in chat")
- 
-	![CrystalAura](.github/IMAGES/crystalAura.png "CrystalAura targeting")
+![ShulkerPreview](.github/IMAGES/shulkerChat.png "Shulker preview being used in chat")
+
+![CrystalAura](.github/IMAGES/crystalAura.png "CrystalAura targeting")
 
 </details>
 
@@ -70,26 +70,26 @@ Blue KAMI is a forge mod. Start by downloading the latest version of [1.12.2 for
 <details>
 	<summary>Click to see the frequently asked questions or basic stuff</summary>
 
-	##### Open the GUI
-	Press Y.
+##### Open the GUI
+Press Y.
 
-	##### Use commands
-	The default prefix is `.`. Commands are used through chat, use `.commands` for a list of commands.
+##### Use commands
+The default prefix is `.`. Commands are used through chat, use `.commands` for a list of commands.
 
-	##### Bind modules
-	Run `.bind <module> <key>`.
+##### Bind modules
+Run `.bind <module> <key>`.
 
-	You can also use `.bind modifiers on` to allow modules to be bound to keybinds with modifiers, e.g `ctrl + shift + w` or `ctrl + c`.
+You can also use `.bind modifiers on` to allow modules to be bound to keybinds with modifiers, e.g `ctrl + shift + w` or `ctrl + c`.
 
-	##### Change command prefix
-	By using the command `prefix <prefix>` or after having ran Blue KAMI (make sure it's closed), editing your configuration file (find it using `config path` in-game) and changing the value of `commandPrefix` to change the prefix.
+##### Change command prefix
+By using the command `prefix <prefix>` or after having ran Blue KAMI (make sure it's closed), editing your configuration file (find it using `config path` in-game) and changing the value of `commandPrefix` to change the prefix.
 
-	##### Change Custom Chat ending
-	Edit line 19 in `kami/src/main/java/me/zeroeightysix/kami/module/modules/misc/CustomChat.java`
-	Change the `\u23D0` characters to something else you want, [use this website to do it](https://www.branah.com/unicode-converter).
-	Paste text in the first box and copy the output from the second.
+##### Change Custom Chat ending
+Edit line 19 in `kami/src/main/java/me/zeroeightysix/kami/module/modules/misc/CustomChat.java`
+Change the `\u23D0` characters to something else you want, [use this website to do it](https://www.branah.com/unicode-converter).
+Paste text in the first box and copy the output from the second.
 
-	This will be implemented with a command in the near future, see issue [#11](https://github.com/S-B99/KAMI/issues/11)
+This will be implemented with a command in the near future, see issue [#11](https://github.com/S-B99/KAMI/issues/11)
 
 </details>
 
@@ -98,9 +98,9 @@ Blue KAMI is a forge mod. Start by downloading the latest version of [1.12.2 for
 <details>
 	<summary>Please read this before opening an issue</summary>
 
-	Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
+Please reference the main [troubleshooting page](docs/TROUBLESHOOTING.md)
 
-	If you have an issue or problem and it's not listed there, please [open a new issue](../../issues/new/choose) and a contributor will help you further.
+If you have an issue or problem and it's not listed there, please [open a new issue](../../issues/new/choose) and a contributor will help you further.
 
 </details>
 
