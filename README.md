@@ -33,7 +33,7 @@ Scroll alll the way up
 <details>
 	<summary>Click to view current development status</summary>
 
-[Everything here is planned for sure.](https://github.com/zeroeightysix/KAMI/pull/114), [along with here](https://github.com/S-B99/KAMI/issues/12)
+[Everything here is planned for sure,](https://github.com/zeroeightysix/KAMI/pull/114) [along with here](https://github.com/S-B99/KAMI/issues/12)
 
 This is currently in slowed development. Maintainance and further development is planned in the next couple months.
 
