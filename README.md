@@ -1,14 +1,5 @@
-<div id="container" style="white-space:nowrap">
-
-<div id="image" style="display:inline;">
-<img src="assets/kami.png" width="120"/>
-</div>
-
-<div id="texts" style="display:inline; white-space:nowrap;"> 
-    <h1>Blue KAMI</h1>
-</div>
-
-</div>
+<img src="assets/kami.png" align="left" width="120"/>
+Blue KAMI 
 
 ### A minecraft utility mod for anarchy servers.
 
