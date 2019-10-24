@@ -1,10 +1,6 @@
-<div align="center">
-  <img src="assets/kami.svg" alt="kami" style="height: 120px; width: 120px; padding: 0 10px;">
-  <h1>KAMI</h1>
-  <p>A minecraft utility mod for anarchy servers.</p>
-</div>
+# KAMI 
 
-<div align="center">
+### A minecraft utility mod for anarchy servers.
 
 |              | S-B99 (features-master)  | S-B99 (master) | 086 (upstream) |
 |:------------:|:-------------:|:--------------:|:--------------:|
@@ -13,8 +9,6 @@
 | Media        | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |
 | Version      | [![Version features-master](https://img.shields.io/github/v/tag/S-B99/KAMI?color=yellow&include_prereleases&label=unstable&sort=semver)](https://github.com/S-B99/KAMI/releases) | [![Version master](https://img.shields.io/github/v/tag/S-B99/KAMI?color=dark-green&label=latest)](https://github.com/S-B99/KAMI/releases) | [![Version 086](https://img.shields.io/github/v/tag/zeroeightysix/KAMI?color=red&label=outdated)](https://github.com/zeroeightysix/KAMI/releases) |
 
-<div align="left">
-</div>
 This will be frequently updated as long as I'm not on vacation or anything
 
 <details>
@@ -50,11 +44,11 @@ This is currently in slowed development. Maintainance and further development is
 <details>
 	<summary>Click to view images</summary>
 
-	![GUI](.github/IMAGES/gui.png)
+	![GUI](.github/IMAGES/gui.png "The GUI")
 
-	![ShulkerPreview](.github/IMAGES/shulkerChat.png)
+	![ShulkerPreview](.github/IMAGES/shulkerChat.png "Shulker preview being used in chat")
  
-	![CrystalAura](.github/IMAGES/crystalAura.png)
+	![CrystalAura](.github/IMAGES/crystalAura.png "CrystalAura targeting")
 
 </details>
 
