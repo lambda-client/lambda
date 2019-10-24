@@ -1,10 +1,11 @@
 # Blue KAMI
 
-|              | S-B99 (this)  | S-B99 (master) | 086 (upstream) |
+|              | S-B99 (features-master)  | S-B99 (master) | 086 (upstream) |
 |:------------:|:-------------:|:--------------:|:--------------:|
 | Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/features-master?label=build)](https://travis-ci.com/S-B99/KAMI/tree/features-master) | [![Build Status master](https://img.shields.io/travis/com/S-B99/KAMI/master?label=build)](https://travis-ci.com/S-B99/KAMI/tree/master) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
 | Issues       | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?label=issues)](https://github.com/zeroeightysix/kami/issues) |
 | Media        | [![GitHub stars](https://img.shields.io/github/stars/S-B99/KAMI?style=social)](https://github.com/S-B99/KAMI) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |
+| Version      | [![Version features-master](https://img.shields.io/github/v/tag/S-B99/KAMI?color=yellow&include_prereleases&label=unstable&sort=semver)](https://github.com/S-B99/KAMI/releases) | [![Version master](https://img.shields.io/github/v/tag/S-B99/KAMI?color=dark-green&label=latest)](https://github.com/S-B99/KAMI/releases) | [![Version 086](https://img.shields.io/github/v/tag/zeroeightysix/KAMI?color=red&label=outdated)](https://github.com/zeroeightysix/KAMI/releases) |
 
 ## A minecraft utility mod for anarchy servers.
 
