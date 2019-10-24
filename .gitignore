@@ -13,8 +13,6 @@ local.properties
 .settings/
 .loadpath
 .recommenders
-kami_Client.launch
-kami_Server.launch
 
 # External tool builders
 .externalToolBuilders/
