@@ -6,6 +6,10 @@
 | Issues       | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?label=issues)](https://github.com/zeroeightysix/kami/issues) |
 | Media        | ![GitHub stars](https://img.shields.io/github/stars/S-B99/KAMI?style=social) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |
 
+## How to download
+
+Press the releases button along the yellow bar above ^
+
 ## A minecraft utility mod for anarchy servers.
 
 This will be frequently updated as long as I'm not on vacation or anything
