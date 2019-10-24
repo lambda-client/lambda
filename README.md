@@ -4,7 +4,7 @@
 |:------------:|:-------------:|:--------------:|:--------------:|
 | Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/features-master?label=build)](https://travis-ci.com/S-B99/KAMI/tree/features-master) | [![Build Status master](https://img.shields.io/travis/com/S-B99/KAMI/master?label=build)](https://travis-ci.com/S-B99/KAMI/tree/master) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
 | Issues       | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?label=issues)](https://github.com/zeroeightysix/kami/issues) |
-| Media        | ![GitHub stars](https://img.shields.io/github/stars/S-B99/KAMI?style=social) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat%20on&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |
+| Media        | ![GitHub stars](https://img.shields.io/github/stars/S-B99/KAMI?style=social) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |
 
 ## A minecraft utility mod for anarchy servers.
 
