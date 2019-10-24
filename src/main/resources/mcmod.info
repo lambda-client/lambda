@@ -2,13 +2,12 @@
   {
     "modid": "kami",
     "name": "KAMI",
-    "description": "神",
-    "version": "9_pre_alpha",
+    "description": "神 | A Minecraft utility mod for anarchy servers | Written by 086 and continued by S-B99",
+    "version": "b9 v1.02",
     "mcversion": "1.12.2",
-    "url": "",
-    "updateUrl": "",
-    "authorList": ["086"],
-    "screenshots": [],
-    "dependencies": []
+    "logoFile": "../../../assets/kami.png",
+    "url": "https://github.com/S-B99/KAMI",
+    "authorList": ["086", "S-B99"],
+    "credits": "Thank you 086 for the original KAMI"
   }
 ]
