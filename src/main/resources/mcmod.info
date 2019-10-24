@@ -5,7 +5,7 @@
     "description": "神 | A Minecraft utility mod for anarchy servers | Written by 086 and continued by S-B99",
     "version": "b9 v1.02",
     "mcversion": "1.12.2",
-    "logoFile": "../../../assets/kami.png",
+    "logoFile": "kami.png",
     "url": "https://github.com/S-B99/KAMI",
     "authorList": ["086", "S-B99"],
     "credits": "Thank you 086 for the original KAMI"
