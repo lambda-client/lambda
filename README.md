@@ -2,13 +2,13 @@
 
 <div id="container" style="white-space:normal">
 
-    <div id="image" style="display:inline;">
-	<img src="assets/kami.png" width="120"/>
-    </div>
+<div id="image" style="display:inline;">
+<img src="assets/kami.png" width="120"/>
+</div>
 
-    <div id="texts" style="display:inline; white-space:normal;"> 
-        <h1>Blue KAMI</h1>
-    </div>
+<div id="texts" style="display:inline; white-space:normal;"> 
+    <h1>Blue KAMI</h1>
+</div>
 
 </div>
 
