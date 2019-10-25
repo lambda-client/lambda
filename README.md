@@ -126,7 +126,13 @@ If you have an issue or problem and it's not listed there, please [open a new is
 
 </details>
 
-### Building
+## Building
+
+<details>
+	<summary>Click to see building instructions</summary>
+
+***
+
 #### Linux
 You can build by running these commands (without the <>) in a terminal.
 ```
@@ -167,7 +173,16 @@ If you prefer copying it manually, find a file in `build/libs` called `KAMI-<kam
 
 Note: This assumes your minecraft folder is in the default location under your %appdata% folder.
 
+***
+
+</details>
+
 ## Contributing
+
+<details>
+	<summary>Click to see how to contribute</summary>
+
+***
 
 You are free to clone, modify KAMI and KAMI Blue and make pull requests as you wish. To set up your development environment, make use of the following commands:
 
@@ -192,6 +207,23 @@ If you have gradle related issues with either of these force your gradle version
 
 If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI Blue.
 
+*** 
+
+</details>
+
+## How this improves over KAMI (Red)
+
+<details>
+	<summary>Click to see new features and improvements</summary>
+
+ - NoFall Bucket Mode picks up the water bucket after
+ - Better mcmod.info with more information
+ - Future compatibility 
+ - Auto32k
+ - 32k options for Aura
+ - Continued development 
+
+</details>
 ## Thank you
 
 [zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
