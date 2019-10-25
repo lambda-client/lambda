@@ -230,6 +230,10 @@ If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI B
  - Future compatibility 
  - Auto32k
  - 32k options for Aura
+ - Fast place has options for speed coming soon
+ - Modes for fast use and deleting fast place also soon
+ - GUI changed to blue
+ - GUI colors coming soon
  - Continued development 
 
 </details>
