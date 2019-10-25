@@ -48,7 +48,7 @@ import java.util.Optional;
 public class KamiMod {
 
     public static final String MODID = "kami";
-    public static final String MODNAME = "KAMI";
+    public static final String MODNAME = "KAMI Blue";
     public static final String MODVER = "b9";
 
     public static final String KAMI_HIRAGANA = "\u304B\u307F";
