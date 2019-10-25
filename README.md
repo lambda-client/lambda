@@ -56,11 +56,17 @@ This is currently in slowed development. Maintainance and further development is
 
 ***
 
-![GUI](.github/IMAGES/gui.png "The GUI")
+Note: This GUI is outdated
 
-![ShulkerPreview](.github/IMAGES/shulkerChat.png "Shulker preview being used in chat")
+<img src=".github/IMAGES/gui.png" width="500"/>
 
-![CrystalAura](.github/IMAGES/crystalAura.png "CrystalAura targeting")
+Shulker preview being used in chat
+
+<img src=".github/IMAGES/shulkerChat.png" width="500"/>
+
+CrystalAura targeting
+
+<img src=".github/IMAGES/crystalAura.png" width="500"/>
 
 ***
 
