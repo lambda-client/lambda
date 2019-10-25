@@ -112,8 +112,6 @@ Edit line 19 in `kami/src/main/java/me/zeroeightysix/kami/module/modules/misc/Cu
 Change the `\u23D0` characters to something else you want, [use this website to do it](https://www.branah.com/unicode-converter).
 Paste text in the first box and copy the output from the second.
 
-This will be implemented with a command in the near future, see issue [#11](https://github.com/S-B99/KAMI/issues/11)
-
 ***
 
 </details>
