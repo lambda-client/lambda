@@ -4,8 +4,10 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.Module.Info;
+// info goes here
 import net.minecraft.init.Items;
+
+//import me.zeroeightsix.kami.module.Module.Info;
 
 /**
  * Created by S-B99 on 23/10/2019
