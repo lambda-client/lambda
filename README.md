@@ -68,7 +68,7 @@ This is currently in slowed development. Maintainance and further development is
 
 ## Installing
 
-KAMI Blue is a forge mod. Start by downloading the latest version of [1.12.2 forge](https://files.minecraftforge.net/).
+KAMI Blue is a forge mod. Start by downloading the latest version of [1.12.2 forge](https://files.minecraftforge.net/maven/net/minecraftforge/forge/index_1.12.2.html).
 1. Install forge
 2. Go to your `.minecraft` directory.
    * **Linux**: `~/.minecraft`
