@@ -23,7 +23,7 @@ import java.util.Iterator;
 
 /**
  * Created by 086 on 12/12/2017.
- * Last Updated 5 August 2019 by hub
+ * Updated by hub on 25 October 2019
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
@@ -34,7 +34,8 @@ public class Aura extends Module {
     private Setting<Double> range = register(Settings.d("Range", 5.5d));
     private Setting<Boolean> wait = register(Settings.b("Wait", true));
     private Setting<Boolean> walls = register(Settings.b("Walls", false));
-    private Setting<Boolean> sharpness = register(Settings.b("32k Switch", false));
+    private Setting<Boolean> switchTo32k = register(Settings.b("32k Switch", false));
+    private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
     @Override
     public void onUpdate() {
@@ -80,8 +81,10 @@ public class Aura extends Module {
                 return;
             } else {
                 if (EntityUtil.isPassive(target) ? animals.getValue() : (EntityUtil.isMobAggressive(target) && mobs.getValue())) {
-                    if (ModuleManager.isModuleEnabled("AutoTool")) {
-                        AutoTool.equipBestWeapon();
+                    if (!switchTo32k.getValue() && ModuleManager.isModuleEnabled("AutoTool")) {
+                        AutoTool.equipBestWeapon(); // We want to skip this if switchTo32k.getValue() is true,
+                        // because it only accounts for tools and weapons.
+                        // Maybe someone could refactor this? :3
                     }
                     attack(target);
                     return;
@@ -97,17 +100,20 @@ public class Aura extends Module {
         }
 
         NBTTagList enchants = (NBTTagList) stack.getTagCompound().getTag("ench");
-		
-		if (enchants == null) {
-			return false;
-		}
-			
+
+        // IntelliJ marks (enchants == null) as always false but this is not correct.
+        // In case of a Hotbar Slot without any Enchantment on the Stack it contains,
+        // this will throw a NullPointerException if not accounted for!
+        //noinspection ConstantConditions
+        if (enchants == null) {
+            return false;
+        }
 
         for (int i = 0; i < enchants.tagCount(); i++) {
-            NBTTagCompound enchant = ((NBTTagList) enchants).getCompoundTagAt(i);
+            NBTTagCompound enchant = enchants.getCompoundTagAt(i);
             if (enchant.getInteger("id") == 16) {
                 int lvl = enchant.getInteger("lvl");
-                if (lvl >= 16) {
+                if (lvl >= 42) {
                     return true;
                 }
                 break;
@@ -120,29 +126,36 @@ public class Aura extends Module {
 
     private void attack(Entity e) {
 
-        if (sharpness.getValue()) {
+        boolean holding32k = false;
 
-            if (!checkSharpness(mc.player.getHeldItemMainhand())) {
+        if (checkSharpness(mc.player.getHeldItemMainhand())) {
+            holding32k = true;
+        }
 
-                int newSlot = -1;
+        if (switchTo32k.getValue() && !holding32k) {
 
-                for (int i = 0; i < 9; i++) {
-                    ItemStack stack = mc.player.inventory.getStackInSlot(i);
-                    if (stack == ItemStack.EMPTY) {
-                        continue;
-                    }
-                    if (checkSharpness(stack)) {
-                        newSlot = i;
-                        break;
-                    }
+            int newSlot = -1;
+
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = mc.player.inventory.getStackInSlot(i);
+                if (stack == ItemStack.EMPTY) {
+                    continue;
                 }
-
-                if (newSlot != -1) {
-                    mc.player.inventory.currentItem = newSlot;
+                if (checkSharpness(stack)) {
+                    newSlot = i;
+                    break;
                 }
-
             }
 
+            if (newSlot != -1) {
+                mc.player.inventory.currentItem = newSlot;
+                holding32k = true;
+            }
+
+        }
+
+        if (onlyUse32k.getValue() && !holding32k) {
+            return;
         }
 
         mc.playerController.attackEntity(mc.player, e);
@@ -160,4 +173,5 @@ public class Aura extends Module {
     private boolean canEntityFeetBeSeen(Entity entityIn) {
         return mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posX + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null;
     }
+
 }
