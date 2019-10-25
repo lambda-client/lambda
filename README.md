@@ -68,6 +68,11 @@ This is currently in slowed development. Maintainance and further development is
 
 ## Installing
 
+To install drag the `-release.jar` to your `mods/1.12.2` folder
+
+<details>
+	<summary>Click to see more detailed installing instructions</summary>
+
 KAMI Blue is a forge mod. Start by downloading the latest version of [1.12.2 forge](https://files.minecraftforge.net/maven/net/minecraftforge/forge/index_1.12.2.html).
 1. Install forge
 2. Go to your `.minecraft` directory.
@@ -78,6 +83,8 @@ KAMI Blue is a forge mod. Start by downloading the latest version of [1.12.2 for
    * By **downloading** it: see [releases](../../releases)
    * By **building** it: see [building](#building).
 5. Drag the `-release.jar` file into your mods directory.
+
+</details>
 
 ## How do I
 
@@ -161,6 +168,8 @@ Note: This assumes your minecraft folder is in the default location under your h
 
 Note: Any argument other then `build` assumes you downloaded KAMI Blue to a nested folder inside your home folder. For example `~/Downloads/KAMI` or `~/Documents/KAMI`. This will be fixed as per [issue #15](https://github.com/S-B99/KAMI/issues/15)
 
+***
+
 #### Windows
 You can build by running these commands in a terminal with the current directory being KAMI. (EG. `cd C:\Users\Username\Downloads\KAMI`)
 ```
@@ -224,6 +233,7 @@ If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI B
  - Continued development 
 
 </details>
+
 ## Thank you
 
 [zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
