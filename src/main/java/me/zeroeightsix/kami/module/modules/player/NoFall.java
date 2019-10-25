@@ -24,7 +24,7 @@ public class NoFall extends Module {
 
 	private Setting<Boolean> packet = register(Settings.b("Packet", false));
 	private Setting<Boolean> bucket = register(Settings.b("Bucket", true));
-	private Setting<Integer> distance = register(Settings.i("Distance", 1));
+	private Setting<Integer> distance = register(Settings.i("Distance", 3));
 
 	private long last = 0;
 
