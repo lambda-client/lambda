@@ -34,7 +34,7 @@ public class ChunkFinder extends Module {
     private Setting<Boolean> saveNewChunks = register(Settings.b("Save New Chunks", false));
     private Setting<SaveOption> saveOption = register(Settings.enumBuilder(SaveOption.class).withValue(SaveOption.extraFolder).withName("Save Option").withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> saveInRegionFolder = register(Settings.booleanBuilder("In Region").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
-    private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("Save Normal Coords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).    private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("Save Normal Coords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
+    private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("Save Normal Coords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> closeFile = register(Settings.booleanBuilder("Close File").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
 
     private LastSetting lastSetting = new LastSetting();
@@ -94,13 +94,17 @@ public class ChunkFinder extends Module {
     }
 
     @Override
-    protected void onUpdate() {
+    public void onUpdate() {
+        if (!closeFile.getValue())
+            return;
+        closeFile.setValue(false);
+        Command.sendChatMessage("close file");
         logWriterClose();
-        // TODO test this... alos when onDisable is called
     }
 
     @Override
     protected void onDisable() {
+        Command.sendChatMessage("onDisable");
         logWriterClose();
         chunks.clear();
     }
