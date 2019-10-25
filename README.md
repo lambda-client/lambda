@@ -182,6 +182,10 @@ Note: This assumes your minecraft folder is in the default location under your %
 
 ***
 
+If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md)
+
+***
+
 </details>
 
 ## Contributing
@@ -215,6 +219,10 @@ If you have gradle related issues with either of these force your gradle version
 If you do not wish to run from an IDE, use `gradlew.bat runClient` to run KAMI Blue.
 
 *** 
+
+If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md)
+
+***
 
 </details>
 

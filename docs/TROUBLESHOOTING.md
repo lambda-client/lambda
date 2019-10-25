@@ -10,6 +10,13 @@ Head over to [here](http://www.oracle.com/technetwork/java/javase/downloads/jdk8
 ###### Minecraft not loading at all
 What `.jar` are you using in your `mods` folder? Make sure to use the one that ends with `-full` (`KAMI-MCVER-KAMIVER-full.jar`)
 
+###### Just doesn't work when using runClient
+Don't use that, try building and running forge normally
 ## Crashes in-game
 
 **Please make sure you're on the latest version of forge before proceeding!**
+
+## When using Intellij / Eclipse
+Crashes in game but it worked fine / errors link to files you haven't changed
+
+Delete your .gradle or gradle cache or whatever it's called on windows
