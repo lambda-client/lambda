@@ -10,6 +10,9 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.entity.RenderEntityItem;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.ItemBlock;
@@ -177,28 +180,38 @@ public class Auto32k extends Module {
         // we could test interations on both sides of the player while range - n (where n is iterations)
         // but i think this would not work in most cases cause of raytrace checks on click
         for (int i = range; i > 0; i--) {
-            placeTestNextPos = placeTestNextPos.add(facingDirection.getXOffset(), 0, facingDirection.getZOffset());
-            if (!mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(placeTestNextPos)).isEmpty()) {
-                continue; // entity on block
-            }
-            if (!Wrapper.getWorld().getBlockState(placeTestNextPos).getMaterial().isReplaceable()) {
-                continue; // no space for hopper
-            }
-            if (!Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, 1, 0)).getMaterial().isReplaceable()) {
-                continue; // no space for shulker
-            }
-            if (Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, -1, 0)).getBlock() instanceof BlockAir) {
-                continue; // air below hopper
-            }
-            if (Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid) {
-                continue; // liquid below hopper
-            }
-            if (mc.player.getPositionVector().distanceTo(new Vec3d(placeTestNextPos)) > placeRange.getValue()) {
-                continue; // out of range
-            }
-            placeTestSuccessfull = placeTestNextPos;
-            if (placeClose.getValue()) {
-                break;
+            // max y Offset is 2 Blocks (3 iterations)
+            for (int yOffset = 0; yOffset < 3; yOffset++) {
+                placeTestNextPos = placeTestNextPos.add(facingDirection.getXOffset(), -1 * yOffset, facingDirection.getZOffset());
+                boolean EntityLivingBaseOnTargetBlockPos = false;
+                for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(placeTestNextPos))) {
+                    if (entity instanceof EntityLivingBase) {
+                        EntityLivingBaseOnTargetBlockPos = true;
+                        break;
+                    }
+                }
+                if (EntityLivingBaseOnTargetBlockPos) {
+                    continue; // entity on block
+                }
+                if (!Wrapper.getWorld().getBlockState(placeTestNextPos).getMaterial().isReplaceable()) {
+                    continue; // no space for hopper
+                }
+                if (!Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, 1, 0)).getMaterial().isReplaceable()) {
+                    continue; // no space for shulker
+                }
+                if (Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, -1, 0)).getBlock() instanceof BlockAir) {
+                    continue; // air below hopper
+                }
+                if (Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid) {
+                    continue; // liquid below hopper
+                }
+                if (mc.player.getPositionVector().distanceTo(new Vec3d(placeTestNextPos)) > placeRange.getValue()) {
+                    continue; // out of range
+                }
+                placeTestSuccessfull = placeTestNextPos;
+                if (placeClose.getValue()) {
+                    break;
+                }
             }
         }
 
