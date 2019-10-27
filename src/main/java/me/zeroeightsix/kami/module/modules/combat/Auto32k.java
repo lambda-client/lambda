@@ -59,10 +59,10 @@ public class Auto32k extends Module {
 
     private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
     private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
-    private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", true));
+    private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
     private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
     private Setting<Boolean> spoofRotation = register(Settings.b("Spoof Rotation", true));
-    private Setting<Boolean> raytraceCheck = register(Settings.b("Raytrace Check", true));
+    private Setting<Boolean> raytraceCheck = register(Settings.b("Raytrace Check", false));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
 
     private int swordSlot;
