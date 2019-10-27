@@ -23,7 +23,7 @@ import java.util.Iterator;
 
 /**
  * Created by 086 on 12/12/2017.
- * Updated by hub on 25 October 2019
+ * Updated by hub on 27 October 2019
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
@@ -39,9 +39,11 @@ public class Aura extends Module {
 
     @Override
     public void onUpdate() {
+
         if (mc.player.isDead) {
             return;
         }
+
         boolean shield = mc.player.getHeldItemOffhand().getItem().equals(Items.SHIELD) && mc.player.getActiveHand() == EnumHand.OFF_HAND;
         if (mc.player.isHandActive() && !shield) {
             return;
@@ -81,16 +83,18 @@ public class Aura extends Module {
                 return;
             } else {
                 if (EntityUtil.isPassive(target) ? animals.getValue() : (EntityUtil.isMobAggressive(target) && mobs.getValue())) {
+                    // We want to skip this if switchTo32k.getValue() is true,
+                    // because it only accounts for tools and weapons.
+                    // Maybe someone could refactor this later? :3
                     if (!switchTo32k.getValue() && ModuleManager.isModuleEnabled("AutoTool")) {
-                        AutoTool.equipBestWeapon(); // We want to skip this if switchTo32k.getValue() is true,
-                        // because it only accounts for tools and weapons.
-                        // Maybe someone could refactor this? :3
+                        AutoTool.equipBestWeapon();
                     }
                     attack(target);
                     return;
                 }
             }
         }
+
     }
 
     private boolean checkSharpness(ItemStack stack) {
@@ -113,7 +117,7 @@ public class Aura extends Module {
             NBTTagCompound enchant = enchants.getCompoundTagAt(i);
             if (enchant.getInteger("id") == 16) {
                 int lvl = enchant.getInteger("lvl");
-                if (lvl >= 42) {
+                if (lvl >= 42) { // dia sword against full prot 5 armor is deadly somehere >= 34 sharpness iirc
                     return true;
                 }
                 break;
@@ -171,7 +175,7 @@ public class Aura extends Module {
     }
 
     private boolean canEntityFeetBeSeen(Entity entityIn) {
-        return mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posX + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null;
+        return mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null;
     }
 
 }
