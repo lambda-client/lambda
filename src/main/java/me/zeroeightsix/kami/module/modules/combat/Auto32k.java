@@ -21,10 +21,7 @@ import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -60,10 +57,11 @@ public class Auto32k extends Module {
 
     private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
     private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
-    private Setting<Integer> yOffset = register(Settings.i("Y Offset (both directions)", 2));
+    private Setting<Integer> yOffset = register(Settings.i("Y Offset (up and down)", 2));
     private Setting<Boolean> placeBehind = register(Settings.b("Place behind", true));
     private Setting<Boolean> placeObi = register(Settings.b("Obi on Top", true));
     private Setting<Boolean> spoofRotation = register(Settings.b("Spoof Rotation", true));
+    private Setting<Boolean> raytraceCheck = register(Settings.b("Raytrace Check", true));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
 
     private int swordSlot;
@@ -219,6 +217,13 @@ public class Auto32k extends Module {
 
                 if (mc.player.getPositionVector().distanceTo(new Vec3d(placeTestNextPosOffsetY)) > placeRange.getValue()) {
                     continue; // out of range
+                }
+
+                if (raytraceCheck.getValue()) {
+                    RayTraceResult result = mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(placeTestNextPosOffsetY), false, true, false);
+                    if (!(result == null || result.getBlockPos().equals(placeTestNextPosOffsetY))) {
+                        continue;
+                    }
                 }
 
                 placeTestSuccessfull = placeTestNextPosOffsetY;
