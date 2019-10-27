@@ -5,12 +5,14 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.Friends;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.ItemBlock;
@@ -24,8 +26,7 @@ import net.minecraft.util.math.*;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
 
@@ -36,6 +37,7 @@ import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPo
 @Module.Info(name = "Auto32k", category = Module.Category.COMBAT)
 public class Auto32k extends Module {
 
+    private static final DecimalFormat df = new DecimalFormat("#.#");
     private static final List<Block> shulkerList = Arrays.asList(
             Blocks.WHITE_SHULKER_BOX,
             Blocks.ORANGE_SHULKER_BOX,
@@ -55,13 +57,10 @@ public class Auto32k extends Module {
             Blocks.BLACK_SHULKER_BOX
     );
 
-    private static final DecimalFormat df = new DecimalFormat("#.#");
-
     private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
     private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
-    private Setting<Integer> yOffset = register(Settings.i("Y Offset", 2));
-    private Setting<Boolean> placeBehind = register(Settings.b("Place behind", true));
-    private Setting<Boolean> placeObi = register(Settings.b("Obi on Top", true));
+    private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", true));
+    private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
     private Setting<Boolean> spoofRotation = register(Settings.b("Spoof Rotation", true));
     private Setting<Boolean> raytraceCheck = register(Settings.b("Raytrace Check", true));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
@@ -107,8 +106,6 @@ public class Auto32k extends Module {
 
         }
 
-        BlockPos basePos = new BlockPos(mc.player.getPositionVector());
-
         if (hopperSlot == -1) {
             if (debugMessages.getValue()) {
                 Command.sendChatMessage("Hopper missing, disabling.");
@@ -125,62 +122,112 @@ public class Auto32k extends Module {
             return;
         }
 
-        EnumFacing facingDirection;
+        int range = (int) Math.ceil(placeRange.getValue());
 
-        if (placeBehind.getValue()) {
-            facingDirection = EnumFacing.fromAngle(mc.player.rotationYaw).getOpposite();
-        } else {
-            facingDirection = EnumFacing.fromAngle(mc.player.rotationYaw);
+        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+        List<BlockPos> placeTargetList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
+        Map<BlockPos, Double> placeTargetMap = new HashMap<>();
+
+        BlockPos placeTarget = null;
+        boolean useRangeSorting = false;
+
+        for (BlockPos placeTargetTest : placeTargetList) {
+            for (Entity entity : mc.world.loadedEntityList) {
+
+                if (!(entity instanceof EntityPlayer)) {
+                    continue;
+                }
+                if (entity == mc.player) {
+                    continue;
+                }
+                if (Friends.isFriend(entity.getName())) {
+                    continue;
+                }
+                useRangeSorting = true;
+                if (isAreaPlaceable(placeTargetTest)) {
+                    double distanceToEntity = entity.getDistance(placeTargetTest.x, placeTargetTest.y, placeTargetTest.z);
+                    // Add distance to Map Value of placeTarget Key
+                    placeTargetMap.put(placeTargetTest, placeTargetMap.containsKey(placeTargetTest) ? placeTargetMap.get(placeTargetTest) + distanceToEntity : distanceToEntity);
+                }
+
+            }
         }
 
-        int range = (int) Math.ceil(placeRange.getValue());
-        int yOffsetSanitized = yOffset.getValue() < 0 ? -1 * yOffset.getValue() : yOffset.getValue();
+        if (placeTargetMap.size() > 0) {
 
-        BlockPos placeTargetPos = findPlaceAreaInRow(basePos, yOffsetSanitized, range, facingDirection);
+            placeTargetMap.forEach((k, v) -> {
+                if (!isAreaPlaceable(k)) {
+                    placeTargetMap.remove(k);
+                }
+            });
 
-        if (placeTargetPos == null) {
-            if (debugMessages.getValue()) {
-                Command.sendChatMessage("Not enough space to place optimal Hopper, searching for Blocks in a sphere.");
+            if (placeTargetMap.size() == 0) {
+                useRangeSorting = false;
             }
-            CrystalAura ca = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
-            // TODO - sorting for optimal hopper placement (good kill possibility > bad kill possibility) goes here
-            for (BlockPos pos : ca.getSphere(getPlayerPos(), range, range, false, true, 0)) {
-                if (findPlaceArea(pos) != null) {
-                    placeTargetPos = pos;
+
+        }
+
+        if (useRangeSorting) {
+
+            if (placeCloseToEnemy.getValue()) {
+                if (debugMessages.getValue()) {
+                    Command.sendChatMessage("Placing close to Enemy");
+                }
+                // Get Key with lowest Value (closest to enemies)
+                placeTarget = Collections.min(placeTargetMap.entrySet(), Map.Entry.comparingByValue()).getKey();
+            } else {
+                if (debugMessages.getValue()) {
+                    Command.sendChatMessage("Placing far from Enemy");
+                }
+                // Get Key with highest Value (furthest away from enemies)
+                placeTarget = Collections.max(placeTargetMap.entrySet(), Map.Entry.comparingByValue()).getKey();
+            }
+
+        } else {
+
+            if (debugMessages.getValue()) {
+                Command.sendChatMessage("No enemy nearby, placing at first found");
+            }
+
+            // Use any place target position if no enemies are around
+            for (BlockPos pos : placeTargetList) {
+                if (isAreaPlaceable(pos)) {
+                    placeTarget = pos;
                     break;
                 }
             }
+
         }
 
-        if (placeTargetPos == null) {
+        if (placeTarget == null) {
             if (debugMessages.getValue()) {
-                Command.sendChatMessage("Not enough space, disabling.");
+                Command.sendChatMessage("No valid position in range to place.");
             }
             this.disable();
             return;
         }
 
         if (debugMessages.getValue()) {
-            Command.sendChatMessage("Place Target: " + placeTargetPos.toString() + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTargetPos))));
+            Command.sendChatMessage("Place Target: " + placeTarget.toString() + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTarget))));
         }
 
         mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING));
 
         mc.player.inventory.currentItem = hopperSlot;
-        placeBlock(new BlockPos(placeTargetPos), spoofRotation.getValue());
+        placeBlock(new BlockPos(placeTarget), spoofRotation.getValue());
 
         mc.player.inventory.currentItem = shulkerSlot;
-        placeBlock(new BlockPos(placeTargetPos.add(0, 1, 0)), spoofRotation.getValue());
+        placeBlock(new BlockPos(placeTarget.add(0, 1, 0)), spoofRotation.getValue());
 
-        if (placeObi.getValue() && obiSlot != -1) {
+        if (placeObiOnTop.getValue() && obiSlot != -1) {
             mc.player.inventory.currentItem = obiSlot;
-            placeBlock(new BlockPos(placeTargetPos.add(0, 2, 0)), spoofRotation.getValue());
+            placeBlock(new BlockPos(placeTarget.add(0, 2, 0)), spoofRotation.getValue());
         }
 
         mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
 
         mc.player.inventory.currentItem = shulkerSlot;
-        BlockPos hopperPos = new BlockPos(placeTargetPos);
+        BlockPos hopperPos = new BlockPos(placeTarget);
         mc.player.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(hopperPos, EnumFacing.DOWN, EnumHand.MAIN_HAND, 0, 0, 0));
         swordSlot = shulkerSlot + 32;
 
@@ -223,63 +270,40 @@ public class Auto32k extends Module {
 
     }
 
-    private BlockPos findPlaceAreaInRow(BlockPos placeTestNextPos, int yOffsetSanitized, int range, EnumFacing facingDirection) {
-
-        for (int i = range; i > 0; i--) {
-
-            placeTestNextPos = placeTestNextPos.add(facingDirection.getXOffset(), 0, facingDirection.getZOffset());
-
-            for (int j = (-1 * yOffsetSanitized); j < (1 + yOffsetSanitized); j++) {
-
-                BlockPos testPos = findPlaceArea(placeTestNextPos.add(0, j, 0));
-                if (testPos != null) {
-                    return testPos;
-                }
-
-            }
-
-        }
-
-        return null;
-
-    }
-
-    private BlockPos findPlaceArea(BlockPos blockPos) {
+    private boolean isAreaPlaceable(BlockPos blockPos) {
 
         for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(blockPos))) {
             if (entity instanceof EntityLivingBase) {
-                return null; // entity on block
+                return false; // entity on block
             }
         }
 
         if (!mc.world.getBlockState(blockPos).getMaterial().isReplaceable()) {
-            return null; // no space for hopper
+            return false; // no space for hopper
         }
 
         if (!mc.world.getBlockState(blockPos.add(0, 1, 0)).getMaterial().isReplaceable()) {
-            return null; // no space for shulker
+            return false; // no space for shulker
         }
 
         if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockAir) {
-            return null; // air below hopper
+            return false; // air below hopper
         }
 
         if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid) {
-            return null; // liquid below hopper
+            return false; // liquid below hopper
         }
 
         if (mc.player.getPositionVector().distanceTo(new Vec3d(blockPos)) > placeRange.getValue()) {
-            return null; // out of range
+            return false; // out of range
         }
 
         if (raytraceCheck.getValue()) {
             RayTraceResult result = mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(blockPos), false, true, false);
-            if (!(result == null || result.getBlockPos().equals(blockPos))) {
-                return null;
-            }
+            return result == null || result.getBlockPos().equals(blockPos);
         }
 
-        return blockPos;
+        return true;
 
     }
 
