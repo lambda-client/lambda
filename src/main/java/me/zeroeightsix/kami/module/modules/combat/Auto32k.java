@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * Created by hub on 7 August 2019
- * Updated by hub on 25 October 2019
+ * Updated by hub on 27 October 2019
  */
 @Module.Info(name = "Auto32k", category = Module.Category.COMBAT)
 public class Auto32k extends Module {
