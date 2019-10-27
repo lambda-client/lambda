@@ -172,18 +172,19 @@ public class Auto32k extends Module {
         }
 
         int range = (int) Math.ceil(placeRange.getValue());
-        //int yOffsetSanitized = yOffset.getValue() < 0 ? -1 * yOffset.getValue() : yOffset.getValue();
-        int yOffsetSanitized = yOffset.getValue();
+        int yOffsetSanitized = yOffset.getValue() < 0 ? -1 * yOffset.getValue() : yOffset.getValue();
 
-        // searching placeable area in front / behind the player in a straight line
-        // we could test interations on both sides of the player while range - n (where n is iterations)
-        // but i think this would not work in most cases cause of raytrace checks on click
+        // Searching placeable area in front / behind the player in a straight line
+        // We could test iterations on both sides of the player while range - n (where n is iteration count).
+        // Just realized i also could reuse getSphere() from CrystalAura, but it would need a sorting for optimal
+        // placement of the hopper and i dont really have time for that right now.
+        // Also i think this would not work in most cases cause of raytrace checks on click.
         for (int i = range; i > 0; i--) {
 
             placeTestNextPos = placeTestNextPos.add(facingDirection.getXOffset(), 0, facingDirection.getZOffset());
 
             // max y Offset is 2 Blocks (3 iterations)
-            for (int j = -1 * yOffsetSanitized; j < (1 + yOffsetSanitized); j++) {
+            for (int j = (-1 * yOffsetSanitized); j < (1 + yOffsetSanitized); j++) {
 
                 BlockPos placeTestNextPosOffsetY = placeTestNextPos.add(0, j, 0);
 
