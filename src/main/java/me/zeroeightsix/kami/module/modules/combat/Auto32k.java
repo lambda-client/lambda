@@ -10,6 +10,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.ItemBlock;
@@ -19,20 +21,21 @@ import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Created by hub on 7 August 2019
- * Updated by hub on 25 October 2019
+ * Updated by hub on 27 October 2019
  */
 @Module.Info(name = "Auto32k", category = Module.Category.COMBAT)
 public class Auto32k extends Module {
 
+    private static final DecimalFormat df = new DecimalFormat("#.#");
     private static final List<Block> shulkerList = Arrays.asList(
             Blocks.WHITE_SHULKER_BOX,
             Blocks.ORANGE_SHULKER_BOX,
@@ -52,12 +55,13 @@ public class Auto32k extends Module {
             Blocks.BLACK_SHULKER_BOX
     );
 
-    private Setting<Boolean> moveToHotbar = register(Settings.b("Move to Hotbar", true));
+    private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
+    private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
+    private Setting<Integer> yOffset = register(Settings.i("Y Offset (up and down)", 2));
     private Setting<Boolean> placeBehind = register(Settings.b("Place behind", true));
     private Setting<Boolean> placeObi = register(Settings.b("Obi on Top", true));
-    private Setting<Double> blockRange = register(Settings.d("Block Range", 4.0d));
-    private Setting<Double> maxDistance = register(Settings.d("Max Distance", 3.5d));
     private Setting<Boolean> spoofRotation = register(Settings.b("Spoof Rotation", true));
+    private Setting<Boolean> raytraceCheck = register(Settings.b("Raytrace Check", true));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
 
     private int swordSlot;
@@ -108,6 +112,8 @@ public class Auto32k extends Module {
             return;
         }
 
+        df.setRoundingMode(RoundingMode.CEILING);
+
         int hopperSlot = -1;
         int shulkerSlot = -1;
         int obiSlot = -1;
@@ -157,7 +163,7 @@ public class Auto32k extends Module {
 
         EnumFacing facingDirection;
         BlockPos placeTestNextPos = basePos;
-        BlockPos placeTestLastSuccessfull = null;
+        BlockPos placeTestSuccessfull = null;
 
         if (placeBehind.getValue()) {
             facingDirection = EnumFacing.fromAngle(mc.player.rotationYaw).getOpposite();
@@ -165,19 +171,70 @@ public class Auto32k extends Module {
             facingDirection = EnumFacing.fromAngle(mc.player.rotationYaw);
         }
 
-        int range = Math.toIntExact(Math.round(blockRange.getValue()));
+        int range = (int) Math.ceil(placeRange.getValue());
+        int yOffsetSanitized = yOffset.getValue() < 0 ? -1 * yOffset.getValue() : yOffset.getValue();
 
+        // Searching placeable area in front / behind the player in a straight line
+        // We could test iterations on both sides of the player while range - n (where n is iteration count).
+        // Just realized i also could reuse getSphere() from CrystalAura, but it would need a sorting for optimal
+        // placement of the hopper and i dont really have time for that right now.
+        // Also i think this would not work in most cases cause of raytrace checks on click.
         for (int i = range; i > 0; i--) {
+
             placeTestNextPos = placeTestNextPos.add(facingDirection.getXOffset(), 0, facingDirection.getZOffset());
-            if (Wrapper.getWorld().getBlockState(placeTestNextPos).getMaterial().isReplaceable() && Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, 1, 0)).getMaterial().isReplaceable() && !(Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, -1, 0)).getBlock() instanceof BlockAir) && !(Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, -1, 0)).getBlock() instanceof BlockAir) && !(Wrapper.getWorld().getBlockState(placeTestNextPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid)) {
-                if (mc.player.getPositionVector().distanceTo(new Vec3d(placeTestNextPos)) <= maxDistance.getValue()) {
-                    placeTestLastSuccessfull = placeTestNextPos;
+
+            // max y Offset is 2 Blocks (3 iterations)
+            for (int j = (-1 * yOffsetSanitized); j < (1 + yOffsetSanitized); j++) {
+
+                BlockPos placeTestNextPosOffsetY = placeTestNextPos.add(0, j, 0);
+
+                boolean EntityLivingBaseOnTargetBlockPos = false;
+                for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(placeTestNextPosOffsetY))) {
+                    if (entity instanceof EntityLivingBase) {
+                        EntityLivingBaseOnTargetBlockPos = true;
+                        break;
+                    }
                 }
+
+                if (EntityLivingBaseOnTargetBlockPos) {
+                    continue; // entity on block
+                }
+
+                if (!Wrapper.getWorld().getBlockState(placeTestNextPosOffsetY).getMaterial().isReplaceable()) {
+                    continue; // no space for hopper
+                }
+
+                if (!Wrapper.getWorld().getBlockState(placeTestNextPosOffsetY.add(0, 1, 0)).getMaterial().isReplaceable()) {
+                    continue; // no space for shulker
+                }
+
+                if (Wrapper.getWorld().getBlockState(placeTestNextPosOffsetY.add(0, -1, 0)).getBlock() instanceof BlockAir) {
+                    continue; // air below hopper
+                }
+
+                if (Wrapper.getWorld().getBlockState(placeTestNextPosOffsetY.add(0, -1, 0)).getBlock() instanceof BlockLiquid) {
+                    continue; // liquid below hopper
+                }
+
+                if (mc.player.getPositionVector().distanceTo(new Vec3d(placeTestNextPosOffsetY)) > placeRange.getValue()) {
+                    continue; // out of range
+                }
+
+                if (raytraceCheck.getValue()) {
+                    RayTraceResult result = mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(placeTestNextPosOffsetY), false, true, false);
+                    if (!(result == null || result.getBlockPos().equals(placeTestNextPosOffsetY))) {
+                        continue;
+                    }
+                }
+
+                placeTestSuccessfull = placeTestNextPosOffsetY;
+                break;
+
             }
 
         }
 
-        if (placeTestLastSuccessfull == null) {
+        if (placeTestSuccessfull == null) {
             if (debugMessages.getValue()) {
                 Command.sendChatMessage("Not enough space, disabling.");
             }
@@ -185,10 +242,10 @@ public class Auto32k extends Module {
             return;
         }
 
-        BlockPos placeTargetPos = placeTestLastSuccessfull;
+        BlockPos placeTargetPos = placeTestSuccessfull;
 
         if (debugMessages.getValue()) {
-            Command.sendChatMessage("Place Target: " + placeTargetPos.toString() + " Distance: " + mc.player.getPositionVector().distanceTo(new Vec3d(placeTargetPos)));
+            Command.sendChatMessage("Place Target: " + placeTargetPos.toString() + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTargetPos))));
         }
 
         mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING));
