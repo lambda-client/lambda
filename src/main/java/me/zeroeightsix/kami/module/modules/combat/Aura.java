@@ -23,7 +23,7 @@ import java.util.Iterator;
 
 /**
  * Created by 086 on 12/12/2017.
- * Updated by hub on 25 October 2019
+ * Updated by hub on 27 October 2019
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
@@ -175,7 +175,7 @@ public class Aura extends Module {
     }
 
     private boolean canEntityFeetBeSeen(Entity entityIn) {
-        return mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posX + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null;
+        return mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null;
     }
 
 }
