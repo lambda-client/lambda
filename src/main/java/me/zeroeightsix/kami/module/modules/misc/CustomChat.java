@@ -10,11 +10,12 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 
 /**
  * Created by 086 on 8/04/2018.
+ * Updated by S-B99 on 28/10/19
  */
 @Module.Info(name = "CustomChat", category = Module.Category.MISC, description = "Modifies your chat messages")
 public class CustomChat extends Module {
 
-    private Setting<Boolean> commands = register(Settings.b("Commands", false));
+    private Setting<Boolean> commands = register(Settings.b("Commands", true));
 
     private final String KAMI_SUFFIX = " \u23d0 \u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
 
@@ -23,6 +24,9 @@ public class CustomChat extends Module {
         if (event.getPacket() instanceof CPacketChatMessage) {
             String s = ((CPacketChatMessage) event.getPacket()).getMessage();
             if (s.startsWith("/") && !commands.getValue()) return;
+            else if (s.startsWith(",") && !commands.getValue()) return;
+            else if (s.startsWith(".") && !commands.getValue()) return;
+            else if (s.startsWith("-") && !commands.getValue()) return;
             s += KAMI_SUFFIX;
             if (s.length() >= 256) s = s.substring(0,256);
             ((CPacketChatMessage) event.getPacket()).message = s;
