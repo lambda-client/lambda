@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami;
+package me.sdashb.kamiblue;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
