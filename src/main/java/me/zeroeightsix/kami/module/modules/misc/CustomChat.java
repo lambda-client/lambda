@@ -12,7 +12,7 @@ import net.minecraft.network.play.client.CPacketChatMessage;
  * Created by 086 on 8/04/2018.
  * Updated by S-B99 on 28/10/19
  */
-@Module.Info(name = "CustomChat", category = Module.Category.MISC, description = "Modifies your chat messages")
+@Module.Info(name = "CustomChat", category = Module.Category.EXPERIMENTAL, description = "Modifies your chat messages")
 public class CustomChat extends Module {
 
     private Setting<Boolean> commands = register(Settings.b("Off on commands", false));
