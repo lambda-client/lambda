@@ -23,10 +23,14 @@ public class CustomChat extends Module {
     public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketChatMessage) {
             String s = ((CPacketChatMessage) event.getPacket()).getMessage();
-            if (s.startsWith("/") && !commands.getValue()) return;
-            else if (s.startsWith(",") && !commands.getValue()) return;
-            else if (s.startsWith(".") && !commands.getValue()) return;
-            else if (s.startsWith("-") && !commands.getValue()) return;
+            if (s.startsWith("/") && !commands.getValue()) 
+            	return;
+            else if (s.startsWith(",") && !commands.getValue()) 
+            	return;
+            else if (s.startsWith(".") && !commands.getValue()) 
+            	return;
+            else if (s.startsWith("-") && !commands.getValue()) 
+            	return;
             s += KAMI_SUFFIX;
             if (s.length() >= 256) s = s.substring(0,256);
             ((CPacketChatMessage) event.getPacket()).message = s;
