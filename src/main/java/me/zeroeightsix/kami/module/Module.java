@@ -40,7 +40,7 @@ public class Module {
         registerAll(bind, enabled);
     }
 
-    private Info getAnnotation() {
+    private Info getAnnotation() { // this is 3 sprint bug
         return getClass().isAnnotationPresent(Info.class) ? getClass().getAnnotation(Info.class) : Sprint.class.getAnnotation(Info.class); // dummy annotation
     }
 
@@ -73,6 +73,7 @@ public class Module {
         MISC("Misc", false),
         PLAYER("Player", false),
         MOVEMENT("Movement", false),
+        EXPERIMENTAL("Experimental", false),
         HIDDEN("Hidden", true);
 
         boolean hidden;
