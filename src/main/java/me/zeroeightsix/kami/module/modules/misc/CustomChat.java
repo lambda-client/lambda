@@ -15,7 +15,7 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 @Module.Info(name = "CustomChat", category = Module.Category.MISC, description = "Modifies your chat messages")
 public class CustomChat extends Module {
 
-    private Setting<Boolean> commands = register(Settings.b("Off on commands", true));
+    private Setting<Boolean> commands = register(Settings.b("Off on commands", false));
 
     private final String KAMI_SUFFIX = " \u00bb \u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
 
