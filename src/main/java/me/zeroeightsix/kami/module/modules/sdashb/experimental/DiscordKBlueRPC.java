@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.sdashb.misc;
+package me.zeroeightsix.kami.module.modules.sdashb.experimental;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
@@ -18,7 +18,7 @@ import java.util.Random;
  * @author cookiedragon234
  * Updated by S-B99 on 28/10/19
  */
-@Module.Info(name = "DiscordRPC", category = Module.Category.MISC, description = "Discord Rich Presence")
+@Module.Info(name = "DiscordRPC", category = Module.Category.EXPERIMENTAL, description = "Discord Rich Presence")
 public class DiscordKBlueRPC extends Module {
 
 	//1//protected void onEnable() {
