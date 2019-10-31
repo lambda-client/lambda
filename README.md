@@ -15,13 +15,11 @@
 <!--| Media        | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |-->
 <!--| Version      | [![Version features-master](https://img.shields.io/github/v/tag/S-B99/KAMI?color=orange&include_prereleases&label=unstable&sort=semver)](https://github.com/S-B99/KAMI/releases) | [![Version master](https://img.shields.io/github/v/release/S-B99/kami?color=dark-green&label=latest)](https://github.com/S-B99/KAMI/releases) | [![Version 086](https://img.shields.io/github/v/tag/zeroeightysix/KAMI?color=red&label=outdated)](https://github.com/zeroeightysix/KAMI/releases) |-->
 
-Please consider donating to help continue this project. Currently I've received $3.50 from the [300](https://cdn.discordapp.com/attachments/634012886930423818/639447464289501187/Screenshot_20191031_085439.png) *unique* visitors to this repo.
+Please consider donating to help continue this project. Currently I've received $19.00 from the [300](https://cdn.discordapp.com/attachments/634012886930423818/639447464289501187/Screenshot_20191031_085439.png) *unique* visitors to this repo.
 
-[![Paypal](https://img.shields.io/badge/paypal-donate-169bd7)](https://paypal.me/bellawhotwo)
-
-bitcoincash:qpstrakv5p6vgwwrdrh0uy3unrvqc5eaagggfzhdz3 (badge coming soon)
-
-bitcoin:19pH4aNZZMPJkqQ2826BauRokyBs1NYon7 (badge coming soon)
+[![Paypal](https://img.shields.io/badge/paypal-donate-169bd7)](https://paypal.me/bellawhotwo) 
+[![BTC](https://img.shields.io/keybase/btc/sb99?logo=bitcoin)](https://www.blockchain.com/btc/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7) 
+[![BCH](https://img.shields.io/badge/bch-qpstrakv5p6vgwwrdrh0uy3unrvqc5eaagggfzhdz3-2db300?logo=cash-app)](https://www.blockchain.com/bch/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7) 
 
 <details>
 	<summary>Click to view disclaimers</summary>
