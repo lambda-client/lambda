@@ -33,7 +33,7 @@ public class Aura extends Module {
     private Setting<Boolean> attackAnimals = register(Settings.b("Animals", false));
     private Setting<Double> hitRange = register(Settings.d("Hit Range", 5.5d));
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
-    private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.TICK));
+    private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.KAMI));
     private Setting<Double> waitTick = register(Settings.d("Tick Wait", 3.0));
     private Setting<Boolean> switchTo32k = register(Settings.b("32k Switch", true));
     private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
