@@ -23,19 +23,22 @@ import java.util.Iterator;
 
 /**
  * Created by 086 on 12/12/2017.
- * Updated by hub on 27 October 2019
+ * Updated by hub on 31 October 2019
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
 
-    private Setting<Boolean> players = register(Settings.b("Players", true));
-    private Setting<Boolean> animals = register(Settings.b("Animals", false));
-    private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
-    private Setting<Double> range = register(Settings.d("Range", 5.5d));
-    private Setting<Boolean> wait = register(Settings.b("Wait", true));
-    private Setting<Boolean> walls = register(Settings.b("Walls", false));
-    private Setting<Boolean> switchTo32k = register(Settings.b("32k Switch", false));
+    private Setting<Boolean> attackPlayers = register(Settings.b("Players", true));
+    private Setting<Boolean> attackMobs = register(Settings.b("Mobs", false));
+    private Setting<Boolean> attackAnimals = register(Settings.b("Animals", false));
+    private Setting<Double> hitRange = register(Settings.d("Hit Range", 5.5d));
+    private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
+    private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.KAMI));
+    private Setting<Double> waitTick = register(Settings.d("Tick Wait", 3.0));
+    private Setting<Boolean> switchTo32k = register(Settings.b("32k Switch", true));
     private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
+
+    private int waitCounter;
 
     @Override
     public void onUpdate() {
@@ -49,11 +52,20 @@ public class Aura extends Module {
             return;
         }
 
-        if (wait.getValue()) {
+        if (waitMode.getValue().equals(WaitMode.KAMI)) {
             if (mc.player.getCooledAttackStrength(getLagComp()) < 1) {
                 return;
             } else if (mc.player.ticksExisted % 2 != 0) {
                 return;
+            }
+        }
+
+        if (waitMode.getValue().equals(WaitMode.TICK) && waitTick.getValue() > 0) {
+            if (waitCounter < waitTick.getValue()) {
+                waitCounter++;
+                return;
+            } else {
+                waitCounter = 0;
             }
         }
 
@@ -66,23 +78,23 @@ public class Aura extends Module {
             if (target == mc.player) {
                 continue;
             }
-            if (mc.player.getDistance(target) > range.getValue()) {
+            if (mc.player.getDistance(target) > hitRange.getValue()) {
                 continue;
             }
             if (((EntityLivingBase) target).getHealth() <= 0) {
                 continue;
             }
-            if (((EntityLivingBase) target).hurtTime != 0 && wait.getValue()) {
+            if (waitMode.getValue().equals(WaitMode.KAMI) && ((EntityLivingBase) target).hurtTime != 0) {
                 continue;
             }
-            if (!walls.getValue() && (!mc.player.canEntityBeSeen(target) && !canEntityFeetBeSeen(target))) {
+            if (!ignoreWalls.getValue() && (!mc.player.canEntityBeSeen(target) && !canEntityFeetBeSeen(target))) {
                 continue; // If walls is on & you can't see the feet or head of the target, skip. 2 raytraces needed
             }
-            if (players.getValue() && target instanceof EntityPlayer && !Friends.isFriend(target.getName())) {
+            if (attackPlayers.getValue() && target instanceof EntityPlayer && !Friends.isFriend(target.getName())) {
                 attack(target);
                 return;
             } else {
-                if (EntityUtil.isPassive(target) ? animals.getValue() : (EntityUtil.isMobAggressive(target) && mobs.getValue())) {
+                if (EntityUtil.isPassive(target) ? attackAnimals.getValue() : (EntityUtil.isMobAggressive(target) && attackMobs.getValue())) {
                     // We want to skip this if switchTo32k.getValue() is true,
                     // because it only accounts for tools and weapons.
                     // Maybe someone could refactor this later? :3
@@ -168,7 +180,7 @@ public class Aura extends Module {
     }
 
     private float getLagComp() {
-        if (wait.getValue()) {
+        if (waitMode.getValue().equals(WaitMode.KAMI)) {
             return -(20 - LagCompensator.INSTANCE.getTickRate());
         }
         return 0.0F;
@@ -176,6 +188,10 @@ public class Aura extends Module {
 
     private boolean canEntityFeetBeSeen(Entity entityIn) {
         return mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null;
+    }
+
+    private enum WaitMode {
+        KAMI, TICK
     }
 
 }
