@@ -17,9 +17,9 @@
 
 Please consider donating to help continue this project. Currently I've received $19.00 from the [300](https://cdn.discordapp.com/attachments/634012886930423818/639447464289501187/Screenshot_20191031_085439.png) *unique* visitors to this repo.
 
-[![Paypal](https://img.shields.io/badge/paypal-donate-169bd7)](https://paypal.me/bellawhotwo) 
-[![BTC](https://img.shields.io/keybase/btc/sb99?color=F08B16&logo=bitcoin)](https://www.blockchain.com/btc/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7)
-[![BCH](https://img.shields.io/badge/bch-qpstrakv5p6vgwwrdrh0uy3unrvqc5eaagggfzhdz3-2db300?logo=cash-app)](https://www.blockchain.com/bch/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7) 
+[![Paypal](https://img.shields.io/badge/paypal-donate-red?color=169bd7&logo=paypal)](https://paypal.me/bellawhotwo) 
+[![BTC](https://img.shields.io/badge/btc-clickme-red?color=f08b16&logo=bitcoin)](https://www.blockchain.com/btc/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7)
+[![BCH](https://img.shields.io/badge/bch-clickme-red?color=2db300&logo=cash-app)](https://www.blockchain.com/bch/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7) 
 
 <details>
 	<summary>Click to view disclaimers</summary>
