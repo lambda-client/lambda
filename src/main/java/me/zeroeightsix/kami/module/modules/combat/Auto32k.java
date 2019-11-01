@@ -400,11 +400,11 @@ public class Auto32k extends Module {
 		return false;
 	}
 
-	@Override
-	protected void onDisable() {
-		if (autoEnableHitAura.getValue()) {
-			ModuleManager.getModuleByName("Aura").disable();
-		}
-	}
+	//@Override
+	//protected void onDisable() {
+	//	if (autoEnableHitAura.getValue()) {
+	//		ModuleManager.getModuleByName("Aura").disable();
+	//	}
+	//}
 
 }
