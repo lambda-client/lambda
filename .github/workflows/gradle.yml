@@ -16,7 +16,7 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
     - name: Upload artifact
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v1
       with:
-        name: KAMI-b9-release.jar
-        path: /home/runner/work/KAMI/KAMI/build/libs/
+        name: KAMI
+        path: /home/runner/work/KAMI/KAMI/build/libs/KAMI-b9-release.jar
