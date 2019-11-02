@@ -12,5 +12,5 @@ deploy:
   file_glob: true
   skip_cleanup: true
   on:
-    repo: zeroeightysix/KAMI
+    repo: S-B99/KAMI
     tags: true
