@@ -16,7 +16,7 @@
 <!--| Media        | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |-->
 <!--| Version      | [![Version features-master](https://img.shields.io/github/v/tag/S-B99/KAMI?color=orange&include_prereleases&label=unstable&sort=semver)](https://github.com/S-B99/KAMI/releases) | [![Version master](https://img.shields.io/github/v/release/S-B99/kami?color=dark-green&label=latest)](https://github.com/S-B99/KAMI/releases) | [![Version 086](https://img.shields.io/github/v/tag/zeroeightysix/KAMI?color=red&label=outdated)](https://github.com/zeroeightysix/KAMI/releases) |-->
 
-Please consider donating to help continue this project. Currently I've received about $23CAD from the [300](https://cdn.discordapp.com/attachments/634012886930423818/639447464289501187/Screenshot_20191031_085439.png) *unique* visitors to this repo.
+Please consider donating to help continue this project. Currently I've received about $33 from the [300](https://cdn.discordapp.com/attachments/634012886930423818/639447464289501187/Screenshot_20191031_085439.png) *unique* visitors to this repo.
 
 [![Paypal](https://img.shields.io/badge/paypal-donate-red?color=169bd7&logo=paypal)](https://paypal.me/bellawhotwo) 
 [![BTC](https://img.shields.io/badge/btc-clickme-red?color=f08b16&logo=bitcoin)](https://www.blockchain.com/btc/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7)
