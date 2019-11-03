@@ -33,8 +33,8 @@ public class Aura extends Module {
     private Setting<Boolean> attackAnimals = register(Settings.b("Animals", false));
     private Setting<Double> hitRange = register(Settings.d("Hit Range", 5.5d));
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
-    private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.Dynamic));
-    private Setting<Integer> waitTick = register(Settings.integerBuilder("Tick Delay").withMinimum(0).withValue(3).withVisibility(o -> waitMode.getValue().equals(WaitMode.Static)).build());
+    private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.DYNAMIC));
+    private Setting<Integer> waitTick = register(Settings.integerBuilder("Tick Delay").withMinimum(0).withValue(3).withVisibility(o -> waitMode.getValue().equals(WaitMode.STATIC)).build());
     private Setting<Boolean> switchTo32k = register(Settings.b("32k Switch", true));
     private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
@@ -52,7 +52,7 @@ public class Aura extends Module {
             return;
         }
 
-        if (waitMode.getValue().equals(WaitMode.Dynamic)) {
+        if (waitMode.getValue().equals(WaitMode.DYNAMIC)) {
             if (mc.player.getCooledAttackStrength(getLagComp()) < 1) {
                 return;
             } else if (mc.player.ticksExisted % 2 != 0) {
@@ -60,7 +60,7 @@ public class Aura extends Module {
             }
         }
 
-        if (waitMode.getValue().equals(WaitMode.Static) && waitTick.getValue() > 0) {
+        if (waitMode.getValue().equals(WaitMode.STATIC) && waitTick.getValue() > 0) {
             if (waitCounter < waitTick.getValue()) {
                 waitCounter++;
                 return;
@@ -84,7 +84,7 @@ public class Aura extends Module {
             if (((EntityLivingBase) target).getHealth() <= 0) {
                 continue;
             }
-            if (waitMode.getValue().equals(WaitMode.Dynamic) && ((EntityLivingBase) target).hurtTime != 0) {
+            if (waitMode.getValue().equals(WaitMode.DYNAMIC) && ((EntityLivingBase) target).hurtTime != 0) {
                 continue;
             }
             if (!ignoreWalls.getValue() && (!mc.player.canEntityBeSeen(target) && !canEntityFeetBeSeen(target))) {
@@ -180,7 +180,7 @@ public class Aura extends Module {
     }
 
     private float getLagComp() {
-        if (waitMode.getValue().equals(WaitMode.Dynamic)) {
+        if (waitMode.getValue().equals(WaitMode.DYNAMIC)) {
             return -(20 - LagCompensator.INSTANCE.getTickRate());
         }
         return 0.0F;
@@ -191,7 +191,7 @@ public class Aura extends Module {
     }
 
     private enum WaitMode {
-        Dynamic, Static
+        DYNAMIC, STATIC
     }
 
 }
