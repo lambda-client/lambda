@@ -67,6 +67,10 @@ This is currently in slowed development. Maintainance and further development is
 
 ***
 
+Click on images to expand
+
+***
+
 Note: GUI Color is a work in progress and unreleased
 
 <img src=".github/IMAGES/gui.png" width="500"/>
@@ -244,21 +248,29 @@ If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md
 
 </details>
 
-## How this improves over KAMI (Red)
+## How this actually improves over KAMI Red
 
 <details>
 	<summary>Click to see new features and improvements</summary>
 
+### Currently:
+
  - NoFall Bucket Mode picks up the water bucket after
  - Better mcmod.info with more information
- - Future compatibility 
- - Auto32k
- - 32k options for Aura
+ - Constant testing
+ - Hey look an active developer
+ - GUI is better
+ - If someone does write code and add it to KAMI Red this generally gets it way faster
+
+### Upcoming:
+
+ - Modules under experimental (discord RPC, etc)
+ - Stuff in [issues to be added](https://github.com/S-B99/KAMI/issues)
+ - GUI Color Changer
+ - CAPES! (donate $10 to unlock)
  - Fast place has options for speed coming soon
  - Modes for fast use and deleting fast place also soon
- - GUI changed to blue
- - GUI colors coming soon
- - Continued development 
+ - Auto32k will automatically enable and disable aura as an option
 
 </details>
 
