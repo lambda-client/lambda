@@ -34,7 +34,7 @@ public class Aura extends Module {
     private Setting<Double> hitRange = register(Settings.d("Hit Range", 5.5d));
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
     private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.Dynamic));
-    private Setting<Double> waitTick = register(Settings.d("Tick Wait", 3.0));
+    private Setting<Integer> waitTick = register(Settings.integerBuilder("Tick Delay").withMinimum(0).withValue(3).withVisibility(o -> waitMode.getValue().equals(WaitMode.Static)).build());
     private Setting<Boolean> switchTo32k = register(Settings.b("32k Switch", true));
     private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
