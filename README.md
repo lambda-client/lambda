@@ -67,9 +67,15 @@ This is currently in slowed development. Maintainance and further development is
 
 ***
 
-Note: This GUI is outdated
+Note: GUI Color is a work in progress and unreleased
 
 <img src=".github/IMAGES/gui.png" width="500"/>
+
+GUI When Closed
+
+Ignore the GUI on the right, that's future
+
+<img src=".github/IMAGES/guiclosed.png" width="500"/>
 
 Shulker preview being used in chat
 
