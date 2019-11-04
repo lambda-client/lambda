@@ -41,9 +41,7 @@ See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some featu
 
 ## How to download
 
-Press the releases button along the yellow bar above ^
-
-Scroll alll the way up
+[Press the releases button or click here](https://github.com/S-B99/KAMI/releases)
 
 ## Status
 
@@ -95,7 +93,7 @@ CrystalAura targeting
 
 ## Installing
 
-To install drag the `-release.jar` to your `mods/1.12.2` folder
+To install drag the `VERSION-release.jar` to your `mods/1.12.2` folder
 
 <details>
 	<summary>Click to see more detailed installing instructions</summary>
