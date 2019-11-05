@@ -12,6 +12,7 @@ What `.jar` are you using in your `mods` folder? Make sure to use the one that e
 
 ###### Just doesn't work when using runClient
 Don't use that, try building and running forge normally
+
 ## Crashes in-game
 
 **Please make sure you're on the latest version of forge before proceeding!**
