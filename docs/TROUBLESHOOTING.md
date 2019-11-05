@@ -8,7 +8,7 @@ If you encounter this error when building, you most likely don't have the Java D
 Head over to [here](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) to download the oracle JDK. Install it and try again.
 
 ###### Minecraft not loading at all
-What `.jar` are you using in your `mods` folder? Make sure to use the one that ends with `-full` (`KAMI-MCVER-KAMIVER-full.jar`)
+What `.jar` are you using in your `mods` folder? Make sure to use the one that ends with `-release` (`VERSION-release.jar`)
 
 ###### Just doesn't work when using runClient
 Don't use that, try building and running forge normally
