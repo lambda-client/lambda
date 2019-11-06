@@ -1,4 +1,4 @@
-<img src="assets/kami.png" align="left" width="120"/>
+<img src="assets/kami.svg" align="left" width="120"/>
 
 # KAMI Blue 
 
