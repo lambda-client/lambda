@@ -6,7 +6,7 @@ gradle*
 gradlew*
 gradle/
 buildext.sh
-*.gradle
+build.gradle
 
 # sdashb
 
@@ -16,7 +16,7 @@ sdasb.modules
 
 mcp/
 src/minecraft/
-src/main/java/net/minecraft
+src/main/java/net/minecraft/
 
 ### Eclipse ###
 
