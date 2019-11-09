@@ -17,27 +17,26 @@ import net.minecraft.util.math.Vec3d;
 
 /**
  * Created by 086 on 19/11/2017.
- * Updated by S-B99 on 24/10/2019
+ * Updated by S-B99 on 08/11/2019
  */
 @Module.Info(category = Module.Category.PLAYER, description = "Prevents fall damage", name = "NoFall")
 public class NoFall extends Module {
 
-	private Setting<Boolean> packet = register(Settings.b("Packet", false));
-	private Setting<Boolean> bucket = register(Settings.b("Bucket", true));
+	private Setting<FallMode> fallMode = register(Settings.e("Mode", FallMode.PACKET));
 	private Setting<Integer> distance = register(Settings.i("Distance", 3));
 
 	private long last = 0;
 
 	@EventHandler
 	public Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
-		if (event.getPacket() instanceof CPacketPlayer && packet.getValue()) {
-			((CPacketPlayer) event.getPacket()).onGround = true;
-		}
+			if ((fallMode.getValue().equals(FallMode.PACKET)) && event.getPacket() instanceof CPacketPlayer) {
+				((CPacketPlayer) event.getPacket()).onGround = true;
+			}
 	});
 
 	@Override
 	public void onUpdate() {
-		if (bucket.getValue() && mc.player.fallDistance >= distance.getValue() && !EntityUtil.isAboveWater(mc.player) && System.currentTimeMillis() - last > 100) {
+		if ((fallMode.getValue().equals(FallMode.BUCKET)) && mc.player.fallDistance >= distance.getValue() && !EntityUtil.isAboveWater(mc.player) && System.currentTimeMillis() - last > 100) {
 			Vec3d posVec = mc.player.getPositionVector();
 			RayTraceResult result = mc.world.rayTraceBlocks(posVec, posVec.add(0, -5.33f, 0), true, true, false);
 			if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
@@ -56,6 +55,16 @@ public class NoFall extends Module {
 
 				mc.player.rotationPitch = 90;
 				mc.playerController.processRightClick(mc.player, mc.world, hand);
+
+//				System.out.println("KAMI Blue: time is " + System.currentTimeMillis());
+//				do {
+//
+//				}
+//				while(System.currentTimeMillis() - last > 400);
+//				System.out.println("KAMI Blue: time is " + System.currentTimeMillis());
+//
+//				System.out.println("KAMI Blue: time is now" + System.currentTimeMillis());
+
 
 				// this is where i want to run the above 2 lines again after 300 milliseconds 
 
@@ -87,5 +96,9 @@ public class NoFall extends Module {
 				//mc.playerController.processRightClick(mc.player, mc.world, hand);
 			}
 		}
+	}
+
+	private enum FallMode {
+		BUCKET, PACKET
 	}
 }
