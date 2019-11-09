@@ -4,6 +4,8 @@
 
 ### A minecraft utility mod for anarchy servers.
 
+Note building works currently I just need to fix gradle
+
 |              | S-B99 (features-master)| 086 (upstream) |
 |:------------:|:-------------:|:--------------:|
 | Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/features-master?logo=gradle&label=build)](https://travis-ci.com/S-B99/KAMI/tree/features-master) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?logo=gradle&branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
