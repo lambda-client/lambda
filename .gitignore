@@ -18,6 +18,10 @@ mcp/
 src/minecraft/
 src/main/java/net/minecraft/
 
+# lwjgl
+
+src/main/java/org/lwjgl
+
 ### Eclipse ###
 
 .metadata
