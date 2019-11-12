@@ -45,7 +45,7 @@ import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.ll
 
 /**
  * Created by 086 on 8/04/2018.
- * Updated by S-B99 on 28/10/19
+ * Updated by S-B99 on 12/11/19
  */
 @Module.Info(name = "CustomChat", category = Module.Category.MISC, description = "Chat ending. Now has modes!")
 public class CustomChat extends Module {
