@@ -4,10 +4,44 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.combat.Aura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketChatMessage;
+
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiilllll.lllllllliiiliiilllll;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliiiii.lllllllliiiliiliiiii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliiiil.lllllllliiiliiliiiil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliiili.lllllllliiiliiliiili;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliiill.lllllllliiiliiliiill;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliilii.lllllllliiiliiliilii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliilil.lllllllliiiliiliilil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliilli.lllllllliiiliiliilli;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliiliilll.lllllllliiiliiliilll;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliililiii.lllllllliiiliililiii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliililiil.lllllllliiiliililiil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliililili.lllllllliiiliililili;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliililill.lllllllliiiliililill;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilillii.lllllllliiiliilillii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilillil.lllllllliiiliilillil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilillli.lllllllliiiliilillli;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilillll.lllllllliiiliilillll;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilliiii.lllllllliiiliilliiii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilliiil.lllllllliiiliilliiil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilliili.lllllllliiiliilliili;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilliill.lllllllliiiliilliill;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillilii.lllllllliiiliillilii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillilil.lllllllliiiliillilil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillilli.lllllllliiiliillilli;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillilll.lllllllliiiliillilll;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillliii.lllllllliiiliillliii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillliil.lllllllliiiliillliil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilllili.lllllllliiiliilllili;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliilllill.lllllllliiiliilllill;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillllii.lllllllliiiliillllii;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillllil.lllllllliiiliillllil;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillllli.lllllllliiiliillllli;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiiliillllll.lllllllliiiliillllll;
+import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.lllllllliiililiiiiii.lllllllliiililiiiiii;
 
 /**
  * Created by 086 on 8/04/2018.
@@ -18,13 +52,13 @@ public class CustomChat extends Module {
 
     private Setting<TextMode> textMode = register(Settings.e("Text", TextMode.NAME));
     private Setting<DecoMode> decoMode = register(Settings.e("Decoration", DecoMode.SEPARATOR));
-    
-    private String KAMI_SEPARATOR = " \u23d0 ";
-    private String KAMI_CLASSIC = " \u00ab ";
-    private String KAMI_CLASSIC_OTHER = " \u00bb";
-    private String KAMI_NAME = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
-    private String KAMI_ONTOP = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07 \u1d0f\u0274 \u1d1b\u1d0f\u1d18";
-    private String KAMI_WEBSITE = "\u0299\u1d07\u029f\u029f\u1d00\u002e\u1d21\u1d1b\ua730\u002f\u1d0b\u1d00\u1d0d\u026a\u0299\u029f\u1d1c\u1d07";
+
+    private String KAMI_SEPARATOR = " " + lllllllliiiliiilllll + " ";
+    private String KAMI_CLASSIC = " " + lllllllliiiliiliiiii + " ";
+    private String KAMI_CLASSIC_OTHER = " " + lllllllliiiliiliiili;
+    private String KAMI_NAME = lllllllliiiliiliiiil + lllllllliiiliiliiill + lllllllliiiliiliilii + lllllllliiiliiliilli + " " + lllllllliiiliiliilil + lllllllliiiliiliilll + lllllllliiiliililiii + lllllllliiiliililiil;
+    private String KAMI_ONTOP = lllllllliiiliiliiiil + lllllllliiiliiliiill + lllllllliiiliiliilii + lllllllliiiliiliilli + " " + lllllllliiiliiliilil + lllllllliiiliiliilll + lllllllliiiliililiii + lllllllliiiliililiil + " " + lllllllliiiliililili + lllllllliiiliililill + " " + lllllllliiiliilillii + lllllllliiiliilillil + lllllllliiiliilillli;
+    private String KAMI_WEBSITE = lllllllliiiliilillll + lllllllliiiliilliiii + lllllllliiiliilliiil + lllllllliiiliilliili + lllllllliiiliilliill + lllllllliiiliillilii + lllllllliiiliillilil + lllllllliiiliillilli + lllllllliiiliillilll + lllllllliiiliillliii + lllllllliiiliillliil + lllllllliiiliilllili + lllllllliiiliilllill + lllllllliiiliillllii + lllllllliiiliillllil + lllllllliiiliillllli + lllllllliiiliillllll + lllllllliiililiiiiii;
     private String KAMI_FINAL = "";
 
     @EventHandler
