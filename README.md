@@ -136,6 +136,102 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 
 </details>
 
+## Features
+
+<details>
+	<summary>Click to view a list of features</summary>
+
+*modified or added by KAMI Blue*
+
+***
+
+#### Combat
+
+- *Aura*
+- *Auto32k*
+- AutoLog
+- *AutoTotem*
+- CrystalAura
+
+#### Misc
+
+- AntiAFK
+- AntiWeather
+- AutoReconnect
+- AutoRespawn
+- AutoTool
+- CameraClip
+- ChatEncryption
+- ColourSign
+- *CustomChat*
+- FakeVanilla
+- NoEntityTrace
+- NoPacketKick
+- PortalChat
+- SkinFlicker
+
+#### Movement
+
+- AntiHunger
+- ElytraFlight
+- EntitySpeed
+- Flight
+- Jesus
+- NoSlowDown
+- SafeWalk
+- *Sprint*
+- Velocity
+
+#### Player
+
+- AntiForceLook
+- AutoArmour
+- AutoEat
+- AutoFish
+- AutoJump
+- AutoWalk
+- Blink
+- FastBreak
+- *FastPlace*
+- *FastUse*
+- Freecam
+- *NoFall*
+- PitchLock
+- PortalGodMode
+- Scaffold
+- TpsSync
+- YawLock
+
+#### Render
+
+- AntiFog
+- ArmourHUD
+- BossStack
+- Brightness
+- Chams
+- ChunkFinder
+- ESP
+- ExtraTab
+- EyeFinder
+- Nametags
+- NoHurtCam
+- NoRender
+- Pathfind
+- ShulkerPreview
+- StorageESP
+- Tracers
+- Trajectories
+
+#### Experimental
+
+- AntiBookBan
+- DiscordRPC
+- GUIColor
+- SendRawUnicode
+- Capes
+
+</details>
+
 ## Troubleshooting
 
 <details>
