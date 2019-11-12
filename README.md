@@ -224,11 +224,11 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 
 #### Experimental
 
-- AntiBookBan
-- DiscordRPC
-- GUIColor
-- SendRawUnicode
-- Capes
+- *AntiBookBan*
+- *DiscordRPC*
+- *GUIColor*
+- *SendRawUnicode*
+- *Capes*
 
 </details>
 
