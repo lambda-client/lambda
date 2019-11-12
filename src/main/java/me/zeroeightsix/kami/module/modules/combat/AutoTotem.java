@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 
 /**
  * Created by 086 on 22/01/2018.
+ * Updated by S-B99 on 12/11/19
  */
 @Module.Info(name = "AutoTotem", category = Module.Category.COMBAT)
 public class AutoTotem extends Module {
@@ -18,10 +19,11 @@ public class AutoTotem extends Module {
     boolean moving = false;
     boolean returnI = false;
     private Setting<Boolean> force = register(Settings.b("Force", false));
+    private Setting<Boolean> inv = register(Settings.b("Inventory", false));
 
     @Override
     public void onUpdate() {
-        if (mc.currentScreen instanceof GuiContainer) return;
+        if (!inv.getValue() && mc.currentScreen instanceof GuiContainer) return; // this stops autototem from running if you're in a chest or something
         if (returnI) {
             int t = -1;
             for (int i = 0; i < 45; i++)
