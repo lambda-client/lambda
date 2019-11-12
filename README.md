@@ -145,6 +145,14 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 
 ***
 
+#### Experimental
+
+- *AntiBookBan*
+- *DiscordRPC*
+- *GUIColor*
+- *SendRawUnicode*
+- *Capes*
+
 #### Combat
 
 - *Aura*
@@ -221,14 +229,6 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 - StorageESP
 - Tracers
 - Trajectories
-
-#### Experimental
-
-- *AntiBookBan*
-- *DiscordRPC*
-- *GUIColor*
-- *SendRawUnicode*
-- *Capes*
 
 </details>
 
