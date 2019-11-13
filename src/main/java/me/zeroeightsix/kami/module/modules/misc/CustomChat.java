@@ -52,6 +52,7 @@ public class CustomChat extends Module {
 
     private Setting<TextMode> textMode = register(Settings.e("Text", TextMode.NAME));
     private Setting<DecoMode> decoMode = register(Settings.e("Decoration", DecoMode.SEPARATOR));
+    private Setting<Boolean> commands = register(Settings.b("Commands", false));
 
     private String KAMI_SEPARATOR = " " + lllllllliiiliiilllll + " ";
     private String KAMI_CLASSIC = " " + lllllllliiiliiliiiii + " ";
@@ -65,14 +66,17 @@ public class CustomChat extends Module {
     public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketChatMessage) {
             String s = ((CPacketChatMessage) event.getPacket()).getMessage();
-            if (s.startsWith("/"))
-            	return;
-            else if (s.startsWith(","))
-            	return;
-            else if (s.startsWith("."))
-            	return;
-            else if (s.startsWith("-"))
-            	return;
+            if (!commands.getValue()) {
+                if (s.startsWith("/")) {
+                    return;
+                } else if (s.startsWith(",")) {
+                    return;
+                } else if (s.startsWith(".")) {
+                    return;
+                } else if (s.startsWith("-")) {
+                    return;
+                }
+            }
             // TODO: reset the classic mode so it doesn't add
             if (decoMode.getValue().equals(DecoMode.SEPARATOR)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
