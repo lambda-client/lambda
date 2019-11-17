@@ -22,6 +22,9 @@ src/main/java/net/minecraft/
 
 src/main/java/org/lwjgl
 
+# Google
+src/main/java/com/google
+
 ### Eclipse ###
 
 .metadata
