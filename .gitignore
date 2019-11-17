@@ -25,6 +25,10 @@ src/main/java/org/lwjgl
 # Google
 src/main/java/com/google
 
+# private
+
+src/main/java/me/zeroeightsix/kami/module/modules/sdashb/experimental/Gen.java
+
 ### Eclipse ###
 
 .metadata
