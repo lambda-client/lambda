@@ -175,6 +175,7 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 - FakeVanilla
 - NoEntityTrace
 - NoPacketKick
+  - Used by other modules, not a real module
 - PortalChat
 - SkinFlicker
 
