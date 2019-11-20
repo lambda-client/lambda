@@ -14,8 +14,8 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketAnimation;
 import net.minecraft.network.play.client.CPacketEntityAction;
-import net.minecraft.network.play.client.CPacketHeldItemChange;
 import net.minecraft.network.play.client.CPacketEntityAction.Action;
+import net.minecraft.network.play.client.CPacketHeldItemChange;
 import net.minecraft.network.play.client.CPacketPlayer.Rotation;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -23,30 +23,45 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
+
 /**
  * @author Jamie
  */
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian")
 public class Surround extends Module {
-    private final Vec3d[] surroundTargets = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D), new Vec3d(1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, 1.0D), new Vec3d(-1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, -1.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
-    private final Vec3d[] surroundTargetsCritical = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
+    //private final Vec3d[] surroundTargetsCritical = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
     private Setting toggleable = this.register(Settings.b("Toggleable", true));
     private Setting spoofRotations = this.register(Settings.b("Spoof Rotations", true));
     private Setting spoofHotbar = this.register(Settings.b("Spoof Hotbar", true));
     private Setting blockPerTick = this.register(Settings.d("Blocks per Tick", 4.0D));
-    private Setting debugMessages = this.register(Settings.b("Debug Messages", true));
+    //private Setting<PlaceMode> placeMode = register(Settings.e("Mode", PlaceMode.HALF));
+    private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
+
+
+    private final Vec3d[] surroundTargets = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D), new Vec3d(1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, 1.0D), new Vec3d(-1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, -1.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
+    private final Vec3d[] surroundTargetsFull = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D), new Vec3d(1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, 1.0D), new Vec3d(-1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, -1.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
+
     private BlockPos basePos;
     private int offsetStep = 0;
     private int playerHotbarSlot = -1;
     private int lastHotbarSlot = -1;
+
+
+    private enum PlaceMode {
+        HALF, FULL
+    }
+
+    private enum DebugMsgs {
+        NONE, IMPORTANT, ALL
+    }
 
     public void onUpdate() {
         if (!this.isDisabled() && mc.player != null && !ModuleManager.isModuleEnabled("Freecam")) {
             if (this.offsetStep == 0) {
                 this.basePos = (new BlockPos(mc.player.getPositionVector())).down();
                 this.playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
-                if ((Boolean)this.debugMessages.getValue()) {
-                    //Command.sendChatMessage("[Surround] Starting Loop, current Player Slot: " + this.playerHotbarSlot);
+                if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+                    Command.sendChatMessage("[Surround] Starting Loop, current Player Slot: " + this.playerHotbarSlot);
                 }
 
                 if (!(Boolean)this.spoofHotbar.getValue()) {
@@ -55,8 +70,8 @@ public class Surround extends Module {
             }
 
             for(int i = 0; i < (int)Math.floor((Double)this.blockPerTick.getValue()); ++i) {
-                if ((Boolean)this.debugMessages.getValue()) {
-                    //Command.sendChatMessage("[Surround] Loop iteration: " + this.offsetStep);
+                if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+                    Command.sendChatMessage("[Surround] Loop iteration: " + this.offsetStep);
                 }
 
                 if (this.offsetStep >= this.surroundTargets.length) {
@@ -76,13 +91,13 @@ public class Surround extends Module {
         if (mc.player == null) {
             this.disable();
         } else {
-            if ((Boolean)this.debugMessages.getValue()) {
+            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                 Command.sendChatMessage("[Surround] Enabling");
             }
 
             this.playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
             this.lastHotbarSlot = -1;
-            if ((Boolean)this.debugMessages.getValue()) {
+            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                 Command.sendChatMessage("[Surround] Saving initial Slot  = " + this.playerHotbarSlot);
             }
 
@@ -91,12 +106,12 @@ public class Surround extends Module {
 
     protected void onDisable() {
         if (mc.player != null) {
-            if ((Boolean)this.debugMessages.getValue()) {
+            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                 Command.sendChatMessage("[Surround] Disabling");
             }
 
             if (this.lastHotbarSlot != this.playerHotbarSlot && this.playerHotbarSlot != -1) {
-                if ((Boolean)this.debugMessages.getValue()) {
+                if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                     //Command.sendChatMessage("[Surround] Setting Slot to  = " + this.playerHotbarSlot);
                 }
 
@@ -114,13 +129,13 @@ public class Surround extends Module {
 
     private void endLoop() {
         this.offsetStep = 0;
-        if ((Boolean)this.debugMessages.getValue()) {
-            //Command.sendChatMessage("[Surround] Ending Loop");
+        if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+            Command.sendChatMessage("[Surround] Ending Loop");
         }
 
         if (this.lastHotbarSlot != this.playerHotbarSlot && this.playerHotbarSlot != -1) {
-            if ((Boolean)this.debugMessages.getValue()) {
-                //Command.sendChatMessage("[Surround] Setting Slot back to  = " + this.playerHotbarSlot);
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+                Command.sendChatMessage("[Surround] Setting Slot back to  = " + this.playerHotbarSlot);
             }
 
             if ((Boolean)this.spoofHotbar.getValue()) {
@@ -140,13 +155,13 @@ public class Surround extends Module {
 
     private void placeBlock(BlockPos blockPos) {
         if (!Wrapper.getWorld().getBlockState(blockPos).getMaterial().isReplaceable()) {
-            if ((Boolean)this.debugMessages.getValue()) {
-                //Command.sendChatMessage("[Surround] Block is already placed, skipping");
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+                Command.sendChatMessage("[Surround] Block is already placed, skipping");
             }
 
         } else if (!BlockInteractionHelper.checkForNeighbours(blockPos)) {
-            if ((Boolean)this.debugMessages.getValue()) {
-                //Command.sendChatMessage("[Surround] !checkForNeighbours(blockPos), disabling! ");
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+                Command.sendChatMessage("[Surround] !checkForNeighbours(blockPos), disabling! ");
             }
 
         } else {
@@ -181,7 +196,7 @@ public class Surround extends Module {
             BlockPos neighbor = pos.offset(side);
             EnumFacing side2 = side.getOpposite();
             if (!canBeClicked(neighbor)) {
-                if ((Boolean)this.debugMessages.getValue()) {
+                if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                     Command.sendChatMessage("[Surround] No neighbor to click at!");
                 }
             } else {
@@ -194,7 +209,7 @@ public class Surround extends Module {
                     boolean needSneak = false;
                     Block blockBelow = mc.world.getBlockState(neighbor).getBlock();
                     if (BlockInteractionHelper.blackList.contains(blockBelow) || BlockInteractionHelper.shulkerList.contains(blockBelow)) {
-                        if ((Boolean)this.debugMessages.getValue()) {
+                        if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                             Command.sendChatMessage("[Surround] Sneak enabled!");
                         }
 
@@ -207,7 +222,7 @@ public class Surround extends Module {
 
                     int obiSlot = this.findObiInHotbar();
                     if (obiSlot == -1) {
-                        if ((Boolean)this.debugMessages.getValue()) {
+                        if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                             Command.sendChatMessage("[Surround] No Obi in Hotbar, disabling!");
                         }
 
@@ -216,8 +231,8 @@ public class Surround extends Module {
                     }
 
                     if (this.lastHotbarSlot != obiSlot) {
-                        if ((Boolean)this.debugMessages.getValue()) {
-                            //Command.sendChatMessage("[Surround] Setting Slot to Obi at  = " + obiSlot);
+                        if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+                            Command.sendChatMessage("[Surround] Setting Slot to Obi at  = " + obiSlot);
                         }
 
                         if ((Boolean)this.spoofHotbar.getValue()) {
@@ -232,7 +247,7 @@ public class Surround extends Module {
                     mc.playerController.processRightClickBlock(Wrapper.getPlayer(), mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
                     mc.player.connection.sendPacket(new CPacketAnimation(EnumHand.MAIN_HAND));
                     if (needSneak) {
-                        if ((Boolean)this.debugMessages.getValue()) {
+                        if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                             Command.sendChatMessage("[Surround] Sneak disabled!");
                         }
 
@@ -242,7 +257,7 @@ public class Surround extends Module {
                     return;
                 }
 
-                if ((Boolean)this.debugMessages.getValue()) {
+                if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                     Command.sendChatMessage("[Surround] Distance > 4.25 blocks!");
                 }
             }
@@ -281,4 +296,6 @@ public class Surround extends Module {
     private static Vec3d getEyesPos() {
         return new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + (double)Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
     }
+
+
 }
