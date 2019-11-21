@@ -24,8 +24,8 @@ public class InventoryViewer extends Module
     private Setting<Integer> optionY;
 
     public InventoryViewer() {
-        this.optionX = this.register(Settings.i("X", 0));
-        this.optionY = this.register(Settings.i("Y", 0));
+        this.optionX = this.register(Settings.i("X", 198));
+        this.optionY = this.register(Settings.i("Y", 469));
     }
 
     private static void preboxrender() {
