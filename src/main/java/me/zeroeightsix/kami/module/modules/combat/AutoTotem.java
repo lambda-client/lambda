@@ -19,7 +19,7 @@ public class AutoTotem extends Module {
     boolean moving = false;
     boolean returnI = false;
     private Setting<Boolean> force = register(Settings.b("Force", false));
-    private Setting<Boolean> inv = register(Settings.b("Inventory", false));
+    private Setting<Boolean> inv = register(Settings.b("Inventory", true));
 
     @Override
     public void onUpdate() {
