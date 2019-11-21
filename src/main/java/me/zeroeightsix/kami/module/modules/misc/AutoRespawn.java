@@ -18,7 +18,7 @@ public class AutoRespawn extends Module {
 
     private Setting<Boolean> respawn = register(Settings.b("Respawn", true));
     private Setting<Boolean> deathCoords = register(Settings.b("DeathCoords", false));
-    private Setting<Boolean> antiBug = register(Settings.b("Anti Bug", true));
+    private Setting<Boolean> antiGlitchScreen = register(Settings.b("Anti Glitch Screen", true));
 
     @EventHandler
     public Listener<GuiScreenEvent.Displayed> listener = new Listener<>(event -> {
@@ -31,7 +31,7 @@ public class AutoRespawn extends Module {
             Command.sendChatMessage(String.format("You died at x %d y %d z %d", (int) mc.player.posX, (int) mc.player.posY, (int) mc.player.posZ));
         }
 
-        if (respawn.getValue() || (antiBug.getValue() && mc.player.getHealth() > 0)) {
+        if (respawn.getValue() || (antiGlitchScreen.getValue() && mc.player.getHealth() > 0)) {
             mc.player.respawnPlayer();
             mc.displayGuiScreen(null);
         }
