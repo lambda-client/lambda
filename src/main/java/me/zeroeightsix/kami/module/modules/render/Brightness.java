@@ -15,7 +15,7 @@ import java.util.function.Function;
 public class Brightness extends Module {
 
     private Setting<Boolean> transition = register(Settings.b("Transition", true));
-    private Setting<Float> seconds = register(Settings.floatBuilder("Seconds").withMinimum(0f).withMaximum(10f).withValue(1f).withVisibility(o -> transition.getValue()).build());
+    private Setting<Float> seconds = register(Settings.floatBuilder("Seconds").withMinimum(0f).withMaximum(10f).withValue(5f).withVisibility(o -> transition.getValue()).build());
     private Setting<Transition> mode = register(Settings.enumBuilder(Transition.class).withName("Mode").withValue(Transition.SINE).withVisibility(o -> transition.getValue()).build());
 
     private Stack<Float> transitionStack = new Stack<>();
