@@ -255,6 +255,8 @@ If you have an issue or problem and it's not listed there, please [open a new is
 <details>
 	<summary>Click to see new features and improvements</summary>
 
+**Please note all of this is super outdated, just go to releases and look at the changelogs**
+
 ### Currently:
 
  - NoFall Bucket Mode picks up the water bucket after
