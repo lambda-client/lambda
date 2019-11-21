@@ -50,8 +50,8 @@ import static me.zeroeightsix.kami.module.modules.sdashb.lllllllliiiliiilllli.ll
 @Module.Info(name = "CustomChat", category = Module.Category.MISC, description = "Chat ending. Now has modes!")
 public class CustomChat extends Module {
 
-    private Setting<TextMode> textMode = register(Settings.e("Text", TextMode.NAME));
-    private Setting<DecoMode> decoMode = register(Settings.e("Decoration", DecoMode.SEPARATOR));
+    private Setting<TextMode> textMode = register(Settings.e("Text", TextMode.WEBSITE));
+    private Setting<DecoMode> decoMode = register(Settings.e("Decoration", DecoMode.CLASSIC));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
 
     private String KAMI_SEPARATOR = " " + lllllllliiiliiilllll + " ";
