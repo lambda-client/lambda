@@ -10,7 +10,8 @@ import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockObsidian;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
@@ -24,7 +25,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
 /**
  * Created 13 August 2019 by hub
- * Updated 31 October 2019 by hub
+ * Updated 21 November 2019 by hub
  */
 @Module.Info(name = "AutoFeetPlace", category = Module.Category.COMBAT)
 public class AutoFeetPlace extends Module {
@@ -44,6 +45,7 @@ public class AutoFeetPlace extends Module {
     private Setting<Boolean> triggerable = register(Settings.b("Triggerable", true));
     private Setting<Integer> triggerableTimeoutTicks = register(Settings.i("Triggerable Timeout (Ticks)", 20));
     private Setting<Integer> blockPerTick = register(Settings.i("Blocks per Tick", 4));
+    private Setting<Boolean> rotate = register(Settings.b("Rotate", true));
     private Setting<Boolean> announceUsage = register(Settings.b("Announce Usage", false));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
 
@@ -134,9 +136,9 @@ public class AutoFeetPlace extends Module {
                 shouldTryToPlace = false;
             }
 
-            // check if living entity is on block
+            // check if entity blocks placing
             for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(targetPos))) {
-                if (entity instanceof EntityLivingBase) {
+                if (!(entity instanceof EntityItem) && !(entity instanceof EntityXPOrb)) {
                     shouldTryToPlace = false;
                     break;
                 }
@@ -208,8 +210,12 @@ public class AutoFeetPlace extends Module {
 
             Vec3d hitVec = new Vec3d(neighbor).add(0.5, 0.5, 0.5).add(new Vec3d(side2.getDirectionVec()).scale(0.5));
 
+            // fake rotation
+            if (rotate.getValue()) {
+                faceVectorPacketInstant(hitVec);
+            }
+
             // place block
-            faceVectorPacketInstant(hitVec);
             mc.playerController.processRightClickBlock(mc.player, mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
             mc.player.swingArm(EnumHand.MAIN_HAND);
 
