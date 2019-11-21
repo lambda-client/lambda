@@ -141,6 +141,8 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 <details>
 	<summary>Click to view a list of features</summary>
 
+**NOTE: this list is outdated as of v1.0.9, will update it soon**
+
 *modified or added by KAMI Blue*
 
 ***
