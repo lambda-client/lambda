@@ -54,6 +54,8 @@ public class CustomChat extends Module {
     private Setting<TextMode> textMode = register(Settings.e("Text", TextMode.WEBSITE));
     private Setting<DecoMode> decoMode = register(Settings.e("Decoration", DecoMode.CLASSIC));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
+    private Setting<Boolean> debug = register(Settings.b("Commands", true));
+
 
     private String KAMI_SEPARATOR = " " + lllllllliiiliiilllll + " ";
     private String KAMI_CLASSIC = " " + lllllllliiiliiliiiii + " ";
@@ -65,8 +67,8 @@ public class CustomChat extends Module {
     private String KAMI_ALL = " \u23d0 \u166d\uff4f\u1587\uff0d\u1455\u14aa\uff49\u4e47\u144e\u3112 \u23d0 \u1d1b\u0280\u026a\u1d18\u029f\ua731\u02e2\u026a\u02e3 \u23d0 \u0e23\u0e4f\u0e22\u05e7\u0452\u0e04\u03c2\u043a \u23d0 \u0050\u0045\u004e\u0049\u0053 \u23d0 \u0274\u1d1c\u1d1b\u0262\u1d0f\u1d05\u002e\u1d04\u1d04 \u0fc9 \u23d0 \u1d0b\u1d07\u1d07\u1d0d\u028f\u002e\u1d04\u1d04\u30c4 \u23d0 \u0493\u1d1c\u0280\u0280\u028f\u1d21\u1d00\u0280\u1d07 \u23d0 \u0262\u1d00\u028f \u23d0 \u1d07\u029f\u1d07\u1d0d\u1d07\u0274\u1d1b\u1d00\ua731\u002e\u1d04\u1d0f\u1d0d \u23d0 \u0299\u1d00\u029f\u1d05\u029c\u1d00\u1d04\u1d0b \u2713\u1d00\u1d18\u0150\u029f\u00a5\u028f\u1d0f\u0143\u002e\u0493\u1d00\u0262 \u00bb\u0299\u1d00\u1d04\u1d0b\u1d05\u1d0f\u1d0f\u0280\u1d07\u1d05 \u23d0 \u0030\u0032\u0037\u0048\u0061\u0063\u006b \u23d0 \u1d00\u1d04\u1d07 \u029c\u1d00\u1d04\u1d0b \u23d0 ";
 
     @Override
-    public void onUpdate() {
-        if (textMode.getValue().equals(TextMode.ALL)) {
+    public void onEnable() {
+        if (mc.player != null && debug.getValue()) {
             Command.sendChatMessage("[CustomChat] Note: ALL text mode only works with the separator decoration mode");
         }
     }
@@ -75,17 +77,13 @@ public class CustomChat extends Module {
         if (event.getPacket() instanceof CPacketChatMessage) {
             String s = ((CPacketChatMessage) event.getPacket()).getMessage();
             if (!commands.getValue()) {
-                if (s.startsWith("/")) {
-                    return;
-                } else if (s.startsWith(",")) {
-                    return;
-                } else if (s.startsWith(".")) {
-                    return;
-                } else if (s.startsWith("-")) {
-                    return;
-                }
+                if (s.startsWith("/")) return;
+                else if (s.startsWith(",")) return;
+                else if (s.startsWith(".")) return;
+                else if (s.startsWith("-")) return;
+                else if (s.startsWith(";")) return;
+                else if (s.startsWith("?")) return;
             }
-            // TODO: reset the classic mode so it doesn't add
             if (decoMode.getValue().equals(DecoMode.SEPARATOR)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
                     KAMI_FINAL = KAMI_SEPARATOR + KAMI_NAME;
@@ -97,7 +95,7 @@ public class CustomChat extends Module {
                     KAMI_FINAL = KAMI_SEPARATOR + KAMI_WEBSITE;
                 }
                 else if (textMode.getValue().equals(TextMode.ALL)) {
-                    KAMI_FINAL = KAMI_ALL + KAMI_NAME;
+                    KAMI_FINAL = KAMI_ALL;
                 }
             }
             else if (decoMode.getValue().equals(DecoMode.NONE)) {
