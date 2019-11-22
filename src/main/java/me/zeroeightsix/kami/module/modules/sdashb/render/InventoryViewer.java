@@ -70,7 +70,12 @@ public class InventoryViewer extends Module
     }
 
     public void onEnable() {
-        Command.sendChatMessage("[InvPreview] Right click the module to move it around");
+        if (mc.player != null) {
+            Command.sendChatMessage("[InvPreview] Right click the module to move it around");
+        }
+        else if (mc.player == null) {
+            return;
+        }
     }
 
     @Override
