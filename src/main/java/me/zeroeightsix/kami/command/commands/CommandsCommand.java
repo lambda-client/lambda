@@ -13,6 +13,7 @@ public class CommandsCommand extends Command {
 
     public CommandsCommand() {
         super("commands", SyntaxChunk.EMPTY);
+        setDescription("Gives you this list of commands");
     }
 
     @Override

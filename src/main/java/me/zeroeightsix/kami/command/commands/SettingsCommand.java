@@ -18,6 +18,7 @@ public class SettingsCommand extends Command {
         super("settings", new ChunkBuilder()
             .append("module", true, new ModuleParser())
             .build());
+        setDescription("List the possible settings of a command");
     }
 
     @Override

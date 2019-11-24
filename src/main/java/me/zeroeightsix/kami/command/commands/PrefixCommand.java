@@ -10,6 +10,7 @@ public class PrefixCommand extends Command {
 
     public PrefixCommand() {
         super("prefix", new ChunkBuilder().append("character").build());
+        setDescription("Changes the prefix to your new key");
     }
 
     @Override

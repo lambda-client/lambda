@@ -11,6 +11,7 @@ public class RenameModuleCommand extends Command {
 
     public RenameModuleCommand() {
         super("renamemodule", new ChunkBuilder().append("module", true, new ModuleParser()).append("name").build());
+        setDescription("Rename a module to something else");
     }
 
     @Override

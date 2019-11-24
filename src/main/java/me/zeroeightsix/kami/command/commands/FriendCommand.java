@@ -27,6 +27,7 @@ public class FriendCommand extends Command {
                 .append("mode", true, new EnumParser(new String[]{"add", "del"}))
                 .append("name")
                 .build());
+        setDescription("Add someone as your friend!");
     }
 
     @Override

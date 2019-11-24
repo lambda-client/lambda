@@ -17,6 +17,7 @@ public class PeekCommand extends Command {
 
     public PeekCommand() {
         super("peek", SyntaxChunk.EMPTY);
+        setDescription("Look inside the contents of a shulker box without opening it");
     }
 
     @Override

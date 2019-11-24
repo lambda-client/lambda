@@ -22,6 +22,7 @@ public class SetCommand extends Command {
                 .append("setting", true)
                 .append("value", true)
                 .build());
+        setDescription("Change the setting of a certain module");
     }
 
     @Override

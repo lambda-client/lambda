@@ -23,6 +23,7 @@ public class ConfigCommand extends Command {
                 .append("mode", true, new EnumParser(new String[]{"reload", "save", "path"}))
                 .append("path", true, new DependantParser(0, new DependantParser.Dependency(new String[][]{{"path", "path"}}, "")))
                 .build());
+        setDescription("Change where your config is saved or manually save and reload your config");
     }
 
     @Override
