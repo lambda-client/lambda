@@ -1,8 +1,10 @@
-package me.zeroeightsix.kami.mixin.client;
+package club.baldhack.mixin.client;
 
-import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.event.events.GuiScreenEvent;
-import me.zeroeightsix.kami.util.Wrapper;
+import club.baldhack.event.events.GuiScreenEvent;
+import club.baldhack.BaldHack;
+import club.baldhack.capes.Capes;
+import club.baldhack.rpc.RPCshit;
+import club.baldhack.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.SoundHandler;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -11,6 +13,7 @@ import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.crash.CrashReport;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
@@ -39,14 +42,29 @@ public class MixinMinecraft {
     @Shadow
     boolean skipRenderWorld;
     @Shadow
-    SoundHandler soundHandler;
+    SoundHandler mcSoundHandler;
+
+    @Inject(method = "<init>", at = @At("RETURN"))
+    public void initMinecraft(CallbackInfo callbackInfo) {
+        new BaldHack();
+    }
+
+    @Inject(method = "init", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;ingameGUI:Lnet/minecraft/client/gui/GuiIngame;", shift = At.Shift.AFTER))
+    public void startClient(CallbackInfo ci) {
+        BaldHack.getInstance().init();
+    }
+
+    @Inject(method = "init", at = @At(value = "RETURN"))
+    public void startCapes(CallbackInfo ci) {
+        new Capes();
+    }
 
     @Inject(method = "displayGuiScreen", at = @At("HEAD"), cancellable = true)
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo info) {
         GuiScreenEvent.Closed screenEvent = new GuiScreenEvent.Closed(Wrapper.getMinecraft().currentScreen);
-        KamiMod.EVENT_BUS.post(screenEvent);
+        BaldHack.EVENT_BUS.post(screenEvent);
         GuiScreenEvent.Displayed screenEvent1 = new GuiScreenEvent.Displayed(guiScreenIn);
-        KamiMod.EVENT_BUS.post(screenEvent1);
+        BaldHack.EVENT_BUS.post(screenEvent1);
         guiScreenIn = screenEvent1.getScreen();
 
         if (guiScreenIn == null && this.world == null)
@@ -59,7 +77,7 @@ public class MixinMinecraft {
         }
 
         GuiScreen old = this.currentScreen;
-        net.minecraftforge.client.event.GuiOpenEvent event = new net.minecraftforge.client.event.GuiOpenEvent(guiScreenIn);
+        GuiOpenEvent event = new GuiOpenEvent(guiScreenIn);
 
         if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event)) return;
 
@@ -96,7 +114,7 @@ public class MixinMinecraft {
         }
         else
         {
-            this.soundHandler.resumeSounds();
+            this.mcSoundHandler.resumeSounds();
             Minecraft.getMinecraft().setIngameFocus();
         }
 
@@ -114,9 +132,8 @@ public class MixinMinecraft {
     }
 
     private void save() {
-        System.out.println("Shutting down: saving KAMI configuration");
-        KamiMod.saveConfiguration();
-        System.out.println("Configuration saved.");
+        BaldHack.saveConfiguration();
+        System.out.println("config saved.");
     }
 
 }
