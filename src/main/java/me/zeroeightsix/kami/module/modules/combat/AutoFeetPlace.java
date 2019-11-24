@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
@@ -25,7 +24,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
 /**
  * Created 13 August 2019 by hub
- * Updated 21 November 2019 by hub
+ * Updated 24 November 2019 by hub
  */
 @Module.Info(name = "AutoFeetPlace", category = Module.Category.COMBAT)
 public class AutoFeetPlace extends Module {
@@ -46,8 +45,6 @@ public class AutoFeetPlace extends Module {
     private Setting<Integer> triggerableTimeoutTicks = register(Settings.i("Triggerable Timeout (Ticks)", 20));
     private Setting<Integer> blockPerTick = register(Settings.integerBuilder("Blocks per Tick").withMinimum(1).withValue(4).withMaximum(9).build());
     private Setting<Boolean> rotate = register(Settings.b("Rotate", true));
-    private Setting<Boolean> announceUsage = register(Settings.b("Announce Usage", false));
-    private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
 
     private int playerHotbarSlot = -1;
     private int lastHotbarSlot = -1;
@@ -68,10 +65,6 @@ public class AutoFeetPlace extends Module {
         // save initial player hand
         playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
         lastHotbarSlot = -1;
-
-        if (announceUsage.getValue()) {
-            Command.sendChatMessage("[AutoFeetPlace] Enabled!");
-        }
 
     }
 
@@ -95,10 +88,6 @@ public class AutoFeetPlace extends Module {
         playerHotbarSlot = -1;
         lastHotbarSlot = -1;
 
-        if (announceUsage.getValue()) {
-            Command.sendChatMessage("[AutoFeetPlace] Disabled!");
-        }
-
     }
 
     @Override
@@ -109,9 +98,6 @@ public class AutoFeetPlace extends Module {
         }
 
         if (triggerable.getValue() && totalTickRuns >= triggerableTimeoutTicks.getValue()) {
-            if (debugMessages.getValue()) {
-                Command.sendChatMessage("[AutoFeetPlace] Timeout reached.");
-            }
             totalTickRuns = 0;
             this.disable();
             return;
