@@ -34,14 +34,14 @@ public class HelpCommand extends Command {
 
     public HelpCommand() {
         super("help", new SyntaxChunk[]{});
-        setDescription("Delivers help on certain subjects. Use &b-help subjects&8 for a list.");
+        setDescription("Delivers help on certain subjects. Use &b" + Command.getCommandPrefix() + "help subjects&8 for a list.");
     }
 
     @Override
     public void call(String[] args) {
         if (args[0] == null) {
             Command.sendStringChatMessage(new String[]{
-                    "KAMI " + KamiMod.MODVER,
+                    "KAMI Blue" + KamiMod.MODVER,
                     "commands&7 to view all available commands",
                     "bind <module> <key>&7 to bind mods",
                     "&7Press &r" + ModuleManager.getModuleByName("ClickGUI").getBindName() + "&7 to open GUI",
