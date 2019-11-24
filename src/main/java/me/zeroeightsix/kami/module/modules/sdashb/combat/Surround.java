@@ -91,7 +91,7 @@ public class Surround extends Module {
         if (mc.player == null) {
             this.disable();
         } else {
-            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                 Command.sendChatMessage("[Surround] Enabling");
             }
 
@@ -106,7 +106,7 @@ public class Surround extends Module {
 
     protected void onDisable() {
         if (mc.player != null) {
-            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                 Command.sendChatMessage("[Surround] Disabling");
             }
 
