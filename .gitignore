@@ -8,6 +8,9 @@ gradle/
 buildext.sh
 build.gradle
 
+# mcp 
+assets/*.csv
+
 # sdashb
 
 sdashb.modules
