@@ -34,7 +34,7 @@ public class KamiGuiChat extends GuiChat {
 
         String chatLine = this.inputField.getText();
 
-        if (!chatLine.startsWith(Command.getCommandPrefix())){
+        if (Command.getCommandPrefix() != null && !chatLine.startsWith(Command.getCommandPrefix())){
             GuiChat newGUI = new GuiChat(chatLine) {
                 int cursor = KamiGuiChat.this.cursor;
                 @Override

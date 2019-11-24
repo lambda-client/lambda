@@ -14,13 +14,18 @@ public class PrefixCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        if (args.length == 0) {
+        if (args.length <= 0) {
             Command.sendChatMessage("Please specify a new prefix!");
             return;
         }
 
-        Command.commandPrefix.setValue(args[0]);
-        Command.sendChatMessage("Prefix set to &b" + Command.commandPrefix.getValue());
+        if (args[0] != null) {
+            Command.commandPrefix.setValue(args[0]);
+            Command.sendChatMessage("Prefix set to &b" + Command.commandPrefix.getValue());
+        }
+        else {
+            Command.sendChatMessage("Please specify a new prefix!");
+        }
     }
 
 }
