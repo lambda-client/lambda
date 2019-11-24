@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.module.Module;
 /**
  * Created by 086 on 23/08/2017.
  */
-@Module.Info(name = "Sprint", description = "Automatically makes the player sprint", category = Module.Category.MOVEMENT)
+@Module.Info(name = "SprintSprintSprint", description = "Automatically makes the player sprint", category = Module.Category.MOVEMENT)
 public class Sprint extends Module {
 
     @Override
