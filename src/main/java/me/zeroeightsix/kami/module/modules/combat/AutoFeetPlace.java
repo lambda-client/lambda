@@ -42,8 +42,8 @@ public class AutoFeetPlace extends Module {
     };
 
     private Setting<Boolean> triggerable = register(Settings.b("Triggerable", true));
-    private Setting<Integer> triggerableTimeoutTicks = register(Settings.i("Triggerable Timeout (Ticks)", 20));
-    private Setting<Integer> blockPerTick = register(Settings.integerBuilder("Blocks per Tick").withMinimum(1).withValue(4).withMaximum(9).build());
+    private Setting<Integer> timeoutTicks = register(Settings.integerBuilder("TimeoutTicks").withMinimum(1).withValue(20).withMaximum(100).withVisibility(b -> triggerable.getValue()).build());
+    private Setting<Integer> blocksPerTick = register(Settings.integerBuilder("Blocks per Tick").withMinimum(1).withValue(4).withMaximum(9).build());
     private Setting<Boolean> rotate = register(Settings.b("Rotate", true));
 
     private int playerHotbarSlot = -1;
@@ -97,7 +97,7 @@ public class AutoFeetPlace extends Module {
             return;
         }
 
-        if (triggerable.getValue() && totalTickRuns >= triggerableTimeoutTicks.getValue()) {
+        if (triggerable.getValue() && totalTickRuns >= timeoutTicks.getValue()) {
             totalTickRuns = 0;
             this.disable();
             return;
@@ -105,7 +105,7 @@ public class AutoFeetPlace extends Module {
 
         int blocksPlaced = 0;
 
-        while (blocksPlaced < blockPerTick.getValue()) {
+        while (blocksPlaced < blocksPerTick.getValue()) {
 
             if (offsetStep >= surroundTargets.length) {
                 offsetStep = 0;
