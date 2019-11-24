@@ -8,6 +8,9 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.module.Module;
 
+/***
+ * @author S-B99
+ */
 @Module.Info(name = "Criticals", category = Module.Category.COMBAT, description = "Automatically does critical attacks")
 public class Criticals extends Module
 {
