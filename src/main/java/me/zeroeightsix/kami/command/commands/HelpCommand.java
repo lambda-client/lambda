@@ -34,7 +34,7 @@ public class HelpCommand extends Command {
 
     public HelpCommand() {
         super("help", new SyntaxChunk[]{});
-        setDescription("Delivers help on certain subjects. Use &b-help subjects&r for a list.");
+        setDescription("Delivers help on certain subjects. Use &b-help subjects&8 for a list.");
     }
 
     @Override
