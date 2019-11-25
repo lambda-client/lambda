@@ -20,7 +20,8 @@ public class EntityStatsCommand extends Command {
     Minecraft mc = Minecraft.getMinecraft();
     
     public EntityStatsCommand() {
-        super("estats", null);
+        super("entitystats", null);
+        setDescription("Gives you the stats of the entity you're riding");
     }
 
     public static double round(double value, int places) {
