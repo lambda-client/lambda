@@ -14,6 +14,7 @@ public class VanishCommand extends Command {
     Minecraft mc = Minecraft.getMinecraft();
     public VanishCommand() {
         super("vanish", null);
+        setDescription("Allows you to vanish using an entity");
     }
 
     @Override
