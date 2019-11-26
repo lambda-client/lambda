@@ -37,7 +37,7 @@ import static me.zeroeightsix.kami.module.modules.player.Scaffold.faceVectorPack
  * Created by hub on 7 August 2019
  * Updated by hub on 31 October 2019
  */
-@Module.Info(name = "AutoSnowMan", category = Module.Category.COMBAT, description = "Automatically creates snowmen")
+@Module.Info(name = "AutoSnowMan", category = Module.Category.MISC, description = "Automatically creates snowmen")
 public class AutoSnowman extends Module {
 
     private static final List<Block> blackList = Arrays.asList(
