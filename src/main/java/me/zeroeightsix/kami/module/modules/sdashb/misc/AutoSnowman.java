@@ -34,6 +34,7 @@ import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPo
 import static me.zeroeightsix.kami.module.modules.player.Scaffold.faceVectorPacketInstant;
 
 /**
+ * @author hub/blockparole
  * Created by @S-B99 on 25/11/19
  */
 @Module.Info(name = "AutoSnowMan", category = Module.Category.MISC, description = "Automatically creates snowmen")
