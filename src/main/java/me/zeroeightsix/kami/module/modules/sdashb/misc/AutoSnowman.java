@@ -74,7 +74,7 @@ public class AutoSnowman extends Module {
 
     private static final DecimalFormat df = new DecimalFormat("#.#");
 
-    private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Blocks per Tick").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
+    private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
     private Setting<Boolean> fastMode = register(Settings.b("Disable after placing", true));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", true));

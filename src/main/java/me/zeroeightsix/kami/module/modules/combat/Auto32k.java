@@ -76,7 +76,7 @@ public class Auto32k extends Module {
 	private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
 	private Setting<Boolean> autoEnableHitAura = register(Settings.b("Auto enable Hit Aura", true));
 	//private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
-	private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Blocks per Tick").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
+	private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
 	private Setting<Integer> yOffset = register(Settings.i("Y Offset (Hopper)", 2));
 	private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
 	private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
