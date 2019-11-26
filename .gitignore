@@ -9,9 +9,12 @@ buildext.sh
 deltags.sh
 buildexttmp.sh
 build.gradle
+builddonator.sh
 
-# mcp 
-assets/*.csv
+# donator
+
+src/main/java/me/zeroeightsix/kami/module/modules/sdashb/capes/
+src/main/java/me/zeroeightsix/kami/mixin/client/MixinAbstractClientPlayer.java
 
 # sdashb
 
@@ -19,6 +22,7 @@ sdashb.modules
 
 # MCP
 
+assets/*.csv
 mcp/
 src/minecraft/
 src/main/java/net/minecraft/
