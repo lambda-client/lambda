@@ -11,6 +11,7 @@ import net.minecraft.pathfinding.PathPoint;
 public class PathCommand extends Command {
     public PathCommand() {
         super("path", new ChunkBuilder().append("x").append("y").append("z").build());
+        setDescription("Pathfinding for AutoWalk");
     }
 
     int x = Integer.MIN_VALUE;
