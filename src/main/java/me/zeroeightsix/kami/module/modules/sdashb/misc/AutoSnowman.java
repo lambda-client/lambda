@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.sdashb.combat;
+package me.zeroeightsix.kami.module.modules.sdashb.misc;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
