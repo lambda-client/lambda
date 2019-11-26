@@ -40,7 +40,7 @@ public class BookCrash extends Module{
     @Override
     public void onUpdate() {
         if (Minecraft.getMinecraft().getCurrentServerData() == null || Minecraft.getMinecraft().getCurrentServerData().serverIP.isEmpty())  {
-            Command.sendChatMessage("Not on server.");
+            Command.sendChatMessage("Not connected to a server");
             this.disable();
         }
 
