@@ -33,7 +33,7 @@ public class Surround extends Module {
     private Setting toggleable = this.register(Settings.b("Toggleable", true));
     private Setting spoofRotations = this.register(Settings.b("Spoof Rotations", true));
     private Setting spoofHotbar = this.register(Settings.b("Spoof Hotbar", true));
-    private Setting blockPerTick = this.register(Settings.d("Blocks per Tick", 4.0D));
+    private Setting<Double> blockPerTick = this.register(Settings.doubleBuilder("Blocks per Tick").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     //private Setting<PlaceMode> placeMode = register(Settings.e("Mode", PlaceMode.HALF));
     private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
 
@@ -47,9 +47,9 @@ public class Surround extends Module {
     private int lastHotbarSlot = -1;
 
 
-    private enum PlaceMode {
-        HALF, FULL
-    }
+//    private enum PlaceMode {
+//        HALF, FULL
+//    }
 
     private enum DebugMsgs {
         NONE, IMPORTANT, ALL
@@ -69,7 +69,7 @@ public class Surround extends Module {
                 }
             }
 
-            for(int i = 0; i < (int)Math.floor((Double)this.blockPerTick.getValue()); ++i) {
+            for(int i = 0; i < (int)Math.floor(this.blockPerTick.getValue()); ++i) {
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                     Command.sendChatMessage("[Surround] Loop iteration: " + this.offsetStep);
                 }
