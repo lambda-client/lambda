@@ -16,7 +16,7 @@ import org.lwjgl.opengl.GL11;
  * :clown: emoji, I know
  * they probably didn't write it but I don't have any other credit
  */
-@Module.Info(name = "InvPreview", category = Module.Category.RENDER, description = "View Inventory")
+@Module.Info(name = "InvPreview", category = Module.Category.RENDER, description = "View your inventory on screen")
 public class InventoryViewer extends Module
 {
     private static final ResourceLocation box;
@@ -24,7 +24,7 @@ public class InventoryViewer extends Module
     private Setting<Integer> optionY;
 
     public InventoryViewer() {
-        this.optionX = this.register(Settings.i("X", 198));
+        this.optionX = this.register(Settings.i("X", 574));
         this.optionY = this.register(Settings.i("Y", 469));
     }
 
