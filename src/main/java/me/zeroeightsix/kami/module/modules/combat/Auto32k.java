@@ -79,7 +79,7 @@ public class Auto32k extends Module {
 	private Setting<Integer> yOffset = register(Settings.i("Y Offset (Hopper)", 2));
 	private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
 	private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
-	private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
+	private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", true));
 
 	private int swordSlot;
 	private static boolean isSneaking;
