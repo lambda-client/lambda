@@ -24,6 +24,9 @@ public class PrefixCommand extends Command {
             Command.commandPrefix.setValue(args[0]);
             Command.sendChatMessage("Prefix set to &b" + Command.commandPrefix.getValue());
         }
+        else if (args[0] == "\\") {
+            Command.sendChatMessage("Error: \"\\\" is not a supported prefix");
+        }
         else {
             Command.sendChatMessage("Please specify a new prefix!");
         }
