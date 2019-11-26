@@ -76,17 +76,27 @@ public class AutoSnowman extends Module {
 
     private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
-    private Setting<Boolean> fastMode = register(Settings.b("Disable after placing", true));
-    private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", true));
+    private Setting<Boolean> fastMode = register(Settings.b("Disable after placing", false));
+    private Setting<PlaceMode> placeMode = register(Settings.e("Place Mode", PlaceMode.AUTO));
+    //private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", true));
+    private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
+
 
     private int swordSlot;
     private static boolean isSneaking;
 
+    private enum PlaceMode {
+        AUTO, LOOK
+    }
+    private enum DebugMsgs {
+        NONE, IMPORTANT, ALL
+    }
     @Override
-    protected void onEnable() {
+    public void onUpdate() {
 
         if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
             this.disable();
+            Command.sendChatMessage("[AutoSnowman] Freecam enabled, disabling");
             return;
         }
 
@@ -115,7 +125,7 @@ public class AutoSnowman extends Module {
         }
 
         if (snowSlot == -1) {
-            if (debugMessages.getValue()) {
+            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                 Command.sendChatMessage("[AutoSnowMan] Snow missing, disabling.");
             }
             this.disable();
@@ -123,7 +133,7 @@ public class AutoSnowman extends Module {
         }
 
         if (pumpkinSlot == -1) {
-            if (debugMessages.getValue()) {
+            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
                 Command.sendChatMessage("[AutoSnowMan] Pumpkin missing, disabling.");
             }
             this.disable();
@@ -133,6 +143,9 @@ public class AutoSnowman extends Module {
         int range = (int) Math.ceil(placeRange.getValue());
 
         CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+
+        BlockPos lookPos = mc.objectMouseOver.getBlockPos();
+
         List<BlockPos> placeTargetList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
         Map<BlockPos, Double> placeTargetMap = new HashMap<>();
 
@@ -182,13 +195,13 @@ public class AutoSnowman extends Module {
         if (useRangeSorting) {
 
             if (placeCloseToEnemy.getValue()) {
-                if (debugMessages.getValue()) {
+                if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                     Command.sendChatMessage("[AutoSnowMan] Placing close to Enemy");
                 }
                 // Get Key with lowest Value (closest to enemies)
                 placeTarget = Collections.min(placeTargetMap.entrySet(), Map.Entry.comparingByValue()).getKey();
             } else {
-                if (debugMessages.getValue()) {
+                if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                     Command.sendChatMessage("[AutoSnowMan] Placing far from Enemy");
                 }
                 // Get Key with highest Value (furthest away from enemies)
@@ -197,7 +210,7 @@ public class AutoSnowman extends Module {
 
         } else {
 
-            if (debugMessages.getValue()) {
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                 Command.sendChatMessage("[AutoSnowMan] No enemy nearby, placing at first valid position.");
             }
 
@@ -212,25 +225,41 @@ public class AutoSnowman extends Module {
         }
 
         if (placeTarget == null) {
-            if (debugMessages.getValue()) {
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                 Command.sendChatMessage("[AutoSnowMan] No valid position in range to place!");
             }
             this.disable();
             return;
         }
 
-        if (debugMessages.getValue()) {
+        if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
             Command.sendChatMessage("[AutoSnowMan] Place Target: " + placeTarget.x + " " + placeTarget.y + " " + placeTarget.z + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTarget))));
         }
 
-        mc.player.inventory.currentItem = snowSlot;
-        placeBlock(new BlockPos(placeTarget));
+        if (placeMode.getValue().equals(PlaceMode.AUTO)) {
+            mc.player.inventory.currentItem = snowSlot;
+            placeBlock(new BlockPos(placeTarget));
 
-        mc.player.inventory.currentItem = snowSlot;
-        placeBlock(new BlockPos(placeTarget.add(0, 1, 0)));
+            mc.player.inventory.currentItem = snowSlot;
+            placeBlock(new BlockPos(placeTarget.add(0, 1, 0)));
 
-        mc.player.inventory.currentItem = pumpkinSlot;
-        placeBlock(new BlockPos(placeTarget.add(0, 2, 0)));
+            mc.player.inventory.currentItem = pumpkinSlot;
+            placeBlock(new BlockPos(placeTarget.add(0, 2, 0)));
+        }
+        else if (placeMode.getValue().equals(PlaceMode.LOOK) && isAreaPlacableLook(mc.objectMouseOver.getBlockPos())) {
+            mc.player.inventory.currentItem = snowSlot;
+
+            Command.sendWarningMessage("Trying to place snow");
+            placeBlock(new BlockPos(mc.objectMouseOver.getBlockPos().add(0, 0, 0)));
+            placeBlock(new BlockPos(mc.objectMouseOver.getBlockPos().add(0, 1, 0)));
+            Command.sendChatMessage("Placed snow");
+
+            mc.player.inventory.currentItem = pumpkinSlot;
+
+            Command.sendWarningMessage("Trying to place pumpkin");
+            placeBlock(new BlockPos(mc.objectMouseOver.getBlockPos().add(0, 2, 0)));
+            Command.sendChatMessage("Placed pumpkin");
+        }
 
         if (isSneaking) {
             mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
@@ -244,57 +273,34 @@ public class AutoSnowman extends Module {
         }
     }
 
-    @Override
-    public void onUpdate() {
-
-        if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
-            return;
-        }
-
-        if (!(mc.currentScreen instanceof GuiContainer)) {
-            return;
-        }
-
-        if (swordSlot == -1) {
-            return;
-        }
-    }
-
     private boolean isAreaPlaceable(BlockPos blockPos) {
-
         for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(blockPos))) {
-            if (entity instanceof EntityLivingBase) {
-                return false; // entity on block
-            }
-        }
-
-        if (!mc.world.getBlockState(blockPos).getMaterial().isReplaceable()) {
-            return false; // no space for hopper
-        }
-
-        if (!mc.world.getBlockState(blockPos.add(0, 1, 0)).getMaterial().isReplaceable()) {
-            return false; // no space for shulker
-        }
-
-        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockAir) {
-            return false; // air below hopper
-        }
-
-        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid) {
-            return false; // liquid below hopper
-        }
-
-        if (mc.player.getPositionVector().distanceTo(new Vec3d(blockPos)) > placeRange.getValue()) {
-            return false; // out of range
-        }
-
+            if (entity instanceof EntityLivingBase) return false; } // entity on block
+        if (!mc.world.getBlockState(blockPos).getMaterial().isReplaceable()) return false; // space for hopper
+        if (!mc.world.getBlockState(blockPos.add(0, 1, 0)).getMaterial().isReplaceable()) return false; // space for shulker
+        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockAir) return false; // air below hopper
+        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid) return false; // liquid below
+        if (mc.player.getPositionVector().distanceTo(new Vec3d(blockPos)) > placeRange.getValue()) return false; // out of range
         Block block = mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock();
-        if (blackList.contains(block) || shulkerList.contains(block)) {
-            return false; // would need sneak
-        }
-
-        return !(mc.player.getPositionVector().distanceTo(new Vec3d(blockPos).add(0, 1, 0)) > placeRange.getValue()); // out of range
-
+        if (blackList.contains(block) || shulkerList.contains(block)) return false; // needs sneak
+        return !(mc.player.getPositionVector().distanceTo(new Vec3d(blockPos).add(0, 1, 0)) > placeRange.getValue());
+    }
+    private boolean isAreaPlacableLook(BlockPos lookPos) {
+        lookPos = mc.objectMouseOver.getBlockPos();
+        Command.sendWarningMessage("Trying to place");
+        if (lookPos == null) return false;
+        Command.sendChatMessage("Placed");
+//        for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(lookPos))) {
+//            if (entity instanceof EntityLivingBase) return false; }
+        if (!mc.world.getBlockState(lookPos).getMaterial().isReplaceable()) return false;
+        if (!mc.world.getBlockState(lookPos.add(0, 1, 0)).getMaterial().isReplaceable()) return false;
+        if (!mc.world.getBlockState(lookPos.add(0, 2, 0)).getMaterial().isReplaceable()) return false;
+        if (mc.world.getBlockState(lookPos.add(0, -1, 0)).getBlock() instanceof BlockAir) return false;
+        if (mc.world.getBlockState(lookPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid) return false;
+        if (mc.player.getPositionVector().distanceTo(new Vec3d(lookPos)) > placeRange.getValue()) return false;
+        Block block = mc.world.getBlockState(lookPos.add(0, -1, 0)).getBlock();
+        if (blackList.contains(block) || shulkerList.contains(block)) return false;
+        return !(mc.player.getPositionVector().distanceTo(new Vec3d(lookPos).add(0, 1, 0)) > placeRange.getValue());
     }
 
     private static void placeBlock(BlockPos pos) {
