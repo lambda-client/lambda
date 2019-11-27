@@ -97,7 +97,7 @@ public class Surround extends Module {
 
             this.playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
             this.lastHotbarSlot = -1;
-            if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
+            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                 Command.sendChatMessage("[Surround] Saving initial Slot  = " + this.playerHotbarSlot);
             }
 
