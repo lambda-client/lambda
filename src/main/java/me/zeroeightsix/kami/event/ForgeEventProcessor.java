@@ -12,6 +12,7 @@ import me.zeroeightsix.kami.module.modules.render.BossStack;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiShulkerBox;
 import net.minecraft.entity.passive.AbstractHorse;
