@@ -10,7 +10,6 @@ import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import org.lwjgl.opengl.GL11;
-import sun.awt.image.PixelConverter;
 
 import java.util.ArrayList;
 
