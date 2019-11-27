@@ -18,17 +18,21 @@ public class AutoQMain extends Module {
     private Setting<Boolean> debug = register(Settings.b("Debug", true));
 
     private static long startTime = 0;
+    private static long startTimeCon = 0;
 
     @Override
     public void onUpdate() {
-        if (mc.player == null) {
-            return;
-        }
+        if (mc.player == null) return;
+
         if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() !=null && !Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
-            Command.sendChatMessage("Not connected to 2b2t.org");
             startTime = 0;
-            ModuleManager.getModuleByName("AutoQMain").disable();
-        } else {
+            if (startTimeCon == 0 || startTimeCon <= System.currentTimeMillis() - 600000) startTimeCon = System.currentTimeMillis();
+            if (startTimeCon + 600000 <= System.currentTimeMillis()) {
+                Command.sendWarningMessage("&cYou are not connected to 2b2t.org, so AutoQMain will not function on this server.");
+                startTimeCon = System.currentTimeMillis();
+            }
+        }
+        else {
             if (startTime == 0 || startTime <= System.currentTimeMillis() - 427000) startTime = System.currentTimeMillis();
             if (startTime + 426000 <= System.currentTimeMillis()) {
                 if (debug.getValue()) {
