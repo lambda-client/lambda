@@ -15,9 +15,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.inventory.ClickType;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
+import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -83,8 +85,8 @@ public class AutoWither extends Module {
     @Override
     protected void onEnable() {
 
-        //Command.sendChatMessage("[AutoWither] Please make sure the wither skulls are in slot 2");
-        //Command.sendChatMessage("[AutoWither] This will be fixed soon");
+        Command.sendChatMessage("[AutoWither] Please make sure the wither skulls are in slot 2");
+        Command.sendChatMessage("[AutoWither] This will be fixed soon");
 
         if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
             this.disable();
@@ -93,7 +95,7 @@ public class AutoWither extends Module {
 
         df.setRoundingMode(RoundingMode.CEILING);
 
-        int skullSlot = -1;
+        int skullSlot = 1;
         int soulsandSlot = -1;
         swordSlot = mc.player.inventory.currentItem;
 
@@ -109,19 +111,19 @@ public class AutoWither extends Module {
             if (block == Blocks.SOUL_SAND) {
                 soulsandSlot = i;
             }
-            else if (block == Blocks.SKULL) {
-                skullSlot = i;
-            }
+//            else if (block == Blocks.SKULL) {
+//                skullSlot = i;
+//            }
 
         }
 
-        if (skullSlot == -1) {
-            if (debugMessages.getValue()) {
-                Command.sendChatMessage("[AutoWither] Wither Skull missing, disabling.");
-            }
-            this.disable();
-            return;
-        }
+//        if (skullSlot == -1) {
+//            if (debugMessages.getValue()) {
+//                Command.sendChatMessage("[AutoWither] Wither Skull missing, disabling.");
+//            }
+//            this.disable();
+//            return;
+//        }
 
         if (soulsandSlot == -1) {
             if (debugMessages.getValue()) {
