@@ -71,13 +71,14 @@ public class Module {
 
     public enum Category
     {
-        COMBAT("Combat", false),
-        EXPLOITS("Exploits", false),
-        RENDER("Render", false),
-        MISC("Misc", false),
-        PLAYER("Player", false),
-        MOVEMENT("Movement", false),
-        EXPERIMENTAL("Experimental", false),
+        COMBAT("Combat", true),
+        EXPLOITS("Exploits", true),
+        RENDER("Render", true),
+        MISC("Misc", true),
+        PLAYER("Player", true),
+        MOVEMENT("Movement", true),
+        EXPERIMENTAL("Experimental", true),
+        UNREGISTERED("Unregistered", false),
         HIDDEN("Hidden", true);
 
         boolean hidden;
