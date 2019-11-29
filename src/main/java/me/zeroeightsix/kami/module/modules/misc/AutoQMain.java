@@ -29,26 +29,28 @@ public class AutoQMain extends Module {
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
             startTime = 0;
             warnTime = 0;
-            if (errorTime == 0 || errorTime <= System.currentTimeMillis() - 427000) errorTime = System.currentTimeMillis();
-            if (errorTime + 426000 <= System.currentTimeMillis()) {
-                if (debugWarn.getValue()) {
+            if (debugWarn.getValue()) {
+                if (errorTime == 0 || errorTime <= System.currentTimeMillis() - 427000)
+                    errorTime = System.currentTimeMillis();
+                if (errorTime + 426000 <= System.currentTimeMillis()) {
                     Command.sendErrorMessage("&l[AutoQMain] &4Error: &r&cNot connected to a server");
+                    errorTime = System.currentTimeMillis();
                 }
-                errorTime = System.currentTimeMillis();
             }
         }
         if (Minecraft.getMinecraft().getCurrentServerData() !=null && !Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org")) {
             errorTime = 0;
-            if (warnTime == 0 || warnTime <= System.currentTimeMillis() - warnTime) warnTime = System.currentTimeMillis();
-            if (warnTime + 426000 <= System.currentTimeMillis()) {
-                if (debugWarn.getValue()) {
+            if (debugWarn.getValue()) {
+                if (warnTime == 0 || warnTime <= System.currentTimeMillis() - warnTime)
+                    warnTime = System.currentTimeMillis();
+                if (warnTime + 426000 <= System.currentTimeMillis()) {
                     Command.sendWarningMessage("&l[AutoQMain] &6Warning: &r&6You are not connected to 2b2t.org");
+                    if (debug.getValue()) {
+                        Command.sendChatMessage("&l[AutoQMain] &r&7Run &b/queue main&7 at " + System.currentTimeMillis());
+                    }
+                    Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/queue main"));
+                    warnTime = System.currentTimeMillis();
                 }
-                if (debug.getValue()) {
-                    Command.sendChatMessage("&l[AutoQMain] &r&7Run &b/queue main&7 at " + System.currentTimeMillis());
-                }
-                Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/queue main"));
-                warnTime = System.currentTimeMillis();
             }
         }
         if (Minecraft.getMinecraft().getCurrentServerData() !=null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org")) {
