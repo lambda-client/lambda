@@ -11,7 +11,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.BossInfo;
 import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 
@@ -25,10 +24,9 @@ public class HoleESP extends Module {
     private ArrayList<BlockPos> holesObby = new ArrayList();
     private ArrayList<BlockPos> holesBedr = new ArrayList();
 
-    //private Setting<Integer> range = register(Settings.i("Range", 15));
-    private Setting<Distance> distance = register(Settings.e("Distance", Distance.CLOSE));
     private Setting<Boolean> renObby = register(Settings.b("Render Obby", true));
     private Setting<Boolean> renBedr = register(Settings.b("Render Bedrock", true));
+    private Setting<Integer> distance = register(Settings.integerBuilder().withName("Distance").withMinimum(1).withValue(5).withMaximum(20).build());
     private Setting<Integer> a = register(Settings.integerBuilder("Transparency (Obby)").withMinimum(0).withValue(26).withMaximum(255).build());
     private Setting<Integer> r = register(Settings.integerBuilder("Red (Obby)").withMinimum(0).withValue(144).withMaximum(255).build());
     private Setting<Integer> g = register(Settings.integerBuilder("Green (Obby)").withMinimum(0).withValue(144).withMaximum(255).build());
@@ -38,26 +36,14 @@ public class HoleESP extends Module {
     private Setting<Integer> g2 = register(Settings.integerBuilder("Green (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).build());
     private Setting<Integer> b2 = register(Settings.integerBuilder("Blue (Bedrock)").withMinimum(0).withValue(255).withMaximum(255).build());
 
-    private enum Distance {
-        CLOSE, MID, FAR
-    }
-
     public void onUpdate() {
         Iterable<BlockPos> blocks = null;
         this.holesObby = new ArrayList();
         this.holesBedr = new ArrayList();
 
-        if (distance.getValue().equals(Distance.CLOSE)) {
-            blocks = BlockPos.getAllInBox(mc.player.getPosition().add(-5, -5, -5), mc.player.getPosition().add(5, 5, 5));
-        }
-        else if (distance.getValue().equals(Distance.FAR)) {
-            blocks = BlockPos.getAllInBox(mc.player.getPosition().add(-20, -20, -20), mc.player.getPosition().add(20, 20, 20));
-        }
-        else if (distance.getValue().equals(Distance.MID)) {
-            blocks = BlockPos.getAllInBox(mc.player.getPosition().add(-12, -12, -12), mc.player.getPosition().add(12, 12, 12));
-        }
+        blocks = BlockPos.getAllInBox(mc.player.getPosition().add(-distance.getValue(), -distance.getValue(), -distance.getValue()), mc.player.getPosition().add(distance.getValue(), distance.getValue(), distance.getValue()));
 
-        if (blocks == null) {
+        if (blocks == null) { // prevent rare crash cases
             Command.sendErrorMessage("[HoleESP] Caught NPE, contact Bella about this");
             return;
         }
