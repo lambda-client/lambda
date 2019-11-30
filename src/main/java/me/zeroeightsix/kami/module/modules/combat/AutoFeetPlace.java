@@ -138,6 +138,9 @@ public class AutoFeetPlace extends Module {
 
         if (firstRun) {
             firstRun = false;
+            if (findObiInHotbar() == -1) {
+                missingObiDisable = true;
+            }
         }
 
         int blocksPlaced = 0;
