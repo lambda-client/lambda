@@ -143,22 +143,22 @@ public class AutoFeetPlace extends Module {
             }
         }
 
+        Vec3d[] offsetPattern = new Vec3d[0];
+        int maxSteps = 0;
+
+        if (mode.getValue().equals(Mode.FULL)) {
+            offsetPattern = Offsets.FULL;
+            maxSteps = Offsets.FULL.length;
+        }
+
+        if (mode.getValue().equals(Mode.SURROUND)) {
+            offsetPattern = Offsets.SURROUND;
+            maxSteps = Offsets.SURROUND.length;
+        }
+
         int blocksPlaced = 0;
 
         while (blocksPlaced < blocksPerTick.getValue()) {
-
-            Vec3d[] offsetPattern = new Vec3d[0];
-            int maxSteps = 0;
-
-            if (mode.getValue().equals(Mode.FULL)) {
-                offsetPattern = Offsets.FULL;
-                maxSteps = Offsets.FULL.length;
-            }
-
-            if (mode.getValue().equals(Mode.SURROUND)) {
-                offsetPattern = Offsets.SURROUND;
-                maxSteps = Offsets.SURROUND.length;
-            }
 
             if (offsetStep >= maxSteps) {
                 offsetStep = 0;
