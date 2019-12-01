@@ -25,7 +25,7 @@ import java.util.Iterator;
 /**
  * Created by 086 on 12/12/2017.
  * Updated by hub on 31 October 2019
- * Updated by S-B99 on 30/11/2019
+ * Updated by S-B99 on 01/12/2019
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
@@ -36,7 +36,6 @@ public class Aura extends Module {
     private Setting<Double> hitRange = register(Settings.d("Hit Range", 5.5d));
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
     private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.TICK));
-    //private Setting<Double> waitTick = register(Settings.d("Tick Wait", 2.0));
     private Setting<Double> waitTick = register(Settings.doubleBuilder("Tick Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).build());
     private Setting<Boolean> autoWait = register(Settings.b("Auto Tick Delay", true));
     private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.Only32k));
