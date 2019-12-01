@@ -22,7 +22,7 @@ import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPo
 /**
  * Created 16 November 2019 by hub
  */
-@Module.Info(name = "HoleESPFast", category = Module.Category.EXPERIMENTAL, description = "Show safe holes")
+@Module.Info(name = "HoleESPFast", category = Module.Category.RENDER, description = "Show safe holes")
 public class HoleESPFast extends Module {
 
     private final BlockPos[] surroundOffset = {
