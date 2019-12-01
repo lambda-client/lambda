@@ -17,7 +17,7 @@ import net.minecraft.client.gui.GuiGameOver;
 public class AutoRespawn extends Module {
 
     private Setting<Boolean> respawn = register(Settings.b("Respawn", true));
-    private Setting<Boolean> deathCoords = register(Settings.b("DeathCoords", false));
+    private Setting<Boolean> deathCoords = register(Settings.b("DeathCoords", true));
     private Setting<Boolean> antiGlitchScreen = register(Settings.b("Anti Glitch Screen", true));
 
     @EventHandler
