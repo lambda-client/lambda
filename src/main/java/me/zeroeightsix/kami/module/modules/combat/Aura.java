@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.misc.AutoTool;
@@ -24,6 +25,7 @@ import java.util.Iterator;
 /**
  * Created by 086 on 12/12/2017.
  * Updated by hub on 31 October 2019
+ * Updated by S-B99 on 30/11/2019
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
@@ -34,7 +36,9 @@ public class Aura extends Module {
     private Setting<Double> hitRange = register(Settings.d("Hit Range", 5.5d));
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
     private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.TICK));
-    private Setting<Double> waitTick = register(Settings.d("Tick Wait", 2.0));
+    //private Setting<Double> waitTick = register(Settings.d("Tick Wait", 2.0));
+    private Setting<Double> waitTick = register(Settings.doubleBuilder("Tick Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).build());
+    private Setting<Boolean> autoWait = register(Settings.b("Auto Tick Delay", true));
     private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.Only32k));
     private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
@@ -45,12 +49,29 @@ public class Aura extends Module {
     }
 
     @Override
+    public void onEnable() {
+        if (autoWait.getValue()) {
+            Command.sendWarningMessage("[Aura] When Auto Tick Delay is turned on whatever you give Tick Delay doesn't matter, it uses the current TPS instead");
+        }
+    }
+
+    @Override
     public void onUpdate() {
 
-        if (mc.player.isDead) {
+        double autoWaitTick = 0;
+
+        if (mc.player.isDead || mc.player == null) {
             return;
         }
 
+        if (autoWait.getValue()) {
+            //String tpsString = Double.toString(Math.round(LagCompensator.INSTANCE.getTickRate() * 10) / 10.0);
+            autoWaitTick = 20 - (Math.round(LagCompensator.INSTANCE.getTickRate() * 10) / 10.0);
+            //String autoWaitString = Double.toString(autoWaitTick);
+
+            //Command.sendWarningMessage(tpsString);
+            //Command.sendWarningMessage(autoWaitString);
+        }
         boolean shield = mc.player.getHeldItemOffhand().getItem().equals(Items.SHIELD) && mc.player.getActiveHand() == EnumHand.OFF_HAND;
         if (mc.player.isHandActive() && !shield) {
             return;
@@ -64,12 +85,24 @@ public class Aura extends Module {
             }
         }
 
-        if (waitMode.getValue().equals(WaitMode.TICK) && waitTick.getValue() > 0) {
-            if (waitCounter < waitTick.getValue()) {
-                waitCounter++;
-                return;
-            } else {
-                waitCounter = 0;
+        if (autoWait.getValue()) {
+            if (waitMode.getValue().equals(WaitMode.TICK) && autoWaitTick > 0) {
+                if (waitCounter < autoWaitTick) {
+                    waitCounter++;
+                    return;
+                } else {
+                    waitCounter = 0;
+                }
+            }
+        }
+        else {
+            if (waitMode.getValue().equals(WaitMode.TICK) && waitTick.getValue() > 0) {
+                if (waitCounter < waitTick.getValue()) {
+                    waitCounter++;
+                    return;
+                } else {
+                    waitCounter = 0;
+                }
             }
         }
 
