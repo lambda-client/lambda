@@ -35,10 +35,14 @@ public class Aura extends Module {
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
     private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.TICK));
     private Setting<Double> waitTick = register(Settings.d("Tick Wait", 2.0));
-    private Setting<Boolean> switchTo32k = register(Settings.b("32k Switch", true));
+    private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.Only32k));
     private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
     private int waitCounter;
+
+    private enum SwitchMode {
+        NONE, ALL, Only32k
+    }
 
     @Override
     public void onUpdate() {
@@ -98,7 +102,7 @@ public class Aura extends Module {
                     // We want to skip this if switchTo32k.getValue() is true,
                     // because it only accounts for tools and weapons.
                     // Maybe someone could refactor this later? :3
-                    if (!switchTo32k.getValue() && ModuleManager.isModuleEnabled("AutoTool")) {
+                    if ((!switchMode.getValue().equals(SwitchMode.Only32k) || switchMode.getValue().equals(SwitchMode.ALL)) && ModuleManager.isModuleEnabled("AutoTool")) {
                         AutoTool.equipBestWeapon();
                     }
                     attack(target);
@@ -129,7 +133,17 @@ public class Aura extends Module {
             NBTTagCompound enchant = enchants.getCompoundTagAt(i);
             if (enchant.getInteger("id") == 16) {
                 int lvl = enchant.getInteger("lvl");
-                if (lvl >= 42) { // dia sword against full prot 5 armor is deadly somehere >= 34 sharpness iirc
+                if (switchMode.getValue().equals(SwitchMode.Only32k)) {
+                    if (lvl >= 42) { // dia sword against full prot 5 armor is deadly somehere >= 34 sharpness iirc
+                        return true;
+                    }
+                }
+                else if (switchMode.getValue().equals(SwitchMode.ALL)) {
+                    if (lvl >= 4) {
+                        return true;
+                    }
+                }
+                else if (switchMode.getValue().equals(SwitchMode.NONE)) {
                     return true;
                 }
                 break;
@@ -148,7 +162,7 @@ public class Aura extends Module {
             holding32k = true;
         }
 
-        if (switchTo32k.getValue() && !holding32k) {
+        if ((switchMode.getValue().equals(SwitchMode.Only32k) || switchMode.getValue().equals(SwitchMode.ALL)) && !holding32k) {
 
             int newSlot = -1;
 
