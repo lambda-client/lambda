@@ -59,9 +59,11 @@ public class AntiChunkBan extends Module {
 
     @Listener
     public void onReceivePacket(EventReceivePacket event) {
-        if (event.getStage() == EventStageable.EventStage.PRE) {
-            if (event.getPacket() instanceof SPacketChunkData) {
-                event.setCanceled(true);
+        if (modeThing.getValue().equals(ModeThing.PACKET)) {
+            if (event.getStage() == EventStageable.EventStage.PRE) {
+                if (event.getPacket() instanceof SPacketChunkData) {
+                    event.setCanceled(true);
+                }
             }
         }
     }
