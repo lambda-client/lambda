@@ -43,7 +43,9 @@ public class AntiChunkBan extends Module {
             if (Minecraft.getMinecraft().getCurrentServerData() != null) {
                 if (startTime == 0) startTime = System.currentTimeMillis();
                 if (startTime + delayTime <= System.currentTimeMillis()) {
-                    Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/kill"));
+                    if (Minecraft.getMinecraft().getCurrentServerData() != null) {
+                        Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/kill"));
+                    }
                     if (mc.player.getHealth() <= 0) {
                         mc.player.respawnPlayer();
                         mc.displayGuiScreen(null);
