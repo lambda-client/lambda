@@ -10,9 +10,6 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 import net.minecraft.network.play.server.SPacketChunkData;
 import team.stiff.pomelo.impl.annotated.handler.annotation.Listener;
 
-import javax.jws.WebParam;
-
-
 @Module.Info(name = "AntiChunkBan", description = "Spams /kill, gets out of ban chunks.", category = Module.Category.MISC)
 
 /***
