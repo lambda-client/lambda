@@ -32,6 +32,7 @@ public class AntiChunkBan extends Module {
     private static long startTime = 0;
     private double delayTime = 10.0;
     private Setting<ModeThing> modeThing = register(Settings.e("Mode", ModeThing.PACKET));
+    private Setting<Boolean> disable = register(Settings.b("Disable for Kill mode", false));
 
     private enum ModeThing {
         PACKET, KILL
@@ -49,7 +50,9 @@ public class AntiChunkBan extends Module {
                     if (mc.player.getHealth() <= 0) {
                         mc.player.respawnPlayer();
                         mc.displayGuiScreen(null);
-                        this.disable();
+                        if (disable.getValue()) {
+                            this.disable();
+                        }
                     }
                     startTime = System.currentTimeMillis();
                 }
