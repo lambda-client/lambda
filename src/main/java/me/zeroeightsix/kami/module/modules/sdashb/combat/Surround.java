@@ -25,7 +25,7 @@ import net.minecraft.util.math.Vec3d;
 
 
 /**
- * @author Unknown
+ * @author Unknown, LGPL licensed
  * Updated by S-B99 on 20/11/19
  */
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian")
