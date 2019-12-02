@@ -213,7 +213,7 @@ public class KamiGUI extends GUI {
             information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
             information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTIONSIGN() + "3 tps");
             information.addLine("\u00A7b" + Wrapper.getMinecraft().debugFPS + Command.SECTIONSIGN() + "3 fps");
-            information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTIONSIGN() + "3 cores");
+            //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTIONSIGN() + "3 cores");
             information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTIONSIGN() + "3mB free");
             //information.addLine("\u00A7b" + Wrapper.getPlayer().getDistance() + Command.SECTIONSIGN() + "3 fps");
 
