@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.player;
+package me.zeroeightsix.kami.module.modules.sdashb.combat;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -13,7 +13,7 @@ import net.minecraft.item.ItemExpBottle;
  * Updated by d1gress/Qther on 2/12/2019
  * Updated by S-B99 on 03/12/19
  */
-@Module.Info(category = Module.Category.PLAYER, description = "Changes delay when holding right click", name = "FastUse")
+@Module.Info(category = Module.Category.COMBAT, description = "Changes delay when holding right click", name = "FastUse")
 public class Fastuse extends Module {
 
 
