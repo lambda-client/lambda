@@ -27,56 +27,27 @@ import net.minecraft.util.math.Vec3d;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
-import static me.zeroeightsix.kami.module.modules.player.Scaffold.faceVectorPacketInstant;
+import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
 /**
  * Created by hub on 7 August 2019
- * Updated by hub on 31 October 2019
+ * Updated by hub on 21 November 2019
  */
 @Module.Info(name = "Auto32k", category = Module.Category.COMBAT, description = "Do not use with any AntiGhostBlock Mod!")
 public class Auto32k extends Module {
-
-    private static final List<Block> blackList = Arrays.asList(
-            Blocks.ENDER_CHEST,
-            Blocks.CHEST,
-            Blocks.TRAPPED_CHEST,
-            Blocks.CRAFTING_TABLE,
-            Blocks.ANVIL,
-            Blocks.BREWING_STAND,
-            Blocks.HOPPER,
-            Blocks.DROPPER,
-            Blocks.DISPENSER,
-            Blocks.TRAPDOOR
-    );
-
-    private static final List<Block> shulkerList = Arrays.asList(
-            Blocks.WHITE_SHULKER_BOX,
-            Blocks.ORANGE_SHULKER_BOX,
-            Blocks.MAGENTA_SHULKER_BOX,
-            Blocks.LIGHT_BLUE_SHULKER_BOX,
-            Blocks.YELLOW_SHULKER_BOX,
-            Blocks.LIME_SHULKER_BOX,
-            Blocks.PINK_SHULKER_BOX,
-            Blocks.GRAY_SHULKER_BOX,
-            Blocks.SILVER_SHULKER_BOX,
-            Blocks.CYAN_SHULKER_BOX,
-            Blocks.PURPLE_SHULKER_BOX,
-            Blocks.BLUE_SHULKER_BOX,
-            Blocks.BROWN_SHULKER_BOX,
-            Blocks.GREEN_SHULKER_BOX,
-            Blocks.RED_SHULKER_BOX,
-            Blocks.BLACK_SHULKER_BOX
-    );
 
     private static final DecimalFormat df = new DecimalFormat("#.#");
 
     private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
     private Setting<Boolean> autoEnableHitAura = register(Settings.b("Auto enable Hit Aura", true));
     private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
-    private Setting<Integer> yOffset = register(Settings.i("Y Offset (Hopper)", 2));
+    private Setting<Integer> yOffset = register(Settings.i("Y Offset (Hopper)", 1));
     private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
     private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", false));
@@ -374,29 +345,6 @@ public class Auto32k extends Module {
 
         }
 
-    }
-
-    private static boolean checkForNeighbours(BlockPos blockPos) {
-        if (!hasNeighbour(blockPos)) {
-            for (EnumFacing side : EnumFacing.values()) {
-                BlockPos neighbour = blockPos.offset(side);
-                if (hasNeighbour(neighbour)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return true;
-    }
-
-    private static boolean hasNeighbour(BlockPos blockPos) {
-        for (EnumFacing side : EnumFacing.values()) {
-            BlockPos neighbour = blockPos.offset(side);
-            if (!mc.world.getBlockState(neighbour).getMaterial().isReplaceable()) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }
