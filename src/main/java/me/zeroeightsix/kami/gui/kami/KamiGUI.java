@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 
 /**
  * Created by 086 on 25/06/2017.
- * Updated by S-B99 on 01/12/19
+ * Updated by S-B99 on 04/12/19
  */
 public class KamiGUI extends GUI {
 
@@ -210,19 +210,31 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            information.setText("");
-            information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-            if (((InfoOverlay)ModuleManager.getModuleByName("Info")).globalInfoTps.getValue()) {
-                information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTIONSIGN() + "3 tps");
+            boolean privateInfoTps = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoTps.getValue());
+            boolean privateInfoFps = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoFps.getValue());
+            boolean privateInfoMem = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
+
+            if (ModuleManager.getModuleByName("InfoOverlay").isEnabled()) {
+                information.setText("");
+                information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
+                if (privateInfoTps) {
+                    information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTIONSIGN() + "3 tps");
+                }
+                if (privateInfoFps) {
+                    information.addLine("\u00A7b" + Wrapper.getMinecraft().debugFPS + Command.SECTIONSIGN() + "3 fps");
+                }
+                if (privateInfoMem) {
+                    information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTIONSIGN() + "3mB free");
+                }
             }
-            if (((InfoOverlay)ModuleManager.getModuleByName("Info")).globalInfoFps.getValue()) {
-                information.addLine("\u00A7b" + Wrapper.getMinecraft().debugFPS + Command.SECTIONSIGN() + "3 fps");
-            }
-            if (((InfoOverlay)ModuleManager.getModuleByName("Info")).globalInfoMem.getValue()) {
-                information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTIONSIGN() + "3mB free");
+            else {
+                information.setText("");
+                information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
+                information.addLine(Command.SECTIONSIGN() + "EEnable InfoOverlay!");
             }
 
-            //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTIONSIGN() + "3 cores");
+
+        //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTIONSIGN() + "3 cores");
             //information.addLine("\u00A7b" + Wrapper.getPlayer().getDistance() + Command.SECTIONSIGN() + "3 fps");
 
             //OperatingSystemMXBean.getSystemLoadAverage() / OperatingSystemMXBean.getAvailableProcessors()
