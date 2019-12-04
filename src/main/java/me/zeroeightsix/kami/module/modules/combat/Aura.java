@@ -39,7 +39,7 @@ public class Aura extends Module {
     private Setting<Double> waitTick = register(Settings.doubleBuilder("Tick Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).build());
     private Setting<Boolean> autoWait = register(Settings.b("Auto Tick Delay", true));
     private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.Only32k));
-    private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
+    //private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
     private int waitCounter;
 
@@ -219,7 +219,7 @@ public class Aura extends Module {
 
         }
 
-        if (onlyUse32k.getValue() && !holding32k) {
+        if (switchMode.getValue().equals(SwitchMode.Only32k) && !holding32k) {
             return;
         }
 
