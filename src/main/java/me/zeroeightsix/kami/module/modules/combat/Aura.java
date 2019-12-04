@@ -49,6 +49,9 @@ public class Aura extends Module {
 
     @Override
     public void onEnable() {
+        if (mc.player == null) {
+            return;
+        }
         if (autoWait.getValue()) {
             Command.sendWarningMessage("[Aura] When Auto Tick Delay is turned on whatever you give Tick Delay doesn't matter, it uses the current TPS instead");
         }
