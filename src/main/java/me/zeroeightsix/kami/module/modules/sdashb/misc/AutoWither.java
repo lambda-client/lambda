@@ -32,7 +32,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
-import static me.zeroeightsix.kami.module.modules.player.Scaffold.faceVectorPacketInstant;
+import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
 /**
  * @author hub/blockparole
