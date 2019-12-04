@@ -17,6 +17,7 @@ public class AutoQMain extends Module {
 
     private Setting<Boolean> debug = register(Settings.b("Debug", true));
     private Setting<Boolean> debugWarn = register(Settings.b("Connection Warning", true));
+    private Setting<Boolean> endDi = register(Settings.b("End Dimension Warning", true));
     private Setting<Double> delay = this.register(Settings.doubleBuilder("Wait time").withMinimum(0.2).withValue(7.1).withMaximum(10.0).build());
 
     private double delayTime;
@@ -45,6 +46,10 @@ public class AutoQMain extends Module {
         }
         if (!Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org") && debugWarn.getValue()) {
             Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are not connected to 2b2t.org");
+        }
+        if (mc.player.dimension == 1 && endDi.getValue()) {
+            Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are not in the end. Not running &b/queue main&7.");
+            return;
         }
         if (debug.getValue()) {
             Command.sendChatMessage("&7Run &b/queue main&7 at " + System.currentTimeMillis());
