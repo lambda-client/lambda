@@ -25,6 +25,7 @@ public class AutoQMain extends Module {
 
     @Override
     public void onUpdate() {
+        if (mc.player == null) return;
         if (oldDelay == 0) oldDelay = delay.getValue();
         else if (oldDelay != delay.getValue()) {
             delayTime = delay.getValue();
@@ -47,13 +48,18 @@ public class AutoQMain extends Module {
         if (!Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org") && debugWarn.getValue()) {
             Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are not connected to 2b2t.org");
         }
-        if (mc.player.dimension == 1 && endDi.getValue()) {
+        if (mc.player.dimension != 1 && endDi.getValue()) {
             Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are not in the end. Not running &b/queue main&7.");
+//            Command.sendWarningMessage("[AutoQMain] " + mc.player.dimension);
             return;
         }
         if (debug.getValue()) {
             Command.sendChatMessage("&7Run &b/queue main&7 at " + System.currentTimeMillis());
         }
         Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/queue main"));
+    }
+
+    public void onDisable() {
+        delayTime = 0;
     }
 }
