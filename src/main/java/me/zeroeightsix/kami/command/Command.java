@@ -5,11 +5,14 @@ import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentBase;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static net.minecraft.launchwrapper.LogWrapper.log;
 
 public abstract class Command {
 	
@@ -45,7 +48,21 @@ public abstract class Command {
     }
 
 	public static void sendRawChatMessage(String message){
-		Wrapper.getPlayer().sendMessage(new ChatMessage(message));
+		if (isSendable()) {
+			Wrapper.getPlayer().sendMessage(new ChatMessage(message));
+		}
+		else {
+			log.info("KAMI Blue: Avoided NPE by logging to file instead of chat\n" + message);
+		}
+	}
+
+	public static boolean isSendable(){
+		if (Minecraft.getMinecraft().player == null) {
+			return false;
+		}
+		else {
+			return true;
+		}
 	}
 
 	protected void setDescription(String description) {
