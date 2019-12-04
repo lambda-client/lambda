@@ -17,7 +17,7 @@ import net.minecraft.item.ItemExpBottle;
 public class Fastuse extends Module {
 
 
-	private Setting<Integer> delay = this.register(Settings.integerBuilder("Delay").withMinimum(0).withMaximum(40).withValue(0).build());
+	private Setting<Integer> delay = this.register(Settings.integerBuilder("Delay").withMinimum(0).withMaximum(20).withValue(0).build());
 	private Setting<Mode> mode = register(Settings.e("Mode", Mode.BOTH));
 	private static long time = 0;
 	private enum Mode {
