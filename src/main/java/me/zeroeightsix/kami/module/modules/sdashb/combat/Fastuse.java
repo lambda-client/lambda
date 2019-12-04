@@ -10,7 +10,6 @@ import net.minecraft.item.ItemExpBottle;
 /**
  * Created by S-B99 on 23/10/2019
  * @author S-B99
- * Updated by d1gress/Qther on 2/12/2019
  * Updated by S-B99 on 03/12/19
  * Updated by d1gress/Qther on 4/12/19
  */
