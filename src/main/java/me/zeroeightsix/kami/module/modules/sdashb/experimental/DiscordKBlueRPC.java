@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
 // discord imports
-import club.minnced.discord.rpc.*;
+//import club.minnced.discord.rpc.*;
 import com.google.common.hash.Hashing;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraftforge.fml.common.FMLLog;
