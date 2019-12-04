@@ -17,7 +17,7 @@ import net.minecraft.item.ItemExpBottle;
 public class Fastuse extends Module {
 
 
-	private Setting<Integer> delay = register(Settings.i("Delay", 0);
+	private Setting<Integer> delay = register(Settings.i("Delay", 0));
 	private Setting<Mode> mode = register(Settings.e("Mode", Mode.BOTH));
 	private static long time = 0;
 	private enum Mode {
@@ -29,8 +29,8 @@ public class Fastuse extends Module {
 		if (!(delay.getValue() <= 0)) {
 			if (time <= 0) time = delay.getValue();
 			else if (time > 0) {
+				time--;
 				return;
-				time--:
 			}
 		}
 		
@@ -42,7 +42,7 @@ public class Fastuse extends Module {
 		boolean doCrystalMain = itemMain instanceof ItemEndCrystal;
 		boolean doCrystalOff = itemOff instanceof ItemEndCrystal;
 
-		switch(mode.getValue()){
+		switch(mode.getValue()) {
 			case ALL:
 				mc.rightClickDelayTimer = 0;
 			case BOTH:
@@ -57,7 +57,6 @@ public class Fastuse extends Module {
 				if (doCrystalMain || doCrystalOff) {
 					mc.rightClickDelayTimer = 0;
 				}
-			}
 		}
 	}
 }
