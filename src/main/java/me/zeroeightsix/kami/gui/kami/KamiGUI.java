@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
-import com.sun.management.OperatingSystemMXBean;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
@@ -20,6 +19,7 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.sdashb.util.CalcPing;
 import me.zeroeightsix.kami.module.modules.sdashb.gui.InfoOverlay;
 import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.LagCompensator;
@@ -33,6 +33,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityWitherSkull;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextFormatting;
 
 import javax.annotation.Nonnull;
@@ -210,18 +211,30 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
+            boolean privateInfoNam = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoNam.getValue());
             boolean privateInfoTps = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoTps.getValue());
             boolean privateInfoFps = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoFps.getValue());
+            boolean privateInfoPin = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoPin.getValue());
             boolean privateInfoMem = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
+            int privatePingValue = CalcPing.globalInfoPingValue();
+            ITextComponent privateDisplayN = Wrapper.getMinecraft().getConnection().getPlayerInfo(Wrapper.getPlayer().getUniqueID()).getDisplayName();
+
+
 
             if (ModuleManager.getModuleByName("InfoOverlay").isEnabled()) {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
+                if (privateInfoNam) {
+                    information.addLine("\u00A7bWelcome" + Command.SECTIONSIGN() + "3 " + privateDisplayN + "!");
+                }
                 if (privateInfoTps) {
                     information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTIONSIGN() + "3 tps");
                 }
                 if (privateInfoFps) {
                     information.addLine("\u00A7b" + Wrapper.getMinecraft().debugFPS + Command.SECTIONSIGN() + "3 fps");
+                }
+                if (privateInfoPin) {
+                    information.addLine("\u00A7b" + privatePingValue + Command.SECTIONSIGN() + "3 ms");
                 }
                 if (privateInfoMem) {
                     information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTIONSIGN() + "3mB free");
