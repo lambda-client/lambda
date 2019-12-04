@@ -78,6 +78,7 @@ public class Module {
         PLAYER("Player", false),
         MOVEMENT("Movement", false),
         EXPERIMENTAL("Experimental", false),
+        GUI("GUI", false),
         HIDDEN("Hidden", true);
 
         boolean hidden;
