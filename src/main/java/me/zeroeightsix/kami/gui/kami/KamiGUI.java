@@ -217,7 +217,7 @@ public class KamiGUI extends GUI {
             boolean privateInfoPin = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoPin.getValue());
             boolean privateInfoMem = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
             int privatePingValue = CalcPing.globalInfoPingValue();
-            ITextComponent privateDisplayN = Wrapper.getMinecraft().getConnection().getPlayerInfo(Wrapper.getPlayer().getUniqueID()).getDisplayName();
+            String privateDisplayN = Wrapper.getMinecraft().player.getName();
 
 
 
