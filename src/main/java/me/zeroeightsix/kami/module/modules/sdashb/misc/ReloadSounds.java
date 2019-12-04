@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.module.Module;
 
 /**
  * Created By AceOfSpades
+ * Updated by S-B99 on 03/12/19
  */
 
 @Module.Info(name = "ReloadSounds", category = Module.Category.MISC, description = "Reload broken sounds")
@@ -21,10 +22,11 @@ public class ReloadSounds extends Module
 
 
     public void onEnable() {
+        if (mc.player == null) { this.disable();return; } // :thonk:
+        Command.sendChatMessage("[ReloadSounds] Reloaded!");
         try {
             final SoundManager sndManager = (SoundManager)ObfuscationReflectionHelper.getPrivateValue((Class)SoundHandler.class, (Object)this.ReloadSoundSystem.mc.getSoundHandler(), new String[] { "sndManager", "sndManager" });
             sndManager.reloadSoundSystem();
-            Command.sendChatMessage("[ReloadSounds] Reloaded!");
             this.disable();
         }
         catch (Exception e) {
