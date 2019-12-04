@@ -32,7 +32,7 @@ public class AutoQMain extends Module {
         }
 
         if (delayTime <= 0) {
-            delayTime = (int) (delay.getValue() * 3000);
+            delayTime = (int) (delay.getValue() * 2400);
         }
         else if (delayTime > 0) {
             delayTime--;
