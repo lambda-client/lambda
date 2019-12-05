@@ -18,10 +18,10 @@ import java.util.Map;
  * @author hub
  * @since 2019-11-29
  */
-@Module.Info(name = "AutoReplenish", category = Module.Category.PLAYER, description = "Refills your Hotbar")
+@Module.Info(name = "AutoReplenish", category = Module.Category.COMBAT, description = "Refills your Hotbar")
 public class AutoReplenish extends Module {
 
-    private Setting<Integer> threshold = register(Settings.integerBuilder("Threshold").withMinimum(1).withValue(32).withMaximum(63).build());
+    private Setting<Integer> threshold = register(Settings.integerBuilder("Refill at").withMinimum(1).withValue(32).withMaximum(63).build());
     private Setting<Integer> tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(1).withValue(2).withMaximum(10).build());
 
     private int delayStep = 0;
