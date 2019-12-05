@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.block.BlockSand;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.*;
 import net.minecraftforge.client.event.RenderBlockOverlayEvent;
@@ -17,6 +18,7 @@ import net.minecraftforge.client.event.RenderBlockOverlayEvent;
 public class NoRender extends Module {
 
     private Setting<Boolean> mob = register(Settings.b("Mob", false));
+    private Setting<Boolean> sand = register(Settings.b("Mob", false));
     private Setting<Boolean> gentity = register(Settings.b("GEntity", false));
     private Setting<Boolean> object = register(Settings.b("Object", false));
     private Setting<Boolean> xp = register(Settings.b("XP", false));
@@ -30,6 +32,7 @@ public class NoRender extends Module {
                 (packet instanceof SPacketSpawnGlobalEntity && gentity.getValue()) ||
                 (packet instanceof SPacketSpawnObject && object.getValue()) ||
                 (packet instanceof SPacketSpawnExperienceOrb && xp.getValue()) ||
+                (packet instanceof SPacketSpawnObject && sand.getValue()) ||
                 (packet instanceof SPacketSpawnPainting && paint.getValue()))
             event.cancel();
     });
