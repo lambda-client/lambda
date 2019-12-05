@@ -12,9 +12,12 @@ import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.boss.EntityWither;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemNameTag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.util.EnumFacing;
@@ -33,6 +36,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 /**
  * @author hub/blockparole
  * Created by @S-B99 on 25/11/19
+ * Updated by S-B99 on 05/11/19
  */
 @Module.Info(name = "AutoSnowGolem", category = Module.Category.MISC, description = "Automatically creates snowgolems")
 public class AutoSnowGolem extends Module {
@@ -71,11 +75,11 @@ public class AutoSnowGolem extends Module {
 
     private static final DecimalFormat df = new DecimalFormat("#.#");
 
-    private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
+    private Setting<Double> placeRange = register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
     private Setting<Boolean> fastMode = register(Settings.b("Disable after placing", false));
     private Setting<PlaceMode> placeMode = register(Settings.e("Place Mode", PlaceMode.AUTO));
-    //private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", true));
+    private Setting<Boolean> nametag = register(Settings.b("Name Golem", false));
     private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
 
 
@@ -90,6 +94,46 @@ public class AutoSnowGolem extends Module {
     }
     @Override
     public void onUpdate() {
+        if (nametag.getValue()) {
+            int tagslot = -1;
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = mc.player.inventory.getStackInSlot(i);
+
+                if (stack == ItemStack.EMPTY || stack.getItem() instanceof ItemBlock) {
+                    continue;
+                }
+
+                Item tag = stack.getItem();
+
+                if (tag instanceof ItemNameTag) {
+                    tagslot = i;
+                }
+            }
+            if (tagslot == -1 && fastMode.getValue()) {
+                Command.sendChatMessage("[AutoSnowGolem] Error: No nametags in inventory, disabling module");
+                this.disable();
+                return;
+            }
+            for (Entity w : mc.world.getLoadedEntityList()) {
+                if (w instanceof EntityWither) {
+                    final EntityWither wither = (EntityWither) w;
+                    if (mc.player.getDistance(wither) <= placeRange.getValue()) {
+                        if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {Command.sendChatMessage("Registered Golem");}
+                        if (tagslot != -1) {
+                            mc.player.inventory.currentItem = tagslot;
+                            mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);
+                            if (nametag.getValue()) {
+                                return;
+                            } else if (fastMode.getValue()) {
+                                this.disable();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            mc.player.inventory.currentItem = swordSlot;
+        }
 
         if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
             this.disable();
