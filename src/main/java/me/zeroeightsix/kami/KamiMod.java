@@ -49,7 +49,7 @@ public class KamiMod {
 
     public static final String MODID = "kami";
     public static final String MODNAME = "KAMI Blue";
-    public static final String MODVER = "v1.0.9";
+    public static final String MODVER = "v1.1.0";
 
     public static final String KAMI_HIRAGANA = "\u304B\u307F";
     public static final String KAMI_KATAKANA = "\u30AB\u30DF";
