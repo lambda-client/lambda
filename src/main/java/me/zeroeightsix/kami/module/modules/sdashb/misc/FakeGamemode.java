@@ -19,14 +19,14 @@ public class FakeGamemode extends Module {
 
     @Override
     public void onUpdate() {
-        if (disable2b.getValue()) {
-            if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() != null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
-                if (mc.player.dimension == 1) {
+        if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() != null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
+            if (mc.player.dimension == 1) {
+                if (disable2b.getValue()) {
                     Command.sendWarningMessage("[FakeGamemode] Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
                     this.disable();
                 }
-                return;
             }
+            return;
         }
         else if (gamemode.getValue().equals(GamemodeChanged.CREATIVE)) {
             mc.playerController.setGameType(gameType);
