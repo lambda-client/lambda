@@ -37,7 +37,7 @@ public class PearlDupe extends Module {
     @EventHandler
     Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketConfirmTeleport) {
-            if (mc.player == null) return;
+//            if (mc.player == null) return;
             Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/kill"));
             if (disable.getValue()) {
                 this.disable();
