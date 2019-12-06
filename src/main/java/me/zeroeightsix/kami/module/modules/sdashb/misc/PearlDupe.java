@@ -20,8 +20,9 @@ public class PearlDupe extends Module {
 
     public void onEnable() {
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
-            Command.sendWarningMessage("[PearlDupe] &l&Error: &r&6This doesn't work in singleplayer");
+            Command.sendErrorMessage("[PearlDupe] &lError: &r&4This doesn't work in singleplayer");
             this.disable();
+            return;
         }
         if (info.getValue()) {
             Command.sendChatMessage("[PearlDupe] Instructions: throw a pearl, it /kills on death ");
