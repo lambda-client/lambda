@@ -26,7 +26,7 @@ public class PearlDupe extends Module {
             return;
         }
         if (info.getValue()) {
-            Command.sendChatMessage("[PearlDupe] Instructions: throw a pearl, it /kills on death ");
+            Command.sendChatMessage("[PearlDupe] Instructions: throw a pearl, it /kills on teleport ");
             Command.sendChatMessage("[PearlDupe] This doesn't always work, and it doesn't work for 2b2t and 9b9t");
         }
         if (warn.getValue()) {
