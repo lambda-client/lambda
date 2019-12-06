@@ -19,8 +19,9 @@ public class PearlDupe extends Module {
     private Setting<Boolean> disable = register(Settings.b("Disable on death", true));
 
     public void onEnable() {
+        if (mc.player == null) return;
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
-            Command.sendErrorMessage("[PearlDupe] &lError: &r&4This doesn't work in singleplayer");
+            Command.sendErrorMessage("[PearlDupe] Error: &r&4This doesn't work in singleplayer");
             this.disable();
             return;
         }
