@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.player;
+package me.zeroeightsix.kami.module.modules.sdashb.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -12,12 +12,12 @@ import net.minecraft.init.Items;
  * Created 17 October 2019 by hub
  * Updated 21 November 2019 by hub
  */
-@Module.Info(name = "FastExp", category = Module.Category.PLAYER, description = "Auto Switch to XP and throw fast")
-public class FastExp extends Module {
+@Module.Info(name = "AutoExp", category = Module.Category.COMBAT, description = "Auto Switch to XP and throw fast")
+public class AutoExp extends Module {
 
     private Setting<Boolean> autoThrow = register(Settings.b("Auto Throw", true));
     private Setting<Boolean> autoSwitch = register(Settings.b("Auto Switch", true));
-    private Setting<Boolean> autoDisable = register(Settings.booleanBuilder("Auto Disable").withValue(false).withVisibility(o -> autoSwitch.getValue()).build());
+    private Setting<Boolean> autoDisable = register(Settings.booleanBuilder("Auto Disable").withValue(true).withVisibility(o -> autoSwitch.getValue()).build());
 
     private int initHotbarSlot = -1;
 
