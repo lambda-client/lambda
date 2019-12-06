@@ -19,12 +19,16 @@ public class PearlDupe extends Module {
     private Setting<Boolean> disable = register(Settings.b("Disable on death", true));
 
     public void onEnable() {
+        if (Minecraft.getMinecraft().getCurrentServerData() == null) {
+            Command.sendWarningMessage("[PearlDupe] &l&Error: &r&6This doesn't work in singleplayer");
+            this.disable();
+        }
         if (info.getValue()) {
-            Command.sendChatMessage("Instructions: throw a pearl, it /kills on death ");
-            Command.sendChatMessage("This doesn't always work, and it doesn't work for 2b2t and 9b9t");
+            Command.sendChatMessage("[PearlDupe] Instructions: throw a pearl, it /kills on death ");
+            Command.sendChatMessage("[PearlDupe] This doesn't always work, and it doesn't work for 2b2t and 9b9t");
         }
         if (warn.getValue()) {
-            Command.sendWarningMessage("Warning is still on, please disable the option once you've read the instructions");
+            Command.sendWarningMessage("[PearlDupe] Warning is still on, please disable the option once you've read the instructions");
             this.disable();
         }
     }
