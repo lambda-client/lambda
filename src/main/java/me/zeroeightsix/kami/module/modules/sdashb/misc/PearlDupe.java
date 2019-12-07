@@ -16,13 +16,16 @@ public class PearlDupe extends Module {
 
     private Setting<Boolean> info = register(Settings.b("Info", true));
     private Setting<Boolean> warn = register(Settings.b("Warning", true));
+    private Setting<Boolean> singleplayer = register(Settings.b("SinglePlayer Disable", true));
     private Setting<Boolean> disable = register(Settings.b("Disable on death", true));
 
     public void onEnable() {
         if (mc.player == null) return;
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
             Command.sendErrorMessage("[PearlDupe] Error: &r&4This doesn't work in singleplayer");
-            this.disable();
+            if (singleplayer.getValue()) {
+                this.disable();
+            }
             return;
         }
         if (info.getValue()) {
