@@ -1,293 +1,224 @@
-package me.zeroeightsix.kami.module.modules.combat;
+package me.zeroeightsix.kami.module.modules.sdashb.combat;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.util.Friends;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.client.CPacketPlayer.Rotation;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.entity.player.*;
+import me.zeroeightsix.kami.setting.*;
+import net.minecraft.network.play.client.*;
+import net.minecraft.entity.*;
+import net.minecraft.network.*;
+import me.zeroeightsix.kami.command.*;
+import me.zeroeightsix.kami.module.*;
+import net.minecraft.entity.item.*;
+import java.util.*;
+import net.minecraft.util.math.*;
+import net.minecraft.util.*;
+import net.minecraft.item.*;
+import net.minecraft.block.*;
+import me.zeroeightsix.kami.util.*;
 
-/***
- * @author Ace0fSpades
- */
-@Module.Info(name = "AutoTrap ", category = Module.Category.COMBAT)
-public class AutoTrap extends Module {
-    BlockPos abovehead;
-    BlockPos aboveheadpartner;
-    BlockPos aboveheadpartner2;
-    BlockPos aboveheadpartner3;
-    BlockPos aboveheadpartner4;
-    BlockPos side1;
-    BlockPos side2;
-    BlockPos side3;
-    BlockPos side4;
-    BlockPos side11;
-    BlockPos side22;
-    BlockPos side33;
-    BlockPos side44;
-    int delay;
-    public static EntityPlayer target;
-    public static List targets;
-    public static float yaw;
-    public static float pitch;
+@Module.Info(name = "AutoTrap", category = Module.Category.COMBAT)
+public class AutoTrap extends Module
+{
+    private final Vec3d[] offsetsDefault;
+    private Setting<Double> range;
+    private Setting<Integer> blockPerTick;
+    private Setting<Boolean> rotate;
+    private Setting<Boolean> announceUsage;
+    private EntityPlayer closestTarget;
+    private String lastTickTargetName;
+    private int playerHotbarSlot;
+    private int lastHotbarSlot;
+    private boolean isSneaking;
+    private int offsetStep;
+    private boolean firstRun;
 
-    public boolean isInBlockRange(Entity target) {
-        return target.getDistance(mc.player) <= 4.0F;
+    public AutoTrap() {
+        this.offsetsDefault = new Vec3d[] { new Vec3d(0.0, 0.0, -1.0), new Vec3d(1.0, 0.0, 0.0), new Vec3d(0.0, 0.0, 1.0), new Vec3d(-1.0, 0.0, 0.0), new Vec3d(0.0, 1.0, -1.0), new Vec3d(1.0, 1.0, 0.0), new Vec3d(0.0, 1.0, 1.0), new Vec3d(-1.0, 1.0, 0.0), new Vec3d(0.0, 2.0, -1.0), new Vec3d(1.0, 2.0, 0.0), new Vec3d(0.0, 2.0, 1.0), new Vec3d(-1.0, 2.0, 0.0), new Vec3d(0.0, 3.0, -1.0), new Vec3d(0.0, 3.0, 0.0) };
+        this.range = this.register(Settings.d("Range", 5.5));
+        this.blockPerTick = this.register(Settings.i("Blocks per Tick", 4));
+        this.rotate = this.register(Settings.b("Rotate", true));
+        this.announceUsage = this.register(Settings.b("Announce Usage", true));
+        this.playerHotbarSlot = -1;
+        this.lastHotbarSlot = -1;
+        this.isSneaking = false;
+        this.offsetStep = 0;
     }
 
-    public static boolean canBeClicked(BlockPos pos) {
-        return mc.world.getBlockState(pos).getBlock().canCollideCheck(mc.world.getBlockState(pos), false);
-    }
-
-    private static void faceVectorPacket(Vec3d vec) {
-        double diffX = vec.x - mc.player.posX;
-        double diffY = vec.y - mc.player.posY + (double)mc.player.getEyeHeight();
-        double diffZ = vec.z - mc.player.posZ;
-        double dist = (double)MathHelper.sqrt(diffX * diffX + diffZ * diffZ);
-        float yaw = (float)Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
-        float pitch = (float)(-Math.toDegrees(Math.atan2(diffY, dist)));
-        mc.getConnection().sendPacket(new Rotation(mc.player.rotationYaw + MathHelper.wrapDegrees(yaw - mc.player.rotationYaw), mc.player.rotationPitch + MathHelper.wrapDegrees(pitch - mc.player.rotationPitch), mc.player.onGround));
-    }
-
-    public boolean isValid(EntityPlayer entity) {
-        return entity instanceof EntityPlayer && this.isInBlockRange(entity) && entity.getHealth() > 0.0F && !entity.isDead && !entity.getName().startsWith("Body #") && !Friends.isFriend(entity.getName());
-    }
-
-    public void loadTargets() {
-        Iterator var1 = mc.world.playerEntities.iterator();
-
-        while(var1.hasNext()) {
-            EntityPlayer player = (EntityPlayer)var1.next();
-            if (!(player instanceof EntityPlayerSP)) {
-                if (this.isValid(player)) {
-                    targets.add(player);
-                } else if (targets.contains(player)) {
-                    targets.remove(player);
-                }
-            }
+    @Override
+    protected void onEnable() {
+        if (AutoTrap.mc.player == null) {
+            this.disable();
+            return;
         }
-
+        this.firstRun = true;
+        this.playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
+        this.lastHotbarSlot = -1;
     }
 
-    private boolean isStackObby(ItemStack stack) {
-        return stack != null && stack.getItem() == Item.getItemById(49);
-    }
-
-    private boolean doesHotbarHaveObby() {
-        for(int i = 36; i < 45; ++i) {
-            ItemStack stack = mc.player.inventoryContainer.getSlot(i).getStack();
-            if (stack != null && this.isStackObby(stack)) {
-                return true;
-            }
+    @Override
+    protected void onDisable() {
+        if (AutoTrap.mc.player == null) {
+            return;
         }
-
-        return false;
-    }
-
-    public static Block getBlock(BlockPos pos) {
-        return getState(pos).getBlock();
-    }
-
-    public static IBlockState getState(BlockPos pos) {
-        return mc.world.getBlockState(pos);
-    }
-
-    public static boolean placeBlockLegit(BlockPos pos) {
-        Vec3d eyesPos = new Vec3d(mc.player.posX, mc.player.posY + (double)mc.player.getEyeHeight(), mc.player.posZ);
-        Vec3d posVec = (new Vec3d(pos)).add(0.5D, 0.5D, 0.5D);
-        EnumFacing[] var3 = EnumFacing.values();
-        int var4 = var3.length;
-
-        for(int var5 = 0; var5 < var4; ++var5) {
-            EnumFacing side = var3[var5];
-            BlockPos neighbor = pos.offset(side);
-            Vec3d hitVec;
-            if (canBeClicked(neighbor) && eyesPos.squareDistanceTo(hitVec = posVec.add((new Vec3d(side.getDirectionVec())).scale(0.5D))) <= 36.0D) {
-                mc.playerController.processRightClickBlock(mc.player, mc.world, neighbor, side.getOpposite(), hitVec, EnumHand.MAIN_HAND);
-                mc.player.swingArm(EnumHand.MAIN_HAND);
-
-                try {
-                    TimeUnit.MILLISECONDS.sleep(10L);
-                } catch (InterruptedException var10) {
-                    var10.printStackTrace();
-                }
-
-                return true;
-            }
+        if (this.lastHotbarSlot != this.playerHotbarSlot && this.playerHotbarSlot != -1) {
+            Wrapper.getPlayer().inventory.currentItem = this.playerHotbarSlot;
         }
-
-        return false;
+        if (this.isSneaking) {
+            AutoTrap.mc.player.connection.sendPacket((Packet)new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
+            this.isSneaking = false;
+        }
+        this.playerHotbarSlot = -1;
+        this.lastHotbarSlot = -1;
+        if (this.announceUsage.getValue()) {
+            Command.sendChatMessage("[AutoTrap2] Disabled!");
+        }
     }
 
+    @Override
     public void onUpdate() {
-        if (!mc.player.isHandActive()) {
-            if (!this.isValid(target) || target == null) {
-                this.updateTarget();
-            }
-
-            Iterator var1 = mc.world.playerEntities.iterator();
-
-            while(var1.hasNext()) {
-                EntityPlayer player = (EntityPlayer)var1.next();
-                if (!(player instanceof EntityPlayerSP) && this.isValid(player) && player.getDistance(mc.player) < target.getDistance(mc.player)) {
-                    target = player;
-                    return;
+        if (AutoTrap.mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+            return;
+        }
+        this.findClosestTarget();
+        if (this.closestTarget == null) {
+            if (this.firstRun) {
+                this.firstRun = false;
+                if (this.announceUsage.getValue()) {
+                    Command.sendChatMessage("[AutoTrap2] Enabled, waiting for target.");
                 }
             }
-
-            if (this.isValid(target) && mc.player.getDistance(target) < 4.0F) {
-                this.trap(target);
-            } else {
-                this.delay = 0;
+            return;
+        }
+        if (this.firstRun) {
+            this.firstRun = false;
+            this.lastTickTargetName = this.closestTarget.getName();
+            if (this.announceUsage.getValue()) {
+                Command.sendChatMessage("[AutoTrap2] Enabled, target: " + this.lastTickTargetName);
             }
-
+        }
+        else if (!this.lastTickTargetName.equals(this.closestTarget.getName())) {
+            this.lastTickTargetName = this.closestTarget.getName();
+            this.offsetStep = 0;
+            if (this.announceUsage.getValue()) {
+                Command.sendChatMessage("[AutoTrap2] New target: " + this.lastTickTargetName);
+            }
+        }
+        final List<Vec3d> placeTargets = new ArrayList<Vec3d>();
+        Collections.addAll(placeTargets, this.offsetsDefault);
+        int blocksPlaced = 0;
+        while (blocksPlaced < this.blockPerTick.getValue()) {
+            if (this.offsetStep >= placeTargets.size()) {
+                this.offsetStep = 0;
+                break;
+            }
+            final BlockPos offsetPos = new BlockPos((Vec3d)placeTargets.get(this.offsetStep));
+            final BlockPos targetPos = new BlockPos(this.closestTarget.getPositionVector()).down().add(offsetPos.x, offsetPos.y, offsetPos.z);
+            boolean shouldTryToPlace = true;
+            if (!Wrapper.getWorld().getBlockState(targetPos).getMaterial().isReplaceable()) {
+                shouldTryToPlace = false;
+            }
+            for (final Entity entity : AutoTrap.mc.world.getEntitiesWithinAABBExcludingEntity((Entity)null, new AxisAlignedBB(targetPos))) {
+                if (!(entity instanceof EntityItem) && !(entity instanceof EntityXPOrb)) {
+                    shouldTryToPlace = false;
+                    break;
+                }
+            }
+            if (shouldTryToPlace && this.placeBlock(targetPos)) {
+                ++blocksPlaced;
+            }
+            ++this.offsetStep;
+        }
+        if (blocksPlaced > 0) {
+            if (this.lastHotbarSlot != this.playerHotbarSlot && this.playerHotbarSlot != -1) {
+                Wrapper.getPlayer().inventory.currentItem = this.playerHotbarSlot;
+                this.lastHotbarSlot = this.playerHotbarSlot;
+            }
+            if (this.isSneaking) {
+                AutoTrap.mc.player.connection.sendPacket((Packet)new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
+                this.isSneaking = false;
+            }
         }
     }
 
-    public static double roundToHalf(double d) {
-        return (double)Math.round(d * 2.0D) / 2.0D;
-    }
-
-    public void onEnable() {
-        this.delay = 0;
-    }
-
-    private void trap(EntityPlayer player) {
-        if ((double)player.moveForward == 0.0D && (double)player.moveStrafing == 0.0D && (double)player.moveVertical == 0.0D) {
-            ++this.delay;
+    private boolean placeBlock(final BlockPos pos) {
+        if (!AutoTrap.mc.world.getBlockState(pos).getMaterial().isReplaceable()) {
+            return false;
         }
-
-        if ((double)player.moveForward != 0.0D || (double)player.moveStrafing != 0.0D || (double)player.moveVertical != 0.0D) {
-            this.delay = 0;
+        if (!BlockInteractionHelper.checkForNeighbours(pos)) {
+            return false;
         }
-
-        if (!this.doesHotbarHaveObby()) {
-            this.delay = 0;
-        }
-
-        if (this.delay == 20 && this.doesHotbarHaveObby()) {
-            this.abovehead = new BlockPos(player.posX, player.posY + 2.0D, player.posZ);
-            this.aboveheadpartner = new BlockPos(player.posX + 1.0D, player.posY + 2.0D, player.posZ);
-            this.aboveheadpartner2 = new BlockPos(player.posX - 1.0D, player.posY + 2.0D, player.posZ);
-            this.aboveheadpartner3 = new BlockPos(player.posX, player.posY + 2.0D, player.posZ + 1.0D);
-            this.aboveheadpartner4 = new BlockPos(player.posX, player.posY + 2.0D, player.posZ - 1.0D);
-            this.side1 = new BlockPos(player.posX + 1.0D, player.posY, player.posZ);
-            this.side2 = new BlockPos(player.posX, player.posY, player.posZ + 1.0D);
-            this.side3 = new BlockPos(player.posX - 1.0D, player.posY, player.posZ);
-            this.side4 = new BlockPos(player.posX, player.posY, player.posZ - 1.0D);
-            this.side11 = new BlockPos(player.posX + 1.0D, player.posY + 1.0D, player.posZ);
-            this.side22 = new BlockPos(player.posX, player.posY + 1.0D, player.posZ + 1.0D);
-            this.side33 = new BlockPos(player.posX - 1.0D, player.posY + 1.0D, player.posZ);
-            this.side44 = new BlockPos(player.posX, player.posY + 1.0D, player.posZ - 1.0D);
-
-            for(int i = 36; i < 45; ++i) {
-                ItemStack stack = mc.player.inventoryContainer.getSlot(i).getStack();
-                if (stack != null && this.isStackObby(stack)) {
-                    int oldSlot = mc.player.inventory.currentItem;
-                    if (mc.world.getBlockState(this.abovehead).getMaterial().isReplaceable() || mc.world.getBlockState(this.side1).getMaterial().isReplaceable() || mc.world.getBlockState(this.side2).getMaterial().isReplaceable() || mc.world.getBlockState(this.side3).getMaterial().isReplaceable() || mc.world.getBlockState(this.side4).getMaterial().isReplaceable()) {
-                        mc.player.inventory.currentItem = i - 36;
-                        if (mc.world.getBlockState(this.side1).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side1);
-                        }
-
-                        if (mc.world.getBlockState(this.side2).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side2);
-                        }
-
-                        if (mc.world.getBlockState(this.side3).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side3);
-                        }
-
-                        if (mc.world.getBlockState(this.side4).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side4);
-                        }
-
-                        if (mc.world.getBlockState(this.side11).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side11);
-                        }
-
-                        if (mc.world.getBlockState(this.side22).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side22);
-                        }
-
-                        if (mc.world.getBlockState(this.side33).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side33);
-                        }
-
-                        if (mc.world.getBlockState(this.side44).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.side44);
-                        }
-
-                        if (mc.world.getBlockState(this.aboveheadpartner).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.aboveheadpartner);
-                        }
-
-                        if (mc.world.getBlockState(this.abovehead).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.abovehead);
-                        }
-
-                        if (mc.world.getBlockState(this.aboveheadpartner2).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.aboveheadpartner2);
-                        }
-
-                        if (mc.world.getBlockState(this.aboveheadpartner3).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.aboveheadpartner3);
-                        }
-
-                        if (mc.world.getBlockState(this.aboveheadpartner4).getMaterial().isReplaceable()) {
-                            placeBlockLegit(this.aboveheadpartner4);
-                        }
-
-                        mc.player.inventory.currentItem = oldSlot;
-                        this.delay = 0;
-                        break;
+        final Vec3d eyesPos = new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
+        for (final EnumFacing side : EnumFacing.values()) {
+            final BlockPos neighbor = pos.offset(side);
+            final EnumFacing side2 = side.getOpposite();
+            if (AutoTrap.mc.world.getBlockState(neighbor).getBlock().canCollideCheck(AutoTrap.mc.world.getBlockState(neighbor), false)) {
+                final Vec3d hitVec = new Vec3d((Vec3i)neighbor).add(0.5, 0.5, 0.5).add(new Vec3d(side2.getDirectionVec()).scale(0.5));
+                if (eyesPos.distanceTo(hitVec) <= this.range.getValue()) {
+                    final int obiSlot = this.findObiInHotbar();
+                    if (obiSlot == -1) {
+                        this.disable();
+                        return false;
                     }
-
-                    this.delay = 0;
+                    if (this.lastHotbarSlot != obiSlot) {
+                        Wrapper.getPlayer().inventory.currentItem = obiSlot;
+                        this.lastHotbarSlot = obiSlot;
+                    }
+                    final Block neighborPos = AutoTrap.mc.world.getBlockState(neighbor).getBlock();
+                    if (BlockInteractionHelper.blackList.contains(neighborPos) || BlockInteractionHelper.shulkerList.contains(neighborPos)) {
+                        AutoTrap.mc.player.connection.sendPacket((Packet)new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.START_SNEAKING));
+                        this.isSneaking = true;
+                    }
+                    if (this.rotate.getValue()) {
+                        BlockInteractionHelper.faceVectorPacketInstant(hitVec);
+                    }
+                    AutoTrap.mc.playerController.processRightClickBlock(AutoTrap.mc.player, AutoTrap.mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
+                    AutoTrap.mc.player.swingArm(EnumHand.MAIN_HAND);
+                    return true;
                 }
-
-                this.delay = 0;
             }
         }
-
+        return false;
     }
 
-    public void onDisable() {
-        this.delay = 0;
-        yaw = mc.player.rotationYaw;
-        pitch = mc.player.rotationPitch;
-        target = null;
-    }
-
-    public void updateTarget() {
-        Iterator var1 = mc.world.playerEntities.iterator();
-
-        while(var1.hasNext()) {
-            EntityPlayer player = (EntityPlayer)var1.next();
-            if (!(player instanceof EntityPlayerSP) && !(player instanceof EntityPlayerSP) && this.isValid(player)) {
-                target = player;
+    private int findObiInHotbar() {
+        int slot = -1;
+        for (int i = 0; i < 9; ++i) {
+            final ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
+            if (stack != ItemStack.EMPTY && stack.getItem() instanceof ItemBlock) {
+                final Block block = ((ItemBlock)stack.getItem()).getBlock();
+                if (block instanceof BlockObsidian) {
+                    slot = i;
+                    break;
+                }
             }
         }
-
+        return slot;
     }
 
-    public EnumFacing getEnumFacing(float posX, float posY, float posZ) {
-        return EnumFacing.getFacingFromVector(posX, posY, posZ);
-    }
-
-    public BlockPos getBlockPos(double x, double y, double z) {
-        return new BlockPos(x, y, z);
+    private void findClosestTarget() {
+        final List<EntityPlayer> playerList = (List<EntityPlayer>)Wrapper.getWorld().playerEntities;
+        this.closestTarget = null;
+        for (final EntityPlayer target : playerList) {
+            if (target == AutoTrap.mc.player) {
+                continue;
+            }
+            if (Friends.isFriend(target.getName())) {
+                continue;
+            }
+            if (!EntityUtil.isLiving((Entity)target)) {
+                continue;
+            }
+            if (target.getHealth() <= 0.0f) {
+                continue;
+            }
+            if (this.closestTarget == null) {
+                this.closestTarget = target;
+            }
+            else {
+                if (Wrapper.getPlayer().getDistance((Entity)target) >= Wrapper.getPlayer().getDistance((Entity)this.closestTarget)) {
+                    continue;
+                }
+                this.closestTarget = target;
+            }
+        }
     }
 }
