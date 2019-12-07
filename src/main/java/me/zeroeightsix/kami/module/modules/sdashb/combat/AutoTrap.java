@@ -15,6 +15,9 @@ import net.minecraft.item.*;
 import net.minecraft.block.*;
 import me.zeroeightsix.kami.util.*;
 
+/***
+ * @author Elementars
+ */
 @Module.Info(name = "AutoTrap", category = Module.Category.COMBAT)
 public class AutoTrap extends Module
 {
