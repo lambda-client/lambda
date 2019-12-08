@@ -13,6 +13,7 @@ import java.text.DecimalFormat;
 /**
  * Created by d1gress/Qther on 26/11/2019.
  * Robeart is cool and made potentia
+ * Updated by d1gress/Qther on 8/12/2019.
  */
 
 public class TeleportCommand extends Command {
@@ -51,7 +52,7 @@ public class TeleportCommand extends Command {
                 final double z = args[2].equals("~") ? mc.player.posZ : args[2].charAt(0) == '~' ? Double.parseDouble(args[2].substring(1)) + mc.player.posZ : Double.parseDouble(args[2]);
                 Teleport.finalPos = new Vec3d(x, y, z);
                 ModuleManager.getModuleByName("Teleport").enable();
-                Command.sendChatMessage("\n§aTeleporting to \n§cX: §b" + df.format(x) + "§a, \n§cY: §b" + df.format(y) + "§a, \n§cZ: §b" + df.format(z) + "\n§aat §b" + df.format(Teleport.blocksPerTeleport) + "§c blocks per teleport.");
+                Command.sendChatMessage("\n&aTeleporting to \n&cX: &b" + df.format(x) + "&a, \n&cY: &b" + df.format(y) + "&a, \n&cZ: &b" + df.format(z) + "\n&aat &b" + df.format(Teleport.blocksPerTeleport) + "&c blocks per teleport.");
             }
             catch (NullPointerException e){
                 Command.sendErrorMessage("Null Pointer Exception Caught!");
