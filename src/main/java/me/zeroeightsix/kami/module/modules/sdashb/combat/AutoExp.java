@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.sdashb.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -68,6 +69,7 @@ public class AutoExp extends Module {
             int xpSlot = findXpPots();
             if (xpSlot == -1) {
                 if (autoDisable.getValue()) {
+                    Command.sendWarningMessage("[AutoExp] No XP in hotbar, disabling");
                     this.disable();
                 }
                 return;
