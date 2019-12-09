@@ -3,6 +3,8 @@ package me.zeroeightsix.kami.module.modules.misc;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.event.events.PacketEvent;
+import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import java.util.function.*;
@@ -14,14 +16,14 @@ import me.zeroeightsix.kami.util.Wrapper;
 */
 
 @Module.Info(name = "AutoTPA", description = "Auto Accepts/Declines TPA requests", category = Module.Category.MISC)
-public class AutoTP extends Module
+public class AutoTPA extends Module
 {
 
     private Setting<mode> mod = register(Settings.e("Response", mode.DENY));
 
     @EventHandler
     public Listener<PacketEvent.Receive> receiveListener;
-    public AutoTP() {
+    public AutoTPA() {
         this.receiveListener = new Listener<PacketEvent.Receive>(event -> {
             SPacketChat packet;
             if (event.getPacket() instanceof SPacketChat && (packet = (SPacketChat) event.getPacket()).getChatComponent().getUnformattedText().contains(" has requested to teleport to you.")) {
