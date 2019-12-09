@@ -3,8 +3,6 @@ package me.zeroeightsix.kami.module.modules.sdashb.util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.launchwrapper.LogWrapper;
 
-import static net.minecraft.launchwrapper.LogWrapper.log;
-
 /**
  * @author S-B99
  * Created by S-B99 on 04/12/19
@@ -24,7 +22,7 @@ public class CalcPing {
             try {
                 return mc.getConnection().getPlayerInfo(mc.player.getUniqueID()).getResponseTime();
             } catch (NullPointerException npe) {
-                LogWrapper.info("Caught NPE l27 CalcPing.java");
+                LogWrapper.info("Caught NPE l25 CalcPing.java");
             }
             return -1;
         }
