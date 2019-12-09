@@ -11,7 +11,6 @@ import net.minecraft.util.math.Vec3d;
 import java.text.DecimalFormat;
 
 /**
- * Created by d1gress/Qther on 26/11/2019.
  * Robeart is cool and made potentia
  * Updated by d1gress/Qther on 8/12/2019.
  */
