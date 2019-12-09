@@ -7,6 +7,9 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.play.client.CPacketChatMessage;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /***
  * @author S-B99
  * Updated by @S-B99 on 29/11/19
@@ -17,7 +20,7 @@ public class AutoQMain extends Module {
 
     private Setting<Boolean> debug = register(Settings.b("Debug", true));
     private Setting<Boolean> debugWarn = register(Settings.b("Connection Warning", true));
-    private Setting<Boolean> endDi = register(Settings.b("End Dimension Warning", true));
+    private Setting<Boolean> endDi = register(Settings.b("Dimension Warning", true));
     private Setting<Double> delay = this.register(Settings.doubleBuilder("Wait time").withMinimum(0.2).withValue(7.1).withMaximum(10.0).build());
 
     private double delayTime;
@@ -54,7 +57,10 @@ public class AutoQMain extends Module {
             return;
         }
         if (debug.getValue()) {
-            Command.sendChatMessage("&7Run &b/queue main&7 at " + System.currentTimeMillis());
+            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
+            Date date = new Date(System.currentTimeMillis());
+            System.out.println(formatter.format(date));
+            Command.sendChatMessage("&7Run &b/queue main&7 at " + (formatter.format(date)));
         }
         Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/queue main"));
     }
