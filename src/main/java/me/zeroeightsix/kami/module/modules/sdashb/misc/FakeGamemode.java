@@ -19,6 +19,7 @@ public class FakeGamemode extends Module {
 
     @Override
     public void onUpdate() {
+        if (mc.player == null) return;
         if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() != null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
             if (mc.player.dimension == 1) {
                 if (disable2b.getValue()) {
@@ -46,7 +47,7 @@ public class FakeGamemode extends Module {
         }
     }
     public void onEnable() {
-        if (mc.player == null) { this.disable();return; }
+        if (mc.player == null) return;
         gameType = mc.playerController.getCurrentGameType();
     }
 
