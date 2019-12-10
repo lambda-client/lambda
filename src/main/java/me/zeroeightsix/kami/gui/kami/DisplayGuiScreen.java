@@ -97,9 +97,9 @@ public class DisplayGuiScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (keyCode == Keyboard.KEY_ESCAPE)
+        if (keyCode != 0) // this works with any key as a hacky solution instead of keyCode == Keyboard.KEY_ESCAPE
             mc.displayGuiScreen(lastScreen);
-        else{
+        else {
             gui.handleKeyDown(keyCode);
             gui.handleKeyUp(keyCode);
         }
