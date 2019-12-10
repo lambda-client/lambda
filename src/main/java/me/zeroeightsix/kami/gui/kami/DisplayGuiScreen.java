@@ -1,13 +1,17 @@
 package me.zeroeightsix.kami.gui.kami;
 
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
+import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.sdashb.gui.ScaleGUI;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.launchwrapper.LogWrapper;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -102,15 +106,22 @@ public class DisplayGuiScreen extends GuiScreen {
     }
 
     public static int getScale(){
-        int scale = Wrapper.getMinecraft().gameSettings.guiScale;
-        if(scale == 0)
-            scale = 1000;
         int scaleFactor = 0;
-        while(scaleFactor < scale && Wrapper.getMinecraft().displayWidth / (scaleFactor + 1) >= 320 && Wrapper.getMinecraft().displayHeight / (scaleFactor + 1) >= 240)
-            scaleFactor++;
-        if (scaleFactor == 0)
-            scaleFactor = 1;
-        return scaleFactor;
+        int scale = 2;
+        try {
+            scale = Wrapper.getMinecraft().gameSettings.guiScale;
+        }
+        catch (NullPointerException e) {
+            LogWrapper.info("Caught NPE 2 DisplayGuiScreen.java");
+        }
+        if (scale == 0)
+                scale = 1000;
+            while (scaleFactor < scale && Wrapper.getMinecraft().displayWidth / (scaleFactor + 1) >= 320 && Wrapper.getMinecraft().displayHeight / (scaleFactor + 1) >= 240)
+                scaleFactor++;
+            if (scaleFactor == 0)
+                scaleFactor = 1;
+            return scaleFactor;
+//        }
     }
 
     private void calculateMouse() {
