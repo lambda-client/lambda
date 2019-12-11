@@ -19,8 +19,8 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 
 @Mod(
    modid = "vocoshulkerpeek",
-   name = "VocoShulkerPeek",
-   version = "1.0",
+   name = "Peek Bypass for KAMI Blue",
+   version = "1.1",
    acceptedMinecraftVersions = "[1.12.2]"
 )
 public class VocoShulkerPeek {
