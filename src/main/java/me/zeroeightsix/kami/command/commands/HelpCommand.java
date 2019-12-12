@@ -41,7 +41,8 @@ public class HelpCommand extends Command {
     public void call(String[] args) {
         if (args[0] == null) {
             Command.sendStringChatMessage(new String[]{
-                    "KAMI Blue" + KamiMod.MODVER,
+                    KamiMod.KAMI_KANJI,
+                    "KAMI Blue " + KamiMod.MODVER,
                     "commands&7 to view all available commands",
                     "bind <module> <key>&7 to bind mods",
                     "&7Press &r" + ModuleManager.getModuleByName("ClickGUI").getBindName() + "&7 to open GUI",
