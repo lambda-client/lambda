@@ -1,7 +1,7 @@
 {
   "homepage": "https://github.com/S-B99/KAMI/releases",
   "1.12.2": {
-    "v1.1.1": "\n    Fixed 7 different NPE / config related crashes\n    Added AntiDeathScreen\n    Made AutoRespawn Better\n    Added AntiChunkBan\n    Added Criticals\n    Added .commands descriptions\n    Added PrefixChat (press your prefix just like MC /!)\n    Added AntiKick to FakeGamemode and Spectator\n    Added AutoQMain\n    Added Capes\n    Added IceSpeed\n    Added .entitystats, .vanish, .nbt and .teleport\n    Added BookCrash\n    Added AutoSnowGolem\n    Added AutoWither\n    Added AutoNameTag option\n    Added HoleESP and HoleESP Fast (to be combined into one)\n    Added Glow mode to ESP\n    Added ElytraFly bypass\n    Added ReloadSounds\n    Added NoSoundLag\n    Added options to the InfoOverlay as well as a welcomer, memory and ping\n    Fixed some bugs with sliders\n    Improved FastUse with modes and speed\n    Added AutoExp\n    Added Auto tick speed to Aura\n    Fixed CrystalAura entity placing things\n",
+    "v1.1.2": "\n    Fixed 7 different NPE / config related crashes\n    Added AntiDeathScreen\n    Made AutoRespawn Better\n    Added AntiChunkBan\n    Added Criticals\n    Added .commands descriptions\n    Added PrefixChat (press your prefix just like MC /!)\n    Added AntiKick to FakeGamemode and Spectator\n    Added AutoQMain\n    Added Capes\n    Added IceSpeed\n    Added .entitystats, .vanish, .nbt and .teleport\n    Added BookCrash\n    Added AutoSnowGolem\n    Added AutoWither\n    Added AutoNameTag option\n    Added HoleESP and HoleESP Fast (to be combined into one)\n    Added Glow mode to ESP\n    Added ElytraFly bypass\n    Added ReloadSounds\n    Added NoSoundLag\n    Added options to the InfoOverlay as well as a welcomer, memory and ping\n    Fixed some bugs with sliders\n    Improved FastUse with modes and speed\n    Added AutoExp\n    Added Auto tick speed to Aura\n    Fixed CrystalAura entity placing things\n",
     "v1.1.0": "See https://github.com/S-B99/KAMI/releases/tag/v1.1.0",
     "v1.0.9": "See https://github.com/S-B99/KAMI/releases/tag/v1.0.9",
     "v1.0.8": "See https://github.com/S-B99/KAMI/releases/tag/v1.0.8",
@@ -14,6 +14,6 @@
     "v1.0.1": "See https://github.com/S-B99/KAMI/releases/tag/v1.0.1"
   },
   "promos": {
-    "1.12.2-latest": "v1.1.1"
+    "1.12.2-latest": "v1.1.2"
   }
 }
