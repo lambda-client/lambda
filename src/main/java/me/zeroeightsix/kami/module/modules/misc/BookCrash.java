@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Created by d1gress/Qther on 24/11/2019.	 * Created by d1gress/Qther on 25/11/2019.
+ * Created by d1gress/Qther on 25/11/2019.
  * Updated by d1gress/Qther on 26/11/2019.
  */
 @Module.Info(name = "BookCrash", category = Module.Category.MISC, description = "Crashes servers by sending large packets")
