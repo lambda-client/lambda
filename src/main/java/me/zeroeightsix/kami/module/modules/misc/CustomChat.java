@@ -58,14 +58,14 @@ public class CustomChat extends Module {
     private Setting<Boolean> debug = register(Settings.b("Debug", true));
 
 
-    private String KAMI_SEPARATOR = " " + lllllllliiiliiilllll + " ";
-    private String KAMI_CLASSIC = " " + lllllllliiiliiliiiii + " ";
-    private String KAMI_CLASSIC_OTHER = " " + lllllllliiiliiliiili;
-    private String KAMI_NAME = lllllllliiiliiliiiil + lllllllliiiliiliiill + lllllllliiiliiliilii + lllllllliiiliiliilli + " " + lllllllliiiliiliilil + lllllllliiiliiliilll + lllllllliiiliililiii + lllllllliiiliililiil;
-    private String KAMI_ONTOP = lllllllliiiliiliiiil + lllllllliiiliiliiill + lllllllliiiliiliilii + lllllllliiiliiliilli + " " + lllllllliiiliiliilil + lllllllliiiliiliilll + lllllllliiiliililiii + lllllllliiiliililiil + " " + lllllllliiiliililili + lllllllliiiliililill + " " + lllllllliiiliilillii + lllllllliiiliilillil + lllllllliiiliilillli;
-    private String KAMI_WEBSITE = lllllllliiiliilillll + lllllllliiiliilliiii + lllllllliiiliilliiil + lllllllliiiliilliili + lllllllliiiliilliill + lllllllliiiliillilii + lllllllliiiliillilil + lllllllliiiliillilli + lllllllliiiliillilll + lllllllliiiliillliii + lllllllliiiliillliil + lllllllliiiliilllili + lllllllliiiliilllill + lllllllliiiliillllii + lllllllliiiliillllil + lllllllliiiliillllli + lllllllliiiliillllll + lllllllliiililiiiiii;
-    private String KAMI_FINAL = "";
-    private String KAMI_ALL = lllllllliiililiiiiil;
+    private String kSep = " " + lllllllliiiliiilllll + " ";
+    private String kClassic = " " + lllllllliiiliiliiiii + " ";
+    private String kClassicO = " " + lllllllliiiliiliiili;
+    private String kName = lllllllliiiliiliiiil + lllllllliiiliiliiill + lllllllliiiliiliilii + lllllllliiiliiliilli + " " + lllllllliiiliiliilil + lllllllliiiliiliilll + lllllllliiiliililiii + lllllllliiiliililiil;
+    private String kOnTop = lllllllliiiliiliiiil + lllllllliiiliiliiill + lllllllliiiliiliilii + lllllllliiiliiliilli + " " + lllllllliiiliiliilil + lllllllliiiliiliilll + lllllllliiiliililiii + lllllllliiiliililiil + " " + lllllllliiiliililili + lllllllliiiliililill + " " + lllllllliiiliilillii + lllllllliiiliilillil + lllllllliiiliilillli;
+    private String kWebsite = lllllllliiiliilillll + lllllllliiiliilliiii + lllllllliiiliilliiil + lllllllliiiliilliili + lllllllliiiliilliill + lllllllliiiliillilii + lllllllliiiliillilil + lllllllliiiliillilli + lllllllliiiliillilll + lllllllliiiliillliii + lllllllliiiliillliil + lllllllliiiliilllili + lllllllliiiliilllill + lllllllliiiliillllii + lllllllliiiliillllil + lllllllliiiliillllli + lllllllliiiliillllll + lllllllliiililiiiiii;
+    private String kfinal = "";
+    private String kAll = lllllllliiililiiiiil;
 
     @Override
     public void onEnable() {
@@ -88,32 +88,32 @@ public class CustomChat extends Module {
             }
             if (decoMode.getValue().equals(DecoMode.SEPARATOR)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
-                    KAMI_FINAL = KAMI_SEPARATOR + KAMI_NAME;
+                    kfinal = kSep + kName;
                 } else if (textMode.getValue().equals(TextMode.ONTOP)) {
-                    KAMI_FINAL = KAMI_SEPARATOR + KAMI_ONTOP;
+                    kfinal = kSep + kOnTop;
                 } else if (textMode.getValue().equals(TextMode.WEBSITE)) {
-                    KAMI_FINAL = KAMI_SEPARATOR + KAMI_WEBSITE;
+                    kfinal = kSep + kWebsite;
                 } else if (textMode.getValue().equals(TextMode.ALL)) {
-                    KAMI_FINAL = KAMI_ALL;
+                    kfinal = kAll;
                 }
             } else if (decoMode.getValue().equals(DecoMode.NONE)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
-                    KAMI_FINAL = " " + KAMI_NAME;
+                    kfinal = " " + kName;
                 } else if (textMode.getValue().equals(TextMode.ONTOP)) {
-                    KAMI_FINAL = " " + KAMI_ONTOP;
+                    kfinal = " " + kOnTop;
                 } else if (textMode.getValue().equals(TextMode.WEBSITE)) {
-                    KAMI_FINAL = " " + KAMI_WEBSITE;
+                    kfinal = " " + kWebsite;
                 }
             } else if (decoMode.getValue().equals(DecoMode.CLASSIC)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
-                    KAMI_FINAL = KAMI_CLASSIC + KAMI_NAME + KAMI_CLASSIC_OTHER;
+                    kfinal = kClassic + kName + kClassicO;
                 } else if (textMode.getValue().equals(TextMode.ONTOP)) {
-                    KAMI_FINAL = KAMI_CLASSIC + KAMI_ONTOP + KAMI_CLASSIC_OTHER;
+                    kfinal = kClassic + kOnTop + kClassicO;
                 } else if (textMode.getValue().equals(TextMode.WEBSITE)) {
-                    KAMI_FINAL = KAMI_CLASSIC + KAMI_WEBSITE + KAMI_CLASSIC_OTHER;
+                    kfinal = kClassic + kWebsite + kClassicO;
                 }
             }
-            s += KAMI_FINAL;
+            s += kfinal;
             if (s.length() >= 256) s = s.substring(0, 256);
             ((CPacketChatMessage) event.getPacket()).message = s;
         }
