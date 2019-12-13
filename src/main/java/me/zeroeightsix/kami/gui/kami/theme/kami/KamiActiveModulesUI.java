@@ -58,18 +58,20 @@ public class KamiActiveModulesUI extends AbstractComponentUI<ActiveModules> {
         }
 
         mods.stream().forEach(module -> {
-            int rgb = Color.HSBtoRGB(hue[0], 1, 1);
-            String s = module.getHudInfo();
-            String text = module.getName() + (s == null ? "" : " " + Command.SECTIONSIGN() + "7" + s);
-            int textwidth = renderer.getStringWidth(text);
-            int textheight = renderer.getFontHeight() + 1;
-            int red = (rgb >> 16) & 0xFF;
-            int green = (rgb >> 8) & 0xFF;
-            int blue = rgb & 0xFF;
+            if (module.showOnArray) {
+                int rgb = Color.HSBtoRGB(hue[0], 1, 1);
+                String s = module.getHudInfo();
+                String text = module.getName() + (s == null ? "" : " " + Command.SECTIONSIGN() + "7" + s);
+                int textwidth = renderer.getStringWidth(text);
+                int textheight = renderer.getFontHeight() + 1;
+                int red = (rgb >> 16) & 0xFF;
+                int green = (rgb >> 8) & 0xFF;
+                int blue = rgb & 0xFF;
 
-            renderer.drawStringWithShadow(xFunc.apply(textwidth), y[0], red, green, blue, text);
-            hue[0] += .02f;
-            y[0] += textheight;
+                renderer.drawStringWithShadow(xFunc.apply(textwidth), y[0], red, green, blue, text);
+                hue[0] += .02f;
+                y[0] += textheight;
+            }
         });
 
         component.setHeight(y[0]);

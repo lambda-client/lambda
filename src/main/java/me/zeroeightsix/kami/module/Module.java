@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * Created by 086 on 23/08/2017.
- * Updated and fixed by cookiedragon234 on 27/10/19
+ * Updated by S-B99 on 13/12/19
  */
 public class Module {
 
@@ -30,6 +30,7 @@ public class Module {
     private Setting<Bind> bind = register(Settings.custom("Bind", Bind.none(), new BindConverter()).build());
     private Setting<Boolean> enabled = register(Settings.booleanBuilder("Enabled").withVisibility(aBoolean -> false).withValue(false).build());
     public boolean alwaysListening;
+    public boolean showOnArray = getAnnotation().showOnArray();
     protected static final Minecraft mc = Minecraft.getMinecraft();
 
     public List<Setting> settingList = new ArrayList<>();
@@ -109,6 +110,8 @@ public class Module {
         Module.Category category();
 
         boolean alwaysListening() default false;
+
+        boolean showOnArray() default true;
     }
 
     public String getName() {

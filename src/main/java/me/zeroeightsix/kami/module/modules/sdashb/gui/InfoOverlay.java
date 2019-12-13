@@ -9,8 +9,14 @@ import me.zeroeightsix.kami.setting.Settings;
  * Created by S-B99 on 04/12/19
  */
 
-@Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures game information overlay")
+@Module.Info(
+        name = "InfoOverlay",
+        category = Module.Category.GUI,
+        description = "Configures game information overlay",
+        showOnArray = false
+)
 public class InfoOverlay extends Module {
+
     public Setting<Boolean> globalInfoNam = register(Settings.b("Username", true));
     public Setting<Boolean> globalInfoTps = register(Settings.b("TPS", true));
     public Setting<Boolean> globalInfoFps = register(Settings.b("FPS", true));
