@@ -22,6 +22,7 @@
     "MixinNetHandlerPlayClient",
     "MixinRenderLiving",
     "MixinPlayerControllerMP",
-    "MixinEntityLlama"
+    "MixinEntityLlama",
+    "MixinAbstractClientPlayer"
   ]
 }
