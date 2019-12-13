@@ -34,7 +34,8 @@ public abstract class SettingBuilder<T> {
     }
 
     protected BiConsumer<T, T> consumer() {
-        return MoreObjects.firstNonNull(consumer, (a, b) -> {});
+        return MoreObjects.firstNonNull(consumer, (a, b) -> {
+        });
     }
 
     public SettingBuilder<T> withConsumer(BiConsumer<T, T> consumer) {

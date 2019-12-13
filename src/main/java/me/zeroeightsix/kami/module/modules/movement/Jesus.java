@@ -41,7 +41,7 @@ public class Jesus extends Module {
     Listener<AddCollisionBoxToListEvent> addCollisionBoxToListEventListener = new Listener<>((event) -> {
         if (mc.player != null
                 && (event.getBlock() instanceof BlockLiquid)
-                && (EntityUtil.isDrivenByPlayer(event.getEntity()) || event.getEntity()==mc.player)
+                && (EntityUtil.isDrivenByPlayer(event.getEntity()) || event.getEntity() == mc.player)
                 && !(event.getEntity() instanceof EntityBoat)
                 && !mc.player.isSneaking()
                 && mc.player.fallDistance < 3
@@ -67,23 +67,24 @@ public class Jesus extends Module {
     });
 
     @SuppressWarnings("deprecation")
-    private static boolean isAboveLand(Entity entity){
-        if(entity == null) return false;
+    private static boolean isAboveLand(Entity entity) {
+        if (entity == null) return false;
 
         double y = entity.posY - 0.01;
 
-        for(int x = MathHelper.floor(entity.posX); x < MathHelper.ceil(entity.posX); x++)
+        for (int x = MathHelper.floor(entity.posX); x < MathHelper.ceil(entity.posX); x++)
             for (int z = MathHelper.floor(entity.posZ); z < MathHelper.ceil(entity.posZ); z++) {
                 BlockPos pos = new BlockPos(x, MathHelper.floor(y), z);
 
-                if (Wrapper.getWorld().getBlockState(pos).getBlock().isFullBlock(Wrapper.getWorld().getBlockState(pos))) return true;
+                if (Wrapper.getWorld().getBlockState(pos).getBlock().isFullBlock(Wrapper.getWorld().getBlockState(pos)))
+                    return true;
             }
 
         return false;
     }
 
     private static boolean isAboveBlock(Entity entity, BlockPos pos) {
-        return entity.posY  >= pos.getY();
+        return entity.posY >= pos.getY();
     }
 
 }

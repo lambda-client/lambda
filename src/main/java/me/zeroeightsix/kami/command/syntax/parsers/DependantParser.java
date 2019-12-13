@@ -19,8 +19,8 @@ public class DependantParser extends AbstractParser {
     @Override
     public String getChunk(SyntaxChunk[] chunks, SyntaxChunk thisChunk, String[] values, String chunkValue) {
         if (chunkValue != null && !chunkValue.equals("")) return "";
-        if (values.length<=dependantIndex) return getDefaultChunk(thisChunk);
-        if (values[dependantIndex] == null || values[dependantIndex].equals("")){
+        if (values.length <= dependantIndex) return getDefaultChunk(thisChunk);
+        if (values[dependantIndex] == null || values[dependantIndex].equals("")) {
             return "";
         }
 
@@ -36,15 +36,15 @@ public class DependantParser extends AbstractParser {
             this.escape = escape;
         }
 
-        private String[] containsKey(String[][] map, String key){
-            for (String[] s : map){
+        private String[] containsKey(String[][] map, String key) {
+            for (String[] s : map) {
                 if (s[0].equals(key))
-                        return s;
+                    return s;
             }
             return null;
         }
 
-        public String feed(String food){
+        public String feed(String food) {
             String[] entry = containsKey(map, food);
             if (entry != null)
                 return entry[1];

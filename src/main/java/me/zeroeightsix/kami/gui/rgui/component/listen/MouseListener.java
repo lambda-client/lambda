@@ -7,9 +7,13 @@ import me.zeroeightsix.kami.gui.rgui.component.Component;
  */
 public interface MouseListener {
     public void onMouseDown(MouseButtonEvent event);
+
     public void onMouseRelease(MouseButtonEvent event);
+
     public void onMouseDrag(MouseButtonEvent event);
+
     public void onMouseMove(MouseMoveEvent event);
+
     public void onScroll(MouseScrollEvent event);
 
     public static class MouseMoveEvent {
@@ -104,7 +108,7 @@ public interface MouseListener {
             return y;
         }
 
-        public void cancel(){
+        public void cancel() {
             cancelled = true;
         }
 
@@ -155,7 +159,7 @@ public interface MouseListener {
             return y;
         }
 
-        public void cancel(){
+        public void cancel() {
             cancelled = true;
         }
 

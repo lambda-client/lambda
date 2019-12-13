@@ -17,14 +17,14 @@ public class ValueParser extends AbstractParser {
     }
 
     public String getChunk(SyntaxChunk[] chunks, SyntaxChunk thisChunk, String[] values, String chunkValue) {
-        if (moduleIndex>values.length-1 || chunkValue == null) return getDefaultChunk(thisChunk);
+        if (moduleIndex > values.length - 1 || chunkValue == null) return getDefaultChunk(thisChunk);
         String module = values[moduleIndex];
         Module m = ModuleManager.getModuleByName(module);
         if (m == null) return "";
 
         HashMap<String, Setting> possibilities = new HashMap<>();
 
-        for (Setting v : m.settingList){
+        for (Setting v : m.settingList) {
             if (v.getName().toLowerCase().startsWith(chunkValue.toLowerCase()))
                 possibilities.put(v.getName(), v);
         }

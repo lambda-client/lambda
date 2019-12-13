@@ -4,8 +4,8 @@ import me.zeroeightsix.kami.module.Module;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemBow;
 import net.minecraft.network.play.client.CPacketPlayerDigging;
-import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
 import net.minecraft.network.play.client.CPacketPlayerDigging.Action;
+import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
 import net.minecraft.util.math.BlockPos;
 
 /**

@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
-import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;

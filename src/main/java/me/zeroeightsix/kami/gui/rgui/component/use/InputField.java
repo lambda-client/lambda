@@ -77,7 +77,7 @@ public class InputField extends AbstractComponent {
 
                 int[] real = GUI.calculateRealPosition(InputField.this);
                 int scale = DisplayGuiScreen.getScale();
-                GL11.glScissor(real[0]*scale - getParent().getOriginOffsetX()-1, Display.getHeight() - getHeight()*scale - real[1]*scale - 1, getWidth()*scale + getParent().getOriginOffsetX() + 1, getHeight()*scale+1);
+                GL11.glScissor(real[0] * scale - getParent().getOriginOffsetX() - 1, Display.getHeight() - getHeight() * scale - real[1] * scale - 1, getWidth() * scale + getParent().getOriginOffsetX() + 1, getHeight() * scale + 1);
                 GL11.glEnable(GL11.GL_SCISSOR_TEST);
 
                 GL11.glTranslatef(-scrollX, 0, 0);
@@ -88,18 +88,18 @@ public class InputField extends AbstractComponent {
 
 //                ColourHolder holder = ColourHolder.fromHex(fontRenderer.getBaseColor());
 //                holder.setGLColour();
-                GL11.glColor3f(1,1,1);
+                GL11.glColor3f(1, 1, 1);
 
                 boolean cursor = ((int) ((System.currentTimeMillis() - lastTypeMS) / 500) % 2 == 0) && isFocussed();
                 int x = 0;
                 int i = 0;
                 boolean selection = false;
 
-                if (getCursorRow() == 0 && cursor){
+                if (getCursorRow() == 0 && cursor) {
                     glBegin(GL_LINES);
                     {
                         glVertex2d(4, 2);
-                        glVertex2d(4, fontRenderer.getFontHeight()-1);
+                        glVertex2d(4, fontRenderer.getFontHeight() - 1);
                     }
                     glEnd();
                 }
@@ -107,18 +107,18 @@ public class InputField extends AbstractComponent {
                 for (char c : getDisplayText().toCharArray()) {
                     int w = fontRenderer.getStringWidth(c + "");
 
-                    if (getCurrentState().isSelection()){
+                    if (getCurrentState().isSelection()) {
                         if (i == getCurrentState().getSelectionStart())
                             selection = true;
                     }
 
-                    if (selection){
-                        glColor4f(0.2f,0.6f,1f,.3f);
+                    if (selection) {
+                        glColor4f(0.2f, 0.6f, 1f, .3f);
                         glBegin(GL_QUADS);
                         {
-                            glVertex2d(x+2, 2);
-                            glVertex2d(x+2, fontRenderer.getFontHeight()-2);
-                            glVertex2d(x + w + 2, fontRenderer.getFontHeight()-2);
+                            glVertex2d(x + 2, 2);
+                            glVertex2d(x + 2, fontRenderer.getFontHeight() - 2);
+                            glVertex2d(x + w + 2, fontRenderer.getFontHeight() - 2);
                             glVertex2d(x + w + 2, 2);
                         }
                         glEnd();
@@ -127,16 +127,16 @@ public class InputField extends AbstractComponent {
                     i++;
                     x += w;
 
-                    if (i == getCursorRow() && cursor && !getCurrentState().isSelection()){
+                    if (i == getCursorRow() && cursor && !getCurrentState().isSelection()) {
                         glBegin(GL_LINES);
                         {
-                            glVertex2d(x+2, 2);
-                            glVertex2d(x+2, fontRenderer.getFontHeight());
+                            glVertex2d(x + 2, 2);
+                            glVertex2d(x + 2, fontRenderer.getFontHeight());
                         }
                         glEnd();
                     }
 
-                    if (getCurrentState().isSelection()){
+                    if (getCurrentState().isSelection()) {
                         if (i == getCurrentState().getSelectionEnd())
                             selection = false;
                     }
@@ -145,7 +145,7 @@ public class InputField extends AbstractComponent {
                 String s = getDisplayText();
                 if (s.isEmpty()) s = " ";
                 glEnable(GL_BLEND);
-                fontRenderer.drawString(0,-1,s);
+                fontRenderer.drawString(0, -1, s);
 
                 glDisable(GL_TEXTURE_2D);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -163,7 +163,7 @@ public class InputField extends AbstractComponent {
                 if (event.getKey() == Keyboard.KEY_BACK) {
                     if (getText().length() > 0) {
                         pushUndo();
-                        if (currentState.selection){
+                        if (currentState.selection) {
                             currentState.cursorRow = currentState.selectionEnd;
                             scroll();
                             remove(currentState.selectionEnd - currentState.selectionStart);
@@ -171,80 +171,80 @@ public class InputField extends AbstractComponent {
                         } else
                             remove(1);
                     }
-                }else if (Keyboard.getEventCharacter() == 26) { // CTRL + Z
+                } else if (Keyboard.getEventCharacter() == 26) { // CTRL + Z
                     if (!undoMap.isEmpty()) {
                         redoMap.add(0, currentState.clone());
                         currentState = undoMap.get(0);
                         undoMap.remove(0);
                     }
-                }else if (Keyboard.getEventCharacter() == 25) { // CTRL + Y
+                } else if (Keyboard.getEventCharacter() == 25) { // CTRL + Y
                     if (!redoMap.isEmpty()) {
                         undoMap.add(0, currentState.clone());
                         currentState = redoMap.get(0);
                         redoMap.remove(0);
                     }
-                }else if (Keyboard.getEventCharacter() == 1) { // CTRL + A
+                } else if (Keyboard.getEventCharacter() == 1) { // CTRL + A
                     currentState.selection = true;
                     currentState.selectionStart = 0;
                     currentState.selectionEnd = currentState.getText().length();
-                }else if (event.getKey() == 54){ // shift
+                } else if (event.getKey() == 54) { // shift
                     shift = true;
-                }else if (event.getKey() == 1){ // ecape
+                } else if (event.getKey() == 1) { // ecape
                     currentState.selection = false;
-                }else if (Keyboard.getEventCharacter() == 22){ // CTRL + V
+                } else if (Keyboard.getEventCharacter() == 22) { // CTRL + V
                     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                     try {
                         type((String) clipboard.getData(DataFlavor.stringFlavor));
                     } catch (UnsupportedFlavorException e) {
                     } catch (IOException e) {
                     }
-                }else if (Keyboard.getEventCharacter() == 3){ // CTRL + C
-                    if (currentState.selection){
+                } else if (Keyboard.getEventCharacter() == 3) { // CTRL + C
+                    if (currentState.selection) {
                         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                         StringSelection selection = new StringSelection(currentState.getText().substring(currentState.selectionStart, currentState.selectionEnd));
                         clipboard.setContents(selection, selection);
                     }
-                }else if (event.getKey() == 205) { // key right
-                    if (currentState.cursorRow < getText().length()){
-                        if (shift){
-                            if (!currentState.selection){
+                } else if (event.getKey() == 205) { // key right
+                    if (currentState.cursorRow < getText().length()) {
+                        if (shift) {
+                            if (!currentState.selection) {
                                 currentState.selectionStart = currentState.cursorRow;
                                 currentState.selectionEnd = currentState.cursorRow;
                             }
                             currentState.selection = true;
                             currentState.selectionEnd = Math.min(getText().length(), currentState.selectionEnd + 1);
-                        }else if(currentState.selection){
+                        } else if (currentState.selection) {
                             currentState.selection = false;
                             currentState.cursorRow = currentState.selectionEnd;
                             scroll();
-                        }else{
+                        } else {
                             currentState.cursorRow = Math.min(getText().length(), currentState.cursorRow + 1);
                             scroll();
                         }
                     }
-                }else if (event.getKey() == 203) { // key left
-                    if (currentState.cursorRow > 0){
-                        if (shift){
-                            if (!currentState.selection){
+                } else if (event.getKey() == 203) { // key left
+                    if (currentState.cursorRow > 0) {
+                        if (shift) {
+                            if (!currentState.selection) {
                                 currentState.selectionStart = currentState.cursorRow;
                                 currentState.selectionEnd = currentState.cursorRow;
                             }
                             currentState.selection = true;
                             currentState.selectionStart = Math.max(0, currentState.selectionStart - 1);
-                        }else if(currentState.selection){
+                        } else if (currentState.selection) {
                             currentState.selection = false;
                             currentState.cursorRow = currentState.selectionStart;
                             scroll();
-                        }else{
+                        } else {
                             currentState.cursorRow = Math.max(0, currentState.cursorRow - 1);
                             scroll();
                         }
                     }
                     //currentState.cursorRow = Math.max(0, currentState.cursorRow - 1);
-                }else{
-                    if (Keyboard.getEventCharacter() != 0){
+                } else {
+                    if (Keyboard.getEventCharacter() != 0) {
                         pushUndo();
-                        if (currentState.selection){
+                        if (currentState.selection) {
                             currentState.cursorRow = currentState.selectionEnd;
                             remove(currentState.selectionEnd - currentState.selectionStart);
                             currentState.selection = false;
@@ -264,7 +264,7 @@ public class InputField extends AbstractComponent {
                 rail = false;
                 startRail = 0;
 
-                if (event.getKey() == 54){ // shift
+                if (event.getKey() == 54) { // shift
                     shift = false;
                 }
             }
@@ -276,9 +276,9 @@ public class InputField extends AbstractComponent {
                 currentState.selection = false;
                 int x = -scrollX;
                 int i = 0;
-                for (char c : getText().toCharArray()){
-                    x += getFontRenderer().getStringWidth(c+"");
-                    if (event.getX() < x){
+                for (char c : getText().toCharArray()) {
+                    x += getFontRenderer().getStringWidth(c + "");
+                    if (event.getX() < x) {
                         currentState.cursorRow = i;
                         scroll();
                         return;
@@ -301,9 +301,9 @@ public class InputField extends AbstractComponent {
 
                 int x = -scrollX;
                 int i = 0;
-                for (char c : getText().toCharArray()){
-                    x += getFontRenderer().getStringWidth(c+"");
-                    if (event.getX() < x){
+                for (char c : getText().toCharArray()) {
+                    x += getFontRenderer().getStringWidth(c + "");
+                    if (event.getX() < x) {
                         currentState.selectionEnd = i;
                         scroll();
                         break;
@@ -317,7 +317,7 @@ public class InputField extends AbstractComponent {
                 scroll();
                 currentState.cursorRow = buf;
 
-                if (currentState.selectionStart > currentState.selectionEnd){
+                if (currentState.selectionStart > currentState.selectionEnd) {
                     int a = currentState.selectionStart;
                     currentState.selectionStart = currentState.selectionEnd;
                     currentState.selectionEnd = a;
@@ -342,15 +342,15 @@ public class InputField extends AbstractComponent {
             @Override
             public void onPreRender() {
                 if (startRail == 0) return;
-                if (!rail){
+                if (!rail) {
                     railT = System.currentTimeMillis() - startRail;
-                    if (railT > railDelay){
+                    if (railT > railDelay) {
                         rail = true;
                         startRail = System.currentTimeMillis();
                     }
-                }else {
+                } else {
                     railT = System.currentTimeMillis() - startRail;
-                    if (railT > railRepeat){
+                    if (railT > railRepeat) {
                         inputListener.onKeyDown(new KeyListener.KeyEvent(railChar));
                         startRail = System.currentTimeMillis();
                     }
@@ -376,18 +376,18 @@ public class InputField extends AbstractComponent {
         return currentState;
     }
 
-    public void type(String text){
-        try{
+    public void type(String text) {
+        try {
             setText(getText().substring(0, currentState.getCursorRow()) + text + getText().substring(currentState.getCursorRow()));
             currentState.cursorRow += text.length();
-        }catch (Exception exception){
+        } catch (Exception exception) {
             exception.printStackTrace();
         }
 
         scroll();
     }
 
-    public void remove(int back){
+    public void remove(int back) {
         back = Math.min(back, currentState.getCursorRow());
         boolean a = setText(getText().substring(0, Math.max(currentState.getCursorRow() - back, 0)) + getText().substring(currentState.getCursorRow()));
         if (!a)
@@ -395,22 +395,22 @@ public class InputField extends AbstractComponent {
         scroll();
     }
 
-    private void scroll(){
+    private void scroll() {
         int aX = 0;
         int i = 0;
         String a = "";
-        for (char c : getText().toCharArray()){
-            aX += getFontRenderer().getStringWidth(c+"");
+        for (char c : getText().toCharArray()) {
+            aX += getFontRenderer().getStringWidth(c + "");
             i++;
             a += c;
-            if ( i >= currentState.cursorRow )
+            if (i >= currentState.cursorRow)
                 break;
         }
 
         int diff = aX - scrollX;
-        if (diff > getWidth()){
+        if (diff > getWidth()) {
             scrollX = aX - getWidth() + 8;
-        }else if (diff < 0){
+        } else if (diff < 0) {
             scrollX = aX + 8;
         }
 
@@ -422,9 +422,9 @@ public class InputField extends AbstractComponent {
         return currentState.getCursorRow();
     }
 
-    private void pushUndo(){
+    private void pushUndo() {
         undoT++;
-        if (undoT > 3){
+        if (undoT > 3) {
             undoT = 0;
             undoMap.add(0, currentState.clone());
         }
@@ -441,7 +441,7 @@ public class InputField extends AbstractComponent {
     public boolean setText(String text) {
         this.currentState.text = text;
         callPoof(InputFieldTextPoof.class, null);
-        if (currentState.cursorRow > currentState.text.length()){
+        if (currentState.cursorRow > currentState.text.length()) {
             currentState.cursorRow = currentState.text.length();
             scroll();
             return true;
@@ -523,6 +523,6 @@ public class InputField extends AbstractComponent {
         }
     }
 
-    public abstract static class InputFieldTextPoof<T extends InputField, S extends PoofInfo> extends Poof<T,S> {
+    public abstract static class InputFieldTextPoof<T extends InputField, S extends PoofInfo> extends Poof<T, S> {
     }
 }

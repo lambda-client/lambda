@@ -19,23 +19,40 @@ public abstract class AbstractComponentUI<T extends Component> implements Compon
     }
 
     @Override
-    public void renderComponent(T component, FontRenderer fontRenderer) {}
+    public void renderComponent(T component, FontRenderer fontRenderer) {
+    }
+
     @Override
-    public void handleMouseDown(T component, int x, int y, int button) {}
+    public void handleMouseDown(T component, int x, int y, int button) {
+    }
+
     @Override
-    public void handleMouseRelease(T component, int x, int y, int button) {}
+    public void handleMouseRelease(T component, int x, int y, int button) {
+    }
+
     @Override
-    public void handleMouseDrag(T component, int x, int y, int button) {}
+    public void handleMouseDrag(T component, int x, int y, int button) {
+    }
+
     @Override
-    public void handleScroll(T component, int x, int y, int amount, boolean up) {}
+    public void handleScroll(T component, int x, int y, int amount, boolean up) {
+    }
+
     @Override
-    public void handleAddComponent(T component, Container container) {}
+    public void handleAddComponent(T component, Container container) {
+    }
+
     @Override
-    public void handleKeyDown(T component, int key) {}
+    public void handleKeyDown(T component, int key) {
+    }
+
     @Override
-    public void handleKeyUp(T component, int key) {}
+    public void handleKeyUp(T component, int key) {
+    }
+
     @Override
-    public void handleSizeComponent(T component) {}
+    public void handleSizeComponent(T component) {
+    }
 
     @Override
     public Class<? extends Component> getHandledClass() {

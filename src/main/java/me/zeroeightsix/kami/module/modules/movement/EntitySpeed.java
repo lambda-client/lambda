@@ -54,7 +54,7 @@ public class EntitySpeed extends Module {
 
         moveForward(entity, speed.getValue() * 3.8D);
 
-        if (entity instanceof EntityHorse){
+        if (entity instanceof EntityHorse) {
             entity.rotationYaw = mc.player.rotationYaw;
         }
     }

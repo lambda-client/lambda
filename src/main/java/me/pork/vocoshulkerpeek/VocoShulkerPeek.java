@@ -18,91 +18,90 @@ import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 
 @Mod(
-   modid = "vocoshulkerpeek",
-   name = "Peek Bypass for KAMI Blue",
-   version = "1.1",
-   acceptedMinecraftVersions = "[1.12.2]"
+        modid = "vocoshulkerpeek",
+        name = "Peek Bypass for KAMI Blue",
+        version = "1.1",
+        acceptedMinecraftVersions = "[1.12.2]"
 )
 public class VocoShulkerPeek {
-   public static final String MOD_ID = "vocoshulkerpeek";
-   public static final String MOD_NAME = "VocoShulkerPeek";
-   public static final String VERSION = "1.0";
-   public static ItemStack shulker;
-   public static Minecraft mc;
+    public static final String MOD_ID = "vocoshulkerpeek";
+    public static final String MOD_NAME = "VocoShulkerPeek";
+    public static final String VERSION = "1.0";
+    public static ItemStack shulker;
+    public static Minecraft mc;
 
-   @EventHandler
-   public void postinit(FMLPostInitializationEvent event) {
-      ClientCommandHandler.instance.registerCommand(new VocoShulkerPeek.peekCommand());
-      MinecraftForge.EVENT_BUS.register(new ShulkerPreview());
-   }
+    @EventHandler
+    public void postinit(FMLPostInitializationEvent event) {
+        ClientCommandHandler.instance.registerCommand(new VocoShulkerPeek.peekCommand());
+        MinecraftForge.EVENT_BUS.register(new ShulkerPreview());
+    }
 
-   public static NBTTagCompound getShulkerNBT(ItemStack stack) {
-      if (mc.player == null) return null;
-      NBTTagCompound compound = stack.getTagCompound();
-      if (compound != null && compound.hasKey("BlockEntityTag", 10)) {
-         NBTTagCompound tags = compound.getCompoundTag("BlockEntityTag");
-         if (ModuleManager.getModuleByName("ShulkerBypass").isEnabled()) {
-            if (tags.hasKey("Items", 9)) {
-               return tags;
-            } else {
-               Command.sendWarningMessage("[ShulkerBypass] Shulker is empty!");
+    public static NBTTagCompound getShulkerNBT(ItemStack stack) {
+        if (mc.player == null) return null;
+        NBTTagCompound compound = stack.getTagCompound();
+        if (compound != null && compound.hasKey("BlockEntityTag", 10)) {
+            NBTTagCompound tags = compound.getCompoundTag("BlockEntityTag");
+            if (ModuleManager.getModuleByName("ShulkerBypass").isEnabled()) {
+                if (tags.hasKey("Items", 9)) {
+                    return tags;
+                } else {
+                    Command.sendWarningMessage("[ShulkerBypass] Shulker is empty!");
+                }
             }
-         }
-      }
+        }
 
-      return null;
-   }
+        return null;
+    }
 
-   static {
-      shulker = ItemStack.EMPTY;
-      mc = Minecraft.getMinecraft();
-   }
+    static {
+        shulker = ItemStack.EMPTY;
+        mc = Minecraft.getMinecraft();
+    }
 
-   public class peekCommand extends CommandBase implements IClientCommand {
-      public boolean allowUsageWithoutPrefix(ICommandSender sender, String message) {
-         return false;
-      }
+    public class peekCommand extends CommandBase implements IClientCommand {
+        public boolean allowUsageWithoutPrefix(ICommandSender sender, String message) {
+            return false;
+        }
 
-      public String getName() {
-         return "peek";
-      }
+        public String getName() {
+            return "peek";
+        }
 
-      public String getUsage(ICommandSender sender) {
-         return null;
-      }
+        public String getUsage(ICommandSender sender) {
+            return null;
+        }
 
-      public void execute(MinecraftServer server, ICommandSender sender, String[] args) {
-         if (mc.player != null && ModuleManager.getModuleByName("ShulkerBypass").isEnabled()) {
-            if (!VocoShulkerPeek.shulker.isEmpty()) {
-               NBTTagCompound shulkerNBT = VocoShulkerPeek.getShulkerNBT(VocoShulkerPeek.shulker);
-               if (shulkerNBT != null) {
-                  TileEntityShulkerBox fakeShulker = new TileEntityShulkerBox();
-                  fakeShulker.loadFromNbt(shulkerNBT);
-                  String customName = "container.shulkerBox";
-                  boolean hasCustomName = false;
-                  if (shulkerNBT.hasKey("CustomName", 8)) {
-                     customName = shulkerNBT.getString("CustomName");
-                     hasCustomName = true;
-                  }
+        public void execute(MinecraftServer server, ICommandSender sender, String[] args) {
+            if (mc.player != null && ModuleManager.getModuleByName("ShulkerBypass").isEnabled()) {
+                if (!VocoShulkerPeek.shulker.isEmpty()) {
+                    NBTTagCompound shulkerNBT = VocoShulkerPeek.getShulkerNBT(VocoShulkerPeek.shulker);
+                    if (shulkerNBT != null) {
+                        TileEntityShulkerBox fakeShulker = new TileEntityShulkerBox();
+                        fakeShulker.loadFromNbt(shulkerNBT);
+                        String customName = "container.shulkerBox";
+                        boolean hasCustomName = false;
+                        if (shulkerNBT.hasKey("CustomName", 8)) {
+                            customName = shulkerNBT.getString("CustomName");
+                            hasCustomName = true;
+                        }
 
-                  InventoryBasic inv = new InventoryBasic(customName, hasCustomName, 27);
+                        InventoryBasic inv = new InventoryBasic(customName, hasCustomName, 27);
 
-                  for (int i = 0; i < 27; ++i) {
-                     inv.setInventorySlotContents(i, fakeShulker.getStackInSlot(i));
-                  }
+                        for (int i = 0; i < 27; ++i) {
+                            inv.setInventorySlotContents(i, fakeShulker.getStackInSlot(i));
+                        }
 
-                  ShulkerPreview.toOpen = inv;
-                  ShulkerPreview.guiTicks = 0;
-               }
+                        ShulkerPreview.toOpen = inv;
+                        ShulkerPreview.guiTicks = 0;
+                    }
+                } else {
+                    Command.sendChatMessage("[ShulkerBypass] No shulker detected! please drop and pickup your shulker.");
+                }
             }
-            else {
-               Command.sendChatMessage("[ShulkerBypass] No shulker detected! please drop and pickup your shulker.");
-            }
-         }
-      }
+        }
 
-      public boolean checkPermission(MinecraftServer server, ICommandSender sender) {
-         return true;
-      }
-   }
+        public boolean checkPermission(MinecraftServer server, ICommandSender sender) {
+            return true;
+        }
+    }
 }

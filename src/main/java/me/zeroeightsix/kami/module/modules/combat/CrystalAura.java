@@ -50,14 +50,14 @@ public class CrystalAura extends Module {
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> place = register(Settings.b("Place", false));
     private Setting<Boolean> explode = register(Settings.b("Explode", false));
-    private Setting<Double>  range = register(Settings.d("Range", 4));
+    private Setting<Double> range = register(Settings.d("Range", 4));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
 
     private BlockPos render;
     private Entity renderEnt;
     private long systemTime = -1;
     private static boolean togglePitch = false;
-	// we need this cooldown to not place from old hotbar slot, before we have switched to crystals
+    // we need this cooldown to not place from old hotbar slot, before we have switched to crystals
     private boolean switchCooldown = false;
     private boolean isAttacking = false;
     private int oldSlot = -1;
@@ -109,10 +109,10 @@ public class CrystalAura extends Module {
             return;
         } else {
             resetRotation();
-			if (oldSlot != -1) {
+            if (oldSlot != -1) {
                 Wrapper.getPlayer().inventory.currentItem = oldSlot;
                 oldSlot = -1;
-			}
+            }
             isAttacking = false;
         }
 
@@ -125,7 +125,7 @@ public class CrystalAura extends Module {
                 }
             }
         }
-		
+
         boolean offhand = false;
         if (mc.player.getHeldItemOffhand().getItem() == Items.END_CRYSTAL) {
             offhand = true;

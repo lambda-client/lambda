@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.setting.builder.primitive;
 
-import me.zeroeightsix.kami.setting.impl.BooleanSetting;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
+import me.zeroeightsix.kami.setting.impl.BooleanSetting;
 
 /**
  * Created by 086 on 13/10/2018.

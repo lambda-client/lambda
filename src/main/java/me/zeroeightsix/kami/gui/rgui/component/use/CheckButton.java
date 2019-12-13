@@ -22,9 +22,9 @@ public class CheckButton extends Button {
                 if (event.getButton() != 0) return;
                 toggled = !toggled;
                 callPoof(CheckButtonPoof.class, new CheckButtonPoof.CheckButtonPoofInfo(CheckButtonPoof.CheckButtonPoofInfo.CheckButtonPoofInfoAction.TOGGLE));
-                if (toggled){
+                if (toggled) {
                     callPoof(CheckButtonPoof.class, new CheckButtonPoof.CheckButtonPoofInfo(CheckButtonPoof.CheckButtonPoofInfo.CheckButtonPoofInfoAction.ENABLE));
-                }else{
+                } else {
                     callPoof(CheckButtonPoof.class, new CheckButtonPoof.CheckButtonPoofInfo(CheckButtonPoof.CheckButtonPoofInfo.CheckButtonPoofInfoAction.DISABLE));
                 }
             }
@@ -59,7 +59,7 @@ public class CheckButton extends Button {
         return toggled;
     }
 
-    public static abstract class CheckButtonPoof<T extends CheckButton, S extends CheckButtonPoof.CheckButtonPoofInfo> extends Poof<T,S> {
+    public static abstract class CheckButtonPoof<T extends CheckButton, S extends CheckButtonPoof.CheckButtonPoofInfo> extends Poof<T, S> {
         CheckButtonPoofInfo info;
 
         public static class CheckButtonPoofInfo extends PoofInfo {

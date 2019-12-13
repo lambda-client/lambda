@@ -13,7 +13,7 @@ public class Button extends AbstractComponent {
     private String name;
 
     public Button(String name) {
-        this(name, 0,0);
+        this(name, 0, 0);
         addMouseListener(new MouseListener() {
             @Override
             public void onMouseDown(MouseButtonEvent event) {
@@ -58,10 +58,11 @@ public class Button extends AbstractComponent {
 
     // Nothing to wipe.
     @Override
-    public void kill() {}
+    public void kill() {
+    }
 
 
-    public static abstract class ButtonPoof<T extends Button, S extends ButtonPoof.ButtonInfo> extends Poof<T,S> {
+    public static abstract class ButtonPoof<T extends Button, S extends ButtonPoof.ButtonInfo> extends Poof<T, S> {
         ButtonInfo info;
 
         public static class ButtonInfo extends PoofInfo {

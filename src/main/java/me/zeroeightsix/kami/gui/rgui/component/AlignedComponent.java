@@ -10,9 +10,11 @@ public class AlignedComponent extends AbstractComponent {
         LEFT(0), CENTER(1), RIGHT(2);
 
         int index;
+
         Alignment(int index) {
             this.index = index;
         }
+
         public int getIndex() {
             return index;
         }

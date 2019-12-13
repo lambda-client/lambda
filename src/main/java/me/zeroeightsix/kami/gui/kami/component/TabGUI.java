@@ -29,18 +29,18 @@ public class TabGUI extends AbstractComponent implements EventListener {
         FMLCommonHandler.instance().bus().register(this);
 
         LinkedHashMap<Module.Category, Tab> tabMap = new LinkedHashMap<>();
-        for(Module.Category category : Module.Category.values())
+        for (Module.Category category : Module.Category.values())
             tabMap.put(category, new Tab(category.getName()));
 
         ArrayList<Module> features = new ArrayList<>();
         features.addAll(ModuleManager.getModules());
 
-        for(Module feature : features)
-            if(feature.getCategory() != null && !feature.getCategory().isHidden())
+        for (Module feature : features)
+            if (feature.getCategory() != null && !feature.getCategory().isHidden())
                 tabMap.get(feature.getCategory()).add(feature);
 
         Iterator<Map.Entry<Module.Category, Tab>> iterator = tabMap.entrySet().iterator();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             Map.Entry<Module.Category, Tab> entry = iterator.next();
             if (entry.getValue().features.isEmpty())
                 iterator.remove();
@@ -52,8 +52,7 @@ public class TabGUI extends AbstractComponent implements EventListener {
     }
 
     @SubscribeEvent
-    public void onKeyPress(InputEvent.KeyInputEvent event)
-    {
+    public void onKeyPress(InputEvent.KeyInputEvent event) {
         if (Keyboard.getEventKeyState() == false) return;
         Component framep = getParent();
         while (!(framep instanceof Frame))
@@ -61,9 +60,8 @@ public class TabGUI extends AbstractComponent implements EventListener {
         if (!((Frame) framep).isPinned())
             return;
 
-        if(tabOpened)
-            switch(Keyboard.getEventKey())
-            {
+        if (tabOpened)
+            switch (Keyboard.getEventKey()) {
                 case Keyboard.KEY_LEFT:
                     tabOpened = false;
                     break;
@@ -73,17 +71,16 @@ public class TabGUI extends AbstractComponent implements EventListener {
                     break;
             }
         else
-            switch(Keyboard.getEventKey())
-            {
+            switch (Keyboard.getEventKey()) {
                 case Keyboard.KEY_DOWN:
-                    if(selected < tabs.size() - 1)
+                    if (selected < tabs.size() - 1)
                         selected++;
                     else
                         selected = 0;
                     break;
 
                 case Keyboard.KEY_UP:
-                    if(selected > 0)
+                    if (selected > 0)
                         selected--;
                     else
                         selected = tabs.size() - 1;
@@ -95,20 +92,17 @@ public class TabGUI extends AbstractComponent implements EventListener {
             }
     }
 
-    private void updateSize()
-    {
+    private void updateSize() {
         width = 64;
-        for(Tab tab : tabs)
-        {
+        for (Tab tab : tabs) {
             int tabWidth = Wrapper.getFontRenderer().getStringWidth(tab.name) + 10;
-            if(tabWidth > width)
+            if (tabWidth > width)
                 width = tabWidth;
         }
         height = tabs.size() * 10;
     }
 
-    public static final class Tab
-    {
+    public static final class Tab {
         public final String name;
         public final ArrayList<Module> features = new ArrayList<>();
 
@@ -118,37 +112,32 @@ public class TabGUI extends AbstractComponent implements EventListener {
 
         public float lerpSelectY = 0;
 
-        public Tab(String name)
-        {
+        public Tab(String name) {
             this.name = name;
         }
 
-        public void updateSize()
-        {
+        public void updateSize() {
             width = 64;
-            for(Module feature : features)
-            {
+            for (Module feature : features) {
                 int fWidth = Wrapper.getFontRenderer().getStringWidth(feature.getName()) + 10;
-                if(fWidth > width)
+                if (fWidth > width)
                     width = fWidth;
             }
 
             height = features.size() * 10;
         }
 
-        public void onKeyPress(int keyCode)
-        {
-            switch(keyCode)
-            {
+        public void onKeyPress(int keyCode) {
+            switch (keyCode) {
                 case Keyboard.KEY_DOWN:
-                    if(selected < features.size() - 1)
+                    if (selected < features.size() - 1)
                         selected++;
                     else
                         selected = 0;
                     break;
 
                 case Keyboard.KEY_UP:
-                    if(selected > 0)
+                    if (selected > 0)
                         selected--;
                     else
                         selected = features.size() - 1;
@@ -160,8 +149,7 @@ public class TabGUI extends AbstractComponent implements EventListener {
             }
         }
 
-        public void add(Module feature)
-        {
+        public void add(Module feature) {
             features.add(feature);
         }
     }

@@ -32,7 +32,7 @@ public class Label extends AlignedComponent {
 
     public String[] getLines() {
         String[] lines;
-        if (isMultiline()){
+        if (isMultiline()) {
             lines = getText().split(System.lineSeparator());
         } else {
             lines = new String[]{getText()};
@@ -49,10 +49,10 @@ public class Label extends AlignedComponent {
         setText(getText() + add);
     }
 
-    public void addLine(String add){
-        if (getText().isEmpty()){
+    public void addLine(String add) {
+        if (getText().isEmpty()) {
             setText(add);
-        }else {
+        } else {
             setText(getText() + System.lineSeparator() + add);
             multiline = true;
         }

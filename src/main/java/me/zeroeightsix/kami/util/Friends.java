@@ -49,7 +49,8 @@ public class Friends {
     }
 
     public static class FriendListConverter extends Converter<ArrayList<Friend>, JsonElement> {
-        public FriendListConverter() {}
+        public FriendListConverter() {
+        }
 
         @Override
         protected JsonElement doForward(ArrayList<Friend> list) {
@@ -69,8 +70,9 @@ public class Friends {
                     String[] split = pair.split(";");
                     String username = split[0];
                     UUID uuid = UUID.fromString(split[1]);
-                    friends.add(new Friend(getUsernameByUUID(uuid, username),uuid));
-                } catch (Exception ignored) {} // Empty line, wrong formatting or something, we don't care
+                    friends.add(new Friend(getUsernameByUUID(uuid, username), uuid));
+                } catch (Exception ignored) {
+                } // Empty line, wrong formatting or something, we don't care
             }
             return friends;
         }
@@ -81,15 +83,15 @@ public class Friends {
             try {
                 JsonElement object = new JsonParser().parse(src);
                 return object.getAsJsonObject().get("name").getAsString();
-            }catch (Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 System.err.println(src);
                 return saved;
             }
         }
 
-        private static String getSource(String link){
-            try{
+        private static String getSource(String link) {
+            try {
                 URL u = new URL(link);
                 URLConnection con = u.openConnection();
                 BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
@@ -100,7 +102,7 @@ public class Friends {
                 in.close();
 
                 return buffer.toString();
-            }catch(Exception e){
+            } catch (Exception e) {
                 return null;
             }
         }

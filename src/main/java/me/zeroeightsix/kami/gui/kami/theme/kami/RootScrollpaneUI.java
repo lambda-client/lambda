@@ -32,11 +32,11 @@ public class RootScrollpaneUI extends AbstractComponentUI<Scrollpane> {
         component.addMouseListener(new MouseListener() {
             @Override
             public void onMouseDown(MouseButtonEvent event) {
-                if (System.currentTimeMillis() - lastScroll < barLife && scrollComponent.liesIn(component) && component.canScrollY()){
+                if (System.currentTimeMillis() - lastScroll < barLife && scrollComponent.liesIn(component) && component.canScrollY()) {
                     double progress = (double) component.getScrolledY() / (double) component.getMaxScrollY();
                     int barHeight = 30;
-                    int y = (int) ((component.getHeight() - barHeight)*progress);
-                    if (event.getX() > component.getWidth() - 10 && event.getY() > y && event.getY() < y + barHeight){
+                    int y = (int) ((component.getHeight() - barHeight) * progress);
+                    if (event.getX() > component.getWidth() - 10 && event.getY() > y && event.getY() < y + barHeight) {
                         dragBar = true;
                         dY = event.getY() - y;
                         event.cancel();
@@ -51,10 +51,10 @@ public class RootScrollpaneUI extends AbstractComponentUI<Scrollpane> {
 
             @Override
             public void onMouseDrag(MouseButtonEvent event) {
-                if (dragBar){
+                if (dragBar) {
                     double progress = event.getY() / (double) component.getHeight();
-                    progress = Math.max(Math.min(progress,1),0);
-                    component.setScrolledY((int) (component.getMaxScrollY()*progress));
+                    progress = Math.max(Math.min(progress, 1), 0);
+                    component.setScrolledY((int) (component.getMaxScrollY() * progress));
                     event.cancel();
                 }
             }
@@ -81,15 +81,15 @@ public class RootScrollpaneUI extends AbstractComponentUI<Scrollpane> {
             public void onPostRender() {
                 if (dragBar)
                     lastScroll = System.currentTimeMillis();
-                if (System.currentTimeMillis() - lastScroll < barLife && scrollComponent.liesIn(component) && component.canScrollY()){
-                    float alpha = Math.min(1,(barLife-(System.currentTimeMillis() - lastScroll))/100f)/3f;
+                if (System.currentTimeMillis() - lastScroll < barLife && scrollComponent.liesIn(component) && component.canScrollY()) {
+                    float alpha = Math.min(1, (barLife - (System.currentTimeMillis() - lastScroll)) / 100f) / 3f;
                     if (dragBar) alpha = 0.4f;
-                    GL11.glColor4f(1,.22f,.22f,alpha);
+                    GL11.glColor4f(1, .22f, .22f, alpha);
                     GL11.glDisable(GL11.GL_TEXTURE_2D);
                     int barHeight = 30;
                     double progress = (double) component.getScrolledY() / (double) component.getMaxScrollY();
-                    int y = (int) ((component.getHeight() - barHeight)*progress);
-                    RenderHelper.drawRoundedRectangle(component.getWidth()-6, y, 4, barHeight, 1f);
+                    int y = (int) ((component.getHeight() - barHeight) * progress);
+                    RenderHelper.drawRoundedRectangle(component.getWidth() - 6, y, 4, barHeight, 1f);
                 }
             }
         });

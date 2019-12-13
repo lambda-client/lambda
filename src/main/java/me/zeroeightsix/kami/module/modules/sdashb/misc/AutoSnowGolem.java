@@ -31,7 +31,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
+import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
 
 /**
  * @author hub/blockparole
@@ -89,9 +89,11 @@ public class AutoSnowGolem extends Module {
     private enum PlaceMode {
         AUTO, LOOK
     }
+
     private enum DebugMsgs {
         NONE, IMPORTANT, ALL
     }
+
     @Override
     public void onUpdate() {
         if (nametag.getValue()) {
@@ -118,7 +120,9 @@ public class AutoSnowGolem extends Module {
                 if (w instanceof EntityWither) {
                     final EntityWither wither = (EntityWither) w;
                     if (mc.player.getDistance(wither) <= placeRange.getValue()) {
-                        if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {Command.sendChatMessage("Registered Golem");}
+                        if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+                            Command.sendChatMessage("Registered Golem");
+                        }
                         if (tagslot != -1) {
                             mc.player.inventory.currentItem = tagslot;
                             mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);
@@ -158,8 +162,7 @@ public class AutoSnowGolem extends Module {
 
             if (block == Blocks.SNOW) {
                 snowSlot = i;
-            }
-            else if (block == Blocks.PUMPKIN) {
+            } else if (block == Blocks.PUMPKIN) {
                 pumpkinSlot = i;
             }
 
@@ -286,8 +289,7 @@ public class AutoSnowGolem extends Module {
 
             mc.player.inventory.currentItem = pumpkinSlot;
             placeBlock(new BlockPos(placeTarget.add(0, 2, 0)));
-        }
-        else if (placeMode.getValue().equals(PlaceMode.LOOK) && isAreaPlacableLook(mc.objectMouseOver.getBlockPos())) {
+        } else if (placeMode.getValue().equals(PlaceMode.LOOK) && isAreaPlacableLook(mc.objectMouseOver.getBlockPos())) {
             mc.player.inventory.currentItem = snowSlot;
 
             Command.sendWarningMessage("Trying to place snow");
@@ -316,16 +318,22 @@ public class AutoSnowGolem extends Module {
 
     private boolean isAreaPlaceable(BlockPos blockPos) {
         for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(blockPos))) {
-            if (entity instanceof EntityLivingBase) return false; } // entity on block
+            if (entity instanceof EntityLivingBase) return false;
+        } // entity on block
         if (!mc.world.getBlockState(blockPos).getMaterial().isReplaceable()) return false; // space for hopper
-        if (!mc.world.getBlockState(blockPos.add(0, 1, 0)).getMaterial().isReplaceable()) return false; // space for shulker
-        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockAir) return false; // air below hopper
-        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid) return false; // liquid below
-        if (mc.player.getPositionVector().distanceTo(new Vec3d(blockPos)) > placeRange.getValue()) return false; // out of range
+        if (!mc.world.getBlockState(blockPos.add(0, 1, 0)).getMaterial().isReplaceable())
+            return false; // space for shulker
+        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockAir)
+            return false; // air below hopper
+        if (mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock() instanceof BlockLiquid)
+            return false; // liquid below
+        if (mc.player.getPositionVector().distanceTo(new Vec3d(blockPos)) > placeRange.getValue())
+            return false; // out of range
         Block block = mc.world.getBlockState(blockPos.add(0, -1, 0)).getBlock();
         if (blackList.contains(block) || shulkerList.contains(block)) return false; // needs sneak
         return !(mc.player.getPositionVector().distanceTo(new Vec3d(blockPos).add(0, 1, 0)) > placeRange.getValue());
     }
+
     private boolean isAreaPlacableLook(BlockPos lookPos) {
         lookPos = mc.objectMouseOver.getBlockPos();
         Command.sendWarningMessage("Trying to place");

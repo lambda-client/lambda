@@ -90,7 +90,7 @@ public final class Uniform {
     /**
      * Creates a uniform variable from the shader object id and the uniform's name
      *
-     * @param shaderID Shader object ID
+     * @param shaderID    Shader object ID
      * @param uniformName Uniform Name
      * @return The UniformVariable representation
      */

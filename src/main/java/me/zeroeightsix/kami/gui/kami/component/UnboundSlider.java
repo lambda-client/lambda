@@ -40,12 +40,14 @@ public class UnboundSlider extends AbstractComponent {
 
             @Override
             public void onMouseDrag(MouseButtonEvent event) {
-                int diff = (originX - event.getX())/sensitivity;
-                setValue(Math.floor((originValue-(diff*(originValue==0 ? 1 : Math.abs(originValue)/10f)))*10f)/10f);
+                int diff = (originX - event.getX()) / sensitivity;
+                setValue(Math.floor((originValue - (diff * (originValue == 0 ? 1 : Math.abs(originValue) / 10f))) * 10f) / 10f);
             }
 
             @Override
-            public void onMouseMove(MouseMoveEvent event) { }
+            public void onMouseMove(MouseMoveEvent event) {
+            }
+
             @Override
             public void onScroll(MouseScrollEvent event) {
                 setValue(Math.round(getValue() + (event.isUp() ? 1 : -1)));
@@ -63,8 +65,8 @@ public class UnboundSlider extends AbstractComponent {
     }
 
     public void setValue(double value) {
-        if (min != Double.MIN_VALUE) value = Math.max(value,min);
-        if (max != Double.MAX_VALUE) value = Math.min(value,max);
+        if (min != Double.MIN_VALUE) value = Math.max(value, min);
+        if (max != Double.MAX_VALUE) value = Math.min(value, max);
         Slider.SliderPoof.SliderPoofInfo info = new Slider.SliderPoof.SliderPoofInfo(this.value, value);
         callPoof(Slider.SliderPoof.class, info);
         this.value = integer ? Math.floor(info.getNewValue()) : info.getNewValue();

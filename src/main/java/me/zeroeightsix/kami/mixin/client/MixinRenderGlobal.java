@@ -16,8 +16,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(RenderGlobal.class)
 public class MixinRenderGlobal {
 
-    @Shadow Minecraft mc;
-    @Shadow public ChunkRenderContainer renderContainer;
+    @Shadow
+    Minecraft mc;
+    @Shadow
+    public ChunkRenderContainer renderContainer;
 
     @Inject(method = "renderBlockLayer(Lnet/minecraft/util/BlockRenderLayer;)V", at = @At("HEAD"), cancellable = true)
     public void renderBlockLayer(BlockRenderLayer blockLayerIn, CallbackInfo callbackInfo) {

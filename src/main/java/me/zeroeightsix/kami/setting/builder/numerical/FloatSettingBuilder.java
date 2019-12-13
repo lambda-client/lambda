@@ -59,5 +59,5 @@ public class FloatSettingBuilder extends NumericalSettingBuilder<Float> {
     public FloatSettingBuilder withRestriction(Predicate<Float> predicate) {
         return (FloatSettingBuilder) super.withRestriction(predicate);
     }
-    
+
 }

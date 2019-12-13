@@ -1,26 +1,40 @@
 package me.zeroeightsix.kami.module.modules.sdashb.combat;
 
-import net.minecraft.entity.player.*;
-import me.zeroeightsix.kami.setting.*;
-import net.minecraft.network.play.client.*;
-import net.minecraft.entity.*;
-import net.minecraft.network.*;
-import me.zeroeightsix.kami.command.*;
-import me.zeroeightsix.kami.module.*;
-import net.minecraft.entity.item.*;
-import java.util.*;
-import net.minecraft.util.math.*;
-import net.minecraft.util.*;
-import net.minecraft.item.*;
-import net.minecraft.block.*;
-import me.zeroeightsix.kami.util.*;
+import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.BlockInteractionHelper;
+import me.zeroeightsix.kami.util.EntityUtil;
+import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.Wrapper;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockObsidian;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.item.EntityXPOrb;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.client.CPacketEntityAction;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /***
  * @author Elementars
  */
 @Module.Info(name = "AutoTrap", category = Module.Category.COMBAT)
-public class AutoTrap extends Module
-{
+public class AutoTrap extends Module {
     private final Vec3d[] offsetsDefault;
     private Setting<Double> range;
     private Setting<Integer> blockPerTick;
@@ -35,7 +49,7 @@ public class AutoTrap extends Module
     private boolean firstRun;
 
     public AutoTrap() {
-        this.offsetsDefault = new Vec3d[] { new Vec3d(0.0, 0.0, -1.0), new Vec3d(1.0, 0.0, 0.0), new Vec3d(0.0, 0.0, 1.0), new Vec3d(-1.0, 0.0, 0.0), new Vec3d(0.0, 1.0, -1.0), new Vec3d(1.0, 1.0, 0.0), new Vec3d(0.0, 1.0, 1.0), new Vec3d(-1.0, 1.0, 0.0), new Vec3d(0.0, 2.0, -1.0), new Vec3d(1.0, 2.0, 0.0), new Vec3d(0.0, 2.0, 1.0), new Vec3d(-1.0, 2.0, 0.0), new Vec3d(0.0, 3.0, -1.0), new Vec3d(0.0, 3.0, 0.0) };
+        this.offsetsDefault = new Vec3d[]{new Vec3d(0.0, 0.0, -1.0), new Vec3d(1.0, 0.0, 0.0), new Vec3d(0.0, 0.0, 1.0), new Vec3d(-1.0, 0.0, 0.0), new Vec3d(0.0, 1.0, -1.0), new Vec3d(1.0, 1.0, 0.0), new Vec3d(0.0, 1.0, 1.0), new Vec3d(-1.0, 1.0, 0.0), new Vec3d(0.0, 2.0, -1.0), new Vec3d(1.0, 2.0, 0.0), new Vec3d(0.0, 2.0, 1.0), new Vec3d(-1.0, 2.0, 0.0), new Vec3d(0.0, 3.0, -1.0), new Vec3d(0.0, 3.0, 0.0)};
         this.range = this.register(Settings.d("Range", 5.5));
         this.blockPerTick = this.register(Settings.i("Blocks per Tick", 4));
         this.rotate = this.register(Settings.b("Rotate", true));
@@ -66,7 +80,7 @@ public class AutoTrap extends Module
             Wrapper.getPlayer().inventory.currentItem = this.playerHotbarSlot;
         }
         if (this.isSneaking) {
-            AutoTrap.mc.player.connection.sendPacket((Packet)new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
+            AutoTrap.mc.player.connection.sendPacket((Packet) new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
             this.isSneaking = false;
         }
         this.playerHotbarSlot = -1;
@@ -97,8 +111,7 @@ public class AutoTrap extends Module
             if (this.announceUsage.getValue()) {
                 Command.sendChatMessage("[AutoTrap2] Enabled, target: " + this.lastTickTargetName);
             }
-        }
-        else if (!this.lastTickTargetName.equals(this.closestTarget.getName())) {
+        } else if (!this.lastTickTargetName.equals(this.closestTarget.getName())) {
             this.lastTickTargetName = this.closestTarget.getName();
             this.offsetStep = 0;
             if (this.announceUsage.getValue()) {
@@ -113,13 +126,13 @@ public class AutoTrap extends Module
                 this.offsetStep = 0;
                 break;
             }
-            final BlockPos offsetPos = new BlockPos((Vec3d)placeTargets.get(this.offsetStep));
+            final BlockPos offsetPos = new BlockPos((Vec3d) placeTargets.get(this.offsetStep));
             final BlockPos targetPos = new BlockPos(this.closestTarget.getPositionVector()).down().add(offsetPos.x, offsetPos.y, offsetPos.z);
             boolean shouldTryToPlace = true;
             if (!Wrapper.getWorld().getBlockState(targetPos).getMaterial().isReplaceable()) {
                 shouldTryToPlace = false;
             }
-            for (final Entity entity : AutoTrap.mc.world.getEntitiesWithinAABBExcludingEntity((Entity)null, new AxisAlignedBB(targetPos))) {
+            for (final Entity entity : AutoTrap.mc.world.getEntitiesWithinAABBExcludingEntity((Entity) null, new AxisAlignedBB(targetPos))) {
                 if (!(entity instanceof EntityItem) && !(entity instanceof EntityXPOrb)) {
                     shouldTryToPlace = false;
                     break;
@@ -136,7 +149,7 @@ public class AutoTrap extends Module
                 this.lastHotbarSlot = this.playerHotbarSlot;
             }
             if (this.isSneaking) {
-                AutoTrap.mc.player.connection.sendPacket((Packet)new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
+                AutoTrap.mc.player.connection.sendPacket((Packet) new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
                 this.isSneaking = false;
             }
         }
@@ -154,7 +167,7 @@ public class AutoTrap extends Module
             final BlockPos neighbor = pos.offset(side);
             final EnumFacing side2 = side.getOpposite();
             if (AutoTrap.mc.world.getBlockState(neighbor).getBlock().canCollideCheck(AutoTrap.mc.world.getBlockState(neighbor), false)) {
-                final Vec3d hitVec = new Vec3d((Vec3i)neighbor).add(0.5, 0.5, 0.5).add(new Vec3d(side2.getDirectionVec()).scale(0.5));
+                final Vec3d hitVec = new Vec3d((Vec3i) neighbor).add(0.5, 0.5, 0.5).add(new Vec3d(side2.getDirectionVec()).scale(0.5));
                 if (eyesPos.distanceTo(hitVec) <= this.range.getValue()) {
                     final int obiSlot = this.findObiInHotbar();
                     if (obiSlot == -1) {
@@ -167,7 +180,7 @@ public class AutoTrap extends Module
                     }
                     final Block neighborPos = AutoTrap.mc.world.getBlockState(neighbor).getBlock();
                     if (BlockInteractionHelper.blackList.contains(neighborPos) || BlockInteractionHelper.shulkerList.contains(neighborPos)) {
-                        AutoTrap.mc.player.connection.sendPacket((Packet)new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.START_SNEAKING));
+                        AutoTrap.mc.player.connection.sendPacket((Packet) new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.START_SNEAKING));
                         this.isSneaking = true;
                     }
                     if (this.rotate.getValue()) {
@@ -187,7 +200,7 @@ public class AutoTrap extends Module
         for (int i = 0; i < 9; ++i) {
             final ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
             if (stack != ItemStack.EMPTY && stack.getItem() instanceof ItemBlock) {
-                final Block block = ((ItemBlock)stack.getItem()).getBlock();
+                final Block block = ((ItemBlock) stack.getItem()).getBlock();
                 if (block instanceof BlockObsidian) {
                     slot = i;
                     break;
@@ -198,7 +211,7 @@ public class AutoTrap extends Module
     }
 
     private void findClosestTarget() {
-        final List<EntityPlayer> playerList = (List<EntityPlayer>)Wrapper.getWorld().playerEntities;
+        final List<EntityPlayer> playerList = (List<EntityPlayer>) Wrapper.getWorld().playerEntities;
         this.closestTarget = null;
         for (final EntityPlayer target : playerList) {
             if (target == AutoTrap.mc.player) {
@@ -207,7 +220,7 @@ public class AutoTrap extends Module
             if (Friends.isFriend(target.getName())) {
                 continue;
             }
-            if (!EntityUtil.isLiving((Entity)target)) {
+            if (!EntityUtil.isLiving((Entity) target)) {
                 continue;
             }
             if (target.getHealth() <= 0.0f) {
@@ -215,9 +228,8 @@ public class AutoTrap extends Module
             }
             if (this.closestTarget == null) {
                 this.closestTarget = target;
-            }
-            else {
-                if (Wrapper.getPlayer().getDistance((Entity)target) >= Wrapper.getPlayer().getDistance((Entity)this.closestTarget)) {
+            } else {
+                if (Wrapper.getPlayer().getDistance((Entity) target) >= Wrapper.getPlayer().getDistance((Entity) this.closestTarget)) {
                     continue;
                 }
                 this.closestTarget = target;

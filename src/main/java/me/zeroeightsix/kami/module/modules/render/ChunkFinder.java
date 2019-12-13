@@ -2,11 +2,11 @@ package me.zeroeightsix.kami.module.modules.render;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.ChunkEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
@@ -103,7 +103,7 @@ public class ChunkFinder extends Module {
         if (!event.getPacket().isFullChunk()) {
             chunks.add(event.getChunk());
             dirty = true;
-            if(saveNewChunks.getValue()) {
+            if (saveNewChunks.getValue()) {
                 saveNewChunk(event.getChunk());
             }
         }
@@ -113,23 +113,23 @@ public class ChunkFinder extends Module {
     public void saveNewChunk(Chunk chunk) {
         saveNewChunk(testAndGetLogWriter(), getNewChunkInfo(chunk));
     }
-    
+
     private String getNewChunkInfo(Chunk chunk) {
         String rV = String.format("%d,%d,%d", System.currentTimeMillis(), chunk.x, chunk.z);
-        if(alsoSaveNormalCoords.getValue()){
+        if (alsoSaveNormalCoords.getValue()) {
             rV += String.format(",%d,%d", chunk.x * 16 + 8, chunk.z * 16 + 8);
         }
         return rV;
     }
-    
+
     private PrintWriter testAndGetLogWriter() {
-        if(lastSetting.testChangeAndUpdate()) {
+        if (lastSetting.testChangeAndUpdate()) {
             logWriterClose();
             logWriterOpen();
         }
         return logWriter;
     }
-    
+
     private void logWriterOpen() {
         String filepath = getPath().toString();
         try {
@@ -148,7 +148,7 @@ public class ChunkFinder extends Module {
 
     private Path getPath() {
         /* code from baritone (https://github.com/cabaletta/baritone/blob/master/src/main/java/baritone/cache/WorldProvider.java)
-        */
+         */
         File file = null;
         int dimension = mc.player.dimension;
 
@@ -174,15 +174,15 @@ public class ChunkFinder extends Module {
         }
 
         // We will actually store the world data in a subfolder: "DIM<id>"
-        if(dimension != 0) { // except if it's the overworld
+        if (dimension != 0) { // except if it's the overworld
             file = new File(file, "DIM" + dimension);
         }
-        
+
         // maybe we want to save it in region folder
-        if(saveInRegionFolder.getValue()) {
+        if (saveInRegionFolder.getValue()) {
             file = new File(file, "region");
         }
-        
+
         file = new File(file, "newChunkLogs");
 
 
@@ -191,7 +191,7 @@ public class ChunkFinder extends Module {
 
         Path rV = file.toPath();
         try {
-            if(!Files.exists(rV)) { // ovsly always...
+            if (!Files.exists(rV)) { // ovsly always...
                 Files.createDirectories(rV.getParent());
                 Files.createFile(rV);
             }
@@ -202,40 +202,40 @@ public class ChunkFinder extends Module {
         }
         return rV;
     }
-    
-    private Path makeMultiplayerDirectory(){
+
+    private Path makeMultiplayerDirectory() {
         File rV = Minecraft.getMinecraft().gameDir;
         String folderName;
-        switch(saveOption.getValue()){
-                case liteLoaderWdl: // make folder structure like liteLoader
-                    folderName = mc.getCurrentServerData().serverName;
-                    
-                    rV = new File(rV, "saves");
-                    rV = new File(rV, folderName);
-                    break;
-                case nhackWdl: // make folder structure like nhack-insdustries
-                    folderName = getNHackInetName();
-                    
-                    rV = new File(rV, "config");
-                    rV = new File(rV, "wdl-saves");
-                    rV = new File(rV, folderName);
+        switch (saveOption.getValue()) {
+            case liteLoaderWdl: // make folder structure like liteLoader
+                folderName = mc.getCurrentServerData().serverName;
 
-                    // extra because name might be different
-                    if (!rV.exists()) {
-                        Command.sendChatMessage("nhack wdl directory doesnt exist: " + folderName);
-                        Command.sendChatMessage("creating the directory now. It is recommended to update the ip");
-                    }
-                    break;
-                default: // make folder structure in .minecraft
-                    folderName = mc.getCurrentServerData().serverName + "-" + mc.getCurrentServerData().serverIP;
-                    if (SystemUtils.IS_OS_WINDOWS) {
-                        folderName = folderName.replace(":", "_");
-                    }
+                rV = new File(rV, "saves");
+                rV = new File(rV, folderName);
+                break;
+            case nhackWdl: // make folder structure like nhack-insdustries
+                folderName = getNHackInetName();
 
-                    rV = new File(rV, "KAMI_NewChunks");
-                    rV = new File(rV, folderName);
-            }
-        
+                rV = new File(rV, "config");
+                rV = new File(rV, "wdl-saves");
+                rV = new File(rV, folderName);
+
+                // extra because name might be different
+                if (!rV.exists()) {
+                    Command.sendChatMessage("nhack wdl directory doesnt exist: " + folderName);
+                    Command.sendChatMessage("creating the directory now. It is recommended to update the ip");
+                }
+                break;
+            default: // make folder structure in .minecraft
+                folderName = mc.getCurrentServerData().serverName + "-" + mc.getCurrentServerData().serverIP;
+                if (SystemUtils.IS_OS_WINDOWS) {
+                    folderName = folderName.replace(":", "_");
+                }
+
+                rV = new File(rV, "KAMI_NewChunks");
+                rV = new File(rV, folderName);
+        }
+
         return rV.toPath();
     }
 
@@ -251,7 +251,7 @@ public class ChunkFinder extends Module {
     }
 
     private boolean hasNoPort(String ip) {
-        if(!ip.contains("_")) {
+        if (!ip.contains("_")) {
             return true;
         }
 
@@ -271,18 +271,17 @@ public class ChunkFinder extends Module {
         }
         return true;
     }
-    
+
     private void logWriterClose() {
-        if(logWriter != null) {
+        if (logWriter != null) {
             logWriter.close();
             logWriter = null;
         }
     }
-    
+
     private void saveNewChunk(PrintWriter log, String data) {
         log.println(data);
     }
-
 
 
     @EventHandler
@@ -296,7 +295,7 @@ public class ChunkFinder extends Module {
     private enum SaveOption {
         extraFolder, liteLoaderWdl, nhackWdl
     }
-    
+
     private class LastSetting {
 
         SaveOption lastSaveOption;
@@ -325,10 +324,10 @@ public class ChunkFinder extends Module {
             if (alsoSaveNormalCoords.getValue() != lastSaveNormal) {
                 return true;
             }
-            if(dimension != mc.player.dimension) {
+            if (dimension != mc.player.dimension) {
                 return true;
             }
-            if(!mc.getCurrentServerData().serverIP.equals(ip)) { // strings need equals + this way because could be null
+            if (!mc.getCurrentServerData().serverIP.equals(ip)) { // strings need equals + this way because could be null
                 return true;
             }
             return false;

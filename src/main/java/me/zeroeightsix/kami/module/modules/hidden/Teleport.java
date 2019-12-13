@@ -18,7 +18,7 @@ public class Teleport extends Module {
 
     @Override
     public void onUpdate() {
-        if(finalPos == null) {
+        if (finalPos == null) {
             Command.sendErrorMessage("Position not set, use .tp");
             this.disable();
             return;

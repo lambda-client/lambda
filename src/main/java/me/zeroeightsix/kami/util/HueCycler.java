@@ -13,12 +13,12 @@ public class HueCycler {
     int[] cycles;
 
     public HueCycler(int cycles) {
-        if (cycles<=0) throw new IllegalArgumentException("cycles <= 0");
+        if (cycles <= 0) throw new IllegalArgumentException("cycles <= 0");
         this.cycles = new int[cycles];
         double hue = 0;
-        double add = 1/(double)cycles;
+        double add = 1 / (double) cycles;
         for (int i = 0; i < cycles; i++) {
-            this.cycles[i] = Color.HSBtoRGB((float) hue, 1,1);
+            this.cycles[i] = Color.HSBtoRGB((float) hue, 1, 1);
             hue += add;
         }
     }
@@ -44,17 +44,17 @@ public class HueCycler {
 
     public void set() {
         int rgb = cycles[index];
-        float red = ((rgb >> 16) & 0xFF)/255f;
-        float green = ((rgb >> 8) & 0xFF)/255f;
-        float blue = (rgb & 0xFF)/255f;
+        float red = ((rgb >> 16) & 0xFF) / 255f;
+        float green = ((rgb >> 8) & 0xFF) / 255f;
+        float blue = (rgb & 0xFF) / 255f;
         GL11.glColor3f(red, green, blue);
     }
 
     public void setNext(float alpha) {
         int rgb = next();
-        float red = ((rgb >> 16) & 0xFF)/255f;
-        float green = ((rgb >> 8) & 0xFF)/255f;
-        float blue = (rgb & 0xFF)/255f;
+        float red = ((rgb >> 16) & 0xFF) / 255f;
+        float green = ((rgb >> 8) & 0xFF) / 255f;
+        float blue = (rgb & 0xFF) / 255f;
         GL11.glColor4f(red, green, blue, alpha);
     }
 

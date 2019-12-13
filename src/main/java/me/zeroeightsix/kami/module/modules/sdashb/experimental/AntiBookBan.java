@@ -9,5 +9,5 @@ import me.zeroeightsix.kami.module.Module;
 
 @Module.Info(name = "AntiBookBan", category = Module.Category.EXPERIMENTAL, description = "Drops all book shulkers")
 public class AntiBookBan extends Module {
-	
+
 }

@@ -48,7 +48,7 @@ public class SyntaxChunk {
     }
 
     public void setParser(SyntaxParser parser) {
-		this.parser = parser;
-	}
-    
+        this.parser = parser;
+    }
+
 }

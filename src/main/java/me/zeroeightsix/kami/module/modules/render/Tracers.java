@@ -36,17 +36,17 @@ public class Tracers extends Module {
         Minecraft.getMinecraft().world.loadedEntityList.stream()
                 .filter(EntityUtil::isLiving)
                 .filter(entity -> !EntityUtil.isFakeLocalPlayer(entity))
-                .filter(entity -> (entity instanceof EntityPlayer ? players.getValue() && mc.player!=entity : (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue())))
-                .filter(entity -> mc.player.getDistance(entity)<range.getValue())
+                .filter(entity -> (entity instanceof EntityPlayer ? players.getValue() && mc.player != entity : (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue())))
+                .filter(entity -> mc.player.getDistance(entity) < range.getValue())
                 .forEach(entity -> {
                     int colour = getColour(entity);
                     if (colour == ColourUtils.Colors.RAINBOW) {
                         if (!friends.getValue()) return;
                         colour = cycler.current();
                     }
-                    final float r = ((colour >>> 16) & 0xFF)/255f;
-                    final float g = ((colour >>> 8) & 0xFF)/255f;
-                    final float b = (colour & 0xFF)/255f;
+                    final float r = ((colour >>> 16) & 0xFF) / 255f;
+                    final float g = ((colour >>> 8) & 0xFF) / 255f;
+                    final float b = (colour & 0xFF) / 255f;
                     drawLineToEntity(entity, r, g, b, opacity.getValue());
                 });
         GlStateManager.popMatrix();
@@ -59,9 +59,9 @@ public class Tracers extends Module {
 
     private void drawRainbowToEntity(Entity entity, float opacity) {
         Vec3d eyes = new Vec3d(0, 0, 1)
-                .rotatePitch(-(float)Math
+                .rotatePitch(-(float) Math
                         .toRadians(Minecraft.getMinecraft().player.rotationPitch))
-                .rotateYaw(-(float)Math
+                .rotateYaw(-(float) Math
                         .toRadians(Minecraft.getMinecraft().player.rotationYaw));
         double[] xyz = interpolate(entity);
         double posx = xyz[0];
@@ -97,14 +97,14 @@ public class Tracers extends Module {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(true);
         GL11.glDisable(GL11.GL_BLEND);
-        GL11.glColor3d(1d,1d,1d);
+        GL11.glColor3d(1d, 1d, 1d);
         GlStateManager.enableLighting();
     }
 
     private int getColour(Entity entity) {
         if (entity instanceof EntityPlayer) {
             return Friends.isFriend(entity.getName()) ? ColourUtils.Colors.RAINBOW : ColourUtils.Colors.WHITE;
-        }else{
+        } else {
             if (EntityUtil.isPassive(entity)) return ColourUtils.Colors.GREEN;
             else
                 return ColourUtils.Colors.RED;
@@ -119,26 +119,25 @@ public class Tracers extends Module {
         double posX = interpolate(entity.posX, entity.lastTickPosX) - mc.getRenderManager().renderPosX;
         double posY = interpolate(entity.posY, entity.lastTickPosY) - mc.getRenderManager().renderPosY;
         double posZ = interpolate(entity.posZ, entity.lastTickPosZ) - mc.getRenderManager().renderPosZ;
-        return new double[] { posX, posY, posZ };
+        return new double[]{posX, posY, posZ};
     }
 
-    public static void drawLineToEntity(Entity e, float red, float green, float blue, float opacity){
+    public static void drawLineToEntity(Entity e, float red, float green, float blue, float opacity) {
         double[] xyz = interpolate(e);
-        drawLine(xyz[0],xyz[1],xyz[2], e.height, red, green, blue, opacity);
+        drawLine(xyz[0], xyz[1], xyz[2], e.height, red, green, blue, opacity);
     }
 
-    public static void drawLine(double posx, double posy, double posz, double up, float red, float green, float blue, float opacity)
-    {
+    public static void drawLine(double posx, double posy, double posz, double up, float red, float green, float blue, float opacity) {
         Vec3d eyes = new Vec3d(0, 0, 1)
-                .rotatePitch(-(float)Math
+                .rotatePitch(-(float) Math
                         .toRadians(Minecraft.getMinecraft().player.rotationPitch))
-                .rotateYaw(-(float)Math
+                .rotateYaw(-(float) Math
                         .toRadians(Minecraft.getMinecraft().player.rotationYaw));
 
         drawLineFromPosToPos(eyes.x, eyes.y + mc.player.getEyeHeight(), eyes.z, posx, posy, posz, up, red, green, blue, opacity);
     }
 
-    public static void drawLineFromPosToPos(double posx, double posy, double posz, double posx2, double posy2, double posz2, double up, float red, float green, float blue, float opacity){
+    public static void drawLineFromPosToPos(double posx, double posy, double posz, double posx2, double posy2, double posz2, double up, float red, float green, float blue, float opacity) {
         GL11.glBlendFunc(770, 771);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glLineWidth(1.5f);
@@ -155,7 +154,7 @@ public class Tracers extends Module {
             GL11.glVertex3d(posx, posy, posz);
             GL11.glVertex3d(posx2, posy2, posz2);
             GL11.glVertex3d(posx2, posy2, posz2);
-            GL11.glVertex3d(posx2, posy2+up, posz2);
+            GL11.glVertex3d(posx2, posy2 + up, posz2);
         }
 
         GL11.glEnd();
@@ -163,7 +162,7 @@ public class Tracers extends Module {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(true);
         GL11.glDisable(GL11.GL_BLEND);
-        GL11.glColor3d(1d,1d,1d);
+        GL11.glColor3d(1d, 1d, 1d);
         GlStateManager.enableLighting();
     }
 }

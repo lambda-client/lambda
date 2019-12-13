@@ -27,7 +27,7 @@ public class PathCommand extends Command {
                 if (!Pathfind.points.isEmpty())
                     Command.sendChatMessage("Path created!");
                 return;
-            }else{
+            } else {
                 Command.sendChatMessage("No location to retry pathfinding to.");
                 return;
             }
@@ -45,7 +45,7 @@ public class PathCommand extends Command {
             Pathfind.createPath(end);
             if (!Pathfind.points.isEmpty())
                 Command.sendChatMessage("Path created!");
-        }catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             Command.sendChatMessage("Error: input must be numerical");
             return;
         }

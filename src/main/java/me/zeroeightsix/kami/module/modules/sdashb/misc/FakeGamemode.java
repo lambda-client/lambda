@@ -28,24 +28,21 @@ public class FakeGamemode extends Module {
                 }
             }
             return;
-        }
-        else if (gamemode.getValue().equals(GamemodeChanged.CREATIVE)) {
+        } else if (gamemode.getValue().equals(GamemodeChanged.CREATIVE)) {
             mc.playerController.setGameType(gameType);
             mc.playerController.setGameType(GameType.CREATIVE);
-        }
-        else if (gamemode.getValue().equals(GamemodeChanged.SURVIVAL)) {
+        } else if (gamemode.getValue().equals(GamemodeChanged.SURVIVAL)) {
             mc.playerController.setGameType(gameType);
             mc.playerController.setGameType(GameType.SURVIVAL);
-        }
-        else if (gamemode.getValue().equals(GamemodeChanged.ADVENTURE)) {
+        } else if (gamemode.getValue().equals(GamemodeChanged.ADVENTURE)) {
             mc.playerController.setGameType(gameType);
             mc.playerController.setGameType(GameType.ADVENTURE);
-        }
-        else if (gamemode.getValue().equals(GamemodeChanged.SPECTATOR)) {
+        } else if (gamemode.getValue().equals(GamemodeChanged.SPECTATOR)) {
             mc.playerController.setGameType(gameType);
             mc.playerController.setGameType(GameType.SPECTATOR);
         }
     }
+
     public void onEnable() {
         if (mc.player == null) return;
         gameType = mc.playerController.getCurrentGameType();

@@ -16,7 +16,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentUI<CheckButton> {
 
     protected Color backgroundColour = new Color(200, 56, 56);
-    protected Color backgroundColourHover = new Color(255,66,66);
+    protected Color backgroundColourHover = new Color(255, 66, 66);
 
     protected Color idleColourNormal = new Color(200, 200, 200);
     protected Color downColourNormal = new Color(190, 190, 190);
@@ -27,12 +27,12 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
     @Override
     public void renderComponent(CheckButton component, FontRenderer ff) {
 
-        glColor4f(backgroundColour.getRed()/255f, backgroundColour.getGreen()/255f, backgroundColour.getBlue()/255f, component.getOpacity());
-        if (component.isToggled()){
-            glColor3f(.9f, backgroundColour.getGreen()/255f, backgroundColour.getBlue()/255f);
+        glColor4f(backgroundColour.getRed() / 255f, backgroundColour.getGreen() / 255f, backgroundColour.getBlue() / 255f, component.getOpacity());
+        if (component.isToggled()) {
+            glColor3f(.9f, backgroundColour.getGreen() / 255f, backgroundColour.getBlue() / 255f);
         }
-        if (component.isHovered() || component.isPressed()){
-            glColor4f(backgroundColourHover.getRed()/255f, backgroundColourHover.getGreen()/255f, backgroundColourHover.getBlue()/255f, component.getOpacity());
+        if (component.isHovered() || component.isPressed()) {
+            glColor4f(backgroundColourHover.getRed() / 255f, backgroundColourHover.getGreen() / 255f, backgroundColourHover.getBlue() / 255f, component.getOpacity());
         }
 
         String text = component.getName();
@@ -40,9 +40,9 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
         if (component.isHovered())
             c = (c & 0x7f7f7f) << 1;
 
-        glColor3f(1,1,1);
+        glColor3f(1, 1, 1);
         glEnable(GL_TEXTURE_2D);
-        KamiGUI.fontRenderer.drawString(component.getWidth() / 2 - KamiGUI.fontRenderer.getStringWidth(text) / 2, KamiGUI.fontRenderer.getFontHeight()/2-2, c, text);
+        KamiGUI.fontRenderer.drawString(component.getWidth() / 2 - KamiGUI.fontRenderer.getStringWidth(text) / 2, KamiGUI.fontRenderer.getFontHeight() / 2 - 2, c, text);
         glDisable(GL_TEXTURE_2D);
         glDisable(GL_BLEND);
     }
@@ -50,6 +50,6 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
     @Override
     public void handleAddComponent(CheckButton component, Container container) {
         component.setWidth(KamiGUI.fontRenderer.getStringWidth(component.getName()) + 28);
-        component.setHeight(KamiGUI.fontRenderer.getFontHeight()+2);
+        component.setHeight(KamiGUI.fontRenderer.getFontHeight() + 2);
     }
 }

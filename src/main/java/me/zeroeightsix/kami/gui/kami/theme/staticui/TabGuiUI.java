@@ -21,8 +21,8 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
     public void renderComponent(TabGUI component, FontRenderer fontRenderer) {
         boolean updatelerp = false;
         float difference = System.currentTimeMillis() - lastms;
-        if (difference > 2){
-            component.selectedLerpY = component.selectedLerpY + ((component.selected*10) - component.selectedLerpY) * difference * .02f;
+        if (difference > 2) {
+            component.selectedLerpY = component.selectedLerpY + ((component.selected * 10) - component.selectedLerpY) * difference * .02f;
             updatelerp = true;
             lastms = System.currentTimeMillis();
         }
@@ -46,31 +46,29 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
         GL11.glEnable(GL11.GL_SCISSOR_TEST);*/
 
         KamiGUI.primaryColour.setGLColour();
-        glColor3f(.59f,.05f,.11f);
+        glColor3f(.59f, .05f, .11f);
         GL11.glBegin(GL11.GL_QUADS);
         {
-            GL11.glVertex2d(0,component.selectedLerpY);
-            GL11.glVertex2d(0,component.selectedLerpY+10);
-            GL11.glVertex2d(component.width,component.selectedLerpY+10);
-            GL11.glVertex2d(component.width,component.selectedLerpY);
+            GL11.glVertex2d(0, component.selectedLerpY);
+            GL11.glVertex2d(0, component.selectedLerpY + 10);
+            GL11.glVertex2d(component.width, component.selectedLerpY + 10);
+            GL11.glVertex2d(component.width, component.selectedLerpY);
         }
         GL11.glEnd();
 
         int textY = 1;
-        for(int i = 0; i < component.tabs.size(); i++)
-        {
+        for (int i = 0; i < component.tabs.size(); i++) {
             String tabName = component.tabs.get(i).name;
             /*if(i == selected)
                 tabName = (tabOpened ? "<" : ">") + tabName;*/
 
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glColor3f(1,1,1);
-            Wrapper.getFontRenderer().drawStringWithShadow(2, textY,255,255,255,"\u00A77"+tabName);
+            GL11.glColor3f(1, 1, 1);
+            Wrapper.getFontRenderer().drawStringWithShadow(2, textY, 255, 255, 255, "\u00A77" + tabName);
             textY += 10;
         }
 
-        if(component.tabOpened)
-        {
+        if (component.tabOpened) {
             GL11.glPushMatrix();
             GL11.glDisable(GL11.GL_TEXTURE_2D);
 
@@ -80,21 +78,20 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
             drawBox(0, 0, tab.width, tab.height);
 
             if (updatelerp)
-                tab.lerpSelectY = tab.lerpSelectY + ((tab.selected*10)-tab.lerpSelectY) * difference * .02f;
+                tab.lerpSelectY = tab.lerpSelectY + ((tab.selected * 10) - tab.lerpSelectY) * difference * .02f;
 
-            glColor3f(.60f,.56f,1.00f);
+            glColor3f(.60f, .56f, 1.00f);
             GL11.glBegin(GL11.GL_QUADS);
             {
-                GL11.glVertex2d(0,tab.lerpSelectY);
-                GL11.glVertex2d(0,tab.lerpSelectY+10);
-                GL11.glVertex2d(tab.width,tab.lerpSelectY+10);
-                GL11.glVertex2d(tab.width,tab.lerpSelectY);
+                GL11.glVertex2d(0, tab.lerpSelectY);
+                GL11.glVertex2d(0, tab.lerpSelectY + 10);
+                GL11.glVertex2d(tab.width, tab.lerpSelectY + 10);
+                GL11.glVertex2d(tab.width, tab.lerpSelectY);
             }
             GL11.glEnd();
 
             int tabTextY = 1;
-            for(int i = 0; i < tab.features.size(); i++)
-            {
+            for (int i = 0; i < tab.features.size(); i++) {
                 Module feature = tab.features.get(i);
                 String fName = (feature.isEnabled() ? "\u00A7c" : "\u00A77") + feature.getName();
 
@@ -102,8 +99,8 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
                     fName = "\u00A7b" + fName;*/
 
                 GL11.glEnable(GL11.GL_TEXTURE_2D);
-                GL11.glColor3f(1,1,1);
-                Wrapper.getFontRenderer().drawStringWithShadow(2, tabTextY, 255,255,255, fName);
+                GL11.glColor3f(1, 1, 1);
+                Wrapper.getFontRenderer().drawStringWithShadow(2, tabTextY, 255, 255, 255, fName);
                 tabTextY += 10;
             }
 
@@ -118,8 +115,7 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
         GL11.glEnable(GL11.GL_CULL_FACE);
     }
 
-    private void drawBox(int x1, int y1, int x2, int y2)
-    {
+    private void drawBox(int x1, int y1, int x2, int y2) {
         // color
         GL11.glColor4f(0, 0, 0, 0.6f);
 
@@ -141,7 +137,7 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
 
         // outline
         GL11.glLineWidth(1.5f);
-        glColor3f(.59f,.05f,.11f);
+        glColor3f(.59f, .05f, .11f);
         GL11.glBegin(GL11.GL_LINE_LOOP);
         {
             GL11.glVertex2d(xi1, yi1);

@@ -16,14 +16,14 @@ import java.util.List;
 public class SettingsCommand extends Command {
     public SettingsCommand() {
         super("settings", new ChunkBuilder()
-            .append("module", true, new ModuleParser())
-            .build());
+                .append("module", true, new ModuleParser())
+                .build());
         setDescription("List the possible settings of a command");
     }
 
     @Override
     public void call(String[] args) {
-        if (args[0]==null) {
+        if (args[0] == null) {
             Command.sendChatMessage("Please specify a module to display the settings of.");
             return;
         }
@@ -40,12 +40,12 @@ public class SettingsCommand extends Command {
             Setting setting = settings.get(i);
             result[i] = "&b" + setting.getName() + "&3(=" + setting.getValue() + ")  &ftype: &3" + setting.getValue().getClass().getSimpleName();
 
-            if (setting instanceof EnumSetting){
+            if (setting instanceof EnumSetting) {
                 result[i] += "  (";
                 Enum[] enums = (Enum[]) ((EnumSetting) setting).clazz.getEnumConstants();
                 for (Enum e : enums)
                     result[i] += e.name() + ", ";
-                result[i] = result[i].substring(0, result[i].length()-2) + ")";
+                result[i] = result[i].substring(0, result[i].length() - 2) + ")";
             }
         }
         Command.sendStringChatMessage(result);

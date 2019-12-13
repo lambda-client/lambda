@@ -59,5 +59,5 @@ public class DoubleSettingBuilder extends NumericalSettingBuilder<Double> {
     public DoubleSettingBuilder withMinimum(Double minimum) {
         return (DoubleSettingBuilder) super.withMinimum(minimum);
     }
-    
+
 }

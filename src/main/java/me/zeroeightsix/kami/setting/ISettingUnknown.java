@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.setting;
 /**
  * Used as a non-generic base class for Setting that prevents weird type issues.
  * Raw Setting instances are too easy to screw up (they accept Object with no type check)
+ *
  * @author 20kdc
  */
 public interface ISettingUnknown {

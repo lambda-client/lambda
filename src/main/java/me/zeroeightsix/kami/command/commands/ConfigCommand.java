@@ -56,7 +56,7 @@ public class ConfigCommand extends Command {
                         Command.sendChatMessage("&b" + newPath + "&r is not a valid path");
                         break;
                     }
-                    try(BufferedWriter writer = Files.newBufferedWriter(Paths.get("KAMILastConfig.txt"))) {
+                    try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("KAMILastConfig.txt"))) {
                         writer.write(newPath);
                         reload();
                         Command.sendChatMessage("Configuration path set to &b" + newPath + "&r!");

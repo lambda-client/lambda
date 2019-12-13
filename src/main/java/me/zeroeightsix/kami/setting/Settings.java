@@ -109,15 +109,18 @@ public class Settings {
     }
 
     public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter, Predicate<T> restriction, boolean hidden) {
-        return custom(name, initialValue, converter, restriction, (t, t2) -> {}, hidden);
+        return custom(name, initialValue, converter, restriction, (t, t2) -> {
+        }, hidden);
     }
 
     public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter, boolean hidden) {
-        return custom(name, initialValue, converter, input -> true, (t, t2) -> {}, hidden);
+        return custom(name, initialValue, converter, input -> true, (t, t2) -> {
+        }, hidden);
     }
 
     public static <T> SettingBuilder<T> custom(String name, T initialValue, Converter converter) {
-        return custom(name, initialValue, converter, input -> true, (t, t2) -> {}, false);
+        return custom(name, initialValue, converter, input -> true, (t, t2) -> {
+        }, false);
     }
 
 }

@@ -17,8 +17,7 @@ import org.lwjgl.opengl.GL11;
  * they probably didn't write it but I don't have any other credit
  */
 @Module.Info(name = "InvPreview", category = Module.Category.RENDER, description = "View your inventory on screen")
-public class InventoryViewer extends Module
-{
+public class InventoryViewer extends Module {
     private static final ResourceLocation box;
     private Setting<Integer> optionX;
     private Setting<Integer> optionY;
@@ -72,15 +71,14 @@ public class InventoryViewer extends Module
     public void onEnable() {
         if (mc.player != null) {
             Command.sendChatMessage("[InvPreview] Right click the module to move it around");
-        }
-        else if (mc.player == null) {
+        } else if (mc.player == null) {
             return;
         }
     }
 
     @Override
     public void onRender() {
-        final NonNullList<ItemStack> items = (NonNullList<ItemStack>)InventoryViewer.mc.player.inventory.mainInventory;
+        final NonNullList<ItemStack> items = (NonNullList<ItemStack>) InventoryViewer.mc.player.inventory.mainInventory;
         this.boxrender(this.optionX.getValue(), this.optionY.getValue());
         this.itemrender(items, this.optionX.getValue(), this.optionY.getValue());
     }
@@ -97,8 +95,8 @@ public class InventoryViewer extends Module
             final int slotx = x + 1 + item % 9 * 18;
             final int sloty = y + 1 + (item / 9 - 1) * 18;
             preitemrender();
-            InventoryViewer.mc.getRenderItem().renderItemAndEffectIntoGUI((ItemStack)items.get(item), slotx, sloty);
-            InventoryViewer.mc.getRenderItem().renderItemOverlays(InventoryViewer.mc.fontRenderer, (ItemStack)items.get(item), slotx, sloty);
+            InventoryViewer.mc.getRenderItem().renderItemAndEffectIntoGUI((ItemStack) items.get(item), slotx, sloty);
+            InventoryViewer.mc.getRenderItem().renderItemOverlays(InventoryViewer.mc.fontRenderer, (ItemStack) items.get(item), slotx, sloty);
             postitemrender();
         }
     }

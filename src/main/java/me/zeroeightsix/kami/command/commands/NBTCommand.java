@@ -30,7 +30,7 @@ public class NBTCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        if(args[0].isEmpty()) {
+        if (args[0].isEmpty()) {
             sendErrorMessage("Invalid Syntax!");
             return;
         }

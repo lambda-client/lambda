@@ -9,5 +9,6 @@ import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
  */
 public interface Theme {
     public ComponentUI getUIForComponent(Component component);
+
     public FontRenderer getFontRenderer();
 }

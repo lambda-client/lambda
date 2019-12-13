@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zero.alpine.EventBus;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.ClientPlayerAttackEvent;
 import me.zeroeightsix.kami.module.modules.player.TpsSync;

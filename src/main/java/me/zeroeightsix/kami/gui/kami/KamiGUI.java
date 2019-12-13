@@ -19,8 +19,8 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.sdashb.util.CalcPing;
 import me.zeroeightsix.kami.module.modules.sdashb.gui.InfoOverlay;
+import me.zeroeightsix.kami.module.modules.sdashb.util.CalcPing;
 import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.LagCompensator;
 import me.zeroeightsix.kami.util.Pair;
@@ -33,15 +33,15 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityWitherSkull;
-import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextFormatting;
 
 import javax.annotation.Nonnull;
-//import java.lang.management.ManagementFactory;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+
+//import java.lang.management.ManagementFactory;
 
 /**
  * Created by 086 on 25/06/2017.
@@ -211,14 +211,13 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            boolean privateInfoNam = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoNam.getValue());
-            boolean privateInfoTps = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoTps.getValue());
-            boolean privateInfoFps = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoFps.getValue());
-            boolean privateInfoPin = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoPin.getValue());
-            boolean privateInfoMem = (((InfoOverlay)ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
+            boolean privateInfoNam = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoNam.getValue());
+            boolean privateInfoTps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoTps.getValue());
+            boolean privateInfoFps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoFps.getValue());
+            boolean privateInfoPin = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoPin.getValue());
+            boolean privateInfoMem = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
             int privatePingValue = CalcPing.globalInfoPingValue();
             String privateDisplayN = Wrapper.getMinecraft().player.getName();
-
 
 
             if (ModuleManager.getModuleByName("InfoOverlay").isEnabled()) {
@@ -239,15 +238,14 @@ public class KamiGUI extends GUI {
                 if (privateInfoMem) {
                     information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTIONSIGN() + "3mB free");
                 }
-            }
-            else {
+            } else {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
                 information.addLine(Command.SECTIONSIGN() + "EEnable InfoOverlay!");
             }
 
 
-        //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTIONSIGN() + "3 cores");
+            //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTIONSIGN() + "3 cores");
             //information.addLine("\u00A7b" + Wrapper.getPlayer().getDistance() + Command.SECTIONSIGN() + "3 fps");
 
             //OperatingSystemMXBean.getSystemLoadAverage() / OperatingSystemMXBean.getAvailableProcessors()
@@ -336,7 +334,7 @@ public class KamiGUI extends GUI {
                         .collect(Collectors.groupingBy(KamiGUI::getEntityName,
                                 Collectors.reducing(0, ent -> {
                                     if (ent instanceof EntityItem)
-                                        return ((EntityItem)ent).getItem().getCount();
+                                        return ((EntityItem) ent).getItem().getCount();
                                     return 1;
                                 }, Integer::sum)
                         ));

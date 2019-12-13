@@ -6,7 +6,6 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import net.minecraft.block.BlockSand;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.*;
 import net.minecraftforge.client.event.RenderBlockOverlayEvent;
@@ -39,7 +38,8 @@ public class NoRender extends Module {
 
     @EventHandler
     public Listener<RenderBlockOverlayEvent> blockOverlayEventListener = new Listener<>(event -> {
-        if (fire.getValue() && event.getOverlayType() == RenderBlockOverlayEvent.OverlayType.FIRE) event.setCanceled(true);
+        if (fire.getValue() && event.getOverlayType() == RenderBlockOverlayEvent.OverlayType.FIRE)
+            event.setCanceled(true);
     });
 
 }

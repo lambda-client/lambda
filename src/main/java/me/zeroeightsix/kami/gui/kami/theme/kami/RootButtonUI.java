@@ -21,14 +21,14 @@ public class RootButtonUI<T extends Button> extends AbstractComponentUI<Button> 
 
     @Override
     public void renderComponent(Button component, FontRenderer ff) {
-        glColor3f(0.22f,0.22f,0.22f);
-        if (component.isHovered() || component.isPressed()){
-            glColor3f(0.26f,0.26f,0.26f);
+        glColor3f(0.22f, 0.22f, 0.22f);
+        if (component.isHovered() || component.isPressed()) {
+            glColor3f(0.26f, 0.26f, 0.26f);
         }
 
-        RenderHelper.drawRoundedRectangle(0,0,component.getWidth(), component.getHeight(), 3f);
+        RenderHelper.drawRoundedRectangle(0, 0, component.getWidth(), component.getHeight(), 3f);
 
-        glColor3f(1,1,1);
+        glColor3f(1, 1, 1);
         glEnable(GL_TEXTURE_2D);
         KamiGUI.fontRenderer.drawString(component.getWidth() / 2 - KamiGUI.fontRenderer.getStringWidth(component.getName()) / 2, 0, component.isPressed() ? downColour : idleColour, component.getName());
         glDisable(GL_TEXTURE_2D);
@@ -38,6 +38,6 @@ public class RootButtonUI<T extends Button> extends AbstractComponentUI<Button> 
     @Override
     public void handleAddComponent(Button component, Container container) {
         component.setWidth(KamiGUI.fontRenderer.getStringWidth(component.getName()) + 28);
-        component.setHeight(KamiGUI.fontRenderer.getFontHeight()+2);
+        component.setHeight(KamiGUI.fontRenderer.getFontHeight() + 2);
     }
 }
