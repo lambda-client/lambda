@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.player;
+package me.zeroeightsix.kami.module.modules.render;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
