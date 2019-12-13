@@ -1,6 +1,7 @@
 {
   "homepage": "https://github.com/S-B99/KAMI/releases",
   "1.12.2": {
+    "v1.1.1": "see https://google.com",
     "v1.1.0": "See https://github.com/S-B99/KAMI/releases/tag/v1.1.0",
     "v1.0.9": "See https://github.com/S-B99/KAMI/releases/tag/v1.0.9",
     "v1.0.8": "See https://github.com/S-B99/KAMI/releases/tag/v1.0.8",
@@ -13,6 +14,6 @@
     "v1.0.1": "See https://github.com/S-B99/KAMI/releases/tag/v1.0.1"
   },
   "promos": {
-    "1.12.2-latest": "v1.1.0"
+    "1.12.2-latest": "v1.1.1"
   }
 }
