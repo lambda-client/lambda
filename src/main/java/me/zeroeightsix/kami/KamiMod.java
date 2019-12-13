@@ -44,16 +44,22 @@ import java.util.Optional;
 /**
  * Created by 086 on 7/11/2017.
  */
-@Mod(modid = KamiMod.MODID, name = KamiMod.MODNAME, version = KamiMod.MODVER)
+@Mod(
+        modid = KamiMod.MODID,
+        name = KamiMod.MODNAME,
+        version = KamiMod.MODVER,
+        updateJSON = KamiMod.UPDATE_JSON
+)
 public class KamiMod {
 
     public static final String MODID = "kami";
     public static final String MODNAME = "KAMI Blue";
     public static final String MODVER = "v1.1.0";
+    public static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/updateChecker.json";
 
     public static final String KAMI_HIRAGANA = "\u304B\u307F";
     public static final String KAMI_KATAKANA = "\u30AB\u30DF";
-    public static final String KAMI_KANJI = "\u795E";
+    public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb"; //\u30ab\u30df\u30d6\u30eb //\u795E
     public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
 
     private static final String KAMI_CONFIG_NAME_DEFAULT = "KAMIConfig.json";
