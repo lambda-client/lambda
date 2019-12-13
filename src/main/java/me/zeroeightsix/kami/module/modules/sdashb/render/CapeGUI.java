@@ -10,11 +10,14 @@ import me.zeroeightsix.kami.module.Module;
 public class CapeGUI extends Module {
 
     public void onEnable() {
-        if (mc.player == null) {
-            return;
-        }
+        if (mc.player == null) return;
         Command.sendWarningMessage("[Cape] Note: you need donator jar and to restart Minecraft is cape is not working");
     }
+
+    public void onDisable() {
+        this.enable();
+    }
+
 //    private static CapeGUI INSTANCE;
 //
 //    public CapeGUI() {
