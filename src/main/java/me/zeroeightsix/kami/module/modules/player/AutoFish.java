@@ -15,23 +15,32 @@ import net.minecraft.network.play.server.SPacketSoundEffect;
 public class AutoFish extends Module {
 
     @EventHandler
-    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
-        if (mc.player != null && (mc.player.getHeldItemMainhand().getItem() == Items.FISHING_ROD || mc.player.getHeldItemOffhand().getItem() == Items.FISHING_ROD) && event.getPacket() instanceof SPacketSoundEffect && SoundEvents.ENTITY_BOBBER_SPLASH.equals(((SPacketSoundEffect) event.getPacket()).getSound())) {
-            new Thread(() -> {
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(e -> {
+        if (e.getPacket() instanceof SPacketSoundEffect) {
+            SPacketSoundEffect pck = (SPacketSoundEffect) e.getPacket();
+            if (pck.getSound().getSoundName().toString().toLowerCase().contains("entity.bobber.splash")) {
+                if (mc.player.fishEntity == null) return;
+                int soundX = (int) pck.getX();
+                int soundZ = (int) pck.getZ();
+                int fishX = (int) mc.player.fishEntity.posX;
+                int fishZ = (int) mc.player.fishEntity.posZ;
+                if (kindaEquals(soundX, fishX) && kindaEquals(fishZ, soundZ)) {
+                    new Thread(() -> {
+                        mc.rightClickMouse();
+                        try {
+                            Thread.sleep(1000L);
+                        } catch (InterruptedException e1) {
+                            e1.printStackTrace();
+                        }
+                        mc.rightClickMouse();
+                    }).start();
                 }
-                mc.rightClickMouse();
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                mc.rightClickMouse();
-            }).start();
+            }
         }
     });
+
+    public boolean kindaEquals(int kara, int ni) {
+        return ni == kara || ni == kara - 1 || ni == kara + 1;
+    }
 
 }
