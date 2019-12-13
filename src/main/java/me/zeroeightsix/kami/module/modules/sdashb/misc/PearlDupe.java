@@ -37,6 +37,7 @@ public class PearlDupe extends Module {
             this.disable();
         }
     }
+
     @EventHandler
     Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketConfirmTeleport) {

@@ -6,9 +6,6 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.network.play.client.CPacketConfirmTeleport;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 /**
  * Created by GlowskiBroski on 10/14/2018.
  */

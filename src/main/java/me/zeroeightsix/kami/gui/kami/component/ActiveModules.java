@@ -25,7 +25,8 @@ public class ActiveModules extends Label {
             }
 
             @Override
-            public void onPostRender() {}
+            public void onPostRender() {
+            }
         });
     }
 };

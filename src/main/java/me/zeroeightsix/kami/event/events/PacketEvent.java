@@ -24,6 +24,7 @@ public class PacketEvent extends KamiEvent {
             super(packet);
         }
     }
+
     public static class Send extends PacketEvent {
         public Send(Packet packet) {
             super(packet);

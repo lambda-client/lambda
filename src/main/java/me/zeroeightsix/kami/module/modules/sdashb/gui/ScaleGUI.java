@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.sdashb.gui;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.Wrapper;
 
 @Module.Info(name = "GUI Scale", category = Module.Category.GUI, description = "Configures size of GUI")
 public class ScaleGUI extends Module {

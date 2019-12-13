@@ -96,8 +96,7 @@ public class Aura extends Module {
                     waitCounter = 0;
                 }
             }
-        }
-        else {
+        } else {
             if (waitMode.getValue().equals(WaitMode.TICK) && waitTick.getValue() > 0) {
                 if (waitCounter < waitTick.getValue()) {
                     waitCounter++;
@@ -172,13 +171,11 @@ public class Aura extends Module {
                     if (lvl >= 42) { // dia sword against full prot 5 armor is deadly somehere >= 34 sharpness iirc
                         return true;
                     }
-                }
-                else if (switchMode.getValue().equals(SwitchMode.ALL)) {
+                } else if (switchMode.getValue().equals(SwitchMode.ALL)) {
                     if (lvl >= 4) {
                         return true;
                     }
-                }
-                else if (switchMode.getValue().equals(SwitchMode.NONE)) {
+                } else if (switchMode.getValue().equals(SwitchMode.NONE)) {
                     return true;
                 }
                 break;

@@ -5,8 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
-import me.zeroeightsix.kami.gui.kami.KamiGUI;
-import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
@@ -48,9 +46,14 @@ public class Module {
         throw new IllegalStateException("No Annotation on class " + this.getClass().getCanonicalName() + "!");
     }
 
-    public void onUpdate() {}
-    public void onRender() {}
-    public void onWorldRender(RenderEvent event) {}
+    public void onUpdate() {
+    }
+
+    public void onRender() {
+    }
+
+    public void onWorldRender(RenderEvent event) {
+    }
 
     public Bind getBind() {
         return bind.getValue();
@@ -69,8 +72,7 @@ public class Module {
         return originalName;
     }
 
-    public enum Category
-    {
+    public enum Category {
         COMBAT("Combat", false),
         EXPLOITS("Exploits", false),
         RENDER("Render", false),
@@ -99,11 +101,13 @@ public class Module {
     }
 
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface Info
-    {
+    public @interface Info {
         String name();
+
         String description() default "Descriptionless";
+
         Module.Category category();
+
         boolean alwaysListening() default false;
     }
 
@@ -123,8 +127,11 @@ public class Module {
         return enabled.getValue();
     }
 
-    protected void onEnable() {}
-    protected void onDisable() {}
+    protected void onEnable() {
+    }
+
+    protected void onDisable() {
+    }
 
     public void toggle() {
         setEnabled(!isEnabled());
@@ -170,7 +177,10 @@ public class Module {
     /**
      * Cleanup method in case this module wants to do something when the client closes down
      */
-    public void destroy(){};
+    public void destroy() {
+    }
+
+    ;
 
     protected void registerAll(Setting... settings) {
         for (Setting setting : settings) {
@@ -220,7 +230,8 @@ public class Module {
             int key = -1;
             try {
                 key = Keyboard.getKeyIndex(s.toUpperCase());
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             if (key == 0) return Bind.none();
             return new Bind(ctrl, alt, shift, key);

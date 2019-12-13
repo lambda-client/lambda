@@ -29,18 +29,17 @@ public class Scaffold extends Module {
         BlockPos belowBlockPos = blockPos.down();
 
         // check if block is already placed
-        if(!Wrapper.getWorld().getBlockState(blockPos).getMaterial().isReplaceable())
+        if (!Wrapper.getWorld().getBlockState(blockPos).getMaterial().isReplaceable())
             return;
 
         // search blocks in hotbar
         int newSlot = -1;
-        for(int i = 0; i < 9; i++)
-        {
+        for (int i = 0; i < 9; i++) {
             // filter out non-block items
             ItemStack stack =
                     Wrapper.getPlayer().inventory.getStackInSlot(i);
 
-            if(stack == ItemStack.EMPTY || !(stack.getItem() instanceof ItemBlock)) {
+            if (stack == ItemStack.EMPTY || !(stack.getItem() instanceof ItemBlock)) {
                 continue;
             }
             Block block = ((ItemBlock) stack.getItem()).getBlock();
@@ -49,7 +48,7 @@ public class Scaffold extends Module {
             }
 
             // filter out non-solid blocks
-            if(!Block.getBlockFromItem(stack.getItem()).getDefaultState()
+            if (!Block.getBlockFromItem(stack.getItem()).getDefaultState()
                     .isFullBlock())
                 continue;
 
@@ -63,7 +62,7 @@ public class Scaffold extends Module {
         }
 
         // check if any blocks were found
-        if(newSlot == -1)
+        if (newSlot == -1)
             return;
 
         // set slot

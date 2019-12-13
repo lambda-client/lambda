@@ -20,11 +20,11 @@ public class EnumButton extends Button {
         addPoof(new ButtonPoof<EnumButton, ButtonPoof.ButtonInfo>() {
             @Override
             public void execute(EnumButton component, ButtonInfo info) {
-                if (info.getButton() == 0){
+                if (info.getButton() == 0) {
                     double p = (double) info.getX() / (double) component.getWidth();
-                    if (p <= 0.5){ // left
+                    if (p <= 0.5) { // left
                         EnumButton.this.increaseIndex(-1);
-                    }else{ // right
+                    } else { // right
                         EnumButton.this.increaseIndex(1);
                     }
                 }
@@ -36,15 +36,15 @@ public class EnumButton extends Button {
         this.modes = modes;
     }
 
-    protected void increaseIndex(int amount){
+    protected void increaseIndex(int amount) {
         int old = index;
-        int newI = index+amount;
-        if (newI < 0){
+        int newI = index + amount;
+        if (newI < 0) {
             newI = modes.length - Math.abs(newI);
-        }else if (newI >= modes.length) {
+        } else if (newI >= modes.length) {
             newI = Math.abs(newI - modes.length);
         }
-        index = Math.min(modes.length,Math.max(0,newI));
+        index = Math.min(modes.length, Math.max(0, newI));
 
         callPoof(EnumbuttonIndexPoof.class, new EnumbuttonIndexPoof.EnumbuttonInfo(old, index));
     }
@@ -65,7 +65,7 @@ public class EnumButton extends Button {
         this.index = index;
     }
 
-    public static abstract class EnumbuttonIndexPoof<T extends Button, S extends EnumbuttonIndexPoof.EnumbuttonInfo> extends Poof<T,S> {
+    public static abstract class EnumbuttonIndexPoof<T extends Button, S extends EnumbuttonIndexPoof.EnumbuttonInfo> extends Poof<T, S> {
         ButtonPoof.ButtonInfo info;
 
         public static class EnumbuttonInfo extends PoofInfo {

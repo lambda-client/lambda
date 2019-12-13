@@ -17,7 +17,7 @@ public class KamiUnboundSliderUI extends AbstractComponentUI<UnboundSlider> {
         int c = component.isPressed() ? 0xaaaaaa : 0xdddddd;
         if (component.isHovered())
             c = (c & 0x7f7f7f) << 1;
-        fontRenderer.drawString(component.getWidth()/2-fontRenderer.getStringWidth(s)/2, component.getHeight() - fontRenderer.getFontHeight()/2-4, c, s);
+        fontRenderer.drawString(component.getWidth() / 2 - fontRenderer.getStringWidth(s) / 2, component.getHeight() - fontRenderer.getFontHeight() / 2 - 4, c, s);
         GL11.glDisable(GL11.GL_BLEND);
     }
 

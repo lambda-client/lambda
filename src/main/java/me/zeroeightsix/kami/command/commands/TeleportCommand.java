@@ -52,8 +52,7 @@ public class TeleportCommand extends Command {
                 Teleport.finalPos = new Vec3d(x, y, z);
                 ModuleManager.getModuleByName("Teleport").enable();
                 Command.sendChatMessage("\n&aTeleporting to \n&cX: &b" + df.format(x) + "&a, \n&cY: &b" + df.format(y) + "&a, \n&cZ: &b" + df.format(z) + "\n&aat &b" + df.format(Teleport.blocksPerTeleport) + "&c blocks per teleport.");
-            }
-            catch (NullPointerException e){
+            } catch (NullPointerException e) {
                 Command.sendErrorMessage("Null Pointer Exception Caught!");
             }
 

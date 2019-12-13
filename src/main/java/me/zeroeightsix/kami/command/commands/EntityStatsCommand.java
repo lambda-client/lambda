@@ -18,7 +18,7 @@ public class EntityStatsCommand extends Command {
     private String speed;
     private String jumpHeight;
     Minecraft mc = Minecraft.getMinecraft();
-    
+
     public EntityStatsCommand() {
         super("entitystats", null);
         setDescription("Gives you the stats of the entity you're riding");
@@ -35,7 +35,7 @@ public class EntityStatsCommand extends Command {
     @Override
     public void call(String[] args) {
         if (mc.player.getRidingEntity() != null) {
-            if     (mc.player.getRidingEntity() instanceof EntityHorse ||
+            if (mc.player.getRidingEntity() instanceof EntityHorse ||
                     mc.player.getRidingEntity() instanceof EntityDonkey ||
                     mc.player.getRidingEntity() instanceof EntityLlama ||
                     mc.player.getRidingEntity() instanceof EntityMule ||
@@ -47,13 +47,13 @@ public class EntityStatsCommand extends Command {
                 speed = round(43.17 * h.getAIMoveSpeed(), 2) + " §2m/s";
                 jumpHeight = round(-0.1817584952 * Math.pow(h.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(h.getHorseJumpStrength(), 2) + 2.128599134 * h.getHorseJumpStrength() - 0.343930367, 4) + " §2m";
                 Command.sendChatMessage("§6Entity Stats:\n§cMax Health: §b" + maxHealth + "\n§cSpeed: §b" + speed + "\n§cJump: §b" + jumpHeight);
-            }else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
+            } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
                 EntityLivingBase l = (EntityLivingBase) mc.player.getRidingEntity();
                 maxHealth = l.getMaxHealth() + " §2HP";
                 speed = round(43.17 * l.getAIMoveSpeed(), 2) + " §2m/s";
                 Command.sendChatMessage("§6Entity Stats:\n§cMax Health: §b" + maxHealth + "\n§cSpeed: §b" + speed);
             }
-        }else {
+        } else {
             Command.sendChatMessage("§4§lERROR: §cNot riding a living entity.");
         }
     }

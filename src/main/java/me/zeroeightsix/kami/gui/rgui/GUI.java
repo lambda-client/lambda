@@ -34,6 +34,7 @@ public abstract class GUI extends AbstractContainer {
     }
 
     public abstract void initializeGUI();
+
     public abstract void destroyGUI();
 
     public void updateGUI() {
@@ -41,38 +42,38 @@ public abstract class GUI extends AbstractContainer {
         catchKey();
     }
 
-    public void handleKeyDown(int key){
+    public void handleKeyDown(int key) {
         if (focus == null) return;
         focus.getTheme().getUIForComponent(focus).handleKeyDown(focus, key);
 
         ArrayList<Component> l = new ArrayList<>();
         Component p = focus;
-        while (p != null){
+        while (p != null) {
             l.add(0, p);
             p = p.getParent();
         }
 
         KeyListener.KeyEvent event = new KeyListener.KeyEvent(key);
-        for (Component a : l){
+        for (Component a : l) {
             a.getKeyListeners().forEach(keyListener -> {
                 keyListener.onKeyDown(event);
             });
         }
     }
 
-    public void handleKeyUp(int key){
+    public void handleKeyUp(int key) {
         if (focus == null) return;
         focus.getTheme().getUIForComponent(focus).handleKeyUp(focus, key);
 
         ArrayList<Component> l = new ArrayList<>();
         Component p = focus;
-        while (p != null){
+        while (p != null) {
             l.add(0, p);
             p = p.getParent();
         }
 
         KeyListener.KeyEvent event = new KeyListener.KeyEvent(key);
-        for (Component a : l){
+        for (Component a : l) {
             a.getKeyListeners().forEach(keyListener -> {
                 keyListener.onKeyUp(event);
             });
@@ -81,8 +82,8 @@ public abstract class GUI extends AbstractContainer {
 
     public void catchKey() {
         if (focus == null) return;
-        while (Keyboard.next()){
-            if (Keyboard.getEventKeyState()){
+        while (Keyboard.next()) {
+            if (Keyboard.getEventKeyState()) {
                 handleKeyDown(Keyboard.getEventKey());
             } else {
                 handleKeyUp(Keyboard.getEventKey());
@@ -90,7 +91,7 @@ public abstract class GUI extends AbstractContainer {
         }
     }
 
-    public void handleMouseDown(int x, int y){
+    public void handleMouseDown(int x, int y) {
         Component c = getComponentAt(x, y);
 
         int[] real = calculateRealPosition(c);
@@ -99,7 +100,7 @@ public abstract class GUI extends AbstractContainer {
             focus.setFocussed(false);
         focus = c;
 
-        if (!c.equals(this)){
+        if (!c.equals(this)) {
             Component upperParent = c;
             while (!hasChild(upperParent))
                 upperParent = upperParent.getParent();
@@ -128,19 +129,19 @@ public abstract class GUI extends AbstractContainer {
 
         ArrayList<Component> l = new ArrayList<>();
         Component p = focus;
-        while (p != null){
+        while (p != null) {
             l.add(0, p);
             p = p.getParent();
         }
         int ex = x;
         int ey = y;
         MouseListener.MouseButtonEvent event = new MouseListener.MouseButtonEvent(ex, ey, button, focus);
-        for (Component a : l){
+        for (Component a : l) {
 
             event.setX(event.getX() - a.getX());
             event.setY(event.getY() - a.getY());
 
-            if (a instanceof Container){
+            if (a instanceof Container) {
                 event.setX(event.getX() - ((Container) a).getOriginOffsetX());
                 event.setY(event.getY() - ((Container) a).getOriginOffsetY());
             }
@@ -154,26 +155,26 @@ public abstract class GUI extends AbstractContainer {
         }
     }
 
-    public void handleMouseRelease(int x, int y){
+    public void handleMouseRelease(int x, int y) {
         int button = Mouse.getEventButton();
-        if (focus != null && button != -1){
+        if (focus != null && button != -1) {
             int[] real = calculateRealPosition(focus);
             getTheme().getUIForComponent(focus).handleMouseRelease(focus, x - real[0], y - real[1], button);
 
             ArrayList<Component> l = new ArrayList<>();
             Component p = focus;
-            while (p != null){
+            while (p != null) {
                 l.add(0, p);
                 p = p.getParent();
             }
             int ex = x;
             int ey = y;
             MouseListener.MouseButtonEvent event = new MouseListener.MouseButtonEvent(ex, ey, button, focus);
-            for (Component a : l){
+            for (Component a : l) {
                 event.setX(event.getX() - a.getX());
                 event.setY(event.getY() - a.getY());
 
-                if (a instanceof Container){
+                if (a instanceof Container) {
                     event.setX(event.getX() - ((Container) a).getOriginOffsetX());
                     event.setY(event.getY() - ((Container) a).getOriginOffsetY());
                 }
@@ -188,7 +189,7 @@ public abstract class GUI extends AbstractContainer {
 
             press = false;
             return;
-        }else{
+        } else {
             if (button != -1) {
                 Component c = getComponentAt(x, y);
 
@@ -198,18 +199,18 @@ public abstract class GUI extends AbstractContainer {
 
                 ArrayList<Component> l = new ArrayList<>();
                 Component p = c;
-                while (p != null){
+                while (p != null) {
                     l.add(0, p);
                     p = p.getParent();
                 }
                 int ex = x;
                 int ey = y;
                 MouseListener.MouseButtonEvent event = new MouseListener.MouseButtonEvent(ex, ey, button, c);
-                for (Component a : l){
+                for (Component a : l) {
                     event.setX(event.getX() - a.getX());
                     event.setY(event.getY() - a.getY());
 
-                    if (a instanceof Container){
+                    if (a instanceof Container) {
                         event.setX(event.getX() - ((Container) a).getOriginOffsetX());
                         event.setY(event.getY() - ((Container) a).getOriginOffsetY());
                     }
@@ -227,7 +228,7 @@ public abstract class GUI extends AbstractContainer {
         }
     }
 
-    public void handleWheel(int x, int y, int step){
+    public void handleWheel(int x, int y, int step) {
         //int intMouseMovement = Mouse.getDWheel();
         int intMouseMovement = step;
         if (intMouseMovement == 0) return;
@@ -239,18 +240,18 @@ public abstract class GUI extends AbstractContainer {
 
         ArrayList<Component> l = new ArrayList<>();
         Component p = c;
-        while (p != null){
+        while (p != null) {
             l.add(0, p);
             p = p.getParent();
         }
         int ex = x;
         int ey = y;
         MouseListener.MouseScrollEvent event = new MouseListener.MouseScrollEvent(ex, ey, intMouseMovement > 0, c);
-        for (Component a : l){
+        for (Component a : l) {
             event.setX(event.getX() - a.getX());
             event.setY(event.getY() - a.getY());
 
-            if (a instanceof Container){
+            if (a instanceof Container) {
                 event.setX(event.getX() - ((Container) a).getOriginOffsetX());
                 event.setY(event.getY() - ((Container) a).getOriginOffsetY());
             }
@@ -264,7 +265,7 @@ public abstract class GUI extends AbstractContainer {
         }
     }
 
-    public void handleMouseDrag(int x, int y){
+    public void handleMouseDrag(int x, int y) {
         int[] real = calculateRealPosition(focus);
         int ex = x - real[0];
         int ey = y - real[1];
@@ -273,7 +274,7 @@ public abstract class GUI extends AbstractContainer {
 
         ArrayList<Component> l = new ArrayList<>();
         Component p = focus;
-        while (p != null){
+        while (p != null) {
             l.add(0, p);
             p = p.getParent();
         }
@@ -282,11 +283,11 @@ public abstract class GUI extends AbstractContainer {
         ey = y;
 
         MouseListener.MouseButtonEvent event = new MouseListener.MouseButtonEvent(ex, ey, button, focus);
-        for (Component a : l){
+        for (Component a : l) {
             event.setX(event.getX() - a.getX());
             event.setY(event.getY() - a.getY());
 
-            if (a instanceof Container){
+            if (a instanceof Container) {
                 event.setX(event.getX() - ((Container) a).getOriginOffsetX());
                 event.setY(event.getY() - ((Container) a).getOriginOffsetY());
             }
@@ -301,30 +302,30 @@ public abstract class GUI extends AbstractContainer {
     }
 
     private void catchMouse() {
-        while(Mouse.next()) {
+        while (Mouse.next()) {
             int x = Mouse.getX();
             int y = Mouse.getY();
             y = Display.getHeight() - y;
 
-            if (press && focus != null && (this.x != x || this.y != y)){
+            if (press && focus != null && (this.x != x || this.y != y)) {
                 handleMouseDrag(x, y);
             }
 
-            if(Mouse.getEventButtonState()) {
+            if (Mouse.getEventButtonState()) {
                 handleMouseDown(x, y);
             } else {
                 handleMouseRelease(x, y);
             }
 
-            if(Mouse.hasWheel()) {
+            if (Mouse.hasWheel()) {
                 handleWheel(x, y, Mouse.getDWheel());
             }
         }
     }
 
-    public void callTick(Container container){
+    public void callTick(Container container) {
         container.getTickListeners().forEach(tickListener -> tickListener.onTick());
-        for (Component c : container.getChildren()){
+        for (Component c : container.getChildren()) {
             if (c instanceof Container)
                 callTick((Container) c);
             else
@@ -333,8 +334,9 @@ public abstract class GUI extends AbstractContainer {
     }
 
     long lastMS = System.currentTimeMillis();
+
     public void update() {
-        if (System.currentTimeMillis() - lastMS > 1000/20){
+        if (System.currentTimeMillis() - lastMS > 1000 / 20) {
             callTick(this);
             lastMS = System.currentTimeMillis();
         }
@@ -350,23 +352,23 @@ public abstract class GUI extends AbstractContainer {
 
     public static int[] calculateRealPosition(Component c) {
         int realX = c.getX(), realY = c.getY();
-        if (c instanceof Container){
+        if (c instanceof Container) {
             realX += ((Container) c).getOriginOffsetX();
             realY += ((Container) c).getOriginOffsetY();
         }
 
         Component parent = c.getParent();
-        while (parent != null){
+        while (parent != null) {
             realX += parent.getX();
             realY += parent.getY();
-            if (parent instanceof Container){
+            if (parent instanceof Container) {
                 realX += ((Container) parent).getOriginOffsetX();
                 realY += ((Container) parent).getOriginOffsetY();
             }
             parent = parent.getParent();
         }
 
-        return new int[] {
+        return new int[]{
                 realX,
                 realY
         };

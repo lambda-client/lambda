@@ -14,20 +14,20 @@ public class BlockParser extends AbstractParser {
 
     public BlockParser() {
         if (!blockNames.isEmpty()) return;
-        for (ResourceLocation resourceLocation : Block.REGISTRY.getKeys()){
+        for (ResourceLocation resourceLocation : Block.REGISTRY.getKeys()) {
             blockNames.put(resourceLocation.toString().replace("minecraft:", "").replace("_", ""), Block.REGISTRY.getObject(resourceLocation));
         }
     }
 
     @Override
     public String getChunk(SyntaxChunk[] chunks, SyntaxChunk thisChunk, String[] values, String chunkValue) {
-        try{
+        try {
             if (chunkValue == null)
                 return (thisChunk.isHeadless() ? "" : thisChunk.getHead()) + (thisChunk.isNecessary() ? "<" : "[") + thisChunk.getType() + (thisChunk.isNecessary() ? ">" : "]");
 
             HashMap<String, Block> possibilities = new HashMap<>();
 
-            for (String s : blockNames.keySet()){
+            for (String s : blockNames.keySet()) {
                 if (s.toLowerCase().startsWith(chunkValue.toLowerCase().replace("minecraft:", "").replace("_", "")))
                     possibilities.put(s, blockNames.get(s));
             }
@@ -38,12 +38,12 @@ public class BlockParser extends AbstractParser {
 
             Map.Entry<String, Block> e = p.firstEntry();
             return e.getKey().substring(chunkValue.length());
-        }catch (Exception e){
+        } catch (Exception e) {
             return "";
         }
     }
 
-    public static Block getBlockFromName(String name){
+    public static Block getBlockFromName(String name) {
         if (!blockNames.containsKey(name)) return null;
         return blockNames.get(name);
     }
@@ -57,7 +57,7 @@ public class BlockParser extends AbstractParser {
         return null;
     }
 
-    public static String getNameFromBlock(Block b){
+    public static String getNameFromBlock(Block b) {
         if (!blockNames.containsValue(b)) return null;
         return (String) getKeyFromValue(blockNames, b);
     }

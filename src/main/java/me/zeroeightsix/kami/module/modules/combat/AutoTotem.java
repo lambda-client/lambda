@@ -23,7 +23,8 @@ public class AutoTotem extends Module {
 
     @Override
     public void onUpdate() {
-        if (!inv.getValue() && mc.currentScreen instanceof GuiContainer) return; // this stops autototem from running if you're in a chest or something
+        if (!inv.getValue() && mc.currentScreen instanceof GuiContainer)
+            return; // this stops autototem from running if you're in a chest or something
         if (returnI) {
             int t = -1;
             for (int i = 0; i < 45; i++)

@@ -59,20 +59,20 @@ public class Slider extends AbstractComponent {
         this(value, minimum, maximum, getDefaultStep(minimum, maximum), text, false);
     }
 
-    private double calculateValue(double x){
+    private double calculateValue(double x) {
         double d1 = x / getWidth();
         double d2 = (maximum - minimum);
         double s = d1 * d2 + minimum;
 
-        return MathHelper.clamp(Math.floor((Math.round(s/step)*step)*100)/100, minimum, maximum); // round to 2 decimals & clamp min and max
+        return MathHelper.clamp(Math.floor((Math.round(s / step) * step) * 100) / 100, minimum, maximum); // round to 2 decimals & clamp min and max
     }
 
-    public static double getDefaultStep(double min, double max){
+    public static double getDefaultStep(double min, double max) {
         double s = gcd(min, max);
-        if (s == max){
+        if (s == max) {
             s = max / 20;
         }
-        if (max > 10){
+        if (max > 10) {
             s = Math.round(s);
         }
         if (s == 0) s = max;
@@ -106,7 +106,7 @@ public class Slider extends AbstractComponent {
         this.value = integer ? (int) newValue : newValue;
     }
 
-    public static abstract class SliderPoof<T extends Component, S extends SliderPoof.SliderPoofInfo> extends Poof<T,S> {
+    public static abstract class SliderPoof<T extends Component, S extends SliderPoof.SliderPoofInfo> extends Poof<T, S> {
         public static class SliderPoofInfo extends PoofInfo {
             double oldValue;
             double newValue;
@@ -130,12 +130,11 @@ public class Slider extends AbstractComponent {
         }
     }
 
-    public static double gcd(double a, double b)
-    {
+    public static double gcd(double a, double b) {
         a = Math.floor(a);
         b = Math.floor(b);
-        if(a == 0 || b == 0) return a+b; // base case
-        return gcd(b,a%b);
+        if (a == 0 || b == 0) return a + b; // base case
+        return gcd(b, a % b);
     }
 
 }

@@ -12,6 +12,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import org.lwjgl.opengl.GL11;
+
 import java.util.ArrayList;
 
 /***
@@ -28,7 +29,7 @@ public class HoleESP extends Module {
 
     private Setting<Boolean> renObby = register(Settings.b("Render Obby", true));
     private Setting<Boolean> renBedr = register(Settings.b("Render Bedrock", true));
-//    private Setting<Double> speed = register(Settings.doubleBuilder().withName("Calculate speed").withMinimum(0.1).withValue(3.0).withMaximum(10.0).build());
+    //    private Setting<Double> speed = register(Settings.doubleBuilder().withName("Calculate speed").withMinimum(0.1).withValue(3.0).withMaximum(10.0).build());
     private Setting<Integer> distance = register(Settings.integerBuilder().withName("Distance").withMinimum(1).withValue(5).withMaximum(20).build());
     private Setting<Integer> a = register(Settings.integerBuilder("Transparency (Obby)").withMinimum(0).withValue(26).withMaximum(255).build());
     private Setting<Integer> r = register(Settings.integerBuilder("Red (Obby)").withMinimum(0).withValue(144).withMaximum(255).build());
@@ -80,10 +81,10 @@ public class HoleESP extends Module {
                     );
 //                    if (startTime == 0) startTime = System.currentTimeMillis();
 //                    if (startTime + delayTime <= System.currentTimeMillis()) {
-                        if (solidNeighboursObby) {
+                    if (solidNeighboursObby) {
 //                            Command.sendWarningMessage("[HoleESP] Ran this 2");
-                            this.holesObby.add(pos);
-                        }
+                        this.holesObby.add(pos);
+                    }
 //                        startTime = System.currentTimeMillis();
 //                    }
                 }
@@ -100,10 +101,10 @@ public class HoleESP extends Module {
                     );
 //                    if (startTimeTwo == 0) startTimeTwo = System.currentTimeMillis();
 //                    if (startTimeTwo + delayTimeTwo <= System.currentTimeMillis()) {
-                        if (solidNeighboursBedr) {
+                    if (solidNeighboursBedr) {
 //                            Command.sendWarningMessage("[HoleESP] Ran this");
-                            this.holesBedr.add(pos);
-                        }
+                        this.holesBedr.add(pos);
+                    }
 //                        startTimeTwo = System.currentTimeMillis();
 //                    }
                 }

@@ -1,19 +1,14 @@
 package me.zeroeightsix.kami.gui.kami;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
-import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.sdashb.gui.ScaleGUI;
-import me.zeroeightsix.kami.util.Bind;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.launchwrapper.LogWrapper;
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
@@ -39,10 +34,10 @@ public class DisplayGuiScreen extends GuiScreen {
 
         KamiGUI gui = KamiMod.getInstance().getGuiManager();
 
-        for (Component c : gui.getChildren()){
-            if (c instanceof Frame){
+        for (Component c : gui.getChildren()) {
+            if (c instanceof Frame) {
                 Frame child = (Frame) c;
-                if (child.isPinneable() && child.isVisible()){
+                if (child.isPinneable() && child.isVisible()) {
                     child.setOpacity(.5f);
                 }
             }
@@ -68,7 +63,7 @@ public class DisplayGuiScreen extends GuiScreen {
         calculateMouse();
         gui.drawGUI();
         glEnable(GL_TEXTURE_2D);
-        GlStateManager.color(1,1,1);
+        GlStateManager.color(1, 1, 1);
     }
 
     @Override
@@ -88,9 +83,9 @@ public class DisplayGuiScreen extends GuiScreen {
 
     @Override
     public void updateScreen() {
-        if (Mouse.hasWheel()){
+        if (Mouse.hasWheel()) {
             int a = Mouse.getDWheel();
-            if (a != 0){
+            if (a != 0) {
                 gui.handleWheel(this.mouseX, this.mouseY, a);
             }
         }
@@ -107,22 +102,21 @@ public class DisplayGuiScreen extends GuiScreen {
         }
     }
 
-    public static int getScale(){
+    public static int getScale() {
         int scaleFactor = 0;
         int scale = 2;
         try {
             scale = Wrapper.getMinecraft().gameSettings.guiScale;
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             LogWrapper.info("Caught NPE 2 DisplayGuiScreen.java");
         }
         if (scale == 0)
-                scale = 1000;
-            while (scaleFactor < scale && Wrapper.getMinecraft().displayWidth / (scaleFactor + 1) >= 320 && Wrapper.getMinecraft().displayHeight / (scaleFactor + 1) >= 240)
-                scaleFactor++;
-            if (scaleFactor == 0)
-                scaleFactor = 1;
-            return scaleFactor;
+            scale = 1000;
+        while (scaleFactor < scale && Wrapper.getMinecraft().displayWidth / (scaleFactor + 1) >= 320 && Wrapper.getMinecraft().displayHeight / (scaleFactor + 1) >= 240)
+            scaleFactor++;
+        if (scaleFactor == 0)
+            scaleFactor = 1;
+        return scaleFactor;
 //        }
     }
 
@@ -130,7 +124,7 @@ public class DisplayGuiScreen extends GuiScreen {
         Minecraft minecraft = Minecraft.getMinecraft();
         int scaleFactor = getScale();
         this.mouseX = Mouse.getX() / scaleFactor;
-        this.mouseY =  minecraft.displayHeight / scaleFactor - Mouse.getY() / scaleFactor - 1;
+        this.mouseY = minecraft.displayHeight / scaleFactor - Mouse.getY() / scaleFactor - 1;
     }
 
 }

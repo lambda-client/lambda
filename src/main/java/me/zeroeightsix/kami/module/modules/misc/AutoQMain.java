@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
-import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
@@ -37,8 +37,7 @@ public class AutoQMain extends Module {
 
         if (delayTime <= 0) {
             delayTime = (int) (delay.getValue() * 2400);
-        }
-        else if (delayTime > 0) {
+        } else if (delayTime > 0) {
             delayTime--;
             return;
         }

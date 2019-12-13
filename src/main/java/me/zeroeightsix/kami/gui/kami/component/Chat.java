@@ -30,10 +30,10 @@ public class Chat extends AbstractContainer {
         field.addKeyListener(new KeyListener() {
             @Override
             public void onKeyDown(KeyEvent event) {
-                if (event.getKey() == Keyboard.KEY_RETURN){
+                if (event.getKey() == Keyboard.KEY_RETURN) {
                     label.addLine(field.getText());
                     field.setText("");
-                    if (scrollpane.canScrollY()){
+                    if (scrollpane.canScrollY()) {
                         scrollpane.setScrolledY(scrollpane.getMaxScrollY());
                     }
                 }

@@ -13,44 +13,44 @@ import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 
 public class ShulkerPreview {
-   public static int metadataTicks = -1;
-   public static int guiTicks = -1;
-   public static EntityItem drop;
-   public static InventoryBasic toOpen;
+    public static int metadataTicks = -1;
+    public static int guiTicks = -1;
+    public static EntityItem drop;
+    public static InventoryBasic toOpen;
 
-   @SubscribeEvent
-   public void onEntitySpawn(EntityJoinWorldEvent event) {
-      Entity entity = event.getEntity();
-      if (entity instanceof EntityItem) {
-         drop = (EntityItem)entity;
-         metadataTicks = 0;
-      }
+    @SubscribeEvent
+    public void onEntitySpawn(EntityJoinWorldEvent event) {
+        Entity entity = event.getEntity();
+        if (entity instanceof EntityItem) {
+            drop = (EntityItem) entity;
+            metadataTicks = 0;
+        }
 
-   }
+    }
 
-   @SubscribeEvent
-   public void onTick(ClientTickEvent event) {
-      if (event.phase == Phase.END && metadataTicks > -1) {
-         ++metadataTicks;
-      }
+    @SubscribeEvent
+    public void onTick(ClientTickEvent event) {
+        if (event.phase == Phase.END && metadataTicks > -1) {
+            ++metadataTicks;
+        }
 
-      if (event.phase == Phase.END && guiTicks > -1) {
-         ++guiTicks;
-      }
+        if (event.phase == Phase.END && guiTicks > -1) {
+            ++guiTicks;
+        }
 
-      if (metadataTicks == 20) {
-         if (Minecraft.getMinecraft().player == null) return;
-         metadataTicks = -1;
-         if (drop.getItem().getItem() instanceof ItemShulkerBox && (ModuleManager.getModuleByName("ShulkerBypass").isEnabled())) {
-            Command.sendChatMessage("[ShulkerBypass] New shulker found! use /peek to view its content");
-            VocoShulkerPeek.shulker = drop.getItem();
-         }
-      }
+        if (metadataTicks == 20) {
+            if (Minecraft.getMinecraft().player == null) return;
+            metadataTicks = -1;
+            if (drop.getItem().getItem() instanceof ItemShulkerBox && (ModuleManager.getModuleByName("ShulkerBypass").isEnabled())) {
+                Command.sendChatMessage("[ShulkerBypass] New shulker found! use /peek to view its content");
+                VocoShulkerPeek.shulker = drop.getItem();
+            }
+        }
 
-      if (guiTicks == 20) {
-         guiTicks = -1;
-         VocoShulkerPeek.mc.player.displayGUIChest(toOpen);
-      }
+        if (guiTicks == 20) {
+            guiTicks = -1;
+            VocoShulkerPeek.mc.player.displayGUIChest(toOpen);
+        }
 
-   }
+    }
 }

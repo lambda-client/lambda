@@ -73,6 +73,7 @@ public class CustomChat extends Module {
             Command.sendChatMessage("[CustomChat] Note: ALL text mode only works with the separator decoration mode");
         }
     }
+
     @EventHandler
     public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketChatMessage) {
@@ -88,41 +89,32 @@ public class CustomChat extends Module {
             if (decoMode.getValue().equals(DecoMode.SEPARATOR)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
                     KAMI_FINAL = KAMI_SEPARATOR + KAMI_NAME;
-                }
-                else if (textMode.getValue().equals(TextMode.ONTOP)) {
+                } else if (textMode.getValue().equals(TextMode.ONTOP)) {
                     KAMI_FINAL = KAMI_SEPARATOR + KAMI_ONTOP;
-                }
-                else if (textMode.getValue().equals(TextMode.WEBSITE)) {
+                } else if (textMode.getValue().equals(TextMode.WEBSITE)) {
                     KAMI_FINAL = KAMI_SEPARATOR + KAMI_WEBSITE;
-                }
-                else if (textMode.getValue().equals(TextMode.ALL)) {
+                } else if (textMode.getValue().equals(TextMode.ALL)) {
                     KAMI_FINAL = KAMI_ALL;
                 }
-            }
-            else if (decoMode.getValue().equals(DecoMode.NONE)) {
+            } else if (decoMode.getValue().equals(DecoMode.NONE)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
                     KAMI_FINAL = " " + KAMI_NAME;
-                }
-                else if (textMode.getValue().equals(TextMode.ONTOP)) {
+                } else if (textMode.getValue().equals(TextMode.ONTOP)) {
                     KAMI_FINAL = " " + KAMI_ONTOP;
-                }
-                else if (textMode.getValue().equals(TextMode.WEBSITE)) {
+                } else if (textMode.getValue().equals(TextMode.WEBSITE)) {
                     KAMI_FINAL = " " + KAMI_WEBSITE;
                 }
-            }
-            else if (decoMode.getValue().equals(DecoMode.CLASSIC)) {
+            } else if (decoMode.getValue().equals(DecoMode.CLASSIC)) {
                 if (textMode.getValue().equals(TextMode.NAME)) {
                     KAMI_FINAL = KAMI_CLASSIC + KAMI_NAME + KAMI_CLASSIC_OTHER;
-                }
-                else if (textMode.getValue().equals(TextMode.ONTOP)) {
+                } else if (textMode.getValue().equals(TextMode.ONTOP)) {
                     KAMI_FINAL = KAMI_CLASSIC + KAMI_ONTOP + KAMI_CLASSIC_OTHER;
-                }
-                else if (textMode.getValue().equals(TextMode.WEBSITE)) {
+                } else if (textMode.getValue().equals(TextMode.WEBSITE)) {
                     KAMI_FINAL = KAMI_CLASSIC + KAMI_WEBSITE + KAMI_CLASSIC_OTHER;
                 }
             }
-                s += KAMI_FINAL;
-            if (s.length() >= 256) s = s.substring(0,256);
+            s += KAMI_FINAL;
+            if (s.length() >= 256) s = s.substring(0, 256);
             ((CPacketChatMessage) event.getPacket()).message = s;
         }
     });
@@ -130,6 +122,7 @@ public class CustomChat extends Module {
     private enum TextMode {
         NAME, ONTOP, WEBSITE, ALL
     }
+
     private enum DecoMode {
         SEPARATOR, CLASSIC, NONE
 

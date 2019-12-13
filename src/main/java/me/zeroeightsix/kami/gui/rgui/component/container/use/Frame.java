@@ -55,7 +55,7 @@ public class Frame extends OrganisedContainer {
         addPoof(new FramePoof<Frame, FramePoof.FramePoofInfo>() {
             @Override
             public void execute(Frame component, FramePoofInfo info) {
-                switch (info.getAction()){
+                switch (info.getAction()) {
                     case MINIMIZE:
                         if (isMinimizeable)
                             setMinimized(true);
@@ -76,7 +76,7 @@ public class Frame extends OrganisedContainer {
             @Override
             public void updateSize(Component component, int oldWidth, int oldHeight) {
                 if (isLayoutWorking) return;
-                if (!component.equals(Frame.this)){
+                if (!component.equals(Frame.this)) {
                     isLayoutWorking = true;
                     layout.organiseContainer(Frame.this);
                     isLayoutWorking = false;
@@ -87,7 +87,7 @@ public class Frame extends OrganisedContainer {
             public void updateLocation(Component component, int oldX, int oldY) {
                 if (isLayoutWorking) return;
 
-                if (!component.equals(Frame.this)){
+                if (!component.equals(Frame.this)) {
                     isLayoutWorking = true;
                     layout.organiseContainer(Frame.this);
                     isLayoutWorking = false;
@@ -98,7 +98,7 @@ public class Frame extends OrganisedContainer {
         addRenderListener(new RenderListener() {
             @Override
             public void onPreRender() {
-                if (startDrag){
+                if (startDrag) {
                     FrameDragPoof.DragInfo info = new FrameDragPoof.DragInfo(DisplayGuiScreen.mouseX - dx, DisplayGuiScreen.mouseY - dy);
                     callPoof(FrameDragPoof.class, info);
                     setX(info.getX());
@@ -170,19 +170,19 @@ public class Frame extends OrganisedContainer {
     }
 
     public void setMinimized(boolean minimized) {
-        if (minimized && !isMinimized){
+        if (minimized && !isMinimized) {
             trueheight = getHeight();
             truemaxheight = getMaximumHeight();
             setHeight(0);
             setMaximumHeight(getOriginOffsetY());
-            for (Component c : getChildren()){
+            for (Component c : getChildren()) {
                 visibilityMap.put(c, c.isVisible());
                 c.setVisible(false);
             }
-        }else if (!minimized && isMinimized){
+        } else if (!minimized && isMinimized) {
             setMaximumHeight(truemaxheight);
-            setHeight(trueheight-getOriginOffsetY());
-            for (Map.Entry<Component, Boolean> entry : visibilityMap.entrySet()){
+            setHeight(trueheight - getOriginOffsetY());
+            for (Map.Entry<Component, Boolean> entry : visibilityMap.entrySet()) {
                 entry.getKey().setVisible(entry.getValue());
             }
         }

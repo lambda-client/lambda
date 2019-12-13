@@ -1,10 +1,10 @@
 package me.zeroeightsix.kami.setting;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import me.zeroeightsix.kami.setting.converter.Convertable;
+
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
-import me.zeroeightsix.kami.setting.converter.Convertable;
 
 /**
  * Created by 086 on 12/10/2018.

@@ -37,7 +37,7 @@ public abstract class AbstractTheme implements Theme {
             return uis.get(componentClass);
         if (componentClass == null)
             return null;
-        for(Class<?> componentInterface : componentClass.getInterfaces()) {
+        for (Class<?> componentInterface : componentClass.getInterfaces()) {
             ComponentUI ui = uis.get(componentInterface);
             if (ui != null)
                 return ui;

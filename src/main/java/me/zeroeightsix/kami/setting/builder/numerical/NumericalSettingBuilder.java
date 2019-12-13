@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.setting.builder.numerical;
 
-import me.zeroeightsix.kami.setting.impl.numerical.NumberSetting;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
+import me.zeroeightsix.kami.setting.impl.numerical.NumberSetting;
 
 import java.util.function.BiConsumer;
 

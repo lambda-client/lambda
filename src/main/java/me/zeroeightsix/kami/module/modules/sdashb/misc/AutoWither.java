@@ -32,7 +32,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
+import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
 
 /**
  * @author hub/blockparole
@@ -231,15 +231,13 @@ public class AutoWither extends Module {
 
         if (soulsandSlot == -1 && skullSlot == -1) {
             Command.sendChatMessage("[AutoWither] Error: No required blocks in inventory");
-        }
-        else if (soulsandSlot != -1) {
+        } else if (soulsandSlot != -1) {
             mc.player.inventory.currentItem = soulsandSlot;
             placeBlock(new BlockPos(placeTarget.add(0, 0, 0)));
             placeBlock(new BlockPos(placeTarget.add(0, 1, 0)));
             placeBlock(new BlockPos(placeTarget.add(-1, 1, 0)));
             placeBlock(new BlockPos(placeTarget.add(1, 1, 0)));
-        }
-        else {
+        } else {
             Command.sendChatMessage("[AutoWither] Error: No Soul Sand found");
         }
 
@@ -248,8 +246,7 @@ public class AutoWither extends Module {
             placeBlock(new BlockPos(placeTarget.add(0, 2, 0)));
             placeBlock(new BlockPos(placeTarget.add(-1, 2, 0)));
             placeBlock(new BlockPos(placeTarget.add(1, 2, 0)));
-        }
-        else {
+        } else {
             Command.sendChatMessage("[AutoWither] Error: No Soul Sand found");
         }
 
@@ -293,7 +290,9 @@ public class AutoWither extends Module {
                 if (w instanceof EntityWither) {
                     final EntityWither wither = (EntityWither) w;
                     if (mc.player.getDistance(wither) <= placeRange.getValue()) {
-                        if (debugMessages.getValue()) {Command.sendChatMessage("Registered Wither");}
+                        if (debugMessages.getValue()) {
+                            Command.sendChatMessage("Registered Wither");
+                        }
                         if (tagslot != -1) {
                             mc.player.inventory.currentItem = tagslot;
                             mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);

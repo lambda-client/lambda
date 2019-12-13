@@ -35,13 +35,13 @@ public class Stretcherlayout implements Layout {
         int w = 0;
         int h = 0;
         ArrayList<Component> children = container.getChildren();
-        for (Component c : children){
+        for (Component c : children) {
             if (!c.doAffectLayout()) continue;
 
             w += c.getWidth() + COMPONENT_OFFSET_X;
             h = Math.max(h, c.getHeight());
             i++;
-            if (i >= blocks){
+            if (i >= blocks) {
                 width = Math.max(width, w);
                 height += h + COMPONENT_OFFSET_Y;
                 w = h = i = 0;
@@ -50,16 +50,16 @@ public class Stretcherlayout implements Layout {
 
         int x = 0;
         int y = 0;
-        for (Component c : children){
+        for (Component c : children) {
             if (!c.doAffectLayout()) continue;
 
-            c.setX(x + COMPONENT_OFFSET_X/3);
-            c.setY(y + COMPONENT_OFFSET_Y/3);
+            c.setX(x + COMPONENT_OFFSET_X / 3);
+            c.setY(y + COMPONENT_OFFSET_Y / 3);
 
             h = Math.max(c.getHeight(), h);
 
             x += width / blocks;
-            if (x >= width){
+            if (x >= width) {
                 y += h + COMPONENT_OFFSET_Y;
                 x = 0;
             }

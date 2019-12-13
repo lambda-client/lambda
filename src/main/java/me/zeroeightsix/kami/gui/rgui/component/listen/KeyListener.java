@@ -6,6 +6,7 @@ package me.zeroeightsix.kami.gui.rgui.component.listen;
 public interface KeyListener {
 
     public void onKeyDown(KeyEvent event);
+
     public void onKeyUp(KeyEvent event);
 
     public static class KeyEvent {

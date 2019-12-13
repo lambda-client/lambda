@@ -20,7 +20,7 @@ public class LagCompensator implements EventListener {
 
     @EventHandler
     Listener<PacketEvent.Receive> packetEventListener = new Listener<>(event -> {
-        if (event.getPacket() instanceof SPacketTimeUpdate){
+        if (event.getPacket() instanceof SPacketTimeUpdate) {
             INSTANCE.onTimeUpdate();
         }
     });
@@ -30,20 +30,17 @@ public class LagCompensator implements EventListener {
         reset();
     }
 
-    public void reset()
-    {
+    public void reset() {
         this.nextIndex = 0;
         this.timeLastTimeUpdate = -1L;
         Arrays.fill(this.tickRates, 0.0F);
     }
 
-    public float getTickRate()
-    {
+    public float getTickRate() {
         float numTicks = 0.0F;
         float sumTickRates = 0.0F;
         for (float tickRate : this.tickRates) {
-            if (tickRate > 0.0F)
-            {
+            if (tickRate > 0.0F) {
                 sumTickRates += tickRate;
                 numTicks += 1.0F;
             }
@@ -51,11 +48,9 @@ public class LagCompensator implements EventListener {
         return MathHelper.clamp(sumTickRates / numTicks, 0.0F, 20.0F);
     }
 
-    public void onTimeUpdate()
-    {
-        if (this.timeLastTimeUpdate != -1L)
-        {
-            float timeElapsed = (float)(System.currentTimeMillis() - this.timeLastTimeUpdate) / 1000.0F;
+    public void onTimeUpdate() {
+        if (this.timeLastTimeUpdate != -1L) {
+            float timeElapsed = (float) (System.currentTimeMillis() - this.timeLastTimeUpdate) / 1000.0F;
             this.tickRates[(this.nextIndex % this.tickRates.length)] = MathHelper.clamp(20.0F / timeElapsed, 0.0F, 20.0F);
             this.nextIndex += 1;
         }

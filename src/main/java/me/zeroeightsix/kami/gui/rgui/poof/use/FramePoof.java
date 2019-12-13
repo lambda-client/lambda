@@ -20,6 +20,6 @@ public abstract class FramePoof<T extends Component, S extends PoofInfo> extends
     }
 
     public enum Action {
-        MINIMIZE,MAXIMIZE,CLOSE
+        MINIMIZE, MAXIMIZE, CLOSE
     }
 }

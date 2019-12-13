@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
-import me.zeroeightsix.kami.module.modules.sdashb.capes.Capes;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.SoundHandler;
@@ -50,12 +49,9 @@ public class MixinMinecraft {
         KamiMod.EVENT_BUS.post(screenEvent1);
         guiScreenIn = screenEvent1.getScreen();
 
-        if (guiScreenIn == null && this.world == null)
-        {
+        if (guiScreenIn == null && this.world == null) {
             guiScreenIn = new GuiMainMenu();
-        }
-        else if (guiScreenIn == null && this.player.getHealth() <= 0.0F)
-        {
+        } else if (guiScreenIn == null && this.player.getHealth() <= 0.0F) {
             guiScreenIn = new GuiGameOver(null);
         }
 
@@ -65,38 +61,33 @@ public class MixinMinecraft {
         if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event)) return;
 
         guiScreenIn = event.getGui();
-        if (old != null && guiScreenIn != old)
-        {
+        if (old != null && guiScreenIn != old) {
             old.onGuiClosed();
         }
 
-        if (guiScreenIn instanceof GuiMainMenu || guiScreenIn instanceof GuiMultiplayer)
-        {
+        if (guiScreenIn instanceof GuiMainMenu || guiScreenIn instanceof GuiMultiplayer) {
             this.gameSettings.showDebugInfo = false;
             this.ingameGUI.getChatGUI().clearChatMessages(true);
         }
 
         this.currentScreen = guiScreenIn;
 
-        if (guiScreenIn != null)
-        {
+        if (guiScreenIn != null) {
             Minecraft.getMinecraft().setIngameNotInFocus();
             KeyBinding.unPressAllKeys();
 
-            while (Mouse.next())
-            {}
+            while (Mouse.next()) {
+            }
 
-            while (Keyboard.next())
-            {}
+            while (Keyboard.next()) {
+            }
 
             ScaledResolution scaledresolution = new ScaledResolution(Minecraft.getMinecraft());
             int i = scaledresolution.getScaledWidth();
             int j = scaledresolution.getScaledHeight();
             guiScreenIn.setWorldAndResolution(Minecraft.getMinecraft(), i, j);
             this.skipRenderWorld = false;
-        }
-        else
-        {
+        } else {
             this.soundHandler.resumeSounds();
             Minecraft.getMinecraft().setIngameFocus();
         }
@@ -117,7 +108,7 @@ public class MixinMinecraft {
     @Inject(method = "init", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;ingameGUI:Lnet/minecraft/client/gui/GuiIngame;", shift = At.Shift.AFTER))
     public void startCapes(CallbackInfo ci) {
         System.out.println("Loaded capes");
-        new Capes();
+        // new Capes(); // TODO: Fix capes.
     }
 
     private void save() {

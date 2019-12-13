@@ -11,7 +11,8 @@ import static org.lwjgl.opengl.GL11.GL_FALSE;
  */
 public final class ShaderHelper {
 
-    private ShaderHelper() {}
+    private ShaderHelper() {
+    }
 
     /**
      * Loads a shader program from its program ID
@@ -58,7 +59,7 @@ public final class ShaderHelper {
      * Checks an arb object parameter
      *
      * @param objID The object's ID
-     * @param name The name of the object
+     * @param name  The name of the object
      */
     private static void checkObjecti(int objID, int name) {
         if (glGetObjectParameteriARB(objID, name) == GL_FALSE)

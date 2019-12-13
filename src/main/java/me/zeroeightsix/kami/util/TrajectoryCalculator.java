@@ -34,7 +34,7 @@ public class TrajectoryCalculator {
         // The potion is kind of special so we do it's own check
         if (item instanceof ItemPotion) {
             // Check if it's a splashable potion
-            if (itemStack.getItem() instanceof ItemSplashPotion){
+            if (itemStack.getItem() instanceof ItemSplashPotion) {
                 return ThrowingType.POTION;
             }
         } else if (item instanceof ItemBow && entity.isHandActive()) {
@@ -141,14 +141,15 @@ public class TrajectoryCalculator {
         /**
          * Check if our path collides with an entity.
          *
-         * @param prediction the predicted position
+         * @param prediction     the predicted position
          * @param blockCollision block collision if we had one
          */
         private void onCollideWithEntity(Vec3d prediction, RayTraceResult blockCollision) {
             Entity collidingEntity = null;
             double currentDistance = 0.0d;
             // Get all possible collision entities disregarding the local thePlayer
-            List<Entity> collisionEntities = this.shooter.world.getEntitiesWithinAABBExcludingEntity(this.shooter, this.boundingBox.expand(this.motion.x, this.motion.y, this.motion.z).expand(1.0D, 1.0D, 1.0D));;
+            List<Entity> collisionEntities = this.shooter.world.getEntitiesWithinAABBExcludingEntity(this.shooter, this.boundingBox.expand(this.motion.x, this.motion.y, this.motion.z).expand(1.0D, 1.0D, 1.0D));
+            ;
 
             // Loop through every loaded entity in the world
             for (Entity entity : collisionEntities) {
@@ -240,10 +241,10 @@ public class TrajectoryCalculator {
         /**
          * Set the position and rotation of the entity in the world.
          *
-         * @param x x position in world
-         * @param y y position in world
-         * @param z z position in world
-         * @param yaw yaw rotation axis
+         * @param x     x position in world
+         * @param y     y position in world
+         * @param z     z position in world
+         * @param yaw   yaw rotation axis
          * @param pitch pitch rotation axis
          */
         private void setLocationAndAngles(double x, double y, double z, float yaw, float pitch) {
@@ -274,7 +275,7 @@ public class TrajectoryCalculator {
         /**
          * Set the entity's velocity and position in the world.
          *
-         * @param motion velocity in world
+         * @param motion   velocity in world
          * @param velocity starting velocity
          */
         private void setThrowableHeading(Vec3d motion, float velocity) {
@@ -307,7 +308,7 @@ public class TrajectoryCalculator {
         double posX = interpolate(entity.posX, entity.lastTickPosX) - Wrapper.getMinecraft().renderManager.renderPosX;
         double posY = interpolate(entity.posY, entity.lastTickPosY) - Wrapper.getMinecraft().renderManager.renderPosY;
         double posZ = interpolate(entity.posZ, entity.lastTickPosZ) - Wrapper.getMinecraft().renderManager.renderPosZ;
-        return new double[] { posX, posY, posZ };
+        return new double[]{posX, posY, posZ};
     }
 
     public static double interpolate(double now, double then) {

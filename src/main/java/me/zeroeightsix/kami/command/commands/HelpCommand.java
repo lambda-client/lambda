@@ -14,22 +14,23 @@ public class HelpCommand extends Command {
 
     private static final Subject[] subjects = new Subject[]{
             new Subject(
-                    new String[]{"type","int","boolean","double","float"},
+                    new String[]{"type", "int", "boolean", "double", "float"},
                     new String[]{
-                        "Every module has a value, and that value is always of a certain &btype.\n",
-                        "These types are displayed in kami as the ones java use. They mean the following:",
-                        "&bboolean&r: Enabled or not. Values &3true/false",
-                        "&bfloat&r: A number with a decimal point",
-                        "&bdouble&r: Like a float, but a more accurate decimal point",
-                        "&bint&r: A number with no decimal point"
+                            "Every module has a value, and that value is always of a certain &btype.\n",
+                            "These types are displayed in kami as the ones java use. They mean the following:",
+                            "&bboolean&r: Enabled or not. Values &3true/false",
+                            "&bfloat&r: A number with a decimal point",
+                            "&bdouble&r: Like a float, but a more accurate decimal point",
+                            "&bint&r: A number with no decimal point"
                     }
             )
     };
     private static String subjectsList = "";
+
     static {
         for (Subject subject : subjects)
             subjectsList += subject.names[0] + ", ";
-        subjectsList = subjectsList.substring(0, subjectsList.length()-2);
+        subjectsList = subjectsList.substring(0, subjectsList.length() - 2);
     }
 
     public HelpCommand() {
@@ -49,11 +50,11 @@ public class HelpCommand extends Command {
                     "prefix <prefix>&r to change the command prefix.",
                     "help <subjects:[subject]> &r for more help."
             });
-        }else{
+        } else {
             String subject = args[0];
             if (subject.equals("subjects")) {
                 Command.sendChatMessage("Subjects: " + subjectsList);
-            }else{
+            } else {
                 Subject subject1 = Arrays.stream(subjects).filter(subject2 -> {
                     for (String name : subject2.names)
                         if (name.equalsIgnoreCase(subject))

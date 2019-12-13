@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.event.ForgeEventProcessor;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.AlignedComponent;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
-import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
@@ -32,7 +31,10 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -123,11 +125,11 @@ public class KamiMod {
     public static String getConfigName() {
         Path config = Paths.get("KAMILastConfig.txt");
         String kamiConfigName = KAMI_CONFIG_NAME_DEFAULT;
-        try(BufferedReader reader = Files.newBufferedReader(config)) {
+        try (BufferedReader reader = Files.newBufferedReader(config)) {
             kamiConfigName = reader.readLine();
             if (!isFilenameValid(kamiConfigName)) kamiConfigName = KAMI_CONFIG_NAME_DEFAULT;
         } catch (NoSuchFileException e) {
-            try(BufferedWriter writer = Files.newBufferedWriter(config)) {
+            try (BufferedWriter writer = Files.newBufferedWriter(config)) {
                 writer.write(KAMI_CONFIG_NAME_DEFAULT);
             } catch (IOException e1) {
                 e1.printStackTrace();
@@ -163,7 +165,8 @@ public class KamiMod {
                 Docking docking = Docking.values()[object.get("docking").getAsInt()];
                 if (docking.isLeft()) ContainerHelper.setAlignment(frame, AlignedComponent.Alignment.LEFT);
                 else if (docking.isRight()) ContainerHelper.setAlignment(frame, AlignedComponent.Alignment.RIGHT);
-                else if (docking.isCenterVertical()) ContainerHelper.setAlignment(frame, AlignedComponent.Alignment.CENTER);
+                else if (docking.isCenterVertical())
+                    ContainerHelper.setAlignment(frame, AlignedComponent.Alignment.CENTER);
                 frame.setDocking(docking);
                 frame.setMinimized(object.get("minimized").getAsBoolean());
                 frame.setPinned(object.get("pinned").getAsBoolean());
@@ -177,7 +180,7 @@ public class KamiMod {
     public static void saveConfiguration() {
         try {
             saveConfigurationUnsafe();
-        }catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

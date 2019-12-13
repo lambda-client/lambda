@@ -36,7 +36,7 @@ public class KamiTheme extends AbstractTheme {
         installUI(new RadarUI());
         installUI(new TabGuiUI());
 
-        fontRenderer=KamiGUI.fontRenderer;
+        fontRenderer = KamiGUI.fontRenderer;
     }
 
     @Override

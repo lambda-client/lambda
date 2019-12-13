@@ -40,10 +40,10 @@ public class FriendCommand extends Command {
             String f = "";
             for (Friends.Friend friend : Friends.INSTANCE.friends.getValue())
                 f += friend.getUsername() + ", ";
-            f = f.substring(0,f.length()-2);
+            f = f.substring(0, f.length() - 2);
             Command.sendChatMessage("Your friends: " + f);
             return;
-        }else{
+        } else {
             if (args[1] == null) {
                 Command.sendChatMessage(String.format(Friends.isFriend(args[0]) ? "Yes, %s is your friend." : "No, %s isn't a friend of yours.", args[0]));
                 Command.sendChatMessage(String.format(Friends.isFriend(args[0]) ? "Yes, %s is your friend." : "No, %s isn't a friend of yours.", args[0]));
@@ -68,7 +68,7 @@ public class FriendCommand extends Command {
                 }).start();
 
                 return;
-            }else if (args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("delete")) {
+            } else if (args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("delete")) {
                 if (!Friends.isFriend(args[1])) {
                     Command.sendChatMessage("That player isn't your friend.");
                     return;
@@ -78,7 +78,7 @@ public class FriendCommand extends Command {
                 Friends.INSTANCE.friends.getValue().remove(friend);
                 Command.sendChatMessage("&b" + friend.getUsername() + "&r has been unfriended.");
                 return;
-            }else{
+            } else {
                 Command.sendChatMessage("Please specify either &6add&r or &6remove");
                 return;
             }
@@ -93,17 +93,17 @@ public class FriendCommand extends Command {
             String s = requestIDs("[\"" + input + "\"]");
             if (s == null || s.isEmpty()) {
                 Command.sendChatMessage("Couldn't find player ID. Are you connected to the internet? (0)");
-            }else{
+            } else {
                 JsonElement element = new JsonParser().parse(s);
-                if (element.getAsJsonArray().size()==0) {
+                if (element.getAsJsonArray().size() == 0) {
                     Command.sendChatMessage("Couldn't find player ID. (1)");
-                }else{
+                } else {
                     try {
                         String id = element.getAsJsonArray().get(0).getAsJsonObject().get("id").getAsString();
                         String username = element.getAsJsonArray().get(0).getAsJsonObject().get("name").getAsString();
                         Friends.Friend friend = new Friends.Friend(username, UUIDTypeAdapter.fromString(id));
                         return friend;
-                    }catch (Exception e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         Command.sendChatMessage("Couldn't find player ID. (2)");
                     }
@@ -116,7 +116,7 @@ public class FriendCommand extends Command {
     }
 
     private static String requestIDs(String data) {
-        try{
+        try {
             String query = "https://api.mojang.com/profiles/minecraft";
             String json = data;
 
@@ -139,7 +139,7 @@ public class FriendCommand extends Command {
             conn.disconnect();
 
             return res;
-        }catch (Exception e) {
+        } catch (Exception e) {
             return null;
         }
     }

@@ -14,11 +14,9 @@ public class CalcPing {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.getConnection() == null) { // tested, this is not null in mp
             return 1;
-        }
-        else if (mc.player == null) { // this actually takes about 30 seconds to load in Minecraft
+        } else if (mc.player == null) { // this actually takes about 30 seconds to load in Minecraft
             return -1;
-        }
-        else {
+        } else {
             try {
                 return mc.getConnection().getPlayerInfo(mc.player.getUniqueID()).getResponseTime();
             } catch (NullPointerException npe) {

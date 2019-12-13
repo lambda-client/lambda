@@ -7,6 +7,7 @@ import java.util.HashMap;
 public final class GeometryMasks {
 
     public static final HashMap<EnumFacing, Integer> FACEMAP = new HashMap<>();
+
     static {
         FACEMAP.put(EnumFacing.DOWN, Quad.DOWN);
         FACEMAP.put(EnumFacing.WEST, Quad.WEST);

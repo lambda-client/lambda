@@ -54,7 +54,7 @@ public class Scrollpane extends OrganisedContainer {
                 //GL11.glTranslatef(-translatex, -translatey, 0);
                 int[] real = GUI.calculateRealPosition(Scrollpane.this);
                 int scale = DisplayGuiScreen.getScale();
-                GL11.glScissor(getX()*scale + real[0]*scale - ((Container) getParent()).getOriginOffsetX()-1, Display.getHeight() - getHeight()*scale - real[1]*scale - 1, getWidth()*scale + ((Container) getParent()).getOriginOffsetX()*scale + 1, getHeight()*scale+1);
+                GL11.glScissor(getX() * scale + real[0] * scale - ((Container) getParent()).getOriginOffsetX() - 1, Display.getHeight() - getHeight() * scale - real[1] * scale - 1, getWidth() * scale + ((Container) getParent()).getOriginOffsetX() * scale + 1, getHeight() * scale + 1);
                 GL11.glEnable(GL11.GL_SCISSOR_TEST);
             }
 
@@ -90,21 +90,21 @@ public class Scrollpane extends OrganisedContainer {
 
             @Override
             public void onScroll(MouseScrollEvent event) {
-                if (canScrollY() && !(canScrollX() && scrolledX!=0 && isDoScrollX()) && isDoScrollY()){
-                    if (event.isUp() && getScrolledY() > 0){
+                if (canScrollY() && !(canScrollX() && scrolledX != 0 && isDoScrollX()) && isDoScrollY()) {
+                    if (event.isUp() && getScrolledY() > 0) {
                         setScrolledY(Math.max(0, getScrolledY() - step));
                         return;
-                    }else if(!event.isUp() && getScrolledY() < getMaxScrollY()){
+                    } else if (!event.isUp() && getScrolledY() < getMaxScrollY()) {
                         setScrolledY(Math.min(getMaxScrollY(), getScrolledY() + step));
                         return;
                     }
                 }
 
-                if (canScrollX() && isDoScrollX()){
-                    if (event.isUp() && getScrolledX() > 0){
+                if (canScrollX() && isDoScrollX()) {
+                    if (event.isUp() && getScrolledX() > 0) {
                         setScrolledX(Math.max(0, getScrolledX() - step));
                         return;
-                    }else if(!event.isUp() && getScrolledX() < getMaxScrollX()){
+                    } else if (!event.isUp() && getScrolledX() < getMaxScrollX()) {
                         setScrolledX(Math.min(getMaxScrollX(), getScrolledX() + step));
                         return;
                     }
@@ -145,10 +145,10 @@ public class Scrollpane extends OrganisedContainer {
         return this;
     }
 
-    private void performCalculations(){
+    private void performCalculations() {
         int farX = 0;
         int farY = 0;
-        for (Component c : getChildren()){
+        for (Component c : getChildren()) {
             farX = Math.max(getScrolledX() + c.getX() + c.getWidth(), farX);
             farY = Math.max(getScrolledY() + c.getY() + c.getHeight(), farY);
         }
