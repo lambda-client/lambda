@@ -7,7 +7,7 @@ import me.zeroeightsix.kami.util.Wrapper;
 
 @Module.Info(name = "GUI Scale", category = Module.Category.GUI, description = "Configures size of GUI")
 public class ScaleGUI extends Module {
-    private Setting<Integer> scaleGlobal = this.register(Settings.integerBuilder("Scale").withMinimum(1).withValue(1).withMaximum(3).build());
+    private Setting<Integer> scaleGlobal = this.register(Settings.integerBuilder("Scale").withMinimum(1).withValue(2).withMaximum(3).build());
 
     public void onUpdate() {
         if (mc.player == null) return;
