@@ -15,8 +15,8 @@ build.sh
 
 # donator
 
-src/main/java/me/zeroeightsix/kami/module/modules/sdashb/capes/
-src/main/java/me/zeroeightsix/kami/mixin/client/MixinAbstractClientPlayer.java
+#src/main/java/me/zeroeightsix/kami/module/modules/sdashb/capes/
+#src/main/java/me/zeroeightsix/kami/mixin/client/MixinAbstractClientPlayer.java
 
 # sdashb
 
@@ -34,6 +34,7 @@ src/main/java/net/minecraft/
 src/main/java/org/lwjgl
 
 # Google
+
 src/main/java/com/google
 
 # private
