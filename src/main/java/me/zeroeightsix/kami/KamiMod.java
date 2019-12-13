@@ -24,6 +24,7 @@ import me.zeroeightsix.kami.setting.config.Configuration;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
 import me.zeroeightsix.kami.util.Wrapper;
+import net.minecraft.launchwrapper.LogWrapper;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -118,6 +119,15 @@ public class KamiMod {
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
+
+        try { // load modules that are on by default
+            ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
+            ModuleManager.getModuleByName("GUI Scale").setEnabled(true);
+            ModuleManager.getModuleByName("Cape").setEnabled(true);
+        }
+        catch (NullPointerException e) {
+            KamiMod.log.info("NPE in loading always enabled modules\n");
+        }
 
         KamiMod.log.info("KAMI Mod initialized!\n");
     }
