@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
@@ -36,6 +37,7 @@ public class AutoFeetPlace extends Module {
 
     private Setting<Mode> mode = register(Settings.e("Mode", Mode.FULL));
     private Setting<Boolean> triggerable = register(Settings.b("Triggerable", true));
+    private Setting<Boolean> disableNone = register(Settings.b("DisableNoObby", true));
     private Setting<Integer> timeoutTicks = register(Settings.integerBuilder("TimeoutTicks").withMinimum(1).withValue(40).withMaximum(100).withVisibility(b -> triggerable.getValue()).build());
     private Setting<Integer> blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(4).withMaximum(9).build());
     private Setting<Integer> tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(0).withMaximum(10).build());
@@ -192,7 +194,7 @@ public class AutoFeetPlace extends Module {
 
         totalTicksRunning++;
 
-        if (missingObiDisable) {
+        if (missingObiDisable && disableNone.getValue()) {
             missingObiDisable = false;
             if (infoMessage.getValue()) {
                 Command.sendChatMessage("[AutoFeetPlace] " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
