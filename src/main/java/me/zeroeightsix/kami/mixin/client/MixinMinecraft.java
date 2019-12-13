@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
+import me.zeroeightsix.kami.module.modules.sdashb.capes.Capes;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.SoundHandler;
@@ -113,6 +114,12 @@ public class MixinMinecraft {
         save();
     }
 
+    @Inject(method = "init", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;ingameGUI:Lnet/minecraft/client/gui/GuiIngame;", shift = At.Shift.AFTER))
+    public void startCapes(CallbackInfo ci) {
+        System.out.println("Loaded capes");
+        new Capes();
+    }
+
     private void save() {
         System.out.println("Shutting down: saving KAMI configuration");
         KamiMod.saveConfiguration();
@@ -120,3 +127,4 @@ public class MixinMinecraft {
     }
 
 }
+
