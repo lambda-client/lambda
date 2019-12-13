@@ -109,7 +109,7 @@ public class MixinMinecraft {
     @Inject(method = "init", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;ingameGUI:Lnet/minecraft/client/gui/GuiIngame;", shift = At.Shift.AFTER))
     public void startCapes(CallbackInfo ci) {
         System.out.println("Loaded capes");
-        new Capes(); // TODO: Fix capes.
+//        new Capes(); // TODO: Fix capes.
     }
 
     private void save() {
