@@ -11,6 +11,7 @@ buildexttmp.sh
 build.gradle
 builddonator.sh
 buildkeygen.sh
+build.sh
 
 # donator
 
