@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.sdashb.gui.ScaleGUI;
+import me.zeroeightsix.kami.util.Bind;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -97,8 +98,9 @@ public class DisplayGuiScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (keyCode != 0) // this works with any key as a hacky solution instead of keyCode == Keyboard.KEY_ESCAPE
+        if (keyCode == Keyboard.KEY_Y) { // this works with any key as a hacky solution instead of keyCode == Keyboard.KEY_ESCAPE //keyCode != 0
             mc.displayGuiScreen(lastScreen);
+        }
         else {
             gui.handleKeyDown(keyCode);
             gui.handleKeyUp(keyCode);
