@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.gui.kami;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -94,7 +95,7 @@ public class DisplayGuiScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (keyCode == Keyboard.KEY_Y || keyCode == Keyboard.KEY_ESCAPE) { // this works with any key as a hacky solution instead of keyCode == Keyboard.KEY_ESCAPE //keyCode != 0
+        if (ModuleManager.getModuleByName("clickGUI").getBind().isDown(keyCode) || keyCode == Keyboard.KEY_ESCAPE) {
             mc.displayGuiScreen(lastScreen);
         }
         else {
@@ -105,12 +106,7 @@ public class DisplayGuiScreen extends GuiScreen {
 
     public static int getScale() {
         int scaleFactor = 0;
-        int scale = 2;
-        try {
-            scale = Wrapper.getMinecraft().gameSettings.guiScale;
-        } catch (NullPointerException e) {
-            LogWrapper.info("Caught NPE 2 DisplayGuiScreen.java");
-        }
+        int scale = Wrapper.getMinecraft().gameSettings.guiScale;
         if (scale == 0)
             scale = 1000;
         while (scaleFactor < scale && Wrapper.getMinecraft().displayWidth / (scaleFactor + 1) >= 320 && Wrapper.getMinecraft().displayHeight / (scaleFactor + 1) >= 240)
@@ -118,7 +114,6 @@ public class DisplayGuiScreen extends GuiScreen {
         if (scaleFactor == 0)
             scaleFactor = 1;
         return scaleFactor;
-//        }
     }
 
     private void calculateMouse() {
