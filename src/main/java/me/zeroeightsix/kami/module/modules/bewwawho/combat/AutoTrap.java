@@ -33,7 +33,7 @@ import java.util.List;
 /***
  * @author Elementars
  */
-@Module.Info(name = "AutoTrap", category = Module.Category.COMBAT)
+@Module.Info(name = "AutoTrap", category = Module.Category.COMBAT, description = "Traps players near you with obby")
 public class AutoTrap extends Module {
     private final Vec3d[] offsetsDefault;
     private Setting<Double> range;
@@ -86,7 +86,7 @@ public class AutoTrap extends Module {
         this.playerHotbarSlot = -1;
         this.lastHotbarSlot = -1;
         if (this.announceUsage.getValue()) {
-            Command.sendChatMessage("[AutoTrap2] Disabled!");
+            Command.sendChatMessage("[AutoTrap] Disabled!");
         }
     }
 
@@ -100,7 +100,7 @@ public class AutoTrap extends Module {
             if (this.firstRun) {
                 this.firstRun = false;
                 if (this.announceUsage.getValue()) {
-                    Command.sendChatMessage("[AutoTrap2] Enabled, waiting for target.");
+                    Command.sendChatMessage("[AutoTrap] Enabled, waiting for target.");
                 }
             }
             return;
@@ -109,13 +109,13 @@ public class AutoTrap extends Module {
             this.firstRun = false;
             this.lastTickTargetName = this.closestTarget.getName();
             if (this.announceUsage.getValue()) {
-                Command.sendChatMessage("[AutoTrap2] Enabled, target: " + this.lastTickTargetName);
+                Command.sendChatMessage("[AutoTrap] Enabled, target: " + this.lastTickTargetName);
             }
         } else if (!this.lastTickTargetName.equals(this.closestTarget.getName())) {
             this.lastTickTargetName = this.closestTarget.getName();
             this.offsetStep = 0;
             if (this.announceUsage.getValue()) {
-                Command.sendChatMessage("[AutoTrap2] New target: " + this.lastTickTargetName);
+                Command.sendChatMessage("[AutoTrap] New target: " + this.lastTickTargetName);
             }
         }
         final List<Vec3d> placeTargets = new ArrayList<Vec3d>();
