@@ -16,14 +16,10 @@ import net.minecraft.network.play.client.CPacketPlayerDigging;
 
 @Module.Info(name = "NoSwing", category = Module.Category.PLAYER, description = "Cancels server and client swinging packets")
 public class NoSwing extends Module {
-    private Setting<Boolean> digging = register(Settings.b("Digging packet", false));
 
     @EventHandler
     private Listener<PacketEvent.Send> listener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketAnimation) {
-            event.cancel();
-        }
-        if (event.getPacket() instanceof CPacketPlayerDigging && digging.getValue()) {
             event.cancel();
         }
     });
