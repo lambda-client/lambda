@@ -17,12 +17,14 @@ import net.minecraftforge.client.event.RenderBlockOverlayEvent;
 public class NoRender extends Module {
 
     private Setting<Boolean> mob = register(Settings.b("Mob", false));
-    private Setting<Boolean> sand = register(Settings.b("Mob", false));
+    private Setting<Boolean> sand = register(Settings.b("Sand", false));
     private Setting<Boolean> gentity = register(Settings.b("GEntity", false));
     private Setting<Boolean> object = register(Settings.b("Object", false));
     private Setting<Boolean> xp = register(Settings.b("XP", false));
     private Setting<Boolean> paint = register(Settings.b("Paintings", false));
     private Setting<Boolean> fire = register(Settings.b("Fire"));
+    private Setting<Boolean> explosion = register(Settings.b("Explosions"));
+
 
     @EventHandler
     public Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
@@ -32,6 +34,7 @@ public class NoRender extends Module {
                 (packet instanceof SPacketSpawnObject && object.getValue()) ||
                 (packet instanceof SPacketSpawnExperienceOrb && xp.getValue()) ||
                 (packet instanceof SPacketSpawnObject && sand.getValue()) ||
+                (packet instanceof SPacketExplosion && explosion.getValue()) ||
                 (packet instanceof SPacketSpawnPainting && paint.getValue()))
             event.cancel();
     });
