@@ -9,7 +9,7 @@ import net.minecraft.network.play.server.SPacketPlayerPosLook;
 /**
  * Created by 086 on 12/12/2017.
  */
-@Module.Info(name = "AntiForceLook", category = Module.Category.PLAYER)
+@Module.Info(name = "AntiForceLook", category = Module.Category.PLAYER, description = "Stops packets from turning your head")
 public class AntiForceLook extends Module {
 
     @EventHandler

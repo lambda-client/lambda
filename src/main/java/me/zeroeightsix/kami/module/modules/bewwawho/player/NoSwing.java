@@ -10,7 +10,7 @@ import net.minecraft.network.play.client.CPacketAnimation;
  * Made by FINZ0
  */
 
-@Module.Info(name = "NoSwing", category = Module.Category.PLAYER)
+@Module.Info(name = "NoSwing", category = Module.Category.PLAYER, description = "Cancels server and client swinging packets")
 public class
 NoSwing extends Module {
 
