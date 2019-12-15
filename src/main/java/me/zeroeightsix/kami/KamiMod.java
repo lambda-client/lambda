@@ -61,7 +61,7 @@ public class KamiMod {
 
     public static final String MODID = "kamiblue";
     public static final String MODNAME = "KAMI Blue";
-    public static final String MODVER = "v1.1.0";
+    public static final String MODVER = "v1.1.1";
     public static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/updateChecker.json";
 
     public static final String KAMI_HIRAGANA = "\u304B\u307F";
@@ -141,7 +141,6 @@ public class KamiMod {
         try { // load modules that are on by default
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("GUI Scale").setEnabled(true);
-            ModuleManager.getModuleByName("Cape").setEnabled(true);
             if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
             }
