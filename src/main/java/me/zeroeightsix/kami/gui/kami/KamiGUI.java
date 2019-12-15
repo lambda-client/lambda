@@ -230,7 +230,7 @@ public class KamiGUI extends GUI {
                     information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTIONSIGN() + "3 tps");
                 }
                 if (privateInfoFps) {
-                    information.addLine("\u00A7b" + Wrapper.getMinecraft().debugFPS + Command.SECTIONSIGN() + "3 fps");
+                    information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTIONSIGN() + "3 fps");
                 }
                 if (privateInfoPin) {
                     information.addLine("\u00A7b" + privatePingValue + Command.SECTIONSIGN() + "3 ms");
