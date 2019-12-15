@@ -30,9 +30,15 @@ public class VocoShulkerPeek {
     public static ItemStack shulker;
     public static Minecraft mc;
 
+
+    static {
+        shulker = ItemStack.EMPTY;
+        mc = Minecraft.getMinecraft();
+    }
+
     @EventHandler
     public void postinit(FMLPostInitializationEvent event) {
-        ClientCommandHandler.instance.registerCommand(new VocoShulkerPeek.peekCommand());
+        ClientCommandHandler.instance.registerCommand(new PeekCommand());
         MinecraftForge.EVENT_BUS.register(new ShulkerPreview());
     }
 
@@ -53,12 +59,7 @@ public class VocoShulkerPeek {
         return null;
     }
 
-    static {
-        shulker = ItemStack.EMPTY;
-        mc = Minecraft.getMinecraft();
-    }
-
-    public class peekCommand extends CommandBase implements IClientCommand {
+    public static class PeekCommand extends CommandBase implements IClientCommand {
         public boolean allowUsageWithoutPrefix(ICommandSender sender, String message) {
             return false;
         }

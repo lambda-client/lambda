@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.EntityEvent;
-import me.zeroeightsix.kami.module.modules.movement.SafeWalk;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.movement.SafeWalk;
 import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

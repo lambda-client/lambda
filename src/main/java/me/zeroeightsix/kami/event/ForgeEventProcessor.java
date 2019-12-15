@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.render.BossStack;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.render.BossStack;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;

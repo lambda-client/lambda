@@ -1,9 +1,8 @@
-package me.zeroeightsix.kami.module.modules.bewwawho.misc;
+package me.zeroeightsix.kami.module.modules.zeroeightysix.combat;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Friends;
@@ -13,14 +12,13 @@ import net.minecraft.block.BlockLiquid;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.boss.EntityWither;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
+import net.minecraft.inventory.ClickType;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemNameTag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
+import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -35,12 +33,11 @@ import static me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAu
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
 
 /**
- * @author hub/blockparole
- * Created by @S-B99 on 25/11/19
- * Updated by cats on 1/12/19
+ * Created by hub on 7 August 2019
+ * Updated by hub on 21 November 2019
  */
-@Module.Info(name = "AutoWither", category = Module.Category.MISC, description = "Automatically creates withers")
-public class AutoWither extends Module {
+@Module.Info(name = "Auto32k", category = Module.Category.COMBAT, description = "Do not use with any AntiGhostBlock Mod!")
+public class Auto32k extends Module {
 
     private static final List<Block> blackList = Arrays.asList(
             Blocks.ENDER_CHEST,
@@ -76,20 +73,20 @@ public class AutoWither extends Module {
 
     private static final DecimalFormat df = new DecimalFormat("#.#");
 
-    private Setting<Double> placeRange = register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
+    private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
+    private Setting<Boolean> autoEnableHitAura = register(Settings.b("Auto enable Hit Aura", true));
+    //private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
+    private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
+    private Setting<Integer> yOffset = register(Settings.i("Y Offset (Hopper)", 2));
     private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
-    private Setting<Boolean> fastMode = register(Settings.b("Disable after placing", true));
+    private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
     private Setting<Boolean> debugMessages = register(Settings.b("Debug Messages", true));
-    private Setting<Boolean> nametag = register(Settings.b("Nametag", true));
 
     private int swordSlot;
     private static boolean isSneaking;
 
     @Override
     protected void onEnable() {
-
-        Command.sendChatMessage("[AutoWither] Please make sure the wither skulls are in slot 2");
-        Command.sendChatMessage("[AutoWither] This will be fixed soon");
 
         if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
             this.disable();
@@ -98,11 +95,17 @@ public class AutoWither extends Module {
 
         df.setRoundingMode(RoundingMode.CEILING);
 
-        int skullSlot = 1;
-        int soulsandSlot = -1;
-        swordSlot = mc.player.inventory.currentItem;
+        int hopperSlot = -1;
+        int shulkerSlot = -1;
+        int obiSlot = -1;
+        swordSlot = -1;
 
         for (int i = 0; i < 9; i++) {
+
+            if (hopperSlot != -1 && shulkerSlot != -1 && obiSlot != -1) {
+                break;
+            }
+
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
 
             if (stack == ItemStack.EMPTY || !(stack.getItem() instanceof ItemBlock)) {
@@ -111,26 +114,27 @@ public class AutoWither extends Module {
 
             Block block = ((ItemBlock) stack.getItem()).getBlock();
 
-            if (block == Blocks.SOUL_SAND) {
-                soulsandSlot = i;
+            if (block == Blocks.HOPPER) {
+                hopperSlot = i;
+            } else if (shulkerList.contains(block)) {
+                shulkerSlot = i;
+            } else if (block == Blocks.OBSIDIAN) {
+                obiSlot = i;
             }
-//            else if (block == Blocks.SKULL) {
-//                skullSlot = i;
-//            }
 
         }
 
-//        if (skullSlot == -1) {
-//            if (debugMessages.getValue()) {
-//                Command.sendChatMessage("[AutoWither] Wither Skull missing, disabling.");
-//            }
-//            this.disable();
-//            return;
-//        }
-
-        if (soulsandSlot == -1) {
+        if (hopperSlot == -1) {
             if (debugMessages.getValue()) {
-                Command.sendChatMessage("[AutoWither] Soul Sand missing, disabling.");
+                Command.sendChatMessage("[Auto32k] Hopper missing, disabling.");
+            }
+            this.disable();
+            return;
+        }
+
+        if (shulkerSlot == -1) {
+            if (debugMessages.getValue()) {
+                Command.sendChatMessage("[Auto32k] Shulker missing, disabling.");
             }
             this.disable();
             return;
@@ -158,6 +162,12 @@ public class AutoWither extends Module {
 
                 if (Friends.isFriend(entity.getName())) {
                     continue;
+                }
+
+                if (yOffset.getValue() != 0) {
+                    if (Math.abs(mc.player.getPosition().y - placeTargetTest.y) > Math.abs(yOffset.getValue())) {
+                        continue;
+                    }
                 }
 
                 if (isAreaPlaceable(placeTargetTest)) {
@@ -189,13 +199,13 @@ public class AutoWither extends Module {
 
             if (placeCloseToEnemy.getValue()) {
                 if (debugMessages.getValue()) {
-                    Command.sendChatMessage("[AutoWither] Placing close to Enemy");
+                    Command.sendChatMessage("[Auto32k] Placing close to Enemy");
                 }
                 // Get Key with lowest Value (closest to enemies)
                 placeTarget = Collections.min(placeTargetMap.entrySet(), Map.Entry.comparingByValue()).getKey();
             } else {
                 if (debugMessages.getValue()) {
-                    Command.sendChatMessage("[AutoWither] Placing far from Enemy");
+                    Command.sendChatMessage("[Auto32k] Placing far from Enemy");
                 }
                 // Get Key with highest Value (furthest away from enemies)
                 placeTarget = Collections.max(placeTargetMap.entrySet(), Map.Entry.comparingByValue()).getKey();
@@ -204,7 +214,7 @@ public class AutoWither extends Module {
         } else {
 
             if (debugMessages.getValue()) {
-                Command.sendChatMessage("[AutoWither] No enemy nearby, placing at first valid position.");
+                Command.sendChatMessage("[Auto32k] No enemy nearby, placing at first valid position.");
             }
 
             // Use any place target position if no enemies are around
@@ -219,92 +229,41 @@ public class AutoWither extends Module {
 
         if (placeTarget == null) {
             if (debugMessages.getValue()) {
-                Command.sendChatMessage("[AutoWither] No valid position in range to place!");
+                Command.sendChatMessage("[Auto32k] No valid position in range to place!");
             }
             this.disable();
             return;
         }
 
         if (debugMessages.getValue()) {
-            Command.sendChatMessage("[AutoWither] Place Target: " + placeTarget.x + " " + placeTarget.y + " " + placeTarget.z + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTarget))));
+            Command.sendChatMessage("[Auto32k] Place Target: " + placeTarget.x + " " + placeTarget.y + " " + placeTarget.z + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTarget))));
         }
 
-        if (soulsandSlot == -1 && skullSlot == -1) {
-            Command.sendChatMessage("[AutoWither] Error: No required blocks in inventory");
-        } else if (soulsandSlot != -1) {
-            mc.player.inventory.currentItem = soulsandSlot;
-            placeBlock(new BlockPos(placeTarget.add(0, 0, 0)));
-            placeBlock(new BlockPos(placeTarget.add(0, 1, 0)));
-            placeBlock(new BlockPos(placeTarget.add(-1, 1, 0)));
-            placeBlock(new BlockPos(placeTarget.add(1, 1, 0)));
-        } else {
-            Command.sendChatMessage("[AutoWither] Error: No Soul Sand found");
-        }
+        mc.player.inventory.currentItem = hopperSlot;
+        placeBlock(new BlockPos(placeTarget));
 
-        if (skullSlot != -1) {
-            mc.player.inventory.currentItem = skullSlot;
+        mc.player.inventory.currentItem = shulkerSlot;
+        placeBlock(new BlockPos(placeTarget.add(0, 1, 0)));
+
+        if (placeObiOnTop.getValue() && obiSlot != -1) {
+            mc.player.inventory.currentItem = obiSlot;
             placeBlock(new BlockPos(placeTarget.add(0, 2, 0)));
-            placeBlock(new BlockPos(placeTarget.add(-1, 2, 0)));
-            placeBlock(new BlockPos(placeTarget.add(1, 2, 0)));
-        } else {
-            Command.sendChatMessage("[AutoWither] Error: No Soul Sand found");
         }
 
         if (isSneaking) {
             mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
             isSneaking = false;
         }
-        mc.player.inventory.currentItem = swordSlot;
 
-        if (nametag.getValue()) {
-            return;
-        } else if (fastMode.getValue()) {
-            this.disable();
-            return;
-        }
+        mc.player.inventory.currentItem = shulkerSlot;
+        BlockPos hopperPos = new BlockPos(placeTarget);
+        mc.player.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(hopperPos, EnumFacing.DOWN, EnumHand.MAIN_HAND, 0, 0, 0));
+        swordSlot = shulkerSlot + 32;
+
     }
 
     @Override
     public void onUpdate() {
-        if (nametag.getValue()) {
-            int tagslot = -1;
-            for (int i = 0; i < 9; i++) {
-                ItemStack stack = mc.player.inventory.getStackInSlot(i);
-
-                if (stack == ItemStack.EMPTY || stack.getItem() instanceof ItemBlock) {
-                    continue;
-                }
-
-                Item tag = stack.getItem();
-
-                if (tag instanceof ItemNameTag) {
-                    tagslot = i;
-                }
-            }
-            if (tagslot == -1 && fastMode.getValue()) {
-                Command.sendChatMessage("[AutoWither] Error: No nametags in inventory, disabling module");
-                this.disable();
-                return;
-            }
-            for (Entity w : mc.world.getLoadedEntityList()) {
-                if (w instanceof EntityWither) {
-                    final EntityWither wither = (EntityWither) w;
-                    if (mc.player.getDistance(wither) <= placeRange.getValue()) {
-                        if (debugMessages.getValue()) {
-                            Command.sendChatMessage("Registered Wither");
-                        }
-                        if (tagslot != -1) {
-                            mc.player.inventory.currentItem = tagslot;
-                            mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);
-                            if (fastMode.getValue()) {
-                                this.disable();
-                            }
-                        }
-                    }
-                }
-            }
-            mc.player.inventory.currentItem = swordSlot;
-        }
 
         if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
             return;
@@ -314,9 +273,33 @@ public class AutoWither extends Module {
             return;
         }
 
+        if (!moveToHotbar.getValue()) {
+            this.disable();
+            return;
+        }
+
         if (swordSlot == -1) {
             return;
         }
+
+        boolean swapReady = true;
+
+        if (((GuiContainer) mc.currentScreen).inventorySlots.getSlot(0).getStack().isEmpty) {
+            swapReady = false;
+        }
+
+        if (!((GuiContainer) mc.currentScreen).inventorySlots.getSlot(swordSlot).getStack().isEmpty) {
+            swapReady = false;
+        }
+
+        if (swapReady) {
+            mc.playerController.windowClick(((GuiContainer) mc.currentScreen).inventorySlots.windowId, 0, swordSlot - 32, ClickType.SWAP, mc.player);
+            if (autoEnableHitAura.getValue()) {
+                ModuleManager.getModuleByName("Aura").enable();
+            }
+            this.disable();
+        }
+
     }
 
     private boolean isAreaPlaceable(BlockPos blockPos) {
@@ -417,4 +400,12 @@ public class AutoWither extends Module {
         }
         return false;
     }
+
+    //@Override
+    //protected void onDisable() {
+    //	if (autoEnableHitAura.getValue()) {
+    //		ModuleManager.getModuleByName("Aura").disable();
+    //	}
+    //}
+
 }
