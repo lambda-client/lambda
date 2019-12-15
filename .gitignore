@@ -2,13 +2,13 @@
 
 # stop skidding kami blue
 
-gradle*
-gradlew*
-gradle/
+#gradle*
+#gradlew*
+#gradle/
 buildext.sh
 deltags.sh
 buildexttmp.sh
-build.gradle
+#build.gradle
 builddonator.sh
 buildkeygen.sh
 build.sh
