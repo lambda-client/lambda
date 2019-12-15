@@ -22,7 +22,7 @@ public class KamiSettingsPanelUI extends AbstractComponentUI<SettingsPanel> {
         float green = (float) (Integer) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).green.getValue() / 255.0F;
         float blue = (float) (Integer) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).blue.getValue() / 255.0F;
         float alpha = (float) (Integer) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).alpha.getValue() / 255.0F;
-        if (ModuleManager.getModuleByName("GUI Color").isEnabled()) {
+        if (ModuleManager.getModuleByName("GUI Colour").isEnabled()) {
             GL11.glColor4f(red, green, blue, alpha);
         } else {
             GL11.glColor4f(0.17F, 0.17F, 0.18F, 0.9F);
