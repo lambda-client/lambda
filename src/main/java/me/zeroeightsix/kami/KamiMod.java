@@ -17,6 +17,8 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
+import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -24,10 +26,11 @@ import me.zeroeightsix.kami.setting.config.Configuration;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
 import me.zeroeightsix.kami.util.Wrapper;
-import net.minecraft.launchwrapper.LogWrapper;
+import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -95,6 +98,16 @@ public class KamiMod {
     }
 
     @Mod.EventHandler
+    public void postInit(FMLPostInitializationEvent event) {
+        for (Capes.CapeUser user : Capes.INSTANCE.capeUser) {
+            if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
+                DiscordPresence.presence.smallImageKey = "donator2";
+                DiscordPresence.presence.smallImageText = "donator uwu";
+            }
+        }
+    }
+
+    @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         KamiMod.log.info("\n\nInitializing KAMI " + MODVER);
 
@@ -118,13 +131,20 @@ public class KamiMod {
 
         ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
+        new Capes();
+        KamiMod.log.info("Capes init!\n");
+
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
+
 
         try { // load modules that are on by default
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("GUI Scale").setEnabled(true);
             ModuleManager.getModuleByName("Cape").setEnabled(true);
+            if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
+            }
         }
         catch (NullPointerException e) {
             KamiMod.log.info("NPE in loading always enabled modules\n");

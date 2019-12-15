@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.bewwawho.capes;
 
 import com.google.gson.Gson;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.IImageBuffer;
@@ -16,34 +15,29 @@ import java.awt.image.BufferedImage;
 import java.io.InputStreamReader;
 import java.net.URL;
 
-//i love crystallinqq <3
-
 /***
  * @author crystalling
+ * Updated by S-B99 on 15/12/19
  */
 public class Capes {
 
-    private static Capes INSTANCE;
-    private CapeUser[] capeUser;
+    public static Capes INSTANCE;
+    public CapeUser[] capeUser;
 
     public Capes() {
         INSTANCE = this;
-        if (ModuleManager.isModuleEnabled("Cape")) {
-            try {
-                HttpsURLConnection connection = (HttpsURLConnection) new URL("https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/capes.json").openConnection();
-
-                connection.connect();
-                this.capeUser = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), CapeUser[].class);
-                connection.disconnect();
-            } catch (Exception e) {
-                KamiMod.log.error("Failed to load capes");
-                e.printStackTrace();
-            }
-
-            if (capeUser != null) {
-                for (CapeUser user : capeUser) {
-                    bindTexture(user.url, "capes/kami/" + formatUUID(user.uuid));
-                }
+        try {
+            HttpsURLConnection connection = (HttpsURLConnection) new URL("https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/capes.json").openConnection();
+            connection.connect();
+            this.capeUser = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), CapeUser[].class);
+            connection.disconnect();
+        } catch (Exception e) {
+            KamiMod.log.error("Failed to load capes");
+            e.printStackTrace();
+        }
+        if (capeUser != null) {
+            for (CapeUser user : capeUser) {
+                bindTexture(user.url, "capes/kami/" + formatUUID(user.uuid));
             }
         }
     }
@@ -99,7 +93,7 @@ public class Capes {
         return uuid.replaceAll("-", "");
     }
 
-    private class CapeUser {
+    public class CapeUser {
         public String uuid;
         public String url;
     }
