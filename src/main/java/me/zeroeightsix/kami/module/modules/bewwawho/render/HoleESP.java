@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.bewwawho.render;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.GeometryMasks;
@@ -17,7 +17,8 @@ import java.awt.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
+import static me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura.getPlayerPos;
+
 
 /**
  * Created 16 November 2019 by hub
