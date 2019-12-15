@@ -134,7 +134,7 @@ public class KamiMod {
     }
 
     public static String getConfigName() {
-        Path config = Paths.get("KAMILastConfig.txt");
+        Path config = Paths.get("KAMIBlueLastConfig.txt");
         String kamiConfigName = KAMI_CONFIG_NAME_DEFAULT;
         try (BufferedReader reader = Files.newBufferedReader(config)) {
             kamiConfigName = reader.readLine();
