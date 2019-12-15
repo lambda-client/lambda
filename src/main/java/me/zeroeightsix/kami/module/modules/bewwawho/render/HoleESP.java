@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.module.modules.bewwawho.render;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.GeometryMasks;
@@ -114,8 +115,16 @@ public class HoleESP extends Module {
 
 
     public void onWorldRender(RenderEvent event) {
-        int colorObby = (a.getValue() & 0xff) << 24 | (r.getValue() & 0xff) << 16 | (g.getValue() & 0xff) << 8 | (b.getValue() & 0xff);
-        int colorBedr = (a2.getValue() & 0xff) << 24 | (r2.getValue() & 0xff) << 16 | (g2.getValue() & 0xff) << 8 | (b2.getValue() & 0xff);
+        int colorObby;
+        int colorBedr;
+        if (ModuleManager.getModuleByName("Freecam").isEnabled()) {
+            colorObby = ((a.getValue())/2 & 0xff) << 24 | (r.getValue() & 0xff) << 16 | (g.getValue() & 0xff) << 8 | (b.getValue() & 0xff);
+            colorBedr = ((a2.getValue())/2 & 0xff) << 24 | (r2.getValue() & 0xff) << 16 | (g2.getValue() & 0xff) << 8 | (b2.getValue() & 0xff);
+        }
+        else {
+            colorObby = (a.getValue() & 0xff) << 24 | (r.getValue() & 0xff) << 16 | (g.getValue() & 0xff) << 8 | (b.getValue() & 0xff);
+            colorBedr = (a2.getValue() & 0xff) << 24 | (r2.getValue() & 0xff) << 16 | (g2.getValue() & 0xff) << 8 | (b2.getValue() & 0xff);
+        }
 
         KamiTessellator.prepare(GL11.GL_QUADS);
         this.holesObby.forEach(blockPos -> KamiTessellator.drawBox((BlockPos) blockPos, colorObby, GeometryMasks.Quad.ALL));
