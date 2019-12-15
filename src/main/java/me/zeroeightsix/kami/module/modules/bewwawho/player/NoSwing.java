@@ -4,19 +4,26 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketAnimation;
+import net.minecraft.network.play.client.CPacketPlayerDigging;
 
 /**
  * Made by FINZ0
+ * Updated by S-B99 on 14/12/19
  */
 
 @Module.Info(name = "NoSwing", category = Module.Category.PLAYER, description = "Cancels server and client swinging packets")
-public class
-NoSwing extends Module {
+public class NoSwing extends Module {
+    private Setting<Boolean> digging = register(Settings.b("Digging packet", false));
 
     @EventHandler
     private Listener<PacketEvent.Send> listener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketAnimation) {
+            event.cancel();
+        }
+        if (event.getPacket() instanceof CPacketPlayerDigging && digging.getValue()) {
             event.cancel();
         }
     });
