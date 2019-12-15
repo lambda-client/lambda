@@ -5,30 +5,34 @@ import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Friends;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.init.Enchantments;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Vec3d;
+import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.stream.Collectors;
+import java.util.List;
 
 import static org.lwjgl.opengl.GL11.*;
 
 /**
  * Created by 086 on 19/12/2017.
+ * Updated by snowmii on 12/12/19
  */
 @Module.Info(name = "Nametags", description = "Draws descriptive nametags above entities", category = Module.Category.RENDER)
 public class Nametags extends Module {
@@ -39,8 +43,10 @@ public class Nametags extends Module {
     private Setting<Double> range = register(Settings.d("Range", 200));
     private Setting<Float> scale = register(Settings.floatBuilder("Scale").withMinimum(.5f).withMaximum(10f).withValue(1f).build());
     private Setting<Boolean> health = register(Settings.b("Health", true));
+    private Setting<Boolean> armor = register(Settings.b("Armor", true));
 
     RenderItem itemRenderer = mc.getRenderItem();
+    static final Minecraft mc = Minecraft.getMinecraft();
 
     @Override
     public void onWorldRender(RenderEvent event) {
@@ -85,7 +91,7 @@ public class Nametags extends Module {
         FontRenderer fontRendererIn = mc.fontRenderer;
         GlStateManager.scale(-0.025F, -0.025F, 0.025F);
 
-        String str = entityIn.getName() + (health.getValue() ? " " + Command.SECTIONSIGN() + "c" + Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0)) : "");
+        String str = entityIn.getName() + (health.getValue() ? " " + Command.SECTIONSIGN() + "a" + Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0)) : "");
         int i = fontRendererIn.getStringWidth(str) / 2;
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
@@ -94,6 +100,7 @@ public class Nametags extends Module {
 
         BufferBuilder bufferbuilder = tessellator.getBuffer();
 
+        GlStateManager.disableDepth();
         glTranslatef(0, -20, 0);
         bufferbuilder.begin(GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
         bufferbuilder.pos(-i - 1, 8, 0.0D).color(0.0F, 0.0F, 0.0F, 0.5F).endVertex();
@@ -112,43 +119,165 @@ public class Nametags extends Module {
         GlStateManager.enableTexture2D();
 
         GlStateManager.glNormal3f(0.0F, 1.0F, 0.0F);
-        fontRendererIn.drawString(str, -i, 10, entityIn instanceof EntityPlayer ? Friends.isFriend(entityIn.getName()) ? 0x11ee11 : 0xffffff : 0xffffff);
+        if(!entityIn.isSneaking()) fontRendererIn.drawString(str, -i, 10, entityIn instanceof EntityPlayer ? Friends.isFriend(entityIn.getName()) ? 0x00bfff : 0xffffff : 0xffffff);
+        else fontRendererIn.drawString(str, -i, 10, 0xffaa00);
+        if (entityIn instanceof EntityPlayer && armor.getValue()) renderArmor((EntityPlayer)entityIn, 0, -(fontRendererIn.FONT_HEIGHT + 1) - 20);
         GlStateManager.glNormal3f(0.0F, 0.0F, 0.0F);
         glTranslatef(0, 20, 0);
 
         GlStateManager.scale(-40, -40, 40);
+        GlStateManager.enableDepth();
+        GlStateManager.popMatrix();
+    }
+    public void renderArmor(EntityPlayer player, int x, int y) {
+        InventoryPlayer items = player.inventory;
+        ItemStack inHand = player.getHeldItemMainhand();
+        ItemStack boots = items.armorItemInSlot(0);
+        ItemStack leggings = items.armorItemInSlot(1);
+        ItemStack body = items.armorItemInSlot(2);
+        ItemStack helm = items.armorItemInSlot(3);
+        ItemStack offHand = player.getHeldItemOffhand();
+        ItemStack[] stuff = null;
+        if (inHand != null && offHand != null) {
+            stuff = new ItemStack[] { inHand, helm, body, leggings, boots, offHand };
+        }
+        else if (inHand != null && offHand == null) stuff = new ItemStack[] { inHand, helm, body, leggings, boots };
+        else if (inHand == null && offHand != null) stuff = new ItemStack[] { helm, body, leggings, boots, offHand };
+        else {
+            stuff = new ItemStack[] { helm, body, leggings, boots };
+        }
+        List<ItemStack> stacks = new ArrayList();
+        ItemStack[] array;
+        int length = (array = stuff).length;
 
-        ArrayList<ItemStack> equipment = new ArrayList<>();
-        entityIn.getHeldEquipment().forEach(itemStack -> {
-            if (itemStack != null) equipment.add(itemStack);
-        });
-        ArrayList<ItemStack> armour = new ArrayList<>();
-        entityIn.getArmorInventoryList().forEach(itemStack -> {
-            if (itemStack != null) armour.add(itemStack);
-        });
-        Collections.reverse(armour);
-        equipment.addAll(armour);
-        if (equipment.size() == 0) {
-            GlStateManager.popMatrix();
-            return;
+        for (int j = 0; j < length; j++)
+        {
+            ItemStack i = array[j];
+            if ((i != null) && (i.getItem() != null)) {
+                stacks.add(i);
+            }
+        }
+        int width = 16 * stacks.size() / 2;
+        x -= width;
+        GlStateManager.disableDepth();
+        for (ItemStack stack : stacks)
+        {
+            renderItem(stack, x, y);
+            x += 16;
+        }
+        GlStateManager.enableDepth();
+    }
+
+
+    public void renderItem(ItemStack stack, int x, int y) {
+        FontRenderer fontRenderer = mc.fontRenderer;
+        RenderItem renderItem = mc.getRenderItem();
+        EnchantEntry[] enchants = {
+                new EnchantEntry(Enchantments.PROTECTION, "Pro"),
+                new EnchantEntry(Enchantments.THORNS, "Thr"),
+                new EnchantEntry(Enchantments.SHARPNESS, "Sha"),
+                new EnchantEntry(Enchantments.FIRE_ASPECT, "Fia"),
+                new EnchantEntry(Enchantments.KNOCKBACK, "Knb"),
+                new EnchantEntry(Enchantments.UNBREAKING, "Unb"),
+                new EnchantEntry(Enchantments.POWER, "Pow"),
+                new EnchantEntry(Enchantments.FIRE_PROTECTION, "Fpr"),
+                new EnchantEntry(Enchantments.FEATHER_FALLING, "Fea"),
+                new EnchantEntry(Enchantments.BLAST_PROTECTION, "Bla"),
+                new EnchantEntry(Enchantments.PROJECTILE_PROTECTION, "Ppr"),
+                new EnchantEntry(Enchantments.RESPIRATION, "Res"),
+                new EnchantEntry(Enchantments.AQUA_AFFINITY, "Aqu"),
+                new EnchantEntry(Enchantments.DEPTH_STRIDER, "Dep"),
+                new EnchantEntry(Enchantments.FROST_WALKER, "Fro"),
+                new EnchantEntry(Enchantments.BINDING_CURSE, "Bin"),
+                new EnchantEntry(Enchantments.SMITE, "Smi"),
+                new EnchantEntry(Enchantments.BANE_OF_ARTHROPODS, "Ban"),
+                new EnchantEntry(Enchantments.LOOTING, "Loo"),
+                new EnchantEntry(Enchantments.SWEEPING, "Swe"),
+                new EnchantEntry(Enchantments.EFFICIENCY, "Eff"),
+                new EnchantEntry(Enchantments.SILK_TOUCH, "Sil"),
+                new EnchantEntry(Enchantments.FORTUNE, "For"),
+                new EnchantEntry(Enchantments.FLAME, "Fla"),
+                new EnchantEntry(Enchantments.LUCK_OF_THE_SEA, "Luc"),
+                new EnchantEntry(Enchantments.LURE, "Lur"),
+                new EnchantEntry(Enchantments.MENDING, "Men"),
+                new EnchantEntry(Enchantments.VANISHING_CURSE, "Van"),
+                new EnchantEntry(Enchantments.PUNCH, "Pun")
+        };
+        GlStateManager.pushMatrix();
+        GlStateManager.pushMatrix();
+        float scale1 = 0.3F;
+        GlStateManager.translate(x - 3, y + 8, 0.0F);
+        GlStateManager.scale(0.3F, 0.3F, 0.3F);
+        GlStateManager.popMatrix();
+        RenderHelper.enableGUIStandardItemLighting();
+        renderItem.zLevel = -100.0F;
+        GlStateManager.disableDepth();
+        renderItem.renderItemIntoGUI(stack, x, y);
+        renderItem.renderItemOverlayIntoGUI(fontRenderer, stack, x, y, null);
+        GlStateManager.enableDepth();
+        GlStateManager.scale(0.75F, 0.75F, 0.75F);
+        if (stack.isItemStackDamageable()) drawDamage(stack, x, y);
+        GlStateManager.scale(1.33F, 1.33F, 1.33F);
+        EnchantEntry[] array;
+        int length = (array = enchants).length; for (int i = 0; i < length; i++) {
+            EnchantEntry enchant = array[i];
+            int level = EnchantmentHelper.getEnchantmentLevel(enchant.getEnchant(), stack);
+            String levelDisplay = "" + level;
+            if (level > 10) {
+                levelDisplay = "10+";
+            }
+            if (level > 0) {
+                float scale2 = 0.32F;
+                GlStateManager.translate(x-1, y + 2, 0.0F);
+                GlStateManager.scale(0.42F, 0.42F, 0.42F);
+                GlStateManager.disableDepth();
+                GlStateManager.disableLighting();
+                GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+                fontRenderer.drawString("\u00a7f" + enchant.getName() + " " + levelDisplay,
+                        20 - fontRenderer.getStringWidth("\u00a7f" + enchant.getName() + " " + levelDisplay) / 2, 0, Color.WHITE.getRGB(), true);
+                GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+                GlStateManager.enableLighting();
+                GlStateManager.enableDepth();
+                GlStateManager.scale(2.42F, 2.42F, 2.42F);
+                GlStateManager.translate(-x+1, -y, 0.0F);
+                y += (int)((fontRenderer.FONT_HEIGHT + 3) * 0.28F);
+            }
+        }
+        renderItem.zLevel = 0.0F;
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.enableAlpha();
+        GlStateManager.disableBlend();
+        GlStateManager.disableLighting();
+        GlStateManager.popMatrix();
+    }
+
+    public void drawDamage(ItemStack itemstack,int x,int y) {
+        float green = ((float) itemstack.getMaxDamage() - (float) itemstack.getItemDamage()) / (float) itemstack.getMaxDamage();
+        float red = 1 - green;
+        int dmg = 100 - (int) (red * 100);
+        GlStateManager.disableDepth();
+        mc.fontRenderer.drawStringWithShadow(dmg + "", x + 8 - mc.fontRenderer.getStringWidth(dmg + "") / 2, y-11, ColourHolder.toHex((int) (red * 255), (int) (green * 255), 0));
+        GlStateManager.enableDepth();
+    }
+
+    public static class EnchantEntry {
+        private Enchantment enchant;
+        private String name;
+
+        public EnchantEntry(Enchantment enchant, String name)
+        {
+            this.enchant = enchant;
+            this.name = name;
         }
 
-        Collection<ItemStack> a = equipment.stream().filter(itemStack -> !itemStack.isEmpty()).collect(Collectors.toList());
-        GlStateManager.translate(((a.size() - 1) / 2f) * .5f, .6, 0);
+        public Enchantment getEnchant()
+        {
+            return this.enchant;
+        }
 
-        a.forEach(itemStack -> {
-            GlStateManager.pushAttrib();
-            RenderHelper.enableStandardItemLighting();
-            GlStateManager.scale(.5, .5, 0);
-            GlStateManager.disableLighting();
-            this.itemRenderer.zLevel = -5;
-            this.itemRenderer.renderItem(itemStack, itemStack.getItem() == Items.SHIELD ? ItemCameraTransforms.TransformType.FIXED : ItemCameraTransforms.TransformType.NONE);
-            this.itemRenderer.zLevel = 0;
-            GlStateManager.scale(2, 2, 0);
-            GlStateManager.popAttrib();
-            GlStateManager.translate(-.5f, 0, 0);
-        });
-
-        GlStateManager.popMatrix();
+        public String getName()
+        {
+            return this.name;
+        }
     }
 }
