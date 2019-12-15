@@ -41,7 +41,7 @@ public class Nametags extends Module {
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Double> range = register(Settings.d("Range", 200));
-    private Setting<Float> scale = register(Settings.floatBuilder("Scale").withMinimum(.5f).withMaximum(10f).withValue(1f).build());
+    private Setting<Float> scale = register(Settings.floatBuilder("Scale").withMinimum(.5f).withMaximum(10f).withValue(2.5f).build());
     private Setting<Boolean> health = register(Settings.b("Health", true));
     private Setting<Boolean> armor = register(Settings.b("Armor", true));
 
