@@ -16,7 +16,7 @@ import net.minecraft.util.math.Vec3d;
 
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
-@Module.Info(name = "Scaffold", category = Module.Category.PLAYER)
+@Module.Info(name = "Scaffold", category = Module.Category.PLAYER, description = "Places blocks under you")
 public class Scaffold extends Module {
 
     private Setting<Integer> future = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2));

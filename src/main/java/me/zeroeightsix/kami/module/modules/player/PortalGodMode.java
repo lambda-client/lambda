@@ -9,7 +9,7 @@ import net.minecraft.network.play.client.CPacketConfirmTeleport;
 /**
  * Created by GlowskiBroski on 10/14/2018.
  */
-@Module.Info(name = "PortalGodMode", category = Module.Category.PLAYER)
+@Module.Info(name = "PortalGodMode", category = Module.Category.PLAYER, description = "Don't take damage in portals")
 public class PortalGodMode extends Module {
 
     @EventHandler

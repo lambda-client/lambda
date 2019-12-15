@@ -11,7 +11,7 @@ import net.minecraft.item.ItemStack;
 /**
  * Created by 086 on 24/01/2018.
  */
-@Module.Info(name = "AutoArmour", category = Module.Category.PLAYER)
+@Module.Info(name = "AutoArmour", category = Module.Category.PLAYER, description = "Automatically equips armour")
 public class AutoArmour extends Module {
 
     @Override
