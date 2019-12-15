@@ -21,6 +21,7 @@ import static org.lwjgl.opengl.GL11.glDisable;
 
 /**
  * Created by 086 on 4/08/2017.
+ * Updated by S-B99 on 13/12/19
  */
 public class KamiActiveModulesUI extends AbstractComponentUI<ActiveModules> {
     @Override
