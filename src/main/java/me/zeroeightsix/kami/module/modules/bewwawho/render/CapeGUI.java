@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.module.Module;
 /***
  * Created by @S-B99 on 26/11/19
  */
-@Module.Info(name = "Cape", category = Module.Category.RENDER, description = "Shiny custom donator cape", showOnArray = false)
+@Module.Info(name = "Cape", category = Module.Category.RENDER, description = "Shiny custom donator cape", showOnArray = Module.ShowOnArray.OFF)
 public class CapeGUI extends Module {
     public void onDisable() {
         this.enable();

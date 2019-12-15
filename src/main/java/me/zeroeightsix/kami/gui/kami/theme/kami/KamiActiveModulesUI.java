@@ -59,7 +59,7 @@ public class KamiActiveModulesUI extends AbstractComponentUI<ActiveModules> {
         }
 
         mods.stream().forEach(module -> {
-            if (module.showOnArray) {
+            if (module.getShowOnArray().equals(Module.ShowOnArray.ON)) {
                 int rgb = Color.HSBtoRGB(hue[0], 1, 1);
                 String s = module.getHudInfo();
                 String text = module.getName() + (s == null ? "" : " " + Command.SECTIONSIGN() + "7" + s);

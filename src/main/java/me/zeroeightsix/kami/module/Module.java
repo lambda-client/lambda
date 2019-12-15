@@ -4,6 +4,7 @@ import com.google.common.base.Converter;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -19,25 +20,26 @@ import java.util.List;
 
 /**
  * Created by 086 on 23/08/2017.
- * Updated by S-B99 on 13/12/19
+ * Updated by S-B99 on 15/12/19
  */
 public class Module {
 
     private final String originalName = getAnnotation().name();
-    private final Setting<String> name = register(Settings.s("Name", originalName));
-    private final String description = getAnnotation().description();
     private final Category category = getAnnotation().category();
+    private final String description = getAnnotation().description();
+    private final Setting<String> name = register(Settings.s("Name", originalName));
     private Setting<Bind> bind = register(Settings.custom("Bind", Bind.none(), new BindConverter()).build());
     private Setting<Boolean> enabled = register(Settings.booleanBuilder("Enabled").withVisibility(aBoolean -> false).withValue(false).build());
+    private Setting<ShowOnArray> showOnArray = register(Settings.e("Visible", getAnnotation().showOnArray()));
+
     public boolean alwaysListening;
-    public boolean showOnArray = getAnnotation().showOnArray();
     protected static final Minecraft mc = Minecraft.getMinecraft();
 
     public List<Setting> settingList = new ArrayList<>();
 
     public Module() {
         alwaysListening = getAnnotation().alwaysListening();
-        registerAll(bind, enabled);
+        registerAll(bind, enabled, showOnArray);
     }
 
     private Info getAnnotation() {
@@ -47,17 +49,26 @@ public class Module {
         throw new IllegalStateException("No Annotation on class " + this.getClass().getCanonicalName() + "!");
     }
 
-    public void onUpdate() {
-    }
+    public void onUpdate() {}
 
-    public void onRender() {
-    }
+    public void onRender() {}
 
-    public void onWorldRender(RenderEvent event) {
-    }
+    public void onWorldRender(RenderEvent event) {}
 
     public Bind getBind() {
         return bind.getValue();
+    }
+
+//    public boolean showOnArray() {
+//        return showOnArray.getValue();
+//    }
+
+    public enum ShowOnArray {
+        ON, OFF
+    }
+
+    public ShowOnArray getShowOnArray() {
+        return showOnArray.getValue();
     }
 
     public String getBindName() {
@@ -95,7 +106,6 @@ public class Module {
         public boolean isHidden() {
             return hidden;
         }
-
         public String getName() {
             return name;
         }
@@ -104,14 +114,10 @@ public class Module {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Info {
         String name();
-
         String description() default "Descriptionless";
-
         Module.Category category();
-
         boolean alwaysListening() default false;
-
-        boolean showOnArray() default true;
+        ShowOnArray showOnArray() default ShowOnArray.ON;
     }
 
     public String getName() {
@@ -130,11 +136,9 @@ public class Module {
         return enabled.getValue();
     }
 
-    protected void onEnable() {
-    }
+    protected void onEnable() {}
 
-    protected void onDisable() {
-    }
+    protected void onDisable() {}
 
     public void toggle() {
         setEnabled(!isEnabled());

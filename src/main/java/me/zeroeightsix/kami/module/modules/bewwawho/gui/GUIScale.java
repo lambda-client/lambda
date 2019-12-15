@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.setting.Settings;
  * @author S-B99
  * Created by S-B99 on 09/12/19
  */
-@Module.Info(name = "GUI Scale", category = Module.Category.GUI, description = "Configures size of GUI", showOnArray = false)
+@Module.Info(name = "GUI Scale", category = Module.Category.GUI, description = "Configures size of GUI", showOnArray = Module.ShowOnArray.OFF)
 public class GUIScale extends Module {
     private Setting<Integer> scaleGlobal = this.register(Settings.integerBuilder("Scale").withMinimum(1).withValue(2).withMaximum(3).build());
 
