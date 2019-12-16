@@ -1,9 +1,8 @@
 package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.passive.*;
+import net.minecraft.entity.passive.AbstractHorse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -14,14 +13,34 @@ import java.math.RoundingMode;
 
 public class EntityStatsCommand extends Command {
 
-    private String maxHealth;
-    private String speed;
-    private String jumpHeight;
-    Minecraft mc = Minecraft.getMinecraft();
-
     public EntityStatsCommand() {
         super("entitystats", null);
-        setDescription("Gives you the stats of the entity you're riding");
+        setDescription("Print the statistics of the entity you're currently riding");
+    }
+
+    @Override
+    public void call(String[] args) {
+        String maxHealth;
+        String speed;
+        if (mc.player.getRidingEntity() != null && mc.player.getRidingEntity() instanceof AbstractHorse) {
+            // EntityHorse, EntityMule, etc etc all extend AbstractHorse
+            // no need to check if the riding entity is an instanceof everything @d1gress
+            AbstractHorse h = (AbstractHorse) mc.player.getRidingEntity();
+
+            maxHealth = h.getMaxHealth() + " \2472HP";
+            speed = round(43.17 * h.getAIMoveSpeed(), 2) + " \2472m/s";
+            String jumpHeight = round(-0.1817584952 * Math.pow(h.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(h.getHorseJumpStrength(), 2) + 2.128599134 * h.getHorseJumpStrength() - 0.343930367, 4) + " \2472m";
+            String tamer = h.getOwnerUniqueId() == null ? "Not tamed." : h.getOwnerUniqueId().toString();
+            // TODO: Function that resolves UUID's to Minecraft usernames. @bella
+            Command.sendChatMessage("\2476Entity Stats:\n\247cMax Health: \247b" + maxHealth + "\n\247cSpeed: \247b" + speed + "\n\247cJump: \247b" + jumpHeight + "\n\247cOwner UUID: \247b" + tamer);
+        } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
+            EntityLivingBase l = (EntityLivingBase) mc.player.getRidingEntity();
+            maxHealth = l.getMaxHealth() + " \2472HP";
+            speed = round(43.17 * l.getAIMoveSpeed(), 2) + " \2472m/s";
+            Command.sendChatMessage("\2476Entity Stats:\n\247cMax Health: \247b" + maxHealth + "\n\247cSpeed: \247b" + speed);
+        } else {
+            Command.sendChatMessage("\2474\247lERROR: \247cNot riding a compatible entity.");
+        }
     }
 
     public static double round(double value, int places) {
@@ -31,31 +50,4 @@ public class EntityStatsCommand extends Command {
         bd = bd.setScale(places, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
-
-    @Override
-    public void call(String[] args) {
-        if (mc.player.getRidingEntity() != null) {
-            if (mc.player.getRidingEntity() instanceof EntityHorse ||
-                    mc.player.getRidingEntity() instanceof EntityDonkey ||
-                    mc.player.getRidingEntity() instanceof EntityLlama ||
-                    mc.player.getRidingEntity() instanceof EntityMule ||
-                    mc.player.getRidingEntity() instanceof EntitySkeletonHorse ||
-                    mc.player.getRidingEntity() instanceof EntityZombieHorse ||
-                    mc.player.getRidingEntity() instanceof AbstractHorse) {
-                AbstractHorse h = (AbstractHorse) mc.player.getRidingEntity();
-                maxHealth = h.getMaxHealth() + " §2HP";
-                speed = round(43.17 * h.getAIMoveSpeed(), 2) + " §2m/s";
-                jumpHeight = round(-0.1817584952 * Math.pow(h.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(h.getHorseJumpStrength(), 2) + 2.128599134 * h.getHorseJumpStrength() - 0.343930367, 4) + " §2m";
-                Command.sendChatMessage("§6Entity Stats:\n§cMax Health: §b" + maxHealth + "\n§cSpeed: §b" + speed + "\n§cJump: §b" + jumpHeight);
-            } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
-                EntityLivingBase l = (EntityLivingBase) mc.player.getRidingEntity();
-                maxHealth = l.getMaxHealth() + " §2HP";
-                speed = round(43.17 * l.getAIMoveSpeed(), 2) + " §2m/s";
-                Command.sendChatMessage("§6Entity Stats:\n§cMax Health: §b" + maxHealth + "\n§cSpeed: §b" + speed);
-            }
-        } else {
-            Command.sendChatMessage("§4§lERROR: §cNot riding a living entity.");
-        }
-    }
-
 }
