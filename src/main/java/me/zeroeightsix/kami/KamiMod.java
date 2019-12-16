@@ -135,6 +135,9 @@ public class KamiMod {
         new Capes();
         KamiMod.log.info("Capes init!\n");
 
+        new Donator();
+        KamiMod.log.info("Donators init!\n");
+
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
