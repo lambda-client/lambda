@@ -20,6 +20,8 @@ public abstract class Command {
     protected String syntax;
     protected String description;
 
+    public final Minecraft mc = Minecraft.getMinecraft();
+
     protected SyntaxChunk[] syntaxChunks;
 
     public static Setting<String> commandPrefix = Settings.s("commandPrefix", ".");
