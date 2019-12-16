@@ -19,6 +19,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
+import me.zeroeightsix.kami.module.modules.bewwawho.util.Donator;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -49,7 +50,7 @@ import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 15/12/19
+ * Updated by S-B99 on 16/12/19
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -99,7 +100,7 @@ public class KamiMod {
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        for (Capes.CapeUser user : Capes.INSTANCE.capeUser) {
+        for (Donator.DonatorUser user : Donator.INSTANCE.donatorUsers) {
             if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
                 DiscordPresence.presence.smallImageKey = "donator2";
                 DiscordPresence.presence.smallImageText = "donator uwu";
