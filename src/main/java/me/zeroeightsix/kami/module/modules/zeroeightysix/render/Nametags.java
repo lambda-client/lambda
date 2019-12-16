@@ -91,7 +91,7 @@ public class Nametags extends Module {
         FontRenderer fontRendererIn = mc.fontRenderer;
         GlStateManager.scale(-0.025F, -0.025F, 0.025F);
 
-        String str = entityIn.getName() + (health.getValue() ? " " + Command.SECTIONSIGN() + "a" + Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0)) : "");
+        String str = entityIn.getName() + (health.getValue() ? " " + Command.SECTION_SIGN + "a" + Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0)) : "");
         int i = fontRendererIn.getStringWidth(str) / 2;
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);

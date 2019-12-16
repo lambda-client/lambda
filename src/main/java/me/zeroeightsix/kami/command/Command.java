@@ -24,6 +24,7 @@ public abstract class Command {
     protected SyntaxChunk[] syntaxChunks;
 
     public static Setting<String> commandPrefix = Settings.s("commandPrefix", ".");
+    public static final char SECTION_SIGN = '\u00A7';
 
     public Command(String label, SyntaxChunk[] syntaxChunks) {
         this.label = label;
@@ -123,9 +124,5 @@ public abstract class Command {
                 return c;
         }
         return null;
-    }
-
-    public static char SECTIONSIGN() {
-        return '\u00A7';
     }
 }

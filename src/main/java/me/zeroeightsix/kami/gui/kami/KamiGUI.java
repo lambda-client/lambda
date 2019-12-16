@@ -224,33 +224,33 @@ public class KamiGUI extends GUI {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
                 if (privateInfoNam) {
-                    information.addLine("\u00A7bWelcome" + Command.SECTIONSIGN() + "3 " + privateDisplayN + "!");
+                    information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + privateDisplayN + "!");
                 }
                 if (privateInfoTps) {
-                    information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTIONSIGN() + "3 tps");
+                    information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
                 }
                 if (privateInfoFps) {
-                    information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTIONSIGN() + "3 fps");
+                    information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
                 }
                 if (privateInfoPin) {
-                    information.addLine("\u00A7b" + privatePingValue + Command.SECTIONSIGN() + "3 ms");
+                    information.addLine("\u00A7b" + privatePingValue + Command.SECTION_SIGN + "3 ms");
                 }
                 if (privateInfoMem) {
-                    information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTIONSIGN() + "3mB free");
+                    information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTION_SIGN + "3mB free");
                 }
             } else {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-                information.addLine(Command.SECTIONSIGN() + "EEnable InfoOverlay!");
+                information.addLine(Command.SECTION_SIGN + "EEnable InfoOverlay!");
             }
 
 
-            //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTIONSIGN() + "3 cores");
-            //information.addLine("\u00A7b" + Wrapper.getPlayer().getDistance() + Command.SECTIONSIGN() + "3 fps");
+            //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTION_SIGN + "3 cores");
+            //information.addLine("\u00A7b" + Wrapper.getPlayer().getDistance() + Command.SECTION_SIGN + "3 fps");
 
             //OperatingSystemMXBean.getSystemLoadAverage() / OperatingSystemMXBean.getAvailableProcessors()
-//            information.addLine("\u00A7b" + (Wrapper.getMinecraft().getVersion()) + Command.SECTIONSIGN() + "3% used");
-//            information.addLine("\u00A7b" + (Runtime.getRuntime().totalMemory() / 1000000) + Command.SECTIONSIGN() + "3MB used");
+//            information.addLine("\u00A7b" + (Wrapper.getMinecraft().getVersion()) + Command.SECTION_SIGN + "3% used");
+//            information.addLine("\u00A7b" + (Runtime.getRuntime().totalMemory() / 1000000) + Command.SECTION_SIGN + "3MB used");
 
 //            information.addLine("[&3" + Sprint.getSpeed() + "km/h&r]");
 
@@ -279,7 +279,7 @@ public class KamiGUI extends GUI {
                 String posString = (e.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (e.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
                 float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
-                healthSB.append(Command.SECTIONSIGN());
+                healthSB.append(Command.SECTION_SIGN);
                 if (hpRaw >= 20) {
                     healthSB.append("a");
                 } else if (hpRaw >= 10) {
@@ -302,7 +302,7 @@ public class KamiGUI extends GUI {
             players = sortByValue(players);
 
             for (Map.Entry<String, Integer> player : players.entrySet()) {
-                list.addLine(Command.SECTIONSIGN() + "7" + player.getKey() + " " + Command.SECTIONSIGN() + "8" + player.getValue());
+                list.addLine(Command.SECTION_SIGN + "7" + player.getKey() + " " + Command.SECTION_SIGN + "8" + player.getValue());
             }
         });
         frame.setCloseable(false);
@@ -374,24 +374,24 @@ public class KamiGUI extends GUI {
                 int hposZ = (int) (mc.player.posZ * f);
 
                 coordsLabel.setText(String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
-                        Command.SECTIONSIGN(),
+                        Command.SECTION_SIGN,
                         posX,
-                        Command.SECTIONSIGN(),
-                        Command.SECTIONSIGN(),
+                        Command.SECTION_SIGN,
+                        Command.SECTION_SIGN,
                         posY,
-                        Command.SECTIONSIGN(),
-                        Command.SECTIONSIGN(),
+                        Command.SECTION_SIGN,
+                        Command.SECTION_SIGN,
                         posZ,
-                        Command.SECTIONSIGN(),
-                        Command.SECTIONSIGN(),
+                        Command.SECTION_SIGN,
+                        Command.SECTION_SIGN,
                         hposX,
-                        Command.SECTIONSIGN(),
-                        Command.SECTIONSIGN(),
+                        Command.SECTION_SIGN,
+                        Command.SECTION_SIGN,
                         posY,
-                        Command.SECTIONSIGN(),
-                        Command.SECTIONSIGN(),
+                        Command.SECTION_SIGN,
+                        Command.SECTION_SIGN,
                         hposZ,
-                        Command.SECTIONSIGN()
+                        Command.SECTION_SIGN
                 ));
             }
         });

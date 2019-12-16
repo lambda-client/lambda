@@ -88,7 +88,7 @@ public class ChatEncryption extends Module {
                     break;
             }
 
-            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString(Command.SECTIONSIGN() + "b" + username + Command.SECTIONSIGN() + "r: " + builder.toString());
+            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString(Command.SECTION_SIGN + "b" + username + Command.SECTION_SIGN + "r: " + builder.toString());
         }
     });
 
