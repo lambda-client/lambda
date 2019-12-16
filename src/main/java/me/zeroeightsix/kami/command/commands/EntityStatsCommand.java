@@ -22,16 +22,25 @@ public class EntityStatsCommand extends Command {
     @Override
     public void call(String[] args) {
         if (mc.player.getRidingEntity() != null && mc.player.getRidingEntity() instanceof AbstractHorse) {
-            String maxHealth;
-            String speed;
             AbstractHorse horse = (AbstractHorse) mc.player.getRidingEntity();
             // TODO: Function that resolves UUID's to Minecraft usernames. @bella
-            Command.sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + horse.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * horse.getAIMoveSpeed(), 2) + " &2m/s" + "\n&cJump: &b" + round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 4) + " &2m" + "\n&cOwner UUID: &b" + ((horse.getOwnerUniqueId() == null) ? "Not tamed." : horse.getOwnerUniqueId().toString()));
+            float maxHealth = horse.getMaxHealth();
+            double speed = round(43.17 * horse.getAIMoveSpeed(), 2);
+            double jump = round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 4);
+            String ownerId = horse.getOwnerUniqueId() == null ? "Not tamed." : horse.getOwnerUniqueId().toString();
+
+            StringBuilder builder = new StringBuilder("&6Entity Statistics:");
+            builder.append("\n&cMax Health: ").append(maxHealth);
+            builder.append("\n&cSpeed: ").append(speed);
+            builder.append("\n&cJump: ").append(jump);
+            builder.append("\n&cOwner: ").append(ownerId);
+
+            Command.sendChatMessage(builder.toString());
         } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
             EntityLivingBase entity = (EntityLivingBase) mc.player.getRidingEntity();
             Command.sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");
         } else {
-            Command.sendChatMessage("&4&lERROR: &cNot riding a compatible entity.");
+            Command.sendChatMessage("&4&lError: &cNot riding a compatible entity.");
         }
     }
 
