@@ -34,7 +34,7 @@ public class ModuleManager {
     public static void updateLookup() {
         lookup.clear();
         for (int i = 0; i < modules.size(); i++) {
-            lookup.put(modules.get(i).getOriginalName(), i);
+            lookup.put(modules.get(i).getOriginalName().toLowerCase(), i);
         }
     }
 
