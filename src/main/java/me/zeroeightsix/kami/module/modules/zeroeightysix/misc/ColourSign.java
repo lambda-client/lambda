@@ -30,7 +30,7 @@ public class ColourSign extends Module {
 //        if (event.getPacket() instanceof CPacketUpdateSign) {
 //            String[] lines = ((CPacketUpdateSign) event.getPacket()).lines;
 //            for (int i = 0; i < 4; i++) {
-//                lines[i] = lines[i].replace(Command.SECTIONSIGN() + "", Command.SECTIONSIGN() + Command.SECTIONSIGN() + "rr");
+//                lines[i] = lines[i].replace(Command.SECTION_SIGN + "", Command.SECTION_SIGN + Command.SECTION_SIGN + "rr");
 //            }
 //        }
 //    });
@@ -50,7 +50,7 @@ public class ColourSign extends Module {
         @Override
         protected void actionPerformed(GuiButton button) throws IOException {
             if (button.id == 0) {
-                this.tileSign.signText[this.editLine] = new TextComponentString(tileSign.signText[this.editLine].getFormattedText().replaceAll("(" + Command.SECTIONSIGN() + ")(.)", "$1$1$2$2"));
+                this.tileSign.signText[this.editLine] = new TextComponentString(tileSign.signText[this.editLine].getFormattedText().replaceAll("(" + Command.SECTION_SIGN + ")(.)", "$1$1$2$2"));
             }
             super.actionPerformed(button);
         }
@@ -59,7 +59,7 @@ public class ColourSign extends Module {
         protected void keyTyped(char typedChar, int keyCode) throws IOException {
             super.keyTyped(typedChar, keyCode);
             String s = ((TextComponentString) tileSign.signText[this.editLine]).getText();
-            s = s.replace("&", Command.SECTIONSIGN() + "");
+            s = s.replace("&", Command.SECTION_SIGN + "");
             tileSign.signText[this.editLine] = new TextComponentString(s);
         }
 

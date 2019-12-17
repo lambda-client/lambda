@@ -6,13 +6,12 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.launchwrapper.LogWrapper;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentBase;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static net.minecraft.launchwrapper.LogWrapper.log;
 
 public abstract class Command {
 
@@ -25,6 +24,7 @@ public abstract class Command {
     protected SyntaxChunk[] syntaxChunks;
 
     public static Setting<String> commandPrefix = Settings.s("commandPrefix", ".");
+    public static final char SECTION_SIGN = '\u00A7';
 
     public Command(String label, SyntaxChunk[] syntaxChunks) {
         this.label = label;
@@ -53,7 +53,7 @@ public abstract class Command {
         if (isSendable()) {
             Wrapper.getPlayer().sendMessage(new ChatMessage(message));
         } else {
-            log.info("KAMI Blue: Avoided NPE by logging to file instead of chat\n" + message);
+            LogWrapper.info("KAMI Blue: Avoided NPE by logging to file instead of chat\n" + message);
         }
     }
 
@@ -124,9 +124,5 @@ public abstract class Command {
                 return c;
         }
         return null;
-    }
-
-    public static char SECTIONSIGN() {
-        return '\u00A7';
     }
 }
