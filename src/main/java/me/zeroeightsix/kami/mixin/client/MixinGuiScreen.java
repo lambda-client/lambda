@@ -91,7 +91,7 @@ public class MixinGuiScreen {
             }
         }
     }
-    //i need perm uwu
+
     @Inject(method = "Lnet/minecraft/client/gui/GuiScreen;drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
         if (this.mc.world != null && ModuleManager.isModuleEnabled("CleanGUI")) {
