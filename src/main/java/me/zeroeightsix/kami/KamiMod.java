@@ -130,7 +130,8 @@ public class KamiMod {
         loadConfiguration();
         KamiMod.log.info("Settings loaded");
 
-        ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
+        // custom names aren't known at compile-time
+        //ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
         new Capes();
         KamiMod.log.info("Capes init!\n");

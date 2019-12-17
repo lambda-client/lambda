@@ -77,7 +77,6 @@ public class Module {
 
     public void setName(String name) {
         this.name.setValue(name);
-        ModuleManager.updateLookup();
     }
 
     public String getOriginalName() {
