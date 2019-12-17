@@ -27,14 +27,15 @@ public class ModuleManager {
     public static ArrayList<Module> modules = new ArrayList<>();
 
     /**
-     * Lookup map for getting by name
+     * Lookup map for getting by **original** name
      */
-    static HashMap<String, Module> lookup = new HashMap<>();
+    static HashMap<String, Integer> lookup = new HashMap<>();
 
     public static void updateLookup() {
         lookup.clear();
-        for (Module m : modules)
-            lookup.put(m.getName().toLowerCase(), m);
+        for (int i = 0; i < modules.size(); i++) {
+            lookup.put(modules.get(i).getOriginalName(), i);
+        }
     }
 
     public static void initialize() {
@@ -43,7 +44,6 @@ public class ModuleManager {
             try {
                 Module module = (Module) aClass.getConstructor().newInstance();
                 modules.add(module);
-                // lookup.put(module.getName().toLowerCase(), module);
             } catch (InvocationTargetException e) {
                 e.getCause().printStackTrace();
                 System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
@@ -53,15 +53,16 @@ public class ModuleManager {
             }
         });
         KamiMod.log.info("Modules initialised");
-        getModules().sort(Comparator.comparing(Module::getName));
+        getModules().sort(Comparator.comparing(Module::getOriginalName));
+        updateLookup();
     }
 
     public static void onUpdate() {
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(module -> module.onUpdate());
+        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onUpdate);
     }
 
     public static void onRender() {
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(module -> module.onRender());
+        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onRender);
     }
 
     public static void onWorldRender(RenderWorldLastEvent event) {
@@ -84,7 +85,7 @@ public class ModuleManager {
         Minecraft.getMinecraft().profiler.endSection();
 
         modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(module -> {
-            Minecraft.getMinecraft().profiler.startSection(module.getName());
+            Minecraft.getMinecraft().profiler.startSection(module.getOriginalName());
             module.onWorldRender(e);
             Minecraft.getMinecraft().profiler.endSection();
         });
@@ -101,8 +102,6 @@ public class ModuleManager {
 //        GlStateManager.popMatrix();
         KamiTessellator.releaseGL();
         Minecraft.getMinecraft().profiler.endSection();
-
-        Minecraft.getMinecraft().profiler.endSection();
     }
 
     public static void onBind(int eventKey) {
@@ -118,9 +117,9 @@ public class ModuleManager {
         return modules;
     }
 
+
     public static Module getModuleByName(String name) {
-        return lookup.get(name.toLowerCase());
-//        return getModules().stream().filter(module -> module.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+        return modules.get(lookup.get(name.toLowerCase()));
     }
 
     public static boolean isModuleEnabled(String moduleName) {
