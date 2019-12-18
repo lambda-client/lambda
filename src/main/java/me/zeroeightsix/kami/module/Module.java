@@ -4,7 +4,6 @@ import com.google.common.base.Converter;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
