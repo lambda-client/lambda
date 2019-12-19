@@ -114,7 +114,13 @@ public class ModuleManager {
         return modules;
     }
 
+    public static Module getModule(Class<? extends Module> clazz) {
+        return modules.get(lookup.get(clazz));
+    }
 
+    /**
+     * @deprecated Use `getModule(Class<? extends Module>)` instead
+     */
     @Deprecated
     public static Module getModule(String name) {
         for (Module module : modules) {
