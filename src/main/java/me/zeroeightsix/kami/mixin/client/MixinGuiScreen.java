@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.module.ModuleManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
@@ -29,7 +28,7 @@ public class MixinGuiScreen {
 
     @Inject(method = "renderToolTip", at = @At("HEAD"), cancellable = true)
     public void renderToolTip(ItemStack stack, int x, int y, CallbackInfo info) {
-        if (ModuleManager.isModuleEnabled("ShulkerPreview") && stack.getItem() instanceof ItemShulkerBox) {
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled("ShulkerPreview") && stack.getItem() instanceof ItemShulkerBox) {
             NBTTagCompound tagCompound = stack.getTagCompound();
             if (tagCompound != null && tagCompound.hasKey("BlockEntityTag", 10)) {
                 NBTTagCompound blockEntityTag = tagCompound.getCompoundTag("BlockEntityTag");
@@ -94,7 +93,7 @@ public class MixinGuiScreen {
 
     @Inject(method = "Lnet/minecraft/client/gui/GuiScreen;drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
-        if (this.mc.world != null && ModuleManager.isModuleEnabled("CleanGUI")) {
+        if (this.mc.world != null && KamiMod.MODULE_MANAGER.isModuleEnabled("CleanGUI")) {
             ci.cancel();
         }
     }

@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.command.commands;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
@@ -20,21 +21,21 @@ public class RenameModuleCommand extends Command {
             return;
         }
 
-        Module module = ModuleManager.getModule(args[0]);
-        if (module == null) {
+        try {
+            Module module = KamiMod.MODULE_MANAGER.getModule(args[0]);
+            String name = args.length == 1 ? module.getOriginalName() : args[1];
+
+            if (!(name.matches("[a-zA-Z]+"))) {
+                sendChatMessage("Name must be alphabetic!");
+                return;
+            }
+
+            sendChatMessage("&b" + module.getName() + "&r renamed to &b" + name);
+            module.setName(name);
+        } catch (ModuleManager.ModuleNotFoundException x) {
             sendChatMessage("Unknown module '" + args[0] + "'!");
             return;
         }
-
-        String name = args.length == 1 ? module.getOriginalName() : args[1];
-
-        if (!(name.matches("[a-zA-Z]+"))) {
-            sendChatMessage("Name must be alphabetic!");
-            return;
-        }
-
-        sendChatMessage("&b" + module.getName() + "&r renamed to &b" + name);
-        module.setName(name);
     }
 
 }

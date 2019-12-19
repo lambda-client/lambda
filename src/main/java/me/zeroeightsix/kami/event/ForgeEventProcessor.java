@@ -7,7 +7,6 @@ import me.zeroeightsix.kami.event.events.DisplaySizeChangedEvent;
 import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.BossStack;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import me.zeroeightsix.kami.util.Wrapper;
@@ -68,19 +67,19 @@ public class ForgeEventProcessor {
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
         if (Wrapper.getPlayer() == null) return;
-        ModuleManager.onUpdate();
+        KamiMod.MODULE_MANAGER.onUpdate();
         KamiMod.getInstance().getGuiManager().callTick(KamiMod.getInstance().getGuiManager());
     }
 
     @SubscribeEvent
     public void onWorldRender(RenderWorldLastEvent event) {
         if (event.isCanceled()) return;
-        ModuleManager.onWorldRender(event);
+        KamiMod.MODULE_MANAGER.onWorldRender(event);
     }
 
     @SubscribeEvent
     public void onRenderPre(RenderGameOverlayEvent.Pre event) {
-        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && ModuleManager.isModuleEnabled("BossStack")) {
+        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && KamiMod.MODULE_MANAGER.isModuleEnabled("BossStack")) {
             event.setCanceled(true);
         }
     }
@@ -94,12 +93,12 @@ public class ForgeEventProcessor {
             target = RenderGameOverlayEvent.ElementType.HEALTHMOUNT;
 
         if (event.getType() == target) {
-            ModuleManager.onRender();
+            KamiMod.MODULE_MANAGER.onRender();
             GL11.glPushMatrix();
             UIRenderer.renderAndUpdateFrames();
             GL11.glPopMatrix();
             KamiTessellator.releaseGL();
-        } else if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && ModuleManager.isModuleEnabled("BossStack")) {
+        } else if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && KamiMod.MODULE_MANAGER.isModuleEnabled("BossStack")) {
             BossStack.render(event);
         }
     }
@@ -110,7 +109,7 @@ public class ForgeEventProcessor {
         if (("" + Keyboard.getEventCharacter()).equalsIgnoreCase(Command.getCommandPrefix())) {
             Minecraft.getMinecraft().displayGuiScreen(new GuiChat(Command.getCommandPrefix()));
         } else {
-            ModuleManager.onBind(Keyboard.getEventKey());
+            KamiMod.MODULE_MANAGER.onBind(Keyboard.getEventKey());
         }
     }
 

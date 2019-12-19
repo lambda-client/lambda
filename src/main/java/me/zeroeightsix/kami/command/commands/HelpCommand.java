@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.ClickGUI;
 
 import java.util.Arrays;
 
@@ -46,7 +46,7 @@ public class HelpCommand extends Command {
                     "KAMI Blue " + KamiMod.MODVER,
                     "commands&7 to view all available commands",
                     "bind <module> <key>&7 to bind mods",
-                    "&7Press &r" + ModuleManager.getModule("ClickGUI").getBindName() + "&7 to open GUI",
+                    "&7Press &r" + KamiMod.MODULE_MANAGER.getModule(ClickGUI.class).getBindName() + "&7 to open GUI",
                     "prefix <prefix>&r to change the command prefix.",
                     "help <subjects:[subject]> &r for more help."
             });

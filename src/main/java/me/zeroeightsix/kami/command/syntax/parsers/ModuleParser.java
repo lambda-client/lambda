@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.command.syntax.parsers;
 
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 
 public class ModuleParser extends AbstractParser {
 
@@ -12,7 +11,7 @@ public class ModuleParser extends AbstractParser {
         if (chunkValue == null)
             return getDefaultChunk(thisChunk);
 
-        Module chosen = ModuleManager.getModules().stream()
+        Module chosen = KamiMod.MODULE_MANAGER.getModules().stream()
                 .filter(module -> module.getName().toLowerCase().startsWith(chunkValue.toLowerCase()))
                 .findFirst()
                 .orElse(null);

@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.bewwawho.combat;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
@@ -57,7 +56,7 @@ public class Surround extends Module {
     }
 
     public void onUpdate() {
-        if (!this.isDisabled() && mc.player != null && !ModuleManager.isModuleEnabled("Freecam")) {
+        if (!this.isDisabled() && mc.player != null && !KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
             if (this.offsetStep == 0) {
                 this.basePos = (new BlockPos(mc.player.getPositionVector())).down();
                 this.playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;

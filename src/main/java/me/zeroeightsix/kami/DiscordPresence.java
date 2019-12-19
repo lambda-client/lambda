@@ -1,13 +1,12 @@
 package me.zeroeightsix.kami;
 
-import me.zeroeightsix.kami.module.ModuleManager;
+import club.minnced.discord.rpc.DiscordEventHandlers;
+import club.minnced.discord.rpc.DiscordRPC;
+import club.minnced.discord.rpc.DiscordRichPresence;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
-import club.minnced.discord.rpc.DiscordEventHandlers;
 import net.minecraftforge.fml.common.FMLLog;
-import club.minnced.discord.rpc.DiscordRichPresence;
-import club.minnced.discord.rpc.DiscordRPC;
 
 /***
  * @author snowmii
@@ -58,7 +57,7 @@ public class DiscordPresence {
                         svr = mc.getCurrentServerData();
                         if (!svr.serverIP.equals("")) {
                             details = "Multiplayer";
-                            if (((BlueDiscordRPC) ModuleManager.getModule("DiscordRPC")).ipGlobal.getValue()) {
+                            if (((BlueDiscordRPC) KamiMod.MODULE_MANAGER.getModule(BlueDiscordRPC.class)).ipGlobal.getValue()) {
                                 state = svr.serverIP;
                                 if (svr.populationInfo != null) {
                                     popInfo = svr.populationInfo.split("/");

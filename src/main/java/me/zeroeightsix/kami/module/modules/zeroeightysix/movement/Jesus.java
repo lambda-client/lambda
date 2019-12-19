@@ -6,7 +6,6 @@ import me.zeroeightsix.kami.event.KamiEvent;
 import me.zeroeightsix.kami.event.events.AddCollisionBoxToListEvent;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.BlockLiquid;
@@ -27,7 +26,7 @@ public class Jesus extends Module {
 
     @Override
     public void onUpdate() {
-        if (!ModuleManager.isModuleEnabled("Freecam")) {
+        if (!KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
             if (EntityUtil.isInWater(mc.player) && !mc.player.isSneaking()) {
                 mc.player.motionY = 0.1;
                 if (mc.player.getRidingEntity() != null && !(mc.player.getRidingEntity() instanceof EntityBoat)) {

@@ -18,6 +18,8 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
+import me.zeroeightsix.kami.module.modules.bewwawho.gui.GUIScale;
+import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
 import me.zeroeightsix.kami.module.modules.bewwawho.util.Donator;
 import me.zeroeightsix.kami.setting.Setting;
@@ -75,6 +77,7 @@ public class KamiMod {
     public static final Logger log = LogManager.getLogger("KAMI Blue");
 
     public static final EventBus EVENT_BUS = new EventManager();
+    public static final ModuleManager MODULE_MANAGER = new ModuleManager();
 
     @Mod.Instance
     private static KamiMod INSTANCE;
@@ -112,9 +115,9 @@ public class KamiMod {
     public void init(FMLInitializationEvent event) {
         KamiMod.log.info("\n\nInitializing KAMI " + MODVER);
 
-        ModuleManager.register();
+        KamiMod.MODULE_MANAGER.register();
 
-        ModuleManager.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
+        KamiMod.MODULE_MANAGER.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
         MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
         LagCompensator.INSTANCE = new LagCompensator();
 
@@ -131,7 +134,7 @@ public class KamiMod {
         KamiMod.log.info("Settings loaded");
 
         // custom names aren't known at compile-time
-        //ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
+        //KamiMod.MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
         new Capes();
         KamiMod.log.info("Capes init!\n");
@@ -140,14 +143,14 @@ public class KamiMod {
         KamiMod.log.info("Donators init!\n");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
-        ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
+        KamiMod.MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
 
         try { // load modules that are on by default
-            ModuleManager.getModule("InfoOverlay").setEnabled(true);
-            ModuleManager.getModule("GUI Scale").setEnabled(true);
-            if (((BlueDiscordRPC) ModuleManager.getModule("DiscordRPC")).startupGlobal.getValue()) {
-                ModuleManager.getModule("DiscordRPC").setEnabled(true);
+            KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class).setEnabled(true);
+            KamiMod.MODULE_MANAGER.getModule(GUIScale.class).setEnabled(true);
+            if (((BlueDiscordRPC) KamiMod.MODULE_MANAGER.getModule(BlueDiscordRPC.class)).startupGlobal.getValue()) {
+                KamiMod.MODULE_MANAGER.getModule(BlueDiscordRPC.class).setEnabled(true);
             }
         }
         catch (NullPointerException e) {
@@ -237,7 +240,7 @@ public class KamiMod {
         if (!Files.exists(outputFile))
             Files.createFile(outputFile);
         Configuration.saveConfiguration(outputFile);
-        ModuleManager.getModules().forEach(Module::destroy);
+        KamiMod.MODULE_MANAGER.getModules().forEach(Module::destroy);
     }
 
     public static boolean isFilenameValid(String file) {

@@ -171,11 +171,12 @@ public class ModuleManager {
     public enum State {
         INSTANTIATED, REGISTERED, INDEXED
     }
-}
 
-class ModuleNotFoundException extends IllegalArgumentException {
+    public static class ModuleNotFoundException extends IllegalArgumentException {
 
-    public ModuleNotFoundException(String s) {
-        super(s);
+        public ModuleNotFoundException(String s) {
+            super(s);
+        }
     }
 }
+

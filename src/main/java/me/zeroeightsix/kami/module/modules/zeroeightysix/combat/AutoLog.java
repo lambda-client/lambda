@@ -2,8 +2,9 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.AutoReconnect;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
@@ -53,7 +54,7 @@ public class AutoLog extends Module {
     }
 
     private void log() {
-        ModuleManager.getModule("AutoReconnect").disable();
+        KamiMod.MODULE_MANAGER.getModule(AutoReconnect.class).disable();
         shouldLog = true;
         lastLog = System.currentTimeMillis();
     }

@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.combat;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.AutoTool;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -136,7 +135,7 @@ public class Aura extends Module {
                     // We want to skip this if switchTo32k.getValue() is true,
                     // because it only accounts for tools and weapons.
                     // Maybe someone could refactor this later? :3
-                    if ((!switchMode.getValue().equals(SwitchMode.Only32k) || switchMode.getValue().equals(SwitchMode.ALL)) && ModuleManager.isModuleEnabled("AutoTool")) {
+                    if ((!switchMode.getValue().equals(SwitchMode.Only32k) || switchMode.getValue().equals(SwitchMode.ALL)) && KamiMod.MODULE_MANAGER.isModuleEnabled("AutoTool")) {
                         AutoTool.equipBestWeapon();
                     }
                     attack(target);

@@ -6,7 +6,6 @@ import me.zeroeightsix.kami.gui.rgui.component.AlignedComponent;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.opengl.GL11;
 
@@ -31,7 +30,7 @@ public class KamiActiveModulesUI extends AbstractComponentUI<ActiveModules> {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
         FontRenderer renderer = Wrapper.getFontRenderer();
-        List<Module> mods = ModuleManager.getModules().stream()
+        List<Module> mods = KamiMod.MODULE_MANAGER.getModules().stream()
                 .filter(Module::isEnabled)
                 .sorted(Comparator.comparing(module -> renderer.getStringWidth(module.getName() + (module.getHudInfo() == null ? "" : module.getHudInfo() + " ")) * (component.sort_up ? -1 : 1)))
                 .collect(Collectors.toList());

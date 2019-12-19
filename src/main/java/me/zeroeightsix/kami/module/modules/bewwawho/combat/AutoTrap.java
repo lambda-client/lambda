@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.bewwawho.combat;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
@@ -92,7 +91,7 @@ public class AutoTrap extends Module {
 
     @Override
     public void onUpdate() {
-        if (AutoTrap.mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+        if (AutoTrap.mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
             return;
         }
         this.findClosestTarget();

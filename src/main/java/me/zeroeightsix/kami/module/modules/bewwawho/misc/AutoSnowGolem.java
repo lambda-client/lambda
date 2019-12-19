@@ -1,8 +1,8 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.misc;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -139,7 +139,7 @@ public class AutoSnowGolem extends Module {
             mc.player.inventory.currentItem = swordSlot;
         }
 
-        if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
             this.disable();
             Command.sendChatMessage("[AutoSnowGolem] Freecam enabled, disabling");
             return;
@@ -186,7 +186,7 @@ public class AutoSnowGolem extends Module {
 
         int range = (int) Math.ceil(placeRange.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModule("CrystalAura");
+        CrystalAura crystalAura = (CrystalAura) KamiMod.MODULE_MANAGER.getModule(CrystalAura.class);
 
         BlockPos lookPos = mc.objectMouseOver.getBlockPos();
 

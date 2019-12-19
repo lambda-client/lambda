@@ -18,7 +18,6 @@ import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
 import me.zeroeightsix.kami.module.modules.bewwawho.util.CalcPing;
 import me.zeroeightsix.kami.util.ColourHolder;
@@ -69,7 +68,7 @@ public class KamiGUI extends GUI {
     @Override
     public void initializeGUI() {
         HashMap<Module.Category, Pair<Scrollpane, SettingsPanel>> categoryScrollpaneHashMap = new HashMap<>();
-        for (Module module : ModuleManager.getModules()) {
+        for (Module module : KamiMod.MODULE_MANAGER.getModules()) {
             if (module.getCategory().isHidden()) continue;
             Module.Category moduleCategory = module.getCategory();
             if (!categoryScrollpaneHashMap.containsKey(moduleCategory)) {
@@ -211,16 +210,16 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            boolean privateInfoNam = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoNam.getValue());
-            boolean privateInfoTps = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoTps.getValue());
-            boolean privateInfoFps = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoFps.getValue());
-            boolean privateInfoPin = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoPin.getValue());
-            boolean privateInfoMem = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoMem.getValue());
+            boolean privateInfoNam = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoNam.getValue());
+            boolean privateInfoTps = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoTps.getValue());
+            boolean privateInfoFps = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoFps.getValue());
+            boolean privateInfoPin = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoPin.getValue());
+            boolean privateInfoMem = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoMem.getValue());
             int privatePingValue = CalcPing.globalInfoPingValue();
             String privateDisplayN = Wrapper.getMinecraft().player.getName();
 
 
-            if (ModuleManager.getModule("InfoOverlay").isEnabled()) {
+            if (KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class).isEnabled()) {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
                 if (privateInfoNam) {

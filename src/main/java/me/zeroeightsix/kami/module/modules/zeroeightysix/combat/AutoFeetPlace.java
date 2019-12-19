@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.combat;
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
@@ -118,7 +117,7 @@ public class AutoFeetPlace extends Module {
     @Override
     public void onUpdate() {
 
-        if (mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+        if (mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
             return;
         }
 

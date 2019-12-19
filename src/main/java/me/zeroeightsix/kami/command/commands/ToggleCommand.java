@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.command.commands;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
@@ -24,12 +25,12 @@ public class ToggleCommand extends Command {
             Command.sendChatMessage("Please specify a module!");
             return;
         }
-        Module m = ModuleManager.getModule(args[0]);
-        if (m == null) {
+        try {
+            Module m = KamiMod.MODULE_MANAGER.getModule(args[0]);
+            m.toggle();
+            Command.sendChatMessage(m.getName() + (m.isEnabled() ? " &aenabled" : " &cdisabled"));
+        } catch (ModuleManager.ModuleNotFoundException x) {
             Command.sendChatMessage("Unknown module '" + args[0] + "'");
-            return;
         }
-        m.toggle();
-        Command.sendChatMessage(m.getName() + (m.isEnabled() ? " &aenabled" : " &cdisabled"));
     }
 }

@@ -1,7 +1,8 @@
 package me.pork.vocoshulkerpeek;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.bewwawho.render.ShulkerBypass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
@@ -47,7 +48,7 @@ public class VocoShulkerPeek {
         NBTTagCompound compound = stack.getTagCompound();
         if (compound != null && compound.hasKey("BlockEntityTag", 10)) {
             NBTTagCompound tags = compound.getCompoundTag("BlockEntityTag");
-            if (ModuleManager.getModule("ShulkerBypass").isEnabled()) {
+            if (KamiMod.MODULE_MANAGER.getModule(ShulkerBypass.class).isEnabled()) {
                 if (tags.hasKey("Items", 9)) {
                     return tags;
                 } else {
@@ -73,7 +74,7 @@ public class VocoShulkerPeek {
         }
 
         public void execute(MinecraftServer server, ICommandSender sender, String[] args) {
-            if (mc.player != null && ModuleManager.getModule("ShulkerBypass").isEnabled()) {
+            if (mc.player != null && KamiMod.MODULE_MANAGER.getModule(ShulkerBypass.class).isEnabled()) {
                 if (!VocoShulkerPeek.shulker.isEmpty()) {
                     NBTTagCompound shulkerNBT = VocoShulkerPeek.getShulkerNBT(VocoShulkerPeek.shulker);
                     if (shulkerNBT != null) {

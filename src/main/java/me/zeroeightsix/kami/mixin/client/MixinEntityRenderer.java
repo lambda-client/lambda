@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import com.google.common.base.Predicate;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.NoEntityTrace;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.AntiFog;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Brightness;
@@ -38,7 +37,7 @@ public class MixinEntityRenderer {
 
     @Redirect(method = "orientCamera", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/WorldClient;rayTraceBlocks(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/RayTraceResult;"))
     public RayTraceResult rayTraceBlocks(WorldClient world, Vec3d start, Vec3d end) {
-        if (ModuleManager.isModuleEnabled("CameraClip"))
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled("CameraClip"))
             return null;
         else
             return world.rayTraceBlocks(start, end);

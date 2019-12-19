@@ -7,7 +7,7 @@ import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.ChunkEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.bewwawho.render.HoleESP;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
@@ -48,11 +48,11 @@ public class ChunkFinder extends Module {
     @Override
     public void onEnable() {
         if (mc.player == null) return;
-        if (ModuleManager.getModule("HoleESP").isEnabled()) {
+        if (KamiMod.MODULE_MANAGER.getModule(HoleESP.class).isEnabled()) {
             Command.sendChatMessage("[ChunkFinder] HoleESP is not compatible, disabling");
             this.disable();
         }
-        if (ModuleManager.getModule("StorageESP").isEnabled()) {
+        if (KamiMod.MODULE_MANAGER.getModule(StorageESP.class).isEnabled()) {
             Command.sendChatMessage("[ChunkFinder] StorageESP is not compatible, disabling");
             this.disable();
         }

@@ -4,7 +4,6 @@ import me.zeroeightsix.kami.gui.rgui.component.AbstractComponent;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -33,7 +32,7 @@ public class TabGUI extends AbstractComponent implements EventListener {
             tabMap.put(category, new Tab(category.getName()));
 
         ArrayList<Module> features = new ArrayList<>();
-        features.addAll(ModuleManager.getModules());
+        features.addAll(KamiMod.MODULE_MANAGER.getModules());
 
         for (Module feature : features)
             if (feature.getCategory() != null && !feature.getCategory().isHidden())

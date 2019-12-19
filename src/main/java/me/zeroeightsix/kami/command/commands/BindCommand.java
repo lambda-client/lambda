@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.command.commands;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
@@ -54,30 +55,25 @@ public class BindCommand extends Command {
             return;
         }
 
-        Module m = ModuleManager.getModule(module);
-
-        if (m == null) {
+        try {
+            Module m = KamiMod.MODULE_MANAGER.getModule(module);
+            if (rkey == null) {
+                sendChatMessage(m.getName() + " is bound to &b" + m.getBindName());
+                return;
+            }
+            int key = Wrapper.getKey(rkey);
+            if (rkey.equalsIgnoreCase("none")) {
+                key = -1;
+            }
+            if (key == 0) {
+                sendChatMessage("Unknown key '" + rkey + "'!");
+                return;
+            }
+            m.getBind().setKey(key);
+            sendChatMessage("Bind for &b" + m.getName() + "&r set to &b" + rkey.toUpperCase());
+        } catch (ModuleManager.ModuleNotFoundException x) {
             sendChatMessage("Unknown module '" + module + "'!");
             return;
         }
-
-        if (rkey == null) {
-            sendChatMessage(m.getName() + " is bound to &b" + m.getBindName());
-            return;
-        }
-
-        int key = Wrapper.getKey(rkey);
-
-        if (rkey.equalsIgnoreCase("none")) {
-            key = -1;
-        }
-
-        if (key == 0) {
-            sendChatMessage("Unknown key '" + rkey + "'!");
-            return;
-        }
-
-        m.getBind().setKey(key);
-        sendChatMessage("Bind for &b" + m.getName() + "&r set to &b" + rkey.toUpperCase());
     }
 }

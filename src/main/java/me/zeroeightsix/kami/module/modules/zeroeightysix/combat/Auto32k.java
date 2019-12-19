@@ -1,8 +1,8 @@
 package me.zeroeightsix.kami.module.modules.zeroeightysix.combat;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Friends;
@@ -88,7 +88,7 @@ public class Auto32k extends Module {
     @Override
     protected void onEnable() {
 
-        if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
             this.disable();
             return;
         }
@@ -142,7 +142,7 @@ public class Auto32k extends Module {
 
         int range = (int) Math.ceil(placeRange.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModule("CrystalAura");
+        CrystalAura crystalAura = (CrystalAura) KamiMod.MODULE_MANAGER.getModule(CrystalAura.class);
         List<BlockPos> placeTargetList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
         Map<BlockPos, Double> placeTargetMap = new HashMap<>();
 
@@ -265,7 +265,7 @@ public class Auto32k extends Module {
     @Override
     public void onUpdate() {
 
-        if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
             return;
         }
 
@@ -295,7 +295,7 @@ public class Auto32k extends Module {
         if (swapReady) {
             mc.playerController.windowClick(((GuiContainer) mc.currentScreen).inventorySlots.windowId, 0, swordSlot - 32, ClickType.SWAP, mc.player);
             if (autoEnableHitAura.getValue()) {
-                ModuleManager.getModule("Aura").enable();
+                KamiMod.MODULE_MANAGER.getModule(Aura.class).enable();
             }
             this.disable();
         }
@@ -404,7 +404,7 @@ public class Auto32k extends Module {
     //@Override
     //protected void onDisable() {
     //	if (autoEnableHitAura.getValue()) {
-    //		ModuleManager.getModuleByName("Aura").disable();
+    //		KamiMod.MODULE_MANAGER.getModuleByName("Aura").disable();
     //	}
     //}
 

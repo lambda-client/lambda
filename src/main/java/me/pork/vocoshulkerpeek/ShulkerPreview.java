@@ -1,7 +1,8 @@
 package me.pork.vocoshulkerpeek;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.bewwawho.render.ShulkerBypass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
@@ -41,7 +42,7 @@ public class ShulkerPreview {
         if (metadataTicks == 20) {
             if (Minecraft.getMinecraft().player == null) return;
             metadataTicks = -1;
-            if (drop.getItem().getItem() instanceof ItemShulkerBox && (ModuleManager.getModule("ShulkerBypass").isEnabled())) {
+            if (drop.getItem().getItem() instanceof ItemShulkerBox && (KamiMod.MODULE_MANAGER.getModule(ShulkerBypass.class).isEnabled())) {
                 Command.sendChatMessage("[ShulkerBypass] New shulker found! use /peek to view its content");
                 VocoShulkerPeek.shulker = drop.getItem();
             }

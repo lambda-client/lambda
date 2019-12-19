@@ -19,7 +19,7 @@ public class MixinAbstractClientPlayer {
     @Inject(method = "<init>", at = @At(value = "RETURN"))
     public void AbstractClientPlayer(World worldIn, GameProfile playerProfile, CallbackInfo callbackInfo) {
         for (RenderPlayer renderPlayer : Wrapper.getMinecraft().getRenderManager().getSkinMap().values()) {
-            //if (ModuleManager.getModuleByName("Cape").isEnabled()) {
+            //if (KamiMod.MODULE_MANAGER.getModuleByName("Cape").isEnabled()) {
                 LayerCape cape = new LayerCape(renderPlayer);
                 renderPlayer.addLayer(cape);
             //}
