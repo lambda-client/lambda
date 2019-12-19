@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.command.syntax.parsers;
 
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.module.Module;
 

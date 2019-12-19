@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
 import me.zeroeightsix.kami.gui.rgui.component.AlignedComponent;
