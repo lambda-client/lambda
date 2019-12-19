@@ -23,29 +23,20 @@ import java.util.*;
 public class ModuleManager {
 
     /**
-     * Raw list of all of the currently active modules
+     * Linked map for the registered Modules
      */
-    private List<Module> modules = new ArrayList<>();
-    /**
-     * Lookup map for getting by class
-     */
-    private Map<Class<? extends Module>, Integer> lookup = new HashMap<>();
-
-    private ModuleManager.State state = State.INSTANTIATED;
+    private Map<Class<? extends Module>, Module> modules = new LinkedHashMap<>();
 
     /**
      * Registers modules, and then calls updateLookup() for indexing.
      */
     public void register() {
-        if (getModuleManagerState() != State.INSTANTIATED) {
-            throw new IllegalStateException("Attempted to register modules twice.");
-        }
         KamiMod.log.info("Registering modules...");
         Set<Class> classList = ClassFinder.findClasses(ClickGUI.class.getPackage().getName(), Module.class);
-        classList.forEach(aClass -> {
+        classList.stream().sorted(Comparator.comparing(Class::getSimpleName)).forEach(aClass -> {
             try {
                 Module module = (Module) aClass.getConstructor().newInstance();
-                modules.add(module);
+                modules.put(module.getClass(), module);
             } catch (InvocationTargetException e) {
                 e.getCause().printStackTrace();
                 System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
@@ -54,29 +45,20 @@ public class ModuleManager {
                 System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
             }
         });
-        state = State.REGISTERED;
         KamiMod.log.info("Modules registered");
-        getModules().sort(Comparator.comparing(Module::getOriginalName));
-        updateLookup();
-    }
-
-    public void updateLookup() {
-        if (getModuleManagerState() == State.INSTANTIATED) {
-            throw new IllegalStateException("Attempted to index modules before registration.");
-        }
-        lookup.clear();
-        for (int i = 0; i < modules.size(); i++) {
-            lookup.put(modules.get(i).getClass(), i);
-        }
-        state = State.INDEXED;
     }
 
     public void onUpdate() {
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onUpdate);
+        modules.forEach((clazz, mod) -> {
+            if (mod.alwaysListening || mod.isEnabled()) mod.onUpdate();
+        });
+        //modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onUpdate);
     }
 
     public void onRender() {
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onRender);
+        modules.forEach((clazz, mod) -> {
+            if (mod.alwaysListening || mod.isEnabled()) mod.onRender();
+        });
     }
 
     public void onWorldRender(RenderWorldLastEvent event) {
@@ -98,10 +80,12 @@ public class ModuleManager {
         e.resetTranslation();
         Minecraft.getMinecraft().profiler.endSection();
 
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(module -> {
-            Minecraft.getMinecraft().profiler.startSection(module.getOriginalName());
-            module.onWorldRender(e);
-            Minecraft.getMinecraft().profiler.endSection();
+        modules.forEach((clazz, mod) -> {
+            if (mod.alwaysListening || mod.isEnabled()) {
+                Minecraft.getMinecraft().profiler.startSection(mod.getOriginalName());
+                mod.onWorldRender(e);
+                Minecraft.getMinecraft().profiler.endSection();
+            }
         });
 
         Minecraft.getMinecraft().profiler.startSection("release");
@@ -120,26 +104,19 @@ public class ModuleManager {
 
     public void onBind(int eventKey) {
         if (eventKey == 0) return; // if key is the 'none' key (stuff like mod key in i3 might return 0)
-        modules.forEach(module -> {
+        modules.forEach((clazz, module) -> {
             if (module.getBind().isDown(eventKey)) {
                 module.toggle();
             }
         });
     }
 
-    public List<Module> getModules() {
-        return Collections.unmodifiableList(modules);
-    }
-
-    public Map<Class<? extends Module>, Integer> getLookupMap() {
-        return Collections.unmodifiableMap(lookup);
+    public Collection<Module> getModules() {
+        return Collections.unmodifiableCollection(this.modules.values());
     }
 
     public Module getModule(Class<? extends Module> clazz) {
-        if (getModuleManagerState() != State.INDEXED) {
-            throw new IllegalStateException("ModuleManager hasn't indexed yet! Are you calling this too early?");
-        }
-        return modules.get(lookup.get(clazz));
+        return modules.get(clazz);
     }
 
     /**
@@ -147,9 +124,9 @@ public class ModuleManager {
      */
     @Deprecated
     public Module getModule(String name) {
-        for (Module module : modules) {
-            if (module.getClass().getSimpleName().equalsIgnoreCase(name) || module.getOriginalName().equalsIgnoreCase(name)) {
-                return module;
+        for (Map.Entry<Class<? extends Module>, Module> module : modules.entrySet()) {
+            if (module.getClass().getSimpleName().equalsIgnoreCase(name) || module.getValue().getOriginalName().equalsIgnoreCase(name)) {
+                return module.getValue();
             }
         }
         throw new ModuleNotFoundException("getModuleByName(String) failed. Check spelling.");
@@ -162,14 +139,6 @@ public class ModuleManager {
     @Deprecated
     public boolean isModuleEnabled(String moduleName) {
         return getModule(moduleName).isEnabled();
-    }
-
-    public State getModuleManagerState() {
-        return state;
-    }
-
-    public enum State {
-        INSTANTIATED, REGISTERED, INDEXED
     }
 
     public static class ModuleNotFoundException extends IllegalArgumentException {
