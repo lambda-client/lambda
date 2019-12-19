@@ -20,7 +20,7 @@ public class RenameModuleCommand extends Command {
             return;
         }
 
-        Module module = ModuleManager.getModuleByName(args[0]);
+        Module module = ModuleManager.getModule(args[0]);
         if (module == null) {
             sendChatMessage("Unknown module '" + args[0] + "'!");
             return;

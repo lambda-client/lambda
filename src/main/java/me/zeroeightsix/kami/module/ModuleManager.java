@@ -14,27 +14,24 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import org.lwjgl.opengl.GL11;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by 086 on 23/08/2017.
  */
 public class ModuleManager {
 
-    public static ArrayList<Module> modules = new ArrayList<>();
+    public static List<Module> modules = new ArrayList<>();
 
     /**
-     * Lookup map for getting by **original** name
+     * Lookup map for getting by class
      */
-    static HashMap<String, Integer> lookup = new HashMap<>();
+    static HashMap<Class<? extends Module>, Integer> lookup = new HashMap<>();
 
     public static void updateLookup() {
         lookup.clear();
         for (int i = 0; i < modules.size(); i++) {
-            lookup.put(modules.get(i).getOriginalName().toLowerCase(), i);
+            lookup.put(modules.get(i).getClass(), i);
         }
     }
 
@@ -113,18 +110,28 @@ public class ModuleManager {
         });
     }
 
-    public static ArrayList<Module> getModules() {
+    public static List<Module> getModules() {
         return modules;
     }
 
 
-    public static Module getModuleByName(String name) {
-        return modules.get(lookup.get(name.toLowerCase()));
+    @Deprecated
+    public static Module getModule(String name) {
+        for (Module module : modules) {
+            if (module.getClass().getSimpleName().equalsIgnoreCase(name) || module.getOriginalName().equalsIgnoreCase(name)) {
+                return module;
+            }
+        }
+        throw new ModuleNotFoundException("getModuleByName(String) failed. Check spelling.");
     }
 
     public static boolean isModuleEnabled(String moduleName) {
-        Module m = getModuleByName(moduleName);
-        if (m == null) return false;
-        return m.isEnabled();
+        return getModule(moduleName).isEnabled();
+    }
+}
+class ModuleNotFoundException extends IllegalArgumentException {
+
+    public ModuleNotFoundException(String s) {
+        super(s);
     }
 }

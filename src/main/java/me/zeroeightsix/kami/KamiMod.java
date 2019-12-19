@@ -144,10 +144,10 @@ public class KamiMod {
 
 
         try { // load modules that are on by default
-            ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
-            ModuleManager.getModuleByName("GUI Scale").setEnabled(true);
-            if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
+            ModuleManager.getModule("InfoOverlay").setEnabled(true);
+            ModuleManager.getModule("GUI Scale").setEnabled(true);
+            if (((BlueDiscordRPC) ModuleManager.getModule("DiscordRPC")).startupGlobal.getValue()) {
+                ModuleManager.getModule("DiscordRPC").setEnabled(true);
             }
         }
         catch (NullPointerException e) {

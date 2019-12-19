@@ -46,7 +46,7 @@ public class HelpCommand extends Command {
                     "KAMI Blue " + KamiMod.MODVER,
                     "commands&7 to view all available commands",
                     "bind <module> <key>&7 to bind mods",
-                    "&7Press &r" + ModuleManager.getModuleByName("ClickGUI").getBindName() + "&7 to open GUI",
+                    "&7Press &r" + ModuleManager.getModule("ClickGUI").getBindName() + "&7 to open GUI",
                     "prefix <prefix>&r to change the command prefix.",
                     "help <subjects:[subject]> &r for more help."
             });

@@ -58,7 +58,7 @@ public class DiscordPresence {
                         svr = mc.getCurrentServerData();
                         if (!svr.serverIP.equals("")) {
                             details = "Multiplayer";
-                            if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).ipGlobal.getValue()) {
+                            if (((BlueDiscordRPC) ModuleManager.getModule("DiscordRPC")).ipGlobal.getValue()) {
                                 state = svr.serverIP;
                                 if (svr.populationInfo != null) {
                                     popInfo = svr.populationInfo.split("/");

@@ -54,7 +54,7 @@ public class BindCommand extends Command {
             return;
         }
 
-        Module m = ModuleManager.getModuleByName(module);
+        Module m = ModuleManager.getModule(module);
 
         if (m == null) {
             sendChatMessage("Unknown module '" + module + "'!");

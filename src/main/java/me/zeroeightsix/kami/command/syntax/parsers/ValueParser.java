@@ -19,7 +19,7 @@ public class ValueParser extends AbstractParser {
     public String getChunk(SyntaxChunk[] chunks, SyntaxChunk thisChunk, String[] values, String chunkValue) {
         if (moduleIndex > values.length - 1 || chunkValue == null) return getDefaultChunk(thisChunk);
         String module = values[moduleIndex];
-        Module m = ModuleManager.getModuleByName(module);
+        Module m = ModuleManager.getModule(module);
         if (m == null) return "";
 
         HashMap<String, Setting> possibilities = new HashMap<>();

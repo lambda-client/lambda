@@ -211,16 +211,16 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            boolean privateInfoNam = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoNam.getValue());
-            boolean privateInfoTps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoTps.getValue());
-            boolean privateInfoFps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoFps.getValue());
-            boolean privateInfoPin = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoPin.getValue());
-            boolean privateInfoMem = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
+            boolean privateInfoNam = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoNam.getValue());
+            boolean privateInfoTps = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoTps.getValue());
+            boolean privateInfoFps = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoFps.getValue());
+            boolean privateInfoPin = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoPin.getValue());
+            boolean privateInfoMem = (((InfoOverlay) ModuleManager.getModule("InfoOverlay")).globalInfoMem.getValue());
             int privatePingValue = CalcPing.globalInfoPingValue();
             String privateDisplayN = Wrapper.getMinecraft().player.getName();
 
 
-            if (ModuleManager.getModuleByName("InfoOverlay").isEnabled()) {
+            if (ModuleManager.getModule("InfoOverlay").isEnabled()) {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
                 if (privateInfoNam) {

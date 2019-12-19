@@ -138,7 +138,7 @@ public class AutoWither extends Module {
 
         int range = (int) Math.ceil(placeRange.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModule("CrystalAura");
         List<BlockPos> placeTargetList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
         Map<BlockPos, Double> placeTargetMap = new HashMap<>();
 

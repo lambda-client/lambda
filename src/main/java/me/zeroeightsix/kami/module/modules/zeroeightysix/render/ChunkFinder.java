@@ -48,11 +48,11 @@ public class ChunkFinder extends Module {
     @Override
     public void onEnable() {
         if (mc.player == null) return;
-        if (ModuleManager.getModuleByName("HoleESP").isEnabled()) {
+        if (ModuleManager.getModule("HoleESP").isEnabled()) {
             Command.sendChatMessage("[ChunkFinder] HoleESP is not compatible, disabling");
             this.disable();
         }
-        if (ModuleManager.getModuleByName("StorageESP").isEnabled()) {
+        if (ModuleManager.getModule("StorageESP").isEnabled()) {
             Command.sendChatMessage("[ChunkFinder] StorageESP is not compatible, disabling");
             this.disable();
         }

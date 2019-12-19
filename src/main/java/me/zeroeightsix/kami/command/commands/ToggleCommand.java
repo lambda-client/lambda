@@ -24,7 +24,7 @@ public class ToggleCommand extends Command {
             Command.sendChatMessage("Please specify a module!");
             return;
         }
-        Module m = ModuleManager.getModuleByName(args[0]);
+        Module m = ModuleManager.getModule(args[0]);
         if (m == null) {
             Command.sendChatMessage("Unknown module '" + args[0] + "'");
             return;

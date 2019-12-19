@@ -95,7 +95,7 @@ public class DisplayGuiScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (ModuleManager.getModuleByName("clickGUI").getBind().isDown(keyCode) || keyCode == Keyboard.KEY_ESCAPE) {
+        if (ModuleManager.getModule("clickGUI").getBind().isDown(keyCode) || keyCode == Keyboard.KEY_ESCAPE) {
             mc.displayGuiScreen(lastScreen);
         }
         else {

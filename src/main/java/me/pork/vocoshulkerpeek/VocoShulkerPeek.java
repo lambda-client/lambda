@@ -47,7 +47,7 @@ public class VocoShulkerPeek {
         NBTTagCompound compound = stack.getTagCompound();
         if (compound != null && compound.hasKey("BlockEntityTag", 10)) {
             NBTTagCompound tags = compound.getCompoundTag("BlockEntityTag");
-            if (ModuleManager.getModuleByName("ShulkerBypass").isEnabled()) {
+            if (ModuleManager.getModule("ShulkerBypass").isEnabled()) {
                 if (tags.hasKey("Items", 9)) {
                     return tags;
                 } else {
@@ -73,7 +73,7 @@ public class VocoShulkerPeek {
         }
 
         public void execute(MinecraftServer server, ICommandSender sender, String[] args) {
-            if (mc.player != null && ModuleManager.getModuleByName("ShulkerBypass").isEnabled()) {
+            if (mc.player != null && ModuleManager.getModule("ShulkerBypass").isEnabled()) {
                 if (!VocoShulkerPeek.shulker.isEmpty()) {
                     NBTTagCompound shulkerNBT = VocoShulkerPeek.getShulkerNBT(VocoShulkerPeek.shulker);
                     if (shulkerNBT != null) {

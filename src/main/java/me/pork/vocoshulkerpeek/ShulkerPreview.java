@@ -41,7 +41,7 @@ public class ShulkerPreview {
         if (metadataTicks == 20) {
             if (Minecraft.getMinecraft().player == null) return;
             metadataTicks = -1;
-            if (drop.getItem().getItem() instanceof ItemShulkerBox && (ModuleManager.getModuleByName("ShulkerBypass").isEnabled())) {
+            if (drop.getItem().getItem() instanceof ItemShulkerBox && (ModuleManager.getModule("ShulkerBypass").isEnabled())) {
                 Command.sendChatMessage("[ShulkerBypass] New shulker found! use /peek to view its content");
                 VocoShulkerPeek.shulker = drop.getItem();
             }

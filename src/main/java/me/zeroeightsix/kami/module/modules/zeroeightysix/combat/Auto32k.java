@@ -142,7 +142,7 @@ public class Auto32k extends Module {
 
         int range = (int) Math.ceil(placeRange.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModule("CrystalAura");
         List<BlockPos> placeTargetList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
         Map<BlockPos, Double> placeTargetMap = new HashMap<>();
 
@@ -295,7 +295,7 @@ public class Auto32k extends Module {
         if (swapReady) {
             mc.playerController.windowClick(((GuiContainer) mc.currentScreen).inventorySlots.windowId, 0, swordSlot - 32, ClickType.SWAP, mc.player);
             if (autoEnableHitAura.getValue()) {
-                ModuleManager.getModuleByName("Aura").enable();
+                ModuleManager.getModule("Aura").enable();
             }
             this.disable();
         }

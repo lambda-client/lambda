@@ -186,7 +186,7 @@ public class AutoSnowGolem extends Module {
 
         int range = (int) Math.ceil(placeRange.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModule("CrystalAura");
 
         BlockPos lookPos = mc.objectMouseOver.getBlockPos();
 

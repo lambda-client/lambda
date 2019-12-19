@@ -53,7 +53,7 @@ public class AutoLog extends Module {
     }
 
     private void log() {
-        ModuleManager.getModuleByName("AutoReconnect").disable();
+        ModuleManager.getModule("AutoReconnect").disable();
         shouldLog = true;
         lastLog = System.currentTimeMillis();
     }
