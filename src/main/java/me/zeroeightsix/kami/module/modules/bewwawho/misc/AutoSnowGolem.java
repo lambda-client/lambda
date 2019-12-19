@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Freecam;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Friends;
@@ -139,7 +140,7 @@ public class AutoSnowGolem extends Module {
             mc.player.inventory.currentItem = swordSlot;
         }
 
-        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             this.disable();
             Command.sendChatMessage("[AutoSnowGolem] Freecam enabled, disabling");
             return;

@@ -91,7 +91,7 @@ public class AutoTrap extends Module {
 
     @Override
     public void onUpdate() {
-        if (AutoTrap.mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (AutoTrap.mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             return;
         }
         this.findClosestTarget();

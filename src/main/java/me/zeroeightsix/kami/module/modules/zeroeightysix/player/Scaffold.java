@@ -22,7 +22,7 @@ public class Scaffold extends Module {
 
     @Override
     public void onUpdate() {
-        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) return;
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) return;
         Vec3d vec3d = EntityUtil.getInterpolatedPos(mc.player, future.getValue());
         BlockPos blockPos = new BlockPos(vec3d).down();
         BlockPos belowBlockPos = blockPos.down();

@@ -56,7 +56,7 @@ public class Surround extends Module {
     }
 
     public void onUpdate() {
-        if (!this.isDisabled() && mc.player != null && !KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (!this.isDisabled() && mc.player != null && !KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             if (this.offsetStep == 0) {
                 this.basePos = (new BlockPos(mc.player.getPositionVector())).down();
                 this.playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;

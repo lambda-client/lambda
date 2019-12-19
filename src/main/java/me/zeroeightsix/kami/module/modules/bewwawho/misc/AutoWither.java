@@ -91,7 +91,7 @@ public class AutoWither extends Module {
         Command.sendChatMessage("[AutoWither] Please make sure the wither skulls are in slot 2");
         Command.sendChatMessage("[AutoWither] This will be fixed soon");
 
-        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             this.disable();
             return;
         }
@@ -306,7 +306,7 @@ public class AutoWither extends Module {
             mc.player.inventory.currentItem = swordSlot;
         }
 
-        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             return;
         }
 

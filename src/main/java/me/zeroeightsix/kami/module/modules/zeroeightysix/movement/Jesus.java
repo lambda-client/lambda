@@ -26,7 +26,7 @@ public class Jesus extends Module {
 
     @Override
     public void onUpdate() {
-        if (!KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (!KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             if (EntityUtil.isInWater(mc.player) && !mc.player.isSneaking()) {
                 mc.player.motionY = 0.1;
                 if (mc.player.getRidingEntity() != null && !(mc.player.getRidingEntity() instanceof EntityBoat)) {

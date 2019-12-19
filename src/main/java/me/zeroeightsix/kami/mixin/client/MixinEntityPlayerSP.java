@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.PortalChat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -18,14 +19,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(EntityPlayerSP.class)
 public class MixinEntityPlayerSP {
 
+    @SuppressWarnings("UnnecessaryReturnStatement")
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;closeScreen()V"))
     public void closeScreen(EntityPlayerSP entityPlayerSP) {
-        if (KamiMod.MODULE_MANAGER.isModuleEnabled("PortalChat")) return;
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(PortalChat.class)) return;
     }
 
+    @SuppressWarnings("UnnecessaryReturnStatement")
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;displayGuiScreen(Lnet/minecraft/client/gui/GuiScreen;)V"))
     public void closeScreen(Minecraft minecraft, GuiScreen screen) {
-        if (KamiMod.MODULE_MANAGER.isModuleEnabled("PortalChat")) return;
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(PortalChat.class)) return;
     }
 
 //    @ModifyArgs(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/AbstractClientPlayer;move(Lnet/minecraft/entity/MoverType;DDD)V"))

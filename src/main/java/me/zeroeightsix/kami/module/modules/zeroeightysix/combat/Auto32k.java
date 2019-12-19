@@ -88,7 +88,7 @@ public class Auto32k extends Module {
     @Override
     protected void onEnable() {
 
-        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             this.disable();
             return;
         }
@@ -265,7 +265,7 @@ public class Auto32k extends Module {
     @Override
     public void onUpdate() {
 
-        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             return;
         }
 

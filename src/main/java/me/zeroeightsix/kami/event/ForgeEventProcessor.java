@@ -79,7 +79,7 @@ public class ForgeEventProcessor {
 
     @SubscribeEvent
     public void onRenderPre(RenderGameOverlayEvent.Pre event) {
-        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && KamiMod.MODULE_MANAGER.isModuleEnabled("BossStack")) {
+        if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && KamiMod.MODULE_MANAGER.isModuleEnabled(BossStack.class)) {
             event.setCanceled(true);
         }
     }
@@ -98,7 +98,7 @@ public class ForgeEventProcessor {
             UIRenderer.renderAndUpdateFrames();
             GL11.glPopMatrix();
             KamiTessellator.releaseGL();
-        } else if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && KamiMod.MODULE_MANAGER.isModuleEnabled("BossStack")) {
+        } else if (event.getType() == RenderGameOverlayEvent.ElementType.BOSSINFO && KamiMod.MODULE_MANAGER.isModuleEnabled(BossStack.class)) {
             BossStack.render(event);
         }
     }

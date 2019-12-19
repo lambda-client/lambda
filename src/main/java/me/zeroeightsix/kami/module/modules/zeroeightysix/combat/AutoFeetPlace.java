@@ -117,7 +117,7 @@ public class AutoFeetPlace extends Module {
     @Override
     public void onUpdate() {
 
-        if (mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled("Freecam")) {
+        if (mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             return;
         }
 
