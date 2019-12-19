@@ -12,10 +12,15 @@ import me.zeroeightsix.kami.setting.Settings;
 public class BlueDiscordRPC extends Module {
 
     public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
-    public Setting<Boolean> serverGlobal = register(Settings.b("Server Status", true));
+    public Setting<Boolean> versionGlobal = register(Settings.b("Version", true));
+    public Setting<Boolean> usernameGlobal = register(Settings.b("Username", true));
+    public Setting<Boolean> hpGlobal = register(Settings.b("Health", true));
     public Setting<Boolean> ipGlobal = register(Settings.b("Server IP", true));
 
+    @Override
     public void onEnable() {
         DiscordPresence.start();
     }
+
+    public void onDisable() { DiscordPresence.disable(); }
 }
