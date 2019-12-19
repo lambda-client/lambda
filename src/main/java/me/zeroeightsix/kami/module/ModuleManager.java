@@ -29,7 +29,7 @@ public class ModuleManager {
     /**
      * Lookup map for getting by class
      */
-    private HashMap<Class<? extends Module>, Integer> lookup = new HashMap<>();
+    private Map<Class<? extends Module>, Integer> lookup = new HashMap<>();
 
     private ModuleManager.State state = State.INSTANTIATED;
 
@@ -129,6 +129,10 @@ public class ModuleManager {
 
     public List<Module> getModules() {
         return Collections.unmodifiableList(modules);
+    }
+
+    public Map<Class<? extends Module>, Integer> getLookupMap() {
+        return Collections.unmodifiableMap(lookup);
     }
 
     public Module getModule(Class<? extends Module> clazz) {
