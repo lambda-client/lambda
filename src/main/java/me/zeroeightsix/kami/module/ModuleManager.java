@@ -18,24 +18,29 @@ import java.util.*;
 
 /**
  * Created by 086 on 23/08/2017.
+ * Updated by Sasha
  */
 public class ModuleManager {
 
-    public static List<Module> modules = new ArrayList<>();
-
+    /**
+     * Raw list of all of the currently active modules
+     */
+    private List<Module> modules = new ArrayList<>();
     /**
      * Lookup map for getting by class
      */
-    static HashMap<Class<? extends Module>, Integer> lookup = new HashMap<>();
+    private HashMap<Class<? extends Module>, Integer> lookup = new HashMap<>();
 
-    public static void updateLookup() {
-        lookup.clear();
-        for (int i = 0; i < modules.size(); i++) {
-            lookup.put(modules.get(i).getClass(), i);
+    private ModuleManager.State state = State.INSTANTIATED;
+
+    /**
+     * Registers modules, and then calls updateLookup() for indexing.
+     */
+    public void register() {
+        if (getModuleManagerState() != State.INSTANTIATED) {
+            throw new IllegalStateException("Attempted to register modules twice.");
         }
-    }
-
-    public static void initialize() {
+        KamiMod.log.info("Registering modules...");
         Set<Class> classList = ClassFinder.findClasses(ClickGUI.class.getPackage().getName(), Module.class);
         classList.forEach(aClass -> {
             try {
@@ -49,20 +54,32 @@ public class ModuleManager {
                 System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
             }
         });
-        KamiMod.log.info("Modules initialised");
+        state = State.REGISTERED;
+        KamiMod.log.info("Modules registered");
         getModules().sort(Comparator.comparing(Module::getOriginalName));
         updateLookup();
     }
 
-    public static void onUpdate() {
+    public void updateLookup() {
+        if (getModuleManagerState() == State.INSTANTIATED) {
+            throw new IllegalStateException("Attempted to index modules before registration.");
+        }
+        lookup.clear();
+        for (int i = 0; i < modules.size(); i++) {
+            lookup.put(modules.get(i).getClass(), i);
+        }
+        state = State.INDEXED;
+    }
+
+    public void onUpdate() {
         modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onUpdate);
     }
 
-    public static void onRender() {
+    public void onRender() {
         modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onRender);
     }
 
-    public static void onWorldRender(RenderWorldLastEvent event) {
+    public void onWorldRender(RenderWorldLastEvent event) {
         Minecraft.getMinecraft().profiler.startSection("kami");
 
         Minecraft.getMinecraft().profiler.startSection("setup");
@@ -101,7 +118,7 @@ public class ModuleManager {
         Minecraft.getMinecraft().profiler.endSection();
     }
 
-    public static void onBind(int eventKey) {
+    public void onBind(int eventKey) {
         if (eventKey == 0) return; // if key is the 'none' key (stuff like mod key in i3 might return 0)
         modules.forEach(module -> {
             if (module.getBind().isDown(eventKey)) {
@@ -110,11 +127,14 @@ public class ModuleManager {
         });
     }
 
-    public static List<Module> getModules() {
-        return modules;
+    public List<Module> getModules() {
+        return Collections.unmodifiableList(modules);
     }
 
-    public static Module getModule(Class<? extends Module> clazz) {
+    public Module getModule(Class<? extends Module> clazz) {
+        if (getModuleManagerState() != State.INDEXED) {
+            throw new IllegalStateException("ModuleManager hasn't indexed yet! Are you calling this too early?");
+        }
         return modules.get(lookup.get(clazz));
     }
 
@@ -122,7 +142,7 @@ public class ModuleManager {
      * @deprecated Use `getModule(Class<? extends Module>)` instead
      */
     @Deprecated
-    public static Module getModule(String name) {
+    public Module getModule(String name) {
         for (Module module : modules) {
             if (module.getClass().getSimpleName().equalsIgnoreCase(name) || module.getOriginalName().equalsIgnoreCase(name)) {
                 return module;
@@ -131,10 +151,24 @@ public class ModuleManager {
         throw new ModuleNotFoundException("getModuleByName(String) failed. Check spelling.");
     }
 
-    public static boolean isModuleEnabled(String moduleName) {
+    public boolean isModuleEnabled(Class<? extends Module> clazz) {
+        return getModule(clazz).isEnabled();
+    }
+
+    @Deprecated
+    public boolean isModuleEnabled(String moduleName) {
         return getModule(moduleName).isEnabled();
     }
+
+    public State getModuleManagerState() {
+        return state;
+    }
+
+    public enum State {
+        INSTANTIATED, REGISTERED, INDEXED
+    }
 }
+
 class ModuleNotFoundException extends IllegalArgumentException {
 
     public ModuleNotFoundException(String s) {
