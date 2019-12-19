@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.module.modules.bewwawho.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.ShulkerPreview;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -95,7 +96,7 @@ public class MixinGuiScreen {
 
     @Inject(method = "Lnet/minecraft/client/gui/GuiScreen;drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
-        if (this.mc.world != null && KamiMod.MODULE_MANAGER.isModuleEnabled("CleanGUI")) {
+        if (this.mc.world != null && KamiMod.MODULE_MANAGER.isModuleEnabled(CleanGUI.class)) {
             ci.cancel();
         }
     }

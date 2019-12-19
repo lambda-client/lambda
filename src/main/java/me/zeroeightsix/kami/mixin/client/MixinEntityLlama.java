@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.movement.EntitySpeed;
 import net.minecraft.entity.passive.EntityLlama;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,7 +16,7 @@ public class MixinEntityLlama {
 
     @Inject(method = "canBeSteered", at = @At("RETURN"), cancellable = true)
     public void canBeSteered(CallbackInfoReturnable<Boolean> returnable) {
-        if (KamiMod.MODULE_MANAGER.isModuleEnabled("EntitySpeed")) returnable.setReturnValue(true);
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(EntitySpeed.class)) returnable.setReturnValue(true);
     }
 
 }
