@@ -8,7 +8,7 @@ import net.minecraft.util.math.Vec3d;
  * Created by d1gress/Qther on 26/11/2019.
  */
 
-@Module.Info(name = "Teleport", description = "you aren't supposed to see this.", category = Module.Category.HIDDEN)
+@Module.Info(name = "Teleport", description = "Library for teleport command", category = Module.Category.HIDDEN)
 public class Teleport extends Module {
 
     private long lastTp;
