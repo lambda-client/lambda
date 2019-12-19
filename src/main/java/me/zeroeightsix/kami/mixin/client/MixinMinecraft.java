@@ -27,19 +27,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinMinecraft {
 
     @Shadow
-    WorldClient world;
+    public WorldClient world;
     @Shadow
-    EntityPlayerSP player;
+    public EntityPlayerSP player;
     @Shadow
-    GuiScreen currentScreen;
+    public GuiScreen currentScreen;
     @Shadow
-    GameSettings gameSettings;
+    public GameSettings gameSettings;
     @Shadow
-    GuiIngame ingameGUI;
+    public GuiIngame ingameGUI;
     @Shadow
-    boolean skipRenderWorld;
+    public boolean skipRenderWorld;
     @Shadow
-    SoundHandler soundHandler;
+    public SoundHandler soundHandler;
 
     @Inject(method = "displayGuiScreen", at = @At("HEAD"), cancellable = true)
     public void displayGuiScreen(GuiScreen guiScreenIn, CallbackInfo info) {

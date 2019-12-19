@@ -2,10 +2,12 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.movement;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.KamiEvent;
 import me.zeroeightsix.kami.event.events.AddCollisionBoxToListEvent;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Freecam;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.BlockLiquid;

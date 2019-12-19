@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.mixin.client;
 
+import me.zeroeightsix.kami.KamiMod;
 import net.minecraft.entity.passive.EntityPig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

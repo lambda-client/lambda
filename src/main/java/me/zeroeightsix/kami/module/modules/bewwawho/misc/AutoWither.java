@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Freecam;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Friends;
