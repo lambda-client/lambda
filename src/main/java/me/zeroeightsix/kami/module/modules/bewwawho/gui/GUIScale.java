@@ -10,7 +10,7 @@ import me.zeroeightsix.kami.setting.Settings;
  */
 @Module.Info(name = "GUI Scale", category = Module.Category.GUI, description = "Configures size of GUI", showOnArray = Module.ShowOnArray.OFF)
 public class GUIScale extends Module {
-    private Setting<Integer> scaleGlobal = this.register(Settings.integerBuilder("Scale").withMinimum(1).withValue(2).withMaximum(3).build());
+    private Setting<Integer> scaleGlobal = this.register(Settings.integerBuilder("Scale").withMinimum(1).withValue(1).withMaximum(4).build());
 
     public void onUpdate() {
         if (mc.player == null) return;
@@ -20,7 +20,5 @@ public class GUIScale extends Module {
 //        Command.sendWarningMessage();
     }
 
-    public void onDisable() {
-        this.enable();
-    }
+//    public void onDisable() { this.enable(); }
 }
