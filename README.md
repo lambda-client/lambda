@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/icons/kami.svg" align="left" width="120"/>
+<img src="https://github.com/S-B99/KAMI/blob/assets/assets/icons/kami.svg" align="left" width="120"/>
 
 # KAMI Blue 
 
