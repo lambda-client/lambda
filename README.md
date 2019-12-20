@@ -69,6 +69,14 @@ Click on images to expand
 
 ***
 
+Capes in game
+
+<img src=".github/IMAGES/capes.png" width="500"/>
+
+Rich presence on discord
+
+<img src=".github/IMAGES/rpc.png" width="500"/>
+
 Note: GUI pictures are super outdated
 
 <img src=".github/IMAGES/gui.png" width="500"/>
