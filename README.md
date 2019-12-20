@@ -1,4 +1,4 @@
-<img src="assets/kami.svg" align="left" width="120"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/icons/kami.svg" align="left" width="120"/>
 
 # KAMI Blue 
 
@@ -6,7 +6,7 @@
 
 |              | S-B99 (features-master)| 086 (upstream) |
 |:------------:|:-------------:|:--------------:|
-| Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/features-master?logo=gradle&label=build)](https://travis-ci.com/S-B99/KAMI/) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?logo=gradle&branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
+| Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/KAMI/) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?logo=gradle&branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
 | Media        | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/discord/496724196542513174)](http://discord.gg/9hvwgeg) |
 | Version      | [![Version master](https://img.shields.io/github/v/release/S-B99/kami?color=dark-green&label=latest&logo=java)](https://github.com/S-B99/KAMI/releases) | [![Version 086](https://img.shields.io/github/v/tag/zeroeightysix/KAMI?color=red&label=outdated)](https://github.com/zeroeightysix/KAMI/releases) |
 
