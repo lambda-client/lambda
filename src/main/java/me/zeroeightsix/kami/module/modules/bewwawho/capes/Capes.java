@@ -27,7 +27,7 @@ public class Capes {
     public Capes() {
         INSTANCE = this;
         try {
-            HttpsURLConnection connection = (HttpsURLConnection) new URL("https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/capes.json").openConnection();
+            HttpsURLConnection connection = (HttpsURLConnection) new URL(KamiMod.CAPES_JSON).openConnection();
             connection.connect();
             this.capeUser = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), CapeUser[].class);
             connection.disconnect();
