@@ -37,6 +37,7 @@ public class ChunkFinder extends Module {
     private Setting<SaveOption> saveOption = register(Settings.enumBuilder(SaveOption.class).withValue(SaveOption.extraFolder).withName("Save Option").withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> saveInRegionFolder = register(Settings.booleanBuilder("In Region").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("Save Normal Coords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
+    private Setting<Boolean> closeFile = register(Settings.booleanBuilder("Close File").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
 
     private LastSetting lastSetting = new LastSetting();
     private PrintWriter logWriter;
@@ -108,7 +109,17 @@ public class ChunkFinder extends Module {
     }
 
     @Override
+    public void onUpdate() {
+        if (!closeFile.getValue())
+            return;
+        closeFile.setValue(false);
+        Command.sendChatMessage("close file");
+        logWriterClose();
+    }
+
+    @Override
     protected void onDisable() {
+        Command.sendChatMessage("onDisable");
         logWriterClose();
         chunks.clear();
     }
