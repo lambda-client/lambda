@@ -13,13 +13,12 @@ import net.minecraft.util.math.BlockPos;
  */
 @Module.Info(name = "BowSpam", description = "Makes you spam arrows", category = Module.Category.COMBAT)
 public class BowSpam extends Module {
-    public void onUpdate() {
 
+    public void onUpdate() {
         if (mc.player.getHeldItemMainhand().getItem() instanceof ItemBow && mc.player.isHandActive() && mc.player.getItemInUseMaxCount() >= 3) {
             mc.player.connection.sendPacket(new CPacketPlayerDigging(Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, mc.player.getHorizontalFacing()));
             mc.player.connection.sendPacket(new CPacketPlayerTryUseItem(mc.player.getActiveHand()));
             mc.player.stopActiveHand();
         }
-
     }
 }
