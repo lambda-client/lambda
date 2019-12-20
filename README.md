@@ -77,16 +77,6 @@ Rich presence on discord
 
 <img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/rpc.png" width="500"/>
 
-Note: GUI pictures are super outdated
-
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/gui.png" width="500"/>
-
-GUI When Closed
-
-Ignore the GUI on the right, that's future
-
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/guiclosed.png" width="500"/>
-
 Shulker preview being used in chat
 
 <img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/shulkerChat.png" width="500"/>
