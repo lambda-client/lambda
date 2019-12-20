@@ -5,13 +5,13 @@
 #gradle*
 #gradlew*
 #gradle/
-buildext.sh
-deltags.sh
-buildexttmp.sh
+#buildext.sh
+#deltags.sh
+#buildexttmp.sh
 #build.gradle
-builddonator.sh
-buildkeygen.sh
-build.sh
+#builddonator.sh
+#buildkeygen.sh
+#build.sh
 
 # donator
 
