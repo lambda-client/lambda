@@ -71,29 +71,29 @@ Click on images to expand
 
 Capes in game
 
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/.github/IMAGES/capes.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/capes.png" width="500"/>
 
 Rich presence on discord
 
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/.github/IMAGES/rpc.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/rpc.png" width="500"/>
 
 Note: GUI pictures are super outdated
 
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/.github/IMAGES/gui.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/gui.png" width="500"/>
 
 GUI When Closed
 
 Ignore the GUI on the right, that's future
 
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/.github/IMAGES/guiclosed.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/guiclosed.png" width="500"/>
 
 Shulker preview being used in chat
 
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/.github/IMAGES/shulkerChat.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/shulkerChat.png" width="500"/>
 
 CrystalAura targeting
 
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/.github/IMAGES/crystalAura.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/crystalAura.png" width="500"/>
 
 ***
 
