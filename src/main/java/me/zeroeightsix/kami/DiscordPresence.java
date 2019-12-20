@@ -36,6 +36,7 @@ public class DiscordPresence {
 
     public static void start() {
         boolean versionPrivateStart = ((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).versionGlobal.getValue();
+        boolean usernamePrivateStart = ((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).usernameGlobal.getValue();
 
         FMLLog.log.info("Starting Discord RPC");
         if (DiscordPresence.hasStarted) {
@@ -46,11 +47,25 @@ public class DiscordPresence {
         handlers.disconnected = ((var1, var2) -> System.out.println("Discord RPC disconnected, var1: " + String.valueOf(var1) + ", var2: " + var2));
         DiscordPresence.rpc.Discord_Initialize(APP_ID, handlers, true, "");
         DiscordPresence.presence.startTimestamp = System.currentTimeMillis() / 1000L;
-        if (versionPrivateStart) {
-            DiscordPresence.presence.details = MODVER + " - " + "Main Menu";
+        if (usernamePrivateStart) {
+            if (versionPrivateStart) {
+                DiscordPresence.presence.details = MODVER + " - " + mc.session.getUsername();
+                DiscordPresence.presence.state = "Main Menu";
+            }
+            else {
+                DiscordPresence.presence.details = mc.session.getUsername();
+                DiscordPresence.presence.state = "Main Menu";
+            }
         }
         else {
-            DiscordPresence.presence.details = "Main Menu";
+            if (versionPrivateStart) {
+                DiscordPresence.presence.details = MODVER;
+                DiscordPresence.presence.state = "Main Menu";
+            }
+            else {
+                DiscordPresence.presence.details = "";
+                DiscordPresence.presence.state = "Main Menu";
+            }
         }
         DiscordPresence.presence.state = "";
         DiscordPresence.presence.largeImageKey = "kami";
@@ -92,14 +107,16 @@ public class DiscordPresence {
                             if (userNamePrivate) {
                                 if (versionPrivate) {
                                     details = MODVER + " - " + mc.player.getName();
-                                } else {
+                                }
+                                else {
                                     details = mc.player.getName();
                                 }
                             }
                             else {
                                 if (versionPrivate) {
                                     details = MODVER + " - " + "Multiplayer";
-                                } else {
+                                }
+                                else {
                                     details = "Multiplayer";
                                 }
                             }
@@ -129,13 +146,26 @@ public class DiscordPresence {
                         }
                     }
                     else {
-                        if (versionPrivate) {
-                            details = MODVER + " - " + "Main Menu";
+                        if (userNamePrivate) {
+                            if (versionPrivate) {
+                                details = MODVER + " - " + mc.player.getName();
+                                state = "Main Menu";
+                            }
+                            else {
+                                details = mc.player.getName();
+                                state = "Main Menu";
+                            }
                         }
                         else {
-                            details = "Main Menu";
+                            if (versionPrivate) {
+                                details = MODVER;
+                                state = "Main Menu";
+                            }
+                            else {
+                                details = "";
+                                state = "Main Menu";
+                            }
                         }
-                        state = "";
                     }
                     if (!details.equals(DiscordPresence.presence.details) || !state.equals(DiscordPresence.presence.state)) {
                         DiscordPresence.presence.startTimestamp = System.currentTimeMillis() / 1000L;
@@ -231,13 +261,26 @@ public class DiscordPresence {
                     }
                 }
                 else {
-                    if (versionPrivate) {
-                        details = MODVER + " - " + "Main Menu";
+                    if (userNamePrivate) {
+                        if (versionPrivate) {
+                            details = MODVER + " - " + mc.player.getName();
+                            state = "Main Menu";
+                        }
+                        else {
+                            details = mc.player.getName();
+                            state = "Main Menu";
+                        }
                     }
                     else {
-                        details = "Main Menu";
+                        if (versionPrivate) {
+                            details = MODVER;
+                            state = "Main Menu";
+                        }
+                        else {
+                            details = "";
+                            state = "Main Menu";
+                        }
                     }
-                    state = "";
                 }
                 if (!details.equals(DiscordPresence.presence.details) || !state.equals(DiscordPresence.presence.state)) {
                     DiscordPresence.presence.startTimestamp = System.currentTimeMillis() / 1000L;
