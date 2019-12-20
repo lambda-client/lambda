@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.combat;
 
 import me.zeroeightsix.kami.module.Module;
-import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemBow;
 import net.minecraft.network.play.client.CPacketPlayerDigging;
 import net.minecraft.network.play.client.CPacketPlayerDigging.Action;
