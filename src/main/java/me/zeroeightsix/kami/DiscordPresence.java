@@ -71,11 +71,19 @@ public class DiscordPresence {
                     players = 0;
                     maxPlayers = 0;
                     if (mc.isIntegratedServerRunning()) {
-                        if (versionPrivate) {
-                            details = MODVER + " - " + "Singleplayer";
+                        if (userNamePrivate) {
+                            if (versionPrivate) {
+                                details = MODVER + " - " + mc.player.getName();
+                            } else {
+                                details = mc.player.getName();
+                            }
                         }
                         else {
-                            details = "Singleplayer";
+                            if (versionPrivate) {
+                                details = MODVER + " - " + "Singleplayer";
+                            } else {
+                                details = "Singleplayer";
+                            }
                         }
                     }
                     else if (mc.getCurrentServerData() != null) {
@@ -165,11 +173,19 @@ public class DiscordPresence {
                 int players = 0;
                 int maxPlayers = 0;
                 if (mc.isIntegratedServerRunning()) {
-                    if (versionPrivate) {
-                        details = MODVER + " - " + "Singleplayer";
+                    if (userNamePrivate) {
+                        if (versionPrivate) {
+                            details = MODVER + " - " + mc.player.getName();
+                        } else {
+                            details = mc.player.getName();
+                        }
                     }
                     else {
-                        details = "Singleplayer";
+                        if (versionPrivate) {
+                            details = MODVER + " - " + "Singleplayer";
+                        } else {
+                            details = "Singleplayer";
+                        }
                     }
                 }
                 else if (mc.getCurrentServerData() != null) {
