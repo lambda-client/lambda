@@ -39,12 +39,17 @@ public class Aura extends Module {
     private Setting<Double> waitTick = register(Settings.doubleBuilder("Tick Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).build());
     private Setting<Boolean> autoWait = register(Settings.b("Auto Tick Delay", true));
     private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.Only32k));
+    private Setting<HitMode> hitMode = register(Settings.e("Tool", HitMode.SWORD));
     //private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
     private int waitCounter;
 
     private enum SwitchMode {
         NONE, ALL, Only32k
+    }
+
+    private enum HitMode {
+        SWORD, AXE
     }
 
     @Override
@@ -150,6 +155,14 @@ public class Aura extends Module {
     private boolean checkSharpness(ItemStack stack) {
 
         if (stack.getTagCompound() == null) {
+            return false;
+        }
+
+        if (stack.getItem().equals(Items.DIAMOND_AXE) && hitMode.getValue().equals(HitMode.SWORD)) {
+            return false;
+        }
+
+        if (stack.getItem().equals(Items.DIAMOND_SWORD) && hitMode.getValue().equals(HitMode.AXE)) {
             return false;
         }
 
