@@ -9,16 +9,33 @@ import me.zeroeightsix.kami.setting.Settings;
  * Created by S-B99 on 20/12/19
  */
 @Module.Info(name = "Zoom", category = Module.Category.GUI, description = "Configures FOV", showOnArray = Module.ShowOnArray.OFF)
-public class FovScale extends Module {
-    private Setting<Integer> scaleGlobal = this.register(Settings.integerBuilder("Scale").withMinimum(30).withValue(50).withMaximum(150).build());
+public class Zoom extends Module {
+
+    private float fov = 0;
+    private float sensi = 0;
+
+    private Setting<Integer> fovChange = register(Settings.integerBuilder("FOV").withMinimum(30).withValue(50).withMaximum(150).build());
+    private Setting<Float> sensChange = register(Settings.floatBuilder("Sensitivity").withMinimum(0.25F).withValue(1.25F).withMaximum(2F).build());
+    private Setting<Boolean> smoothCamera = register(Settings.b("Cinematic Camera", true));
+    private Setting<Boolean> sens = register(Settings.b("Sensitivity", true));
+
+    public void onEnable() {
+        if (mc.player == null) return;
+        fov = mc.gameSettings.fovSetting;
+        sensi = mc.gameSettings.mouseSensitivity;
+        if (smoothCamera.getValue()) mc.gameSettings.smoothCamera = true;
+    }
+
+    public void onDisable() {
+        mc.gameSettings.fovSetting = fov;
+        mc.gameSettings.mouseSensitivity = sensi;
+        if (smoothCamera.getValue()) mc.gameSettings.smoothCamera = false;
+    }
 
     public void onUpdate() {
         if (mc.player == null) return;
-        mc.gameSettings.fovSetting = scaleGlobal.getValue();
-//        Command.sendWarningMessage(Wrapper.getMinecraft().gameSettings.guiScale + "");
-//        Command.sendWarningMessage(scaleGlobal.getValue() + "");
-//        Command.sendWarningMessage();
+        mc.gameSettings.fovSetting = fovChange.getValue();
+        if (smoothCamera.getValue()) mc.gameSettings.smoothCamera = true; else mc.gameSettings.smoothCamera = false;
+        if (sens.getValue()) mc.gameSettings.mouseSensitivity = sensi * sensChange.getValue();
     }
-
-//    public void onDisable() { this.enable(); }
 }
