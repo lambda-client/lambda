@@ -27,8 +27,8 @@ public class Donator {
             this.donatorUsers = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), DonatorUser[].class);
             connection.disconnect();
         } catch (Exception e) {
-            KamiMod.log.error("Failed to load capes");
-            e.printStackTrace();
+            KamiMod.log.error("Failed to load donators");
+//            e.printStackTrace();
         }
     }
 }

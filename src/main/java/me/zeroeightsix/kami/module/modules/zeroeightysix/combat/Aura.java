@@ -25,7 +25,7 @@ import java.util.Iterator;
 /**
  * Created by 086 on 12/12/2017.
  * Updated by hub on 31 October 2019
- * Updated by S-B99 on 01/12/2019
+ * Updated by S-B99 on 20/12/2019
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {

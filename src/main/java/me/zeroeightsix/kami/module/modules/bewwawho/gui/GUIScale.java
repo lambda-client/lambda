@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.setting.Settings;
 
 /***
  * @author S-B99
- * Created by S-B99 on 09/12/19
+ * Created by S-B99 on 20/12/19
  */
 @Module.Info(name = "GUI Scale", category = Module.Category.GUI, description = "Configures size of GUI", showOnArray = Module.ShowOnArray.OFF)
 public class GUIScale extends Module {

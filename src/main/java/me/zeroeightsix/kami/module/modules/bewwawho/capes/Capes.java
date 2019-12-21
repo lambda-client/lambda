@@ -17,7 +17,7 @@ import java.net.URL;
 
 /***
  * @author crystalling
- * Updated by S-B99 on 15/12/19
+ * Updated by S-B99 on 20/12/19
  */
 public class Capes {
 
@@ -33,7 +33,7 @@ public class Capes {
             connection.disconnect();
         } catch (Exception e) {
             KamiMod.log.error("Failed to load capes");
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         if (capeUser != null) {
             for (CapeUser user : capeUser) {
@@ -43,16 +43,15 @@ public class Capes {
     }
 
     public static ResourceLocation getCapeResource(AbstractClientPlayer player) {
-        for(CapeUser user : INSTANCE.capeUser) {
-            if(player.getUniqueID().toString().equalsIgnoreCase(user.uuid)) {
+        for (CapeUser user : INSTANCE.capeUser) {
+            if (player.getUniqueID().toString().equalsIgnoreCase(user.uuid)) {
                 return new ResourceLocation("capes/kami/" + formatUUID(user.uuid));
             }
         }
-
         return null;
     }
 
-    private void bindTexture(String url, String resource) {
+    public void bindTexture(String url, String resource) {
         IImageBuffer iib = new IImageBuffer() {
             @Override
             public BufferedImage parseUserSkin(BufferedImage image) {
