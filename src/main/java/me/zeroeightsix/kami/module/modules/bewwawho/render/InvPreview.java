@@ -15,14 +15,15 @@ import org.lwjgl.opengl.GL11;
  * @author Waizy
  * :clown: emoji, I know
  * they probably didn't write it but I don't have any other credit
+ * Updated by S-B99 on 22/12/19
  */
-@Module.Info(name = "InvPreview", category = Module.Category.RENDER, description = "View your inventory on screen")
-public class InventoryViewer extends Module {
+@Module.Info(name = "InvPreview", category = Module.Category.RENDER, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
+public class InvPreview extends Module {
     private static final ResourceLocation box;
     private Setting<Integer> optionX;
     private Setting<Integer> optionY;
 
-    public InventoryViewer() {
+    public InvPreview() {
         this.optionX = this.register(Settings.i("X", 574));
         this.optionY = this.register(Settings.i("Y", 469));
     }
@@ -78,15 +79,15 @@ public class InventoryViewer extends Module {
 
     @Override
     public void onRender() {
-        final NonNullList<ItemStack> items = (NonNullList<ItemStack>) InventoryViewer.mc.player.inventory.mainInventory;
+        final NonNullList<ItemStack> items = (NonNullList<ItemStack>) InvPreview.mc.player.inventory.mainInventory;
         this.boxrender(this.optionX.getValue(), this.optionY.getValue());
         this.itemrender(items, this.optionX.getValue(), this.optionY.getValue());
     }
 
     private void boxrender(final int x, final int y) {
         preboxrender();
-        InventoryViewer.mc.renderEngine.bindTexture(InventoryViewer.box);
-        InventoryViewer.mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54);
+        InvPreview.mc.renderEngine.bindTexture(InvPreview.box);
+        InvPreview.mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54);
         postboxrender();
     }
 
@@ -95,13 +96,13 @@ public class InventoryViewer extends Module {
             final int slotx = x + 1 + item % 9 * 18;
             final int sloty = y + 1 + (item / 9 - 1) * 18;
             preitemrender();
-            InventoryViewer.mc.getRenderItem().renderItemAndEffectIntoGUI((ItemStack) items.get(item), slotx, sloty);
-            InventoryViewer.mc.getRenderItem().renderItemOverlays(InventoryViewer.mc.fontRenderer, (ItemStack) items.get(item), slotx, sloty);
+            InvPreview.mc.getRenderItem().renderItemAndEffectIntoGUI((ItemStack) items.get(item), slotx, sloty);
+            InvPreview.mc.getRenderItem().renderItemOverlays(InvPreview.mc.fontRenderer, (ItemStack) items.get(item), slotx, sloty);
             postitemrender();
         }
     }
 
     static {
-        box = new ResourceLocation("textures/gui/container/shulker_box.png");
+        box = new ResourceLocation("textures/gui/container/invpreview.png");
     }
 }
