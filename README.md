@@ -31,7 +31,7 @@ This will be frequently updated as long as I'm not on vacation or anything
 
 This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
 
-Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
+Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases) The latest 1.12.2 jar is [this](https://github.com/cabaletta/baritone/releases/tag/v1.2.10).
 
 See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI / KAMI Blue have some features it doesn't. KAMI Blue won't be based off of other mods unless said otherwise.
 
@@ -50,10 +50,9 @@ Press the releases button or [click here](https://github.com/S-B99/KAMI/releases
 
 ***
 
-[Everything here is planned for sure,](https://github.com/zeroeightysix/KAMI/pull/114) [along with here](https://github.com/S-B99/KAMI/issues/12) and the rest of the issues with a milestone attached.
+Please see the [issues](https://github.com/S-B99/KAMI/issues/12) page for planned features and bugs to fix.
 
-This is currently in slowed development. Maintainance and further development is planned in the next couple months.
-
+This is currently in active development. When issues are being closed is by milestone, and bugs are higher priority, though there aren't any that break anything completely.
 ***
 
 </details>
@@ -239,3 +238,5 @@ If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md
 [ronmamo](https://github.com/ronmamo/) for [Reflections](https://github.com/ronmamo/reflections)
 
 The [Minecraft Forge team](https://github.com/MinecraftForge) for [forge](https://files.minecraftforge.net/)
+
+All the [contributors](https://github.com/S-B99/KAMI/graphs/contributors), including the ones who will be remembered in comments and in our hearts. This has been a huge community effort and I couldn't have done it without them.
