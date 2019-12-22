@@ -1,4 +1,4 @@
-<img src="assets/kami.svg" align="left" width="120"/>
+<img src="https://github.com/S-B99/KAMI/blob/assets/assets/icons/kami.svg" align="left" width="120"/>
 
 # KAMI Blue 
 
@@ -6,11 +6,11 @@
 
 |              | S-B99 (features-master)| 086 (upstream) |
 |:------------:|:-------------:|:--------------:|
-| Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/kamiblue-travisci/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/kamiblue-travisci/branches) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?logo=gradle&branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
+| Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/KAMI/) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?logo=gradle&branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
 | Media        | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/discord/496724196542513174)](http://discord.gg/9hvwgeg) |
 | Version      | [![Version master](https://img.shields.io/github/v/release/S-B99/kami?color=dark-green&label=latest&logo=java)](https://github.com/S-B99/KAMI/releases) | [![Version 086](https://img.shields.io/github/v/tag/zeroeightysix/KAMI?color=red&label=outdated)](https://github.com/zeroeightysix/KAMI/releases) |
-<!--| Issues       | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues&logo=github)](https://github.com/S-B99/kami/issues) | [![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?color=red&label=issues)](https://github.com/zeroeightysix/kami/issues) |
--->
+
+<!--| Issues       | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues&logo=github)](https://github.com/S-B99/kami/issues) | [![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?color=red&label=issues)](https://github.com/zeroeightysix/kami/issues) |-->
 <!--| Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/features-master?label=build)](https://travis-ci.com/S-B99/KAMI/tree/features-master) | [![Build Status master](https://img.shields.io/travis/com/S-B99/KAMI/master?label=build)](https://travis-ci.com/S-B99/KAMI/tree/master) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |-->
 <!--| Issues       | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues Mine](https://img.shields.io/github/issues/S-B99/KAMI?label=issues)](https://github.com/S-B99/kami/issues) | [![Issues 086](https://img.shields.io/github/issues/zeroeightysix/KAMI?color=red&label=issues)](https://github.com/zeroeightysix/kami/issues) |-->
 <!--| Media        | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](http://discord.gg/9hvwgeg) |-->
@@ -31,7 +31,7 @@ This will be frequently updated as long as I'm not on vacation or anything
 
 This is by no means a finished project, nor is it a "cheat" or "hack" for anything, it is a *utility* mod.
 
-Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases).
+Please note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases) The latest 1.12.2 jar is [this](https://github.com/cabaletta/baritone/releases/tag/v1.2.10).
 
 See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some features in KAMI may be based on those of forgehax, and KAMI / KAMI Blue have some features it doesn't. KAMI Blue won't be based off of other mods unless said otherwise.
 
@@ -50,10 +50,9 @@ Press the releases button or [click here](https://github.com/S-B99/KAMI/releases
 
 ***
 
-[Everything here is planned for sure,](https://github.com/zeroeightysix/KAMI/pull/114) [along with here](https://github.com/S-B99/KAMI/issues/12) and the rest of the issues with a milestone attached.
+Please see the [issues](https://github.com/S-B99/KAMI/issues/12) page for planned features and bugs to fix.
 
-This is currently in slowed development. Maintainance and further development is planned in the next couple months.
-
+This is currently in active development. When issues are being closed is by milestone, and bugs are higher priority, though there aren't any that break anything completely.
 ***
 
 </details>
@@ -69,23 +68,21 @@ Click on images to expand
 
 ***
 
-Note: GUI pictures are super outdated
+Capes in game
 
-<img src=".github/IMAGES/gui.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/capes.png" width="500"/>
 
-GUI When Closed
+Rich presence on discord
 
-Ignore the GUI on the right, that's future
-
-<img src=".github/IMAGES/guiclosed.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/rpc.png" width="500"/>
 
 Shulker preview being used in chat
 
-<img src=".github/IMAGES/shulkerChat.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/shulkerChat.png" width="500"/>
 
 CrystalAura targeting
 
-<img src=".github/IMAGES/crystalAura.png" width="500"/>
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/crystalAura.png" width="500"/>
 
 ***
 
@@ -241,3 +238,5 @@ If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md
 [ronmamo](https://github.com/ronmamo/) for [Reflections](https://github.com/ronmamo/reflections)
 
 The [Minecraft Forge team](https://github.com/MinecraftForge) for [forge](https://files.minecraftforge.net/)
+
+All the [contributors](https://github.com/S-B99/KAMI/graphs/contributors), including the ones who will be remembered in comments and in our hearts. This has been a huge community effort and I couldn't have done it without them.

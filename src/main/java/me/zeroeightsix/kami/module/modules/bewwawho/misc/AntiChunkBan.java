@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.bewwawho.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -10,28 +11,33 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.play.client.CPacketChatMessage;
 import net.minecraft.network.play.server.SPacketChunkData;
 
-@Module.Info(name = "AntiChunkBan", description = "Spams /kill, gets out of ban chunks.", category = Module.Category.MISC)
-
 /***
  * Kill mode
  * @author Fums
  * @coauthor S-B99
- * Updated by S-B99 on 01/12/19
+ * Updated by S-B99 on 19/12/19
  */
 /***
  * Packet mode
  * @author cats
  * Updated by cats on 02/12/19
  */
+@Module.Info(name = "AntiChunkBan", description = "Spams /kill, gets out of ban chunks.", category = Module.Category.MISC)
 public class AntiChunkBan extends Module {
 
     private static long startTime = 0;
     private Setting<ModeThing> modeThing = register(Settings.e("Mode", ModeThing.PACKET));
     private Setting<Float> delayTime = register(Settings.f("Kill Delay", 10));
     private Setting<Boolean> disable = register(Settings.b("Disable After Kill", false));
+    private Setting<Boolean> warn = register(Settings.b("Warning", true));
 
     private enum ModeThing {
         PACKET, KILL, BOTH
+    }
+
+    public void onEnable() {
+        if (mc.player == null) return;
+        Command.sendChatMessage("[AntiChunkBan] Note: this disables chunks loading in. If you want to be able to play normally you have to disable it");
     }
 
     @Override

@@ -22,13 +22,13 @@ public class Donator {
     public Donator() {
         INSTANCE = this;
         try {
-            HttpsURLConnection connection = (HttpsURLConnection) new URL("https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/donators.json").openConnection();
+            HttpsURLConnection connection = (HttpsURLConnection) new URL(KamiMod.DONATORS_JSON).openConnection();
             connection.connect();
             this.donatorUsers = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), DonatorUser[].class);
             connection.disconnect();
         } catch (Exception e) {
-            KamiMod.log.error("Failed to load capes");
-            e.printStackTrace();
+            KamiMod.log.error("Failed to load donators");
+//            e.printStackTrace();
         }
     }
 }

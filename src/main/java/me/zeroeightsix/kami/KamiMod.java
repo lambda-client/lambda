@@ -50,7 +50,7 @@ import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 16/12/19
+ * Updated by S-B99 on 20/12/19
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -60,10 +60,13 @@ import java.util.Optional;
 )
 public class KamiMod {
 
-    public static final String MODID = "kamiblue";
-    public static final String MODNAME = "KAMI Blue";
+    static final String MODID = "kamiblue";
+    static final String MODNAME = "KAMI Blue";
     public static final String MODVER = "v1.1.1";
-    public static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/updateChecker.json";
+
+    static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/updateChecker.json";
+    public static final String DONATORS_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/donators.json";
+    public static final String CAPES_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/capes.json";
 
     public static final String KAMI_HIRAGANA = "\u304B\u307F";
     public static final String KAMI_KATAKANA = "\u30AB\u30DF";
@@ -145,7 +148,6 @@ public class KamiMod {
 
         try { // load modules that are on by default
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
-            ModuleManager.getModuleByName("GUI Scale").setEnabled(true);
             if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
             }

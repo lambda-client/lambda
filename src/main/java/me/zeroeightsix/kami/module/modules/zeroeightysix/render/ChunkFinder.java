@@ -30,12 +30,14 @@ import static org.lwjgl.opengl.GL11.*;
 @Module.Info(name = "ChunkFinder", description = "Highlights newly generated chunks", category = Module.Category.RENDER)
 public class ChunkFinder extends Module {
 
+    private Setting<Boolean> disable = register(Settings.b("Disable", true));
     private Setting<Integer> yOffset = register(Settings.i("Y Offset", 0));
     private Setting<Boolean> relative = register(Settings.b("Relative", true));
     private Setting<Boolean> saveNewChunks = register(Settings.b("Save New Chunks", false));
     private Setting<SaveOption> saveOption = register(Settings.enumBuilder(SaveOption.class).withValue(SaveOption.extraFolder).withName("Save Option").withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> saveInRegionFolder = register(Settings.booleanBuilder("In Region").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("Save Normal Coords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
+    private Setting<Boolean> closeFile = register(Settings.booleanBuilder("Close File").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
 
     private LastSetting lastSetting = new LastSetting();
     private PrintWriter logWriter;
@@ -48,11 +50,11 @@ public class ChunkFinder extends Module {
     @Override
     public void onEnable() {
         if (mc.player == null) return;
-        if (ModuleManager.getModuleByName("HoleESP").isEnabled()) {
+        if (ModuleManager.getModuleByName("HoleESP").isEnabled() && disable.getValue()) {
             Command.sendChatMessage("[ChunkFinder] HoleESP is not compatible, disabling");
             this.disable();
         }
-        if (ModuleManager.getModuleByName("StorageESP").isEnabled()) {
+        if (ModuleManager.getModuleByName("StorageESP").isEnabled() && disable.getValue()) {
             Command.sendChatMessage("[ChunkFinder] StorageESP is not compatible, disabling");
             this.disable();
         }
@@ -107,7 +109,17 @@ public class ChunkFinder extends Module {
     }
 
     @Override
+    public void onUpdate() {
+        if (!closeFile.getValue())
+            return;
+        closeFile.setValue(false);
+        Command.sendChatMessage("close file");
+        logWriterClose();
+    }
+
+    @Override
     protected void onDisable() {
+        Command.sendChatMessage("onDisable");
         logWriterClose();
         chunks.clear();
     }
