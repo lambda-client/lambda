@@ -20,7 +20,7 @@ public class InvPreview extends Module {
 
     private Setting<Integer> optionX;
     private Setting<Integer> optionY;
-    private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.CLEAR));
+    private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.ICONLARGE));
 
     private enum ViewMode {
         ICONLARGE, MC, ICON, ICONBACK, CLEAR, SOLID, SOLIDCLEAR
