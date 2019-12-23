@@ -16,7 +16,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 
 /***
- * @author crystalling
+ * @author Crystallinqq
  * Updated by S-B99 on 20/12/19
  */
 public class Capes {
