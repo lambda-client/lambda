@@ -13,15 +13,42 @@ import org.lwjgl.opengl.GL11;
 
 /***
  * @author Waizy
- * :clown: emoji, I know
- * they probably didn't write it but I don't have any other credit
  * Updated by S-B99 on 22/12/19
  */
 @Module.Info(name = "InvPreview", category = Module.Category.RENDER, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
 public class InvPreview extends Module {
-    private static final ResourceLocation box;
+
     private Setting<Integer> optionX;
     private Setting<Integer> optionY;
+    private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.CLEAR));
+
+    private enum ViewMode {
+        ICONLARGE, MC, ICON, ICONBACK, CLEAR, SOLID, SOLIDCLEAR
+    }
+
+    private ResourceLocation getBox() {
+        if (viewMode.getValue().equals(ViewMode.CLEAR)) {
+            return new ResourceLocation("textures/gui/container/invpreview.png");
+        }
+        else if (viewMode.getValue().equals(ViewMode.ICONBACK)) {
+            return new ResourceLocation("textures/gui/container/one.png");
+        }
+        else if (viewMode.getValue().equals(ViewMode.SOLID)) {
+            return new ResourceLocation("textures/gui/container/two.png");
+        }
+        else if (viewMode.getValue().equals(ViewMode.SOLIDCLEAR)) {
+            return new ResourceLocation("textures/gui/container/three.png");
+        }
+        else if (viewMode.getValue().equals(ViewMode.ICON)) {
+            return new ResourceLocation("textures/gui/container/four.png");
+        }
+        else if (viewMode.getValue().equals(ViewMode.ICONLARGE)) {
+            return new ResourceLocation("textures/gui/container/five.png");
+        }
+        else {
+            return new ResourceLocation("textures/gui/container/generic_54.png");
+        }
+    }
 
     public InvPreview() {
         this.optionX = this.register(Settings.i("X", 574));
@@ -86,8 +113,9 @@ public class InvPreview extends Module {
 
     private void boxrender(final int x, final int y) {
         preboxrender();
-        InvPreview.mc.renderEngine.bindTexture(InvPreview.box);
-        InvPreview.mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54);
+        ResourceLocation box = getBox();
+        InvPreview.mc.renderEngine.bindTexture(box);
+        InvPreview.mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 56 136 1296 432
         postboxrender();
     }
 
@@ -100,9 +128,5 @@ public class InvPreview extends Module {
             InvPreview.mc.getRenderItem().renderItemOverlays(InvPreview.mc.fontRenderer, (ItemStack) items.get(item), slotx, sloty);
             postitemrender();
         }
-    }
-
-    static {
-        box = new ResourceLocation("textures/gui/container/invpreview.png");
     }
 }
