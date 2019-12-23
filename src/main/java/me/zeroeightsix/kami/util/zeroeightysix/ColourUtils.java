@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.util;
+package me.zeroeightsix.kami.util.zeroeightysix;
 
 import java.awt.*;
 import java.util.ArrayList;

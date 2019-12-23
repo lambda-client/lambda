@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.util;
+package me.zeroeightsix.kami.util.zeroeightysix;
 
 import me.zeroeightsix.kami.command.commands.BindCommand;
 import org.lwjgl.input.Keyboard;

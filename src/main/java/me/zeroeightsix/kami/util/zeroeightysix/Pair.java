@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.util;
+package me.zeroeightsix.kami.util.zeroeightysix;
 
 /**
  * Created by 086 on 14/03/2018.

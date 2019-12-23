@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.gui.kami.component.TabGUI;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.glColor3f;

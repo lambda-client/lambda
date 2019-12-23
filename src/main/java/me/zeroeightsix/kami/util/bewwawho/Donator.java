@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.bewwawho.util;
+package me.zeroeightsix.kami.util.bewwawho;
 
 import com.google.gson.Gson;
 import me.zeroeightsix.kami.KamiMod;

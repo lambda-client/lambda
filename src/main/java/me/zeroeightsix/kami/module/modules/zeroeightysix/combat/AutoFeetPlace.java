@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.BlockInteractionHelper;
+import me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
@@ -24,8 +24,8 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.canBeClicked;
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
+import static me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper.canBeClicked;
+import static me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper.faceVectorPacketInstant;
 
 /**
  * @author hub

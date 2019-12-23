@@ -14,7 +14,7 @@ import me.zeroeightsix.kami.setting.impl.numerical.DoubleSetting;
 import me.zeroeightsix.kami.setting.impl.numerical.FloatSetting;
 import me.zeroeightsix.kami.setting.impl.numerical.IntegerSetting;
 import me.zeroeightsix.kami.setting.impl.numerical.NumberSetting;
-import me.zeroeightsix.kami.util.Bind;
+import me.zeroeightsix.kami.util.zeroeightysix.Bind;
 
 import java.util.Arrays;
 

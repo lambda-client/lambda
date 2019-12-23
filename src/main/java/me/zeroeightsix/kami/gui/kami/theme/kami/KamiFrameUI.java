@@ -14,9 +14,9 @@ import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
-import me.zeroeightsix.kami.util.Bind;
-import me.zeroeightsix.kami.util.ColourHolder;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Bind;
+import me.zeroeightsix.kami.util.zeroeightysix.ColourHolder;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.*;

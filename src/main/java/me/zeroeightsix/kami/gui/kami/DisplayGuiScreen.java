@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.GlStateManager;

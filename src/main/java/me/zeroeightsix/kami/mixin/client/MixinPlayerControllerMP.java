@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.mixin.client;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.ClientPlayerAttackEvent;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.player.TpsSync;
-import me.zeroeightsix.kami.util.LagCompensator;
+import me.zeroeightsix.kami.util.zeroeightysix.LagCompensator;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.PlayerControllerMP;

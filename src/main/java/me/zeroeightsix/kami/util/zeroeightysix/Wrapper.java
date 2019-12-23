@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.util;
+package me.zeroeightsix.kami.util.zeroeightysix;
 
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;

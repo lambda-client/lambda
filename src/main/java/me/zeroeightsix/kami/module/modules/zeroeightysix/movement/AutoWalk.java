@@ -10,7 +10,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.pathfinding.PathPoint;
 import net.minecraftforge.client.event.InputUpdateEvent;
 
-import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
+import static me.zeroeightsix.kami.util.zeroeightysix.EntityUtil.calculateLookAt;
 
 /**
  * Created by 086 on 16/12/2017.

@@ -2,10 +2,10 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.render;
 
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.util.GeometryMasks;
-import me.zeroeightsix.kami.util.HueCycler;
-import me.zeroeightsix.kami.util.KamiTessellator;
-import me.zeroeightsix.kami.util.TrajectoryCalculator;
+import me.zeroeightsix.kami.util.zeroeightysix.GeometryMasks;
+import me.zeroeightsix.kami.util.zeroeightysix.HueCycler;
+import me.zeroeightsix.kami.util.zeroeightysix.KamiTessellator;
+import me.zeroeightsix.kami.util.zeroeightysix.TrajectoryCalculator;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;

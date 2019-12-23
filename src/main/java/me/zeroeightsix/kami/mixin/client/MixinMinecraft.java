@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.SoundHandler;
 import net.minecraft.client.entity.EntityPlayerSP;

@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.render;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.Pair;
+import me.zeroeightsix.kami.util.zeroeightysix.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.BossInfoClient;
 import net.minecraft.client.gui.ScaledResolution;

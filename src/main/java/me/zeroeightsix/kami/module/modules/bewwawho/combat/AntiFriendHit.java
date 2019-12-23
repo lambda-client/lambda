@@ -4,7 +4,7 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.ClientPlayerAttackEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.entity.Entity;
 

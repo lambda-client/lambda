@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.util;
+package me.zeroeightsix.kami.util.zeroeightysix;
 
 import com.google.common.base.Converter;
 import com.google.gson.JsonElement;

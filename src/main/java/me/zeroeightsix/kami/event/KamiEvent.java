@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.event;
 
 import me.zero.alpine.type.Cancellable;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 
 /**
  * Created by 086 on 16/11/2017.

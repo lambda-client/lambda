@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 import net.minecraft.network.play.server.SPacketChat;
 
 import java.util.function.Predicate;

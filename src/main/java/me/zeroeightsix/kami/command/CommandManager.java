@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.command;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.commands.BindCommand;
-import me.zeroeightsix.kami.util.ClassFinder;
+import me.zeroeightsix.kami.util.zeroeightysix.ClassFinder;
 
 import java.util.ArrayList;
 import java.util.LinkedList;

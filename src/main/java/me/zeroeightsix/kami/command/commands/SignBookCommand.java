@@ -2,8 +2,7 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
-import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 
 import net.minecraft.item.ItemWritableBook;
 import net.minecraft.item.ItemStack;

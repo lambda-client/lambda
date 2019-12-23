@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
@@ -30,7 +30,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 import static me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura.getPlayerPos;
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
+import static me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper.faceVectorPacketInstant;
 
 /**
  * Created by hub on 7 August 2019

@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.movement;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.EntityUtil;
+import me.zeroeightsix.kami.util.zeroeightysix.EntityUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.play.client.CPacketPlayer;
 

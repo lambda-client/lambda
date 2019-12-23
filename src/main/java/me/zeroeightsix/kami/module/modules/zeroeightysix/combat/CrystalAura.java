@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Tracers;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.*;
+import me.zeroeightsix.kami.util.zeroeightysix.*;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -35,7 +35,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
+import static me.zeroeightsix.kami.util.zeroeightysix.EntityUtil.calculateLookAt;
 
 /**
  * Created by 086 on 28/12/2017.

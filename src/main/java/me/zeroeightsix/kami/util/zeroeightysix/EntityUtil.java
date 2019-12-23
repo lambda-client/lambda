@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.util;
+package me.zeroeightsix.kami.util.zeroeightysix;
 
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.entity.Entity;

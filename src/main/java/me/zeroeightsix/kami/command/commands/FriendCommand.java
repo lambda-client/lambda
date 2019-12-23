@@ -6,7 +6,7 @@ import com.mojang.util.UUIDTypeAdapter;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.EnumParser;
-import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetworkPlayerInfo;
 

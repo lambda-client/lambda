@@ -4,8 +4,8 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.EntityUtil;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.EntityUtil;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockFalling;
@@ -14,7 +14,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
+import static me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper.*;
 
 @Module.Info(name = "Scaffold", category = Module.Category.PLAYER, description = "Places blocks under you")
 public class Scaffold extends Module {

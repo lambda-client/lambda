@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.bewwawho.util;
+package me.zeroeightsix.kami.util.bewwawho;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.launchwrapper.LogWrapper;

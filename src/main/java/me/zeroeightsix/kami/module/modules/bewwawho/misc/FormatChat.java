@@ -1,11 +1,9 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.misc;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
-import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
