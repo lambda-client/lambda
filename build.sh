@@ -8,12 +8,12 @@ cd ../
 
 echo "BUILD: copied"
 mkdir KAMI-Blue-beta/
-cp -r kami-fix-npe/gradle* KAMI-Blue-beta/ 
-cp -r kami-fix-npe/gradlew* KAMI-Blue-beta/
-cp -r kami-fix-npe/gradle/ KAMI-Blue-beta/
-cp -r kami-fix-npe/build.sh KAMI-Blue-beta/
-cp -r kami-fix-npe/build.gradle KAMI-Blue-beta/
-cp -r kami-fix-npe/src/ KAMI-Blue-beta/
+cp -r kamiblue/gradle* KAMI-Blue-beta/ 
+cp -r kamiblue/gradlew* KAMI-Blue-beta/
+cp -r kamiblue/gradle/ KAMI-Blue-beta/
+cp -r kamiblue/build.sh KAMI-Blue-beta/
+cp -r kamiblue/build.gradle KAMI-Blue-beta/
+cp -r kamiblue/src/ KAMI-Blue-beta/
 
 #echo "BUILD: copied modules and tools"
 #cp kamiblue/sdashb.modules kamiblue-buildtools/
@@ -68,7 +68,7 @@ echo "BUILD: deleting"
 rm -rf KAMI-Blue-beta/
 
 echo "BUILD: cd in"
-cd kami-fix-npe/
+cd kamiblue/
 
 echo "BUILD: finished"
 
