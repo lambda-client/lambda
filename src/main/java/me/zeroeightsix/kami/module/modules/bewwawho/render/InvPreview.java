@@ -23,7 +23,7 @@ public class InvPreview extends Module {
     private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.ICONLARGE));
 
     private enum ViewMode {
-        ICONLARGE, MC, ICON, ICONBACK, CLEAR, SOLID, SOLIDCLEAR
+        ICONLARGEBG, ICONLARGE, MC, ICON, ICONBACK, CLEAR, SOLID, SOLIDCLEAR
     }
 
     private ResourceLocation getBox() {
@@ -44,6 +44,9 @@ public class InvPreview extends Module {
         }
         else if (viewMode.getValue().equals(ViewMode.ICONLARGE)) {
             return new ResourceLocation("textures/gui/container/five.png");
+        }
+        else if (viewMode.getValue().equals(ViewMode.ICONLARGEBG)) {
+            return new ResourceLocation("textures/gui/container/six.png");
         }
         else {
             return new ResourceLocation("textures/gui/container/generic_54.png");
