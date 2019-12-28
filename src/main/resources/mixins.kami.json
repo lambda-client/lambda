@@ -24,6 +24,7 @@
     "MixinRenderPlayer",
     "MixinStateImplementation",
     "MixinAbstractClientPlayer",
-    "MixinGuiNewChat"
+    "MixinGuiNewChat",
+    "MixinLayerBipedArmor"
   ]
 }
