@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.bewwawho.render;
+package me.zeroeightsix.kami.module.modules.bewwawho.gui;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
@@ -15,8 +15,8 @@ import org.lwjgl.opengl.GL11;
  * @author Waizy
  * Updated by S-B99 on 22/12/19
  */
-@Module.Info(name = "InvPreview", category = Module.Category.RENDER, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
-public class InvPreview extends Module {
+@Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
+public class InventoryViewer extends Module {
 
     private Setting<Integer> optionX;
     private Setting<Integer> optionY;
@@ -53,7 +53,7 @@ public class InvPreview extends Module {
         }
     }
 
-    public InvPreview() {
+    public InventoryViewer() {
         this.optionX = this.register(Settings.i("X", 574));
         this.optionY = this.register(Settings.i("Y", 469));
     }
@@ -101,7 +101,7 @@ public class InvPreview extends Module {
 
     public void onEnable() {
         if (mc.player != null) {
-            Command.sendChatMessage("[InvPreview] Right click the module to move it around");
+            Command.sendChatMessage("[InventoryViewer] Right click the module to move it around");
         } else if (mc.player == null) {
             return;
         }
@@ -109,7 +109,7 @@ public class InvPreview extends Module {
 
     @Override
     public void onRender() {
-        final NonNullList<ItemStack> items = (NonNullList<ItemStack>) InvPreview.mc.player.inventory.mainInventory;
+        final NonNullList<ItemStack> items = (NonNullList<ItemStack>) InventoryViewer.mc.player.inventory.mainInventory;
         this.boxrender(this.optionX.getValue(), this.optionY.getValue());
         this.itemrender(items, this.optionX.getValue(), this.optionY.getValue());
     }
@@ -117,8 +117,8 @@ public class InvPreview extends Module {
     private void boxrender(final int x, final int y) {
         preboxrender();
         ResourceLocation box = getBox();
-        InvPreview.mc.renderEngine.bindTexture(box);
-        InvPreview.mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 56 136 1296 432
+        InventoryViewer.mc.renderEngine.bindTexture(box);
+        InventoryViewer.mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 56 136 1296 432
         postboxrender();
     }
 
@@ -127,8 +127,8 @@ public class InvPreview extends Module {
             final int slotx = x + 1 + item % 9 * 18;
             final int sloty = y + 1 + (item / 9 - 1) * 18;
             preitemrender();
-            InvPreview.mc.getRenderItem().renderItemAndEffectIntoGUI((ItemStack) items.get(item), slotx, sloty);
-            InvPreview.mc.getRenderItem().renderItemOverlays(InvPreview.mc.fontRenderer, (ItemStack) items.get(item), slotx, sloty);
+            InventoryViewer.mc.getRenderItem().renderItemAndEffectIntoGUI((ItemStack) items.get(item), slotx, sloty);
+            InventoryViewer.mc.getRenderItem().renderItemOverlays(InventoryViewer.mc.fontRenderer, (ItemStack) items.get(item), slotx, sloty);
             postitemrender();
         }
     }
