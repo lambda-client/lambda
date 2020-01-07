@@ -38,7 +38,7 @@ public class Aura extends Module {
     private Setting<WaitMode> waitMode = register(Settings.e("Mode", WaitMode.TICK));
     private Setting<Double> waitTick = register(Settings.doubleBuilder("Tick Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).build());
     private Setting<Boolean> autoWait = register(Settings.b("Auto Tick Delay", true));
-    private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.Only32k));
+    private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.ALL));
     private Setting<HitMode> hitMode = register(Settings.e("Tool", HitMode.SWORD));
     //private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
