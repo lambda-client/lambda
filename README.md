@@ -137,7 +137,7 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 ## Building and Contributing
 
 <details>
-	<summary>Click to see building instructions</summary>
+	<summary>Click to see instructions</summary>
 
 ***
 
