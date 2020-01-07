@@ -21,7 +21,7 @@ public class TeleportCommand extends Command {
     DecimalFormat df = new DecimalFormat("#.###");
 
     public TeleportCommand() {
-        super("tp", new ChunkBuilder()
+        super("teleport", new ChunkBuilder()
                 .append("x/stop", true, new ModuleParser())
                 .append("y", true)
                 .append("z", true)
