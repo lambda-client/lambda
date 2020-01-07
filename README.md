@@ -147,7 +147,11 @@ Please make sure to restart your IDE in after running all setup commands
 
 ***
 
+***
+
 ### Building
+
+***
 
 #### Linux
 You can build by running these commands (without the <>) in a terminal.
@@ -192,6 +196,8 @@ Note: This assumes your minecraft folder is in the default location under your %
 ***
 
 If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md)
+
+***
 
 ***
 
