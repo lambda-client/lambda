@@ -162,6 +162,7 @@ flycheck_*.el
 ### ForgeGradle ###
 # Minecraft client/server files
 run/
+logs/
 
 ### Intellij+all ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and WebStorm
