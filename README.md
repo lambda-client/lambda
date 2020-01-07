@@ -183,9 +183,7 @@ You can build by running these commands in a terminal with the current directory
 gradlew.bat build
 ```
 
-To copy on windows run `autocopy.bat`
-
-If you prefer copying it manually, find a file in `build/libs` called `KAMI-<kamiVersion>-**release**.jar` which you can copy to the `mods\1.12.2` folder of a minecraft instance that has forge installed.
+To copy on windows find a file in `build/libs` called `KAMI-<kamiVersion>-**release**.jar` which you can copy to the `mods\1.12.2` folder of a minecraft instance that has forge installed.
 
 Note: This assumes your minecraft folder is in the default location under your %appdata% folder.
 
