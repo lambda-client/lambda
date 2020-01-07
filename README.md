@@ -143,6 +143,8 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 
 If you can't figure these instructions out, please see [this](https://youtu.be/PfmlNiHonV0) before asking for help.
 
+Please make sure to restart your IDE in after running all setup commands
+
 ***
 
 ### Building
