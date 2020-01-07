@@ -145,6 +145,8 @@ If you can't figure these instructions out, please see [this](https://youtu.be/P
 
 ***
 
+### Building
+
 #### Linux
 You can build by running these commands (without the <>) in a terminal.
 ```
@@ -192,6 +194,8 @@ Note: This assumes your minecraft folder is in the default location under your %
 If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md)
 
 ***
+
+### Contributing 
 
 You are free to clone, modify KAMI and KAMI Blue and make pull requests as you wish. To set up your development environment, make use of the following commands:
 
