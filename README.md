@@ -134,10 +134,14 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 
 </details>
 
-## Building
+## Building and Contributing
 
 <details>
 	<summary>Click to see building instructions</summary>
+
+***
+
+If you can't figure these instructions out, please see [this](https://youtu.be/PfmlNiHonV0) before asking for help.
 
 ***
 
@@ -186,15 +190,6 @@ Note: This assumes your minecraft folder is in the default location under your %
 ***
 
 If you get build errors see this: [troubleshooting page](docs/TROUBLESHOOTING.md)
-
-***
-
-</details>
-
-## Contributing
-
-<details>
-	<summary>Click to see how to contribute</summary>
 
 ***
 
