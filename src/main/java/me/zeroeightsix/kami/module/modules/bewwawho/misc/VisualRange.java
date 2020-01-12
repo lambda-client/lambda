@@ -1,11 +1,11 @@
-package me.zeroeightsix.kami.module.modules.misc;
+package me.zeroeightsix.kami.module.modules.bewwawho.misc;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 
