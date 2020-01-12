@@ -20,6 +20,7 @@ import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
 import me.zeroeightsix.kami.module.modules.bewwawho.player.AntiChunkLoadPatch;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.CustomChat;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -160,6 +161,10 @@ public class KamiMod {
             if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("TabFriends").setEnabled(true);
             }
+            if (((CustomChat) ModuleManager.getModuleByName("CustomChat")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("CustomChat").setEnabled(true);
+            }
+
         }
         catch (NullPointerException e) {
             KamiMod.log.info("NPE in loading always enabled modules\n");

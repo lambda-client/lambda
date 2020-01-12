@@ -16,7 +16,7 @@ import java.util.List;
  * Created on 26 October 2019 by hub
  * Updated 12 January 2019 by hub
  */
-@Module.Info(name = "VisualRange", description = "Reports Players in VisualRange", category = Module.Category.MISC)
+@Module.Info(name = "VisualRange", description = "Shows players who enter and leave range in chat", category = Module.Category.MISC)
 public class VisualRange extends Module {
 
     private Setting<Boolean> leaving = register(Settings.b("Leaving", false));
@@ -86,7 +86,7 @@ public class VisualRange extends Module {
     }
 
     private void sendNotification(String s) {
-        Command.sendChatMessage("[VisualRange] " + s);
+        Command.sendChatMessage(s);
     }
 
     @Override
