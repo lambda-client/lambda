@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 
-@Module.Info(name = "TabFriends", description = "Highlights friends in the tab menu", category = Module.Category.GUI)
+@Module.Info(name = "TabFriends", description = "Highlights friends in the tab menu", category = Module.Category.GUI, showOnArray = Module.ShowOnArray.OFF)
 public class TabFriends extends Module {
     public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
 
