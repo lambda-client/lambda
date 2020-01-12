@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  * Created by hub on 15 June 2019
- * Last Updated 16 June 2019 by hub
+ * Last Updated 12 January 2019 by hub
  */
 public class BlockInteractionHelper {
 
@@ -31,7 +31,8 @@ public class BlockInteractionHelper {
             Blocks.HOPPER,
             Blocks.DROPPER,
             Blocks.DISPENSER,
-            Blocks.TRAPDOOR
+            Blocks.TRAPDOOR,
+            Blocks.ENCHANTING_TABLE
     );
 
     public static final List<Block> shulkerList = Arrays.asList(
