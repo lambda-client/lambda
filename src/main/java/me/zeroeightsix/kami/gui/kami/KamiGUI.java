@@ -21,10 +21,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
 import me.zeroeightsix.kami.util.bewwawho.CalcPing;
-import me.zeroeightsix.kami.util.zeroeightysix.ColourHolder;
-import me.zeroeightsix.kami.util.zeroeightysix.LagCompensator;
-import me.zeroeightsix.kami.util.zeroeightysix.Pair;
-import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
+import me.zeroeightsix.kami.util.zeroeightysix.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -33,6 +30,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityWitherSkull;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextFormatting;
 
 import javax.annotation.Nonnull;
@@ -205,6 +203,7 @@ public class KamiGUI extends GUI {
         frame.setPinneable(true);
         frames.add(frame);
 
+
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info");
         frame.setCloseable(false);
         frame.setPinneable(true);
@@ -257,6 +256,35 @@ public class KamiGUI extends GUI {
         });
         frame.addChild(information);
         information.setFontRenderer(fontRenderer);
+        frames.add(frame);
+
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "True Durability");
+        frame.setCloseable(false);
+        frame.setPinneable(true);
+        Label durability = new Label("");
+        durability.setShadow(true);
+        durability.addTickListener(() -> {
+            ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
+            int itemDurability = itemStack.getMaxDamage() - itemStack.getItemDamage();
+            durability.setText(String.valueOf(itemDurability));
+        });
+        frame.addChild(durability);
+        durability.setFontRenderer(fontRenderer);
+        frames.add(frame);
+
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
+        frame.setCloseable(false);
+        frame.setPinneable(true);
+        Label friends = new Label("");
+        friends.setShadow(true);
+        friends.addTickListener(() -> {
+            friends.setText("");
+            Friends.friends.getValue().forEach(friend -> {
+                friends.addLine(friend.getUsername());
+            });
+        });
+        frame.addChild(friends);
+        friends.setFontRenderer(fontRenderer);
         frames.add(frame);
 
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Text Radar");
