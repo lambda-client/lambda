@@ -7,9 +7,9 @@ import me.zeroeightsix.kami.setting.Settings;
 /***
  * Created by S-B99 on 11/01/20
  */
-@Module.Info(name = "AntiChunkLoadPatch", category = Module.Category.PLAYER, description = "Prevents loading of overloaded chunks", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "AntiChunkLoadPatch", category = Module.Category.EXPERIMENTAL, description = "Prevents loading of overloaded chunks", showOnArray = Module.ShowOnArray.OFF)
 public class AntiChunkLoadPatch extends Module {
-    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
+//    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
     private static AntiChunkLoadPatch INSTANCE = new AntiChunkLoadPatch();
 
     public AntiChunkLoadPatch() {

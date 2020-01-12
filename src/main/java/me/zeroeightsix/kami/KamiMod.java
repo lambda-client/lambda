@@ -154,9 +154,9 @@ public class KamiMod {
             if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
             }
-            if (((AntiChunkLoadPatch) ModuleManager.getModuleByName("AntiChunkLoadPatch")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("AntiChunkLoadPatch").setEnabled(true);
-            }
+//            if (((AntiChunkLoadPatch) ModuleManager.getModuleByName("AntiChunkLoadPatch")).startupGlobal.getValue()) {
+//                ModuleManager.getModuleByName("AntiChunkLoadPatch").setEnabled(true);
+//            }
             if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("TabFriends").setEnabled(true);
             }
