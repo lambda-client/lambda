@@ -214,7 +214,9 @@ public class KamiGUI extends GUI {
             boolean privateInfoTps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoTps.getValue());
             boolean privateInfoFps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoFps.getValue());
             boolean privateInfoPin = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoPin.getValue());
+            boolean privateInfoDur = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoDur.getValue());
             boolean privateInfoMem = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
+
             int privatePingValue = CalcPing.globalInfoPingValue();
             String privateDisplayN = Wrapper.getMinecraft().player.getName();
 
@@ -234,13 +236,17 @@ public class KamiGUI extends GUI {
                 if (privateInfoPin) {
                     information.addLine("\u00A7b" + privatePingValue + Command.SECTION_SIGN + "3 ms");
                 }
+                if (privateInfoDur) {
+                    ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
+                    int itemDurability = itemStack.getMaxDamage() - itemStack.getItemDamage();
+                    information.addLine("\u00A7b" + Integer.toString(itemDurability) + "\u00A73 dura");
+                }
                 if (privateInfoMem) {
                     information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTION_SIGN + "3mB free");
                 }
             } else {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-                information.addLine(Command.SECTION_SIGN + "EEnable InfoOverlay!");
             }
 
 
@@ -256,20 +262,6 @@ public class KamiGUI extends GUI {
         });
         frame.addChild(information);
         information.setFontRenderer(fontRenderer);
-        frames.add(frame);
-
-        frame = new Frame(getTheme(), new Stretcherlayout(1), "True Durability");
-        frame.setCloseable(false);
-        frame.setPinneable(true);
-        Label durability = new Label("");
-        durability.setShadow(true);
-        durability.addTickListener(() -> {
-            ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
-            int itemDurability = itemStack.getMaxDamage() - itemStack.getItemDamage();
-            durability.setText(String.valueOf(itemDurability));
-        });
-        frame.addChild(durability);
-        durability.setFontRenderer(fontRenderer);
         frames.add(frame);
 
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
