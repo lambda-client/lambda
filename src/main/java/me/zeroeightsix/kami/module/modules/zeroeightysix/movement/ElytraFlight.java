@@ -17,13 +17,17 @@ public class ElytraFlight extends Module {
 
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.FLY));
     private Setting<Float> speed = register(Settings.f("Speed", 1.8f));
-    private Setting<Boolean> highway = register(Settings.b("Highway Mode", true));
+    private Setting<Boolean> highway = register(Settings.b("Highway Mode", false));
     private Setting<Float> fallspeed = register(Settings.f("Fall Speed", .000050000002f));
 
 //    private Float fallspeed = .000050000002f;
 
     @Override
     public void onUpdate() {
+
+        if (highway.getValue()) {
+            mode.setValue(ElytraFlightMode.FLY);
+        }
 
         if (mc.player.capabilities.isFlying) {
             if (highway.getValue()) {
