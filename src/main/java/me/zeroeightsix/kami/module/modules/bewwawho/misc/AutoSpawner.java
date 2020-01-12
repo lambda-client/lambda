@@ -1,10 +1,10 @@
-package me.zeroeightsix.kami.module.modules.misc;
+package me.zeroeightsix.kami.module.modules.bewwawho.misc;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.block.*;
@@ -26,7 +26,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.List;
 import java.util.Random;
 
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
+import static me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper.*;
 
 /**
  * Created 26 November 2019 by hub
