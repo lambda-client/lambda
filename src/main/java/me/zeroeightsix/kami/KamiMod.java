@@ -20,6 +20,7 @@ import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
 import me.zeroeightsix.kami.module.modules.bewwawho.player.AntiChunkLoadPatch;
+import me.zeroeightsix.kami.module.modules.zeroeightysix.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -149,11 +150,15 @@ public class KamiMod {
 
         try { // load modules that are on by default
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
+
             if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
             }
             if (((AntiChunkLoadPatch) ModuleManager.getModuleByName("AntiChunkLoadPatch")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("AntiChunkLoadPatch").setEnabled(true);
+            }
+            if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("TabFriends").setEnabled(true);
             }
         }
         catch (NullPointerException e) {
