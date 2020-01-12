@@ -19,11 +19,12 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
-import me.zeroeightsix.kami.util.bewwawho.Donator;
+import me.zeroeightsix.kami.module.modules.bewwawho.player.AntiChunkLoadPatch;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
+import me.zeroeightsix.kami.util.bewwawho.Donator;
 import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import me.zeroeightsix.kami.util.zeroeightysix.LagCompensator;
 import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
@@ -150,6 +151,9 @@ public class KamiMod {
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
+            }
+            if (((AntiChunkLoadPatch) ModuleManager.getModuleByName("AntiChunkLoadPatch")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("AntiChunkLoadPatch").setEnabled(true);
             }
         }
         catch (NullPointerException e) {
