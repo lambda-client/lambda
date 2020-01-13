@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.zeroeightysix.movement;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -17,13 +18,21 @@ public class ElytraFlight extends Module {
 
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.FLY));
     private Setting<Boolean> highway = register(Settings.b("Highway Mode", false));
+    private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
     private Setting<Float> speed = register(Settings.f("Speed", 1.8f));
-    private Setting<Float> fallspeed = register(Settings.f("Fall Speed", .000050000002f));
+    private Setting<Float> fallspeed = register(Settings.f("Fall Speed", 0.000050000002f));
 
 //    private Float fallspeed = .000050000002f;
 
     @Override
     public void onUpdate() {
+
+        if (defaultSetting.getValue()) {
+            speed.setValue(1.8f);
+            fallspeed.setValue(.000050000002f);
+            defaultSetting.setValue(false);
+            Command.sendChatMessage("[ElytraFlight] Set to defaults!");
+        }
 
         if (highway.getValue()) {
             mode.setValue(ElytraFlightMode.FLY);
