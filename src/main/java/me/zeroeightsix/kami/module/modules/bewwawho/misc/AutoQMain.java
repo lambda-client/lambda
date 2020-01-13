@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.zeroeightysix.misc;
+package me.zeroeightsix.kami.module.modules.bewwawho.misc;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
