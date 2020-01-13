@@ -19,14 +19,13 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
-import me.zeroeightsix.kami.module.modules.bewwawho.player.AntiChunkLoadPatch;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.CustomChat;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
-import me.zeroeightsix.kami.util.bewwawho.Donator;
+import me.zeroeightsix.kami.util.bewwawho.RichPresence;
 import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import me.zeroeightsix.kami.util.zeroeightysix.LagCompensator;
 import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
@@ -49,6 +48,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -106,10 +106,41 @@ public class KamiMod {
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        for (Donator.DonatorUser user : Donator.INSTANCE.donatorUsers) {
-            if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
-                DiscordPresence.presence.smallImageKey = "donator2";
-                DiscordPresence.presence.smallImageText = "donator uwu";
+        if (RichPresence.INSTANCE.customUsers != null) {
+            for (RichPresence.CustomUser user : RichPresence.INSTANCE.customUsers) {
+                if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
+                    switch (Integer.parseInt(user.type)) {
+                        case 0: {
+                            DiscordPresence.presence.smallImageKey = "booster";
+                            DiscordPresence.presence.smallImageText = "booster uwu";
+                            break;
+                        }
+                        case 1: {
+                            DiscordPresence.presence.smallImageKey = "inviter";
+                            DiscordPresence.presence.smallImageText = "inviter owo";
+                            break;
+                        }
+                        case 2: {
+                            DiscordPresence.presence.smallImageKey = "giveaway";
+                            DiscordPresence.presence.smallImageText = "giveaway winner";
+                            break;
+                        }
+                        case 3: {
+                            DiscordPresence.presence.smallImageKey = "contest";
+                            DiscordPresence.presence.smallImageText = "contest winner";
+                        }
+                        case 4: {
+                            DiscordPresence.presence.smallImageKey = "nine";
+                            DiscordPresence.presence.smallImageText = "900th member";
+                        }
+                        default: {
+                            DiscordPresence.presence.smallImageKey = "donator2";
+                            DiscordPresence.presence.smallImageText = "donator <3";
+                            System.out.println("oof rpc failed. type: " + user.type.getClass().getSimpleName());
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
@@ -142,8 +173,8 @@ public class KamiMod {
         new Capes();
         KamiMod.log.info("Capes init!\n");
 
-        new Donator();
-        KamiMod.log.info("Donators init!\n");
+        new RichPresence();
+        KamiMod.log.info("Rich Presence Users init!\n");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
