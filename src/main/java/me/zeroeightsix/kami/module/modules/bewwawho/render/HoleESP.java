@@ -121,21 +121,32 @@ public class HoleESP extends Module {
         }
 
         KamiTessellator.prepare(GL11.GL_QUADS);
-
-        safeHoles.forEach((blockPos, isBedrock) -> {
-            if (isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.BEDROCK)) {
-                drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
-            } else if (!isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.OBBY)){
-                drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
-            } else if (isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.BOTH)) {
-                drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
-            } else if (!isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.BOTH)) {
-                drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
-            }
-        });
-
+            safeHoles.forEach((blockPos, isBedrock) -> {
+                switch (renderBlocksSetting.getValue()) {
+                    case BOTH: {
+                        if (isBedrock) {
+                            drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
+                        }
+                        else {
+                            drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
+                        }
+                        break;
+                    }
+                    case OBBY: {
+                        if (!isBedrock) {
+                            drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
+                        }
+                        break;
+                    }
+                    case BEDROCK: {
+                        if (isBedrock) {
+                            drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
+                        }
+                        break;
+                    }
+                }
+            });
         KamiTessellator.release();
-
     }
 
     private void drawBox(BlockPos blockPos, int r, int g, int b) {
