@@ -36,9 +36,6 @@ public class HoleESP extends Module {
     };
 
     private Setting<Double> renderDistance = register(Settings.d("Render Distance", 8.0d));
-    private Setting<Boolean> renObby = register(Settings.b("Render Obby", true));
-    private Setting<Boolean> renBedr = register(Settings.b("Render Bedrock", true));
-    private Setting<RenderMode> renderMode = register(Settings.e("Render Mode", RenderMode.BLOCK));
     private Setting<Integer> a0 = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).build());
     private Setting<Integer> r1 = register(Settings.integerBuilder("Red (Obby)").withMinimum(0).withValue(208).withMaximum(255).build()); // 144
     private Setting<Integer> g1 = register(Settings.integerBuilder("Green (Obby)").withMinimum(0).withValue(144).withMaximum(255).build());
@@ -46,8 +43,18 @@ public class HoleESP extends Module {
     private Setting<Integer> r2 = register(Settings.integerBuilder("Red (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).build()); // 208
     private Setting<Integer> g2 = register(Settings.integerBuilder("Green (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).build());
     private Setting<Integer> b2 = register(Settings.integerBuilder("Blue (Bedrock)").withMinimum(0).withValue(255).withMaximum(255).build());
+    private Setting<RenderMode> renderModeSetting = register(Settings.e("Render Mode", RenderMode.BLOCK));
+    private Setting<RenderBlocks> renderBlocksSetting = register(Settings.e("Render", RenderBlocks.BOTH));
 
     private ConcurrentHashMap<BlockPos, Boolean> safeHoles;
+
+    private enum RenderMode {
+        DOWN, BLOCK
+    }
+
+    private enum RenderBlocks {
+        OBBY, BEDROCK, BOTH
+    }
 
     @Override
     public void onUpdate() {
@@ -116,9 +123,13 @@ public class HoleESP extends Module {
         KamiTessellator.prepare(GL11.GL_QUADS);
 
         safeHoles.forEach((blockPos, isBedrock) -> {
-            if (isBedrock && renBedr.getValue()) {
+            if (isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.BEDROCK)) {
                 drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
-            } else if (renObby.getValue()){
+            } else if (!isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.OBBY)){
+                drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
+            } else if (isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.BOTH)) {
+                drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
+            } else if (!isBedrock && renderBlocksSetting.getValue().equals(RenderBlocks.BOTH)) {
                 drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
             }
         });
@@ -129,15 +140,11 @@ public class HoleESP extends Module {
 
     private void drawBox(BlockPos blockPos, int r, int g, int b) {
         Color color = new Color(r, g, b, a0.getValue());
-        if (renderMode.getValue().equals(RenderMode.DOWN)) {
+        if (renderModeSetting.getValue().equals(RenderMode.DOWN)) {
             KamiTessellator.drawBox(blockPos, color.getRGB(), GeometryMasks.Quad.DOWN);
-        } else if (renderMode.getValue().equals(RenderMode.BLOCK)) {
+        } else if (renderModeSetting.getValue().equals(RenderMode.BLOCK)) {
             KamiTessellator.drawBox(blockPos, color.getRGB(), GeometryMasks.Quad.ALL);
         }
-    }
-
-    private enum RenderMode {
-        DOWN, BLOCK
     }
 
 }
