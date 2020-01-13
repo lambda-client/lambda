@@ -16,8 +16,8 @@ import net.minecraft.util.math.MathHelper;
 public class ElytraFlight extends Module {
 
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.FLY));
-    private Setting<Float> speed = register(Settings.f("Speed", 1.8f));
     private Setting<Boolean> highway = register(Settings.b("Highway Mode", false));
+    private Setting<Float> speed = register(Settings.f("Speed", 1.8f));
     private Setting<Float> fallspeed = register(Settings.f("Fall Speed", .000050000002f));
 
 //    private Float fallspeed = .000050000002f;
