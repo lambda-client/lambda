@@ -4,7 +4,7 @@
 
 ### A minecraft utility mod for anarchy servers.
 
-|              | S-B99 (features-master)| 086 (upstream) |
+|              | S-B99 (feature/master)| 086 (upstream) |
 |:------------:|:-------------:|:--------------:|
 | Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/KAMI/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/KAMI/) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?logo=gradle&branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
 | Media        | [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB) | [![Discord 086](https://img.shields.io/discord/496724196542513174)](http://discord.gg/9hvwgeg) |
