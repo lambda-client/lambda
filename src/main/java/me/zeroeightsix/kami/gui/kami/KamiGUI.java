@@ -273,24 +273,6 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Friends List
-         */
-        frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
-        frame.setCloseable(false);
-        frame.setPinneable(true);
-        Label friends = new Label("");
-        friends.setShadow(true);
-        friends.addTickListener(() -> {
-            friends.setText("");
-            Friends.friends.getValue().forEach(friend -> {
-                friends.addLine(friend.getUsername());
-            });
-        });
-        frame.addChild(friends);
-        friends.setFontRenderer(fontRenderer);
-        frames.add(frame);
-
-        /*
         Text Radar
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Text Radar");
