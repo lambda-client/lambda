@@ -174,25 +174,13 @@ public class KamiGUI extends GUI {
                 }
             }
 
-            @Override
-            public void onMouseRelease(MouseButtonEvent event) {
+            @Override public void onMouseRelease(MouseButtonEvent event) { }
 
-            }
+            @Override public void onMouseDrag(MouseButtonEvent event) { }
 
-            @Override
-            public void onMouseDrag(MouseButtonEvent event) {
+            @Override public void onMouseMove(MouseMoveEvent event) { }
 
-            }
-
-            @Override
-            public void onMouseMove(MouseMoveEvent event) {
-
-            }
-
-            @Override
-            public void onScroll(MouseScrollEvent event) {
-
-            }
+            @Override public void onScroll(MouseScrollEvent event) { }
         });
 
         ArrayList<Frame> frames = new ArrayList<>();
@@ -470,10 +458,7 @@ public class KamiGUI extends GUI {
         return result;
     }
 
-    @Override
-    public void destroyGUI() {
-        kill();
-    }
+    @Override public void destroyGUI() { kill(); }
 
     private static final int DOCK_OFFSET = 0;
 
