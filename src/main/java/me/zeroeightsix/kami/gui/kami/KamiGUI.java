@@ -185,13 +185,37 @@ public class KamiGUI extends GUI {
 
         ArrayList<Frame> frames = new ArrayList<>();
 
+        /*
+        Active modules
+         */
         Frame frame = new Frame(getTheme(), new Stretcherlayout(1), "Active modules");
         frame.setCloseable(false);
         frame.addChild(new ActiveModules());
         frame.setPinneable(true);
         frames.add(frame);
 
+        /*
+        Testing
+         */
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "Info2");
+        frame.setCloseable(false);
+        frame.setPinneable(true);
+//        Label information2 = new Label("");
+        EnumButton theme = new EnumButton("Theme", new String[] {"Modern", "Modern2", "Kami", "Kami Blue", "Custom"});
+//        information.setShadow(true);
+//        information2.addTickListener(() -> {
+//            information2.setText("");
+//            information2.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
+//            information2.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
+//            information2.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
+//        });
+        frame.addChild(theme);
+//        information2.setFontRenderer(fontRenderer);
+        frames.add(frame);
 
+        /*
+        Information Overlay
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info");
         frame.setCloseable(false);
         frame.setPinneable(true);
@@ -235,6 +259,9 @@ public class KamiGUI extends GUI {
         information.setFontRenderer(fontRenderer);
         frames.add(frame);
 
+        /*
+        Friends List
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
         frame.setCloseable(false);
         frame.setPinneable(true);
@@ -250,6 +277,9 @@ public class KamiGUI extends GUI {
         friends.setFontRenderer(fontRenderer);
         frames.add(frame);
 
+        /*
+        Text Radar
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Text Radar");
         Label list = new Label("");
         DecimalFormat dfHealth = new DecimalFormat("#.#");
@@ -304,6 +334,9 @@ public class KamiGUI extends GUI {
         list.setFontRenderer(fontRenderer);
         frames.add(frame);
 
+        /*
+        Entity List
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Entities");
         Label entityLabel = new Label("");
         frame.setCloseable(false);
@@ -345,6 +378,9 @@ public class KamiGUI extends GUI {
         entityLabel.setFontRenderer(fontRenderer);
         frames.add(frame);
 
+        /*
+        Coordinates
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Coordinates");
         frame.setCloseable(false);
         frame.setPinneable(true);
@@ -392,6 +428,9 @@ public class KamiGUI extends GUI {
         frame.setHeight(20);
         frames.add(frame);
 
+        /*
+        Radar
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Radar");
         frame.setCloseable(false);
         frame.setMinimizeable(true);
