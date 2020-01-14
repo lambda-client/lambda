@@ -97,7 +97,7 @@ public abstract class GUI extends AbstractContainer {
         int[] real = calculateRealPosition(c);
 
         if (focus != null)
-            focus.setFocussed(false);
+            focus.setFocused(false);
         focus = c;
 
         if (!c.equals(this)) {
@@ -118,7 +118,7 @@ public abstract class GUI extends AbstractContainer {
         }
 
 
-        focus.setFocussed(true);
+        focus.setFocused(true);
 
         press = true;
         this.x = x;

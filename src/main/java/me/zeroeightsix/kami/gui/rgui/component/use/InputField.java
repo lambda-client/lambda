@@ -72,7 +72,7 @@ public class InputField extends AbstractComponent {
 
             @Override
             public void onPostRender() {
-                if (!isFocussed())
+                if (!isFocused())
                     currentState.selection = false;
 
                 int[] real = GUI.calculateRealPosition(InputField.this);
@@ -90,7 +90,7 @@ public class InputField extends AbstractComponent {
 //                holder.setGLColour();
                 GL11.glColor3f(1, 1, 1);
 
-                boolean cursor = ((int) ((System.currentTimeMillis() - lastTypeMS) / 500) % 2 == 0) && isFocussed();
+                boolean cursor = ((int) ((System.currentTimeMillis() - lastTypeMS) / 500) % 2 == 0) && isFocused();
                 int x = 0;
                 int i = 0;
                 boolean selection = false;

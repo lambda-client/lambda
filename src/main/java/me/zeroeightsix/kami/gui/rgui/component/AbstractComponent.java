@@ -107,12 +107,12 @@ public abstract class AbstractComponent implements Component {
     }
 
     @Override
-    public void setFocussed(boolean focus) {
+    public void setFocused(boolean focus) {
         this.focus = focus;
     }
 
     @Override
-    public boolean isFocussed() {
+    public boolean isFocused() {
         return focus;
     }
 
