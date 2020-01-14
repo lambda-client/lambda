@@ -3,9 +3,7 @@ package me.zeroeightsix.kami.gui.kami;
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
-import me.zeroeightsix.kami.gui.kami.component.Radar;
-import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
+import me.zeroeightsix.kami.gui.kami.component.*;
 import me.zeroeightsix.kami.gui.kami.theme.kami.KamiTheme;
 import me.zeroeightsix.kami.gui.rgui.GUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
@@ -197,11 +195,25 @@ public class KamiGUI extends GUI {
         /*
         Testing
          */
+        /*
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info2");
         frame.setCloseable(false);
         frame.setPinneable(true);
 //        Label information2 = new Label("");
         EnumButton theme = new EnumButton("Theme", new String[] {"Modern", "Modern2", "Kami", "Kami Blue", "Custom"});
+        ColorizedCheckButton checkButton = new ColorizedCheckButton("Button");
+//        checkButton.addTickListener(() -> {
+//            if (checkButton.isFocused()) {
+//                Command.sendChatMessage("focused");
+//            }
+//            else if (checkButton.isHovered()) {
+//                Command.sendChatMessage("hovered");
+//            }
+//            else if (checkButton.isToggled()) {
+//                Command.sendChatMessage("toggled");
+//            }
+//        });
+
 //        information.setShadow(true);
 //        information2.addTickListener(() -> {
 //            information2.setText("");
@@ -209,10 +221,11 @@ public class KamiGUI extends GUI {
 //            information2.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
 //            information2.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
 //        });
-        frame.addChild(theme);
+        frame.addChild(theme, checkButton);
 //        information2.setFontRenderer(fontRenderer);
         frames.add(frame);
-
+        */
+        
         /*
         Information Overlay
          */
