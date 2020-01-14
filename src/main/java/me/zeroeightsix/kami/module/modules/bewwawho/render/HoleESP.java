@@ -123,7 +123,7 @@ public class HoleESP extends Module {
         KamiTessellator.prepare(GL11.GL_QUADS);
             safeHoles.forEach((blockPos, isBedrock) -> {
                 switch (renderBlocksSetting.getValue()) {
-                    case BOTH: {
+                    case BOTH:
                         if (isBedrock) {
                             drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
                         }
@@ -131,19 +131,16 @@ public class HoleESP extends Module {
                             drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
                         }
                         break;
-                    }
-                    case OBBY: {
+                    case OBBY:
                         if (!isBedrock) {
                             drawBox(blockPos, r1.getValue(), g1.getValue(), b1.getValue());
                         }
                         break;
-                    }
-                    case BEDROCK: {
+                    case BEDROCK:
                         if (isBedrock) {
                             drawBox(blockPos, r2.getValue(), g2.getValue(), b2.getValue());
                         }
                         break;
-                    }
                 }
             });
         KamiTessellator.release();
