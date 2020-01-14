@@ -210,55 +210,38 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            boolean privateInfoNam = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoNam.getValue());
-            boolean privateInfoTps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoTps.getValue());
-            boolean privateInfoFps = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoFps.getValue());
-            boolean privateInfoPin = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoPin.getValue());
-            boolean privateInfoDur = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoDur.getValue());
-            boolean privateInfoMem = (((InfoOverlay) ModuleManager.getModuleByName("InfoOverlay")).globalInfoMem.getValue());
+            InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
 
             int privatePingValue = CalcPing.globalInfoPingValue();
             String privateDisplayN = Wrapper.getMinecraft().player.getName();
 
-
-            if (ModuleManager.getModuleByName("InfoOverlay").isEnabled()) {
+            if (info.isEnabled()) {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-                if (privateInfoNam) {
+                if (info.globalInfoNam.getValue()) {
                     information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + privateDisplayN + "!");
                 }
-                if (privateInfoTps) {
+                if (info.globalInfoTps.getValue()) {
                     information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
                 }
-                if (privateInfoFps) {
+                if (info.globalInfoFps.getValue()) {
                     information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
                 }
-                if (privateInfoPin) {
+                if (info.globalInfoPin.getValue()) {
                     information.addLine("\u00A7b" + privatePingValue + Command.SECTION_SIGN + "3 ms");
                 }
-                if (privateInfoDur) {
+                if (info.globalInfoDur.getValue()) {
                     ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
                     int itemDurability = itemStack.getMaxDamage() - itemStack.getItemDamage();
-                    information.addLine("\u00A7b" + Integer.toString(itemDurability) + "\u00A73 dura");
+                    information.addLine("\u00A7b" + itemDurability + "\u00A73 dura");
                 }
-                if (privateInfoMem) {
+                if (info.globalInfoMem.getValue()) {
                     information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTION_SIGN + "3mB free");
                 }
             } else {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
             }
-
-
-            //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTION_SIGN + "3 cores");
-            //information.addLine("\u00A7b" + Wrapper.getPlayer().getDistance() + Command.SECTION_SIGN + "3 fps");
-
-            //OperatingSystemMXBean.getSystemLoadAverage() / OperatingSystemMXBean.getAvailableProcessors()
-//            information.addLine("\u00A7b" + (Wrapper.getMinecraft().getVersion()) + Command.SECTION_SIGN + "3% used");
-//            information.addLine("\u00A7b" + (Runtime.getRuntime().totalMemory() / 1000000) + Command.SECTION_SIGN + "3MB used");
-
-//            information.addLine("[&3" + Sprint.getSpeed() + "km/h&r]");
-
         });
         frame.addChild(information);
         information.setFontRenderer(fontRenderer);
