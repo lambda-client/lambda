@@ -18,7 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
-import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
+import me.zeroeightsix.kami.module.modules.bewwawho.misc.DiscordSettings;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.CustomChat;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
@@ -48,7 +48,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -66,15 +65,16 @@ public class KamiMod {
     static final String MODID = "kamiblue";
     static final String MODNAME = "KAMI Blue";
     public static final String MODVER = "v1.1.1";
+    public static final String APP_ID = "638403216278683661";
 
     static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/updateChecker.json";
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/capes.json";
 
-    public static final String KAMI_HIRAGANA = "\u304B\u307F";
-    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
+//    public static final String KAMI_HIRAGANA = "\u304B\u307F";
+//    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
+//    public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
     public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb"; //\u30ab\u30df\u30d6\u30eb //\u795E
-    public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
 
     private static final String KAMI_CONFIG_NAME_DEFAULT = "KAMIBlueConfig.json";
 
@@ -183,7 +183,7 @@ public class KamiMod {
         try { // load modules that are on by default
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
 
-            if (((BlueDiscordRPC) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
+            if (((DiscordSettings) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
             }
 //            if (((AntiChunkLoadPatch) ModuleManager.getModuleByName("AntiChunkLoadPatch")).startupGlobal.getValue()) {
