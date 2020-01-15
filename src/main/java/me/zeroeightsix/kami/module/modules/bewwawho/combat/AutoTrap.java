@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.combat;
 
+import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
@@ -8,232 +9,427 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper;
 import me.zeroeightsix.kami.util.zeroeightysix.EntityUtil;
 import me.zeroeightsix.kami.util.zeroeightysix.Friends;
-import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockAir;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockObsidian;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.CPacketEntityAction;
+import net.minecraft.network.play.client.CPacketPlayerDigging;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.GameType;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/***
- * @author Elementars
- */
-@Module.Info(name = "AutoTrap", category = Module.Category.COMBAT, description = "Traps players near you with obby")
-public class AutoTrap extends Module {
-    private final Vec3d[] offsetsDefault;
-    private Setting<Double> range;
-    private Setting<Integer> blockPerTick;
-    private Setting<Boolean> rotate;
-    private Setting<Boolean> announceUsage;
-    private EntityPlayer closestTarget;
-    private String lastTickTargetName;
-    private int playerHotbarSlot;
-    private int lastHotbarSlot;
-    private boolean isSneaking;
-    private int offsetStep;
-    private boolean firstRun;
+import static me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper.canBeClicked;
+import static me.zeroeightsix.kami.util.zeroeightysix.BlockInteractionHelper.faceVectorPacketInstant;
 
-    public AutoTrap() {
-        this.offsetsDefault = new Vec3d[]{new Vec3d(0.0, 0.0, -1.0), new Vec3d(1.0, 0.0, 0.0), new Vec3d(0.0, 0.0, 1.0), new Vec3d(-1.0, 0.0, 0.0), new Vec3d(0.0, 1.0, -1.0), new Vec3d(1.0, 1.0, 0.0), new Vec3d(0.0, 1.0, 1.0), new Vec3d(-1.0, 1.0, 0.0), new Vec3d(0.0, 2.0, -1.0), new Vec3d(1.0, 2.0, 0.0), new Vec3d(0.0, 2.0, 1.0), new Vec3d(-1.0, 2.0, 0.0), new Vec3d(0.0, 3.0, -1.0), new Vec3d(0.0, 3.0, 0.0)};
-        this.range = this.register(Settings.d("Range", 5.5));
-        this.blockPerTick = this.register(Settings.i("Blocks per Tick", 4));
-        this.rotate = this.register(Settings.b("Rotate", true));
-        this.announceUsage = this.register(Settings.b("Announce Usage", true));
-        this.playerHotbarSlot = -1;
-        this.lastHotbarSlot = -1;
-        this.isSneaking = false;
-        this.offsetStep = 0;
+/**
+ * @author hub
+ * @since 2019-8-6
+ */
+@Module.Info(name = "AutoTrap", category = Module.Category.COMBAT)
+public class AutoTrap extends Module {
+
+    private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(3.5).withValue(5.5).withMaximum(10.0).build());
+    private Setting<Integer> blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(2).withMaximum(23).build());
+    private Setting<Integer> tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(2).withMaximum(10).build());
+    private Setting<Cage> cage = register(Settings.e("Cage", Cage.TRAP));
+    private Setting<Boolean> rotate = register(Settings.b("Rotate", false));
+    private Setting<Boolean> noGlitchBlocks = register(Settings.b("NoGlitchBlocks", true));
+    private Setting<Boolean> activeInFreecam = register(Settings.b("Active In Freecam", true));
+    private Setting<Boolean> infoMessage = register(Settings.b("Debug", false));
+
+    private EntityPlayer closestTarget;
+    private String lastTargetName;
+
+    private int playerHotbarSlot = -1;
+    private int lastHotbarSlot = -1;
+    private boolean isSneaking = false;
+
+    private int delayStep = 0;
+    private int offsetStep = 0;
+    private boolean firstRun;
+    private boolean missingObiDisable = false;
+
+    private static EnumFacing getPlaceableSide(BlockPos pos) {
+
+        for (EnumFacing side : EnumFacing.values()) {
+
+            BlockPos neighbour = pos.offset(side);
+
+            if (!mc.world.getBlockState(neighbour).getBlock().canCollideCheck(mc.world.getBlockState(neighbour), false)) {
+                continue;
+            }
+
+            IBlockState blockState = mc.world.getBlockState(neighbour);
+            if (!blockState.getMaterial().isReplaceable()) {
+                return side;
+            }
+
+        }
+
+        return null;
+
     }
 
     @Override
     protected void onEnable() {
-        if (AutoTrap.mc.player == null) {
+
+        if (mc.player == null) {
             this.disable();
             return;
         }
-        this.firstRun = true;
-        this.playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
-        this.lastHotbarSlot = -1;
+
+        firstRun = true;
+
+        // save initial player hand
+        playerHotbarSlot = mc.player.inventory.currentItem;
+        lastHotbarSlot = -1;
+
     }
 
     @Override
     protected void onDisable() {
-        if (AutoTrap.mc.player == null) {
+
+        if (mc.player == null) {
             return;
         }
-        if (this.lastHotbarSlot != this.playerHotbarSlot && this.playerHotbarSlot != -1) {
-            Wrapper.getPlayer().inventory.currentItem = this.playerHotbarSlot;
+
+        if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
+            mc.player.inventory.currentItem = playerHotbarSlot;
         }
-        if (this.isSneaking) {
-            AutoTrap.mc.player.connection.sendPacket((Packet) new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
-            this.isSneaking = false;
+
+        if (isSneaking) {
+            mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
+            isSneaking = false;
         }
-        this.playerHotbarSlot = -1;
-        this.lastHotbarSlot = -1;
-        if (this.announceUsage.getValue()) {
-            Command.sendChatMessage("[AutoTrap] Disabled!");
-        }
+
+        playerHotbarSlot = -1;
+        lastHotbarSlot = -1;
+
+        missingObiDisable = false;
+
     }
 
     @Override
     public void onUpdate() {
-        if (AutoTrap.mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+
+        if (mc.player == null) {
             return;
         }
-        this.findClosestTarget();
-        if (this.closestTarget == null) {
-            if (this.firstRun) {
-                this.firstRun = false;
-                if (this.announceUsage.getValue()) {
-                    Command.sendChatMessage("[AutoTrap] Enabled, waiting for target.");
+
+        if (!activeInFreecam.getValue() && ModuleManager.isModuleEnabled("Freecam")) {
+            return;
+        }
+
+
+        if (firstRun) {
+            if (findObiInHotbar() == -1) {
+                if (infoMessage.getValue()) {
+                    Command.sendChatMessage("[AutoTrap] " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
                 }
+                this.disable();
+                return;
             }
+        } else {
+            if (delayStep < tickDelay.getValue()) {
+                delayStep++;
+                return;
+            } else {
+                delayStep = 0;
+            }
+        }
+
+        findClosestTarget();
+
+        if (closestTarget == null) {
             return;
         }
-        if (this.firstRun) {
-            this.firstRun = false;
-            this.lastTickTargetName = this.closestTarget.getName();
-            if (this.announceUsage.getValue()) {
-                Command.sendChatMessage("[AutoTrap] Enabled, target: " + this.lastTickTargetName);
-            }
-        } else if (!this.lastTickTargetName.equals(this.closestTarget.getName())) {
-            this.lastTickTargetName = this.closestTarget.getName();
-            this.offsetStep = 0;
-            if (this.announceUsage.getValue()) {
-                Command.sendChatMessage("[AutoTrap] New target: " + this.lastTickTargetName);
-            }
+
+        if (firstRun) {
+            firstRun = false;
+            lastTargetName = closestTarget.getName();
+        } else if (!lastTargetName.equals(closestTarget.getName())) {
+            offsetStep = 0;
+            lastTargetName = closestTarget.getName();
         }
-        final List<Vec3d> placeTargets = new ArrayList<Vec3d>();
-        Collections.addAll(placeTargets, this.offsetsDefault);
+
+        List<Vec3d> placeTargets = new ArrayList<>();
+
+        if (cage.getValue().equals(Cage.TRAP)) {
+            Collections.addAll(placeTargets, Offsets.TRAP);
+        }
+
+        if (cage.getValue().equals(Cage.CRYSTALEXA)) {
+            Collections.addAll(placeTargets, Offsets.CRYSTALEXA);
+        }
+
+        if (cage.getValue().equals(Cage.CRYSTALFULL)) {
+            Collections.addAll(placeTargets, Offsets.CRYSTALFULL);
+        }
+
         int blocksPlaced = 0;
-        while (blocksPlaced < this.blockPerTick.getValue()) {
-            if (this.offsetStep >= placeTargets.size()) {
-                this.offsetStep = 0;
+
+        while (blocksPlaced < blocksPerTick.getValue()) {
+
+            if (offsetStep >= placeTargets.size()) {
+                offsetStep = 0;
                 break;
             }
-            final BlockPos offsetPos = new BlockPos((Vec3d) placeTargets.get(this.offsetStep));
-            final BlockPos targetPos = new BlockPos(this.closestTarget.getPositionVector()).down().add(offsetPos.x, offsetPos.y, offsetPos.z);
-            boolean shouldTryToPlace = true;
-            if (!Wrapper.getWorld().getBlockState(targetPos).getMaterial().isReplaceable()) {
-                shouldTryToPlace = false;
+
+            BlockPos offsetPos = new BlockPos(placeTargets.get(offsetStep));
+            BlockPos targetPos = new BlockPos(closestTarget.getPositionVector()).down().add(offsetPos.x, offsetPos.y, offsetPos.z);
+
+            if (placeBlockInRange(targetPos, range.getValue())) {
+                blocksPlaced++;
             }
-            for (final Entity entity : AutoTrap.mc.world.getEntitiesWithinAABBExcludingEntity((Entity) null, new AxisAlignedBB(targetPos))) {
-                if (!(entity instanceof EntityItem) && !(entity instanceof EntityXPOrb)) {
-                    shouldTryToPlace = false;
-                    break;
-                }
-            }
-            if (shouldTryToPlace && this.placeBlock(targetPos)) {
-                ++blocksPlaced;
-            }
-            ++this.offsetStep;
+
+            offsetStep++;
+
         }
+
         if (blocksPlaced > 0) {
-            if (this.lastHotbarSlot != this.playerHotbarSlot && this.playerHotbarSlot != -1) {
-                Wrapper.getPlayer().inventory.currentItem = this.playerHotbarSlot;
-                this.lastHotbarSlot = this.playerHotbarSlot;
+
+            if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
+                mc.player.inventory.currentItem = playerHotbarSlot;
+                lastHotbarSlot = playerHotbarSlot;
             }
-            if (this.isSneaking) {
-                AutoTrap.mc.player.connection.sendPacket((Packet) new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
-                this.isSneaking = false;
+
+            if (isSneaking) {
+                mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
+                isSneaking = false;
             }
+
         }
+
+        if (missingObiDisable) {
+            missingObiDisable = false;
+            if (infoMessage.getValue()) {
+                Command.sendChatMessage("[AutoTrap] " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+            }
+            this.disable();
+        }
+
     }
 
-    private boolean placeBlock(final BlockPos pos) {
-        if (!AutoTrap.mc.world.getBlockState(pos).getMaterial().isReplaceable()) {
+    private boolean placeBlockInRange(BlockPos pos, double range) {
+
+        // check if block is already placed
+        Block block = mc.world.getBlockState(pos).getBlock();
+        if (!(block instanceof BlockAir) && !(block instanceof BlockLiquid)) {
             return false;
         }
-        if (!BlockInteractionHelper.checkForNeighbours(pos)) {
-            return false;
-        }
-        final Vec3d eyesPos = new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
-        for (final EnumFacing side : EnumFacing.values()) {
-            final BlockPos neighbor = pos.offset(side);
-            final EnumFacing side2 = side.getOpposite();
-            if (AutoTrap.mc.world.getBlockState(neighbor).getBlock().canCollideCheck(AutoTrap.mc.world.getBlockState(neighbor), false)) {
-                final Vec3d hitVec = new Vec3d((Vec3i) neighbor).add(0.5, 0.5, 0.5).add(new Vec3d(side2.getDirectionVec()).scale(0.5));
-                if (eyesPos.distanceTo(hitVec) <= this.range.getValue()) {
-                    final int obiSlot = this.findObiInHotbar();
-                    if (obiSlot == -1) {
-                        this.disable();
-                        return false;
-                    }
-                    if (this.lastHotbarSlot != obiSlot) {
-                        Wrapper.getPlayer().inventory.currentItem = obiSlot;
-                        this.lastHotbarSlot = obiSlot;
-                    }
-                    final Block neighborPos = AutoTrap.mc.world.getBlockState(neighbor).getBlock();
-                    if (BlockInteractionHelper.blackList.contains(neighborPos) || BlockInteractionHelper.shulkerList.contains(neighborPos)) {
-                        AutoTrap.mc.player.connection.sendPacket((Packet) new CPacketEntityAction((Entity) AutoTrap.mc.player, CPacketEntityAction.Action.START_SNEAKING));
-                        this.isSneaking = true;
-                    }
-                    if (this.rotate.getValue()) {
-                        BlockInteractionHelper.faceVectorPacketInstant(hitVec);
-                    }
-                    AutoTrap.mc.playerController.processRightClickBlock(AutoTrap.mc.player, AutoTrap.mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
-                    AutoTrap.mc.player.swingArm(EnumHand.MAIN_HAND);
-                    return true;
-                }
+
+        // check if entity blocks placing
+        for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(pos))) {
+            if (!(entity instanceof EntityItem) && !(entity instanceof EntityXPOrb)) {
+                return false;
             }
         }
-        return false;
+
+        EnumFacing side = getPlaceableSide(pos);
+
+        // check if we have a block adjacent to blockpos to click at
+        if (side == null) {
+            return false;
+        }
+
+        BlockPos neighbour = pos.offset(side);
+        EnumFacing opposite = side.getOpposite();
+
+        // check if neighbor can be right clicked
+        if (!canBeClicked(neighbour)) {
+            return false;
+        }
+
+        Vec3d hitVec = new Vec3d(neighbour).add(0.5, 0.5, 0.5).add(new Vec3d(opposite.getDirectionVec()).scale(0.5));
+        Block neighbourBlock = mc.world.getBlockState(neighbour).getBlock();
+
+        if (mc.player.getPositionVector().distanceTo(hitVec) > range) {
+            return false;
+        }
+
+        int obiSlot = findObiInHotbar();
+
+        if (obiSlot == -1) {
+            missingObiDisable = true;
+            return false;
+        }
+
+        if (lastHotbarSlot != obiSlot) {
+            mc.player.inventory.currentItem = obiSlot;
+            lastHotbarSlot = obiSlot;
+        }
+
+        if (!isSneaking && BlockInteractionHelper.blackList.contains(neighbourBlock) || BlockInteractionHelper.shulkerList.contains(neighbourBlock)) {
+            mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING));
+            isSneaking = true;
+        }
+
+        if (rotate.getValue()) {
+            faceVectorPacketInstant(hitVec);
+        }
+
+        mc.playerController.processRightClickBlock(mc.player, mc.world, neighbour, opposite, hitVec, EnumHand.MAIN_HAND);
+        mc.player.swingArm(EnumHand.MAIN_HAND);
+        mc.rightClickDelayTimer = 4;
+
+        if (noGlitchBlocks.getValue() && !mc.playerController.getCurrentGameType().equals(GameType.CREATIVE)) {
+            mc.player.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, neighbour, opposite));
+        }
+
+        return true;
+
     }
 
     private int findObiInHotbar() {
+
+        // search blocks in hotbar
         int slot = -1;
-        for (int i = 0; i < 9; ++i) {
-            final ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
-            if (stack != ItemStack.EMPTY && stack.getItem() instanceof ItemBlock) {
-                final Block block = ((ItemBlock) stack.getItem()).getBlock();
-                if (block instanceof BlockObsidian) {
-                    slot = i;
-                    break;
-                }
+        for (int i = 0; i < 9; i++) {
+
+            // filter out non-block items
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
+
+            if (stack == ItemStack.EMPTY || !(stack.getItem() instanceof ItemBlock)) {
+                continue;
             }
+
+            Block block = ((ItemBlock) stack.getItem()).getBlock();
+            if (block instanceof BlockObsidian) {
+                slot = i;
+                break;
+            }
+
         }
+
         return slot;
+
     }
 
     private void findClosestTarget() {
-        final List<EntityPlayer> playerList = (List<EntityPlayer>) Wrapper.getWorld().playerEntities;
-        this.closestTarget = null;
-        for (final EntityPlayer target : playerList) {
-            if (target == AutoTrap.mc.player) {
+
+        List<EntityPlayer> playerList = mc.world.playerEntities;
+
+        closestTarget = null;
+
+        for (EntityPlayer target : playerList) {
+
+            if (target == mc.player) {
                 continue;
             }
+
+            if (mc.player.getDistance(target) > range.getValue() + 3) {
+                continue;
+            }
+
+            if (!EntityUtil.isLiving(target)) {
+                continue;
+            }
+
+            if ((target).getHealth() <= 0) {
+                continue;
+            }
+
             if (Friends.isFriend(target.getName())) {
                 continue;
             }
-            if (!EntityUtil.isLiving((Entity) target)) {
+
+            if (closestTarget == null) {
+                closestTarget = target;
                 continue;
             }
-            if (target.getHealth() <= 0.0f) {
-                continue;
+
+            if (mc.player.getDistance(target) < mc.player.getDistance(closestTarget)) {
+                closestTarget = target;
             }
-            if (this.closestTarget == null) {
-                this.closestTarget = target;
-            } else {
-                if (Wrapper.getPlayer().getDistance((Entity) target) >= Wrapper.getPlayer().getDistance((Entity) this.closestTarget)) {
-                    continue;
-                }
-                this.closestTarget = target;
-            }
+
         }
+
     }
+
+    @Override
+    public String getHudInfo() {
+        if (closestTarget != null) {
+            return closestTarget.getName().toUpperCase();
+        }
+        return "NO TARGET";
+    }
+
+    private enum Cage {
+        TRAP, CRYSTALEXA, CRYSTALFULL
+    }
+
+    private static class Offsets {
+
+        private static final Vec3d[] TRAP = {
+                new Vec3d(0, 0, -1),
+                new Vec3d(1, 0, 0),
+                new Vec3d(0, 0, 1),
+                new Vec3d(-1, 0, 0),
+                new Vec3d(0, 1, -1),
+                new Vec3d(1, 1, 0),
+                new Vec3d(0, 1, 1),
+                new Vec3d(-1, 1, 0),
+                new Vec3d(0, 2, -1),
+                new Vec3d(1, 2, 0),
+                new Vec3d(0, 2, 1),
+                new Vec3d(-1, 2, 0),
+                new Vec3d(0, 3, -1),
+                new Vec3d(0, 3, 0)
+        };
+
+        private static final Vec3d[] CRYSTALEXA = {
+                new Vec3d(0, 0, -1),
+                new Vec3d(0, 1, -1),
+                new Vec3d(0, 2, -1),
+                new Vec3d(1, 2, 0),
+                new Vec3d(0, 2, 1),
+                new Vec3d(-1, 2, 0),
+                new Vec3d(-1, 2, -1),
+                new Vec3d(1, 2, 1),
+                new Vec3d(1, 2, -1),
+                new Vec3d(-1, 2, 1),
+                new Vec3d(0, 3, -1),
+                new Vec3d(0, 3, 0)
+        };
+
+        private static final Vec3d[] CRYSTALFULL = {
+                new Vec3d(0, 0, -1),
+                new Vec3d(1, 0, 0),
+                new Vec3d(0, 0, 1),
+                new Vec3d(-1, 0, 0),
+                new Vec3d(-1, 0, 1),
+                new Vec3d(1, 0, -1),
+                new Vec3d(-1, 0, -1),
+                new Vec3d(1, 0, 1),
+                new Vec3d(-1, 1, -1),
+                new Vec3d(1, 1, 1),
+                new Vec3d(-1, 1, 1),
+                new Vec3d(1, 1, -1),
+                new Vec3d(0, 2, -1),
+                new Vec3d(1, 2, 0),
+                new Vec3d(0, 2, 1),
+                new Vec3d(-1, 2, 0),
+                new Vec3d(-1, 2, 1),
+                new Vec3d(1, 2, -1),
+                new Vec3d(0, 3, -1),
+                new Vec3d(0, 3, 0)
+        };
+
+    }
+
 }
