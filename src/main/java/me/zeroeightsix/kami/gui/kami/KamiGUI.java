@@ -35,13 +35,12 @@ import javax.annotation.Nonnull;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-//import java.lang.management.ManagementFactory;
 
 /**
  * Created by 086 on 25/06/2017.
- * Updated by S-B99 on 04/12/19
+ * Updated by S-B99 on 14/01/20
  */
 public class KamiGUI extends GUI {
 
@@ -280,11 +279,24 @@ public class KamiGUI extends GUI {
         frame.setPinneable(true);
         Label friends = new Label("");
         friends.setShadow(true);
+        Frame finalFrame = frame;
+
+        AtomicInteger friendsAmount = new AtomicInteger();
         friends.addTickListener(() -> {
-            friends.setText("");
-            Friends.friends.getValue().forEach(friend -> {
-                friends.addLine(friend.getUsername());
-            });
+            /* Don't load friends list if it's minimized */
+            if (!finalFrame.isMinimized()) {
+                friends.setText("");
+                Friends.friends.getValue().forEach(friend -> {
+                    friendsAmount.getAndIncrement();
+                    /* Cap loading friends list at 100 */
+                    if (friendsAmount.get() <= 5) {
+                        friends.addLine(friend.getUsername());
+                    }
+                });
+            }
+            else {
+                friends.setText("");
+            }
         });
         frame.addChild(friends);
         friends.setFontRenderer(fontRenderer);
