@@ -19,17 +19,18 @@ public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.FLY));
     private Setting<Boolean> highway = register(Settings.b("Highway Mode", false));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Float> speed = register(Settings.f("Speed", 1.8f));
-    private Setting<Float> fallspeed = register(Settings.f("Fall Speed", 0.000050000002f));
-
-//    private Float fallspeed = .000050000002f;
+    private Setting<Float> speed = register(Settings.f("Speed Highway", 1.8f));
+    private Setting<Float> upSpeed = register(Settings.f("Up Speed", 0.08f));
+    private Setting<Float> downSpeed = register(Settings.f("Down Speed", 0.04f));
+    private Setting<Float> fallSpeedHighway = register(Settings.f("Fall Speed Highway", 0.000050000002f));
+    private Setting<Float> fallspeed = register(Settings.f("Fall Speed", -.003f));
 
     @Override
     public void onUpdate() {
 
         if (defaultSetting.getValue()) {
             speed.setValue(1.8f);
-            fallspeed.setValue(.000050000002f);
+            fallSpeedHighway.setValue(.000050000002f);
             defaultSetting.setValue(false);
             Command.sendChatMessage("[ElytraFlight] Set to defaults!");
         }
@@ -41,13 +42,14 @@ public class ElytraFlight extends Module {
         if (mc.player.capabilities.isFlying) {
             if (highway.getValue()) {
                 mc.player.setVelocity(0, 0, 0);
-                mc.player.setPosition(mc.player.posX, mc.player.posY - fallspeed.getValue(), mc.player.posZ);
+                mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.getValue(), mc.player.posZ);
                 mc.player.capabilities.setFlySpeed(speed.getValue());
                 mc.player.setSprinting(false);
             }
             else {
-                mc.player.setVelocity(0, -.003, 0);
+                mc.player.setVelocity(0, 0, 0);
                 mc.player.capabilities.setFlySpeed(.915f);
+                mc.player.setPosition(mc.player.posX, mc.player.posY - fallspeed.getValue(), mc.player.posZ);
             }
         }
 
@@ -66,9 +68,9 @@ public class ElytraFlight extends Module {
                 }
 
                 if (mc.gameSettings.keyBindJump.isKeyDown())
-                    mc.player.motionY += 0.08;
+                    mc.player.motionY += upSpeed.getValue();
                 else if (mc.gameSettings.keyBindSneak.isKeyDown())
-                    mc.player.motionY -= 0.04;
+                    mc.player.motionY -= downSpeed.getValue();
 
                 if (mc.gameSettings.keyBindForward.isKeyDown()) {
                     float yaw = (float) Math
