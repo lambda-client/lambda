@@ -26,9 +26,10 @@ import net.minecraft.util.math.Vec3d;
 
 
 /**
- * @author Unknown, LGPL licensed
+ * @author hub
+ * @see me.zeroeightsix.kami.module.modules.zeroeightysix.combat.AutoFeetPlace
  * Updated by Polymer on 09/01/20
- * Updated by S-B99 on 14/01/20
+ * Updated by S-B99 on 15/01/20
  */
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian")
 public class Surround extends Module {
