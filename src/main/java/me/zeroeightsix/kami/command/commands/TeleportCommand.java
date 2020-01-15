@@ -26,7 +26,7 @@ public class TeleportCommand extends Command {
                 .append("y", true)
                 .append("z", true)
                 .append("blocks per tp", false)
-                .build(), "tp");
+                .build(), "tp", "hclip", "clip");
         setDescription("Potentia teleport exploit");
     }
 
