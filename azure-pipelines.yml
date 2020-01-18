@@ -1,0 +1,27 @@
+trigger:
+- feature/master
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: CmdLine@2
+  inputs:
+    script: |
+      gradlew build
+
+- task: GitHubRelease@1
+  inputs:
+    gitHubConnection: 'Vonr'
+    repositoryName: 'Vonr/KamiBlueBuilds'
+    action: 'create'
+    target: '$(Build.SourceVersion)'
+    tagSource: 'userSpecifiedTag'
+    tag: 'beta$(Build.BuildId)'
+    title: 'Kami Blue beta$(Build.BuildId)'
+    releaseNotesSource: 'inline'
+    releaseNotesInline: 'beta build'
+    assets: './build/libs/*.jar'
+    isPreRelease: true
+    changeLogCompareToRelease: 'lastNonDraftRelease'
+    changeLogType: 'commitBased'
