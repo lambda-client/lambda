@@ -13,4 +13,4 @@ deploy:
   skip_cleanup: true
   on:
     repo: S-B99/KAMI
-    tags: true
+    tags: false
