@@ -12,7 +12,7 @@ steps:
 
 - task: GitHubRelease@1
   inputs:
-    gitHubConnection: 'Vonr (1)'
+    gitHubConnection: 'PAT'
     repositoryName: 'Vonr/KamiBlueBuilds'
     action: 'create'
     target: '$(Build.SourceVersion)'
