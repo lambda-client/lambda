@@ -25,7 +25,6 @@
     "MixinStateImplementation",
     "MixinAbstractClientPlayer",
     "MixinGuiNewChat",
-    "MixinLayerArmorBase",
-    "MixinNettyCompressionDecoder"
+    "MixinLayerArmorBase"
   ]
 }
