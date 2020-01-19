@@ -65,7 +65,7 @@ public class KamiMod {
 
     static final String MODID = "kamiblue";
     static final String MODNAME = "KAMI Blue";
-    public static final String MODVER = "v1.1.1";
+    public static final String MODVER = "v1.1.2";
     public static final String APP_ID = "638403216278683661";
 
     static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/updateChecker.json";
