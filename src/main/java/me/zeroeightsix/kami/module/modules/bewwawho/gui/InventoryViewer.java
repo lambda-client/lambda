@@ -1,6 +1,10 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.gui;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.gui.kami.KamiGUI;
+import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
+import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -11,17 +15,37 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
+import java.util.List;
+import java.util.Objects;
+
 /***
- * @author Waizy
- * Updated by S-B99 on 22/12/19
+ * @author Unknown // LGPL Licensed
+ * Updated by S-B99 on 18/01/20
+ * GUI method written by S-B99
  */
 @Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
 public class InventoryViewer extends Module {
-
-    private Setting<Integer> optionX;
-    private Setting<Integer> optionY;
     private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.ICONLARGE));
 
+    KamiGUI kamiGUI = KamiMod.getInstance().getGuiManager();
+    private int invPos(int i) {
+        kamiGUI = KamiMod.getInstance().getGuiManager();
+        if (kamiGUI != null) {
+            List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
+            for (Frame frame : frames) {
+                if (!frame.getTitle().equalsIgnoreCase("inventory viewer")) continue;
+                switch (i) {
+                    case 0:
+                        return frame.getX();
+                    case 1:
+                        return frame.getY();
+                    default:
+                        return 0;
+                }
+            }
+        }
+        return 0;
+    }
     private enum ViewMode {
         ICONLARGEBG, ICONLARGE, MC, ICON, ICONBACK, CLEAR, SOLID, SOLIDCLEAR
     }
@@ -53,12 +77,7 @@ public class InventoryViewer extends Module {
         }
     }
 
-    public InventoryViewer() {
-        this.optionX = this.register(Settings.i("X", 574));
-        this.optionY = this.register(Settings.i("Y", 469));
-    }
-
-    private static void preboxrender() {
+    private static void preBoxRender() {
         GL11.glPushMatrix();
         GlStateManager.pushMatrix();
         GlStateManager.disableAlpha();
@@ -66,7 +85,7 @@ public class InventoryViewer extends Module {
         GlStateManager.enableBlend();
     }
 
-    private static void postboxrender() {
+    private static void postBoxRender() {
         GlStateManager.disableBlend();
         GlStateManager.disableDepth();
         GlStateManager.disableLighting();
@@ -76,7 +95,7 @@ public class InventoryViewer extends Module {
         GL11.glPopMatrix();
     }
 
-    private static void preitemrender() {
+    private static void preItemRender() {
         GL11.glPushMatrix();
         GL11.glDepthMask(true);
         GlStateManager.clear(256);
@@ -86,7 +105,7 @@ public class InventoryViewer extends Module {
         GlStateManager.scale(1.0f, 1.0f, 0.01f);
     }
 
-    private static void postitemrender() {
+    private static void postItemRender() {
         GlStateManager.scale(1.0f, 1.0f, 1.0f);
         RenderHelper.disableStandardItemLighting();
         GlStateManager.enableAlpha();
@@ -99,37 +118,29 @@ public class InventoryViewer extends Module {
         GL11.glPopMatrix();
     }
 
-    public void onEnable() {
-        if (mc.player != null) {
-            Command.sendChatMessage("[InventoryViewer] Right click the module to move it around");
-        } else if (mc.player == null) {
-            return;
-        }
-    }
-
     @Override
     public void onRender() {
-        final NonNullList<ItemStack> items = (NonNullList<ItemStack>) InventoryViewer.mc.player.inventory.mainInventory;
-        this.boxrender(this.optionX.getValue(), this.optionY.getValue());
-        this.itemrender(items, this.optionX.getValue(), this.optionY.getValue());
+        final NonNullList<ItemStack> items = InventoryViewer.mc.player.inventory.mainInventory;
+        boxRender(invPos(0), invPos(1));
+        itemRender(items, invPos(0), invPos(1));
     }
 
-    private void boxrender(final int x, final int y) {
-        preboxrender();
+    private void boxRender(final int x, final int y) {
+        preBoxRender();
         ResourceLocation box = getBox();
-        InventoryViewer.mc.renderEngine.bindTexture(box);
-        InventoryViewer.mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 56 136 1296 432
-        postboxrender();
+        mc.renderEngine.bindTexture(box);
+        mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 56 136 1296 432
+        postBoxRender();
     }
 
-    private void itemrender(final NonNullList<ItemStack> items, final int x, final int y) {
+    private void itemRender(final NonNullList<ItemStack> items, final int x, final int y) {
         for (int size = items.size(), item = 9; item < size; ++item) {
-            final int slotx = x + 1 + item % 9 * 18;
-            final int sloty = y + 1 + (item / 9 - 1) * 18;
-            preitemrender();
-            InventoryViewer.mc.getRenderItem().renderItemAndEffectIntoGUI((ItemStack) items.get(item), slotx, sloty);
-            InventoryViewer.mc.getRenderItem().renderItemOverlays(InventoryViewer.mc.fontRenderer, (ItemStack) items.get(item), slotx, sloty);
-            postitemrender();
+            final int slotX = x + 1 + item % 9 * 18;
+            final int slotY = y + 1 + (item / 9 - 1) * 18;
+            preItemRender();
+            mc.getRenderItem().renderItemAndEffectIntoGUI(items.get(item), slotX, slotY);
+            mc.getRenderItem().renderItemOverlays(mc.fontRenderer, items.get(item), slotX, slotY);
+            postItemRender();
         }
     }
 }

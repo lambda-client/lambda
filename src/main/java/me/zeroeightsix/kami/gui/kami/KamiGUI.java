@@ -269,24 +269,39 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
+        Inventory Viewer
+         */
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
+        frame.setCloseable(false);
+        frame.setMinimizeable(false);
+        frame.setPinnable(false);
+        Label inventory = new Label("");
+        inventory.setShadow(true);
+        frame.addChild(inventory);
+        inventory.setFontRenderer(fontRenderer);
+        frames.add(frame);
+
+        /*
         Friends List
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         Label friends = new Label("");
         friends.setShadow(true);
-        Frame finalFrame = frame;
+        Frame friendsFrame = frame;
 
         AtomicInteger friendsAmount = new AtomicInteger();
         friends.addTickListener(() -> {
             /* Don't load friends list if it's minimized */
-            if (!finalFrame.isMinimized()) {
+            if (!friendsFrame.isMinimized()) {
                 friends.setText("");
+
                 Friends.friends.getValue().forEach(friend -> {
                     friendsAmount.getAndIncrement();
                     /* Cap loading friends list at 100 */
-                    if (friendsAmount.get() <= 5) {
+                    if (friendsAmount.get() <= 100) {
+//                        Command.sendChatMessage("added");
                         friends.addLine(friend.getUsername());
                     }
                 });
