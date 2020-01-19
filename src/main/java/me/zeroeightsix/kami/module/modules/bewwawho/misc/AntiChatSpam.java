@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 /**
  * Created 19 November 2019 by hub
  * Updated 12 January 2020 by hub
+ * Updated by S-B99 on 18/01/20
  */
 @Module.Info(name = "AntiSpam", category = Module.Category.MISC)
 public class AntiChatSpam extends Module {
@@ -27,6 +28,8 @@ public class AntiChatSpam extends Module {
     private Setting<Boolean> insulters = register(Settings.b("Insulters", true));
     private Setting<Boolean> greeters = register(Settings.b("Greeters", true));
     private Setting<Boolean> tradeChat = register(Settings.b("Trade Chat", true));
+    private Setting<Boolean> ips = register(Settings.b("Server Ips", true));
+    private Setting<Boolean> ipsAgr = register(Settings.b("Ips Aggressive", false));
     private Setting<Boolean> numberSuffix = register(Settings.b("Number Suffix", true));
     private Setting<Boolean> duplicates = register(Settings.b("Duplicates", true));
     private Setting<Integer> duplicatesTimeout = register(Settings.integerBuilder("Duplicates Timeout").withMinimum(1).withValue(30).withMaximum(600).build());
@@ -91,6 +94,20 @@ public class AntiChatSpam extends Module {
         if (webLinks.getValue() && findPatterns(FilterPatterns.WEB_LINK, message)) {
             if (showBlocked.getValue()) {
                 Command.sendChatMessage("[AntiSpam] Web Link: " + message);
+            }
+            return true;
+        }
+
+        if (ips.getValue() && findPatterns(FilterPatterns.IP_ADDR, message)) {
+            if (showBlocked.getValue()) {
+                Command.sendChatMessage("[AntiSpam] IP Address: " + message);
+            }
+            return true;
+        }
+
+        if (ipsAgr.getValue() && findPatterns(FilterPatterns.IP_ADDR_AGR, message)) {
+            if (showBlocked.getValue()) {
+                Command.sendChatMessage("[AntiSpam] IP Aggressive: " + message);
             }
             return true;
         }
@@ -318,6 +335,20 @@ public class AntiChatSpam extends Module {
                 {
                         "http:\\/\\/",
                         "https:\\/\\/",
+                        "www.",
+                };
+
+        private static final String[] IP_ADDR =
+                {
+                        "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\:\\d{1,5}\\b",
+                        "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}",
+                        "^(?:http(?:s)?:\\/\\/)?(?:[^\\.]+\\.)?.*\\..*\\..*$",
+                        ".*\\..*\\:\\d{1,5}$",
+                };
+
+        private static final String[] IP_ADDR_AGR =
+                {
+                        ".*\\..*$",
                 };
 
         private static final String[] OWN_MESSAGE =
