@@ -57,37 +57,6 @@ This is currently in active development. When issues are being closed is by mile
 
 </details>
 
-## Preview
-
-<details>
-	<summary>Click to view images</summary>
-
-***
-
-Click on images to expand
-
-***
-
-Capes in game
-
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/capes.png" width="500"/>
-
-Rich presence on discord
-
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/rpc.png" width="500"/>
-
-Shulker preview being used in chat
-
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/shulkerChat.png" width="500"/>
-
-CrystalAura targeting
-
-<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/crystalAura.png" width="500"/>
-
-***
-
-</details>
-
 ## Installing
 
 To install drag the `VERSION-release.jar` to your `mods/1.12.2` folder
@@ -133,6 +102,32 @@ By using the command `prefix <prefix>` or after having ran KAMI Blue (make sure 
 ***
 
 </details>
+
+## Preview
+
+***
+
+Click on images to expand
+
+***
+
+Capes in game
+
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/capes.png" width="500"/>
+
+Rich presence on discord
+
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/rpc.png" width="500"/>
+
+Shulker preview being used in chat
+
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/shulkerChat.png" width="500"/>
+
+CrystalAura targeting
+
+<img src="https://raw.githubusercontent.com/S-B99/KAMI/assets/assets/readme/crystalAura.png" width="500"/>
+
+***
 
 ## Building and Contributing
 
