@@ -25,6 +25,7 @@ import java.util.Objects;
  */
 @Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
 public class InventoryViewer extends Module {
+    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
     private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.ICONLARGE));
 
     KamiGUI kamiGUI = KamiMod.getInstance().getGuiManager();

@@ -18,6 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
+import me.zeroeightsix.kami.module.modules.bewwawho.gui.InventoryViewer;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.DiscordSettings;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.CustomChat;
 import me.zeroeightsix.kami.module.modules.zeroeightysix.render.TabFriends;
@@ -180,7 +181,7 @@ public class KamiMod {
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
 
-        try { // load modules that are on by default
+        try { // load modules that are on by default // autoenable
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
 
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
@@ -194,6 +195,9 @@ public class KamiMod {
             }
             if (((CustomChat) ModuleManager.getModuleByName("CustomChat")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("CustomChat").setEnabled(true);
+            }
+            if (((InventoryViewer) ModuleManager.getModuleByName("InventoryViewer")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
             }
 
         }
