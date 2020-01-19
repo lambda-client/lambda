@@ -187,7 +187,7 @@ public class KamiGUI extends GUI {
         Frame frame = new Frame(getTheme(), new Stretcherlayout(1), "Active modules");
         frame.setCloseable(false);
         frame.addChild(new ActiveModules());
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         frames.add(frame);
 
         /*
@@ -229,7 +229,7 @@ public class KamiGUI extends GUI {
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info");
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
@@ -349,7 +349,7 @@ public class KamiGUI extends GUI {
             }
         });
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         frame.setMinimumWidth(75);
         list.setShadow(true);
         frame.addChild(list);
@@ -395,7 +395,7 @@ public class KamiGUI extends GUI {
             }
         });
         frame.addChild(entityLabel);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         entityLabel.setShadow(true);
         entityLabel.setFontRenderer(fontRenderer);
         frames.add(frame);
@@ -405,7 +405,7 @@ public class KamiGUI extends GUI {
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Coordinates");
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         Label coordsLabel = new Label("");
         coordsLabel.addTickListener(new TickListener() {
             Minecraft mc = Minecraft.getMinecraft();
@@ -456,7 +456,7 @@ public class KamiGUI extends GUI {
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Radar");
         frame.setCloseable(false);
         frame.setMinimizeable(true);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         frame.addChild(new Radar());
         frame.setWidth(100);
         frame.setHeight(100);

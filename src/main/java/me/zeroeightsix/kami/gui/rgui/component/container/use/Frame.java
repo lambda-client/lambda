@@ -190,11 +190,9 @@ public class Frame extends OrganisedContainer {
         isMinimized = minimized;
     }
 
-    public boolean isCloseable() {
-        return isCloseable;
-    }
+    public boolean isCloseable() { return isCloseable; }
 
-    public boolean isPinneable() {
+    public boolean isPinnable() {
         return isPinneable;
     }
 
@@ -202,7 +200,7 @@ public class Frame extends OrganisedContainer {
         return isPinned;
     }
 
-    public void setPinneable(boolean pinneable) {
+    public void setPinnable(boolean pinneable) {
         isPinneable = pinneable;
     }
 
