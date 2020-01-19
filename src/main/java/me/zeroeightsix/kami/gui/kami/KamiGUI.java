@@ -39,7 +39,8 @@ import java.util.stream.Collectors;
 
 /**
  * Created by 086 on 25/06/2017.
- * Updated by S-B99 on 14/01/20
+ * Updated by S-B99 on 19/01/20
+ * @see me.zeroeightsix.kami.module.modules.bewwawho.gui.InventoryViewer
  */
 public class KamiGUI extends GUI {
 
@@ -182,7 +183,7 @@ public class KamiGUI extends GUI {
         ArrayList<Frame> frames = new ArrayList<>();
 
         /*
-        Active modules
+         * Active modules
          */
         Frame frame = new Frame(getTheme(), new Stretcherlayout(1), "Active modules");
         frame.setCloseable(false);
@@ -191,7 +192,7 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Testing
+         * Testing
          */
         /*
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info2");
@@ -225,7 +226,7 @@ public class KamiGUI extends GUI {
         */
         
         /*
-        Information Overlay / InfoOverlay
+         * Information Overlay / InfoOverlay
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info");
         frame.setCloseable(false);
@@ -269,7 +270,9 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Inventory Viewer
+         * Inventory Viewer
+         * This method appears empty but it's used by
+         * @see me/zeroeightsix/kami/gui/kami/KamiGUI.java
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);
@@ -282,7 +285,7 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Friends List
+         * Friends List
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
         frame.setCloseable(false);
@@ -315,7 +318,7 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Text Radar
+         * Text Radar
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Text Radar");
         Label list = new Label("");
@@ -372,7 +375,7 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Entity List
+         * Entity List
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Entities");
         Label entityLabel = new Label("");
@@ -416,7 +419,7 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Coordinates
+         * Coordinates
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Coordinates");
         frame.setCloseable(false);
@@ -466,7 +469,7 @@ public class KamiGUI extends GUI {
         frames.add(frame);
 
         /*
-        Radar
+         * Radar
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Radar");
         frame.setCloseable(false);
