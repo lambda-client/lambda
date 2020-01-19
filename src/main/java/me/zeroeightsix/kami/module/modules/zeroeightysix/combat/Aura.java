@@ -40,6 +40,7 @@ public class Aura extends Module {
     private Setting<Boolean> autoWait = register(Settings.b("Auto Tick Delay", true));
     private Setting<SwitchMode> switchMode = register(Settings.e("Autoswitch", SwitchMode.ALL));
     private Setting<HitMode> hitMode = register(Settings.e("Tool", HitMode.SWORD));
+    private Setting<Boolean> infoMsg = register(Settings.b("Info Message", true));
     //private Setting<Boolean> onlyUse32k = register(Settings.b("32k Only", false));
 
     private int waitCounter;
@@ -57,7 +58,7 @@ public class Aura extends Module {
         if (mc.player == null) {
             return;
         }
-        if (autoWait.getValue()) {
+        if (autoWait.getValue() && infoMsg.getValue()) {
             Command.sendWarningMessage("[Aura] When Auto Tick Delay is turned on whatever you give Tick Delay doesn't matter, it uses the current TPS instead");
         }
     }
