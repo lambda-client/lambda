@@ -153,8 +153,8 @@ public class KamiGUI extends GUI {
         }
 
         this.addMouseListener(new MouseListener() {
-            private boolean isBetween(int min, int val, int max) {
-                return !(val > max || val < min);
+            private boolean isNotBetween(int min, int val, int max) {
+                return val > max || val < min;
             }
 
             @Override
@@ -165,7 +165,7 @@ public class KamiGUI extends GUI {
                     int[] real = GUI.calculateRealPosition(settingsPanel);
                     int pX = event.getX() - real[0];
                     int pY = event.getY() - real[1];
-                    if (!isBetween(0, pX, settingsPanel.getWidth()) || !isBetween(0, pY, settingsPanel.getHeight()))
+                    if (isNotBetween(0, pX, settingsPanel.getWidth()) || isNotBetween(0, pY, settingsPanel.getHeight()))
                         settingsPanel.setVisible(false);
                 }
             }
