@@ -18,7 +18,8 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
-import me.zeroeightsix.kami.util.bewwawho.CalcPing;
+import me.zeroeightsix.kami.util.bewwawho.PingCalculator;
+import me.zeroeightsix.kami.util.bewwawho.SpeedCalculator;
 import me.zeroeightsix.kami.util.zeroeightysix.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -226,7 +227,7 @@ public class KamiGUI extends GUI {
         */
         
         /*
-        Information Overlay
+        Information Overlay / InfoOverlay
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info");
         frame.setCloseable(false);
@@ -235,15 +236,13 @@ public class KamiGUI extends GUI {
         information.setShadow(true);
         information.addTickListener(() -> {
             InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
-
-            int privatePingValue = CalcPing.globalInfoPingValue();
-            String privateDisplayN = Wrapper.getMinecraft().player.getName();
+            String playerName = Wrapper.getMinecraft().player.getName();
 
             if (info.isEnabled()) {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
                 if (info.globalInfoNam.getValue()) {
-                    information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + privateDisplayN + "!");
+                    information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + playerName + "!");
                 }
                 if (info.globalInfoTps.getValue()) {
                     information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
@@ -251,8 +250,11 @@ public class KamiGUI extends GUI {
                 if (info.globalInfoFps.getValue()) {
                     information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
                 }
+                if (info.globalInfoSpe.getValue()) {
+                    information.addLine("\u00A7b" + SpeedCalculator.speed() + Command.SECTION_SIGN + "3 " + info.unitType(info.speedUnitSetting.getValue()));
+                }
                 if (info.globalInfoPin.getValue()) {
-                    information.addLine("\u00A7b" + privatePingValue + Command.SECTION_SIGN + "3 ms");
+                    information.addLine("\u00A7b" + PingCalculator.ping() + Command.SECTION_SIGN + "3 ms");
                 }
                 if (info.globalInfoDur.getValue()) {
                     ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
