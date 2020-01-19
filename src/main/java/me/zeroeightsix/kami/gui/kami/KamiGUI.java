@@ -18,6 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
+import me.zeroeightsix.kami.util.bewwawho.DurabilityCalculator;
 import me.zeroeightsix.kami.util.bewwawho.PingCalculator;
 import me.zeroeightsix.kami.util.bewwawho.SpeedCalculator;
 import me.zeroeightsix.kami.util.zeroeightysix.*;
@@ -236,13 +237,12 @@ public class KamiGUI extends GUI {
         information.setShadow(true);
         information.addTickListener(() -> {
             InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
-            String playerName = Wrapper.getMinecraft().player.getName();
 
             if (info.isEnabled()) {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
                 if (info.globalInfoNam.getValue()) {
-                    information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + playerName + "!");
+                    information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + Minecraft.getMinecraft().player.getName() + "!");
                 }
                 if (info.globalInfoTps.getValue()) {
                     information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
@@ -257,9 +257,7 @@ public class KamiGUI extends GUI {
                     information.addLine("\u00A7b" + PingCalculator.ping() + Command.SECTION_SIGN + "3 ms");
                 }
                 if (info.globalInfoDur.getValue()) {
-                    ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
-                    int itemDurability = itemStack.getMaxDamage() - itemStack.getItemDamage();
-                    information.addLine("\u00A7b" + itemDurability + "\u00A73 dura");
+                    information.addLine("\u00A7b" + DurabilityCalculator.dura() + "\u00A73 dura");
                 }
                 if (info.globalInfoMem.getValue()) {
                     information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTION_SIGN + "3mB free");

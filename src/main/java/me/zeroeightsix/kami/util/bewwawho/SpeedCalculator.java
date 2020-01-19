@@ -11,18 +11,16 @@ import java.text.DecimalFormat;
 /**
  * @author S-B99
  * Created by S-B99 on 18/01/20
- */
-
-/**
- * Credit to Seppuku for the following calculation I made more efficient and got inspiration from
- * final String bps = "BPS: " + df.format((MathHelper.sqrt(deltaX * deltaX + deltaZ * deltaZ) / tickRate));
+ *
+ *  * Credit to Seppuku for the following calculation I made more efficient and got inspiration from
+ *  * final String bps = "BPS: " + df.format((MathHelper.sqrt(deltaX * deltaX + deltaZ * deltaZ) / tickRate));
  */
 public class SpeedCalculator extends Module {
     private static DecimalFormat formatter = new DecimalFormat("#.#");
     private static InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
 
     public static String speed() {
-        float currentTps = Minecraft.getMinecraft().timer.tickLength / 1000.0f;
+        float currentTps = mc.timer.tickLength / 1000.0f;
         if (info.useUnitKmH()) {
             return formatter.format(((MathHelper.sqrt(Math.pow(coordsDiff("x"), 2) + Math.pow(coordsDiff("y"), 2)) / currentTps)) * 3.6); // convert mps to kmh
         }
