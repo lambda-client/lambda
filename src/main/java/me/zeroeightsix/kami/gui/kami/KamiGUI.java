@@ -18,9 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
-import me.zeroeightsix.kami.util.bewwawho.DurabilityCalculator;
-import me.zeroeightsix.kami.util.bewwawho.PingCalculator;
-import me.zeroeightsix.kami.util.bewwawho.SpeedCalculator;
+import me.zeroeightsix.kami.util.bewwawho.InfoCalculator;
 import me.zeroeightsix.kami.util.zeroeightysix.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -30,7 +28,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityWitherSkull;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextFormatting;
 
 import javax.annotation.Nonnull;
@@ -245,22 +242,22 @@ public class KamiGUI extends GUI {
                     information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + Minecraft.getMinecraft().player.getName() + "!");
                 }
                 if (info.globalInfoTps.getValue()) {
-                    information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
+                    information.addLine("\u00A7b" + InfoCalculator.tps() + Command.SECTION_SIGN + "3 tps");
                 }
                 if (info.globalInfoFps.getValue()) {
                     information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
                 }
                 if (info.globalInfoSpe.getValue()) {
-                    information.addLine("\u00A7b" + SpeedCalculator.speed() + Command.SECTION_SIGN + "3 " + info.unitType(info.speedUnitSetting.getValue()));
+                    information.addLine("\u00A7b" + InfoCalculator.speed() + Command.SECTION_SIGN + "3 " + info.unitType(info.speedUnitSetting.getValue()));
                 }
                 if (info.globalInfoPin.getValue()) {
-                    information.addLine("\u00A7b" + PingCalculator.ping() + Command.SECTION_SIGN + "3 ms");
+                    information.addLine("\u00A7b" + InfoCalculator.ping() + Command.SECTION_SIGN + "3 ms");
                 }
                 if (info.globalInfoDur.getValue()) {
-                    information.addLine("\u00A7b" + DurabilityCalculator.dura() + "\u00A73 dura");
+                    information.addLine("\u00A7b" + InfoCalculator.dura() + "\u00A73 dura");
                 }
                 if (info.globalInfoMem.getValue()) {
-                    information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTION_SIGN + "3mB free");
+                    information.addLine("\u00A7b" + InfoCalculator.memory() + Command.SECTION_SIGN + "3mB free");
                 }
             } else {
                 information.setText("");
