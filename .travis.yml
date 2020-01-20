@@ -8,7 +8,7 @@ deploy:
   provider: releases
   api_key:
     secure: "l7OXWFg4DaaSNmbLjrKrbNEVrIHbSLKoCES1Mr8Bl1UESb8So5F1ClS80jmAxvPdzQ+2YHnWWB/NULWbMOjsnkU//IvIk02r/KwAwjwWNSckvWWZo3YEkMtPObr33uiSTpW+9y7KF8yjySyBkMNJsiDGpMmWKg3BKqXDGYy5XtnyGh0dwVFsMR5LNvDYXwq8osgTuLafwJA3uGLDP+fuSHmHdF9K+SaxcLt745DhYlOhGYDRWK/Ddltvw3qW/2vRoR1+VT6BXvq9hZw8q9zJUAMjq6lmfcJKToVQdhxe1cn0feQCsB9kwLkRggVyNXG6pueh4qhR4DWj9KMV49KSSjnWMQSvs2u+dxCeOefdT+TU/mMsOydZOR4OoUpZBzlLFo8+8TRk0cHVum7nl3IvFf5Gn0sZ7ZrCLWRDt7Y3I+EnHGuwqvnZ1cpmB/FTz9VxZyNo81Dpe6apSstV/GCqzvtSI3LiUp8S0UAiWPAGwI113IDCpHND0SfkVcu5mpVQKmah0A4ynyR1S7+WVHpnRhI/E4aU053s1UI3apwIbj8Ye1FmqD9KY0+0unrdUaE3ti6lsNKoP2BAomLuiEtFUWFqicOXKd0032AQ47RyJdSFg4lajcxkKErCwybBO/Nbzq7Ju4XSkyzcvPg4ycmvop9uLQBmFI4LSOOswmiHtvs="
-    file: build/libs/*-release.jar
+  file: build/libs/*-release.jar
   file_glob: true
   skip_cleanup: true
   on:
