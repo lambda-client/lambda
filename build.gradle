@@ -101,12 +101,7 @@ dependencies {
     compile(group: 'org.reflections', name: 'reflections', version: '0.9.11') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    // https://mvnrepository.com/artifact/club.minnced/discord-rpc-release
-    // discord rpc
-	//compile group: 'club.minnced', name: 'discord-rpc-release', version: 'v3.3.0'
-//	compile 'club.minnced:java-discord-rpc:2.0.2'
-	//compile 'club.minnced:java-discord-rpc:%VERSION%'
-    
+    compile 'club.minnced:java-discord-rpc:v2.0.1'
 }
 
 processResources {
