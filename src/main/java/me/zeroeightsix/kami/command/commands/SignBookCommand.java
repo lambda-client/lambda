@@ -1,20 +1,18 @@
 package me.zeroeightsix.kami.command.commands;
 
+import io.netty.buffer.Unpooled;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
-
-import net.minecraft.item.ItemWritableBook;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.network.play.client.CPacketCustomPayload;
+import net.minecraft.item.ItemWritableBook;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.play.client.CPacketCustomPayload;
 
 import java.util.ArrayList;
-
-import io.netty.buffer.Unpooled;
 
 /**
  * @author 0x2E | PretendingToCode

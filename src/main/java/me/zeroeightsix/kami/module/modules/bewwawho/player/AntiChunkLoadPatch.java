@@ -1,8 +1,6 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.player;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
-import me.zeroeightsix.kami.setting.Settings;
 
 /***
  * Created by S-B99 on 11/01/20

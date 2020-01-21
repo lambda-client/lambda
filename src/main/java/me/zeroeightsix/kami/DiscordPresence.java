@@ -5,8 +5,6 @@ import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.misc.DiscordSettings;
-import net.minecraft.client.Minecraft;
-import net.minecraftforge.fml.common.FMLLog;
 
 import static me.zeroeightsix.kami.KamiMod.APP_ID;
 

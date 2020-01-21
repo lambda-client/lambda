@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.gui;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
@@ -16,7 +15,6 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import java.util.List;
-import java.util.Objects;
 
 /***
  * @author Unknown // LGPL Licensed

@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.combat;
 
 import me.zeroeightsix.kami.module.Module;
-import net.minecraft.client.Minecraft;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.init.Enchantments;
 import net.minecraft.inventory.ClickType;
