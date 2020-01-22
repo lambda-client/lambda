@@ -244,25 +244,25 @@ public class KamiGUI extends GUI {
             if (info.isEnabled()) {
                 information.setText("");
                 information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-                if (info.globalInfoNam.getValue()) {
+                if (info.username.getValue()) {
                     information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + Minecraft.getMinecraft().player.getName() + "!");
                 }
-                if (info.globalInfoTps.getValue()) {
+                if (info.tps.getValue()) {
                     information.addLine("\u00A7b" + InfoCalculator.tps() + Command.SECTION_SIGN + "3 tps");
                 }
-                if (info.globalInfoFps.getValue()) {
+                if (info.fps.getValue()) {
                     information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
                 }
-                if (info.globalInfoSpe.getValue()) {
-                    information.addLine("\u00A7b" + InfoCalculator.speed() + Command.SECTION_SIGN + "3 " + info.unitType(info.speedUnitSetting.getValue()));
+                if (info.speed.getValue()) {
+                    information.addLine("\u00A7b" + InfoCalculator.speed() + Command.SECTION_SIGN + "3 " + info.unitType(info.speedUnit.getValue()));
                 }
-                if (info.globalInfoPin.getValue()) {
+                if (info.ping.getValue()) {
                     information.addLine("\u00A7b" + InfoCalculator.ping() + Command.SECTION_SIGN + "3 ms");
                 }
-                if (info.globalInfoDur.getValue()) {
+                if (info.durability.getValue()) {
                     information.addLine("\u00A7b" + InfoCalculator.dura() + "\u00A73 dura");
                 }
-                if (info.globalInfoMem.getValue()) {
+                if (info.memory.getValue()) {
                     information.addLine("\u00A7b" + InfoCalculator.memory() + Command.SECTION_SIGN + "3mB free");
                 }
             } else {
