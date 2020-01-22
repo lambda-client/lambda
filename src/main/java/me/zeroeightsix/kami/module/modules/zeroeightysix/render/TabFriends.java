@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.module.modules.zeroeightysix.render;
 
-import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -20,7 +20,7 @@ public class TabFriends extends Module {
 
     public static String getPlayerName(NetworkPlayerInfo networkPlayerInfoIn) {
         String dname = networkPlayerInfoIn.getDisplayName() != null ? networkPlayerInfoIn.getDisplayName().getFormattedText() : ScorePlayerTeam.formatPlayerName(networkPlayerInfoIn.getPlayerTeam(), networkPlayerInfoIn.getGameProfile().getName());
-        if (Friends.isFriend(dname)) return String.format("%sa%s", Command.SECTION_SIGN, dname);
+        if (Friends.isFriend(dname)) return String.format("%sa%s", KamiMod.colour, dname);
         return dname;
     }
 }

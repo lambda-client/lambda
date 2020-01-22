@@ -4,9 +4,9 @@ import java.awt.*;
 import java.util.ArrayList;
 
 /**
- * Java Code to get a color name from rgb/hex value/awt color
+ * Java Code to get a colour name from rgb/hex value/awt colour
  * <p>
- * The part of looking up a color name from the rgb values is edited from
+ * The part of looking up a colour name from the rgb values is edited from
  * https://gist.github.com/nightlark/6482130#file-gistfile1-java (that has some errors) by Ryan Mast (nightlark)
  *
  * @author Xiaoxiao Li
@@ -14,7 +14,7 @@ import java.util.ArrayList;
 public class ColourUtils {
 
     /**
-     * Initialize the color list that we have.
+     * Initialize the colour list that we have.
      */
     private ArrayList<ColorName> initColorList() {
         ArrayList<ColorName> colorList = new ArrayList<ColorName>();
@@ -162,7 +162,7 @@ public class ColourUtils {
     }
 
     /**
-     * SubClass of ColorUtils. In order to lookup color name
+     * SubClass of ColorUtils. In order to lookup colour name
      *
      * @author Xiaoxiao Li
      */
@@ -171,7 +171,7 @@ public class ColourUtils {
     }
 
     /**
-     * Get the closest color name from our list
+     * Get the closest colour name from our list
      *
      * @param r
      * @param g
@@ -194,7 +194,7 @@ public class ColourUtils {
         if (closestMatch != null) {
             return closestMatch.getName();
         } else {
-            return "No matched color name.";
+            return "No matched colour name.";
         }
     }
 

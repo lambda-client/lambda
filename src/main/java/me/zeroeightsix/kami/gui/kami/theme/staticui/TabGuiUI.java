@@ -116,7 +116,7 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
     }
 
     private void drawBox(int x1, int y1, int x2, int y2) {
-        // color
+        // colour
         GL11.glColor4f(0, 0, 0, 0.6f);
 
         // box

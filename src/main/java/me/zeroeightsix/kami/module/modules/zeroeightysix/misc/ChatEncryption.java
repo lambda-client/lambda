@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.zeroeightysix.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
@@ -88,7 +89,7 @@ public class ChatEncryption extends Module {
                     break;
             }
 
-            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString(Command.SECTION_SIGN + "b" + username + Command.SECTION_SIGN + "r: " + builder.toString());
+            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString(KamiMod.colour + "b" + username + KamiMod.colour + "r: " + builder.toString());
         }
     });
 

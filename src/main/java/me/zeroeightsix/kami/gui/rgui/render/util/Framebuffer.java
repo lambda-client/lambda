@@ -61,7 +61,7 @@ public class Framebuffer {
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, frameBuffer);
         //create the framebuffer
         GL11.glDrawBuffer(GL30.GL_COLOR_ATTACHMENT0);
-        //indicate that we will always render to color attachment 0
+        //indicate that we will always render to colour attachment 0
         return frameBuffer;
     }
 

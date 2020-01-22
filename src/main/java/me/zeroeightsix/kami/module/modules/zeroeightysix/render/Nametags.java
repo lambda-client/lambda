@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.module.modules.zeroeightysix.render;
 
-import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -91,7 +91,7 @@ public class Nametags extends Module {
         FontRenderer fontRendererIn = mc.fontRenderer;
         GlStateManager.scale(-0.025F, -0.025F, 0.025F);
 
-        String str = entityIn.getName() + (health.getValue() ? " " + Command.SECTION_SIGN + "a" + Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0)) : "");
+        String str = entityIn.getName() + (health.getValue() ? " " + KamiMod.colour + "a" + Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0)) : "");
         int i = fontRendererIn.getStringWidth(str) / 2;
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
