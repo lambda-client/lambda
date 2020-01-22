@@ -1,8 +1,13 @@
 package me.zeroeightsix.kami.module.modules.bewwawho.gui;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.bewwawho.InfoCalculator;
+import net.minecraft.client.Minecraft;
+
+import java.util.ArrayList;
 
 /**
  * @author S-B99
@@ -37,7 +42,35 @@ public class InfoOverlay extends Module {
             default: return "Invalid unit type (mps or kmh)";
         }
     }
-    public void onDisable() {
-        this.enable();
+
+    public ArrayList<String> infoContents() {
+        ArrayList<String> infoContents = new ArrayList<>();
+        if (version.getValue()) {
+            infoContents.add(KamiMod.colour + "b" + KamiMod.KAMI_KANJI + KamiMod.colour + "3 " + KamiMod.MODVER);
+        }
+        if (username.getValue()) {
+            infoContents.add(KamiMod.colour + "bWelcome" + KamiMod.colour + "3 " + mc.player.getName() + "!");
+        }
+        if (tps.getValue()) {
+            infoContents.add(KamiMod.colour + "b" + InfoCalculator.tps() + KamiMod.colour + "3 tps");
+        }
+        if (fps.getValue()) {
+            infoContents.add(KamiMod.colour + "b" + Minecraft.debugFPS + KamiMod.colour + "3 fps");
+        }
+        if (speed.getValue()) {
+            infoContents.add(KamiMod.colour + "b" + InfoCalculator.speed() + KamiMod.colour + "3 " + unitType(speedUnit.getValue()));
+        }
+        if (ping.getValue()) {
+            infoContents.add(KamiMod.colour + "b" + InfoCalculator.ping() + KamiMod.colour + "3 ms");
+        }
+        if (durability.getValue()) {
+            infoContents.add(KamiMod.colour + "b" + InfoCalculator.dura() + KamiMod.colour + "3 dura");
+        }
+        if (memory.getValue()) {
+            infoContents.add(KamiMod.colour + "b" + InfoCalculator.memory() + KamiMod.colour + "3mB free");
+        }
+        return infoContents;
     }
+
+    public void onDisable() { this.enable(); }
 }

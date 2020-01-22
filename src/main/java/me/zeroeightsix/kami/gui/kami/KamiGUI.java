@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
 import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
@@ -20,7 +19,6 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
-import me.zeroeightsix.kami.util.bewwawho.InfoCalculator;
 import me.zeroeightsix.kami.util.zeroeightysix.ColourHolder;
 import me.zeroeightsix.kami.util.zeroeightysix.Friends;
 import me.zeroeightsix.kami.util.zeroeightysix.Pair;
@@ -221,9 +219,9 @@ public class KamiGUI extends GUI {
 //        information.setShadow(true);
 //        information2.addTickListener(() -> {
 //            information2.setText("");
-//            information2.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-//            information2.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
-//            information2.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
+//            information2.addLine(KamiMod.colour + "b" + KamiMod.KAMI_KANJI + KamiMod.colour + "3 " + KamiMod.MODVER);
+//            information2.addLine(KamiMod.colour + "b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + KamiMod.colour + "3 tps");
+//            information2.addLine(KamiMod.colour + "b" + Minecraft.debugFPS + KamiMod.colour + "3 fps");
 //        });
         frame.addChild(theme, checkButton);
 //        information2.setFontRenderer(fontRenderer);
@@ -240,35 +238,8 @@ public class KamiGUI extends GUI {
         information.setShadow(true);
         information.addTickListener(() -> {
             InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
-
-            if (info.isEnabled()) {
-                information.setText("");
-                information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-                if (info.username.getValue()) {
-                    information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + Minecraft.getMinecraft().player.getName() + "!");
-                }
-                if (info.tps.getValue()) {
-                    information.addLine("\u00A7b" + InfoCalculator.tps() + Command.SECTION_SIGN + "3 tps");
-                }
-                if (info.fps.getValue()) {
-                    information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
-                }
-                if (info.speed.getValue()) {
-                    information.addLine("\u00A7b" + InfoCalculator.speed() + Command.SECTION_SIGN + "3 " + info.unitType(info.speedUnit.getValue()));
-                }
-                if (info.ping.getValue()) {
-                    information.addLine("\u00A7b" + InfoCalculator.ping() + Command.SECTION_SIGN + "3 ms");
-                }
-                if (info.durability.getValue()) {
-                    information.addLine("\u00A7b" + InfoCalculator.dura() + "\u00A73 dura");
-                }
-                if (info.memory.getValue()) {
-                    information.addLine("\u00A7b" + InfoCalculator.memory() + Command.SECTION_SIGN + "3mB free");
-                }
-            } else {
-                information.setText("");
-                information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-            }
+            information.setText("");
+            info.infoContents().forEach(information::addLine);
         });
         frame.addChild(information);
         information.setFontRenderer(fontRenderer);
@@ -277,7 +248,7 @@ public class KamiGUI extends GUI {
         /*
          * Inventory Viewer
          * This method appears empty but it's used by
-         * @see me/zeroeightsix/kami/gui/kami/KamiGUI.java
+         * me/zeroeightsix/kami/module/modules/bewwawho/gui/InventoryViewer.java
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);
@@ -345,7 +316,7 @@ public class KamiGUI extends GUI {
                 String posString = (e.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (e.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
                 float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
-                healthSB.append(Command.SECTION_SIGN);
+                healthSB.append(KamiMod.colour);
                 if (hpRaw >= 20) {
                     healthSB.append("a");
                 } else if (hpRaw >= 10) {
@@ -368,7 +339,7 @@ public class KamiGUI extends GUI {
             players = sortByValue(players);
 
             for (Map.Entry<String, Integer> player : players.entrySet()) {
-                list.addLine(Command.SECTION_SIGN + "7" + player.getKey() + " " + Command.SECTION_SIGN + "8" + player.getValue());
+                list.addLine(KamiMod.colour + "7" + player.getKey() + " " + KamiMod.colour + "8" + player.getValue());
             }
         });
         frame.setCloseable(false);
@@ -446,24 +417,24 @@ public class KamiGUI extends GUI {
                 int hposZ = (int) (mc.player.posZ * f);
 
                 coordsLabel.setText(String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
                         posX,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         posY,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         posZ,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         hposX,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         posY,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         hposZ,
-                        Command.SECTION_SIGN
+                        KamiMod.colour
                 ));
             }
         });
