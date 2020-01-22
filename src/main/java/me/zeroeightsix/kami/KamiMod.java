@@ -129,15 +129,16 @@ public class KamiMod {
                         case 3: {
                             DiscordPresence.presence.smallImageKey = "contest";
                             DiscordPresence.presence.smallImageText = "contest winner";
+                            break;
                         }
                         case 4: {
                             DiscordPresence.presence.smallImageKey = "nine";
                             DiscordPresence.presence.smallImageText = "900th member";
+                            break;
                         }
                         default: {
                             DiscordPresence.presence.smallImageKey = "donator2";
                             DiscordPresence.presence.smallImageText = "donator <3";
-                            System.out.println("oof rpc failed. type: " + user.type.getClass().getSimpleName());
                             break;
                         }
                     }
