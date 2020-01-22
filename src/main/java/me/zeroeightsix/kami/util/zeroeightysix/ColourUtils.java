@@ -1,5 +1,7 @@
 package me.zeroeightsix.kami.util.zeroeightysix;
 
+import me.zeroeightsix.kami.KamiMod;
+
 import java.awt.*;
 import java.util.ArrayList;
 
@@ -294,6 +296,45 @@ public class ColourUtils {
         public final static int DARK_RED = toRGBA(64, 0, 0, 255);
         public final static int YELLOW = toRGBA(255, 255, 0, 255);
         public final static int RAINBOW = Integer.MIN_VALUE;
+    }
+
+    /**
+     * @author S-B99 22/01/20
+     * https://minecraft.gamepedia.com/Formatting_codes#Color_codes
+     */
+    public static class ColourCodesMinecraft {
+        public final static int BLACK = toRGBA(0, 0, 0, 255);
+        public final static int DARK_BLUE = toRGBA(0, 0, 170, 255);
+        public final static int DARK_GREEN = toRGBA(0, 170, 0, 255);
+        public final static int DARK_AQUA = toRGBA(0, 170, 170, 255);
+        public final static int DARK_RED = toRGBA(170, 0, 0, 255);
+        public final static int DARK_PURPLE = toRGBA(170, 0, 170, 255);
+        public final static int GOLD = toRGBA(255, 170, 0, 255);
+        public final static int GREY = toRGBA(170, 170, 170, 255);
+        public final static int DARK_GREY = toRGBA(85, 85, 85, 255);
+        public final static int BLUE = toRGBA(85, 85, 255, 255);
+        public final static int GREEN = toRGBA(85, 255, 85, 255);
+        public final static int AQUA = toRGBA(85, 255, 255, 255);
+        public final static int RED = toRGBA(255, 85, 85, 255);
+        public final static int LIGHT_PURPLE = toRGBA(255, 85, 255, 255);
+        public final static int YELLOW = toRGBA(255, 255, 85, 255);
+        public final static int WHITE = toRGBA(255, 255, 255, 255);
+        public final static String BLACK_CC = KamiMod.colour + "0";
+        public final static String DARK_BLUE_CC = KamiMod.colour + "1";
+        public final static String DARK_GREEN_CC = KamiMod.colour + "2";
+        public final static String DARK_AQUA_CC = KamiMod.colour + "3";
+        public final static String DARK_RED_CC = KamiMod.colour + "4";
+        public final static String DARK_PURPLE_CC = KamiMod.colour + "5";
+        public final static String GOLD_CC = KamiMod.colour + "6";
+        public final static String GREY_CC = KamiMod.colour + "7";
+        public final static String DARK_GREY_CC = KamiMod.colour + "8";
+        public final static String BLUE_CC = KamiMod.colour + "9";
+        public final static String GREEN_CC = KamiMod.colour + "a";
+        public final static String AQUA_CC = KamiMod.colour + "b";
+        public final static String RED_CC = KamiMod.colour + "c";
+        public final static String LIGHT_PURPLE_CC = KamiMod.colour + "d";
+        public final static String YELLOW_CC = KamiMod.colour + "e";
+        public final static String WHITE_CC = KamiMod.colour + "f";
     }
 
     public static final int changeAlpha(int origColor, int userInputedAlpha) {
