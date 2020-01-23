@@ -130,13 +130,13 @@ shadowJar {
     dependencies {
         include(dependency('org.spongepowered:mixin'))
         include(dependency('com.github.ZeroMemes:Alpine'))
+        include(dependency('club.minnced:java-discord-rpc'))
         include(dependency('net.jodah:typetools'))
         include(dependency('org.yaml:snakeyaml'))
         include(dependency('org.reflections:reflections'))
         include(dependency('org.javassist:javassist'))
     }
-    exclude 'dummyThing'
-    exclude 'LICENSE.txt'
+    exclude 'dummyThing' // can someone explain why this is here
     classifier = 'release'
 }
 
