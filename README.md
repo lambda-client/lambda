@@ -39,9 +39,8 @@ See [forgehax](https://github.com/fr1kin/forgehax) for an equivalent. Some featu
 
 </details>
 
-## How to download
-
-Press the releases button or [click here](https://github.com/S-B99/KAMI/releases)
+<a href="https://www.github.com/S-B99/KAMI/releases">
+<img src="https://github.com/S-B99/KAMI/blob/assets/assets/icons/download.svg" width="250"/>
 
 ## Status
 
