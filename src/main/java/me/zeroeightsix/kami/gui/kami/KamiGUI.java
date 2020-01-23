@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 
 /**
  * Created by 086 on 25/06/2017.
- * Updated by S-B99 on 19/01/20
+ * Updated by S-B99 on 22/01/20
  * @see me.zeroeightsix.kami.module.modules.bewwawho.gui.InventoryViewer
  */
 public class KamiGUI extends GUI {
