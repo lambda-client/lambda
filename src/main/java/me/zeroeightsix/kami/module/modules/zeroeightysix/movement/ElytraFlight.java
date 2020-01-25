@@ -19,18 +19,18 @@ public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.FLY));
     private Setting<Boolean> highway = register(Settings.b("Highway Mode", false));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Float> speed = register(Settings.f("Speed Highway", 1.8f));
+    private Setting<Float> speed = register(Settings.f("Speed Highway", 6.33f));
     private Setting<Float> upSpeed = register(Settings.f("Up Speed", 0.08f));
     private Setting<Float> downSpeed = register(Settings.f("Down Speed", 0.04f));
-    private Setting<Float> fallSpeedHighway = register(Settings.f("Fall Speed Highway", 0.000050000002f));
+    private Setting<Float> fallSpeedHighway = register(Settings.f("Fall Speed Highway", 0.5493163764476775999999f));
     private Setting<Float> fallspeed = register(Settings.f("Fall Speed", -.003f));
 
     @Override
     public void onUpdate() {
 
         if (defaultSetting.getValue()) {
-            speed.setValue(1.8f);
-            fallSpeedHighway.setValue(.000050000002f);
+            speed.setValue(6.33f);
+            fallSpeedHighway.setValue(0.5493163764476775999999);
             defaultSetting.setValue(false);
             Command.sendChatMessage("[ElytraFlight] Set to defaults!");
         }
