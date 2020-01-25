@@ -22,7 +22,7 @@ public class ElytraFlight extends Module {
     private Setting<Float> speed = register(Settings.f("Speed Highway", 6.33f));
     private Setting<Float> upSpeed = register(Settings.f("Up Speed", 0.08f));
     private Setting<Float> downSpeed = register(Settings.f("Down Speed", 0.04f));
-    private Setting<Float> fallSpeedHighway = register(Settings.f("Fall Speed Highway", 0.5493163764476775999999f));
+    private Setting<Float> fallSpeedHighway = register(Settings.f("Fall Speed Highway", 0.00005493163764476775999999f));
     private Setting<Float> fallspeed = register(Settings.f("Fall Speed", -.003f));
 
     @Override
@@ -30,7 +30,7 @@ public class ElytraFlight extends Module {
 
         if (defaultSetting.getValue()) {
             speed.setValue(6.33f);
-            fallSpeedHighway.setValue(0.5493163764476775999999);
+            fallSpeedHighway.setValue(0.00005493163764476775999999);
             defaultSetting.setValue(false);
             Command.sendChatMessage("[ElytraFlight] Set to defaults!");
         }
