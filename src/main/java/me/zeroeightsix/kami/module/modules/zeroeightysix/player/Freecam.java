@@ -1,14 +1,12 @@
-package me.zeroeightsix.kami.module.modules.zeroeightysix.render;
+package me.zeroeightsix.kami.module.modules.zeroeightysix.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -19,11 +17,10 @@ import net.minecraftforge.client.event.PlayerSPPushOutOfBlocksEvent;
 /**
  * Created by 086 on 22/12/2017.
  */
-@Module.Info(name = "Freecam", category = Module.Category.RENDER, description = "Leave your body and trascend into the realm of the gods")
+@Module.Info(name = "Freecam", category = Module.Category.PLAYER, description = "Leave your body and trascend into the realm of the gods")
 public class Freecam extends Module {
 
     private Setting<Integer> speed = register(Settings.i("Speed", 5)); // /100 in practice
-    private Setting<Boolean> disable2b = register(Settings.b("AntiKick 2b2t", true));
 
     private double posX, posY, posZ;
     private float pitch, yaw;
@@ -82,15 +79,6 @@ public class Freecam extends Module {
 
     @Override
     public void onUpdate() {
-        if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() != null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
-            if (mc.player.dimension == 1) {
-                if (disable2b.getValue()) {
-                    Command.sendWarningMessage("[FakeGamemode] Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
-                    this.disable();
-                }
-            }
-            return;
-        }
         mc.player.capabilities.isFlying = true;
         mc.player.capabilities.setFlySpeed(speed.getValue() / 100f);
         mc.player.noClip = true;
