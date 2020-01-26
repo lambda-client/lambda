@@ -8,6 +8,8 @@ import net.minecraft.launchwrapper.LogWrapper;
 import net.minecraft.util.math.MathHelper;
 
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @author S-B99
@@ -27,11 +29,8 @@ import java.text.DecimalFormat;
  * @author TBM
  * Created by TBM on 8/12/19
  *
- * String:
- * @author S-B99
- *
  * TPS:
- * @author S-B99
+ * @author 086
  */
 public class InfoCalculator extends Module {
 
@@ -93,4 +92,12 @@ public class InfoCalculator extends Module {
         return "" + Math.round(LagCompensator.INSTANCE.getTickRate());
     }
     /* End of ticks Per Second */
+
+    /* Time */
+    public static String time() {
+        SimpleDateFormat formatter = new InfoOverlay().dateFormatter(new InfoOverlay().timeUnitSetting.getValue());
+        Date date = new Date(System.currentTimeMillis());
+        return formatter.format(date);
+    }
+    /* End of time */
 }
