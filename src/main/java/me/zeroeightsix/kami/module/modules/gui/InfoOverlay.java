@@ -15,7 +15,7 @@ import java.util.Locale;
 /**
  * @author S-B99
  * Created by S-B99 on 04/12/19
- * Updated by S-B99 on 22/01/20
+ * Updated by S-B99 on 26/01/20
  */
 @Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures game information overlay", showOnArray = Module.ShowOnArray.OFF)
 public class InfoOverlay extends Module {
@@ -30,10 +30,10 @@ public class InfoOverlay extends Module {
     public Setting<Boolean> durability = register(Settings.b("Item Damage", false));
     public Setting<Boolean> memory = register(Settings.b("Memory Used", false));
     public Setting<SpeedUnit> speedUnit = register(Settings.e("Speed Unit", SpeedUnit.KmH));
-    public Setting<TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeType.HHMMSS));
-    public Setting<TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUnit.h12));
     public Setting<ColourCode> firstColour = register(Settings.e("First Colour", ColourCode.WHITE));
     public Setting<ColourCode> secondColour = register(Settings.e("Second Colour", ColourCode.BLUE));
+    public Setting<TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeType.HHMMSS));
+    public Setting<TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUnit.h12));
 
     public enum SpeedUnit {
         MpS, KmH

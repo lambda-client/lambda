@@ -13,11 +13,8 @@ import java.util.Date;
 
 /**
  * @author S-B99
- * Created by S-B99 18/01/20
- *
- * Ping:
- * @author S-B99
- * Created by S-B99 on 04/12/19
+ * Created by S-B99 on 18/01/20
+ * Updated by S-B99 on 26/01/20
  *
  * Speed:
  * @author S-B99
