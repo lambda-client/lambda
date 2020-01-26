@@ -2,10 +2,10 @@ package me.zeroeightsix.kami.mixin.client;
 
 import com.google.common.base.Predicate;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.NoEntityTrace;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.AntiFog;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Brightness;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.NoHurtCam;
+import me.zeroeightsix.kami.module.modules.misc.NoEntityTrace;
+import me.zeroeightsix.kami.module.modules.render.AntiFog;
+import me.zeroeightsix.kami.module.modules.render.Brightness;
+import me.zeroeightsix.kami.module.modules.render.NoHurtCam;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;

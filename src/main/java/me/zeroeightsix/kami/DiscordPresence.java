@@ -4,7 +4,7 @@ import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.bewwawho.misc.DiscordSettings;
+import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 
 import static me.zeroeightsix.kami.KamiMod.APP_ID;
 

@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.bewwawho.gui.CleanGUI;
+import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;

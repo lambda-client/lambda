@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.ExtraTab;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.TabFriends;
+import me.zeroeightsix.kami.module.modules.render.ExtraTab;
+import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import net.minecraft.client.gui.GuiPlayerTabOverlay;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import org.spongepowered.asm.mixin.Mixin;

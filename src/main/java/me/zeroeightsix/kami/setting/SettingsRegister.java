@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.setting;
 
-import me.zeroeightsix.kami.util.zeroeightysix.Pair;
+import me.zeroeightsix.kami.util.Pair;
 
 import java.util.HashMap;
 import java.util.StringTokenizer;

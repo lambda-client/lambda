@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Chams;
+import me.zeroeightsix.kami.module.modules.render.Chams;
 import net.minecraft.client.renderer.entity.RenderLiving;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;

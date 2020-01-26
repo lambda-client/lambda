@@ -1,8 +1,8 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.movement.EntitySpeed;
-import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
+import me.zeroeightsix.kami.module.modules.movement.EntitySpeed;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.model.ModelBoat;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;

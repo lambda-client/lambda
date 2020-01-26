@@ -1,8 +1,8 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import com.mojang.authlib.GameProfile;
-import me.zeroeightsix.kami.module.modules.bewwawho.capes.LayerCape;
-import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
+import me.zeroeightsix.kami.module.modules.capes.LayerCape;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.world.World;

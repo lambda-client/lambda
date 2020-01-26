@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Pathfind;
+import me.zeroeightsix.kami.module.modules.render.Pathfind;
 import net.minecraft.pathfinding.PathPoint;
 
 /**

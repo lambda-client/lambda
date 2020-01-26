@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.mixin.client;
 import io.netty.channel.ChannelHandlerContext;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.PacketEvent;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.NoPacketKick;
+import me.zeroeightsix.kami.module.modules.misc.NoPacketKick;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import org.spongepowered.asm.mixin.Mixin;

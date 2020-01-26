@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
-import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
+import me.zeroeightsix.kami.util.Wrapper;
 
 /**
  * Created by 086 on 12/11/2017.

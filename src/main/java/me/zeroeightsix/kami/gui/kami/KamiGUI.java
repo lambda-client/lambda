@@ -18,11 +18,11 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
-import me.zeroeightsix.kami.util.zeroeightysix.ColourHolder;
-import me.zeroeightsix.kami.util.zeroeightysix.Friends;
-import me.zeroeightsix.kami.util.zeroeightysix.Pair;
-import me.zeroeightsix.kami.util.zeroeightysix.Wrapper;
+import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
+import me.zeroeightsix.kami.util.ColourHolder;
+import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.Pair;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 /**
  * Created by 086 on 25/06/2017.
  * Updated by S-B99 on 22/01/20
- * @see me.zeroeightsix.kami.module.modules.bewwawho.gui.InventoryViewer
+ * @see me.zeroeightsix.kami.module.modules.gui.InventoryViewer
  */
 public class KamiGUI extends GUI {
 
