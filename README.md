@@ -4,6 +4,11 @@
 
 ### A minecraft utility mod for anarchy servers.
 
+# 
+<a href="https://github.com/S-B99/kamiblue/releases/download/v1.1.2/KAMI-Blue-v1.1.2-release.jar">
+<img src="https://github.com/S-B99/kamiblue/blob/assets/assets/icons/download.svg" width="200"/>
+</a>
+
 |              | S-B99 (feature/master)| 086 (upstream) |
 |:------------:|:-------------:|:--------------:|
 | Build Status | [![Build Status features-master](https://img.shields.io/travis/com/S-B99/kamiblue/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/kamiblue/) | [![Build Status 086](https://travis-ci.com/zeroeightysix/KAMI.svg?logo=gradle&branch=master)](https://travis-ci.com/zeroeightysix/KAMI) |
@@ -15,10 +20,6 @@
 [![BCH](https://img.shields.io/badge/bch-clickme-red?color=2db300&logo=cash-app)](https://www.blockchain.com/bch/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7) 
 
 Please consider donating to help continue this project and get a unique cape in game. 
-
-<a href="https://www.github.com/S-B99/kamiblue/releases">
-<img src="https://github.com/S-B99/kamiblue/blob/assets/assets/icons/download.svg" width="250"/>
-</a>
 
 Also note Baritone is no longer included. Download the standalone jar [from here](https://github.com/cabaletta/baritone/releases/tag/v1.2.10).
 
