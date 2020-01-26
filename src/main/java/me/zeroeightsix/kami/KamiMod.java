@@ -74,9 +74,15 @@ public class KamiMod {
 
 //    public static final String KAMI_HIRAGANA = "\u304B\u307F";
 //    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
-//    public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
-    public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb"; //\u30ab\u30df\u30d6\u30eb //\u795E
+    public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb";
+    public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
+    public static final String KAMI_JAPANESE_ONTOP = "\u4e0a\u306b\u30ab\u30df\u30d6\u30eb\u30fc";
+    public static final String KAMI_ONTOP = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07 \u1d0f\u0274 \u1d1b\u1d0f\u1d18";
+    public static final String KAMI_WEBSITE = "\u0299\u1d07\u029f\u029f\u1d00\u002e\u1d21\u1d1b\ua730\u002f\u1d0b\u1d00\u1d0d\u026a\u0299\u029f\u1d1c\u1d07";
     public static final char colour = '\u00A7';
+    public static final char separator = '\u23d0';
+    public static final char quoteLeft = '\u00ab';
+    public static final char quoteRight = '\u00bb';
 
     private static final String KAMI_CONFIG_NAME_DEFAULT = "KAMIBlueConfig.json";
 
