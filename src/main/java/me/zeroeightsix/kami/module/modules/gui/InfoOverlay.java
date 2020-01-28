@@ -4,7 +4,6 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.ColourUtils;
 import me.zeroeightsix.kami.util.InfoCalculator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.text.TextFormatting;
@@ -16,7 +15,7 @@ import java.util.Locale;
 /**
  * @author S-B99
  * Created by S-B99 on 04/12/19
- * Updated by S-B99 on 26/01/20
+ * Updated by S-B99 on 28/01/20
  */
 @Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures game information overlay", showOnArray = Module.ShowOnArray.OFF)
 public class InfoOverlay extends Module {

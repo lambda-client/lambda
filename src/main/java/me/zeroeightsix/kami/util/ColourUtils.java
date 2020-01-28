@@ -297,7 +297,7 @@ public class ColourUtils {
     }
 
     /**
-     * @author S-B99 22/01/20
+     * @author S-B99 28/01/20
      * https://minecraft.gamepedia.com/Formatting_codes#Color_codes
      * For strings please see TextFormatting.COLOUR.toString();
      */
