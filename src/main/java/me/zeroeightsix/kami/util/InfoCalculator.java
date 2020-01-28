@@ -40,8 +40,7 @@ public class InfoCalculator extends Module {
         } else {
             try {
                 return mc.getConnection().getPlayerInfo(mc.player.getUniqueID()).getResponseTime();
-            } catch (NullPointerException npe) {
-                LogWrapper.info("Caught NPE PingCalculator.java");
+            } catch (NullPointerException ignored) {
             }
             return -1;
         }
