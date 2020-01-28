@@ -1,7 +1,5 @@
 package me.zeroeightsix.kami.util;
 
-import me.zeroeightsix.kami.KamiMod;
-
 import java.awt.*;
 import java.util.ArrayList;
 
