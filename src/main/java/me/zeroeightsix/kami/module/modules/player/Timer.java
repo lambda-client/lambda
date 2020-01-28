@@ -5,7 +5,9 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
 /**
- * @author Sazo
+ * Code like this does not have an author, as it is literally one function. It's nothing unique.
+ * See BowSpam for example. It's just one thing. Anybody can write it the exact same way on accident.
+ * There is nothing to credit here. 
  * Updated by S-B99 on 28/01/20
  */
 @Module.Info(name = "Timer", category = Module.Category.PLAYER, description = "Changes your client tick speed")
