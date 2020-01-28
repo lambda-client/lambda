@@ -128,7 +128,7 @@ public class InventoryViewer extends Module {
         preBoxRender();
         ResourceLocation box = getBox();
         mc.renderEngine.bindTexture(box);
-        mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 56 136 1296 432
+        mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 168 56 // width and height of inventory
         postBoxRender();
     }
 
