@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.ColourUtils;
 import me.zeroeightsix.kami.util.InfoCalculator;
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.text.TextFormatting;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -91,22 +92,22 @@ public class InfoOverlay extends Module {
 
     private String textColour(ColourCode c) {
         switch (c) {
-            case BLACK: return ColourUtils.ColourCodesMinecraft.BLACK_CC;
-            case DARK_BLUE: return ColourUtils.ColourCodesMinecraft.DARK_BLUE_CC;
-            case DARK_GREEN: return ColourUtils.ColourCodesMinecraft.DARK_GREEN_CC;
-            case DARK_AQUA: return ColourUtils.ColourCodesMinecraft.DARK_AQUA_CC;
-            case DARK_RED: return ColourUtils.ColourCodesMinecraft.DARK_RED_CC;
-            case DARK_PURPLE: return ColourUtils.ColourCodesMinecraft.DARK_PURPLE_CC;
-            case GOLD: return ColourUtils.ColourCodesMinecraft.GOLD_CC;
-            case GREY: return ColourUtils.ColourCodesMinecraft.GREY_CC;
-            case DARK_GREY: return ColourUtils.ColourCodesMinecraft.DARK_GREY_CC;
-            case BLUE: return ColourUtils.ColourCodesMinecraft.BLUE_CC;
-            case GREEN: return ColourUtils.ColourCodesMinecraft.GREEN_CC;
-            case AQUA: return ColourUtils.ColourCodesMinecraft.AQUA_CC;
-            case RED: return ColourUtils.ColourCodesMinecraft.RED_CC;
-            case LIGHT_PURPLE: return ColourUtils.ColourCodesMinecraft.LIGHT_PURPLE_CC;
-            case YELLOW: return ColourUtils.ColourCodesMinecraft.YELLOW_CC;
-            case WHITE: return ColourUtils.ColourCodesMinecraft.WHITE_CC;
+            case BLACK: return TextFormatting.BLACK.toString();
+            case DARK_BLUE: return TextFormatting.DARK_BLUE.toString();
+            case DARK_GREEN: return TextFormatting.DARK_GREEN.toString();
+            case DARK_AQUA: return TextFormatting.DARK_AQUA.toString();
+            case DARK_RED: return TextFormatting.DARK_RED.toString();
+            case DARK_PURPLE: return TextFormatting.DARK_PURPLE.toString();
+            case GOLD: return TextFormatting.GOLD.toString();
+            case GREY: return TextFormatting.GRAY.toString();
+            case DARK_GREY: return TextFormatting.DARK_GRAY.toString();
+            case BLUE: return TextFormatting.BLUE.toString();
+            case GREEN: return TextFormatting.GREEN.toString();
+            case AQUA: return TextFormatting.AQUA.toString();
+            case RED: return TextFormatting.RED.toString();
+            case LIGHT_PURPLE: return TextFormatting.LIGHT_PURPLE.toString();
+            case YELLOW: return TextFormatting.YELLOW.toString();
+            case WHITE: return TextFormatting.WHITE.toString();
             default: return "";
         }
     }
