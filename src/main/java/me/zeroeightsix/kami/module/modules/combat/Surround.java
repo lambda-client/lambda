@@ -12,11 +12,8 @@ import net.minecraft.block.BlockObsidian;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.client.CPacketAnimation;
-import net.minecraft.network.play.client.CPacketEntityAction;
+import net.minecraft.network.play.client.*;
 import net.minecraft.network.play.client.CPacketEntityAction.Action;
-import net.minecraft.network.play.client.CPacketHeldItemChange;
-import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketPlayer.Rotation;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -33,7 +30,7 @@ import net.minecraft.util.math.Vec3d;
  */
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian")
 public class Surround extends Module {
-    private Setting<Boolean> autoDisable = register(Settings.b("Auto Disable", true));
+    private Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
     private Setting<Boolean> spoofRotations = register(Settings.b("Spoof Rotations", true));
     private Setting<Boolean> spoofHotbar = register(Settings.b("Spoof Hotbar", true));
     private Setting<Double> blockPerTick = register(Settings.doubleBuilder("Blocks per Tick").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
@@ -105,48 +102,46 @@ public class Surround extends Module {
 
     public void onEnable() {
         if (mc.player == null) return;
-        else if (debugMsgs.getValue().equals(DebugMsgs.ALL)) Command.sendChatMessage("[Surround] Enabling");
 
         /* Autocenter */
-        if (mc.player != null) {
-            BlockPos centerPos = mc.player.getPosition();
-            playerPos = mc.player.getPositionVector();
-            double y = centerPos.getY();
-            double x = centerPos.getX();
-            double z = centerPos.getZ();
+        BlockPos centerPos = mc.player.getPosition();
+        playerPos = mc.player.getPositionVector();
+        double y = centerPos.getY();
+        double x = centerPos.getX();
+        double z = centerPos.getZ();
 
-            final Vec3d plusPlus = new Vec3d(x + 0.5, y, z + 0.5);
-            final Vec3d plusMinus = new Vec3d(x + 0.5, y, z - 0.5);
-            final Vec3d minusMinus = new Vec3d(x - 0.5, y, z - 0.5);
-            final Vec3d minusPlus = new Vec3d(x - 0.5, y, z + 0.5);
+        final Vec3d plusPlus = new Vec3d(x + 0.5, y, z + 0.5);
+        final Vec3d plusMinus = new Vec3d(x + 0.5, y, z - 0.5);
+        final Vec3d minusMinus = new Vec3d(x - 0.5, y, z - 0.5);
+        final Vec3d minusPlus = new Vec3d(x - 0.5, y, z + 0.5);
 
-            if (autoCenter.getValue().equals(AutoCenter.TP)) {
-                if (getDst(plusPlus) < getDst(plusMinus) && getDst(plusPlus) < getDst(minusMinus) && getDst(plusPlus) < getDst(minusPlus)) {
-                    x = centerPos.getX() + 0.5;
-                    z = centerPos.getZ() + 0.5;
-                    centerPlayer(x, y, z);
-                } if (getDst(plusMinus) < getDst(plusPlus) && getDst(plusMinus) < getDst(minusMinus) && getDst(plusMinus) < getDst(minusPlus)) {
-                    x = centerPos.getX() + 0.5;
-                    z = centerPos.getZ() - 0.5;
-                    centerPlayer(x, y, z);
-                } if (getDst(minusMinus) < getDst(plusPlus) && getDst(minusMinus) < getDst(plusMinus) && getDst(minusMinus) < getDst(minusPlus)) {
-                    x = centerPos.getX() - 0.5;
-                    z = centerPos.getZ() - 0.5;
-                    centerPlayer(x, y, z);
-                } if (getDst(minusPlus) < getDst(plusPlus) && getDst(minusPlus) < getDst(plusMinus) && getDst(minusPlus) < getDst(minusMinus)) {
-                    x = centerPos.getX() - 0.5;
-                    z = centerPos.getZ() + 0.5;
-                    centerPlayer(x, y, z);
-                }
-            }
-            /* End of Autocenter*/
-
-            playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
-            lastHotbarSlot = -1;
-            if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                Command.sendChatMessage("[Surround] Saving initial Slot  = " + playerHotbarSlot);
+        if (autoCenter.getValue().equals(AutoCenter.TP)) {
+            if (getDst(plusPlus) < getDst(plusMinus) && getDst(plusPlus) < getDst(minusMinus) && getDst(plusPlus) < getDst(minusPlus)) {
+                x = centerPos.getX() + 0.5;
+                z = centerPos.getZ() + 0.5;
+                centerPlayer(x, y, z);
+            } if (getDst(plusMinus) < getDst(plusPlus) && getDst(plusMinus) < getDst(minusMinus) && getDst(plusMinus) < getDst(minusPlus)) {
+                x = centerPos.getX() + 0.5;
+                z = centerPos.getZ() - 0.5;
+                centerPlayer(x, y, z);
+            } if (getDst(minusMinus) < getDst(plusPlus) && getDst(minusMinus) < getDst(plusMinus) && getDst(minusMinus) < getDst(minusPlus)) {
+                x = centerPos.getX() - 0.5;
+                z = centerPos.getZ() - 0.5;
+                centerPlayer(x, y, z);
+            } if (getDst(minusPlus) < getDst(plusPlus) && getDst(minusPlus) < getDst(plusMinus) && getDst(minusPlus) < getDst(minusMinus)) {
+                x = centerPos.getX() - 0.5;
+                z = centerPos.getZ() + 0.5;
+                centerPlayer(x, y, z);
             }
         }
+        /* End of Autocenter*/
+
+        playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
+        lastHotbarSlot = -1;
+        if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+            Command.sendChatMessage("[Surround] Saving initial Slot  = " + playerHotbarSlot);
+        }
+
     }
 
     public void onDisable() {
@@ -200,6 +195,7 @@ public class Surround extends Module {
         } else if (!BlockInteractionHelper.checkForNeighbours(blockPos) && debugMsgs.getValue().equals(DebugMsgs.ALL)) {
             Command.sendChatMessage("[Surround] !checkForNeighbours(blockPos), disabling! ");
         } else {
+            mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
             placeBlockExecute(blockPos);
         }
     }
@@ -251,7 +247,7 @@ public class Surround extends Module {
                     int obiSlot = findObiInHotbar();
                     if (obiSlot == -1) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
-                            Command.sendChatMessage("[Surround] No Obi in Hotbar, disabling!");
+                            Command.sendChatMessage("[Surround] No obsidian in hotbar, disabling!");
                         }
                         disable();
                         return;
@@ -259,7 +255,7 @@ public class Surround extends Module {
 
                     if (lastHotbarSlot != obiSlot) {
                         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                            Command.sendChatMessage("[Surround] Setting Slot to Obi at  = " + obiSlot);
+                            Command.sendChatMessage("[Surround] Setting Slot to obsidian at  = " + obiSlot);
                         }
                         if (spoofHotbar.getValue()) {
                             mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));
