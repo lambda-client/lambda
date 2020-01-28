@@ -97,4 +97,11 @@ public class InfoCalculator extends Module {
         return formatter.format(date);
     }
     /* End of time */
+
+    /* Round */
+    public static double round(double value, int places) {
+        double scale = Math.pow(10, places);
+        return Math.round(value * scale) / scale;
+    }
+    /* End of round */
 }
