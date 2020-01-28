@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.gui;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.modules.movement.TimerSpeed;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.InfoCalculator;
@@ -26,6 +27,7 @@ public class InfoOverlay extends Module {
     public Setting<Boolean> tps = register(Settings.b("Ticks Per Second", false));
     public Setting<Boolean> fps = register(Settings.b("Frames Per Second", true));
     public Setting<Boolean> speed = register(Settings.b("Speed", true));
+    public Setting<Boolean> timerSpeed = register(Settings.b("Timer Speed", false));
     public Setting<Boolean> ping = register(Settings.b("Latency", false));
     public Setting<Boolean> durability = register(Settings.b("Item Damage", false));
     public Setting<Boolean> memory = register(Settings.b("Memory Used", false));
@@ -34,6 +36,8 @@ public class InfoOverlay extends Module {
     public Setting<ColourCode> secondColour = register(Settings.e("Second Colour", ColourCode.BLUE));
     public Setting<TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeType.HHMMSS));
     public Setting<TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUnit.h12));
+
+    private String formatted = textColour(secondColour.getValue()) + ":" + textColour(firstColour.getValue());
 
     public enum SpeedUnit {
         MpS, KmH
@@ -85,8 +89,11 @@ public class InfoOverlay extends Module {
     }
 
     private String formatTimeColour() {
-        String formatted = textColour(secondColour.getValue()) + ":" + textColour(firstColour.getValue());
         return InfoCalculator.time().replace(":", formatted);
+    }
+
+    private String formatTimerSpeed() {
+        return TimerSpeed.returnGui().replace(".", formatted);
     }
 
     private String textColour(ColourCode c) {
@@ -117,7 +124,7 @@ public class InfoOverlay extends Module {
             infoContents.add(textColour(firstColour.getValue()) + KamiMod.KAMI_KANJI + textColour(secondColour.getValue()) + " " + KamiMod.MODVER);
         }
         if (username.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + "Welcome " + textColour(secondColour.getValue()) + " " + mc.player.getName() + "!");
+            infoContents.add(textColour(firstColour.getValue()) + "Welcome" + textColour(secondColour.getValue()) + " " + mc.player.getName() + "!");
         }
         if (time.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + formatTimeColour());
@@ -130,6 +137,9 @@ public class InfoOverlay extends Module {
         }
         if (speed.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.speed() + textColour(secondColour.getValue()) + " " + unitType(speedUnit.getValue()));
+        }
+        if (timerSpeed.getValue()) {
+            infoContents.add(textColour(firstColour.getValue()) + formatTimerSpeed() + textColour(secondColour.getValue()) + "t");
         }
         if (ping.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.ping() + textColour(secondColour.getValue()) + " ms");
