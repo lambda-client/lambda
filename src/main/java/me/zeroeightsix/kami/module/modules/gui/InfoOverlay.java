@@ -31,19 +31,17 @@ public class InfoOverlay extends Module {
     public Setting<Boolean> ping = register(Settings.b("Latency", false));
     public Setting<Boolean> durability = register(Settings.b("Item Damage", false));
     public Setting<Boolean> memory = register(Settings.b("Memory Used", false));
-    public Setting<SpeedUnit> speedUnit = register(Settings.e("Speed Unit", SpeedUnit.KmH));
+    private Setting<SpeedUnit> speedUnit = register(Settings.e("Speed Unit", SpeedUnit.KmH));
     public Setting<ColourCode> firstColour = register(Settings.e("First Colour", ColourCode.WHITE));
     public Setting<ColourCode> secondColour = register(Settings.e("Second Colour", ColourCode.BLUE));
-    public Setting<TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeType.HHMMSS));
+    private Setting<TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeType.HHMMSS));
     public Setting<TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUnit.h12));
 
-    private String formatted = textColour(secondColour.getValue()) + ":" + textColour(firstColour.getValue());
-
-    public enum SpeedUnit {
+    private enum SpeedUnit {
         MpS, KmH
     }
 
-    public enum TimeType {
+    private enum TimeType {
         HHMM, HHMMSS, HH
     }
 
@@ -51,7 +49,7 @@ public class InfoOverlay extends Module {
         h24, h12
     }
 
-    private enum ColourCode {
+    public enum ColourCode {
         BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA, DARK_RED, DARK_PURPLE, GOLD, GREY, DARK_GREY, BLUE, GREEN, AQUA, RED, LIGHT_PURPLE, YELLOW, WHITE
     }
 
@@ -59,7 +57,7 @@ public class InfoOverlay extends Module {
         return speedUnit.getValue().equals(SpeedUnit.KmH);
     }
 
-    public String unitType(SpeedUnit s) {
+    private String unitType(SpeedUnit s) {
         switch (s) {
             case MpS: return "m/s";
             case KmH: return "km/h";
@@ -89,14 +87,20 @@ public class InfoOverlay extends Module {
     }
 
     private String formatTimeColour() {
-        return InfoCalculator.time().replace(":", formatted);
+        String formatted = textColour(secondColour.getValue()) + ":" + textColour(firstColour.getValue());
+        return InfoCalculator.time(dateFormatter(timeUnitSetting.getValue())).replace(":", formatted);
     }
 
+//    public String formatChatTime() {
+//        return textColour(secondColour.getValue()) + InfoCalculator.time(dateFormatter(timeUnitSetting.getValue())) + TextFormatting.RESET;
+//    }
+
     private String formatTimerSpeed() {
+        String formatted = textColour(secondColour.getValue()) + "." + textColour(firstColour.getValue());
         return TimerSpeed.returnGui().replace(".", formatted);
     }
 
-    private String textColour(ColourCode c) {
+    public String textColour(ColourCode c) {
         switch (c) {
             case BLACK: return TextFormatting.BLACK.toString();
             case DARK_BLUE: return TextFormatting.DARK_BLUE.toString();
@@ -127,7 +131,7 @@ public class InfoOverlay extends Module {
             infoContents.add(textColour(firstColour.getValue()) + "Welcome" + textColour(secondColour.getValue()) + " " + mc.player.getName() + "!");
         }
         if (time.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + formatTimeColour());
+            infoContents.add(textColour(firstColour.getValue()) + formatTimeColour() + TextFormatting.RESET);
         }
         if (tps.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.tps() + textColour(secondColour.getValue()) + " tps");

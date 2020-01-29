@@ -90,10 +90,9 @@ public class InfoCalculator extends Module {
     /* End of ticks Per Second */
 
     /* Time */
-    public static String time() {
-        SimpleDateFormat formatter = new InfoOverlay().dateFormatter(new InfoOverlay().timeUnitSetting.getValue());
+    public static String time(SimpleDateFormat format) {
         Date date = new Date(System.currentTimeMillis());
-        return formatter.format(date);
+        return format.format(date);
     }
     /* End of time */
 
