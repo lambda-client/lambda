@@ -12,7 +12,7 @@ import me.zeroeightsix.kami.setting.Settings;
  */
 @Module.Info(name = "Timer", category = Module.Category.PLAYER, description = "Changes your client tick speed")
 public class Timer extends Module {
-    private Setting<Float> speed = register(Settings.floatBuilder("Speed").withMinimum(0f).withMaximum(10f).withValue(4.2f));
+    private Setting<Float> speed = register(Settings.floatBuilder("Speed").withMinimum(0f).withMaximum(10f).withValue(2.0f));
 
     public void onDisable() {
         mc.timer.tickLength = 50.0f;
