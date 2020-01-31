@@ -62,7 +62,7 @@ public class DiscordPresence {
         DiscordPresence.presence.details = details;
         DiscordPresence.presence.state = state;
         DiscordPresence.presence.largeImageKey = "kami";
-        DiscordPresence.presence.largeImageText = "bella.wtf/kamiblue";
+        DiscordPresence.presence.largeImageText = "blue.bella.wtf";
         DiscordPresence.rpc.Discord_UpdatePresence(DiscordPresence.presence);
     }
 
