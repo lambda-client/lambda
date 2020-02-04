@@ -12,7 +12,7 @@ import static me.zeroeightsix.kami.KamiMod.*;
 
 /**
  * Created by 086 on 8/04/2018.
- * Updated by S-B99 on 26/01/20
+ * Updated by S-B99 on 04/02/20
  */
 @Module.Info(name = "CustomChat", category = Module.Category.MISC, description = "Chat ending", showOnArray = Module.ShowOnArray.OFF)
 public class CustomChat extends Module {
