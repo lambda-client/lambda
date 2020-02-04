@@ -18,8 +18,8 @@ import static me.zeroeightsix.kami.KamiMod.*;
 public class CustomChat extends Module {
 
     public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
-    private Setting<TextMode> textMode = register(Settings.e("Content", TextMode.JAPANESE));
-    private Setting<DecoMode> decoMode = register(Settings.e("Punctuation", DecoMode.CLASSIC));
+    private Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ONTOP));
+    private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
 
     private enum TextMode {
