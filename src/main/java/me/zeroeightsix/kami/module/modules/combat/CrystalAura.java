@@ -41,7 +41,7 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
  */
-@Module.Info(name = "CrystalAura", category = Module.Category.COMBAT)
+@Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
 
     private Setting<Boolean> autoSwitch = register(Settings.b("Auto Switch"));

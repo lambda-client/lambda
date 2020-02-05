@@ -12,7 +12,7 @@ import net.minecraft.util.SoundCategory;
  * Created by cats on 1/12/2019
  */
 
-@Module.Info(name = "NoSoundLag", category = Module.Category.MISC, description = "Prevents sound lag")
+@Module.Info(name = "NoSoundLag", category = Module.Category.MISC, description = "Prevents lag caused by sound machines")
 public class NoSoundLag extends Module {
 
     @EventHandler

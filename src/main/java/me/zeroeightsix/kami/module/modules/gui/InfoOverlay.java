@@ -18,7 +18,7 @@ import java.util.Locale;
  * Created by S-B99 on 04/12/19
  * Updated by S-B99 on 28/01/20
  */
-@Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures game information overlay", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures the game information overlay", showOnArray = Module.ShowOnArray.OFF)
 public class InfoOverlay extends Module {
 
     public Setting<Boolean> version = register(Settings.b("Version", true));

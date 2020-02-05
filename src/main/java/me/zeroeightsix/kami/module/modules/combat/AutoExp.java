@@ -13,7 +13,7 @@ import net.minecraft.init.Items;
  * Created 17 October 2019 by hub
  * Updated 21 November 2019 by hub
  */
-@Module.Info(name = "AutoExp", category = Module.Category.COMBAT, description = "Auto Switch to XP and throw fast")
+@Module.Info(name = "AutoExp", category = Module.Category.COMBAT, description = "Automatically mends armour")
 public class AutoExp extends Module {
 
     private Setting<Boolean> autoThrow = register(Settings.b("Auto Throw", true));

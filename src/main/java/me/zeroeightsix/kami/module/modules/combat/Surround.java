@@ -28,7 +28,7 @@ import net.minecraft.util.math.Vec3d;
  * Updated by Polymer on 09/01/20
  * Updated by S-B99 on 28/01/20
  */
-@Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian")
+@Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian to take less damage")
 public class Surround extends Module {
     private Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
     private Setting<Boolean> spoofRotations = register(Settings.b("Spoof Rotations", true));

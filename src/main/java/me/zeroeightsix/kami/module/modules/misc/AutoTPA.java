@@ -15,7 +15,7 @@ import java.util.function.Predicate;
  * By Katatje 8 Dec 2019
  */
 
-@Module.Info(name = "AutoTPA", description = "Auto Accepts/Declines TPA requests", category = Module.Category.MISC)
+@Module.Info(name = "AutoTPA", description = "Automatically decline or accept TPA requests", category = Module.Category.MISC)
 public class AutoTPA extends Module {
 
     private Setting<mode> mod = register(Settings.e("Response", mode.DENY));

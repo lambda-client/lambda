@@ -9,7 +9,7 @@ import net.minecraft.item.ItemAir;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketHeldItemChange;
 
-@Module.Info(name = "Pull32k", category = Module.Category.COMBAT)
+@Module.Info(name = "Pull32k", category = Module.Category.COMBAT, description = "Pulls 32ks out of hoppers automatically")
 public class Pull32k extends Module{
 	boolean foundsword = false;
     @Override

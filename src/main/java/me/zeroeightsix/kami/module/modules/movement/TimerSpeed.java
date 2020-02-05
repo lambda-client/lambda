@@ -11,7 +11,7 @@ import me.zeroeightsix.kami.util.InfoCalculator;
  * @author TBM
  * Updated by S-B99 on 28/01/20
  */
-@Info(name = "TimerSpeed", description = "Automatically change Timer Speed", category = Category.MOVEMENT)
+@Info(name = "TimerSpeed", description = "Automatically change your timer to go fast", category = Category.MOVEMENT)
 public class TimerSpeed extends Module {
     private float tickDelay = 0.0f;
     private static float curSpeed = 0.0f;

@@ -9,7 +9,7 @@ import net.minecraft.network.play.client.CPacketPlayer;
 /**
  * Created by 086 on 8/04/2018.
  */
-@Module.Info(name = "AntiHunger", category = Module.Category.MOVEMENT, description = "Lose hunger less fast. Might cause ghostblocks.")
+@Module.Info(name = "AntiHunger", category = Module.Category.MOVEMENT, description = "Reduces hunger lost when moving around")
 public class AntiHunger extends Module {
 
     @EventHandler

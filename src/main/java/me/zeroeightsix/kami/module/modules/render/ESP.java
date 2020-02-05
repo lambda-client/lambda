@@ -19,7 +19,7 @@ import static org.lwjgl.opengl.GL11.*;
  * Created by 086 on 14/12/2017.
  * Updated by d1gress/Qther on 27/11/2019.
  */
-@Module.Info(name = "ESP", category = Module.Category.RENDER)
+@Module.Info(name = "ESP", category = Module.Category.RENDER, description = "Highlights entities")
 public class ESP extends Module {
 
     private Setting<ESPMode> mode = register(Settings.e("Mode", ESPMode.RECTANGLE));

@@ -36,7 +36,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketI
  * Created by hub on 7 August 2019
  * Updated by hub on 21 November 2019
  */
-@Module.Info(name = "Auto32k", category = Module.Category.COMBAT, description = "Do not use with any AntiGhostBlock Mod!")
+@Module.Info(name = "Auto32k", category = Module.Category.COMBAT, description = "Places blocks to dispense a 32k")
 public class Auto32k extends Module {
 
     private static final List<Block> blackList = Arrays.asList(

@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * Created by 086 on 9/04/2018.
  */
-@Module.Info(name = "ChatEncryption", description = "Encrypts and decrypts chat messages (Delimiter %)", category = Module.Category.MISC)
+@Module.Info(name = "ChatEncryption", description = "Encrypts and decrypts chat messages (Delimiter %)", category = Module.Category.MISC, showOnArray = Module.ShowOnArray.OFF)
 public class ChatEncryption extends Module {
 
     private Setting<EncryptionMode> mode = register(Settings.e("Mode", EncryptionMode.SHUFFLE));

@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * Updated 12 January 2020 by hub
  * Updated by S-B99 on 18/01/20
  */
-@Module.Info(name = "AntiSpam", category = Module.Category.MISC)
+@Module.Info(name = "AntiSpam", category = Module.Category.MISC, description = "Removes spam and advertising from the chat", showOnArray = Module.ShowOnArray.OFF)
 public class AntiChatSpam extends Module {
 
     private Setting<Boolean> greenText = register(Settings.b("Green Text", false));

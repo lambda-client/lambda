@@ -31,7 +31,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketI
  * @author hub
  * @since 2019-8-13
  */
-@Module.Info(name = "AutoFeetPlace", category = Module.Category.COMBAT)
+@Module.Info(name = "AutoFeetPlace", category = Module.Category.COMBAT, description = "Continually places obsidian around your feet")
 public class AutoFeetPlace extends Module {
 
     private Setting<Mode> mode = register(Settings.e("Mode", Mode.FULL));

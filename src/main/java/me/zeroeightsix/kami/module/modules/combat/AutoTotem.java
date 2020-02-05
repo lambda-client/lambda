@@ -12,7 +12,7 @@ import net.minecraft.item.ItemStack;
  * Created by 086 on 22/01/2018.
  * Updated by S-B99 on 12/11/19
  */
-@Module.Info(name = "AutoTotem", category = Module.Category.COMBAT)
+@Module.Info(name = "AutoTotem", category = Module.Category.COMBAT, description = "Refills your offhand with totems")
 public class AutoTotem extends Module {
 
     int totems;

@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.module.modules.player.AntiChunkLoadPatch;
+import me.zeroeightsix.kami.module.modules.experimental.AntiChunkLoadPatch;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.NettyCompressionDecoder;
 import net.minecraft.network.PacketBuffer;

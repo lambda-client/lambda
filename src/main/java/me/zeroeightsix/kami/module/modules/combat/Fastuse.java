@@ -14,7 +14,7 @@ import net.minecraft.item.ItemExpBottle;
  * Updated by S-B99 on 03/12/19
  * Updated by d1gress/Qther on 4/12/19
  */
-@Module.Info(category = Module.Category.COMBAT, description = "Changes delay when holding right click", name = "FastUse")
+@Module.Info(category = Module.Category.COMBAT, description = "Changes delay when using items", name = "FastUse")
 public class Fastuse extends Module {
 
 

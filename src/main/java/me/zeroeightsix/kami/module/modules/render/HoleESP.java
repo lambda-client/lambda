@@ -24,7 +24,7 @@ import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPo
  * Created 16 November 2019 by hub
  * Updated by S-B99 on 15/12/19
  */
-@Module.Info(name = "HoleESP", category = Module.Category.RENDER, description = "Show safe holes")
+@Module.Info(name = "HoleESP", category = Module.Category.RENDER, description = "Show safe holes for crystal pvp")
 public class HoleESP extends Module {
 
     private final BlockPos[] surroundOffset = {

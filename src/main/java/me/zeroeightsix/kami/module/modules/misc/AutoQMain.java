@@ -15,7 +15,7 @@ import java.util.Date;
  * Updated by @S-B99 on 29/11/19
  * Updated by d1gress/Qther on 5/12/2019
  */
-@Module.Info(name = "AutoQMain", description = "Automatically does \"/queue main\" every X minutes.", category = Module.Category.MISC)
+@Module.Info(name = "AutoQMain", description = "Automatically does /queue main on 2b2t.org", category = Module.Category.MISC, showOnArray = Module.ShowOnArray.OFF)
 public class AutoQMain extends Module {
 
     private Setting<Boolean> debug = register(Settings.b("Debug", true));

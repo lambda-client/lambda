@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.client.Minecraft;
 
-@Module.Info(name = "ShulkerBypass", category = Module.Category.RENDER, description = "Bypasses the shulker preview patch on 2b2t")
+@Module.Info(name = "ShulkerBypass", category = Module.Category.RENDER, description = "Bypasses the shulker preview patch")
 public class ShulkerBypass extends Module {
     public void onEnable() {
         if (Minecraft.getMinecraft().player == null) return;

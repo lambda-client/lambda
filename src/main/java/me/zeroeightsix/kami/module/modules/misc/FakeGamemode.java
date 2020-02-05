@@ -11,7 +11,7 @@ import net.minecraft.world.GameType;
  * Created by @S-B99 on 20/11/19
  * Yes, this is 100% original code. Go away
  */
-@Module.Info(name = "FakeGamemode", description = "Fakes your current gamemode", category = Module.Category.MISC)
+@Module.Info(name = "FakeGamemode", description = "Fakes your current gamemode client side", category = Module.Category.MISC)
 public class FakeGamemode extends Module {
     private Setting<GamemodeChanged> gamemode = register(Settings.e("Mode", GamemodeChanged.CREATIVE));
     private Setting<Boolean> disable2b = register(Settings.b("AntiKick 2b2t", true));

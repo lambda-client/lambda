@@ -22,7 +22,7 @@ import net.minecraft.network.play.server.SPacketChunkData;
  * @author cats
  * Updated by cats on 02/12/19
  */
-@Module.Info(name = "AntiChunkBan", description = "Spams /kill, gets out of ban chunks.", category = Module.Category.MISC)
+@Module.Info(name = "AntiChunkBan", description = "Prevents being kicked by overloaded chunks", category = Module.Category.MISC, showOnArray = Module.ShowOnArray.OFF)
 public class AntiChunkBan extends Module {
 
     private static long startTime = 0;
