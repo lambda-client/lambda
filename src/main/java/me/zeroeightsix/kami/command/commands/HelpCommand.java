@@ -35,26 +35,31 @@ public class HelpCommand extends Command {
 
     public HelpCommand() {
         super("help", new SyntaxChunk[]{}, "?");
-        setDescription("Delivers help on certain subjects. Use &b" + Command.getCommandPrefix() + "help subjects&8 for a list.");
+        setDescription("Delivers help on certain subjects. Use &7" + Command.getCommandPrefix() + "help subjects&8 for a list.");
     }
 
     @Override
     public void call(String[] args) {
         if (args[0] == null) {
             Command.sendStringChatMessage(new String[]{
-                    KamiMod.KAMI_KANJI,
                     "KAMI Blue " + KamiMod.MODVER,
+                    "&7Press &r" + ModuleManager.getModuleByName("ClickGUI").getBindName() + "&7 to open GUI",
+                    "&7see &9https://blue.bella.wtf&7 for a full version of the faq",
                     "commands&7 to view all available commands",
                     "bind <module> <key>&7 to bind mods",
-                    "&7Press &r" + ModuleManager.getModuleByName("ClickGUI").getBindName() + "&7 to open GUI",
                     "prefix <prefix>&r to change the command prefix.",
-                    "help <subjects:[subject]> &r for more help."
+                    "help &7<bind|subjects:[subject]>&r for more help."
             });
         } else {
             String subject = args[0];
             if (subject.equals("subjects")) {
                 Command.sendChatMessage("Subjects: " + subjectsList);
-            } else {
+            }
+            else if (subject.equals("bind")) {
+                Command.sendChatMessage("You can also use &7.bind&r modifiers on to allow modules to be bound to keybinds with modifiers, e.g &7ctrl + shift + w or ctrl + c.&r");
+                Command.sendChatMessage("You can unbind modules with backspace in the GUI or by running &7.bind <module> none&r");
+            }
+            else {
                 Subject subject1 = Arrays.stream(subjects).filter(subject2 -> {
                     for (String name : subject2.names)
                         if (name.equalsIgnoreCase(subject))
