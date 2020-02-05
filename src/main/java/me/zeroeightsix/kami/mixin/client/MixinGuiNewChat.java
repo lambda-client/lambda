@@ -27,7 +27,6 @@ public abstract class MixinGuiNewChat {
         if (!CleanGUI.enabled() || (CleanGUI.enabled() && !CleanGUI.chatGlobal.getValue())) {
             return fontRenderer.drawStringWithShadow(text, x, y, color);
         }
-
         return fontRenderer.drawString(text, (int) x, (int) y, color);
     }
 
