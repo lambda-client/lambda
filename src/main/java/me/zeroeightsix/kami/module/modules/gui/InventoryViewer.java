@@ -17,7 +17,6 @@ import org.lwjgl.opengl.GL11;
 import java.util.List;
 
 /***
- * @author Unknown // LGPL Licensed
  * Updated by S-B99 on 18/01/20
  * GUI method written by S-B99
  */
