@@ -16,14 +16,13 @@ import net.minecraft.util.math.MathHelper;
 @Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
 public class ElytraFlight extends Module {
 
-    private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.FLY));
-    private Setting<Boolean> highway = register(Settings.b("Highway Mode", false));
+    private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
     private Setting<Float> speed = register(Settings.f("Speed Highway", 1.8f));
     private Setting<Float> upSpeed = register(Settings.f("Up Speed", 0.08f));
     private Setting<Float> downSpeed = register(Settings.f("Down Speed", 0.04f));
     private Setting<Float> fallSpeedHighway = register(Settings.f("Fall Speed Highway", 0.000050000002f));
-    private Setting<Float> fallspeed = register(Settings.f("Fall Speed", -.003f));
+    private Setting<Float> fallSpeed = register(Settings.f("Fall Speed", -.003f));
 
     @Override
     public void onUpdate() {
@@ -35,12 +34,8 @@ public class ElytraFlight extends Module {
             Command.sendChatMessage("[ElytraFlight] Set to defaults!");
         }
 
-        if (highway.getValue()) {
-            mode.setValue(ElytraFlightMode.FLY);
-        }
-
         if (mc.player.capabilities.isFlying) {
-            if (highway.getValue()) {
+            if (mode.getValue().equals(ElytraFlightMode.HIGHWAY)) {
                 mc.player.setVelocity(0, 0, 0);
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.getValue(), mc.player.posZ);
                 mc.player.capabilities.setFlySpeed(speed.getValue());
@@ -49,7 +44,7 @@ public class ElytraFlight extends Module {
             else {
                 mc.player.setVelocity(0, 0, 0);
                 mc.player.capabilities.setFlySpeed(.915f);
-                mc.player.setPosition(mc.player.posX, mc.player.posY - fallspeed.getValue(), mc.player.posZ);
+                mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeed.getValue(), mc.player.posZ);
             }
         }
 
@@ -103,7 +98,7 @@ public class ElytraFlight extends Module {
     }
 
     private enum ElytraFlightMode {
-        BOOST, FLY
+        BOOST, FLY, HIGHWAY
     }
 
 }
