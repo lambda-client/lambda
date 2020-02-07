@@ -154,12 +154,12 @@ public class KamiMod {
                 }
             }
         }
-        Display.setTitle(MODNAME + KAMI_KANJI + MODVER);
+        Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVER);
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        KamiMod.log.info("\n\nInitializing KAMI " + MODVER);
+        KamiMod.log.info("\n\nInitializing " + MODNAME + " " + MODVER);
 
         ModuleManager.initialize();
 
@@ -217,7 +217,7 @@ public class KamiMod {
             KamiMod.log.info("NPE in loading always enabled modules\n");
         }
 
-        KamiMod.log.info("KAMI Mod initialized!\n");
+        KamiMod.log.info(MODNAME + " Mod initialized!\n");
     }
 
     public static String getConfigName() {
