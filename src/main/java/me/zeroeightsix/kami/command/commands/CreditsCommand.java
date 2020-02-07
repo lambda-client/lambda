@@ -5,7 +5,6 @@ import me.zeroeightsix.kami.command.Command;
 /**
  * Created by S-B99 on 01/12/2019.
  */
-
 public class CreditsCommand extends Command {
 
     public CreditsCommand() {
