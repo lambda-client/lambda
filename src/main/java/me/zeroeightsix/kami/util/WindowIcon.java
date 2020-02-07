@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
  * Taken from Minecraft.java, as unfortunately it's method does not support using custom icons.
  * Updated by S-B99 on 07/02/20
  */
-public class WindowIcon extends Module {
+public class WindowIcon {
     public final DefaultResourcePack defaultResourcePack = Minecraft.getMinecraft().defaultResourcePack;
     public void setWindowIcon() {
         Util.EnumOS util$enumos = Util.getOSType();
