@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
 import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
@@ -275,14 +276,8 @@ public class KamiGUI extends GUI {
             /* Don't load friends list if it's minimized */
             if (!friendsFrame.isMinimized()) {
                 friends.setText("");
-
                 Friends.friends.getValue().forEach(friend -> {
                     friendsAmount.getAndIncrement();
-                    /* Cap loading friends list at 100 */
-                    if (friendsAmount.get() <= 100) {
-//                        Command.sendChatMessage("added");
-                        friends.addLine(friend.getUsername());
-                    }
                 });
             }
             else {
