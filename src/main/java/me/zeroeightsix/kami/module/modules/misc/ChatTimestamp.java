@@ -14,7 +14,7 @@ import net.minecraft.util.text.TextFormatting;
 
 /**
  * @author S-B99
- * Updated by S-B99 on 28/01/20
+ * Updated by S-B99 on 06/02/20
  */
 @Module.Info(name = "ChatTimestamp", category = Module.Category.MISC)
 public class ChatTimestamp extends Module {
@@ -39,6 +39,4 @@ public class ChatTimestamp extends Module {
         Command.sendRawChatMessage("<" + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue()) + TextFormatting.RESET + "> " + message);
         return true;
     }
-
-
 }
