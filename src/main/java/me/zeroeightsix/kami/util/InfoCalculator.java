@@ -62,7 +62,7 @@ public class InfoCalculator extends Module {
     }
 
     private static double coordsDiff(String s) {
-        switch(s) {
+        switch (s) {
             case "x": return mc.player.posX - mc.player.prevPosX;
             case "z": return mc.player.posZ - mc.player.prevPosZ;
             default: return 0.0;
