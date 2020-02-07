@@ -37,7 +37,7 @@ public class InfoOverlay extends Module {
     private Setting<ColourUtils.ColourCode> secondColour = register(Settings.e("Second Colour", ColourUtils.ColourCode.BLUE));
     private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeUtil.TimeType.HHMMSS));
     private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUtil.TimeUnit.h12));
-    private Setting<Boolean> doLocale = register(Settings.b("Show AMPM", true));
+    private Setting<Boolean> doLocale = register(Settings.b("Time Show AMPM", true));
 
     private enum SpeedUnit {
         MpS, KmH
