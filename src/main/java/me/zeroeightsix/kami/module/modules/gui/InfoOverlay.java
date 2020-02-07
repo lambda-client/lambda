@@ -54,8 +54,6 @@ public class InfoOverlay extends Module {
         }
     }
 
-
-
     private String formatTimerSpeed() {
         String formatted = textColour(secondColour.getValue()) + "." + textColour(firstColour.getValue());
         return TimerSpeed.returnGui().replace(".", formatted);

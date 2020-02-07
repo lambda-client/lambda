@@ -18,6 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
+import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.gui.InventoryViewer;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 import me.zeroeightsix.kami.module.modules.misc.CustomChat;
@@ -189,7 +190,7 @@ public class KamiMod {
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
 
-        try { // load modules that are on by default // autoenable
+        try { // load modules that are on by default // auto enable
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
 
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
@@ -206,6 +207,9 @@ public class KamiMod {
             }
             if (((InventoryViewer) ModuleManager.getModuleByName("InventoryViewer")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
+            }
+            if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
             }
 
         }
