@@ -22,7 +22,6 @@ import java.util.List;
  */
 @Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
 public class InventoryViewer extends Module {
-    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
     private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.ICONLARGE));
 
     KamiGUI kamiGUI = KamiMod.getInstance().getGuiManager();
@@ -37,8 +36,12 @@ public class InventoryViewer extends Module {
                         return frame.getX();
                     case 1:
                         return frame.getY();
+                    case 3:
+                        if (frame.isPinned()) return 1;
+                        else return 0;
                     default:
                         return 0;
+
                 }
             }
         }
@@ -118,9 +121,11 @@ public class InventoryViewer extends Module {
 
     @Override
     public void onRender() {
-        final NonNullList<ItemStack> items = InventoryViewer.mc.player.inventory.mainInventory;
-        boxRender(invPos(0), invPos(1));
-        itemRender(items, invPos(0), invPos(1));
+        if (invPos(3) == 1) {
+            final NonNullList<ItemStack> items = InventoryViewer.mc.player.inventory.mainInventory;
+            boxRender(invPos(0), invPos(1));
+            itemRender(items, invPos(0), invPos(1));
+        }
     }
 
     private void boxRender(final int x, final int y) {
@@ -141,4 +146,7 @@ public class InventoryViewer extends Module {
             postItemRender();
         }
     }
+
+    @Override
+    public void onDisable() { this.enable(); }
 }

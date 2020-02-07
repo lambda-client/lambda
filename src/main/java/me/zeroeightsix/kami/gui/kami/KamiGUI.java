@@ -249,14 +249,20 @@ public class KamiGUI extends GUI {
         /*
          * Inventory Viewer
          * This method appears empty but it's used by
-         * me/zeroeightsix/kami/module/modules/bewwawho/gui/InventoryViewer.java
+         * me/zeroeightsix/kami/module/modules/gui/InventoryViewer.java
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);
         frame.setMinimizeable(false);
-        frame.setPinnable(false);
+        frame.setPinnable(true);
+        frame.setPinned(true);
         Label inventory = new Label("");
-        inventory.setShadow(true);
+        inventory.addTickListener(() -> { // 1 == 2 px in game
+            inventory.setWidth(152);
+            inventory.setHeight(40);
+            inventory.setOpacity(0.1f); // why does this not do anything
+        });
+        inventory.setShadow(false);
         frame.addChild(inventory);
         inventory.setFontRenderer(fontRenderer);
         frames.add(frame);

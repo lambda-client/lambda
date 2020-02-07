@@ -192,6 +192,7 @@ public class KamiMod {
 
         try { // load modules that are on by default // auto enable
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
+            ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
 
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
@@ -204,9 +205,6 @@ public class KamiMod {
             }
             if (((CustomChat) ModuleManager.getModuleByName("CustomChat")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("CustomChat").setEnabled(true);
-            }
-            if (((InventoryViewer) ModuleManager.getModuleByName("InventoryViewer")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
             }
             if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
