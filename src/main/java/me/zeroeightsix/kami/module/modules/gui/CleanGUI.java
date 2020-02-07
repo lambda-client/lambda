@@ -11,7 +11,7 @@ import me.zeroeightsix.kami.setting.Settings;
 @Module.Info(name = "CleanGUI", category = Module.Category.GUI, showOnArray = Module.ShowOnArray.OFF, description = "Modifies parts of the GUI to be transparent")
 public class CleanGUI extends Module {
     public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
-    public Setting<Boolean> inventoryGlobal = register(Settings.b("Inventory", falses));
+    public Setting<Boolean> inventoryGlobal = register(Settings.b("Inventory", false));
     public static Setting<Boolean> chatGlobal = Settings.b("Chat", true);
 
     private static CleanGUI INSTANCE = new CleanGUI();
