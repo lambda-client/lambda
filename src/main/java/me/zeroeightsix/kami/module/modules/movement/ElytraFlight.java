@@ -79,7 +79,7 @@ public class ElytraFlight extends Module {
                     mc.player.motionZ -= MathHelper.cos(yaw) * 0.05F;
                 }
                 break;
-            case FLY:
+            default:
                 mc.player.capabilities.setFlySpeed(.915f);
                 mc.player.capabilities.isFlying = true;
 
