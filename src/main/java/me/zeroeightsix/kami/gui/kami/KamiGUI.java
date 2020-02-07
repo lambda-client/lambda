@@ -258,7 +258,7 @@ public class KamiGUI extends GUI {
         frame.setPinned(true);
         Label inventory = new Label("");
         inventory.addTickListener(() -> { // 1 == 2 px in game
-            inventory.setWidth(152);
+            inventory.setWidth(151);
             inventory.setHeight(40);
             inventory.setOpacity(0.1f); // why does this not do anything
         });
