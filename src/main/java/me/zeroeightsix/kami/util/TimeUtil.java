@@ -46,15 +46,15 @@ public class TimeUtil {
         return formatter;
     }
 
-    public static String getFinalTime(ColourUtils.ColourCode colourCode2, ColourUtils.ColourCode colourCode1, TimeUnit timeUnit, TimeType timeType) {
+    public static String getFinalTime(ColourUtils.ColourCode colourCode2, ColourUtils.ColourCode colourCode1, TimeUnit timeUnit, TimeType timeType, Boolean doLocale) {
         String formatted = ColourUtils.getStringColour(colourCode2) + ":" + ColourUtils.getStringColour(colourCode1);
         String locale = "";
         String time = time(TimeUtil.dateFormatter(TimeUnit.h24, TimeType.HH));
-        if (timeUnit == TimeUnit.h12) {
+        if (timeUnit == TimeUnit.h12 && doLocale) {
             if ((Integer.parseInt(time)) - 12 >= 0) { // checks if the 24 hour time minus 12 is negative or 0, if it is it's pm
-                locale = " pm";
+                locale = "pm";
             } else {
-                locale = " am";
+                locale = "am";
             }
         }
         return ColourUtils.getStringColour(colourCode1) + time(dateFormatter(timeUnit, timeType)).replace(":", formatted) + ColourUtils.getStringColour(colourCode2) + locale;

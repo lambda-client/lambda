@@ -22,6 +22,7 @@ public class ChatTimestamp extends Module {
     private Setting<ColourUtils.ColourCode> secondColour = register(Settings.e("Second Colour", ColourUtils.ColourCode.WHITE));
     private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeUtil.TimeType.HHMM));
     private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUtil.TimeUnit.h12));
+    private Setting<Boolean> doLocale = register(Settings.b("Show AMPM", true));
 
     @EventHandler
     public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
@@ -36,7 +37,7 @@ public class ChatTimestamp extends Module {
     });
 
     private boolean addTime(String message) {
-        Command.sendRawChatMessage("<" + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue()) + TextFormatting.RESET + "> " + message);
+        Command.sendRawChatMessage("<" + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET + "> " + message);
         return true;
     }
 }

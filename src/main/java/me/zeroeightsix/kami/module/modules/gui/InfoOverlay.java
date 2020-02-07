@@ -37,6 +37,7 @@ public class InfoOverlay extends Module {
     private Setting<ColourUtils.ColourCode> secondColour = register(Settings.e("Second Colour", ColourUtils.ColourCode.BLUE));
     private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeUtil.TimeType.HHMMSS));
     private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUtil.TimeUnit.h12));
+    private Setting<Boolean> doLocale = register(Settings.b("Show AMPM", true));
 
     private enum SpeedUnit {
         MpS, KmH
@@ -72,7 +73,7 @@ public class InfoOverlay extends Module {
             infoContents.add(textColour(firstColour.getValue()) + "Welcome" + textColour(secondColour.getValue()) + " " + mc.player.getName() + "!");
         }
         if (time.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue()) + TextFormatting.RESET);
+            infoContents.add(textColour(firstColour.getValue()) + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET);
         }
         if (tps.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.tps() + textColour(secondColour.getValue()) + " tps");
