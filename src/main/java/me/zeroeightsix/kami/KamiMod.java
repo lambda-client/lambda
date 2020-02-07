@@ -19,18 +19,14 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
-import me.zeroeightsix.kami.module.modules.gui.InventoryViewer;
-import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 import me.zeroeightsix.kami.module.modules.misc.CustomChat;
+import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
-import me.zeroeightsix.kami.util.RichPresence;
-import me.zeroeightsix.kami.util.Friends;
-import me.zeroeightsix.kami.util.LagCompensator;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.*;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -55,7 +51,7 @@ import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 22/12/19
+ * Updated by S-B99 on 07/02/19
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -110,9 +106,7 @@ public class KamiMod {
     }).buildAndRegister("");
 
     @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-
-    }
+    public void preInit(FMLPreInitializationEvent event) { }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
@@ -155,6 +149,8 @@ public class KamiMod {
             }
         }
         Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVER);
+        WindowIcon windowIcon = new WindowIcon();
+        windowIcon.setWindowIcon();
     }
 
     @Mod.EventHandler
