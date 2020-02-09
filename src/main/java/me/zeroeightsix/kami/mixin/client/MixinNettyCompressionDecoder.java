@@ -56,7 +56,6 @@ public class MixinNettyCompressionDecoder {
                 if (i > 2097152) {
                     if (AntiCompressionBan.enabled()) {
                         Command.sendWarningMessage("&7[&c&lDecoderException&r&7] &rBadly compressed packet - size of " + i + " is larger than protocol maximum of 2097152");
-                    } else {
                         throw new DecoderException("Badly compressed packet - size of " + i + " is larger than protocol maximum of 2097152");
                     }
                 }
