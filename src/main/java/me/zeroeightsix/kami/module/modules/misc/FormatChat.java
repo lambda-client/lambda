@@ -32,7 +32,7 @@ public class FormatChat extends Module {
     public Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketChatMessage) {
             String message = ((CPacketChatMessage) event.getPacket()).message;
-            if(message.contains("&") || message.contains("#n")){
+            if (message.contains("&") || message.contains("#n")) {
                 message = message.replaceAll("&", KamiMod.colour + "");
                 message = message.replaceAll("#n", "\n");
 

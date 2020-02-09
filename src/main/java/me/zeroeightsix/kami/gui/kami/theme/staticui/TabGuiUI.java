@@ -59,7 +59,7 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
         int textY = 1;
         for (int i = 0; i < component.tabs.size(); i++) {
             String tabName = component.tabs.get(i).name;
-            /*if(i == selected)
+            /*if (i == selected)
                 tabName = (tabOpened ? "<" : ">") + tabName;*/
 
             GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -95,7 +95,7 @@ public class TabGuiUI extends AbstractComponentUI<TabGUI> {
                 Module feature = tab.features.get(i);
                 String fName = (feature.isEnabled() ? "\u00A7c" : "\u00A77") + feature.getName();
 
-                /*if(i == tab.selected)
+                /*if (i == tab.selected)
                     fName = "\u00A7b" + fName;*/
 
                 GL11.glEnable(GL11.GL_TEXTURE_2D);

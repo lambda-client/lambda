@@ -22,7 +22,7 @@ public class Pull32k extends Module{
 				enchantedSwordIndex = i;
 				foundsword = true;
 			}
-			if(!foundsword) {
+			if (!foundsword) {
 				enchantedSwordIndex = -1;
 				foundsword = false;
 			}
@@ -45,7 +45,7 @@ public class Pull32k extends Module{
 			if (enchantedSwordIndex == -1) {
 				return;
 			}
-			if(enchantedSwordIndex != -1) {
+			if (enchantedSwordIndex != -1) {
 				for (int i = 0; i < 9; i++) {
 					ItemStack itemStack = mc.player.inventory.mainInventory.get(i);
 					if (itemStack.getItem() instanceof ItemAir) {
@@ -65,7 +65,7 @@ public class Pull32k extends Module{
 		}
     }
     public boolean checkStuff() {
-    	if(EnchantmentHelper.getEnchantmentLevel(Enchantments.SHARPNESS, mc.player.inventory.getCurrentItem()) == Short.valueOf((short)5)) {
+    	if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SHARPNESS, mc.player.inventory.getCurrentItem()) == Short.valueOf((short)5)) {
     		return true;
     	} else {
     		return false;

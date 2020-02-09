@@ -46,7 +46,7 @@ public class SignBookCommand extends Command {
             futureTitle = futureTitle.replaceAll("#n", "\n");
             futureTitle = futureTitle.replaceAll("null", ""); //Random extra null added sometimes
 
-            if(futureTitle.length() > 31){
+            if (futureTitle.length() > 31) {
                 Command.sendChatMessage("Title cannot be over 31 characters.");
                 return;
             }
@@ -57,8 +57,8 @@ public class SignBookCommand extends Command {
 
             NBTTagCompound bookData = is.getTagCompound();
 
-            if(is.hasTagCompound()){
-                if(bookData != null) {
+            if (is.hasTagCompound()) {
+                if (bookData != null) {
                     is.setTagCompound(bookData);
                 }
                 is.getTagCompound().setTag("title", new NBTTagString(futureTitle));
