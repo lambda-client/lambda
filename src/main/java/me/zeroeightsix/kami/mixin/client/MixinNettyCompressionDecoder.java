@@ -18,7 +18,9 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 /**
- * Created by 0x2E | PretendingToCode
+ * Created by 0x2E | PretendingToCode on 29/12/19
+ * Updated by 0x2E on 01/02/20
+ * Updated by S-B99 on 09/02/20
  */
 @Mixin(NettyCompressionDecoder.class)
 public class MixinNettyCompressionDecoder {
