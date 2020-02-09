@@ -21,6 +21,7 @@ import me.zeroeightsix.kami.module.modules.capes.Capes;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.misc.CustomChat;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
+import me.zeroeightsix.kami.module.modules.player.AntiCompressionBan;
 import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -195,9 +196,9 @@ public class KamiMod {
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
             }
-//            if (((AntiChunkLoadPatch) ModuleManager.getModuleByName("AntiChunkLoadPatch")).startupGlobal.getValue()) {
-//                ModuleManager.getModuleByName("AntiChunkLoadPatch").setEnabled(true);
-//            }
+            if (((AntiCompressionBan) ModuleManager.getModuleByName("AntiCompressionBan")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("AntiCompressionBan").setEnabled(true);
+            }
             if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("TabFriends").setEnabled(true);
             }
