@@ -43,7 +43,7 @@ public abstract class Command {
     }
 
     public static void sendChatMessage(String message) {
-        sendRawChatMessage("&7[&a" + KamiMod.KAMI_KANJI + "&7] &r" + message);
+        sendRawChatMessage("&7[&9" + KamiMod.KAMI_KANJI + "&7] &r" + message);
     }
 
     public static void sendErrorMessage(String message) {
