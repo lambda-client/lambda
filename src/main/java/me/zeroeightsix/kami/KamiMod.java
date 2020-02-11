@@ -34,14 +34,14 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.opengl.Display;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
+import javax.imageio.ImageIO;
+import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -150,8 +150,7 @@ public class KamiMod {
             }
         }
         Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVER);
-        WindowIcon windowIcon = new WindowIcon();
-        windowIcon.setWindowIcon();
+//        Display.setIcon(WindowIcon.ExtractByteBufferFromImagePath("kami.png"));
     }
 
     @Mod.EventHandler
