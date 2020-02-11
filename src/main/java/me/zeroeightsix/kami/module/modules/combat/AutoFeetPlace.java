@@ -56,9 +56,7 @@ public class AutoFeetPlace extends Module {
     private boolean missingObiDisable = false;
 
     private static EnumFacing getPlaceableSide(BlockPos pos) {
-
         for (EnumFacing side : EnumFacing.values()) {
-
             BlockPos neighbour = pos.offset(side);
 
             if (!mc.world.getBlockState(neighbour).getBlock().canCollideCheck(mc.world.getBlockState(neighbour), false)) {
@@ -69,16 +67,12 @@ public class AutoFeetPlace extends Module {
             if (!blockState.getMaterial().isReplaceable()) {
                 return side;
             }
-
         }
-
         return null;
-
     }
 
     @Override
     protected void onEnable() {
-
         if (mc.player == null) {
             this.disable();
             return;
@@ -89,15 +83,11 @@ public class AutoFeetPlace extends Module {
         // save initial player hand
         playerHotbarSlot = mc.player.inventory.currentItem;
         lastHotbarSlot = -1;
-
     }
 
     @Override
     protected void onDisable() {
-
-        if (mc.player == null) {
-            return;
-        }
+        if (mc.player == null) return;
 
         // load initial player hand
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
@@ -113,12 +103,10 @@ public class AutoFeetPlace extends Module {
         lastHotbarSlot = -1;
 
         missingObiDisable = false;
-
     }
 
     @Override
     public void onUpdate() {
-
         if (mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
             return;
         }
@@ -161,7 +149,6 @@ public class AutoFeetPlace extends Module {
         int blocksPlaced = 0;
 
         while (blocksPlaced < blocksPerTick.getValue()) {
-
             if (offsetStep >= maxSteps) {
                 offsetStep = 0;
                 break;
@@ -175,11 +162,9 @@ public class AutoFeetPlace extends Module {
             }
 
             offsetStep++;
-
         }
 
         if (blocksPlaced > 0) {
-
             if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
                 mc.player.inventory.currentItem = playerHotbarSlot;
                 lastHotbarSlot = playerHotbarSlot;
@@ -189,7 +174,6 @@ public class AutoFeetPlace extends Module {
                 mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
                 isSneaking = false;
             }
-
         }
 
         totalTicksRunning++;
@@ -201,11 +185,9 @@ public class AutoFeetPlace extends Module {
             }
             this.disable();
         }
-
     }
 
     private boolean placeBlock(BlockPos pos) {
-
         // check if block is already placed
         Block block = mc.world.getBlockState(pos).getBlock();
         if (!(block instanceof BlockAir) && !(block instanceof BlockLiquid)) {
@@ -266,15 +248,12 @@ public class AutoFeetPlace extends Module {
             ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
         }
         return true;
-
     }
 
     private int findObiInHotbar() {
-
         // search blocks in hotbar
         int slot = -1;
         for (int i = 0; i < 9; i++) {
-
             // filter out non-block items
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
 
@@ -287,11 +266,8 @@ public class AutoFeetPlace extends Module {
                 slot = i;
                 break;
             }
-
         }
-
         return slot;
-
     }
 
     private enum Mode {
@@ -299,7 +275,6 @@ public class AutoFeetPlace extends Module {
     }
 
     private static class Offsets {
-
         private static final Vec3d[] SURROUND = {
                 new Vec3d(1, 0, 0),
                 new Vec3d(0, 0, 1),
@@ -322,7 +297,5 @@ public class AutoFeetPlace extends Module {
                 new Vec3d(0, -1, -1),
                 new Vec3d(0, -1, 0)
         };
-
     }
-
 }

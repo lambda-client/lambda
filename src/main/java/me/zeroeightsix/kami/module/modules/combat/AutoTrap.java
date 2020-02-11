@@ -66,11 +66,8 @@ public class AutoTrap extends Module {
     private boolean missingObiDisable = false;
 
     private static EnumFacing getPlaceableSide(BlockPos pos) {
-
         for (EnumFacing side : EnumFacing.values()) {
-
             BlockPos neighbour = pos.offset(side);
-
             if (!mc.world.getBlockState(neighbour).getBlock().canCollideCheck(mc.world.getBlockState(neighbour), false)) {
                 continue;
             }
@@ -79,20 +76,14 @@ public class AutoTrap extends Module {
             if (!blockState.getMaterial().isReplaceable()) {
                 return side;
             }
-
         }
 
         return null;
-
     }
 
     @Override
     protected void onEnable() {
-
-        if (mc.player == null) {
-            this.disable();
-            return;
-        }
+        if (mc.player == null) return;
 
         firstRun = true;
 
@@ -104,10 +95,7 @@ public class AutoTrap extends Module {
 
     @Override
     protected void onDisable() {
-
-        if (mc.player == null) {
-            return;
-        }
+        if (mc.player == null) return;
 
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
             mc.player.inventory.currentItem = playerHotbarSlot;
@@ -122,20 +110,13 @@ public class AutoTrap extends Module {
         lastHotbarSlot = -1;
 
         missingObiDisable = false;
-
     }
 
     @Override
     public void onUpdate() {
+        if (mc.player == null) return;
 
-        if (mc.player == null) {
-            return;
-        }
-
-        if (!activeInFreecam.getValue() && ModuleManager.isModuleEnabled("Freecam")) {
-            return;
-        }
-
+        if (!activeInFreecam.getValue() && ModuleManager.isModuleEnabled("Freecam")) return;
 
         if (firstRun) {
             if (findObiInHotbar() == -1) {
@@ -170,22 +151,15 @@ public class AutoTrap extends Module {
 
         List<Vec3d> placeTargets = new ArrayList<>();
 
-        if (cage.getValue().equals(Cage.TRAP)) {
-            Collections.addAll(placeTargets, Offsets.TRAP);
-        }
+        if (cage.getValue().equals(Cage.TRAP)) Collections.addAll(placeTargets, Offsets.TRAP);
 
-        if (cage.getValue().equals(Cage.CRYSTALEXA)) {
-            Collections.addAll(placeTargets, Offsets.CRYSTALEXA);
-        }
+        if (cage.getValue().equals(Cage.CRYSTALEXA)) Collections.addAll(placeTargets, Offsets.CRYSTALEXA);
 
-        if (cage.getValue().equals(Cage.CRYSTALFULL)) {
-            Collections.addAll(placeTargets, Offsets.CRYSTALFULL);
-        }
+        if (cage.getValue().equals(Cage.CRYSTALFULL)) Collections.addAll(placeTargets, Offsets.CRYSTALFULL);
 
         int blocksPlaced = 0;
 
         while (blocksPlaced < blocksPerTick.getValue()) {
-
             if (offsetStep >= placeTargets.size()) {
                 offsetStep = 0;
                 break;
@@ -197,13 +171,10 @@ public class AutoTrap extends Module {
             if (placeBlockInRange(targetPos, range.getValue())) {
                 blocksPlaced++;
             }
-
             offsetStep++;
-
         }
 
         if (blocksPlaced > 0) {
-
             if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
                 mc.player.inventory.currentItem = playerHotbarSlot;
                 lastHotbarSlot = playerHotbarSlot;
@@ -213,7 +184,6 @@ public class AutoTrap extends Module {
                 mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING));
                 isSneaking = false;
             }
-
         }
 
         if (missingObiDisable) {
@@ -223,11 +193,9 @@ public class AutoTrap extends Module {
             }
             this.disable();
         }
-
     }
 
     private boolean placeBlockInRange(BlockPos pos, double range) {
-
         // check if block is already placed
         Block block = mc.world.getBlockState(pos).getBlock();
         if (!(block instanceof BlockAir) && !(block instanceof BlockLiquid)) {
@@ -280,9 +248,7 @@ public class AutoTrap extends Module {
             isSneaking = true;
         }
 
-        if (rotate.getValue()) {
-            faceVectorPacketInstant(hitVec);
-        }
+        if (rotate.getValue()) faceVectorPacketInstant(hitVec);
 
         mc.playerController.processRightClickBlock(mc.player, mc.world, neighbour, opposite, hitVec, EnumHand.MAIN_HAND);
         mc.player.swingArm(EnumHand.MAIN_HAND);
@@ -295,17 +261,13 @@ public class AutoTrap extends Module {
         if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
             ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
         }
-
         return true;
-
     }
 
     private int findObiInHotbar() {
-
         // search blocks in hotbar
         int slot = -1;
         for (int i = 0; i < 9; i++) {
-
             // filter out non-block items
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
 
@@ -318,52 +280,32 @@ public class AutoTrap extends Module {
                 slot = i;
                 break;
             }
-
         }
-
         return slot;
-
     }
 
     private void findClosestTarget() {
-
         List<EntityPlayer> playerList = mc.world.playerEntities;
-
         closestTarget = null;
 
         for (EntityPlayer target : playerList) {
+            if (target == mc.player) continue;
 
-            if (target == mc.player) {
-                continue;
-            }
+            if (mc.player.getDistance(target) > range.getValue() + 3) continue;
 
-            if (mc.player.getDistance(target) > range.getValue() + 3) {
-                continue;
-            }
+            if (!EntityUtil.isLiving(target)) continue;
 
-            if (!EntityUtil.isLiving(target)) {
-                continue;
-            }
+            if ((target).getHealth() <= 0) continue;
 
-            if ((target).getHealth() <= 0) {
-                continue;
-            }
-
-            if (Friends.isFriend(target.getName())) {
-                continue;
-            }
+            if (Friends.isFriend(target.getName())) continue;
 
             if (closestTarget == null) {
                 closestTarget = target;
                 continue;
             }
 
-            if (mc.player.getDistance(target) < mc.player.getDistance(closestTarget)) {
-                closestTarget = target;
-            }
-
+            if (mc.player.getDistance(target) < mc.player.getDistance(closestTarget)) closestTarget = target;
         }
-
     }
 
     @Override
@@ -379,7 +321,6 @@ public class AutoTrap extends Module {
     }
 
     private static class Offsets {
-
         private static final Vec3d[] TRAP = {
                 new Vec3d(0, 0, -1),
                 new Vec3d(1, 0, 0),
@@ -434,7 +375,5 @@ public class AutoTrap extends Module {
                 new Vec3d(0, 3, -1),
                 new Vec3d(0, 3, 0)
         };
-
     }
-
 }

@@ -31,6 +31,7 @@ import net.minecraft.util.math.Vec3d;
  */
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian to take less damage")
 public class Surround extends Module {
+
     private Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
     private Setting<Boolean> spoofRotations = register(Settings.b("Spoof Rotations", true));
     private Setting<Boolean> spoofHotbar = register(Settings.b("Spoof Hotbar", true));
@@ -49,6 +50,7 @@ public class Surround extends Module {
     private enum DebugMsgs {
         NONE, IMPORTANT, ALL
     }
+
     private enum AutoCenter {
         OFF, TP
     }
@@ -81,7 +83,6 @@ public class Surround extends Module {
                 placeBlock(new BlockPos(basePos.add(offset.x, offset.y, offset.z)));
                 ++offsetStep;
             }
-
         }
     }
 
@@ -103,7 +104,6 @@ public class Surround extends Module {
 
     public void onEnable() {
         if (mc.player == null) return;
-
         /* Autocenter */
         BlockPos centerPos = mc.player.getPosition();
         playerPos = mc.player.getPositionVector();
@@ -142,7 +142,6 @@ public class Surround extends Module {
         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
             Command.sendChatMessage("[Surround] Saving initial Slot  = " + playerHotbarSlot);
         }
-
     }
 
     public void onDisable() {
@@ -158,7 +157,6 @@ public class Surround extends Module {
                     Wrapper.getPlayer().inventory.currentItem = playerHotbarSlot;
                 }
             }
-
             playerHotbarSlot = -1;
             lastHotbarSlot = -1;
         }
@@ -185,7 +183,6 @@ public class Surround extends Module {
         if (autoDisable.getValue()) {
             disable();
         }
-
     }
 
     private void placeBlock(BlockPos blockPos) {
@@ -285,7 +282,6 @@ public class Surround extends Module {
                 }
             }
         }
-
     }
 
     private static boolean canBeClicked(BlockPos pos) {
@@ -319,6 +315,4 @@ public class Surround extends Module {
     private static Vec3d getEyesPos() {
         return new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + (double) Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
     }
-
-
 }
