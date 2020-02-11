@@ -108,7 +108,9 @@ public class ForgeEventProcessor {
     public void onKeyInput(InputEvent.KeyInputEvent event) {
         if (!Keyboard.getEventKeyState()) return;
         if (("" + Keyboard.getEventCharacter()).equalsIgnoreCase(Command.getCommandPrefix())) {
-            Minecraft.getMinecraft().displayGuiScreen(new GuiChat(Command.getCommandPrefix()));
+            if (!Minecraft.getMinecraft().player.isSneaking()) {
+                Minecraft.getMinecraft().displayGuiScreen(new GuiChat(Command.getCommandPrefix()));
+            }
         } else {
             ModuleManager.onBind(Keyboard.getEventKey());
         }
