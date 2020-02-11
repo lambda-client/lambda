@@ -14,7 +14,7 @@ import static org.lwjgl.opengl.GL11.*;
 /**
  * Created by 086 on 8/08/2017.
  */
-public class KamiEnumbuttonUI extends AbstractComponentUI<EnumButton> {
+public class KamiEnumButtonUI extends AbstractComponentUI<EnumButton> {
 
     RootSmallFontRenderer smallFontRenderer = new RootSmallFontRenderer();
 
@@ -48,7 +48,7 @@ public class KamiEnumbuttonUI extends AbstractComponentUI<EnumButton> {
         float downscale = 1.1f;
 
         glDisable(GL_TEXTURE_2D);
-        glColor3f(.59f, .05f, .11f);
+        glColor3f(.60f, .56f, 1.00f); // ENUM AND BIND COLORS
         glBegin(GL_LINES);
         {
             glVertex2d(startX, height / downscale);
