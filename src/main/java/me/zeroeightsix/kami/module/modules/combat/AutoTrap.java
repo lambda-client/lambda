@@ -4,6 +4,7 @@ import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
@@ -289,6 +290,10 @@ public class AutoTrap extends Module {
 
         if (noGlitchBlocks.getValue() && !mc.playerController.getCurrentGameType().equals(GameType.CREATIVE)) {
             mc.player.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, neighbour, opposite));
+        }
+
+        if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
+            ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
         }
 
         return true;

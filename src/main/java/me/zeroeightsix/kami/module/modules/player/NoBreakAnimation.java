@@ -67,7 +67,7 @@ public class NoBreakAnimation extends Module {
         this.lastFacing = lastFacing;
     }
 
-    public void resetMining() { // TODO: call in autofeetplace and autotrap when they are merged
+    public void resetMining() {
         isMining = false;
         lastPos = null;
         lastFacing = null;

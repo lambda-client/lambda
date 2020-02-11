@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
@@ -197,6 +198,9 @@ public class Surround extends Module {
         } else {
             mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
             placeBlockExecute(blockPos);
+        }
+        if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
+            ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
         }
     }
 
