@@ -15,8 +15,8 @@ import me.zeroeightsix.kami.util.InfoCalculator;
 public class TimerSpeed extends Module {
     private float tickDelay = 0.0f;
     private static float curSpeed = 0.0f;
-    private Setting<Float> minimumSpeed = register(Settings.floatBuilder("Minimum Speed").withMinimum(0.0F).withMaximum(10.0F).withValue(4.0F));
-    private Setting<Float> maxSpeed = register(Settings.floatBuilder("Max Speed").withMinimum(0.0F).withMaximum(10.0F).withValue(7.0F));
+    private Setting<Float> minimumSpeed = register(Settings.floatBuilder("Minimum Speed").withMinimum(0.1F).withMaximum(10.0F).withValue(4.0F));
+    private Setting<Float> maxSpeed = register(Settings.floatBuilder("Max Speed").withMinimum(0.1F).withMaximum(10.0F).withValue(7.0F));
     private Setting<Float> attemptSpeed = register(Settings.floatBuilder("Attempt Speed").withMinimum(1.0F).withMaximum(10.0F).withValue(4.2F));
     private Setting<Float> fastSpeed = register(Settings.floatBuilder("Fast Speed").withMinimum(1.0F).withMaximum(10.0F).withValue(5.0F));
 
