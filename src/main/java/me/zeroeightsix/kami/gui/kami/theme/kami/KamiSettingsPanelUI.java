@@ -18,10 +18,10 @@ public class KamiSettingsPanelUI extends AbstractComponentUI<SettingsPanel> {
         super.renderComponent(component, fontRenderer);
 
         GL11.glLineWidth(2.0F);
-        float red = (float) (Integer) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).red.getValue() / 255.0F;
-        float green = (float) (Integer) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).green.getValue() / 255.0F;
-        float blue = (float) (Integer) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).blue.getValue() / 255.0F;
-        float alpha = (float) (Integer) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).alpha.getValue() / 255.0F;
+        float red = (float) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).red.getValue() / 255.0F;
+        float green = (float) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).green.getValue() / 255.0F;
+        float blue = (float) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).blue.getValue() / 255.0F;
+        float alpha = (float) ((GUIColour) ModuleManager.getModuleByName("GUI Colour")).alpha.getValue() / 255.0F;
         if (ModuleManager.getModuleByName("GUI Colour").isEnabled()) {
             GL11.glColor4f(red, green, blue, alpha);
         } else {
@@ -29,7 +29,7 @@ public class KamiSettingsPanelUI extends AbstractComponentUI<SettingsPanel> {
         }
 
         RenderHelper.drawFilledRectangle(0.0F, 0.0F, (float) component.getWidth(), (float) component.getHeight());
-        GL11.glColor3f(0.59F, 0.05F, 0.11F);
+        GL11.glColor3f(.60f, .56f, 1.00f);
         GL11.glLineWidth(1.5F);
         RenderHelper.drawRectangle(0.0F, 0.0F, (float) component.getWidth(), (float) component.getHeight());
     }
