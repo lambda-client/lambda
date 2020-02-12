@@ -201,7 +201,7 @@ public class KamiGUI extends GUI {
         /*
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info2");
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
 //        Label information2 = new Label("");
         EnumButton theme = new EnumButton("Theme", new String[] {"Modern", "Modern2", "Kami", "Kami Blue", "Custom"});
         ColorizedCheckButton checkButton = new ColorizedCheckButton("Button");
