@@ -13,15 +13,16 @@ import static org.lwjgl.opengl.GL11.*;
 /**
  * Created by 086 on 4/08/2017.
  */
-public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentUI<CheckButton> {
+public class RootCheckButtonUI extends AbstractComponentUI<CheckButton> {
 
-    protected Color backgroundColour = new Color(200, 56, 56);
-    protected Color backgroundColourHover = new Color(255, 66, 66);
+    // SEARCHCOLOUR: CheckButton Colours
+    protected Color backgroundColour = new Color(67, 54, 191); // normal
+    protected Color backgroundColourHover = new Color(67, 54, 191); // light
 
-    protected Color idleColourNormal = new Color(200, 200, 200);
-    protected Color downColourNormal = new Color(190, 190, 190);
+    protected Color idleColourNormal = new Color(200, 200, 200); // lighter grey
+    protected Color downColourNormal = new Color(190, 190, 190); // light grey
 
-    protected Color idleColourToggle = new Color(250, 120, 120);
+    protected Color idleColourToggle = new Color(165, 158, 232); // lighter
     protected Color downColourToggle = idleColourToggle.brighter();
 
     @Override
