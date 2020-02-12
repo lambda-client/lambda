@@ -48,7 +48,7 @@ public class KamiEnumButtonUI extends AbstractComponentUI<EnumButton> {
         float downscale = 1.1f;
 
         glDisable(GL_TEXTURE_2D);
-        glColor3f(.60f, .56f, 1.00f); // ENUM AND BIND COLORS
+        glColor3f(.60f, .56f, 1.00f); // SEARCHCOLOUR: Enum and Bind Colours
         glBegin(GL_LINES);
         {
             glVertex2d(startX, height / downscale);

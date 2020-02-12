@@ -19,6 +19,7 @@ import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.opengl.GL11;
 
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -47,7 +48,7 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
 
         glColor4f(.17f, .17f, .18f, .9f);
         RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight());
-        glColor3f(.60f, .56f, 1.00f);
+        glColor3f(toF(116), toF(101), toF(247)); // SEARCHCOLOUR: main ui outline color
         glLineWidth(1.5f);
         RenderHelper.drawRectangle(0, 0, component.getWidth(), component.getHeight());
 
