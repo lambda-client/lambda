@@ -13,7 +13,7 @@ import static org.lwjgl.opengl.GL11.*;
 /**
  * Created by 086 on 4/08/2017.
  */
-public class RootCheckButtonUI extends AbstractComponentUI<CheckButton> {
+public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentUI<CheckButton> {
 
     // SEARCHCOLOUR: CheckButton Colours
     protected Color backgroundColour = new Color(67, 54, 191); // normal
