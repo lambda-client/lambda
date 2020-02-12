@@ -105,9 +105,9 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
 
         if (component.isPinnable()) {
             if (component.isPinned())
-                glColor3f(1, .33f, .33f);
+                glColor3f(toF(209), toF(150), toF(250)); // SEARCHCOLOUR: Pinned Component colour
             else
-                glColor3f(0.66f, 0.66f, 0.66f);
+                glColor3f(toF(239), toF(217), toF(255));
             RenderHelper.drawCircle(7, 4, 2f);
             glLineWidth(3f);
             glBegin(GL_LINES);
