@@ -11,6 +11,7 @@ import net.minecraft.network.play.server.SPacketChat;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Created 19 November 2019 by hub
@@ -62,14 +63,20 @@ public class AntiChatSpam extends Module {
     });
 
     @Override
-    public void onEnable() {
-        messageHistory = new ConcurrentHashMap<>();
+    public void onUpdate() { // leijurv's sexy lambda
+        messageHistory
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getValue() < System.currentTimeMillis() - 5 * 60 * 1000) // 5 is delay in minutes
+                .collect(Collectors.toList())
+                .forEach(entry -> messageHistory.remove(entry.getKey()));
     }
 
     @Override
-    public void onDisable() {
-        messageHistory = null;
-    }
+    public void onEnable() { messageHistory = new ConcurrentHashMap<>(); }
+
+    @Override
+    public void onDisable() { messageHistory = null; }
 
     private boolean detectSpam(String message) {
 
@@ -170,27 +177,19 @@ public class AntiChatSpam extends Module {
                 return true;
             }
         }
-
         return false;
-
     }
 
     private boolean findPatterns(String[] patterns, String string) {
-
         for (String pattern : patterns) {
-
             if (Pattern.compile(pattern).matcher(string).find()) {
                 return true;
             }
-
         }
-
         return false;
-
     }
 
     private static class FilterPatterns {
-
         private static final String[] ANNOUNCER =
                 {
                         // RusherHack b8
