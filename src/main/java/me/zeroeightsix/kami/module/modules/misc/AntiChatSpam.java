@@ -41,14 +41,9 @@ public class AntiChatSpam extends Module {
 
     @EventHandler
     public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
+        if (mc.player == null || this.isDisabled()) return;
+        if (!(event.getPacket() instanceof SPacketChat)) return;
 
-        if (mc.player == null || this.isDisabled()) {
-            return;
-        }
-
-        if (!(event.getPacket() instanceof SPacketChat)) {
-            return;
-        }
         SPacketChat sPacketChat = (SPacketChat) event.getPacket();
 
         // servers i test on did not send ChatType.CHAT for chat messages >:(
@@ -56,21 +51,17 @@ public class AntiChatSpam extends Module {
             return;
         }*/
 
+        // leijurv's sexy lambda to remove older entries in messageHistory
+        messageHistory.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue() < System.currentTimeMillis() - 10 * 60 * 1000) // 10 is delay in minutes
+                .collect(Collectors.toList())
+                .forEach(entry -> messageHistory.remove(entry.getKey()));
+
         if (detectSpam(sPacketChat.getChatComponent().getUnformattedText())) {
             event.cancel();
         }
-
     });
-
-    @Override
-    public void onUpdate() { // leijurv's sexy lambda
-        messageHistory
-                .entrySet()
-                .stream()
-                .filter(entry -> entry.getValue() < System.currentTimeMillis() - 10 * 60 * 1000) // 5 is delay in minutes
-                .collect(Collectors.toList())
-                .forEach(entry -> messageHistory.remove(entry.getKey()));
-    }
 
     @Override
     public void onEnable() { messageHistory = new ConcurrentHashMap<>(); }
@@ -79,7 +70,6 @@ public class AntiChatSpam extends Module {
     public void onDisable() { messageHistory = null; }
 
     private boolean detectSpam(String message) {
-
         if (!filterOwn.getValue() && findPatterns(FilterPatterns.OWN_MESSAGE, message)) {
             return false;
         }
