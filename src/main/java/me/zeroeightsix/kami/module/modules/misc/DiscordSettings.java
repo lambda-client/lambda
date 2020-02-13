@@ -11,7 +11,7 @@ import me.zeroeightsix.kami.setting.Settings;
  * @author S-B99
  * Updated by S-B99 on 13/01/20
  */
-@Module.Info(name = "DiscordRPC", category = Module.Category.MISC, description = "Discord Rich Presence")
+@Module.Info(name = "DiscordSettings", category = Module.Category.MISC, description = "Discord Rich Presence")
 public class DiscordSettings extends Module {
 
     public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
@@ -33,7 +33,7 @@ public class DiscordSettings extends Module {
                 else if (mc.getCurrentServerData() != null) return "Multiplayer";
                 else return "Main Menu";
             case USERNAME:
-                if (mc.player != null) return mc.player.getName();
+                if (mc.player != null) return mc.getSession().getUsername();
                 else return "(Not logged in)";
             case HEALTH:
                 if (mc.player != null) return "(" + ((int) mc.player.getHealth()) + " hp)";

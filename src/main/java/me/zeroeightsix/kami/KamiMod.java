@@ -192,8 +192,8 @@ public class KamiMod {
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
 
-            if (((DiscordSettings) ModuleManager.getModuleByName("DiscordRPC")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("DiscordRPC").setEnabled(true);
+            if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
             }
             if (((AntiCompressionBan) ModuleManager.getModuleByName("AntiCompressionBan")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("AntiCompressionBan").setEnabled(true);
