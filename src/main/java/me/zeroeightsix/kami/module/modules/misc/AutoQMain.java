@@ -41,7 +41,6 @@ public class AutoQMain extends Module {
             delayTime--;
             return;
         }
-        if (mc.player == null) return;
 
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
             Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are on singleplayer");
