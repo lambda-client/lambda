@@ -67,7 +67,7 @@ public class AntiChatSpam extends Module {
         messageHistory
                 .entrySet()
                 .stream()
-                .filter(entry -> entry.getValue() < System.currentTimeMillis() - 5 * 60 * 1000) // 5 is delay in minutes
+                .filter(entry -> entry.getValue() < System.currentTimeMillis() - 10 * 60 * 1000) // 5 is delay in minutes
                 .collect(Collectors.toList())
                 .forEach(entry -> messageHistory.remove(entry.getKey()));
     }
