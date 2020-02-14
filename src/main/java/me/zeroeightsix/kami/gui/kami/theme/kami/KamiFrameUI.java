@@ -20,6 +20,7 @@ import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.opengl.GL11;
 
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
+import static me.zeroeightsix.kami.util.ColourSet.*;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -47,10 +48,10 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
         glDisable(GL_TEXTURE_2D);
 
         glColor4f(.17f, .17f, .18f, .9f);
-        RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight());
-        glColor3f(toF(116), toF(101), toF(247)); // SEARCHCOLOUR: main ui outline color
-        glLineWidth(1.5f);
-        RenderHelper.drawRectangle(0, 0, component.getWidth(), component.getHeight());
+        RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight()); // Main window
+        glColor3f(componentWindowOutline.getRed(), componentWindowOutline.getGreen(), componentWindowOutline.getBlue());
+        glLineWidth(componentWindowOutlineWidth);
+        RenderHelper.drawRectangle(0, 0, component.getWidth(), component.getHeight()); // Border / Outline
 
         GL11.glColor3f(1, 1, 1);
         ff.drawString(component.getWidth() / 2 - ff.getStringWidth(component.getTitle()) / 2, 1, component.getTitle());
@@ -105,9 +106,9 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
 
         if (component.isPinnable()) {
             if (component.isPinned())
-                glColor3f(toF(209), toF(150), toF(250)); // SEARCHCOLOUR: Pinned Component colour
+                glColor3f(componentPinnedColour.getRed(), componentPinnedColour.getGreen(), componentPinnedColour.getBlue());
             else
-                glColor3f(toF(239), toF(217), toF(255));
+                glColor3f(componentUnpinnedColour, componentUnpinnedColour, componentUnpinnedColour);
             RenderHelper.drawCircle(7, 4, 2f);
             glLineWidth(3f);
             glBegin(GL_LINES);
@@ -119,7 +120,7 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
         }
 
         if (component.equals(xLineComponent)) {
-            glColor3f(.44f, .44f, .44f);
+            glColor3f(componentLineColour, componentLineColour, componentLineColour);
             glLineWidth(1f);
             glBegin(GL_LINES);
             {

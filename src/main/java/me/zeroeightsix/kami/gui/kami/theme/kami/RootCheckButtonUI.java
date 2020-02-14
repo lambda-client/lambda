@@ -6,34 +6,22 @@ import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
-import java.awt.*;
-
+import static me.zeroeightsix.kami.util.ColourSet.*;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
  * Created by 086 on 4/08/2017.
  */
 public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentUI<CheckButton> {
-
-    // SEARCHCOLOUR: CheckButton Colours
-    protected Color backgroundColour = new Color(67, 54, 191); // normal
-    protected Color backgroundColourHover = new Color(67, 54, 191); // light
-
-    protected Color idleColourNormal = new Color(200, 200, 200); // lighter grey
-    protected Color downColourNormal = new Color(190, 190, 190); // light grey
-
-    protected Color idleColourToggle = new Color(165, 158, 232); // lighter
-    protected Color downColourToggle = idleColourToggle.brighter();
-
     @Override
     public void renderComponent(CheckButton component, FontRenderer ff) {
 
-        glColor4f(backgroundColour.getRed() / 255f, backgroundColour.getGreen() / 255f, backgroundColour.getBlue() / 255f, component.getOpacity());
-        if (component.isToggled()) {
-            glColor3f(.9f, backgroundColour.getGreen() / 255f, backgroundColour.getBlue() / 255f);
+        glColor4f(checkButtonBackgroundColour.getRed(), checkButtonBackgroundColour.getGreen(), checkButtonBackgroundColour.getBlue(), component.getOpacity());
+        if (component.isToggled()) { // I don't know why the R in this one is separate, 086 wrote it that way
+            glColor3f(checkButtonBackgroundColourOther, checkButtonBackgroundColour.getGreen(), checkButtonBackgroundColour.getBlue());
         }
         if (component.isHovered() || component.isPressed()) {
-            glColor4f(backgroundColourHover.getRed() / 255f, backgroundColourHover.getGreen() / 255f, backgroundColourHover.getBlue() / 255f, component.getOpacity());
+            glColor4f(checkButtonBackgroundColourHover.getRed(), checkButtonBackgroundColourHover.getGreen(), checkButtonBackgroundColourHover.getBlue(), component.getOpacity());
         }
 
         String text = component.getName();
