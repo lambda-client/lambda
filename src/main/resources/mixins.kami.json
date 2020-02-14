@@ -22,6 +22,8 @@
     "MixinNetHandlerPlayClient",
     "MixinRenderLiving",
     "MixinPlayerControllerMP",
-    "MixinEntityLlama"
+    "MixinEntityLlama",
+    "MixinFrustum",
+    "MixinVisGraph"
   ]
 }
