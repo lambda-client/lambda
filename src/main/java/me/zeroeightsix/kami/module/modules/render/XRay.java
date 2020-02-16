@@ -1,5 +1,8 @@
 package me.zeroeightsix.kami.module.modules.render;
 
+import java.util.Set;
+import java.util.Collections;
+import java.util.HashSet;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -19,20 +22,72 @@ import net.minecraft.util.BlockRenderLayer;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.KamiMod;
 
 /**
- * It'd be nice if this was customizable, but it'd be hundreds of settings.
- * For now this does the sensible thing but leaves an obvious extension point.
  * Created by 20kdc on 15/02/2020.
  */
-@Module.Info(name = "XRay", category = Module.Category.RENDER, description = "Filters away the common blocks.")
+@Module.Info(name = "XRay", category = Module.Category.RENDER, description = "Filters away common blocks.")
 @EventBusSubscriber(modid = KamiMod.MODID)
 public class XRay extends Module {
+
+    // A default reasonable configuration for the XRay. Most people will want to use it like this.
+    public static final String DEFAULT_XRAY_CONFIG = "minecraft:grass,minecraft:dirt,minecraft:netherrack,minecraft:gravel,minecraft:sand,minecraft:stone";
+    // Split by ',' & each element trimmed (this is a bit weird but it works for now?)
+    private Setting<String> hiddenBlockNames = register(Settings.stringBuilder("HiddenBlocks").withValue(DEFAULT_XRAY_CONFIG).withConsumer((old, value) -> {
+        refreshHiddenBlocksSet(value);
+        if (isEnabled())
+            mc.renderGlobal.loadRenderers();
+    }));
+
+    private static Set<Block> hiddenBlocks = Collections.synchronizedSet(new HashSet<>());
 
     // This is the state used for hidden blocks.
     private static IBlockState transparentState;
     public static Block transparentBlock;
+
+    public XRay() {
+        refreshHiddenBlocksSet(hiddenBlockNames.getValue());
+    }
+
+    // Get hidden block list for command display
+    public String extGet() {
+        return extGetInternal(null);
+    }
+    // Add entry by arbitrary user-provided string
+    public void extAdd(String s) {
+        hiddenBlockNames.setValue(extGetInternal(null) + ", " + s);
+    }
+    // Remove entry by arbitrary user-provided string
+    public void extRemove(String s) {
+        hiddenBlockNames.setValue(extGetInternal(Block.getBlockFromName(s)) + ", " + s);
+    }
+
+    private String extGetInternal(Block filter) {
+        StringBuilder sb = new StringBuilder();
+        boolean notFirst = false;
+        for (Block b : hiddenBlocks) {
+            if (b == filter)
+                continue;
+            if (notFirst)
+                sb.append(", ");
+            notFirst = true;
+            sb.append(Block.REGISTRY.getNameForObject(b));
+        }
+        return sb.toString();
+    }
+
+    private void refreshHiddenBlocksSet(String v) {
+        hiddenBlocks.clear();
+        for (String s : v.split(",")) {
+            String s2 = s.trim();
+            Block block = Block.getBlockFromName(s2);
+            if (block != null)
+                hiddenBlocks.add(block);
+        }
+    }
 
     @SubscribeEvent
     public static void registerBlocks(RegistryEvent.Register<Block> event) {
@@ -70,20 +125,8 @@ public class XRay extends Module {
         event.getRegistry().registerAll(new ItemBlock(transparentBlock).setRegistryName(transparentBlock.getRegistryName()));
     }
 
-    // Determines if the XRay should hide a given block.
-    private static boolean shouldHide(Block block) {
-        boolean air = 
-            (block == Blocks.GRASS) ||
-            (block == Blocks.DIRT) ||
-            (block == Blocks.NETHERRACK) ||
-            (block == Blocks.GRAVEL) ||
-            (block == Blocks.SAND) ||
-            (block == Blocks.STONE);
-        return air;
-    }
-
     public static IBlockState transform(IBlockState input) {
-        if (shouldHide(input.getBlock()))
+        if (hiddenBlocks.contains(input.getBlock()))
             return transparentState != null ? transparentState : Blocks.AIR.getDefaultState();
         return input;
     }
