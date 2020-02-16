@@ -319,7 +319,7 @@ public class KamiGUI extends GUI {
                 String posString = (e.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (e.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
                 String strengthfactor = "";
                 EntityPlayer eplayer = (EntityPlayer) e;
-                if (eplayer.isPotionActive(MobEffects.STRENGTH) & ModuleManager.isModuleEnabled("StrengthDetect")) strengthfactor = "S ";
+                if (eplayer.isPotionActive(MobEffects.STRENGTH) & ModuleManager.isModuleEnabled("Strength Detect")) strengthfactor = "S ";
                 float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
                 healthSB.append(KamiMod.colour);

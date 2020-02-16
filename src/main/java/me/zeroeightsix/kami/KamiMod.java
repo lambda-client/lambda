@@ -18,6 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
+import me.zeroeightsix.kami.module.modules.combat.StrengthDetect;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.misc.CustomChat;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
@@ -206,6 +207,9 @@ public class KamiMod {
             }
             if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
+            }
+            if (((StrengthDetect) ModuleManager.getModuleByName("Strength Detect")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("Strength Detect").setEnabled(true);
             }
 
         }
