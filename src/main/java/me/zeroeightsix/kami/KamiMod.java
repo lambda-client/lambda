@@ -18,7 +18,6 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.module.modules.combat.StrengthDetect;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.misc.CustomChat;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
@@ -28,21 +27,24 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
-import me.zeroeightsix.kami.util.*;
+import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.LagCompensator;
+import me.zeroeightsix.kami.util.RichPresence;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.opengl.Display;
 
-import javax.imageio.ImageIO;
-import java.io.*;
-import java.nio.ByteBuffer;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -208,10 +210,6 @@ public class KamiMod {
             if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
             }
-            if (((StrengthDetect) ModuleManager.getModuleByName("Strength Detect")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("Strength Detect").setEnabled(true);
-            }
-
         }
         catch (NullPointerException e) {
             KamiMod.log.info("NPE in loading always enabled modules\n");

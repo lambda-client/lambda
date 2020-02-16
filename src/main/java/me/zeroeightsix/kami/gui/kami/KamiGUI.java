@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
 import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
@@ -19,7 +18,6 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.combat.StrengthDetect;
 import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
 import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.Friends;
@@ -319,7 +317,7 @@ public class KamiGUI extends GUI {
                 String posString = (e.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (e.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
                 String strengthfactor = "";
                 EntityPlayer eplayer = (EntityPlayer) e;
-                if (eplayer.isPotionActive(MobEffects.STRENGTH) & ModuleManager.isModuleEnabled("Strength Detect")) strengthfactor = "S ";
+                if (eplayer.isPotionActive(MobEffects.STRENGTH)) strengthfactor = "S "; else strengthfactor = "  ";
                 float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
                 healthSB.append(KamiMod.colour);
