@@ -212,7 +212,7 @@ public class KamiMod {
             }
         }
         catch (NullPointerException e) {
-            KamiMod.log.info("NPE in loading always enabled modules\n");
+            KamiMod.log.error("NPE in loading always enabled modules\n");
         }
 
         KamiMod.log.info(MODNAME + " Mod initialized!\n");
