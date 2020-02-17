@@ -1,30 +1,26 @@
 package me.zeroeightsix.kami.module.modules.render;
 
-import java.util.Set;
-import java.util.Collections;
-import java.util.HashSet;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fml.common.registry.GameRegistry.ObjectHolder;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.block.state.BlockStateBase;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.BlockRenderLayer;
-import me.zeroeightsix.kami.event.events.PacketEvent;
-import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.KamiMod;
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by 20kdc on 15/02/2020.
