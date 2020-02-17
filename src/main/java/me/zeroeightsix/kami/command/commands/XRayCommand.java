@@ -11,8 +11,8 @@ import net.minecraft.block.Block;
  */
 public class XRayCommand extends Command {
     public XRayCommand() {
-        super("xray", new ChunkBuilder().append("subcommand").build());
-        setDescription("Has a set of sub-commands to control the XRay module.");
+        super("xray", new ChunkBuilder().append("subcommand").build(), "wallhack", "x-ray");
+        setDescription("Allows you to add or remove blocks from the &7xray &8module");
     }
 
     @Override
