@@ -3,6 +3,9 @@ package me.zeroeightsix.kami.module.modules.capes;
 import com.google.gson.Gson;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.module.Module;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.IImageBuffer;
 import net.minecraft.client.renderer.ThreadDownloadImageData;
@@ -18,23 +21,23 @@ import java.net.URL;
 /***
  * @author Crystallinqq
  * Updated by S-B99 on 20/12/19
+ * Updated by 20kdc on 17/02/20 - changed implementation method, made a module again, made async
  */
-public class Capes {
+@Module.Info(name = "Capes", category = Module.Category.MISC, description = "Controls the display of KAMI Blue capes.")
+public class Capes extends Module {
+
+    // This allows controlling if other capes (Mojang, OptiFine) should override the KAMI Blue cape.
+    public Setting<Boolean> overrideOtherCapes = Settings.b("OverrideOtherCapes", false);
 
     public static Capes INSTANCE;
+
+    // This starts out null, and then is replaced from another thread if the Capes module is enabled.
     public CapeUser[] capeUser;
+
+    private boolean hasBegunDownload = false;
 
     public Capes() {
         INSTANCE = this;
-        try {
-            HttpsURLConnection connection = (HttpsURLConnection) new URL(KamiMod.CAPES_JSON).openConnection();
-            connection.connect();
-            this.capeUser = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), CapeUser[].class);
-            connection.disconnect();
-        } catch (Exception e) {
-            KamiMod.log.error("Failed to load capes");
-//            e.printStackTrace();
-        }
         if (capeUser != null) {
             for (CapeUser user : capeUser) {
                 bindTexture(user.url, "capes/kami/" + formatUUID(user.uuid));
@@ -42,8 +45,34 @@ public class Capes {
         }
     }
 
+    @Override
+    public void onEnable() {
+        // Begin the download if we haven't begun the download before and we're enabling the module.
+        // This should reduce server requests, if nothing else...
+        if (!hasBegunDownload) {
+            hasBegunDownload = true;
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        HttpsURLConnection connection = (HttpsURLConnection) new URL(KamiMod.CAPES_JSON).openConnection();
+                        connection.connect();
+                        capeUser = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), CapeUser[].class);
+                        connection.disconnect();
+                    } catch (Exception e) {
+                        KamiMod.log.error("Failed to load capes");
+                        // e.printStackTrace();
+                    }
+                }
+            }.start();
+        }
+    }
+
     public static ResourceLocation getCapeResource(AbstractClientPlayer player) {
-        for (CapeUser user : INSTANCE.capeUser) {
+        CapeUser[] users = INSTANCE.capeUser;
+        if (users == null)
+            return null;
+        for (CapeUser user : users) {
             if (player.getUniqueID().toString().equalsIgnoreCase(user.uuid)) {
                 return new ResourceLocation("capes/kami/" + formatUUID(user.uuid));
             }

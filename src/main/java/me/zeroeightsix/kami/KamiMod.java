@@ -182,9 +182,6 @@ public class KamiMod {
         // custom names aren't known at compile-time
         //ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
-        new Capes();
-        KamiMod.log.info("Capes init!\n");
-
         new RichPresence();
         KamiMod.log.info("Rich Presence Users init!\n");
 
@@ -195,6 +192,7 @@ public class KamiMod {
         try { // load modules that are on by default // auto enable
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
+            ModuleManager.getModuleByName("Capes").setEnabled(true);
 
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
