@@ -34,21 +34,38 @@ import me.zeroeightsix.kami.KamiMod;
 public class XRay extends Module {
 
     // A default reasonable configuration for the XRay. Most people will want to use it like this.
-    public static final String DEFAULT_XRAY_CONFIG = "minecraft:grass,minecraft:dirt,minecraft:netherrack,minecraft:gravel,minecraft:sand,minecraft:stone";
+    private static final String DEFAULT_XRAY_CONFIG = "minecraft:grass,minecraft:dirt,minecraft:netherrack,minecraft:gravel,minecraft:sand,minecraft:stone";
     // Split by ',' & each element trimmed (this is a bit weird but it works for now?)
     private Setting<String> hiddenBlockNames = register(Settings.stringBuilder("HiddenBlocks").withValue(DEFAULT_XRAY_CONFIG).withConsumer((old, value) -> {
         refreshHiddenBlocksSet(value);
         if (isEnabled())
             mc.renderGlobal.loadRenderers();
     }));
+    private Setting<Boolean> invert = register(Settings.booleanBuilder("Invert").withValue(false).withConsumer((old, value) -> {
+        invertStatic = value;
+        if (isEnabled())
+            mc.renderGlobal.loadRenderers();
+    }));
+    private Setting<Boolean> outlines = register(Settings.booleanBuilder("Outlines").withValue(true).withConsumer((old, value) -> {
+        outlinesStatic = value;
+        if (isEnabled())
+            mc.renderGlobal.loadRenderers();
+    }));
 
+    // A static mirror of the state.
     private static Set<Block> hiddenBlocks = Collections.synchronizedSet(new HashSet<>());
+    private static boolean invertStatic, outlinesStatic = true;
 
     // This is the state used for hidden blocks.
     private static IBlockState transparentState;
+    // This is used as part of a mechanism to make the Minecraft renderer play along with the XRay.
+    // Essentially, the XRay primitive is just a block state transformer.
+    // Then this implements a custom block that the block state transformer can use for hidden blocks.
     public static Block transparentBlock;
 
     public XRay() {
+        invertStatic = invert.getValue();
+        outlinesStatic = outlines.getValue();
         refreshHiddenBlocksSet(hiddenBlockNames.getValue());
     }
 
@@ -62,7 +79,11 @@ public class XRay extends Module {
     }
     // Remove entry by arbitrary user-provided string
     public void extRemove(String s) {
-        hiddenBlockNames.setValue(extGetInternal(Block.getBlockFromName(s)) + ", " + s);
+        hiddenBlockNames.setValue(extGetInternal(Block.getBlockFromName(s)));
+    }
+    // Clears the list.
+    public void extClear() {
+        hiddenBlockNames.setValue("");
     }
 
     private String extGetInternal(Block filter) {
@@ -126,8 +147,16 @@ public class XRay extends Module {
     }
 
     public static IBlockState transform(IBlockState input) {
-        if (hiddenBlocks.contains(input.getBlock()))
-            return transparentState != null ? transparentState : Blocks.AIR.getDefaultState();
+        Block b = input.getBlock();
+        boolean hide = hiddenBlocks.contains(b);
+        if (invertStatic)
+            hide = !hide;
+        if (hide) {
+            IBlockState target = Blocks.AIR.getDefaultState();
+            if (outlinesStatic && (transparentState != null))
+                target = transparentState;
+            return target;
+        }
         return input;
     }
 
