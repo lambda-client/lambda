@@ -28,10 +28,13 @@ import me.zeroeightsix.kami.KamiMod;
 
 /**
  * Created by 20kdc on 15/02/2020.
+ * Updated by S-B99 on 17/02/20
  */
-@Module.Info(name = "XRay", category = Module.Category.RENDER, description = "Filters away common blocks.")
+@Module.Info(name = "XRay", category = Module.Category.RENDER, description = "See through common blocks!")
 @EventBusSubscriber(modid = KamiMod.MODID)
 public class XRay extends Module {
+
+    private String[] defaultList = new String[]{"grass", "dirt", "netherrack", "gravel", "sand", "stone"};
 
     // A default reasonable configuration for the XRay. Most people will want to use it like this.
     private static final String DEFAULT_XRAY_CONFIG = "minecraft:grass,minecraft:dirt,minecraft:netherrack,minecraft:gravel,minecraft:sand,minecraft:stone";
@@ -84,6 +87,12 @@ public class XRay extends Module {
     // Clears the list.
     public void extClear() {
         hiddenBlockNames.setValue("");
+    }
+    // Resets the list to default
+    public void extDefault() {
+        extClear();
+        for (String s : defaultList) extAdd(s);
+        // TODO: check if instead of using an array I can just make it equal to DEFAULT_XRAY_CONFIG
     }
 
     private String extGetInternal(Block filter) {
