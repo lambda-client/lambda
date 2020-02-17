@@ -27,5 +27,6 @@
     "MixinGuiNewChat",
     "MixinLayerArmorBase",
     "MixinNettyCompressionDecoder"
+    "MixinChunkCache"
   ]
 }
