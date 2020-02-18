@@ -25,8 +25,8 @@ public class XRayCommand extends Command {
             return;
         }
         if (!xr.isEnabled()) {
-            Command.sendWarningMessage("&cWarning: The XRay module is not enabled!");
-            Command.sendWarningMessage("&cThese commands will still have effect, but will not visibly do anything.");
+            Command.sendWarningMessage("&6Warning: The XRay module is not enabled!");
+            Command.sendWarningMessage("These commands will still have effect, but will not visibly do anything.");
         }
         for (String s : args) {
             if (s == null)
