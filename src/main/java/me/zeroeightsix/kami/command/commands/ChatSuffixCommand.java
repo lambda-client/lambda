@@ -3,15 +3,15 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.misc.ChatSuffix;
+import me.zeroeightsix.kami.module.modules.chat.ChatSuffix;
 
 /**
  * @author S-B99
  * Created by S-B99 on 17/02/20
  */
-public class CustomChatCommand extends Command {
-    public CustomChatCommand() {
-        super("customchat", new ChunkBuilder().append("ending").build(), "chat");
+public class ChatSuffixCommand extends Command {
+    public ChatSuffixCommand() {
+        super("chatsuffix", new ChunkBuilder().append("ending").build(), "chat", "customchat");
         setDescription("Allows you to customize ChatSuffix's custom setting");
     }
 
