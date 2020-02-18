@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.misc;
+package me.zeroeightsix.kami.module.modules.combat;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
@@ -16,7 +16,7 @@ import java.util.List;
  * Created on 26 October 2019 by hub
  * Updated 12 January 2020 by hub
  */
-@Module.Info(name = "VisualRange", description = "Shows players who enter and leave range in chat", category = Module.Category.MISC)
+@Module.Info(name = "VisualRange", description = "Shows players who enter and leave range in chat", category = Module.Category.COMBAT)
 public class VisualRange extends Module {
 
     private Setting<Boolean> leaving = register(Settings.b("Leaving", false));
