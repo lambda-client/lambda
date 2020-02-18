@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -21,7 +22,7 @@ public class CustomChat extends Module {
     public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ONTOP));
     private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
-    public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("custom lol").withConsumer((old, value) -> {}));
+    public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "&rcustomchat to modify this").withConsumer((old, value) -> {}));
 
     public enum TextMode {
         NAME, ONTOP, WEBSITE, JAPANESE, CUSTOM
