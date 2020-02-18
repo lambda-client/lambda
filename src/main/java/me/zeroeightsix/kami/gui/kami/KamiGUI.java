@@ -53,8 +53,6 @@ public class KamiGUI extends GUI {
 
     public static ColourHolder primaryColour = new ColourHolder(29, 29, 29);
 
-    //public static OperatingSystemMXBean bean = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-
     public KamiGUI() {
         super(new KamiTheme());
         theme = getTheme();
