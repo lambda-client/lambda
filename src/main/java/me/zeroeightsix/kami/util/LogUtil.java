@@ -21,10 +21,9 @@ public class LogUtil {
 
     public static void writeTo(int x, int y, int z, String locationName) {
         try {
-            FileWriter fw = new FileWriter(COORDS_FILE_NAME);
-            fw.write(formatter(x, y, z, locationName));
-            fw.close();
-            System.out.println("Successfully wrote to the file.");
+            FileWriter fW = new FileWriter(COORDS_FILE_NAME);
+            fW.write(formatter(x, y, z, locationName));
+            fW.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
