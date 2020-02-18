@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.misc;
+package me.zeroeightsix.kami.module.modules.chat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * Updated 12 January 2020 by hub
  * Updated by S-B99 on 18/01/20
  */
-@Module.Info(name = "AntiSpam", category = Module.Category.MISC, description = "Removes spam and advertising from the chat", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "AntiSpam", category = Module.Category.CHAT, description = "Removes spam and advertising from the chat", showOnArray = Module.ShowOnArray.OFF)
 public class AntiChatSpam extends Module {
 
     private Setting<Boolean> greenText = register(Settings.b("Green Text", false));

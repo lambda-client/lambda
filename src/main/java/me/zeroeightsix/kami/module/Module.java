@@ -91,6 +91,7 @@ public class Module {
         MOVEMENT("Movement", false),
         EXPERIMENTAL("Experimental", false),
         GUI("GUI", false),
+        CHAT("Chat", false),
         HIDDEN("Hidden", true);
 
         boolean hidden;

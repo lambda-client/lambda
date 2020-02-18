@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.misc;
+package me.zeroeightsix.kami.module.modules.chat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -16,7 +16,7 @@ import net.minecraft.util.text.TextFormatting;
  * @author S-B99
  * Updated by S-B99 on 06/02/20
  */
-@Module.Info(name = "ChatTimestamp", category = Module.Category.MISC, description = "Shows the time a message was sent beside the message", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "ChatTimestamp", category = Module.Category.CHAT, description = "Shows the time a message was sent beside the message", showOnArray = Module.ShowOnArray.OFF)
 public class ChatTimestamp extends Module {
     private Setting<ColourUtils.ColourCode> firstColour = register(Settings.e("First Colour", ColourUtils.ColourCode.GREY));
     private Setting<ColourUtils.ColourCode> secondColour = register(Settings.e("Second Colour", ColourUtils.ColourCode.WHITE));

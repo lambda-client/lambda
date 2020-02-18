@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.misc;
+package me.zeroeightsix.kami.module.modules.chat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -14,7 +14,7 @@ import net.minecraft.network.play.client.CPacketChatMessage;
  * Created on 16 December by 0x2E | PretendingToCode
  */
 
-@Module.Info(name = "FormatChat", description = "Add colour and linebreak support to upstream chat packets", category = Module.Category.MISC)
+@Module.Info(name = "FormatChat", description = "Add colour and linebreak support to upstream chat packets", category = Module.Category.CHAT)
 public class FormatChat extends Module {
 
     @Override
