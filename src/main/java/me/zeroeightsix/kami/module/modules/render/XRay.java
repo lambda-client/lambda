@@ -38,7 +38,7 @@ public class XRay extends Module {
         if (isEnabled())
             mc.renderGlobal.loadRenderers();
     }));
-    private Setting<Boolean> invert = register(Settings.booleanBuilder("Invert").withValue(false).withConsumer((old, value) -> {
+    public Setting<Boolean> invert = register(Settings.booleanBuilder("Invert").withValue(false).withConsumer((old, value) -> {
         invertStatic = value;
         if (isEnabled())
             mc.renderGlobal.loadRenderers();

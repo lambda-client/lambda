@@ -13,7 +13,7 @@ import net.minecraft.block.Block;
  */
 public class XRayCommand extends Command {
     public XRayCommand() {
-        super("xray", new ChunkBuilder().append("help").append("+block|-block|=block").append("list|defaults|clear").build(), "wallhack", "wireframe");
+        super("xray", new ChunkBuilder().append("help").append("+block|-block|=block").append("list|defaults|clear|invert").build(), "wallhack", "wireframe");
         setDescription("Allows you to add or remove blocks from the &7xray &8module");
     }
 
@@ -36,12 +36,14 @@ public class XRayCommand extends Command {
                 Command.sendChatMessage("Normally, the XRay module hides these blocks");
                 Command.sendChatMessage("When the Invert setting is on, the XRay only shows these blocks");
                 Command.sendChatMessage("This command is a convenient way to quickly edit the list");
-                Command.sendChatMessage("clear: Removes all blocks from the XRay block list");
-                Command.sendChatMessage("list: Prints the list of selected blocks");
-                Command.sendChatMessage("defaults: Resets the list to the default list");
-                Command.sendChatMessage("=block: Changes the list to only that block");
-                Command.sendChatMessage("+block: Adds a block to the list");
-                Command.sendChatMessage("-block: Removes a block from the list");
+                Command.sendChatMessage("Available options: \n" +
+                        "+block: Adds a block to the list\n" +
+                        "-block: Removes a block from the list\n" +
+                        "=block: Changes the list to only that block\n" +
+                        "list: Prints the list of selected blocks\n" +
+                        "defaults: Resets the list to the default list\n" +
+                        "clear: Removes all blocks from the XRay block list\n" +
+                        "invert: Quickly toggles the invert setting");
             } else if (s.equalsIgnoreCase("clear")) {
                 xr.extClear();
                 Command.sendWarningMessage("Cleared the XRay block list");
@@ -50,6 +52,14 @@ public class XRayCommand extends Command {
                 Command.sendChatMessage("Reset the XRay block list to default");
             } else if (s.equalsIgnoreCase("list")) {
                 Command.sendChatMessage("\n" + xr.extGet());
+            } else if (s.equalsIgnoreCase("invert")) {
+                if (xr.invert.getValue()) {
+                    xr.invert.setValue(false);
+                    Command.sendChatMessage("Disabled XRay Invert");
+                } else {
+                    xr.invert.setValue(true);
+                    Command.sendChatMessage("Enabled XRay Invert");
+                }
             } else if (s.startsWith("=")) {
                 String sT = s.replace("=" ,"");
                 xr.extSet(sT);
