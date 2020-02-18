@@ -25,13 +25,11 @@ import java.util.Set;
 /**
  * Created by 20kdc on 15/02/2020.
  * Updated by S-B99 on 17/02/20
+ * Note for anybody using this in a development environment: THIS DOES NOT WORK. It will lag and the texture will break
  */
 @Module.Info(name = "XRay", category = Module.Category.RENDER, description = "See through common blocks!")
 @EventBusSubscriber(modid = KamiMod.MODID)
 public class XRay extends Module {
-
-    private String[] defaultList = new String[]{"grass", "dirt", "netherrack", "gravel", "sand", "stone"};
-
     // A default reasonable configuration for the XRay. Most people will want to use it like this.
     private static final String DEFAULT_XRAY_CONFIG = "minecraft:grass,minecraft:dirt,minecraft:netherrack,minecraft:gravel,minecraft:sand,minecraft:stone";
     // Split by ',' & each element trimmed (this is a bit weird but it works for now?)
@@ -85,11 +83,9 @@ public class XRay extends Module {
         hiddenBlockNames.setValue("");
     }
     // Resets the list to default
-    public void extDefault() {
-        extClear();
-        for (String s : defaultList) extAdd(s);
-        // TODO: check if instead of using an array I can just make it equal to DEFAULT_XRAY_CONFIG
-    }
+    public void extDefaults() { extClear(); extAdd(DEFAULT_XRAY_CONFIG); }
+    // Set the list to 1 value
+    public void extSet(String s) { extClear(); extAdd(s); }
 
     private String extGetInternal(Block filter) {
         StringBuilder sb = new StringBuilder();

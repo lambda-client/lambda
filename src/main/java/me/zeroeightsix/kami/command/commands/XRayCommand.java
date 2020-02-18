@@ -9,10 +9,11 @@ import net.minecraft.block.Block;
 /**
  * Created by 20kdc on 17/02/2020.
  * Updated by S-B99 on 17/02/20
+ * Note for anybody using this in a development environment: THIS DOES NOT WORK. It will lag and the texture will break
  */
 public class XRayCommand extends Command {
     public XRayCommand() {
-        super("xray", new ChunkBuilder().append("help <command>").append("list|clear|+block|-block").build(), "wallhack", "x-ray");
+        super("xray", new ChunkBuilder().append("help").append("+block|-block|=block").append("list|defaults|clear").build(), "wallhack", "wireframe");
         setDescription("Allows you to add or remove blocks from the &7xray &8module");
     }
 
@@ -35,20 +36,24 @@ public class XRayCommand extends Command {
                 Command.sendChatMessage("Normally, the XRay module hides these blocks");
                 Command.sendChatMessage("When the Invert setting is on, the XRay only shows these blocks");
                 Command.sendChatMessage("This command is a convenient way to quickly edit the list");
-                Command.sendChatMessage("XRay Subcommands:");
                 Command.sendChatMessage("clear: Removes all blocks from the XRay block list");
                 Command.sendChatMessage("list: Prints the list of selected blocks");
-                Command.sendChatMessage("default: Resets the list to the default list");
-                Command.sendChatMessage("+<block>: Adds a block to the list");
-                Command.sendChatMessage("-<block>: Removes a block from the list");
+                Command.sendChatMessage("defaults: Resets the list to the default list");
+                Command.sendChatMessage("=block: Changes the list to only that block");
+                Command.sendChatMessage("+block: Adds a block to the list");
+                Command.sendChatMessage("-block: Removes a block from the list");
             } else if (s.equalsIgnoreCase("clear")) {
                 xr.extClear();
                 Command.sendWarningMessage("Cleared the XRay block list");
-            } else if (s.equalsIgnoreCase("default")) {
-                xr.extDefault();
+            } else if (s.equalsIgnoreCase("defaults")) {
+                xr.extDefaults();
                 Command.sendChatMessage("Reset the XRay block list to default");
             } else if (s.equalsIgnoreCase("list")) {
                 Command.sendChatMessage("\n" + xr.extGet());
+            } else if (s.startsWith("=")) {
+                String sT = s.replace("=" ,"");
+                xr.extSet(sT);
+                Command.sendChatMessage("Set the XRay block list to " + sT);
             } else if (s.startsWith("+") || s.startsWith("-")) {
                 String name = s.substring(1);
                 Block b = Block.getBlockFromName(name);
