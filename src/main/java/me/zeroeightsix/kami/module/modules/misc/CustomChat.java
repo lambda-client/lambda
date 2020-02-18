@@ -18,12 +18,13 @@ import static me.zeroeightsix.kami.KamiMod.*;
 public class CustomChat extends Module {
 
     public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
-    private Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ONTOP));
+    public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ONTOP));
     private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
+    public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("custom lol").withConsumer((old, value) -> {}));
 
-    private enum TextMode {
-        NAME, ONTOP, WEBSITE, JAPANESE;
+    public enum TextMode {
+        NAME, ONTOP, WEBSITE, JAPANESE, CUSTOM
     }
 
     private enum DecoMode {
@@ -36,6 +37,7 @@ public class CustomChat extends Module {
             case ONTOP: return KAMI_ONTOP;
             case WEBSITE: return KAMI_WEBSITE;
             case JAPANESE: return KAMI_JAPANESE_ONTOP;
+            case CUSTOM: return customText.getValue();
             default: return "";
         }
     }
