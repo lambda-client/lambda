@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * Updated by S-B99 on 18/01/20
  */
 @Module.Info(name = "AntiSpam", category = Module.Category.CHAT, description = "Removes spam and advertising from the chat", showOnArray = Module.ShowOnArray.OFF)
-public class AntiChatSpam extends Module {
+public class AntiSpam extends Module {
 
     private Setting<Boolean> greenText = register(Settings.b("Green Text", false));
     private Setting<Boolean> discordLinks = register(Settings.b("Discord Links", true));
