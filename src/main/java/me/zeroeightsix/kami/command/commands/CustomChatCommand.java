@@ -27,6 +27,8 @@ public class CustomChatCommand extends Command {
             Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
         }
         for (String s : args) {
+            if (s == null)
+                continue;
             cC.customText.setValue(s);
             Command.sendChatMessage("Set the Custom Text Mode to " + s);
         }
