@@ -30,7 +30,7 @@ public class CustomChatCommand extends Command {
             if (s == null)
                 continue;
             cC.customText.setValue(s);
-            Command.sendChatMessage("Set the Custom Text Mode to " + s);
+            Command.sendChatMessage("Set the Custom Text Mode to <" + s + ">");
         }
     }
 }
