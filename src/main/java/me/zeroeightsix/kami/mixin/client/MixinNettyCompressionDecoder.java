@@ -68,6 +68,7 @@ public class MixinNettyCompressionDecoder {
                 packetInflater.reset();
             }
         }
+        return;
     }
 
 }
