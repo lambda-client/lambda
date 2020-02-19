@@ -23,11 +23,12 @@ import java.net.URL;
  * Updated by S-B99 on 20/12/19
  * Updated by 20kdc on 17/02/20 - changed implementation method, made a module again, made async
  */
-@Module.Info(name = "Capes", category = Module.Category.MISC, description = "Controls the display of KAMI Blue capes.")
+@Module.Info(name = "Capes", category = Module.Category.GUI, description = "Controls the display of KAMI Blue capes", showOnArray = Module.ShowOnArray.OFF)
 public class Capes extends Module {
+    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
 
     // This allows controlling if other capes (Mojang, OptiFine) should override the KAMI Blue cape.
-    public Setting<Boolean> overrideOtherCapes = Settings.b("OverrideOtherCapes", false);
+    public Setting<Boolean> overrideOtherCapes = Settings.b("Override Mojang / Opti capes", false);
 
     public static Capes INSTANCE;
 

@@ -189,7 +189,7 @@ public class KamiMod {
         ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
 
-        try { // load modules that are on by default // auto enable
+        try { // load modules that are on by default // autoenable
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
             ModuleManager.getModuleByName("Capes").setEnabled(true);
@@ -211,6 +211,9 @@ public class KamiMod {
             }
             if (((PrefixChat) ModuleManager.getModuleByName("PrefixChat")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("PrefixChat").setEnabled(true);
+            }
+            if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("Capes").setEnabled(true);
             }
         }
         catch (NullPointerException e) {
