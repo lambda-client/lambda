@@ -12,8 +12,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-//i love crystallinqq <3
-
+/**
+ * @author Crystalinqq
+ * Updated by 20kdc on 17/02/20 - changed implementation method, made a module again, made async
+ */
 @Mixin(AbstractClientPlayer.class)
 public class MixinAbstractClientPlayer {
 
