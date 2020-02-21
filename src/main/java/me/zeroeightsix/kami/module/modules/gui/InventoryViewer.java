@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.item.ItemStack;
@@ -106,9 +107,9 @@ public class InventoryViewer extends Module {
             int colour = 0;
             colour |= (r.getValue() << 16);
             colour |= (g.getValue() << 8);
-            colour |= (b.getValue() << 0);
+            colour |= b.getValue();
             colour |= (a.getValue() << 24);
-            mc.ingameGUI.drawRect(x, y, x + 162, y + 54, colour);
+            Gui.drawRect(x, y, x + 162, y + 54, colour);
         }
         ResourceLocation box = getBox();
         mc.renderEngine.bindTexture(box);
