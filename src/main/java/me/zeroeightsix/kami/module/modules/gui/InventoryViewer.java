@@ -28,6 +28,7 @@ public class InventoryViewer extends Module {
     private Setting<ViewSize> viewSizeSetting = register(Settings.enumBuilder(ViewSize.class).withName("Icon Size").withValue(ViewSize.LARGE).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Boolean> showIcon = register(Settings.booleanBuilder("Show Icon").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Boolean> colorBackground = register(Settings.booleanBuilder("Colored Background").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Boolean> docking = register(Settings.booleanBuilder("Automatic Docking").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
@@ -53,12 +54,14 @@ public class InventoryViewer extends Module {
     }
 
     private int invMoveHorizontal() {
+        if (!docking.getValue() || mcTexture.getValue()) return 0;
         if (isLeft) return 45;
         if (isRight) return -45;
         return 0;
     }
 
     private int invMoveVertical() {
+        if (!docking.getValue() || mcTexture.getValue()) return 0;
         if (isTop) return 10;
         if (isBottom) return -10;
         return 0;
