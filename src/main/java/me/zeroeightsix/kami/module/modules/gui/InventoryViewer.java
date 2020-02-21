@@ -16,127 +16,124 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 
-/***
- * Updated by S-B99 on 18/01/20
- * GUI method written by S-B99
+/**
+ * Updated by S-B99 on 21/02/20
+ * Slight updates by 20kdc, 19/02/20
+ * Everything except somethingRender() methods was written by S-B99
  */
 @Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
 public class InventoryViewer extends Module {
-    private Setting<ViewMode> viewMode = register(Settings.e("Appearance", ViewMode.ICONLARGE));
+    private Setting<Boolean> mcTexture = register(Settings.b("Use ResourcePack", false));
+    private Setting<ViewSize> viewSizeSetting = register(Settings.enumBuilder(ViewSize.class).withName("Icon Size").withValue(ViewSize.LARGE).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Boolean> showIcon = register(Settings.booleanBuilder("Show Icon").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Boolean> colorBackground = register(Settings.booleanBuilder("Colored Background").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
+
+    private boolean isLeft = false;
+    private boolean isRight = false;
+    private boolean isTop = false;
+    private boolean isBottom = false;
 
     KamiGUI kamiGUI = KamiMod.getInstance().getGuiManager();
-    private int invPos(int i) {
-        kamiGUI = KamiMod.getInstance().getGuiManager();
-        if (kamiGUI != null) {
-            List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
-            for (Frame frame : frames) {
-                if (!frame.getTitle().equalsIgnoreCase("inventory viewer")) continue;
-                switch (i) {
-                    case 0:
-                        return frame.getX();
-                    case 1:
-                        return frame.getY();
-                    case 3:
-                        if (frame.isPinned()) return 1;
-                        else return 0;
-                    default:
-                        return 0;
 
-                }
-            }
-        }
+    // This is bad, but without a rearchitecture, it's probably staying... - 20kdc
+    private Frame getInventoryViewer() {
+        kamiGUI = KamiMod.getInstance().getGuiManager();
+        if (kamiGUI == null)
+            return null;
+        List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
+        for (Frame frame : frames)
+            if (frame.getTitle().equalsIgnoreCase("inventory viewer"))
+                return frame;
+        return null;
+    }
+
+    private int invMoveHorizontal() {
+        if (isLeft) return 45;
+        if (isRight) return -45;
         return 0;
     }
-    private enum ViewMode {
-        ICONLARGEBG, ICONLARGE, MC, ICON, ICONBACK, CLEAR, SOLID, SOLIDCLEAR
+
+    private int invMoveVertical() {
+        if (isTop) return 10;
+        if (isBottom) return -10;
+        return 0;
+    }
+
+    private void updatePos() {
+        Frame frame = getInventoryViewer();
+        if (frame == null)
+            return;
+        isTop = frame.getDocking().isTop();
+        isLeft = frame.getDocking().isLeft();
+        isRight = frame.getDocking().isRight();
+        isBottom = frame.getDocking().isBottom();
     }
 
     private ResourceLocation getBox() {
-        if (viewMode.getValue().equals(ViewMode.CLEAR)) {
-            return new ResourceLocation("textures/gui/container/invpreview.png");
-        }
-        else if (viewMode.getValue().equals(ViewMode.ICONBACK)) {
-            return new ResourceLocation("textures/gui/container/one.png");
-        }
-        else if (viewMode.getValue().equals(ViewMode.SOLID)) {
-            return new ResourceLocation("textures/gui/container/two.png");
-        }
-        else if (viewMode.getValue().equals(ViewMode.SOLIDCLEAR)) {
-            return new ResourceLocation("textures/gui/container/three.png");
-        }
-        else if (viewMode.getValue().equals(ViewMode.ICON)) {
-            return new ResourceLocation("textures/gui/container/four.png");
-        }
-        else if (viewMode.getValue().equals(ViewMode.ICONLARGE)) {
-            return new ResourceLocation("textures/gui/container/five.png");
-        }
-        else if (viewMode.getValue().equals(ViewMode.ICONLARGEBG)) {
-            return new ResourceLocation("textures/gui/container/six.png");
-        }
-        else {
+        if (mcTexture.getValue()) {
             return new ResourceLocation("textures/gui/container/generic_54.png");
+        } else if (!showIcon.getValue()) {
+            return new ResourceLocation("kamiblue/clear.png");
+        } else if (viewSizeSetting.getValue().equals(ViewSize.LARGE)) {
+            return new ResourceLocation("kamiblue/large.png");
+        } else if (viewSizeSetting.getValue().equals(ViewSize.SMALL)) {
+            return new ResourceLocation("kamiblue/small.png");
+        } else if (viewSizeSetting.getValue().equals(ViewSize.MEDIUM)) {
+            return new ResourceLocation("kamiblue/medium.png");
+        } else {
+            return new ResourceLocation("null");
         }
     }
 
-    private static void preBoxRender() {
-        GL11.glPushMatrix();
-        GlStateManager.pushMatrix();
-        GlStateManager.disableAlpha();
-        GlStateManager.clear(256);
-        GlStateManager.enableBlend();
+    private enum ViewSize {
+        LARGE, MEDIUM, SMALL
     }
 
-    private static void postBoxRender() {
-        GlStateManager.disableBlend();
-        GlStateManager.disableDepth();
-        GlStateManager.disableLighting();
-        GlStateManager.enableDepth();
-        GlStateManager.enableAlpha();
-        GlStateManager.popMatrix();
-        GL11.glPopMatrix();
-    }
-
-    private static void preItemRender() {
-        GL11.glPushMatrix();
-        GL11.glDepthMask(true);
-        GlStateManager.clear(256);
-        GlStateManager.disableDepth();
-        GlStateManager.enableDepth();
-        RenderHelper.enableStandardItemLighting();
-        GlStateManager.scale(1.0f, 1.0f, 0.01f);
-    }
-
-    private static void postItemRender() {
-        GlStateManager.scale(1.0f, 1.0f, 1.0f);
-        RenderHelper.disableStandardItemLighting();
+    private void boxRender(final int x, final int y) {
+        // SET UNRELIABLE DEFAULTS (Don't restore these) {
         GlStateManager.enableAlpha();
         GlStateManager.disableBlend();
-        GlStateManager.disableLighting();
-        GlStateManager.scale(0.5, 0.5, 0.5);
+        // }
+
+        // ENABLE LOCAL CHANGES {
         GlStateManager.disableDepth();
+        // }
+        if (colorBackground.getValue()) { // 1 == 2 px in game
+            int colour = 0;
+            colour |= (r.getValue() << 16);
+            colour |= (g.getValue() << 8);
+            colour |= (b.getValue() << 0);
+            colour |= (a.getValue() << 24);
+            mc.ingameGUI.drawRect(x, y, x + 162, y + 54, colour);
+        }
+        ResourceLocation box = getBox();
+        mc.renderEngine.bindTexture(box);
+        updatePos();
+        GlStateManager.color(1, 1, 1, 1);
+        mc.ingameGUI.drawTexturedModalRect(x, y, invMoveHorizontal() + 7, invMoveVertical() + 17, 162, 54); // 164 56 // width and height of inventory
+        // DISABLE LOCAL CHANGES {
         GlStateManager.enableDepth();
-        GlStateManager.scale(2.0f, 2.0f, 2.0f);
-        GL11.glPopMatrix();
+        // }
     }
 
     @Override
     public void onRender() {
-        if (invPos(3) == 1) {
+        Frame frame = getInventoryViewer();
+        if (frame == null)
+            return;
+        if (frame.isPinned()) {
             final NonNullList<ItemStack> items = InventoryViewer.mc.player.inventory.mainInventory;
-            boxRender(invPos(0), invPos(1));
-            itemRender(items, invPos(0), invPos(1));
+            boxRender(frame.getX(), frame.getY());
+            itemRender(items, frame.getX(), frame.getY());
         }
     }
 
-    private void boxRender(final int x, final int y) {
-        preBoxRender();
-        ResourceLocation box = getBox();
-        mc.renderEngine.bindTexture(box);
-        mc.ingameGUI.drawTexturedModalRect(x, y, 7, 17, 162, 54); // 168 56 // width and height of inventory
-        postBoxRender();
-    }
-
     private void itemRender(final NonNullList<ItemStack> items, final int x, final int y) {
+        GlStateManager.clear(GL11.GL_DEPTH_BUFFER_BIT);
         for (int size = items.size(), item = 9; item < size; ++item) {
             final int slotX = x + 1 + item % 9 * 18;
             final int slotY = y + 1 + (item / 9 - 1) * 18;
@@ -145,6 +142,25 @@ public class InventoryViewer extends Module {
             mc.getRenderItem().renderItemOverlays(mc.fontRenderer, items.get(item), slotX, slotY);
             postItemRender();
         }
+    }
+
+    // These methods should apply and clean up in pairs.
+    // That means that if a pre* has to disableAlpha, the post* function should enableAlpha.
+    //  - 20kdc
+
+    private static void preItemRender() {
+        GlStateManager.pushMatrix();
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        // Yes, this is meant to be paired with disableStandardItemLighting - 20kdc
+        RenderHelper.enableGUIStandardItemLighting();
+    }
+
+    private static void postItemRender() {
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableDepth();
+        GlStateManager.popMatrix();
     }
 
     @Override
