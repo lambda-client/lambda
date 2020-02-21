@@ -28,10 +28,7 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
-import me.zeroeightsix.kami.util.Friends;
-import me.zeroeightsix.kami.util.LagCompensator;
-import me.zeroeightsix.kami.util.RichPresence;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.*;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -69,6 +66,7 @@ public class KamiMod {
     static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
     public static final String MODVER = "v1.1.2-21-02-02";
+    public static final String MODVERSMALL = "v1.1.2-beta";
     public static final String APP_ID = "638403216278683661";
 
     static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/updateChecker.json";
@@ -153,7 +151,7 @@ public class KamiMod {
                 }
             }
         }
-        Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVER);
+        Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVERSMALL);
 //        Display.setIcon(WindowIcon.ExtractByteBufferFromImagePath("kami.png"));
     }
 

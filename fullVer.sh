@@ -5,6 +5,7 @@
 
 sed -i "s/modVersion=.*/modVersion=$1/" gradle.properties
 sed -i "s/MODVER = \".*\";/MODVER = \"$1\";/" src/main/java/me/zeroeightsix/kami/KamiMod.java
+sed -i "s/MODVERSMALL = \".*\";/MODVERSMALL = \"$1\";/" src/main/java/me/zeroeightsix/kami/KamiMod.java
 sed -i "s/\"version\": \".*\",/\"version\": \"${1:1}\",/" src/main/resources/mcmod.info
 
 git reset
