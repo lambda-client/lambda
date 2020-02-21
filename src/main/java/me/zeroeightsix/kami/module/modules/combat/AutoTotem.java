@@ -19,7 +19,7 @@ public class AutoTotem extends Module {
     boolean moving = false;
     boolean returnI = false;
     private Setting<Boolean> force = register(Settings.b("Replace Offhand", false));
-    private Setting<Boolean> inv = register(Settings.b("Inventory", true));
+    private Setting<Boolean> inv = register(Settings.booleanBuilder("Inventory").withValue(true).withVisibility(v -> !force.getValue()).build());
 
     @Override
     public void onUpdate() {
