@@ -13,4 +13,4 @@ sed -i "s/\"version\": \".*\",/\"version\": \"${1:1}\-${dateD}\-${dateM}\-$2\",/
 
 git reset
 git add gradle.properties src/main/java/me/zeroeightsix/kami/KamiMod.java src/main/resources/mcmod.info
-git commit -m "[BOT] BumpVer: $1-${dateD}-${dateM}-$2"
+git commit -m "[BOT] New beta: $1-${dateD}-${dateM}-$2"
