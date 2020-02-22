@@ -17,11 +17,15 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /***
  * @author Crystallinqq
  * Updated by S-B99 on 20/12/19
  * Updated by 20kdc on 17/02/20 - changed implementation method, made a module again, made async
+ * Updated by 20kdc on 21/02/20 - unbroke things, sorry!
  */
 @Module.Info(name = "Capes", category = Module.Category.GUI, description = "Controls the display of KAMI Blue capes", showOnArray = Module.ShowOnArray.OFF)
 public class Capes extends Module {
@@ -33,17 +37,14 @@ public class Capes extends Module {
     public static Capes INSTANCE;
 
     // This starts out null, and then is replaced from another thread if the Capes module is enabled.
-    public CapeUser[] capeUser;
+    // It maps the UUIDs to CachedCape instances.
+    // When it arrives here it must no longer be modified.
+    private Map<String, CachedCape> allCapes = Collections.unmodifiableMap(new HashMap<>());
 
     private boolean hasBegunDownload = false;
 
     public Capes() {
         INSTANCE = this;
-        if (capeUser != null) {
-            for (CapeUser user : capeUser) {
-                bindTexture(user.url, "capes/kami/" + formatUUID(user.uuid));
-            }
-        }
     }
 
     @Override
@@ -58,8 +59,22 @@ public class Capes extends Module {
                     try {
                         HttpsURLConnection connection = (HttpsURLConnection) new URL(KamiMod.CAPES_JSON).openConnection();
                         connection.connect();
-                        capeUser = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), CapeUser[].class);
+                        CapeUser[] capeUser = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), CapeUser[].class);
                         connection.disconnect();
+                        // If we got this far, begin working out the cape details
+                        // This first collection contains CachedCape instances by their URL to reduce redundant loading.
+                        HashMap<String, CachedCape> capesByURL = new HashMap<>();
+                        // This second collection maps UUIDs to their CachedCape instances.
+                        HashMap<String, CachedCape> capesByUUID = new HashMap<>();
+                        for (CapeUser cape : capeUser) {
+                            CachedCape o = capesByURL.get(cape.url);
+                            if (o == null) {
+                                o = new CachedCape(cape);
+                                capesByURL.put(cape.url, o);
+                            }
+                            capesByUUID.put(cape.uuid, o);
+                        }
+                        allCapes = Collections.unmodifiableMap(capesByUUID);
                     } catch (Exception e) {
                         KamiMod.log.error("Failed to load capes");
                         // e.printStackTrace();
@@ -70,37 +85,14 @@ public class Capes extends Module {
     }
 
     public static ResourceLocation getCapeResource(AbstractClientPlayer player) {
-        CapeUser[] users = INSTANCE.capeUser;
-        if (users == null)
+        CachedCape result = INSTANCE.allCapes.get(player.getUniqueID().toString());
+        if (result == null)
             return null;
-        for (CapeUser user : users) {
-            if (player.getUniqueID().toString().equalsIgnoreCase(user.uuid)) {
-                return new ResourceLocation("capes/kami/" + formatUUID(user.uuid));
-            }
-        }
-        return null;
+        result.request();
+        return result.location;
     }
 
-    public void bindTexture(String url, String resource) {
-        IImageBuffer iib = new IImageBuffer() {
-            @Override
-            public BufferedImage parseUserSkin(BufferedImage image) {
-                return parseCape(image);
-            }
-
-            @Override
-            public void skinAvailable() {}
-        };
-
-        ResourceLocation rl = new ResourceLocation(resource);
-        TextureManager textureManager = Wrapper.getMinecraft().getTextureManager();
-        textureManager.getTexture(rl);
-        ThreadDownloadImageData textureCape = new ThreadDownloadImageData(null, url, null, iib);
-        textureManager.loadTexture(rl, textureCape);
-
-    }
-
-    private BufferedImage parseCape(BufferedImage img)  {
+    private static BufferedImage parseCape(BufferedImage img)  {
         int imageWidth = 64;
         int imageHeight = 32;
 
@@ -122,8 +114,42 @@ public class Capes extends Module {
         return uuid.replaceAll("-", "");
     }
 
+    // This is the raw Gson structure as seen in the assets
     public class CapeUser {
         public String uuid;
         public String url;
+    }
+
+    // This is the shared cape instance.
+    private static class CachedCape {
+        public final ResourceLocation location;
+        public final String url;
+        private boolean hasRequested = false;
+
+        public CachedCape(CapeUser cape) {
+            location = new ResourceLocation("capes/kami/" + formatUUID(cape.uuid));
+            url = cape.url;
+        }
+
+        public void request() {
+            if (hasRequested)
+                return;
+            hasRequested = true;
+            // This is bindTexture moved to runtime (but still on the main thread)
+            IImageBuffer iib = new IImageBuffer() {
+                @Override
+                public BufferedImage parseUserSkin(BufferedImage image) {
+                    return parseCape(image);
+                }
+
+                @Override
+                public void skinAvailable() {}
+            };
+
+            TextureManager textureManager = Wrapper.getMinecraft().getTextureManager();
+            textureManager.getTexture(location);
+            ThreadDownloadImageData textureCape = new ThreadDownloadImageData(null, url, null, iib);
+            textureManager.loadTexture(location, textureCape);
+        }
     }
 }

@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(AbstractClientPlayer.class)
 public class MixinAbstractClientPlayer {
 
-    @Inject(method = "getLocationCape", at = @At(value = "RETURN"))
+    @Inject(method = "getLocationCape", at = @At(value = "RETURN"), cancellable = true)
     public void getCape(CallbackInfoReturnable<ResourceLocation> callbackInfo) {
         if (Capes.INSTANCE == null)
             return;
