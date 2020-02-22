@@ -27,7 +27,7 @@ public class DiscordSettings extends Module {
 
     public String getLine(LineInfo line) {
         switch (line) {
-            case VERSION: return KamiMod.MODVER;
+            case VERSION: return KamiMod.MODVERSMALL;
             case WORLD:
                 if (mc.isIntegratedServerRunning()) return "Singleplayer";
                 else if (mc.getCurrentServerData() != null) return "Multiplayer";
