@@ -32,12 +32,12 @@ public class InfoOverlay extends Module {
     private Setting<Boolean> ping = register(Settings.b("Latency", false));
     private Setting<Boolean> durability = register(Settings.b("Item Damage", false));
     private Setting<Boolean> memory = register(Settings.b("Memory Used", false));
-    private Setting<SpeedUnit> speedUnit = register(Settings.e("Speed Unit", SpeedUnit.KmH));
+    private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KmH).withVisibility(v -> speed.getValue()).build());
     private Setting<ColourUtils.ColourCode> firstColour = register(Settings.e("First Colour", ColourUtils.ColourCode.WHITE));
     private Setting<ColourUtils.ColourCode> secondColour = register(Settings.e("Second Colour", ColourUtils.ColourCode.BLUE));
-    private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeUtil.TimeType.HHMMSS));
-    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUtil.TimeUnit.h12));
-    private Setting<Boolean> doLocale = register(Settings.b("Time Show AMPM", true));
+    private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> time.getValue()).build());
+    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.h12).withVisibility(v -> time.getValue()).build());
+    private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> time.getValue()).build());
 
     private enum SpeedUnit {
         MpS, KmH
