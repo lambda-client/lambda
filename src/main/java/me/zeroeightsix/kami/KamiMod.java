@@ -146,6 +146,7 @@ public class KamiMod {
                             DiscordPresence.presence.smallImageKey = "github1";
                             DiscordPresence.presence.smallImageText = "contributor!! uwu";
                             break;
+                        }
                         default: {
                             DiscordPresence.presence.smallImageKey = "donator2";
                             DiscordPresence.presence.smallImageText = "donator <3";
