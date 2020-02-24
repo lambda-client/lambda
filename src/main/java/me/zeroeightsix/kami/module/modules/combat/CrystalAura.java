@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
@@ -44,13 +45,14 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
 
-    private Setting<Boolean> autoSwitch = register(Settings.b("Auto Switch"));
-    private Setting<Boolean> players = register(Settings.b("Players"));
+    private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
+    private Setting<Boolean> autoSwitch = register(Settings.b("Auto Switch", true));
+    private Setting<Boolean> players = register(Settings.b("Players", true));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> place = register(Settings.b("Place", false));
     private Setting<Boolean> explode = register(Settings.b("Explode", false));
-    private Setting<Double> range = register(Settings.d("Range", 4));
+    private Setting<Double> range = register(Settings.d("Range", 4.0));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
     private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
 
@@ -59,13 +61,27 @@ public class CrystalAura extends Module {
     private long systemTime = -1;
     private static boolean togglePitch = false;
     // we need this cooldown to not place from old hotbar slot, before we have switched to crystals
-    private boolean switchCooldown = false;
+    private boolean switchCoolDown = false;
     private boolean isAttacking = false;
     private int oldSlot = -1;
     private int newSlot;
 
     @Override
     public void onUpdate() {
+        if (defaultSetting.getValue()) {
+            autoSwitch.setValue(true);
+            players.setValue(true);
+            mobs.setValue(false);
+            animals.setValue(false);
+            place.setValue(false);
+            explode.setValue(false);
+            range.setValue(4.0);
+            antiWeakness.setValue(false);
+            checkAbsorption.setValue(true);
+            Command.sendChatMessage("[ElytraFlight] Set to defaults!");
+            Command.sendChatMessage("[ElytraFlight] Close and reopen the ElytraFlight setting's menu to see changes");
+        }
+
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
                 .filter(entity -> entity instanceof EntityEnderCrystal)
                 .map(entity -> (EntityEnderCrystal) entity)
@@ -99,7 +115,7 @@ public class CrystalAura extends Module {
                     // check if any swords or tools were found
                     if (newSlot != -1) {
                         Wrapper.getPlayer().inventory.currentItem = newSlot;
-                        switchCooldown = true;
+                        switchCoolDown = true;
                     }
                 }
                 lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
@@ -187,7 +203,7 @@ public class CrystalAura extends Module {
                 if (autoSwitch.getValue()) {
                     mc.player.inventory.currentItem = crystalSlot;
                     resetRotation();
-                    switchCooldown = true;
+                    switchCoolDown = true;
                 }
                 return;
             }
@@ -200,8 +216,8 @@ public class CrystalAura extends Module {
                 f = result.sideHit;
             }
             // return after we did an autoswitch
-            if (switchCooldown) {
-                switchCooldown = false;
+            if (switchCoolDown) {
+                switchCoolDown = false;
                 return;
             }
             //mc.playerController.processRightClickBlock(mc.player, mc.world, q, f, new Vec3d(0, 0, 0), EnumHand.MAIN_HAND);
