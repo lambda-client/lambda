@@ -18,7 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.module.modules.chat.ChatSuffix;
+import me.zeroeightsix.kami.module.modules.chat.CustomChat;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
@@ -206,8 +206,8 @@ public class KamiMod {
             if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("TabFriends").setEnabled(true);
             }
-            if (((ChatSuffix) ModuleManager.getModuleByName("ChatSuffix")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("ChatSuffix").setEnabled(true);
+            if (((CustomChat) ModuleManager.getModuleByName("CustomChat")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("CustomChat").setEnabled(true);
             }
             if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("CleanGUI").setEnabled(true);

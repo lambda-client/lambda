@@ -15,8 +15,8 @@ import static me.zeroeightsix.kami.KamiMod.*;
  * Created by 086 on 8/04/2018.
  * Updated by S-B99 on 18/02/20
  */
-@Module.Info(name = "ChatSuffix", category = Module.Category.CHAT, description = "Adds a watermark to the end of your message to let others know you're using KAMI Blue", showOnArray = Module.ShowOnArray.OFF)
-public class ChatSuffix extends Module {
+@Module.Info(name = "CustomChat", category = Module.Category.CHAT, description = "Adds a watermark to the end of your message to let others know you're using KAMI Blue", showOnArray = Module.ShowOnArray.OFF)
+public class CustomChat extends Module {
 
     public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
     public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ONTOP));
