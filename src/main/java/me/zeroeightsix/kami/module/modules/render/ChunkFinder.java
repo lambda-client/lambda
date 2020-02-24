@@ -31,7 +31,7 @@ public class ChunkFinder extends Module {
     private Setting<Integer> yOffset = register(Settings.i("Y Offset", 0));
     private Setting<Boolean> relative = register(Settings.b("Relative", true));
     private Setting<Boolean> saveNewChunks = register(Settings.b("Save New Chunks", false));
-    private Setting<SaveOption> saveOption = register(Settings.enumBuilder(SaveOption.class).withValue(SaveOption.extraFolder).withName("Save Option").withVisibility(aBoolean -> saveNewChunks.getValue()).build());
+    private Setting<SaveOption> saveOption = register(Settings.enumBuilder(SaveOption.class).withValue(SaveOption.EXTRA_FOLDER).withName("Save Option").withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> saveInRegionFolder = register(Settings.booleanBuilder("In Region").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("Save Normal Coords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> closeFile = register(Settings.booleanBuilder("Close File").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
@@ -227,13 +227,13 @@ public class ChunkFinder extends Module {
         File rV = Minecraft.getMinecraft().gameDir;
         String folderName;
         switch (saveOption.getValue()) {
-            case liteLoaderWdl: // make folder structure like liteLoader
+            case LITE_LOADER_WDL: // make folder structure like liteLoader
                 folderName = mc.getCurrentServerData().serverName;
 
                 rV = new File(rV, "saves");
                 rV = new File(rV, folderName);
                 break;
-            case nhackWdl: // make folder structure like nhack-insdustries
+            case NHACK_WDL: // make folder structure like nhack-insdustries
                 folderName = getNHackInetName();
 
                 rV = new File(rV, "config");
@@ -306,7 +306,7 @@ public class ChunkFinder extends Module {
     }
 
     private enum SaveOption {
-        extraFolder, liteLoaderWdl, nhackWdl
+        EXTRA_FOLDER, LITE_LOADER_WDL, NHACK_WDL
     }
 
     private class LastSetting {

@@ -32,25 +32,25 @@ public class InfoOverlay extends Module {
     private Setting<Boolean> ping = register(Settings.b("Latency", false));
     private Setting<Boolean> durability = register(Settings.b("Item Damage", false));
     private Setting<Boolean> memory = register(Settings.b("Memory Used", false));
-    private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KmH).withVisibility(v -> speed.getValue()).build());
+    private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KMH).withVisibility(v -> speed.getValue()).build());
     private Setting<ColourUtils.ColourCode> firstColour = register(Settings.e("First Colour", ColourUtils.ColourCode.WHITE));
     private Setting<ColourUtils.ColourCode> secondColour = register(Settings.e("Second Colour", ColourUtils.ColourCode.BLUE));
     private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> time.getValue()).build());
-    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.h12).withVisibility(v -> time.getValue()).build());
+    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> time.getValue()).build());
     private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> time.getValue()).build());
 
     private enum SpeedUnit {
-        MpS, KmH
+        MPS, KMH
     }
 
     public boolean useUnitKmH() {
-        return speedUnit.getValue().equals(SpeedUnit.KmH);
+        return speedUnit.getValue().equals(SpeedUnit.KMH);
     }
 
     private String unitType(SpeedUnit s) {
         switch (s) {
-            case MpS: return "m/s";
-            case KmH: return "km/h";
+            case MPS: return "m/s";
+            case KMH: return "km/h";
             default: return "Invalid unit type (mps or kmh)";
         }
     }

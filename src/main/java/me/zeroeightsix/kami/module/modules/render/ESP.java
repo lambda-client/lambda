@@ -28,8 +28,7 @@ public class ESP extends Module {
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
 
     public enum ESPMode {
-        RECTANGLE,
-        GLOW
+        RECTANGLE, GLOW
     }
 
     @Override

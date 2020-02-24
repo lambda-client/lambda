@@ -46,7 +46,7 @@ public class Aura extends Module {
     private int waitCounter;
 
     private enum SwitchMode {
-        NONE, ALL, Only32k
+        NONE, ALL, ONLY32K
     }
 
     private enum HitMode {
@@ -142,7 +142,7 @@ public class Aura extends Module {
                     // We want to skip this if switchTo32k.getValue() is true,
                     // because it only accounts for tools and weapons.
                     // Maybe someone could refactor this later? :3
-                    if ((!switchMode.getValue().equals(SwitchMode.Only32k) || switchMode.getValue().equals(SwitchMode.ALL)) && ModuleManager.isModuleEnabled("AutoTool")) {
+                    if ((!switchMode.getValue().equals(SwitchMode.ONLY32K) || switchMode.getValue().equals(SwitchMode.ALL)) && ModuleManager.isModuleEnabled("AutoTool")) {
                         AutoTool.equipBestWeapon();
                     }
                     attack(target);
@@ -181,7 +181,7 @@ public class Aura extends Module {
             NBTTagCompound enchant = enchants.getCompoundTagAt(i);
             if (enchant.getInteger("id") == 16) {
                 int lvl = enchant.getInteger("lvl");
-                if (switchMode.getValue().equals(SwitchMode.Only32k)) {
+                if (switchMode.getValue().equals(SwitchMode.ONLY32K)) {
                     if (lvl >= 42) { // dia sword against full prot 5 armor is deadly somehere >= 34 sharpness iirc
                         return true;
                     }
@@ -208,7 +208,7 @@ public class Aura extends Module {
             holding32k = true;
         }
 
-        if ((switchMode.getValue().equals(SwitchMode.Only32k) || switchMode.getValue().equals(SwitchMode.ALL)) && !holding32k) {
+        if ((switchMode.getValue().equals(SwitchMode.ONLY32K) || switchMode.getValue().equals(SwitchMode.ALL)) && !holding32k) {
 
             int newSlot = -1;
 
@@ -230,7 +230,7 @@ public class Aura extends Module {
 
         }
 
-        if (switchMode.getValue().equals(SwitchMode.Only32k) && !holding32k) {
+        if (switchMode.getValue().equals(SwitchMode.ONLY32K) && !holding32k) {
             return;
         }
 
