@@ -52,6 +52,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> explode = register(Settings.b("Explode", false));
     private Setting<Double> range = register(Settings.d("Range", 4));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
+    private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
 
     private BlockPos render;
     private Entity renderEnt;
@@ -143,6 +144,7 @@ public class CrystalAura extends Module {
         BlockPos q = null;
         double damage = .5;
         for (Entity entity : entities) {
+            // stop if the entities health is 0 or less then 0 (somehow) or if the entity is you
             if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0) {
                 continue;
             }
@@ -154,9 +156,16 @@ public class CrystalAura extends Module {
                 double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
                 if (d > damage) {
                     double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
+                    // Factor in absorption if wanted
+                    float enemyAbsorption = 0.0f;
+                    float playerAbsorption = 0.0f;
+                    if (checkAbsorption.getValue()) {
+                        enemyAbsorption = ((EntityLivingBase) entity).getAbsorptionAmount();
+                        playerAbsorption = mc.player.getAbsorptionAmount();
+                    }
                     // If this deals more damage to ourselves than it does to our target, continue. This is only ignored if the crystal is sure to kill our target but not us.
                     // Also continue if our crystal is going to hurt us.. alot
-                    if ((self > d && !(d < ((EntityLivingBase) entity).getHealth())) || self - .5 > mc.player.getHealth()) {
+                    if ((self > d && !(d < ((EntityLivingBase) entity).getHealth() + enemyAbsorption)) || self - .5 > mc.player.getHealth() + playerAbsorption) {
                         continue;
                     }
                     damage = d;
