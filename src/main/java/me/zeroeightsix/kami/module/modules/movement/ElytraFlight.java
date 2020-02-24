@@ -12,7 +12,7 @@ import java.util.Objects;
 /**
  * Created by 086 on 11/04/2018.
  * Updated by Itistheend on 28/12/19.
- * Updated by S-B99 on 14/02/20
+ * Updated by S-B99 on 24/02/20
  */
 
 @Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
