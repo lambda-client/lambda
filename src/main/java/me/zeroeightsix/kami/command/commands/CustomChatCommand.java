@@ -22,8 +22,12 @@ public class CustomChatCommand extends Command {
             Command.sendErrorMessage("&cThe CustomChat module is not available for some reason. Make sure the name you're calling is correct and that you have the module installed!!");
             return;
         }
-        if (!cC.isEnabled() || !cC.textMode.getValue().equals(CustomChat.TextMode.CUSTOM)) {
-            Command.sendWarningMessage("&6Warning: The CustomChat module is not enabled, or you don't have custom mode enabled!");
+        if (!cC.isEnabled()) {
+            Command.sendWarningMessage("&6Warning: The CustomChat module is not enabled!");
+            Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
+        }
+        if (!cC.textMode.getValue().equals(CustomChat.TextMode.CUSTOM)) {
+            Command.sendWarningMessage("&6Warning: You don't have custom mode enabled in CustomChat!");
             Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
         }
         for (String s : args) {
