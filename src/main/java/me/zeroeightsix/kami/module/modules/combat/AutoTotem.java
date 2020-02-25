@@ -10,19 +10,19 @@ import net.minecraft.item.ItemStack;
 
 /**
  * Created by 086 on 22/01/2018.
- * Updated by S-B99 on 12/11/19
+ * Updated by S-B99 on 24/02/20
  */
 @Module.Info(name = "AutoTotem", category = Module.Category.COMBAT, description = "Refills your offhand with totems")
 public class AutoTotem extends Module {
+    private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.REPLACE_OFFHAND));
+
+    private enum Mode {
+        NEITHER, REPLACE_OFFHAND, INVENTORY
+    }
 
     int totems;
     boolean moving = false;
     boolean returnI = false;
-    private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.REPLACE_OFFHAND));
-
-    private enum Mode {
-        NONE, REPLACE_OFFHAND, INVENTORY
-    }
 
     @Override
     public void onUpdate() {
