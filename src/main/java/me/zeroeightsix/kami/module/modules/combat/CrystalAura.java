@@ -25,6 +25,7 @@ import net.minecraft.item.ItemTool;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
+import net.minecraft.network.play.server.SPacketPlayerPosLook;
 import net.minecraft.potion.Potion;
 import net.minecraft.util.*;
 import net.minecraft.util.math.*;
@@ -65,6 +66,7 @@ public class CrystalAura extends Module {
     private boolean isAttacking = false;
     private int oldSlot = -1;
     private int newSlot;
+    private double enemyFacing;
 
     @Override
     public void onUpdate() {
@@ -363,7 +365,7 @@ public class CrystalAura extends Module {
 
 
     @EventHandler
-    private Listener<PacketEvent.Send> packetListener = new Listener<>(event -> {
+    private Listener<PacketEvent.Send> cPacketListener = new Listener<>(event -> {
         Packet packet = event.getPacket();
         if (packet instanceof CPacketPlayer) {
             if (isSpoofingAngles) {
@@ -371,6 +373,12 @@ public class CrystalAura extends Module {
                 ((CPacketPlayer) packet).pitch = (float) pitch;
             }
         }
+    });
+    private Listener<PacketEvent.Receive> sPacketListener = new Listener <>(e -> {
+    	Packet packet = e.getPacket();
+    	if (packet instanceof SPacketPlayerPosLook) {
+    		enemyFacing = ((SPacketPlayerPosLook) packet).getYaw();
+    	}
     });
 
     @Override
