@@ -18,12 +18,15 @@ public class AutoTotem extends Module {
     int totems;
     boolean moving = false;
     boolean returnI = false;
-    private Setting<Boolean> force = register(Settings.b("Replace Offhand", false));
-    private Setting<Boolean> inv = register(Settings.booleanBuilder("Inventory").withValue(true).withVisibility(v -> !force.getValue()).build());
+    private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.REPLACE_OFFHAND));
+
+    private enum Mode {
+        NONE, REPLACE_OFFHAND, INVENTORY
+    }
 
     @Override
     public void onUpdate() {
-        if (!inv.getValue() && mc.currentScreen instanceof GuiContainer)
+        if (!modeSetting.getValue().equals(Mode.INVENTORY) && mc.currentScreen instanceof GuiContainer)
             return; // this stops autototem from running if you're in a chest or something
         if (returnI) {
             int t = -1;
@@ -39,7 +42,7 @@ public class AutoTotem extends Module {
         totems = mc.player.inventory.mainInventory.stream().filter(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING).mapToInt(ItemStack::getCount).sum();
         if (mc.player.getHeldItemOffhand().getItem() == Items.TOTEM_OF_UNDYING) totems++;
         else {
-            if (!force.getValue() && !mc.player.getHeldItemOffhand().isEmpty) return;
+            if (!modeSetting.getValue().equals(Mode.REPLACE_OFFHAND) && !mc.player.getHeldItemOffhand().isEmpty) return;
             if (moving) {
                 mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
                 moving = false;
@@ -57,7 +60,7 @@ public class AutoTotem extends Module {
                 if (t == -1) return; // Should never happen!
                 mc.playerController.windowClick(0, t < 9 ? t + 36 : t, 0, ClickType.PICKUP, mc.player);
                 moving = true;
-            } else if (force.getValue()) {
+            } else if (modeSetting.getValue().equals(Mode.REPLACE_OFFHAND)) {
                 int t = -1;
                 for (int i = 0; i < 45; i++)
                     if (mc.player.inventory.getStackInSlot(i).isEmpty) {
