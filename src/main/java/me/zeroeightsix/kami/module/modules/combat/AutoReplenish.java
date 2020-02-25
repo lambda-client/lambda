@@ -43,7 +43,7 @@ public class AutoReplenish extends Module {
         return getInventorySlots(36, 44);
     }
 
-    private static Map<Integer, ItemStack> getInventorySlots(int current, int last) {
+    public static Map<Integer, ItemStack> getInventorySlots(int current, int last) {
 
         Map<Integer, ItemStack> fullInventorySlots = new HashMap<>();
 
