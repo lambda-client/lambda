@@ -38,6 +38,7 @@ public class Surround extends Module {
     private Setting<Double> blockPerTick = register(Settings.doubleBuilder("Blocks per Tick").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
     private Setting<AutoCenter> autoCenter = register(Settings.e("Auto Center", AutoCenter.TP));
+    private Setting<Boolean> placeAnimation = register(Settings.b("Place Animation", false));
 
     private final Vec3d[] surroundTargets = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D), new Vec3d(1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, 1.0D), new Vec3d(-1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, -1.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
 
@@ -193,7 +194,7 @@ public class Surround extends Module {
         } else if (!BlockInteractionHelper.checkForNeighbours(blockPos) && debugMsgs.getValue().equals(DebugMsgs.ALL)) {
             Command.sendChatMessage("[Surround] !checkForNeighbours(blockPos), disabling! ");
         } else {
-            mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
+            if (placeAnimation.getValue()) mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
             placeBlockExecute(blockPos);
         }
         if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
