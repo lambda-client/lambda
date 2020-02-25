@@ -27,7 +27,7 @@ public class OffhandGap extends Module {
 	private Setting<Boolean> preventDesync = register(Settings.b("Prevent Desync", false));
 	private Setting<Double> disableHealth = register(Settings.doubleBuilder("Disable Health").withMinimum(0.0).withValue(4.0).withMaximum(20.0).build());
 	private Setting<Boolean> weaponCheck = register(Settings.b("Sword or Axe Only", true));
-	private Setting<Mode> modeSetting = register(Settings.e("Use Mode", Mode.GAPPLE));
+//	private Setting<Mode> modeSetting = register(Settings.e("Use Mode", Mode.GAPPLE));
 
 	private enum Mode {
 		GAPPLE, FOOD, CUSTOM
@@ -79,11 +79,11 @@ public class OffhandGap extends Module {
 	@Override
 	public void onUpdate() {
 		if (mc.player == null) return;
-		if (modeSetting.getValue().equals(Mode.GAPPLE)) {
+//		if (modeSetting.getValue().equals(Mode.GAPPLE)) {
 			toUseItem = Items.GOLDEN_APPLE;
-		} //else if (modeSetting.getValue().equals(Mode.FOOD)) {
-		//	if (getFullInventory().containsKey(Items.))
-		//}
+//		} else if (modeSetting.getValue().equals(Mode.FOOD)) {
+//			if (getFullInventory().containsKey(Items.))
+//		}
 		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
 			for (int i = 0; i < 45; i++) {
 				if (mc.player.inventory.getStackInSlot(i).getItem() == Items.GOLDEN_APPLE) {
