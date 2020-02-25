@@ -126,7 +126,7 @@ public class OffhandGap extends Module {
 	void moveFromOffhand(int slot) {
 		if (mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
 			mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
-			mc.playerController.windowClick(0, slot, 0, ClickType.PICKUP, mc.player);
+			mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
 		}
 	}
 }
