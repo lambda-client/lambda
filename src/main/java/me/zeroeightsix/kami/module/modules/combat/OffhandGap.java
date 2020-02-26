@@ -18,7 +18,7 @@ import java.util.Map;
 import static me.zeroeightsix.kami.module.modules.combat.AutoReplenish.getInventorySlots;
 
 /**
- * @author polymer (main function and autototem compatibility)
+ * @author polymer (main listener switch function xd)
  * @author S-B99 (made epic and smooth and cleaned up code <3)
  * Created by polymer on 21/02/20
  * Updated by S-B99 on 24/02/20
@@ -39,7 +39,7 @@ public class OffhandGap extends Module {
 	boolean cancelled = false;
 	boolean autoTotemUserEnabled = false;
 	boolean changingState = false;
-	Item usedItem; // epic meme
+	Item usedItem;
 	Item toUseItem;
 
 	@EventHandler
@@ -108,7 +108,7 @@ public class OffhandGap extends Module {
 	private static Map<Integer, ItemStack> getFullInventory() { return getInventorySlots(0, 45); }
 
 	/* If weaponCheck is disabled, check if they're not holding an item you'd want to use normally */
-	public boolean passItemCheck() {
+	private boolean passItemCheck() {
 		if (weaponCheck.getValue()) return false;
 		else {
 			Item item = mc.player.getHeldItemMainhand().getItem();
@@ -127,7 +127,7 @@ public class OffhandGap extends Module {
 		return true;
 	}
 
-	public void disableGaps() {
+	private void disableGaps() {
 		changingState = true;
 		if (autoTotemWasEnabled != ModuleManager.isModuleEnabled("AutoTotem")) {
 			moveGapsFromOffhand(gaps);
@@ -137,14 +137,14 @@ public class OffhandGap extends Module {
 		changingState = false;
 	}
 
-	void enableGaps(int slot) {
+	private void enableGaps(int slot) {
 		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
 			mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
 			mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
 		}
 	}
 
-	void moveGapsFromOffhand(int slot) {
+	private void moveGapsFromOffhand(int slot) {
 		if (mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
 			mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
 			mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
