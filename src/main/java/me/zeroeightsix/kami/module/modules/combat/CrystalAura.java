@@ -12,6 +12,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.*;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.item.EntityEnderCrystal;
@@ -66,7 +67,8 @@ public class CrystalAura extends Module {
     private boolean isAttacking = false;
     private int oldSlot = -1;
     private int newSlot;
-    private double enemyFacing;
+    private float enemyFacingYaw;
+    private float enemyFacingPitch;
 
     @Override
     public void onUpdate() {
@@ -266,7 +268,14 @@ public class CrystalAura extends Module {
                 && mc.world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(boost)).isEmpty()
                 && mc.world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(boost2)).isEmpty();
     }
-
+    
+    private boolean hasDetonatedCrystal(EntityLiving player) {
+    	if (1 == 2) { //placeholder bc im lazy
+    		return true;
+    	}
+    	return false;
+    }
+    
     public static BlockPos getPlayerPos() {
         return new BlockPos(Math.floor(mc.player.posX), Math.floor(mc.player.posY), Math.floor(mc.player.posZ));
     }
@@ -377,7 +386,8 @@ public class CrystalAura extends Module {
     private Listener<PacketEvent.Receive> sPacketListener = new Listener <>(e -> {
     	Packet packet = e.getPacket();
     	if (packet instanceof SPacketPlayerPosLook) {
-    		enemyFacing = ((SPacketPlayerPosLook) packet).getYaw();
+    		enemyFacingYaw = ((SPacketPlayerPosLook) packet).getYaw();
+    		enemyFacingPitch = ((SPacketPlayerPosLook) packet).getPitch();
     	}
     });
 
