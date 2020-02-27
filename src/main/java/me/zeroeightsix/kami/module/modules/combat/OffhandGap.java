@@ -30,28 +30,26 @@ public class OffhandGap extends Module {
 	private Setting<Boolean> preventDesync = register(Settings.b("Prevent Desync", false));
 //	private Setting<Mode> modeSetting = register(Settings.e("Use Mode", Mode.GAPPLE));
 
-	private enum Mode {
-		GAPPLE, FOOD, CUSTOM
-	}
-
-	int gaps = -1;
-	boolean autoTotemWasEnabled = false;
+	public static boolean autoTotemGlobalState = false;
+	boolean autoTotemLocalState = false;
 	boolean cancelled = false;
-	boolean autoTotemUserEnabled = false;
-	boolean changingState = false;
 	Item usedItem;
 	Item toUseItem;
+	int gaps = -1;
+
+//	private enum Mode {
+//		GAPPLE, FOOD, CUSTOM
+//	}
 
 	@EventHandler
 	private Listener<PacketEvent.Send> sendListener = new Listener<>(e ->{
-		while (!cancelled) {
+		while (!cancelled) { /* Super safe cancel everything method */
 			if (e.getPacket() instanceof CPacketPlayerTryUseItem) {
-				if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
-					return;
-				}
+				/* Disable running code if your health doesn't meet requirements */
+				if (cancelled) return;
 				if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
-					if (ModuleManager.isModuleEnabled("AutoTotem")) {
-						autoTotemWasEnabled = true;
+					if (ModuleManager.isModuleEnabled("AutoTotem")) { /* Save used state of AutoTotem to use later */
+						autoTotemLocalState = true;
 						ModuleManager.getModuleByName("AutoTotem").disable();
 					}
 					if (preventDesync.getValue()) { /* Save item for later when using preventDesync */
@@ -62,29 +60,28 @@ public class OffhandGap extends Module {
 			}
 			try {
 				/* If you stop holding right click move totem back */
-				if (!mc.gameSettings.keyBindUseItem.isKeyDown() && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
-					disableGaps();
-				}
+				if (!mc.gameSettings.keyBindUseItem.isKeyDown() && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) disableGaps();
 				/* In case you didn't stop right clicking but you switched items by scrolling or something */
-				else if ((usedItem != mc.player.getHeldItemMainhand().getItem()) && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
-					/* Only with preventDesync enabled */
-					if (preventDesync.getValue()) {
-						usedItem = mc.player.getHeldItemMainhand().getItem();
-						disableGaps();
-					}
-
+				/* Only with preventDesync enabled */
+				else if (preventDesync.getValue() && (usedItem != mc.player.getHeldItemMainhand().getItem()) && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
+					usedItem = mc.player.getHeldItemMainhand().getItem();
+					disableGaps();
 				}
 				/* Force disable if under health limit */
-				else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
-					disableGaps();
-				}
-			} catch (NullPointerException ignored) { }
+				else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) disableGaps();
+			} catch (NullPointerException ignored) { } // epic meme
 		}
+		forceTotems(); /* After doing the safe cancel, make sure totems are in the offhand */
 	});
 
 	@Override
 	public void onUpdate() {
 		if (mc.player == null) return;
+//		if (autoTotemGlobalState) {
+//			Command.sendChatMessage("uwu");
+//		} else {
+//			Command.sendChatMessage("owo");
+//		}
 		/* If your health doesn't meet the cutoff then set it to true */
 		cancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
 		//		if (modeSetting.getValue().equals(Mode.GAPPLE)) {
@@ -94,7 +91,8 @@ public class OffhandGap extends Module {
 //		}
 //		Map<Integer, ItemStack> fullInventory = getFullInventory();
 //		System.out.println(fullInventory);
-		
+
+		/* Find Golden Apples in your inventory */
 		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
 			for (int i = 0; i < 45; i++) {
 				if (mc.player.inventory.getStackInSlot(i).getItem() == Items.GOLDEN_APPLE) {
@@ -105,7 +103,9 @@ public class OffhandGap extends Module {
 		}
 	}
 
-	private static Map<Integer, ItemStack> getFullInventory() { return getInventorySlots(0, 45); }
+//	private static Map<Integer, ItemStack> getFullInventory() { return getInventorySlots(0, 45); }
+
+//	public void setAutoTotemGlobalStateChange(boolean newValue) { autoTotemGlobalState = newValue; }
 
 	/* If weaponCheck is disabled, check if they're not holding an item you'd want to use normally */
 	private boolean passItemCheck() {
@@ -127,15 +127,22 @@ public class OffhandGap extends Module {
 		return true;
 	}
 
-	private void disableGaps() {
-		changingState = true;
-		if (autoTotemWasEnabled != ModuleManager.isModuleEnabled("AutoTotem")) {
-			moveGapsFromOffhand(gaps);
+	private void forceTotems() {
+		if (!ModuleManager.isModuleEnabled("AutoTotem")) {
+			moveGapsToInventory(gaps);
 			ModuleManager.getModuleByName("AutoTotem").enable();
-			autoTotemWasEnabled = false;
+			autoTotemLocalState = false;
 		}
-		changingState = false;
 	}
+
+	private void disableGaps() {
+		if (autoTotemLocalState != ModuleManager.isModuleEnabled("AutoTotem")) {
+			moveGapsToInventory(gaps);
+			ModuleManager.getModuleByName("AutoTotem").enable();
+			autoTotemLocalState = false;
+		}
+	}
+
 
 	private void enableGaps(int slot) {
 		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
@@ -144,7 +151,7 @@ public class OffhandGap extends Module {
 		}
 	}
 
-	private void moveGapsFromOffhand(int slot) {
+	private void moveGapsToInventory(int slot) {
 		if (mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
 			mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
 			mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
