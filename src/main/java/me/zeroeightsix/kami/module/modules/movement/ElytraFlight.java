@@ -35,7 +35,7 @@ public class ElytraFlight extends Module {
             downSpeed.setValue(0.04f);
             defaultSetting.setValue(false);
             Command.sendChatMessage("[ElytraFlight] Set to defaults!");
-            Command.sendChatMessage("[ElytraFlight] Close and reopen the ElytraFlight setting's menu to see changes");
+            Command.sendChatMessage("[ElytraFlight] Close and reopen the ElytraFlight settings menu to see changes");
         }
 
         if (mc.player.capabilities.isFlying) {

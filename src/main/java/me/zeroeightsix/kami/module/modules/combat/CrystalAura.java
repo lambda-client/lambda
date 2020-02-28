@@ -80,7 +80,7 @@ public class CrystalAura extends Module {
             checkAbsorption.setValue(true);
             defaultSetting.setValue(false);
             Command.sendChatMessage("[CrystalAura] Set to defaults!");
-            Command.sendChatMessage("[CrystalAura] Close and reopen the ElytraFlight setting's menu to see changes");
+            Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura settings menu to see changes");
         }
 
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
