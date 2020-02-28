@@ -78,8 +78,9 @@ public class CrystalAura extends Module {
             range.setValue(4.0);
             antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
-            Command.sendChatMessage("[ElytraFlight] Set to defaults!");
-            Command.sendChatMessage("[ElytraFlight] Close and reopen the ElytraFlight setting's menu to see changes");
+            defaultSetting.setValue(false);
+            Command.sendChatMessage("[CrystalAura] Set to defaults!");
+            Command.sendChatMessage("[CrystalAura] Close and reopen the ElytraFlight setting's menu to see changes");
         }
 
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
