@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketEntityAction;
@@ -27,6 +28,11 @@ public class ElytraFlight extends Module {
 
     @Override
     public void onUpdate() {
+        if (ModuleManager.getModuleByName("ElytraFlightCycle").isEnabled()) {
+            cycle();
+            Command.sendChatMessage("[ElytraFlightCycle] Cycled!");
+            ModuleManager.getModuleByName("ElytraFlightCycle").disable();
+        }
         if (defaultSetting.getValue()) {
             speed.setValue(1.8f);
             fallSpeed.setValue(-.003f);
@@ -101,6 +107,18 @@ public class ElytraFlight extends Module {
 
     public enum ElytraFlightMode {
         BOOST, FLY, HIGHWAY
+    }
+
+    public void cycle() { /* This fixes a bug with your wings not being opened sometimes */
+        if (mode.getValue().equals(ElytraFlightMode.HIGHWAY)) {
+            mode.setValue(ElytraFlightMode.FLY);
+            mode.setValue(ElytraFlightMode.HIGHWAY);
+
+        }
+        else if (mode.getValue().equals(ElytraFlightMode.FLY)) {
+            mode.setValue(ElytraFlightMode.HIGHWAY);
+            mode.setValue(ElytraFlightMode.FLY);
+        }
     }
 
 }
