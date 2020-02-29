@@ -17,7 +17,7 @@ import java.util.Objects;
  */
 @Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
 public class ElytraFlight extends Module {
-    public Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
+    private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
     private Setting<Float> speed = register(Settings.floatBuilder("Speed H").withValue(1.8f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility(v -> !mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
