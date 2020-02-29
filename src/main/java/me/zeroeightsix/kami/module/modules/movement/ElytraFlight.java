@@ -13,9 +13,8 @@ import java.util.Objects;
 /**
  * Created by 086 on 11/04/2018.
  * Updated by Itistheend on 28/12/19.
- * Updated by S-B99 on 24/02/20
+ * Updated by S-B99 on 29/02/20
  */
-
 @Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
 public class ElytraFlight extends Module {
     public Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
@@ -110,14 +109,19 @@ public class ElytraFlight extends Module {
     }
 
     public void cycle() { /* This fixes a bug with your wings not being opened sometimes */
-        if (mode.getValue().equals(ElytraFlightMode.HIGHWAY)) {
-            mode.setValue(ElytraFlightMode.FLY);
-            mode.setValue(ElytraFlightMode.HIGHWAY);
-
-        }
-        else if (mode.getValue().equals(ElytraFlightMode.FLY)) {
-            mode.setValue(ElytraFlightMode.HIGHWAY);
-            mode.setValue(ElytraFlightMode.FLY);
+        switch (mode.getValue()) {
+            case HIGHWAY:
+                mode.setValue(ElytraFlightMode.BOOST);
+                mode.setValue(ElytraFlightMode.FLY);
+                mode.setValue(ElytraFlightMode.HIGHWAY);
+            case FLY:
+                mode.setValue(ElytraFlightMode.HIGHWAY);
+                mode.setValue(ElytraFlightMode.BOOST);
+                mode.setValue(ElytraFlightMode.FLY);
+            case BOOST:
+                mode.setValue(ElytraFlightMode.FLY);
+                mode.setValue(ElytraFlightMode.HIGHWAY);
+                mode.setValue(ElytraFlightMode.BOOST);
         }
     }
 
