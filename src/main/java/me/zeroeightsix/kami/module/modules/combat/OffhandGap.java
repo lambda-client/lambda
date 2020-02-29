@@ -43,10 +43,11 @@ public class OffhandGap extends Module {
 
 	@EventHandler
 	private Listener<PacketEvent.Send> sendListener = new Listener<>(e ->{
-		while (!cancelled) { /* Super safe cancel everything method */
 			if (e.getPacket() instanceof CPacketPlayerTryUseItem) {
-				/* Disable running code if your health doesn't meet requirements */
-				if (cancelled) return;
+				if (cancelled) { /* Disable running code if your health doesn't meet requirements */
+					forceTotems();
+					return;
+				}
 				if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
 					if (ModuleManager.isModuleEnabled("AutoTotem")) { /* Save used state of AutoTotem to use later */
 						autoTotemLocalState = true;
@@ -70,7 +71,6 @@ public class OffhandGap extends Module {
 				/* Force disable if under health limit */
 				else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) disableGaps();
 			} catch (NullPointerException ignored) { } // epic meme
-		}
 		forceTotems(); /* After doing the safe cancel, make sure totems are in the offhand */
 	});
 
