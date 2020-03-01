@@ -32,7 +32,7 @@ public class Scaffold extends Module {
     private Setting<Boolean> placeBlocks = register(Settings.b("Place Blocks", true));
     private Setting<Mode> modeSetting = register(Settings.enumBuilder(Mode.class).withName("Mode").withValue(Mode.TOWER).build());
     private Setting<Boolean> randomDelay = register(Settings.booleanBuilder("Random Delay").withValue(false).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT)).build());
-    private Setting<Integer> delayRange = register(Settings.integerBuilder("Delay Range").withMinimum(0).withValue(3).withMaximum(10).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT) && randomDelay.getValue()).build());
+    private Setting<Integer> delayRange = register(Settings.integerBuilder("Delay Range").withMinimum(0).withValue(6).withMaximum(10).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT) && randomDelay.getValue()).build());
     private Setting<Integer> ticks = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2).withVisibility(v -> !modeSetting.getValue().equals(Mode.LEGIT)).build());
 
     private boolean shouldSlow = false;
@@ -90,6 +90,22 @@ public class Scaffold extends Module {
             return;
         }
 
+        setSlotToBlocks(belowBlockPos);
+
+        /* check if we don't have a block adjacent to the blockPos */
+        if (!checkForNeighbours(blockPos)) return;
+
+        /* place the block */
+        if (placeBlocks.getValue()) placeBlockScaffold(blockPos);
+        mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.STOP_SNEAKING));
+        shouldSlow = false;
+    }
+
+    private float getRandomInRange() {
+        return 0.11f + (float) Math.random() * ((delayRange.getValue() / 10.0f) - 0.11f);
+    }
+
+    private void setSlotToBlocks(BlockPos belowBlockPos) {
         /* search blocks in hotbar */
         int newSlot = -1;
         for (int i = 0; i < 9; i++) {
@@ -107,30 +123,17 @@ public class Scaffold extends Module {
             if (((ItemBlock) stack.getItem()).getBlock() instanceof BlockFalling) {
                 if (Wrapper.getWorld().getBlockState(belowBlockPos).getMaterial().isReplaceable()) continue;
             }
-
             newSlot = i;
             break;
         }
-
         /* check if any blocks were found, and if they were then set the slot */
-        if (newSlot == -1) return;
-        int oldSlot = Wrapper.getPlayer().inventory.currentItem;
-        Wrapper.getPlayer().inventory.currentItem = newSlot;
-
-        /* check if we don't have a block adjacent to the blockPos */
-        if (!checkForNeighbours(blockPos)) return;
-
-        /* place the block */
-        if (placeBlocks.getValue()) placeBlockScaffold(blockPos);
-        mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.STOP_SNEAKING));
-        shouldSlow = false;
-
+        int oldSlot = 1; /* make it 1, instead of -1 so you don't get kicked if it was -1 */
+        if (newSlot != -1) {
+            oldSlot = Wrapper.getPlayer().inventory.currentItem;
+            Wrapper.getPlayer().inventory.currentItem = newSlot;
+        }
         /* reset slot back to the original one */
         Wrapper.getPlayer().inventory.currentItem = oldSlot;
-    }
-
-    public float getRandomInRange() {
-        return 0.11f + (float) Math.random() * ((delayRange.getValue() / 10.0f) - 0.11f);
     }
 }
 
