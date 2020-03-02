@@ -83,7 +83,7 @@ public class AutoTrap extends Module {
 
     @Override
     protected void onEnable() {
-        if (mc.player == null) return;
+        if (mc.player == null || mc.player.getHealth() <= 0) return;
 
         firstRun = true;
 
@@ -95,7 +95,7 @@ public class AutoTrap extends Module {
 
     @Override
     protected void onDisable() {
-        if (mc.player == null) return;
+        if (mc.player == null || mc.player.getHealth() <= 0) return;
 
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
             mc.player.inventory.currentItem = playerHotbarSlot;
@@ -114,7 +114,7 @@ public class AutoTrap extends Module {
 
     @Override
     public void onUpdate() {
-        if (mc.player == null) return;
+        if (mc.player == null || mc.player.getHealth() <= 0) return;
 
         if (!activeInFreecam.getValue() && ModuleManager.isModuleEnabled("Freecam")) return;
 
