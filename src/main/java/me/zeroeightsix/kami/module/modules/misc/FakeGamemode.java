@@ -23,7 +23,7 @@ public class FakeGamemode extends Module {
         if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() != null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
             if (mc.player.dimension == 1) {
                 if (disable2b.getValue()) {
-                    Command.sendWarningMessage(this.getFormatName() + " Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
+                    Command.sendWarningMessage(this.getChatName() + " Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
                     this.disable();
                 }
             }
