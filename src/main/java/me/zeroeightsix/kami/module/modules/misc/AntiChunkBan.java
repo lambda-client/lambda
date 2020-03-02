@@ -37,7 +37,7 @@ public class AntiChunkBan extends Module {
 
     public void onEnable() {
         if (mc.player == null) return;
-        Command.sendChatMessage("[AntiChunkBan] Note: this disables chunks loading in. If you want to be able to play normally you have to disable it");
+        Command.sendChatMessage(this.getChatName() + " Note: this disables chunks loading in. If you want to be able to play normally you have to disable it");
     }
 
     @Override

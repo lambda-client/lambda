@@ -79,8 +79,8 @@ public class CrystalAura extends Module {
             antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
             defaultSetting.setValue(false);
-            Command.sendChatMessage("[CrystalAura] Set to defaults!");
-            Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura settings menu to see changes");
+            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
+            Command.sendChatMessage(this.getChatName() + " Close and reopen the CrystalAura settings menu to see changes");
         }
 
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()

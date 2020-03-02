@@ -123,6 +123,10 @@ public class Module {
         return name.getValue();
     }
 
+    public String getChatName() {
+        return "[" + name.getValue() + "] ";
+    }
+    
     public String getDescription() {
         return description;
     }

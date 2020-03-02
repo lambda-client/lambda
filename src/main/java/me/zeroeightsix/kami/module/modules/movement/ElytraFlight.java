@@ -39,8 +39,8 @@ public class ElytraFlight extends Module {
             upSpeedBoost.setValue(0.08f);
             downSpeedBoost.setValue(0.04f);
             defaultSetting.setValue(false);
-            Command.sendChatMessage("[ElytraFlight] Set to defaults!");
-            Command.sendChatMessage("[ElytraFlight] Close and reopen the ElytraFlight settings menu to see changes");
+            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
+            Command.sendChatMessage(this.getChatName() + " Close and reopen the ElytraFlight settings menu to see changes");
         }
 
         if (mc.player.capabilities.isFlying) {

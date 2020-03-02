@@ -78,84 +78,84 @@ public class AntiSpam extends Module {
 
         if (greenText.getValue() && findPatterns(FilterPatterns.GREEN_TEXT, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Green Text: " + message);
+                Command.sendChatMessage(this.getChatName() + "Green Text: " + message);
             }
             return true;
         }
 
         if (discordLinks.getValue() && findPatterns(FilterPatterns.DISCORD, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Discord Link: " + message);
+                Command.sendChatMessage(this.getChatName() + "Discord Link: " + message);
             }
             return true;
         }
 
         if (webLinks.getValue() && findPatterns(FilterPatterns.WEB_LINK, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Web Link: " + message);
+                Command.sendChatMessage(this.getChatName() + "Web Link: " + message);
             }
             return true;
         }
 
         if (ips.getValue() && findPatterns(FilterPatterns.IP_ADDR, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] IP Address: " + message);
+                Command.sendChatMessage(this.getChatName() + "IP Address: " + message);
             }
             return true;
         }
 
         if (ipsAgr.getValue() && findPatterns(FilterPatterns.IP_ADDR_AGR, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] IP Aggressive: " + message);
+                Command.sendChatMessage(this.getChatName() + "IP Aggressive: " + message);
             }
             return true;
         }
 
         if (tradeChat.getValue() && findPatterns(FilterPatterns.TRADE_CHAT, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Trade Chat: " + message);
+                Command.sendChatMessage(this.getChatName() + "Trade Chat: " + message);
             }
             return true;
         }
 
         if (numberSuffix.getValue() && findPatterns(FilterPatterns.NUMBER_SUFFIX, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Number Suffix: " + message);
+                Command.sendChatMessage(this.getChatName() + "Number Suffix: " + message);
             }
             return true;
         }
 
         if (announcers.getValue() && findPatterns(FilterPatterns.ANNOUNCER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Announcer: " + message);
+                Command.sendChatMessage(this.getChatName() + "Announcer: " + message);
             }
             return true;
         }
 
         if (spammers.getValue() && findPatterns(FilterPatterns.SPAMMER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Spammers: " + message);
+                Command.sendChatMessage(this.getChatName() + "Spammers: " + message);
             }
             return true;
         }
 
         if (insulters.getValue() && findPatterns(FilterPatterns.INSULTER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Insulter: " + message);
+                Command.sendChatMessage(this.getChatName() + "Insulter: " + message);
             }
             return true;
         }
 
         if (greeters.getValue() && findPatterns(FilterPatterns.GREETER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Greeter: " + message);
+                Command.sendChatMessage(this.getChatName() + "Greeter: " + message);
             }
             return true;
         }
 
         if (hypixelShills.getValue() && findPatterns(FilterPatterns.HYPIXEL_SHILLS, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Hypixel Shills: ");
+                Command.sendChatMessage(this.getChatName() + "Hypixel Shills: ");
             }
             return true;
         }
@@ -171,7 +171,7 @@ public class AntiSpam extends Module {
             messageHistory.put(message, System.currentTimeMillis());
             if (isDuplicate) {
                 if (showBlocked.getValue()) {
-                    Command.sendChatMessage("[AntiSpam] Duplicate: " + message);
+                    Command.sendChatMessage(this.getChatName() + "Duplicate: " + message);
                 }
                 return true;
             }
