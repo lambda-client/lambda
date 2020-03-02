@@ -126,7 +126,7 @@ public class Module {
     public String getChatName() {
         return "[" + name.getValue() + "] ";
     }
-    
+
     public String getDescription() {
         return description;
     }
