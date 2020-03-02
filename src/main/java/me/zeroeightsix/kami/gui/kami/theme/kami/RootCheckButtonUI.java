@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.ColourSet.*;
 import static org.lwjgl.opengl.GL11.*;
 
@@ -16,12 +17,12 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
     @Override
     public void renderComponent(CheckButton component, FontRenderer ff) {
 
-        glColor4f(checkButtonBackgroundColour.getRed(), checkButtonBackgroundColour.getGreen(), checkButtonBackgroundColour.getBlue(), component.getOpacity());
+        glColor4f(toF(checkButtonBackgroundColour.getRed()), toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()), component.getOpacity());
         if (component.isToggled()) { // I don't know why the R in this one is separate, 086 wrote it that way
-            glColor3f(checkButtonBackgroundColourOther, checkButtonBackgroundColour.getGreen(), checkButtonBackgroundColour.getBlue());
+            glColor3f(checkButtonBackgroundColourOther, toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()));
         }
         if (component.isHovered() || component.isPressed()) {
-            glColor4f(checkButtonBackgroundColourHover.getRed(), checkButtonBackgroundColourHover.getGreen(), checkButtonBackgroundColourHover.getBlue(), component.getOpacity());
+            glColor4f(toF(checkButtonBackgroundColourHover.getRed()), toF(checkButtonBackgroundColourHover.getGreen()), toF(checkButtonBackgroundColourHover.getBlue()), component.getOpacity());
         }
 
         String text = component.getName();

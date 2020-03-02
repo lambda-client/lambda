@@ -8,6 +8,7 @@ import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
 import java.awt.*;
 
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.ColourSet.*;
 import static org.lwjgl.opengl.GL11.*;
 
@@ -19,18 +20,18 @@ public class RootColorizedCheckButtonUI extends RootCheckButtonUI<ColorizedCheck
     RootSmallFontRenderer ff = new RootSmallFontRenderer();
 
     public RootColorizedCheckButtonUI() { // why are these values all hardcoded screm aksdlksalkdlk
-        checkButtonBackgroundColour = new Color(200, checkButtonBackgroundColour.getGreen(), checkButtonBackgroundColour.getBlue());
-        checkButtonBackgroundColourHover = new Color(255, checkButtonBackgroundColourHover.getGreen(), checkButtonBackgroundColourHover.getBlue());
+        checkButtonBackgroundColour = new Color(toF(200), toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()));
+        checkButtonBackgroundColourHover = new Color(toF(255), toF(checkButtonBackgroundColourHover.getGreen()), toF(checkButtonBackgroundColourHover.getBlue()));
     }
 
     @Override
     public void renderComponent(CheckButton component, FontRenderer aa) {
-        glColor4f(checkButtonBackgroundColour.getRed() / 255f, checkButtonBackgroundColour.getGreen() / 255f, checkButtonBackgroundColour.getBlue() / 255f, component.getOpacity());
+        glColor4f(toF(checkButtonBackgroundColour.getRed()), toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()), component.getOpacity());
         if (component.isHovered() || component.isPressed()) {
-            glColor4f(checkButtonBackgroundColourHover.getRed() / 255f, checkButtonBackgroundColourHover.getGreen() / 255f, checkButtonBackgroundColourHover.getBlue() / 255f, component.getOpacity());
+            glColor4f(toF(checkButtonBackgroundColourHover.getRed()), toF(checkButtonBackgroundColourHover.getGreen()), toF(checkButtonBackgroundColourHover.getBlue()), component.getOpacity());
         }
         if (component.isToggled()) {
-            glColor3f(checkButtonBackgroundColour.getRed() / 255f, checkButtonBackgroundColour.getGreen() / 255f, checkButtonBackgroundColour.getBlue() / 255f);
+            glColor3f(toF(checkButtonBackgroundColour.getRed()), toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()));
         }
 
 //        RenderHelper.drawRoundedRectangle(0,0,component.getWidth(), component.getHeight(), 3f);

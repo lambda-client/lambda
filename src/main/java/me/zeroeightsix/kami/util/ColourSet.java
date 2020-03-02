@@ -11,8 +11,8 @@ import static me.zeroeightsix.kami.util.ColourConverter.toF;
  */
 public class ColourSet {
     /* Check Button colours */
-    public static Color checkButtonBackgroundColour = new Color(toF(67), toF(54), toF(191)); // normal colored
-    public static Color checkButtonBackgroundColourHover = new Color(toF(67), toF(54), toF(191)); // light colored
+    public static Color checkButtonBackgroundColour = new Color(67, 54, 191); // normal colored
+    public static Color checkButtonBackgroundColourHover = new Color(67, 54, 191); // light colored
     public static float checkButtonBackgroundColourOther = .9f;
 
     public static Color checkButtonIdleColourNormal = new Color(200, 200, 200); // lighter grey
@@ -33,11 +33,15 @@ public class ColourSet {
 //        return componentMainWindowArray;
 //    }
 
-    public static Color componentWindowOutline = new Color(toF(116), toF(101), toF(247));
+    public static Color componentWindowOutline = new Color(116, 101, 247);
     public static float componentWindowOutlineWidth = 1.5f;
 
-    public static Color componentPinnedColour = new Color(toF(165), toF(41), toF(255));
-    public static float componentUnpinnedColour = toF(168.3);
-    public static float componentLineColour = toF(112.2);
+    public static Color componentPinnedColour = new Color(165, 41, 255);
+    public static double componentUnpinnedColour = 168.3;
+    public static double componentLineColour = 112.2;
+
+    public static Color sliderColour = new Color(155, 144, 255);
+
+    public static Color enumColour = new Color(116, 101, 247);
 
 }
