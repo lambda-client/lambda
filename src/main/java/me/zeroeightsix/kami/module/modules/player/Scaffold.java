@@ -24,13 +24,14 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 /**
  * Created by 086 on 20/01/19
  * Updated by Polymer on 16/01/20
+ * Updated by S-B99 on 02/03/20
  * @see me.zeroeightsix.kami.mixin.client.MixinEntity
  */
 @Module.Info(name = "Scaffold", category = Module.Category.PLAYER, description = "Places blocks under you")
 public class Scaffold extends Module {
 
     private Setting<Boolean> placeBlocks = register(Settings.b("Place Blocks", true));
-    private Setting<Mode> modeSetting = register(Settings.enumBuilder(Mode.class).withName("Mode").withValue(Mode.TOWER).build());
+    private Setting<Mode> modeSetting = register(Settings.enumBuilder(Mode.class).withName("Mode").withValue(Mode.LEGIT).build());
     private Setting<Boolean> randomDelay = register(Settings.booleanBuilder("Random Delay").withValue(false).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT)).build());
     private Setting<Integer> delayRange = register(Settings.integerBuilder("Delay Range").withMinimum(0).withValue(6).withMaximum(10).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT) && randomDelay.getValue()).build());
     private Setting<Integer> ticks = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2).withVisibility(v -> !modeSetting.getValue().equals(Mode.LEGIT)).build());
@@ -48,7 +49,7 @@ public class Scaffold extends Module {
     }
 
     private enum Mode {
-        NEITHER, TOWER, LEGIT
+        NEITHER, LEGIT
     }
 
     @EventHandler
