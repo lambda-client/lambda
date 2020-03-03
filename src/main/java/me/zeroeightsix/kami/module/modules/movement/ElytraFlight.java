@@ -19,7 +19,7 @@ import java.util.Objects;
 public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(0.9f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility(v -> !mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeedHighway = register(Settings.floatBuilder("Fall Speed H").withValue(0.000050000002f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> upSpeedBoost = register(Settings.floatBuilder("Up Speed B").withValue(0.08f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
@@ -33,7 +33,7 @@ public class ElytraFlight extends Module {
             ModuleManager.getModuleByName("ElytraFlightCycle").disable();
         }
         if (defaultSetting.getValue()) {
-            speedHighway.setValue(0.9f);
+            speedHighway.setValue(1.8f);
             fallSpeed.setValue(-.003f);
             fallSpeedHighway.setValue(.000050000002f);
             upSpeedBoost.setValue(0.08f);
