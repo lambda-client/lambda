@@ -57,6 +57,8 @@ public class CrystalAura extends Module {
     private Setting<Double> range = register(Settings.d("Range", 4.0));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
     private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
+    private Setting<Boolean> antiSuicide = register(Settings.b("Anti Self Pop", false));
+    private Setting<Boolean> holeCheck = register(Settings.b("Surround Check", false));
 
     private BlockPos render;
     private Entity renderEnt;
@@ -69,7 +71,6 @@ public class CrystalAura extends Module {
     private int newSlot;
     private float enemyFacingYaw;
     private float enemyFacingPitch;
-
     @Override
     public void onUpdate() {
         if (defaultSetting.getValue()) {
@@ -82,10 +83,16 @@ public class CrystalAura extends Module {
             range.setValue(4.0);
             antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
-            Command.sendChatMessage("[ElytraFlight] Set to defaults!");
-            Command.sendChatMessage("[ElytraFlight] Close and reopen the ElytraFlight setting's menu to see changes");
+            Command.sendChatMessage("[CrystalAura] Set to defaults!");
+            Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura setting's menu to see changes");
         }
-
+        BlockPos holeOffset[] = { 	
+            	mc.player.getPosition().north(1),
+            	mc.player.getPosition().south(1),
+            	mc.player.getPosition().east(1),
+            	mc.player.getPosition().west(1),
+            	mc.player.getPosition().down(1)
+        };
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
                 .filter(entity -> entity instanceof EntityEnderCrystal)
                 .map(entity -> (EntityEnderCrystal) entity)
@@ -122,10 +129,27 @@ public class CrystalAura extends Module {
                         switchCoolDown = true;
                     }
                 }
-                lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
-                mc.playerController.attackEntity(mc.player, crystal);
-                mc.player.swingArm(EnumHand.MAIN_HAND);
-                systemTime = System.nanoTime() / 1000000;
+                if (!antiSuicide.getValue()&&!holeCheck.getValue()) {
+                	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
+                	mc.playerController.attackEntity(mc.player, crystal);
+                	mc.player.swingArm(EnumHand.MAIN_HAND);
+                	systemTime = System.nanoTime() / 1000000;
+                }
+                if(holeCheck.getValue()) {
+                	int holeBlocks = 0;
+                	for (BlockPos offset:holeOffset) {
+                		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
+                			holeBlocks++;
+                		}
+                		if (holeBlocks == 5) {
+                			lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
+                        	mc.playerController.attackEntity(mc.player, crystal);
+                        	mc.player.swingArm(EnumHand.MAIN_HAND);
+                        	systemTime = System.nanoTime() / 1000000;  
+                		}
+                	}
+                }
+                
             }
             return;
         } else {
@@ -351,6 +375,7 @@ public class CrystalAura extends Module {
         return calculateDamage(crystal.posX, crystal.posY, crystal.posZ, entity);
     }
 
+
     //Better Rotation Spoofing System:
 
     private static boolean isSpoofingAngles;
@@ -388,6 +413,7 @@ public class CrystalAura extends Module {
     	if (packet instanceof SPacketPlayerPosLook) {
     		enemyFacingYaw = ((SPacketPlayerPosLook) packet).getYaw();
     		enemyFacingPitch = ((SPacketPlayerPosLook) packet).getPitch();
+    		
     	}
     });
 
