@@ -47,7 +47,8 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
  * 
  * TODO
  * - add multiplace, places more crystals and worries less about damage to the player
- * - implement suggestions from github post
+ * - implement suggestions
+ *  from github post
  * - remove this todo comment
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
@@ -162,8 +163,12 @@ public class CrystalAura extends Module {
                 		}
                 	}
                 } else if (explodeBehavior.getValue() == ExplodeBehavior.PREVENT_SUICIDE) {
-                	//placeholder <3
-                	//bella ontop
+                	if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.8 || mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3) {
+                		lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
+                    	mc.playerController.attackEntity(mc.player, crystal);
+                    	mc.player.swingArm(EnumHand.MAIN_HAND);
+                    	systemTime = System.nanoTime() / 1000000;
+                	}
                 }
             }
             return;
