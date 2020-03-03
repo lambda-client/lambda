@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.commands.FriendCommand;
 import me.zeroeightsix.kami.module.Module;
@@ -18,8 +17,7 @@ import org.lwjgl.input.Mouse;
  * @author Indrit
  * Updated by Indrit on 02/03/20
  */
-
-@Module.Info(name = "MidClickFriends", category = Module.Category.MISC, description = "Middle click payers to friend/unfriend them")
+@Module.Info(name = "MidClickFriends", category = Module.Category.MISC, description = "Middle click players to friend or unfriend them", showOnArray = Module.ShowOnArray.OFF)
 public class MidClickFriends extends Module {
     private int delay = 0;
 
@@ -33,16 +31,16 @@ public class MidClickFriends extends Module {
     @EventHandler
     public Listener<InputEvent.MouseInputEvent> mouseListener = new Listener<>(event -> {
         if (delay == 0) {
-            if(Mouse.getEventButton() == 2) { // Because 2 is middle click on mouse, wtf???
+            if(Mouse.getEventButton() == 2) { // 0 is left, 1 is right, 2 is middle
                 if (Minecraft.getMinecraft().objectMouseOver.typeOfHit.equals(RayTraceResult.Type.ENTITY)) {
-                    Entity uwu = Minecraft.getMinecraft().objectMouseOver.entityHit;
-                    if (!(uwu instanceof EntityOtherPlayerMP)) {
+                    Entity lookedAtEntity = Minecraft.getMinecraft().objectMouseOver.entityHit;
+                    if (!(lookedAtEntity instanceof EntityOtherPlayerMP)) {
                         return;
                     }
-                    if (Friends.isFriend(uwu.getName())) {
-                        remove(uwu.getName());
+                    if (Friends.isFriend(lookedAtEntity.getName())) {
+                        remove(lookedAtEntity.getName());
                     } else {
-                        add(uwu.getName());
+                        add(lookedAtEntity.getName());
                     }
                 }
             }
@@ -51,8 +49,8 @@ public class MidClickFriends extends Module {
 
     private void remove(String name){
         delay = 20;
-        Friends.Friend friend = Friends.INSTANCE.friends.getValue().stream().filter(friend1 -> friend1.getUsername().equalsIgnoreCase(name)).findFirst().get();
-        Friends.INSTANCE.friends.getValue().remove(friend);
+        Friends.Friend friend = Friends.friends.getValue().stream().filter(friend1 -> friend1.getUsername().equalsIgnoreCase(name)).findFirst().get();
+        Friends.friends.getValue().remove(friend);
         Command.sendChatMessage("&b" + friend.getUsername() + "&r has been unfriended.");
     }
 
@@ -64,7 +62,7 @@ public class MidClickFriends extends Module {
                 Command.sendChatMessage("Failed to find UUID of " + name);
                 return;
             }
-            Friends.INSTANCE.friends.getValue().add(f);
+            Friends.friends.getValue().add(f);
             Command.sendChatMessage("&b" + f.getUsername() + "&r has been friended.");
         }).start();
     }
