@@ -43,6 +43,12 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 /**
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
+ * Updated 3 March 2020 by polymer
+ * 
+ * TODO
+ * - add multiplace, places more crystals and worries less about damage to the player
+ * - implement suggestions from github post
+ * - remove this todo comment
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
@@ -57,9 +63,13 @@ public class CrystalAura extends Module {
     private Setting<Double> range = register(Settings.d("Range", 4.0));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
     private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
-    private Setting<Boolean> antiSuicide = register(Settings.b("Anti Self Pop", false));
-    private Setting<Boolean> holeCheck = register(Settings.b("Surround Check", false));
+    private Setting<ExplodeBehavior> explodeBehavior = register(Settings.e("Explode Behavior", ExplodeBehavior.ALWAYS));
 
+    private enum ExplodeBehavior {
+    		HOLE_ONLY,
+    		PREVENT_SUICIDE,
+    		ALWAYS
+    }
     private BlockPos render;
     private Entity renderEnt;
     private long systemTime = -1;
@@ -86,6 +96,7 @@ public class CrystalAura extends Module {
             Command.sendChatMessage("[CrystalAura] Set to defaults!");
             Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura setting's menu to see changes");
         }
+       
         BlockPos holeOffset[] = { 	
             	mc.player.getPosition().north(1),
             	mc.player.getPosition().south(1),
@@ -93,11 +104,13 @@ public class CrystalAura extends Module {
             	mc.player.getPosition().west(1),
             	mc.player.getPosition().down(1)
         };
+       
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
                 .filter(entity -> entity instanceof EntityEnderCrystal)
                 .map(entity -> (EntityEnderCrystal) entity)
                 .min(Comparator.comparing(c -> mc.player.getDistance(c)))
                 .orElse(null);
+       
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue()) {
             //Added delay to stop ncp from flagging "hitting too fast"
             if (((System.nanoTime() / 1000000) - systemTime) >= 250) {
@@ -129,15 +142,15 @@ public class CrystalAura extends Module {
                         switchCoolDown = true;
                     }
                 }
-                if (!antiSuicide.getValue()&&!holeCheck.getValue()) {
+              
+                if (explodeBehavior.getValue() == ExplodeBehavior.ALWAYS) {
                 	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
                 	mc.playerController.attackEntity(mc.player, crystal);
                 	mc.player.swingArm(EnumHand.MAIN_HAND);
                 	systemTime = System.nanoTime() / 1000000;
-                }
-                if(holeCheck.getValue()) {
+                } else if(explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
                 	int holeBlocks = 0;
-                	for (BlockPos offset:holeOffset) {
+                	for (BlockPos offset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
                 		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
                 			holeBlocks++;
                 		}
@@ -148,8 +161,10 @@ public class CrystalAura extends Module {
                         	systemTime = System.nanoTime() / 1000000;  
                 		}
                 	}
+                } else if (explodeBehavior.getValue() == ExplodeBehavior.PREVENT_SUICIDE) {
+                	//placeholder <3
+                	//bella ontop
                 }
-                
             }
             return;
         } else {
