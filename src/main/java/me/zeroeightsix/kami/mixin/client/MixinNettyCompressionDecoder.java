@@ -5,7 +5,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.DecoderException;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.module.modules.player.AntiCompressionBan;
+import me.zeroeightsix.kami.module.modules.player.AntiBan;
 import net.minecraft.network.NettyCompressionDecoder;
 import net.minecraft.network.PacketBuffer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -54,7 +54,7 @@ public class MixinNettyCompressionDecoder {
                 p_decode_3_.add(packetbuffer.readBytes(packetbuffer.readableBytes()));
             } else {
                 if (i > 2097152) {
-                    if (AntiCompressionBan.enabled()) {
+                    if (AntiBan.enabled()) {
                         Command.sendWarningMessage("&7[&c&lDecoderException&r&7] &rBadly compressed packet - size of " + i + " is larger than protocol maximum of 2097152");
                         throw new DecoderException("Badly compressed packet - size of " + i + " is larger than protocol maximum of 2097152");
                     }
