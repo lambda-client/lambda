@@ -26,10 +26,6 @@ public class AutoReplyCommand extends Command {
             Command.sendWarningMessage("&6Warning: The AutoReply module is not enabled!");
             Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
         }
-        if (!autoReply.customMessage.getValue()) {
-            Command.sendWarningMessage("&6Warning: You don't have custom mode enabled in AutoReply!");
-            Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
-        }
         for (String s : args) {
             if (s == null)
                 continue;
@@ -37,13 +33,25 @@ public class AutoReplyCommand extends Command {
                 String sT = s.replace("=" ,"");
                 autoReply.listener.setValue(sT);
                 Command.sendChatMessage("Set the AutoReply listener to <" + sT + ">");
+                if (!autoReply.customListener.getValue()) {
+                    Command.sendWarningMessage("&6Warning: You don't have Custom Listener enabled in AutoReply!");
+                    Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
+                }
             } else if (s.startsWith("-")) {
                 String sT = s.replace("-" ,"");
                 autoReply.replyCommand.setValue(sT);
                 Command.sendChatMessage("Set the AutoReply reply command to <" + sT + ">");
+                if (!autoReply.customReplyCommand.getValue()) {
+                    Command.sendWarningMessage("&6Warning: You don't have Custom Reply Command enabled in AutoReply!");
+                    Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
+                }
             } else {
                 autoReply.message.setValue(s);
                 Command.sendChatMessage("Set the AutoReply message to <" + s + ">");
+                if (!autoReply.customMessage.getValue()) {
+                    Command.sendWarningMessage("&6Warning: You don't have Custom Message enabled in AutoReply!");
+                    Command.sendWarningMessage("The command will still work, but will not visibly do anything.");
+                }
             }
         }
     }
