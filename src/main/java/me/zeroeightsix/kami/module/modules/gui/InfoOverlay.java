@@ -18,29 +18,37 @@ import static me.zeroeightsix.kami.util.ColourUtils.getStringColour;
 /**
  * @author S-B99
  * Created by S-B99 on 04/12/19
- * Updated by S-B99 on 06/02/20
+ * Updated by S-B99 on 04/03/20
  */
 @Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures the game information overlay", showOnArray = Module.ShowOnArray.OFF)
 public class InfoOverlay extends Module {
-    private Setting<Boolean> version = register(Settings.b("Version", true));
-    private Setting<Boolean> username = register(Settings.b("Username", true));
-    private Setting<Boolean> time = register(Settings.b("Time", true));
-    private Setting<Boolean> tps = register(Settings.b("Ticks Per Second", false));
-    private Setting<Boolean> fps = register(Settings.b("Frames Per Second", true));
-    private Setting<Boolean> speed = register(Settings.b("Speed", true));
-    private Setting<Boolean> timerSpeed = register(Settings.b("Timer Speed", false));
-    private Setting<Boolean> ping = register(Settings.b("Latency", false));
-    private Setting<Boolean> durability = register(Settings.b("Item Damage", false));
-    private Setting<Boolean> memory = register(Settings.b("Memory Used", false));
-    private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KMH).withVisibility(v -> speed.getValue()).build());
-    private Setting<ColourUtils.ColourCode> firstColour = register(Settings.e("First Colour", ColourUtils.ColourCode.WHITE));
-    private Setting<ColourUtils.ColourCode> secondColour = register(Settings.e("Second Colour", ColourUtils.ColourCode.BLUE));
-    private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> time.getValue()).build());
-    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> time.getValue()).build());
-    private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> time.getValue()).build());
+    /* This is so horrible but there's no other way */
+    private Setting<Page> page = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());
+    /* Page One */
+    private Setting<Boolean> version = register(Settings.booleanBuilder("Version").withValue(true).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> username = register(Settings.booleanBuilder("Username").withValue(true).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> tps = register(Settings.booleanBuilder("TPS").withValue(true).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> fps = register(Settings.booleanBuilder("FPS").withValue(true).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> ping = register(Settings.booleanBuilder("Ping").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> durability = register(Settings.booleanBuilder("Item Damage").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> memory = register(Settings.booleanBuilder("RAM Used").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> timerSpeed = register(Settings.booleanBuilder("Timer Speed").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    /* Page Two */
+    private Setting<Boolean> speed = register(Settings.booleanBuilder("Speed").withValue(true).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KMH).withVisibility(v -> page.getValue().equals(Page.TWO) && speed.getValue()).build());
+    private Setting<Boolean> time = register(Settings.booleanBuilder("Time").withValue(true).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> page.getValue().equals(Page.TWO) && time.getValue()).build());
+    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> page.getValue().equals(Page.TWO) && time.getValue()).build());
+    private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> page.getValue().equals(Page.TWO) && time.getValue()).build());
+    private Setting<ColourUtils.ColourCode> firstColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("First Colour").withValue(ColourUtils.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<ColourUtils.ColourCode> secondColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("Second Colour").withValue(ColourUtils.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
 
     private enum SpeedUnit {
-        MPS, KMH
+        MPS, KMH;
+    }
+
+    private enum Page {
+        ONE, TWO
     }
 
     public boolean useUnitKmH() {
