@@ -139,7 +139,6 @@ public class Tracers extends Module {
 
     public static void drawLineFromPosToPos(double posx, double posy, double posz, double posx2, double posy2, double posz2, double up, float red, float green, float blue, float opacity) {
         GL11.glBlendFunc(770, 771);
-        GL11.glEnable(GL11.GL_BLEND);
         GL11.glLineWidth(1.5f);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -161,7 +160,6 @@ public class Tracers extends Module {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(true);
-        GL11.glDisable(GL11.GL_BLEND);
         GL11.glColor3d(1d, 1d, 1d);
         GlStateManager.enableLighting();
     }

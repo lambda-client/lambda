@@ -53,6 +53,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> place = register(Settings.b("Place", false));
     private Setting<Boolean> explode = register(Settings.b("Explode", false));
     private Setting<Double> range = register(Settings.d("Range", 4.0));
+    private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
     private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
 
@@ -243,7 +244,7 @@ public class CrystalAura extends Module {
             KamiTessellator.prepare(GL11.GL_QUADS);
             KamiTessellator.drawBox(render, 0x44ffffff, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
-            if (renderEnt != null) {
+            if (renderEnt != null && tracer.getValue()) {
                 Vec3d p = EntityUtil.getInterpolatedRenderPos(renderEnt, mc.getRenderPartialTicks());
                 Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), 1, 1, 1, 1);
             }
