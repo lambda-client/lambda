@@ -65,6 +65,7 @@ public class CrystalAura extends Module {
     private Setting<Double> range = register(Settings.d("Range", 4.0));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
     private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
+    private Setting<Boolean> facePlace = register(Settings.b("Face Place", false));
     private Setting<ExplodeBehavior> explodeBehavior = register(Settings.e("Explode Behavior", ExplodeBehavior.ALWAYS));
     private Setting<PlaceBehavior> placeBehavior = register(Settings.e("Place Behavior", PlaceBehavior.TRADITIONAL)); 
 
@@ -105,12 +106,12 @@ public class CrystalAura extends Module {
             Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura setting's menu to see changes");
         }
        
-        BlockPos holeOffset[] = { 	
-            	mc.player.getPosition().north(1),
-            	mc.player.getPosition().south(1),
-            	mc.player.getPosition().east(1),
-            	mc.player.getPosition().west(1),
-            	mc.player.getPosition().down(1)
+        Vec3d holeOffset[] = { 	
+            	mc.player.getPositionVector().add(1, 0, 0),
+            	mc.player.getPositionVector().add(-1, 0, 0),
+            	mc.player.getPositionVector().add(0, 0, 1),
+            	mc.player.getPositionVector().add(0, 0, -1),
+            	mc.player.getPositionVector().add(0, -1, 0)
         };
        
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
@@ -121,7 +122,7 @@ public class CrystalAura extends Module {
        
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue()) {
             //Added delay to stop ncp from flagging "hitting too fast"
-            if (((System.nanoTime() / 1000000) - systemTime) >= 125) {
+            if (((System.nanoTime() / 1000000) - systemTime) >= 75) {
                 if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
                     if (!isAttacking) {
                         // save initial player hand
@@ -159,7 +160,8 @@ public class CrystalAura extends Module {
                 }
                 if(explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
                 	int holeBlocks = 0;
-                	for (BlockPos offset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
+                	for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
+                	    BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
                 		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
                 			holeBlocks++;
                 		}
@@ -255,15 +257,28 @@ public class CrystalAura extends Module {
                       continue;
                 }	
         		for (BlockPos blockPos : blocks) {
-        			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
                     double b = entity.getDistanceSq(blockPos);
                     if (b > 75  /*|| self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d */) {
                   	  continue;
                     }
-                    if (blockPos.up(1).getY() <= entity.getPosition().getY() && blockPos.up(2).getY() >= entity.getPosition().getY() && b < 30 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount()) {
-                  	  q = blockPos;
-                  	  damage = d;
-                  	  renderEnt = entity;
+        			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
+        			int holeBlocks = 0;
+        			boolean canFacePlace = false;
+        			if (entity instanceof EntityPlayer && d < 4 && facePlace.getValue()) {
+        				for (Vec3d vecOffset:holeOffset) {
+        					BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
+                    		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
+                    			holeBlocks++;
+                    			if (canPlaceCrystal(offset)) {
+                    				canFacePlace = true;
+                    			} 
+                    		}	
+        				}
+        			}
+                    if (blockPos.up(1).getY() <= entity.getPosition().getY() && blockPos.up(2).getY() >= entity.getPosition().getY() && b < 30 && d >= 4 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || holeBlocks == 5 && canFacePlace == true) {
+                  	    q = blockPos;
+                  	    damage = d;
+                  	    renderEnt = entity;
                     }
         		}
         	}
@@ -316,7 +331,7 @@ public class CrystalAura extends Module {
     public void onWorldRender(RenderEvent event) {
         if (render != null) {
             KamiTessellator.prepare(GL11.GL_QUADS);
-            KamiTessellator.drawBox(render, 0x44ffffff, GeometryMasks.Quad.ALL);
+            KamiTessellator.drawBox(render, 0x449b90ff, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
             if (renderEnt != null) {
                 Vec3d p = EntityUtil.getInterpolatedRenderPos(renderEnt, mc.getRenderPartialTicks());
