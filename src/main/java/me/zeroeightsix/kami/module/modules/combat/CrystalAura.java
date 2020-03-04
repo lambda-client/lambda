@@ -77,6 +77,7 @@ public class CrystalAura extends Module {
             place.setValue(false);
             explode.setValue(false);
             range.setValue(4.0);
+            tracer.setValue(true);
             antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
             defaultSetting.setValue(false);
