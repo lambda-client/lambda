@@ -20,7 +20,7 @@ public class AutoReply extends Module {
     public Setting<String> message = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "&rautoreply to modify this").withConsumer((old, value) -> {}).withVisibility(v -> customMessage.getValue()).build());
     public Setting<Boolean> customListener = register(Settings.b("Custom Listener", false));
     public Setting<String> listener = register(Settings.stringBuilder("Custom Listener Name").withValue("unchanged").withConsumer((old, value) -> {}).withVisibility(v -> customListener.getValue()).build());
-    public Setting<Boolean> customReplyCommand = register(Settings.b("Custom Listener", false));
+    public Setting<Boolean> customReplyCommand = register(Settings.b("Custom Reply Command", false));
     public Setting<String> replyCommand = register(Settings.stringBuilder("Custom Reply Command").withValue("unchanged").withConsumer((old, value) -> {}).withVisibility(v -> customReplyCommand.getValue()).build());
 
     private String listenerDefault = "whispers:";
