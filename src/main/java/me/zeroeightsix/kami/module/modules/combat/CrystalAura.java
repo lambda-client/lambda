@@ -47,9 +47,10 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
  * 
  * TODO
  * - add multiplace, places more crystals and worries less about damage to the player
- * - implement suggestions
- *  from github post
+ * - implement suggestions from github post
  * - remove this todo comment
+ * 
+ * Brand new dick, got no cheese.
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
@@ -65,12 +66,18 @@ public class CrystalAura extends Module {
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
     private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
     private Setting<ExplodeBehavior> explodeBehavior = register(Settings.e("Explode Behavior", ExplodeBehavior.ALWAYS));
+    private Setting<PlaceBehavior> placeBehavior = register(Settings.e("Place Behavior", PlaceBehavior.TRADITIONAL)); 
 
     private enum ExplodeBehavior {
-    		HOLE_ONLY,
-    		PREVENT_SUICIDE,
-    		ALWAYS
+    	HOLE_ONLY,
+    	PREVENT_SUICIDE,
+   		ALWAYS
     }
+    private enum PlaceBehavior {
+    	MULTI,
+    	TRADITIONAL
+    }
+    
     private BlockPos render;
     private Entity renderEnt;
     private long systemTime = -1;
@@ -163,11 +170,11 @@ public class CrystalAura extends Module {
                 		}
                 	}
                 } else if (explodeBehavior.getValue() == ExplodeBehavior.PREVENT_SUICIDE) {
-                	if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.8 || mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3) {
+                	if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.5 && mc.player.getPosition().getY() == crystal.getPosition().getY()|| mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3 && mc.player.getPosition().getY() == crystal.getPosition().getY()||mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 0.5 && mc.player.getPosition().getY() != crystal.getPosition().getY()) {
                 		lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
                     	mc.playerController.attackEntity(mc.player, crystal);
                     	mc.player.swingArm(EnumHand.MAIN_HAND);
-                    	systemTime = System.nanoTime() / 1000000;
+                    	systemTime = System.nanoTime() / 1000000; 
                 	}
                 }
             }
@@ -218,7 +225,7 @@ public class CrystalAura extends Module {
                     continue; // If this block if further than 13 (3.6^2, less calc) blocks, ignore it. It'll take no or very little damage
                 }
                 double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
-                if (d > damage) {
+                if (d > damage && placeBehavior.getValue() == PlaceBehavior.TRADITIONAL) {
                     double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
                     // Factor in absorption if wanted
                     float enemyAbsorption = 0.0f;
@@ -226,14 +233,17 @@ public class CrystalAura extends Module {
                     if (checkAbsorption.getValue()) {
                         enemyAbsorption = ((EntityLivingBase) entity).getAbsorptionAmount();
                         playerAbsorption = mc.player.getAbsorptionAmount();
+                        damage = d;
+                        q = blockPos;
                     }
                     // If this deals more damage to ourselves than it does to our target, continue. This is only ignored if the crystal is sure to kill our target but not us.
                     // Also continue if our crystal is going to hurt us.. alot
-                    if ((self > d && !(d < ((EntityLivingBase) entity).getHealth() + enemyAbsorption)) || self - .5 > mc.player.getHealth() + playerAbsorption) {
-                        continue;
+                    if ((self > d && !(d < ((EntityLivingBase) entity).getHealth() + enemyAbsorption)) || self - .5 > mc.player.getHealth() + playerAbsorption) { 
+                    	continue;
+                    } else if (d > damage && placeBehavior.getValue() == PlaceBehavior.MULTI) {
+                    	damage = d;
+                        q = blockPos;
                     }
-                    damage = d;
-                    q = blockPos;
                     renderEnt = entity;
                 }
             }
@@ -311,13 +321,6 @@ public class CrystalAura extends Module {
                 && mc.world.getBlockState(boost2).getBlock() == Blocks.AIR
                 && mc.world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(boost)).isEmpty()
                 && mc.world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(boost2)).isEmpty();
-    }
-    
-    private boolean hasDetonatedCrystal(EntityLiving player) {
-    	if (1 == 2) { //placeholder bc im lazy
-    		return true;
-    	}
-    	return false;
     }
     
     public static BlockPos getPlayerPos() {
@@ -427,14 +430,6 @@ public class CrystalAura extends Module {
                 ((CPacketPlayer) packet).pitch = (float) pitch;
             }
         }
-    });
-    private Listener<PacketEvent.Receive> sPacketListener = new Listener <>(e -> {
-    	Packet packet = e.getPacket();
-    	if (packet instanceof SPacketPlayerPosLook) {
-    		enemyFacingYaw = ((SPacketPlayerPosLook) packet).getYaw();
-    		enemyFacingPitch = ((SPacketPlayerPosLook) packet).getPitch();
-    		
-    	}
     });
 
     @Override
