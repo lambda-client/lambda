@@ -247,32 +247,33 @@ public class CrystalAura extends Module {
                 }
             }
         }
+        
+        if (place.getValue() && placeBehavior.getValue() == PlaceBehavior.MULTI) {
+        	for (Entity entity : entities) {
+        		  
+        		if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0) {
+                      continue;
+                }	
+        		for (BlockPos blockPos : blocks) {
+        			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
+                    double b = entity.getDistanceSq(blockPos);
+                    if (b > 75  /*|| self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d */) {
+                  	  continue;
+                    }
+                    if (blockPos.up(1).getY() <= entity.getPosition().getY() && blockPos.up(2).getY() >= entity.getPosition().getY() && b < 30 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount()) {
+                  	  q = blockPos;
+                  	  damage = d;
+                  	  renderEnt = entity;
+                    }
+        		}
+        	}
+        }
         if (damage == .5) {
             render = null;
             renderEnt = null;
             resetRotation();
             return;
         } 
-        
-        if (place.getValue() && placeBehavior.getValue() == PlaceBehavior.MULTI) {
-        	for (Entity entity : entities) {
-        		  
-        		  if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0) {
-                      continue;
-                  }	
-        		  for (BlockPos blockPos : blocks) {
-        			  double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
-                      double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
-                      double b = entity.getDistanceSq(blockPos);
-                      if (b > 75 || damage > d /*|| self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d */) {
-                    	  continue;
-                      }
-                      if (blockPos.up(1).getY() <= entity.getPosition().getY() && blockPos.up(2).getY() >= entity.getPosition().getY() && b < 30 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount()) {
-                    	  q = blockPos;
-                      }
-        		  }
-        	}
-        }
         //this sends a constant packet flow for default packets
         if (place.getValue()) {
         	render = q;
