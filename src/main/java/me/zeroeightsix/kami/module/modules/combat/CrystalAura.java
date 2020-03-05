@@ -64,7 +64,8 @@ public class CrystalAura extends Module {
     private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
-    private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> aBlock = register(Settings.integerBuilder("Block Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> aTracer = register(Settings.integerBuilder("Tracer Transparency").withMinimum(0).withValue(200).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
     private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
     private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
     private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
@@ -93,6 +94,7 @@ public class CrystalAura extends Module {
     private boolean isAttacking = false;
     private int oldSlot = -1;
     private int newSlot;
+
     @Override
     public void onUpdate() {
         if (defaultSetting.getValue()) {
@@ -108,7 +110,8 @@ public class CrystalAura extends Module {
             mobs.setValue(false);
             animals.setValue(false);
             customColours.setValue(true);
-            a.setValue(44);
+            aBlock.setValue(44);
+            aTracer.setValue(200);
             r.setValue(155);
             g.setValue(144);
             b.setValue(255);
@@ -116,7 +119,7 @@ public class CrystalAura extends Module {
             Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura setting's menu to see changes");
         }
        
-        Vec3d holeOffset[] = { 	
+        Vec3d[] holeOffset = {
             	mc.player.getPositionVector().add(1, 0, 0),
             	mc.player.getPositionVector().add(-1, 0, 0),
             	mc.player.getPositionVector().add(0, 0, 1),
@@ -131,7 +134,7 @@ public class CrystalAura extends Module {
                 .orElse(null);
        
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue()) {
-            //Added delay to stop ncp from flagging "hitting too fast"
+            // Added delay to stop ncp from flagging "hitting too fast"
             if (((System.nanoTime() / 1000000) - systemTime) >= 75) {
                 if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
                     if (!isAttacking) {
@@ -168,7 +171,7 @@ public class CrystalAura extends Module {
                 	mc.player.swingArm(EnumHand.MAIN_HAND);
                 	systemTime = System.nanoTime() / 1000000;
                 }
-                if(explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
+                if (explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
                 	int holeBlocks = 0;
                 	for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
                 	    BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
@@ -332,7 +335,7 @@ public class CrystalAura extends Module {
         if (render != null) {
             KamiTessellator.prepare(GL11.GL_QUADS);
             int colour = 0x44ffffff;
-            if (customColours.getValue()) colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), a.getValue());
+            if (customColours.getValue()) colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), aBlock.getValue());
             KamiTessellator.drawBox(render, colour, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
             if (renderEnt != null) {
@@ -345,7 +348,7 @@ public class CrystalAura extends Module {
                     rL = toF(r.getValue());
                     gL = toF(g.getValue());
                     bL = toF(b.getValue());
-                    aL = toF(a.getValue());
+                    aL = toF(aTracer.getValue());
                 }
                 Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), rL, gL, bL, aL);
             }
