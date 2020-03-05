@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -14,11 +13,9 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 
-//import java.util.concurrent.TimeUnit;
-
 /**
  * Created by 086 on 19/11/2017.
- * Updated by S-B99 on 08/11/2019
+ * Updated by S-B99 on 05/03/20
  */
 @Module.Info(category = Module.Category.PLAYER, description = "Prevents fall damage", name = "NoFall")
 public class NoFall extends Module {
