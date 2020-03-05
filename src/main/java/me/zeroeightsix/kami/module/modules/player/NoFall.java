@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -23,8 +24,9 @@ import net.minecraft.util.math.Vec3d;
 public class NoFall extends Module {
 
     private Setting<FallMode> fallMode = register(Settings.e("Mode", FallMode.PACKET));
-    private Setting<Boolean> pickup = register(Settings.b("Pickup", true));
-    private Setting<Integer> distance = register(Settings.i("Distance", 3));
+    private Setting<Boolean> pickup = register(Settings.booleanBuilder("Pickup").withValue(true).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET)).build());
+    private Setting<Integer> distance = register(Settings.integerBuilder("Distance").withValue(3).withMinimum(1).withMaximum(10).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET)).build());
+    private Setting<Integer> pickupDelay = register(Settings.integerBuilder("Pickup Delay").withValue(300).withMinimum(100).withMaximum(1000).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET) && pickup.getValue()).build());
 
     private long last = 0;
 
@@ -53,92 +55,15 @@ public class NoFall extends Module {
                         }
                     return;
                 }
-
                 mc.player.rotationPitch = 90;
                 mc.playerController.processRightClick(mc.player, mc.world, hand);
-                Boolean pickup = true;
             }
-            System.out.println("KAMI BLUE: Ran this");
             if (pickup.getValue()) {
-                System.out.println("KAMI BLUE: Ran this");
-                posVec = mc.player.getPositionVector();
-                result = mc.world.rayTraceBlocks(posVec, posVec.add(0, -1.5f, 0), false, true, false);
-                if (result != null && result.typeOfHit != RayTraceResult.Type.BLOCK) {
-                    System.out.println("KAMI BLUE: Ran this");
-                    EnumHand hand = EnumHand.MAIN_HAND;
-                    if (mc.player.getHeldItemOffhand().getItem() == Items.BUCKET) hand = EnumHand.OFF_HAND;
-                    else if (mc.player.getHeldItemMainhand().getItem() != Items.BUCKET) {
-                        for (int iN = 0; iN < 9; iN++)
-                            if (mc.player.inventory.getStackInSlot(iN).getItem() == Items.BUCKET) {
-                                mc.player.inventory.currentItem = iN;
-                                mc.player.rotationPitch = 90;
-                                last = System.currentTimeMillis();
-                                return;
-                            }
-                        return;
-                    }
-
+                new Thread(() -> {
+                    try { Thread.sleep(pickupDelay.getValue()); } catch (InterruptedException ignored) { }
                     mc.player.rotationPitch = 90;
-                    mc.playerController.processRightClick(mc.player, mc.world, hand);
-                    Boolean pickup = false;
-
-//				if (mc.player.getHeldItemOffhand().getItem() == Items.BUCKET) hand = EnumHand.OFF_HAND;
-//				else if (mc.player.getHeldItemMainhand().getItem() != Items.BUCKET) {
-//					for (int i = 0; i < 9; i++)
-//					if (mc.player.inventory.getStackInSlot(i).getItem() == Items.BUCKET) {
-//							mc.player.inventory.currentItem = i;
-//							mc.player.rotationPitch = 90;
-//							last = System.currentTimeMillis();
-//							return;
-//						}
-//					return;
-//				}
-//
-//				if (pickup == true) {
-//					mc.playerController.processRightClick(mc.player, mc.world, hand);
-//					pickup = false;
-//				}
-
-
-//				System.out.println("KAMI Blue: time is " + System.currentTimeMillis());
-//				do {
-//
-//				}
-//				while(System.currentTimeMillis() - last > 400);
-//				System.out.println("KAMI Blue: time is " + System.currentTimeMillis());
-//
-//				System.out.println("KAMI Blue: time is now" + System.currentTimeMillis());
-
-
-                    // this is where i want to run the above 2 lines again after 300 milliseconds
-
-                    // this was tried individually
-                    // result: forgot but it was either a crash or lag
-                    //TimeUnit.MILLISECONDS.sleep(400);
-
-                    // result: lag thread
-                    //long lastNanoTime = System.nanoTime();
-                    //long nowTime = System.nanoTime();
-                    //while(nowTime/1000000 - lastNanoTime /1000000 < 300 )
-                    //{
-                    //	nowTime = System.nanoTime();
-                    //	System.out.println("KAMI: Tried to pick up bucket");
-                    //	mc.player.rotationPitch = 90;
-                    //	mc.playerController.processRightClick(mc.player, mc.world, hand);
-
-                    //}
-
-                    // this was tried individually
-                    // result: freeze
-                    //Thread.sleep(300);
-
-                    // this was tried individually
-                    // result: clean exit
-                    //wait(300);
-
-                    //mc.player.rotationPitch = 90;
-                    //mc.playerController.processRightClick(mc.player, mc.world, hand);
-                }
+                    mc.rightClickMouse();
+                }).start();
             }
         }
     }
