@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.*;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.item.EntityEnderCrystal;
@@ -26,7 +25,6 @@ import net.minecraft.item.ItemTool;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
-import net.minecraft.network.play.server.SPacketPlayerPosLook;
 import net.minecraft.potion.Potion;
 import net.minecraft.util.*;
 import net.minecraft.util.math.*;
@@ -38,28 +36,38 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 
 /**
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
  * Updated 4 March 2020 by polymer
+ * Updated by S-B99 on 04/03/20
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
-
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Boolean> autoSwitch = register(Settings.b("Auto Switch", true));
-    private Setting<Boolean> players = register(Settings.b("Players", true));
-    private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
-    private Setting<Boolean> animals = register(Settings.b("Animals", false));
-    private Setting<Boolean> place = register(Settings.b("Place", false));
-    private Setting<Boolean> explode = register(Settings.b("Explode", false));
-    private Setting<Double> range = register(Settings.d("Range", 4.0));
-    private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
-    private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
-    private Setting<ExplodeBehavior> explodeBehavior = register(Settings.e("Explode Behavior", ExplodeBehavior.ALWAYS));
-    private Setting<PlaceBehavior> placeBehavior = register(Settings.e("Place Behavior", PlaceBehavior.TRADITIONAL)); 
+    private Setting<Page> pageSetting = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());
+    /* Page One */
+    private Setting<ExplodeBehavior> explodeBehavior = register(Settings.enumBuilder(ExplodeBehavior.class).withName("Explode Behavior").withValue(ExplodeBehavior.ALWAYS).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<PlaceBehavior> placeBehavior = register(Settings.enumBuilder(PlaceBehavior.class).withName("Place Behavior").withValue(PlaceBehavior.TRADITIONAL).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> autoSwitch = register(Settings.booleanBuilder("Auto Switch").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> place = register(Settings.booleanBuilder("Place").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> explode = register(Settings.booleanBuilder("Explode").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    /* Page Two */
+    private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
+    private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
 
     private enum ExplodeBehavior {
     	HOLE_ONLY,
@@ -69,6 +77,11 @@ public class CrystalAura extends Module {
     private enum PlaceBehavior {
     	MULTI,
     	TRADITIONAL
+    }
+
+    private enum Page {
+        ONE,
+        TWO
     }
     
     private BlockPos render;
@@ -83,15 +96,22 @@ public class CrystalAura extends Module {
     @Override
     public void onUpdate() {
         if (defaultSetting.getValue()) {
+            explodeBehavior.setValue(ExplodeBehavior.ALWAYS);
+            placeBehavior.setValue(PlaceBehavior.TRADITIONAL);
             autoSwitch.setValue(true);
+            place.setValue(false);
+            explode.setValue(false);
+            antiWeakness.setValue(false);
+            checkAbsorption.setValue(true);
+            range.setValue(4.0);
             players.setValue(true);
             mobs.setValue(false);
             animals.setValue(false);
-            place.setValue(false);
-            explode.setValue(false);
-            range.setValue(4.0);
-            antiWeakness.setValue(false);
-            checkAbsorption.setValue(true);
+            customColours.setValue(true);
+            a.setValue(44);
+            r.setValue(155);
+            g.setValue(144);
+            b.setValue(255);
             Command.sendChatMessage("[CrystalAura] Set to defaults!");
             Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura setting's menu to see changes");
         }
@@ -311,11 +331,23 @@ public class CrystalAura extends Module {
     public void onWorldRender(RenderEvent event) {
         if (render != null) {
             KamiTessellator.prepare(GL11.GL_QUADS);
-            KamiTessellator.drawBox(render, 0x449b90ff, GeometryMasks.Quad.ALL);
+            int colour = 0x44ffffff;
+            if (customColours.getValue()) colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), a.getValue());
+            KamiTessellator.drawBox(render, colour, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
             if (renderEnt != null) {
                 Vec3d p = EntityUtil.getInterpolatedRenderPos(renderEnt, mc.getRenderPartialTicks());
-                Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), 0.60784313725f, 0.56470588235f, 1, 1);
+                float rL = 1;
+                float gL = 1;
+                float bL = 1;
+                float aL = 1;
+                if (customColours.getValue()) {
+                    rL = toF(r.getValue());
+                    gL = toF(g.getValue());
+                    bL = toF(b.getValue());
+                    aL = toF(a.getValue());
+                }
+                Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), rL, gL, bL, aL);
             }
         }
     }
