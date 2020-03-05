@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.gui;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.modules.combat.AutoTotem;
 import me.zeroeightsix.kami.module.modules.movement.TimerSpeed;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -9,6 +10,9 @@ import me.zeroeightsix.kami.util.ColourUtils;
 import me.zeroeightsix.kami.util.InfoCalculator;
 import me.zeroeightsix.kami.util.TimeUtil;
 import net.minecraft.client.Minecraft;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextFormatting;
 
 import java.util.ArrayList;
@@ -19,6 +23,7 @@ import static me.zeroeightsix.kami.util.ColourUtils.getStringColour;
  * @author S-B99
  * Created by S-B99 on 04/12/19
  * Updated by S-B99 on 04/03/20
+ * PVP Information by Polymer on 04/03/20
  */
 @Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures the game information overlay", showOnArray = Module.ShowOnArray.OFF)
 public class InfoOverlay extends Module {
@@ -34,21 +39,27 @@ public class InfoOverlay extends Module {
     private Setting<Boolean> memory = register(Settings.booleanBuilder("RAM Used").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> timerSpeed = register(Settings.booleanBuilder("Timer Speed").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     /* Page Two */
-    private Setting<Boolean> speed = register(Settings.booleanBuilder("Speed").withValue(true).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
-    private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KMH).withVisibility(v -> page.getValue().equals(Page.TWO) && speed.getValue()).build());
-    private Setting<Boolean> time = register(Settings.booleanBuilder("Time").withValue(true).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
-    private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> page.getValue().equals(Page.TWO) && time.getValue()).build());
-    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> page.getValue().equals(Page.TWO) && time.getValue()).build());
-    private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> page.getValue().equals(Page.TWO) && time.getValue()).build());
-    private Setting<ColourUtils.ColourCode> firstColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("First Colour").withValue(ColourUtils.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
-    private Setting<ColourUtils.ColourCode> secondColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("Second Colour").withValue(ColourUtils.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> getTotems = register(Settings.booleanBuilder("Show Totems").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> getCrystals = register(Settings.booleanBuilder("Show Crystals").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> getEXP = register(Settings.booleanBuilder("Show XP Bottles").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> getGaps = register(Settings.booleanBuilder("Show Golden Apples").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+
+    /* Page Three */
+    private Setting<Boolean> speed = register(Settings.booleanBuilder("Speed").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KMH).withVisibility(v -> page.getValue().equals(Page.THREE) && speed.getValue()).build());
+    private Setting<Boolean> time = register(Settings.booleanBuilder("Time").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
+    private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
+    private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
+    private Setting<ColourUtils.ColourCode> firstColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("First Colour").withValue(ColourUtils.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    private Setting<ColourUtils.ColourCode> secondColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("Second Colour").withValue(ColourUtils.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
 
     private enum SpeedUnit {
         MPS, KMH;
     }
 
     private enum Page {
-        ONE, TWO
+        ONE, TWO, THREE
     }
 
     public boolean useUnitKmH() {
@@ -104,8 +115,23 @@ public class InfoOverlay extends Module {
         if (memory.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.memory() + textColour(secondColour.getValue()) + "mB free");
         }
+        if (getTotems.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.TOTEM_OF_UNDYING) + textColour(secondColour.getValue()) + "Totems");
+        }
+        if (getCrystals.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.END_CRYSTAL) + textColour(secondColour.getValue()) + "Crystals");
+        }
+        if (getEXP.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.EXPERIENCE_BOTTLE) + textColour(secondColour.getValue()) + "XP Bottles");
+        }
+        if (getGaps.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.GOLDEN_APPLE) + textColour(secondColour.getValue()) + "Golden Apples");
+        }
         return infoContents;
     }
 
     public void onDisable() { this.enable(); }
+    public static int getItems(Item i) {
+        return mc.player.inventory.mainInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
+    }
 }
