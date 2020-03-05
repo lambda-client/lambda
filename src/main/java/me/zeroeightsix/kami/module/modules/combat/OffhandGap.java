@@ -77,11 +77,6 @@ public class OffhandGap extends Module {
 	@Override
 	public void onUpdate() {
 		if (mc.player == null) return;
-//		if (autoTotemGlobalState) {
-//			Command.sendChatMessage("uwu");
-//		} else {
-//			Command.sendChatMessage("owo");
-//		}
 		/* If your health doesn't meet the cutoff then set it to true */
 		cancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
 		//		if (modeSetting.getValue().equals(Mode.GAPPLE)) {
