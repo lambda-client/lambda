@@ -369,7 +369,7 @@ public class CrystalAura extends Module {
 
     private void lookAtPacket(double px, double py, double pz, EntityPlayer me) {
         double[] v = calculateLookAt(px, py, pz, me);
-        setYawAndPitch((float) v[0], (float) v[1]);
+        setYawAndPitch((float) v[0], (float) v[1]+1f);
     }
 
     private boolean canPlaceCrystal(BlockPos blockPos) {
