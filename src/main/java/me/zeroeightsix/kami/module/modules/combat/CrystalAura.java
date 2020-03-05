@@ -43,14 +43,7 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 /**
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
- * Updated 3 March 2020 by polymer
- * 
- * TODO
- * - add multiplace, places more crystals and worries less about damage to the player
- * - implement suggestions from github post
- * - remove this todo comment
- * 
- * Brand new dick, got no cheese.
+ * Updated 4 March 2020 by polymer
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
@@ -65,7 +58,6 @@ public class CrystalAura extends Module {
     private Setting<Double> range = register(Settings.d("Range", 4.0));
     private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
     private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
-    private Setting<Boolean> facePlace = register(Settings.b("Face Place", false));
     private Setting<ExplodeBehavior> explodeBehavior = register(Settings.e("Explode Behavior", ExplodeBehavior.ALWAYS));
     private Setting<PlaceBehavior> placeBehavior = register(Settings.e("Place Behavior", PlaceBehavior.TRADITIONAL)); 
 
@@ -88,8 +80,6 @@ public class CrystalAura extends Module {
     private boolean isAttacking = false;
     private int oldSlot = -1;
     private int newSlot;
-    private float enemyFacingYaw;
-    private float enemyFacingPitch;
     @Override
     public void onUpdate() {
         if (defaultSetting.getValue()) {
@@ -183,6 +173,7 @@ public class CrystalAura extends Module {
                 }
                 return;
             }
+            
         } else {
             resetRotation();
             if (oldSlot != -1) {
@@ -258,24 +249,13 @@ public class CrystalAura extends Module {
                 }	
         		for (BlockPos blockPos : blocks) {
                     double b = entity.getDistanceSq(blockPos);
-                    if (b > 75  /*|| self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d */) {
+                    if (b > 75) {
                   	  continue;
                     }
         			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
-        			int holeBlocks = 0;
-        			boolean canFacePlace = false;
-        			if (entity instanceof EntityPlayer && d < 4 && facePlace.getValue()) {
-        				for (Vec3d vecOffset:holeOffset) {
-        					BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
-                    		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
-                    			holeBlocks++;
-                    			if (canPlaceCrystal(offset)) {
-                    				canFacePlace = true;
-                    			} 
-                    		}	
-        				}
-        			}
-                    if (blockPos.up(1).getY() <= entity.getPosition().getY() && blockPos.up(2).getY() >= entity.getPosition().getY() && b < 30 && d >= 4 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || holeBlocks == 5 && canFacePlace == true) {
+                    double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
+                    if (self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d) continue;
+                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount()){
                   	    q = blockPos;
                   	    damage = d;
                   	    renderEnt = entity;
@@ -335,7 +315,7 @@ public class CrystalAura extends Module {
             KamiTessellator.release();
             if (renderEnt != null) {
                 Vec3d p = EntityUtil.getInterpolatedRenderPos(renderEnt, mc.getRenderPartialTicks());
-                Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), 1, 1, 1, 1);
+                Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), 0.60784313725f, 0.56470588235f, 1, 1);
             }
         }
     }
