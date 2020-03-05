@@ -59,6 +59,8 @@ public class CrystalAura extends Module {
     private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize manual placement").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+
     /* Page Two */
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
@@ -164,7 +166,17 @@ public class CrystalAura extends Module {
                         switchCoolDown = true;
                     }
                 }
-              
+                if (placePriority.getValue()) {
+                	boolean wasPlacing = place.getValue();
+            		if (mc.gameSettings.keyBindUseItem.isKeyDown() && place.getValue()) {
+                    	place.setValue(false);
+                    	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
+                    	mc.playerController.attackEntity(mc.player, crystal);
+                    	mc.player.swingArm(EnumHand.MAIN_HAND);
+                    	systemTime = System.nanoTime() / 1000000;
+            		}
+                	if (!place.getValue() && wasPlacing) place.setValue(true);
+            	}
                 if (explodeBehavior.getValue() == ExplodeBehavior.ALWAYS) {
                 	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
                 	mc.playerController.attackEntity(mc.player, crystal);
