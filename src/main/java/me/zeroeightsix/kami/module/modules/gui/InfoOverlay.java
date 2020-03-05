@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.gui;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.combat.AutoTotem;
 import me.zeroeightsix.kami.module.modules.movement.TimerSpeed;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -22,7 +21,7 @@ import static me.zeroeightsix.kami.util.ColourUtils.getStringColour;
 /**
  * @author S-B99
  * Created by S-B99 on 04/12/19
- * Updated by S-B99 on 04/03/20
+ * Updated by S-B99 on 05/03/20
  * PVP Information by Polymer on 04/03/20
  */
 @Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures the game information overlay", showOnArray = Module.ShowOnArray.OFF)
@@ -39,11 +38,10 @@ public class InfoOverlay extends Module {
     private Setting<Boolean> memory = register(Settings.booleanBuilder("RAM Used").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> timerSpeed = register(Settings.booleanBuilder("Timer Speed").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     /* Page Two */
-    private Setting<Boolean> getTotems = register(Settings.booleanBuilder("Show Totems").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> getCrystals = register(Settings.booleanBuilder("Show Crystals").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> getEXP = register(Settings.booleanBuilder("Show XP Bottles").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> getGaps = register(Settings.booleanBuilder("Show Golden Apples").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
-
+    private Setting<Boolean> totems = register(Settings.booleanBuilder("Totems").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> endCrystals = register(Settings.booleanBuilder("End Crystals").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> expBottles = register(Settings.booleanBuilder("EXP Bottles").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> godApples = register(Settings.booleanBuilder("God Apples").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
     /* Page Three */
     private Setting<Boolean> speed = register(Settings.booleanBuilder("Speed").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
     private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KMH).withVisibility(v -> page.getValue().equals(Page.THREE) && speed.getValue()).build());
@@ -83,55 +81,43 @@ public class InfoOverlay extends Module {
         return getStringColour(c);
     }
 
+    public static int getItems(Item i) {
+        return mc.player.inventory.mainInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
+    }
+
     public ArrayList<String> infoContents() {
         ArrayList<String> infoContents = new ArrayList<>();
         if (version.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + KamiMod.KAMI_KANJI + textColour(secondColour.getValue()) + " " + KamiMod.MODVER);
-        }
-        if (username.getValue()) {
+        } if (username.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + "Welcome" + textColour(secondColour.getValue()) + " " + mc.getSession().getUsername() + "!");
-        }
-        if (time.getValue()) {
+        } if (time.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET);
-        }
-        if (tps.getValue()) {
+        } if (tps.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.tps() + textColour(secondColour.getValue()) + " tps");
-        }
-        if (fps.getValue()) {
+        } if (fps.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + Minecraft.debugFPS + textColour(secondColour.getValue()) + " fps");
-        }
-        if (speed.getValue()) {
+        } if (speed.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.speed() + textColour(secondColour.getValue()) + " " + unitType(speedUnit.getValue()));
-        }
-        if (timerSpeed.getValue()) {
+        } if (timerSpeed.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + formatTimerSpeed() + textColour(secondColour.getValue()) + "t");
-        }
-        if (ping.getValue()) {
+        } if (ping.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.ping() + textColour(secondColour.getValue()) + " ms");
-        }
-        if (durability.getValue()) {
+        } if (durability.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.dura() + textColour(secondColour.getValue()) + " dura");
-        }
-        if (memory.getValue()) {
+        } if (memory.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.memory() + textColour(secondColour.getValue()) + "mB free");
-        }
-        if (getTotems.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.TOTEM_OF_UNDYING) + textColour(secondColour.getValue()) + "Totems");
-        }
-        if (getCrystals.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.END_CRYSTAL) + textColour(secondColour.getValue()) + "Crystals");
-        }
-        if (getEXP.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.EXPERIENCE_BOTTLE) + textColour(secondColour.getValue()) + "XP Bottles");
-        }
-        if (getGaps.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.GOLDEN_APPLE) + textColour(secondColour.getValue()) + "Golden Apples");
+        } if (totems.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.TOTEM_OF_UNDYING) + textColour(secondColour.getValue()) + " Totems");
+        } if (endCrystals.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.END_CRYSTAL) + textColour(secondColour.getValue()) + " Crystals");
+        } if (expBottles.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.EXPERIENCE_BOTTLE) + textColour(secondColour.getValue()) + " EXP Bottles");
+        } if (godApples.getValue()) {
+        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.GOLDEN_APPLE) + textColour(secondColour.getValue()) + " God Apples");
         }
         return infoContents;
     }
 
     public void onDisable() { this.enable(); }
-    public static int getItems(Item i) {
-        return mc.player.inventory.mainInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
-    }
 }
