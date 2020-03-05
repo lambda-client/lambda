@@ -278,7 +278,7 @@ public class CrystalAura extends Module {
         			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
                     double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
                     if (self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d) continue;
-                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount()){
+                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || 6 >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() && b < 3) {
                   	    q = blockPos;
                   	    damage = d;
                   	    renderEnt = entity;
