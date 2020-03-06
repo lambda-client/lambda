@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# Created by S-B99 on 02/06/20
-# echo "Usage: ./website.sh URL VERSION BETAVERSION"
+# Created by S-B99 on 06/03/20
+# echo "Usage: ./fullWeb.sh URL VER"
 
 cd /home/bella/projects/kamiblueWebsite/ || exit
 
@@ -11,8 +11,8 @@ case $1 in
         exit 1
 esac
 
-sed -i "s|beta_jar_url:.*|beta_jar_url: $1|g" docs/_config.yml
-sed -i "s|beta_jar_name:.*|beta_jar_name: $2-beta-$3|g" docs/_config.yml
+sed -i "s|jar_url:.*|jar_url: $1|g" docs/_config.yml
+sed -i "s|jar_name:.*|jar_name: $2|g" docs/_config.yml
 
 git reset
 git add docs/_config.yml
