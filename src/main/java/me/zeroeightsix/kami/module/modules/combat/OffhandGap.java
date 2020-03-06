@@ -12,6 +12,8 @@ import net.minecraft.inventory.ClickType;
 import net.minecraft.item.*;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
 
+import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+
 /**
  * @author polymer (main listener switch function xd)
  * @author S-B99 (made epic and smooth and cleaned up code <3) (why did i rewrite this 4 times)
@@ -129,5 +131,10 @@ public class OffhandGap extends Module {
 			mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
 			mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
 		}
+	}
+
+	@Override
+	public String getHudInfo() {
+		return String.valueOf(getItems(Items.GOLDEN_APPLE));
 	}
 }

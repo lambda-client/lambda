@@ -77,7 +77,7 @@ public class InfoOverlay extends Module {
         return TimerSpeed.returnGui().replace(".", formatted);
     }
 
-    public String textColour(ColourUtils.ColourCode c) {
+    private String textColour(ColourUtils.ColourCode c) {
         return getStringColour(c);
     }
 
