@@ -20,18 +20,18 @@ public class RootColorizedCheckButtonUI extends RootCheckButtonUI<ColorizedCheck
     RootSmallFontRenderer ff = new RootSmallFontRenderer();
 
     public RootColorizedCheckButtonUI() { // why are these values all hardcoded screm aksdlksalkdlk
-        checkButtonBackgroundColour = new Color(toF(200), toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()));
-        checkButtonBackgroundColourHover = new Color(toF(255), toF(checkButtonBackgroundColourHover.getGreen()), toF(checkButtonBackgroundColourHover.getBlue()));
+        bgColour = new Color(toF(200), toF(bgColour.getGreen()), toF(bgColour.getBlue()));
+        bgColourHover = new Color(toF(255), toF(bgColourHover.getGreen()), toF(bgColourHover.getBlue()));
     }
 
     @Override
     public void renderComponent(CheckButton component, FontRenderer aa) {
-        glColor4f(toF(checkButtonBackgroundColour.getRed()), toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()), component.getOpacity());
+        glColor4f(toF(bgColour.getRed()), toF(bgColour.getGreen()), toF(bgColour.getBlue()), component.getOpacity());
         if (component.isHovered() || component.isPressed()) {
-            glColor4f(toF(checkButtonBackgroundColourHover.getRed()), toF(checkButtonBackgroundColourHover.getGreen()), toF(checkButtonBackgroundColourHover.getBlue()), component.getOpacity());
+            glColor4f(toF(bgColourHover.getRed()), toF(bgColourHover.getGreen()), toF(bgColourHover.getBlue()), component.getOpacity());
         }
         if (component.isToggled()) {
-            glColor3f(toF(checkButtonBackgroundColour.getRed()), toF(checkButtonBackgroundColour.getGreen()), toF(checkButtonBackgroundColour.getBlue()));
+            glColor3f(toF(bgColour.getRed()), toF(bgColour.getGreen()), toF(bgColour.getBlue()));
         }
 
 //        RenderHelper.drawRoundedRectangle(0,0,component.getWidth(), component.getHeight(), 3f);
@@ -43,8 +43,8 @@ public class RootColorizedCheckButtonUI extends RootCheckButtonUI<ColorizedCheck
         }
         glEnd();
 
-        Color idleColour = component.isToggled() ? checkButtonIdleColourToggle : checkButtonIdleColourNormal;
-        Color downColour = component.isToggled() ? checkButtonDownColourToggle : checkButtonDownColourNormal;
+        Color idleColour = component.isToggled() ? buttonIdleT : buttonIdleN;
+        Color downColour = component.isToggled() ? buttonHoveredT : buttonHoveredN;
 
         glColor3f(1, 1, 1);
         glEnable(GL_TEXTURE_2D);
