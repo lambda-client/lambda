@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * Created by 086 on 11/04/2018.
  * Updated by Itistheend on 28/12/19.
- * Updated by S-B99 on 29/02/20
+ * Updated by S-B99 on 06/03/20
  */
 @Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
 public class ElytraFlight extends Module {
@@ -27,11 +27,7 @@ public class ElytraFlight extends Module {
 
     @Override
     public void onUpdate() {
-        if (ModuleManager.getModuleByName("ElytraFlightCycle").isEnabled()) {
-            cycle();
-            Command.sendChatMessage("[ElytraFlightCycle] Cycled!");
-            ModuleManager.getModuleByName("ElytraFlightCycle").disable();
-        }
+        if (mc.player == null) return;
         if (defaultSetting.getValue()) {
             speedHighway.setValue(1.8f);
             fallSpeed.setValue(-.003f);
@@ -45,10 +41,10 @@ public class ElytraFlight extends Module {
 
         if (mc.player.capabilities.isFlying) {
             if (mode.getValue().equals(ElytraFlightMode.HIGHWAY)) {
+                mc.player.setSprinting(false);
                 mc.player.setVelocity(0, 0, 0);
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.getValue(), mc.player.posZ);
                 mc.player.capabilities.setFlySpeed(speedHighway.getValue());
-                mc.player.setSprinting(false);
             }
             else {
                 mc.player.setVelocity(0, 0, 0);
@@ -107,22 +103,4 @@ public class ElytraFlight extends Module {
     public enum ElytraFlightMode {
         BOOST, FLY, HIGHWAY
     }
-
-    public void cycle() { /* This fixes a bug with your wings not being opened sometimes */
-        switch (mode.getValue()) {
-            case HIGHWAY:
-                mode.setValue(ElytraFlightMode.BOOST);
-                mode.setValue(ElytraFlightMode.FLY);
-                mode.setValue(ElytraFlightMode.HIGHWAY);
-            case FLY:
-                mode.setValue(ElytraFlightMode.HIGHWAY);
-                mode.setValue(ElytraFlightMode.BOOST);
-                mode.setValue(ElytraFlightMode.FLY);
-            case BOOST:
-                mode.setValue(ElytraFlightMode.FLY);
-                mode.setValue(ElytraFlightMode.HIGHWAY);
-                mode.setValue(ElytraFlightMode.BOOST);
-        }
-    }
-
 }
