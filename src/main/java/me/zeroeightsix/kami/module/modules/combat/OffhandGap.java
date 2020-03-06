@@ -18,13 +18,14 @@ import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
  * @author polymer (main listener switch function xd)
  * @author S-B99 (made epic and smooth and cleaned up code <3) (why did i rewrite this 4 times)
  * Created by polymer on 21/02/20
- * Updated by S-B99 on 05/03/20
+ * Updated by S-B99 on 06/03/20
  */
 @Module.Info(name = "OffhandGap", category = Module.Category.COMBAT, description = "Holds a God apple when right clicking your sword!")
 public class OffhandGap extends Module {
 	private Setting<Double> disableHealth = register(Settings.doubleBuilder("Disable Health").withMinimum(0.0).withValue(4.0).withMaximum(20.0).build());
-	private Setting<Boolean> weaponCheck = register(Settings.b("Sword or Axe Only", true));
 	private Setting<Boolean> eatWhileAttacking = register(Settings.b("Eat While Attacking", false));
+	private Setting<Boolean> swordOrAxeOnly = register(Settings.b("Sword or Axe Only", true));
+	private Setting<Boolean> preferBlocks = register(Settings.booleanBuilder("Prefer Placing Blocks").withValue(false).withVisibility(v -> !swordOrAxeOnly.getValue()).build());
 //	private Setting<Mode> modeSetting = register(Settings.e("Use Mode", Mode.GAPPLE));
 
 //	private enum Mode {
@@ -93,7 +94,7 @@ public class OffhandGap extends Module {
 
 	/* If weaponCheck is disabled, check if they're not holding an item you'd want to use normally */
 	private boolean passItemCheck() {
-		if (weaponCheck.getValue()) return false;
+		if (swordOrAxeOnly.getValue()) return false;
 		else {
 			Item item = mc.player.getHeldItemMainhand().getItem();
 			if (item instanceof ItemBow) return false;
@@ -107,6 +108,7 @@ public class OffhandGap extends Module {
 			if (item instanceof ItemFlintAndSteel) return false;
 			if (item instanceof ItemFishingRod) return false;
 			if (item instanceof ItemArmor) return false;
+			if (preferBlocks.getValue() && item instanceof ItemBlock) return false;
 		}
 		return true;
 	}
