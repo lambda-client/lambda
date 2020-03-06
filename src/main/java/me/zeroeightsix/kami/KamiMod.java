@@ -65,7 +65,7 @@ public class KamiMod {
 
     static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.2-03-05-02";
+    public static final String MODVER = "v1.1.2-03-06-01";
     public static final String MODVERSMALL = "v1.1.2-beta";
     public static final String APP_ID = "638403216278683661";
 
@@ -196,8 +196,10 @@ public class KamiMod {
         try { // load modules that are on by default // autoenable
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
-            ModuleManager.getModuleByName("Capes").setEnabled(true);
 
+            if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
+                ModuleManager.getModuleByName("Capes").setEnabled(true);
+            }
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
             }
@@ -215,9 +217,6 @@ public class KamiMod {
             }
             if (((PrefixChat) ModuleManager.getModuleByName("PrefixChat")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("PrefixChat").setEnabled(true);
-            }
-            if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("Capes").setEnabled(true);
             }
         }
         catch (NullPointerException e) {
