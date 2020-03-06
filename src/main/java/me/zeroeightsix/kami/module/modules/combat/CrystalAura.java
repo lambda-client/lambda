@@ -36,6 +36,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 
 /**
@@ -381,5 +382,10 @@ public class CrystalAura extends Module {
         render = null;
         renderEnt = null;
         resetRotation();
+    }
+
+    @Override
+    public String getHudInfo() {
+        return String.valueOf(getItems(Items.END_CRYSTAL));
     }
 }
