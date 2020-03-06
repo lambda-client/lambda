@@ -77,4 +77,8 @@ public class AutoTotem extends Module {
     public String getHudInfo() {
         return String.valueOf(totems);
     }
+
+    public void onEnable() { OffhandGap.autoTotemGlobalState = false; }
+    public void onDisable() { OffhandGap.autoTotemGlobalState = true; }
+
 }

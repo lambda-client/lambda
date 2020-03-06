@@ -43,15 +43,15 @@ public class AutoQMain extends Module {
         }
 
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
-            Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are on singleplayer");
+            Command.sendWarningMessage(this.getChatName() + "&l&6Warning: &r&6You are on singleplayer");
             return;
         }
         if (!Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org") && debugWarn.getValue()) {
-            Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are not connected to 2b2t.org");
+            Command.sendWarningMessage(this.getChatName() + "&l&6Warning: &r&6You are not connected to 2b2t.org");
         }
         if (mc.player.dimension != 1 && endDi.getValue()) {
-            Command.sendWarningMessage("[AutoQMain] &l&6Warning: &r&6You are not in the end. Not running &b/queue main&7.");
-//            Command.sendWarningMessage("[AutoQMain] " + mc.player.dimension);
+            Command.sendWarningMessage(this.getChatName() + "&l&6Warning: &r&6You are not in the end. Not running &b/queue main&7.");
+//            Command.sendWarningMessage(this.getFormatName() + "" + mc.player.dimension);
             return;
         }
         if (debug.getValue()) {

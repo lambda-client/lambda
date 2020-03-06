@@ -4,13 +4,24 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.setting.Setting;
+import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.server.SPacketSoundEffect;
+
+import java.util.Random;
 
 /**
  * Created by 086 on 22/03/2018.
+ * Updated by Qther on 05/03/20
+ * Updated by S-B99 on 05/03/20
  */
 @Module.Info(name = "AutoFish", category = Module.Category.MISC, description = "Automatically catch fish")
 public class AutoFish extends Module {
+    private Setting<Integer> baseDelay = register(Settings.integerBuilder("Throw Delay (ms)").withValue(100).withMinimum(50).withMaximum(1000));
+    private Setting<Integer> extraDelay = register(Settings.integerBuilder("Catch Delay (ms)").withValue(300).withMinimum(0).withMaximum(1000));
+    private Setting<Integer> variation = register(Settings.integerBuilder("Variation (ms)").withValue(50).withMinimum(0).withMaximum(1000));
+
+    Random random;
 
     @EventHandler
     private Listener<PacketEvent.Receive> receiveListener = new Listener<>(e -> {
@@ -24,9 +35,14 @@ public class AutoFish extends Module {
                 int fishZ = (int) mc.player.fishEntity.posZ;
                 if (kindaEquals(soundX, fishX) && kindaEquals(fishZ, soundZ)) {
                     new Thread(() -> {
-                        mc.rightClickMouse();
+                        random = new Random();
                         try {
-                            Thread.sleep(1000L);
+                            Thread.sleep(extraDelay.getValue() + random.ints(1, -variation.getValue(), variation.getValue()).findFirst().getAsInt());
+                        } catch (InterruptedException ignored) { }
+                        mc.rightClickMouse();
+                        random = new Random();
+                        try {
+                            Thread.sleep(baseDelay.getValue() + random.ints(1, -variation.getValue(), variation.getValue()).findFirst().getAsInt());
                         } catch (InterruptedException e1) {
                             e1.printStackTrace();
                         }

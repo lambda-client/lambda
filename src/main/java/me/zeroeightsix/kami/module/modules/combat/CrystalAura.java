@@ -60,6 +60,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize manual placement").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
 
     /* Page Two */
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
@@ -105,6 +106,7 @@ public class CrystalAura extends Module {
             autoSwitch.setValue(true);
             place.setValue(false);
             explode.setValue(false);
+            tracer.setValue(true);
             antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
             range.setValue(4.0);
@@ -350,7 +352,7 @@ public class CrystalAura extends Module {
             if (customColours.getValue()) colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), aBlock.getValue());
             KamiTessellator.drawBox(render, colour, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
-            if (renderEnt != null) {
+            if (renderEnt != null && tracer.getValue()) {
                 Vec3d p = EntityUtil.getInterpolatedRenderPos(renderEnt, mc.getRenderPartialTicks());
                 float rL = 1;
                 float gL = 1;

@@ -11,33 +11,27 @@ import static me.zeroeightsix.kami.util.ColourConverter.toF;
  */
 public class ColourSet {
     /* Check Button colours */
-    public static Color checkButtonBackgroundColour = new Color(toF(67), toF(54), toF(191)); // normal colored
-    public static Color checkButtonBackgroundColourHover = new Color(toF(67), toF(54), toF(191)); // light colored
-    public static float checkButtonBackgroundColourOther = .9f;
+    public static Color bgColour = new Color(67, 54, 191); // normal colored
+    public static Color bgColourHover = new Color(67, 54, 191); // light colored
+    public static double bgColourOther = 229.5;
 
-    public static Color checkButtonIdleColourNormal = new Color(200, 200, 200); // lighter grey
-    public static Color checkButtonDownColourNormal = new Color(190, 190, 190); // light grey
+    public static Color buttonPressed = new Color(177, 52, 235);
 
-    public static Color checkButtonIdleColourToggle = new Color(165, 158, 232); // lighter colored
-    public static Color checkButtonDownColourToggle = checkButtonIdleColourToggle.brighter();
+    public static Color buttonIdleN = new Color(200, 200, 200); // lighter grey
+    public static Color buttonHoveredN = new Color(190, 190, 190); // light grey
 
-    /* Component colours */
-    public static Color componentMainWindow = new Color(.17f, .17f, .18f, .9f);
-    public static float[] componentMainWindowArray;
+    public static Color buttonIdleT = new Color(165, 158, 232); // lighter colored
+    public static Color buttonHoveredT = buttonIdleT.brighter();
 
-//    public static float[] getComponentMainWindowArray() {
-//        componentMainWindowArray[0] = .17f;
-//        componentMainWindowArray[1] = .17f;
-//        componentMainWindowArray[2] = .18f;
-//        componentMainWindowArray[3] = .9f;
-//        return componentMainWindowArray;
-//    }
+    public static Color windowOutline = new Color(116, 101, 247);
+    public static float windowOutlineWidth = 1.8f;
 
-    public static Color componentWindowOutline = new Color(toF(116), toF(101), toF(247));
-    public static float componentWindowOutlineWidth = 1.5f;
+    public static Color pinnedWindow = new Color(116, 101, 247);
+    public static double unpinnedWindow = 168.3;
+    public static double lineWindow = 112.2;
 
-    public static Color componentPinnedColour = new Color(toF(165), toF(41), toF(255));
-    public static float componentUnpinnedColour = toF(168.3);
-    public static float componentLineColour = toF(112.2);
+    public static Color sliderColour = new Color(155, 144, 255);
+
+    public static Color enumColour = new Color(116, 101, 247);
 
 }

@@ -6,12 +6,11 @@ echo "BUILD: started at $(date -d "@$START_TIME")"
 cd ../
 
 mkdir kblue-beta/
-cp -r kamiblue/gradle* kblue-beta/ 
-cp -r kamiblue/gradlew* kblue-beta/
-cp -r kamiblue/gradle/ kblue-beta/
-cp -r kamiblue/build.sh kblue-beta/
-cp -r kamiblue/build.gradle kblue-beta/
 cp -r kamiblue/src/ kblue-beta/
+cp -r kamiblue/gradle/ kblue-beta/
+cp kamiblue/gradle.properties kblue-beta/ 
+cp kamiblue/gradlew kblue-beta/
+cp kamiblue/build.gradle kblue-beta/
 echo "BUILD: copied"
 
 cd kblue-beta/ || exit

@@ -44,7 +44,8 @@ public class HelpCommand extends Command {
             Command.sendStringChatMessage(new String[]{
                     "KAMI Blue " + KamiMod.MODVER,
                     "&7Press &r" + ModuleManager.getModuleByName("ClickGUI").getBindName() + "&7 to open GUI",
-                    "&7see &9https://blue.bella.wtf&7 for a full version of the faq",
+                    "&7see &bhttps://blue.bella.wtf&7 for a full version of the faq",
+                    "description&7 to see the description of a module",
                     "commands&7 to view all available commands",
                     "bind <module> <key>&7 to bind mods",
                     "prefix <prefix>&r to change the command prefix.",
