@@ -65,6 +65,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> statusMessages = register(Settings.booleanBuilder("Enable Messages").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Integer> aBlock = register(Settings.integerBuilder("Block Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
     private Setting<Integer> aTracer = register(Settings.integerBuilder("Tracer Transparency").withMinimum(0).withValue(200).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
@@ -96,7 +97,15 @@ public class CrystalAura extends Module {
     private boolean isAttacking = false;
     private int oldSlot = -1;
     private int newSlot;
-
+    
+    @Override
+    public void onEnable() {
+    	if (statusMessages.getValue()) {
+    		Command.sendChatMessage("[CrystalAura] CrystalAura has been turned &aON&r");
+    	}
+    }
+    
+    
     @Override
     public void onUpdate() {
         if (defaultSetting.getValue()) {
@@ -497,5 +506,9 @@ public class CrystalAura extends Module {
         render = null;
         renderEnt = null;
         resetRotation();
+        if (statusMessages.getValue()) {
+    		Command.sendChatMessage("[CrystalAura] CrystalAura has been turned &cOFF&r");
+    	}
+
     }
 }
