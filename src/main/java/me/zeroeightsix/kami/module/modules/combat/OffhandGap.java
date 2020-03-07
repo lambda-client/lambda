@@ -34,14 +34,14 @@ public class OffhandGap extends Module {
 
 	int gaps = -1;
 	boolean autoTotemWasEnabled = false;
-	boolean notCancelled = false;
+	boolean cancelled = false;
 	Item usedItem;
 	Item toUseItem;
 
 	@EventHandler
 	private Listener<PacketEvent.Send> sendListener = new Listener<>(e ->{
 		if (e.getPacket() instanceof CPacketPlayerTryUseItem) {
-			if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
+			if (cancelled) {
 				disableGaps();
 				return;
 			}
@@ -77,8 +77,13 @@ public class OffhandGap extends Module {
 	public void onUpdate() {
 		if (mc.player == null) return;
 		/* If your health doesn't meet the cutoff then set it to true */
-		notCancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
+		cancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
 		toUseItem = Items.GOLDEN_APPLE;
+
+		if (cancelled) {
+			disableGaps();
+			return;
+		}
 
 		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
 			for (int i = 0; i < 45; i++) {
