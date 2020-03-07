@@ -22,7 +22,6 @@ import me.zeroeightsix.kami.module.modules.chat.CustomChat;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
-import me.zeroeightsix.kami.module.modules.player.AntiBan;
 import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -65,7 +64,7 @@ public class KamiMod {
 
     static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.2-03-06-01";
+    public static final String MODVER = "v1.1.2-03-07-01";
     public static final String MODVERSMALL = "v1.1.2-beta";
     public static final String APP_ID = "638403216278683661";
 
@@ -202,9 +201,6 @@ public class KamiMod {
             }
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
-            }
-            if (((AntiBan) ModuleManager.getModuleByName("AntiBan")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("AntiBan").setEnabled(true);
             }
             if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("TabFriends").setEnabled(true);

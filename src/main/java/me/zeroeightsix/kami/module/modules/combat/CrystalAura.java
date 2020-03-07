@@ -120,8 +120,9 @@ public class CrystalAura extends Module {
             r.setValue(155);
             g.setValue(144);
             b.setValue(255);
-            Command.sendChatMessage("[CrystalAura] Set to defaults!");
-            Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura setting's menu to see changes");
+            defaultSetting.setValue(false);
+            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
+            Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
         }
        
         Vec3d[] holeOffset = {

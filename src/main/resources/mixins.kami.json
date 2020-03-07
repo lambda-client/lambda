@@ -22,7 +22,6 @@
     "MixinMinecraft",
     "MixinModelBoat",
     "MixinNetHandlerPlayClient",
-    "MixinNettyCompressionDecoder",
     "MixinNetworkManager",
     "MixinPlayerControllerMP",
     "MixinRenderLiving",
