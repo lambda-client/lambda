@@ -34,6 +34,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
@@ -43,8 +44,8 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 /**
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
- * Updated 4 March 2020 by polymer
- * Updated by S-B99 on 04/03/20
+ * Updated 7 March 2020 by polymer
+ * Updated by S-B99 on 07/03/20
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
@@ -96,17 +97,7 @@ public class CrystalAura extends Module {
     private boolean switchCoolDown = false;
     private boolean isAttacking = false;
     private int oldSlot = -1;
-    private int newSlot;
-    
-    @Override
-    public void onEnable() {
-    	if (statusMessages.getValue()) {
-    		Command.sendChatMessage("[CrystalAura] CrystalAura has been turned &aON&r");
-    	}
-    }
-    
-    
-    @Override
+
     public void onUpdate() {
         if (defaultSetting.getValue()) {
             explodeBehavior.setValue(ExplodeBehavior.ALWAYS);
@@ -154,7 +145,7 @@ public class CrystalAura extends Module {
                         isAttacking = true;
                     }
                     // search for sword and tools in hotbar
-                    newSlot = -1;
+                    int newSlot = -1;
                     for (int i = 0; i < 9; i++) {
                         ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
                         if (stack == ItemStack.EMPTY) {
@@ -423,18 +414,18 @@ public class CrystalAura extends Module {
 
     public static float calculateDamage(double posX, double posY, double posZ, Entity entity) {
         float doubleExplosionSize = 6.0F * 2.0F;
-        double distancedsize = entity.getDistance(posX, posY, posZ) / (double) doubleExplosionSize;
+        double distancedSize = entity.getDistance(posX, posY, posZ) / (double) doubleExplosionSize;
         Vec3d vec3d = new Vec3d(posX, posY, posZ);
-        double blockDensity = (double) entity.world.getBlockDensity(vec3d, entity.getEntityBoundingBox());
-        double v = (1.0D - distancedsize) * blockDensity;
+        double blockDensity = entity.world.getBlockDensity(vec3d, entity.getEntityBoundingBox());
+        double v = (1.0D - distancedSize) * blockDensity;
         float damage = (float) ((int) ((v * v + v) / 2.0D * 7.0D * (double) doubleExplosionSize + 1.0D));
-        double finald = 1;
+        double finalD = 1;
         /*if (entity instanceof EntityLivingBase)
-            finald = getBlastReduction((EntityLivingBase) entity,getDamageMultiplied(damage));*/
+            finalD = getBlastReduction((EntityLivingBase) entity,getDamageMultiplied(damage));*/
         if (entity instanceof EntityLivingBase) {
-            finald = getBlastReduction((EntityLivingBase) entity, getDamageMultiplied(damage), new Explosion(mc.world, null, posX, posY, posZ, 6F, false, true));
+            finalD = getBlastReduction((EntityLivingBase) entity, getDamageMultiplied(damage), new Explosion(mc.world, null, posX, posY, posZ, 6F, false, true));
         }
-        return (float) finald;
+        return (float) finalD;
     }
 
     public static float getBlastReduction(EntityLivingBase entity, float damage, Explosion explosion) {
@@ -447,7 +438,7 @@ public class CrystalAura extends Module {
             float f = MathHelper.clamp(k, 0.0F, 20.0F);
             damage = damage * (1.0F - f / 25.0F);
 
-            if (entity.isPotionActive(Potion.getPotionById(11))) {
+            if (entity.isPotionActive(Objects.requireNonNull(Potion.getPotionById(11)))) {
                 damage = damage - (damage / 4);
             }
 
@@ -501,14 +492,14 @@ public class CrystalAura extends Module {
         }
     });
 
-    @Override
+    public void onEnable() {
+        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&aENABLED&r");
+    }
+
     public void onDisable() {
+        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&aDISABLED&r");
         render = null;
         renderEnt = null;
         resetRotation();
-        if (statusMessages.getValue()) {
-    		Command.sendChatMessage("[CrystalAura] CrystalAura has been turned &cOFF&r");
-    	}
-
     }
 }
