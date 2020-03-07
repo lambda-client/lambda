@@ -34,4 +34,5 @@ public class ColourSet {
 
     public static Color enumColour = new Color(116, 101, 247);
 
+    public static Color chatOutline = new Color(52, 43, 128);
 }
