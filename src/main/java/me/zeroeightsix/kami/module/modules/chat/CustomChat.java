@@ -22,7 +22,7 @@ public class CustomChat extends Module {
     public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ONTOP));
     private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
-    public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "&rcustomchat to modify this").withConsumer((old, value) -> {}));
+    public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "&rcustomchat to modify this").withConsumer((old, value) -> {}).build());
 
     public enum TextMode {
         NAME, ONTOP, WEBSITE, JAPANESE, CUSTOM
