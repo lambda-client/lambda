@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -13,15 +14,27 @@ import java.util.Random;
 /**
  * Created by 086 on 22/03/2018.
  * Updated by Qther on 05/03/20
- * Updated by S-B99 on 05/03/20
+ * Updated by S-B99 on 07/03/20
  */
 @Module.Info(name = "AutoFish", category = Module.Category.MISC, description = "Automatically catch fish")
 public class AutoFish extends Module {
-    private Setting<Integer> baseDelay = register(Settings.integerBuilder("Throw Delay (ms)").withValue(100).withMinimum(50).withMaximum(1000));
-    private Setting<Integer> extraDelay = register(Settings.integerBuilder("Catch Delay (ms)").withValue(300).withMinimum(0).withMaximum(1000));
-    private Setting<Integer> variation = register(Settings.integerBuilder("Variation (ms)").withValue(50).withMinimum(0).withMaximum(1000));
+    private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
+    private Setting<Integer> baseDelay = register(Settings.integerBuilder("Throw Delay").withValue(450).withMinimum(50).withMaximum(1000).build());
+    private Setting<Integer> extraDelay = register(Settings.integerBuilder("Catch Delay").withValue(300).withMinimum(0).withMaximum(1000).build());
+    private Setting<Integer> variation = register(Settings.integerBuilder("Variation").withValue(50).withMinimum(0).withMaximum(1000).build());
 
     Random random;
+
+    public void onUpdate() {
+        if (defaultSetting.getValue()) {
+            baseDelay.setValue(450);
+            extraDelay.setValue(300);
+            variation.setValue(50);
+            defaultSetting.setValue(false);
+            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
+            Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
+        }
+    }
 
     @EventHandler
     private Listener<PacketEvent.Receive> receiveListener = new Listener<>(e -> {
