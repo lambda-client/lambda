@@ -83,7 +83,7 @@ public class CrystalAura extends Module {
             checkAbsorption.setValue(true);
             defaultSetting.setValue(false);
             Command.sendChatMessage(this.getChatName() + " Set to defaults!");
-            Command.sendChatMessage(this.getChatName() + " Close and reopen the CrystalAura settings menu to see changes");
+            Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
         }
 
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
