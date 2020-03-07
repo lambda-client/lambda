@@ -37,17 +37,17 @@ public class XRay extends Module {
         refreshHiddenBlocksSet(value);
         if (isEnabled())
             mc.renderGlobal.loadRenderers();
-    }));
+    }).build());
     public Setting<Boolean> invert = register(Settings.booleanBuilder("Invert").withValue(false).withConsumer((old, value) -> {
         invertStatic = value;
         if (isEnabled())
             mc.renderGlobal.loadRenderers();
-    }));
+    }).build());
     private Setting<Boolean> outlines = register(Settings.booleanBuilder("Outlines").withValue(true).withConsumer((old, value) -> {
         outlinesStatic = value;
         if (isEnabled())
             mc.renderGlobal.loadRenderers();
-    }));
+    }).build());
 
     // A static mirror of the state.
     private static Set<Block> hiddenBlocks = Collections.synchronizedSet(new HashSet<>());
