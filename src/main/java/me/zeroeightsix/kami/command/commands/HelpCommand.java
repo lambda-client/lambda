@@ -7,6 +7,8 @@ import me.zeroeightsix.kami.module.ModuleManager;
 
 import java.util.Arrays;
 
+import static me.zeroeightsix.kami.KamiMod.WEBSITE_LINK;
+
 /**
  * Created by 086 on 11/11/2017.
  */
@@ -40,16 +42,17 @@ public class HelpCommand extends Command {
 
     @Override
     public void call(String[] args) {
+        String commandPrefix = Command.getCommandPrefix();
         if (args[0] == null) {
             Command.sendStringChatMessage(new String[]{
                     "KAMI Blue " + KamiMod.MODVER,
                     "&7Press &r" + ModuleManager.getModuleByName("ClickGUI").getBindName() + "&7 to open GUI",
-                    "&7see &bhttps://blue.bella.wtf&7 for a full version of the faq",
-                    "description&7 to see the description of a module",
-                    "commands&7 to view all available commands",
-                    "bind <module> <key>&7 to bind mods",
-                    "prefix <prefix>&r to change the command prefix.",
-                    "help &7<bind|subjects:[subject]>&r for more help."
+                    "&7see &b" + WEBSITE_LINK + "&7 for a full version of the faq",
+                    commandPrefix + "description&7 to see the description of a module",
+                    commandPrefix + "commands&7 to view all available commands",
+                    commandPrefix + "bind <module> <key>&7 to bind mods",
+                    commandPrefix + "prefix <prefix>&r to change the command prefix.",
+                    commandPrefix + "help &7<bind|subjects:[subject]>&r for more help."
             });
         } else {
             String subject = args[0];
