@@ -111,6 +111,7 @@ public class OffhandGap extends Module {
 			if (item instanceof ItemFlintAndSteel) return false;
 			if (item instanceof ItemFishingRod) return false;
 			if (item instanceof ItemArmor) return false;
+			if (item instanceof ItemExpBottle) return false;
 			if (preferBlocks.getValue() && item instanceof ItemBlock) return false;
 		}
 		return true;
