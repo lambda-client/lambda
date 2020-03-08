@@ -29,7 +29,7 @@ public class KamiTheme extends AbstractTheme {
         installUI(new KamiActiveModulesUI());
         installUI(new KamiSettingsPanelUI());
         installUI(new RootSliderUI());
-        installUI(new KamiEnumbuttonUI());
+        installUI(new KamiEnumButtonUI());
         installUI(new RootColorizedCheckButtonUI());
         installUI(new KamiUnboundSliderUI());
 

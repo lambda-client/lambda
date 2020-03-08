@@ -7,7 +7,8 @@ import me.zeroeightsix.kami.event.events.DisplaySizeChangedEvent;
 import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.BossStack;
+import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
+import me.zeroeightsix.kami.module.modules.render.BossStack;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
@@ -32,6 +33,8 @@ import org.lwjgl.opengl.GL11;
 
 /**
  * Created by 086 on 11/11/2017.
+ * Updated by Qther on 18/02/20
+ * Updated by S-B99 on 18/02/20
  */
 public class ForgeEventProcessor {
 
@@ -106,7 +109,7 @@ public class ForgeEventProcessor {
     @SubscribeEvent(priority = EventPriority.NORMAL, receiveCanceled = true)
     public void onKeyInput(InputEvent.KeyInputEvent event) {
         if (!Keyboard.getEventKeyState()) return;
-        if (("" + Keyboard.getEventCharacter()).equalsIgnoreCase(Command.getCommandPrefix())) {
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(PrefixChat.class) && ("" + Keyboard.getEventCharacter()).equalsIgnoreCase(Command.getCommandPrefix()) && !(Minecraft.getMinecraft().player.isSneaking())) {
             Minecraft.getMinecraft().displayGuiScreen(new GuiChat(Command.getCommandPrefix()));
         } else {
             KamiMod.MODULE_MANAGER.onBind(Keyboard.getEventKey());
@@ -142,12 +145,17 @@ public class ForgeEventProcessor {
         KamiMod.EVENT_BUS.post(event);
     }
 
-    @SubscribeEvent()
+    @SubscribeEvent
     public void onChunkLoaded(ChunkEvent.Load event) {
         KamiMod.EVENT_BUS.post(event);
     }
 
-    @SubscribeEvent()
+    @SubscribeEvent
+    public void onEventMouse(InputEvent.MouseInputEvent event) {
+        KamiMod.EVENT_BUS.post(event);
+    }
+
+    @SubscribeEvent
     public void onChunkLoaded(ChunkEvent.Unload event) {
         KamiMod.EVENT_BUS.post(event);
     }

@@ -19,6 +19,8 @@ import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.opengl.GL11;
 
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
+import static me.zeroeightsix.kami.util.ColourSet.*;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -46,10 +48,10 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
         glDisable(GL_TEXTURE_2D);
 
         glColor4f(.17f, .17f, .18f, .9f);
-        RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight());
-        glColor3f(.60f, .56f, 1.00f);
-        glLineWidth(1.5f);
-        RenderHelper.drawRectangle(0, 0, component.getWidth(), component.getHeight());
+        RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight()); // Main window
+        glColor3f(toF(windowOutline.getRed()), toF(windowOutline.getGreen()), toF(windowOutline.getBlue()));
+        glLineWidth(windowOutlineWidth);
+        RenderHelper.drawRectangle(0, 0, component.getWidth(), component.getHeight()); // Border / Outline
 
         GL11.glColor3f(1, 1, 1);
         ff.drawString(component.getWidth() / 2 - ff.getStringWidth(component.getTitle()) / 2, 1, component.getTitle());
@@ -102,11 +104,11 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
             }
         }
 
-        if (component.isPinneable()) {
+        if (component.isPinnable()) {
             if (component.isPinned())
-                glColor3f(1, .33f, .33f);
+                glColor3f(toF(pinnedWindow.getRed()), toF(pinnedWindow.getGreen()), toF(pinnedWindow.getBlue()));
             else
-                glColor3f(0.66f, 0.66f, 0.66f);
+                glColor3f(toF(unpinnedWindow), toF(unpinnedWindow), toF(unpinnedWindow));
             RenderHelper.drawCircle(7, 4, 2f);
             glLineWidth(3f);
             glBegin(GL_LINES);
@@ -118,7 +120,7 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
         }
 
         if (component.equals(xLineComponent)) {
-            glColor3f(.44f, .44f, .44f);
+            glColor3f(toF(lineWindow), toF(lineWindow), toF(lineWindow));
             glLineWidth(1f);
             glBegin(GL_LINES);
             {
@@ -213,7 +215,7 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
                         }
                     }
                     if (x < 10 && x > 0) {
-                        if (component.isPinneable()) {
+                        if (component.isPinnable()) {
                             component.setPinned(!component.isPinned());
                         }
                     }

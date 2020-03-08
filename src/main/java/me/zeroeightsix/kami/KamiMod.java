@@ -17,17 +17,21 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.bewwawho.capes.Capes;
-import me.zeroeightsix.kami.module.modules.bewwawho.gui.GUIScale;
-import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
-import me.zeroeightsix.kami.module.modules.bewwawho.misc.BlueDiscordRPC;
-import me.zeroeightsix.kami.module.modules.bewwawho.util.Donator;
+import me.zeroeightsix.kami.module.modules.capes.Capes;
+import me.zeroeightsix.kami.module.modules.chat.CustomChat;
+import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
+import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
+import me.zeroeightsix.kami.module.modules.gui.InventoryViewer;
+import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
+import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
+import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
+import me.zeroeightsix.kami.util.RichPresence;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
@@ -37,6 +41,7 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.lwjgl.opengl.Display;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -52,7 +57,7 @@ import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 16/12/19
+ * Updated by S-B99 on 17/02/19
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -62,15 +67,30 @@ import java.util.Optional;
 )
 public class KamiMod {
 
+    static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODNAME = "KAMI Blue";
-    public static final String MODVER = "v1.1.1";
-    public static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/KAMI/features-master/assets/updateChecker.json";
+    public static final String MODVER = "v1.1.2-03-07-01";
+    public static final String MODVERSMALL = "v1.1.2-beta";
+    public static final String APP_ID = "638403216278683661";
 
-    public static final String KAMI_HIRAGANA = "\u304B\u307F";
-    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
-    public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb"; //\u30ab\u30df\u30d6\u30eb //\u795E
+    static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/updateChecker.json";
+    public static final String DONATORS_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/donators.json";
+    public static final String CAPES_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/capes.json";
+    public static final String GITHUB_LINK = "https://github.com/S-B99/KAMI";
+    public static final String WEBSITE_LINK = "https://blue.bella.wtf";
+
+
+    //    public static final String KAMI_HIRAGANA = "\u304B\u307F";
+//    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
+    public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb";
     public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
+    public static final String KAMI_JAPANESE_ONTOP = "\u4e0a\u306b\u30ab\u30df\u30d6\u30eb\u30fc";
+    public static final String KAMI_ONTOP = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07 \u1d0f\u0274 \u1d1b\u1d0f\u1d18";
+    public static final String KAMI_WEBSITE = "\u0299\u1d07\u029f\u029f\u1d00\u002e\u1d21\u1d1b\ua730\u002f\u1d0b\u1d00\u1d0d\u026a\u0299\u029f\u1d1c\u1d07";
+    public static final char colour = '\u00A7';
+    public static final char separator = '\u23d0';
+    public static final char quoteLeft = '\u00ab';
+    public static final char quoteRight = '\u00bb';
 
     private static final String KAMI_CONFIG_NAME_DEFAULT = "KAMIBlueConfig.json";
 
@@ -97,23 +117,60 @@ public class KamiMod {
     }).buildAndRegister("");
 
     @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-
-    }
+    public void preInit(FMLPreInitializationEvent event) { }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        for (Donator.DonatorUser user : Donator.INSTANCE.donatorUsers) {
-            if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
-                DiscordPresence.presence.smallImageKey = "donator2";
-                DiscordPresence.presence.smallImageText = "donator uwu";
+        if (RichPresence.INSTANCE.customUsers != null) {
+            for (RichPresence.CustomUser user : RichPresence.INSTANCE.customUsers) {
+                if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
+                    switch (Integer.parseInt(user.type)) {
+                        case 0: {
+                            DiscordPresence.presence.smallImageKey = "booster";
+                            DiscordPresence.presence.smallImageText = "booster uwu";
+                            break;
+                        }
+                        case 1: {
+                            DiscordPresence.presence.smallImageKey = "inviter";
+                            DiscordPresence.presence.smallImageText = "inviter owo";
+                            break;
+                        }
+                        case 2: {
+                            DiscordPresence.presence.smallImageKey = "giveaway";
+                            DiscordPresence.presence.smallImageText = "giveaway winner";
+                            break;
+                        }
+                        case 3: {
+                            DiscordPresence.presence.smallImageKey = "contest";
+                            DiscordPresence.presence.smallImageText = "contest winner";
+                            break;
+                        }
+                        case 4: {
+                            DiscordPresence.presence.smallImageKey = "nine";
+                            DiscordPresence.presence.smallImageText = "900th member";
+                            break;
+                        }
+                        case 5: {
+                            DiscordPresence.presence.smallImageKey = "github1";
+                            DiscordPresence.presence.smallImageText = "contributor!! uwu";
+                            break;
+                        }
+                        default: {
+                            DiscordPresence.presence.smallImageKey = "donator2";
+                            DiscordPresence.presence.smallImageText = "donator <3";
+                            break;
+                        }
+                    }
+                }
             }
         }
+        Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVERSMALL);
+//        Display.setIcon(WindowIcon.ExtractByteBufferFromImagePath("kami.png"));
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        KamiMod.log.info("\n\nInitializing KAMI " + MODVER);
+        KamiMod.log.info("\n\nInitializing " + MODNAME + " " + MODVER);
 
         KamiMod.MODULE_MANAGER.register();
 
@@ -136,28 +193,42 @@ public class KamiMod {
         // custom names aren't known at compile-time
         //KamiMod.MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
-        new Capes();
-        KamiMod.log.info("Capes init!\n");
-
-        new Donator();
-        KamiMod.log.info("Donators init!\n");
+        new RichPresence();
+        KamiMod.log.info("Rich Presence Users init!\n");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         KamiMod.MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
 
-        try { // load modules that are on by default
-            KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class).setEnabled(true);
-            KamiMod.MODULE_MANAGER.getModule(GUIScale.class).setEnabled(true);
-            if (((BlueDiscordRPC) KamiMod.MODULE_MANAGER.getModule(BlueDiscordRPC.class)).startupGlobal.getValue()) {
-                KamiMod.MODULE_MANAGER.getModule(BlueDiscordRPC.class).setEnabled(true);
+        try { // load modules that are on by default // autoenable
+            //((DiscordSettings) KamiMod.MODULE_MANAGER.getModule(DiscordSettings.class));
+            MODULE_MANAGER.getModule(InfoOverlay.class).setEnabled(true);
+            MODULE_MANAGER.getModule(InventoryViewer.class).setEnabled(true);
+
+            if (((Capes) MODULE_MANAGER.getModule(Capes.class)).startupGlobal.getValue()) {
+                MODULE_MANAGER.getModule(Capes.class).setEnabled(true);
+            }
+            if (((DiscordSettings) MODULE_MANAGER.getModule(DiscordSettings.class)).startupGlobal.getValue()) {
+                MODULE_MANAGER.getModule(DiscordSettings.class).setEnabled(true);
+            }
+            if (((TabFriends) MODULE_MANAGER.getModule(TabFriends.class)).startupGlobal.getValue()) {
+                MODULE_MANAGER.getModule(TabFriends.class).setEnabled(true);
+            }
+            if (((CustomChat) MODULE_MANAGER.getModule(CustomChat.class)).startupGlobal.getValue()) {
+                MODULE_MANAGER.getModule(CustomChat.class).setEnabled(true);
+            }
+            if (((CleanGUI) MODULE_MANAGER.getModule(CleanGUI.class)).startupGlobal.getValue()) {
+                MODULE_MANAGER.getModule(CleanGUI.class).setEnabled(true);
+            }
+            if (((PrefixChat) MODULE_MANAGER.getModule(PrefixChat.class)).startupGlobal.getValue()) {
+                MODULE_MANAGER.getModule(PrefixChat.class).setEnabled(true);
             }
         }
         catch (NullPointerException e) {
-            KamiMod.log.info("NPE in loading always enabled modules\n");
+            KamiMod.log.error("NPE in loading always enabled modules\n");
         }
 
-        KamiMod.log.info("KAMI Mod initialized!\n");
+        KamiMod.log.info(MODNAME + " Mod initialized!\n");
     }
 
     public static String getConfigName() {
@@ -212,7 +283,7 @@ public class KamiMod {
                 System.err.println("Found GUI config entry for " + entry.getKey() + ", but found no frame with that name");
             }
         }
-        KamiMod.getInstance().getGuiManager().getChildren().stream().filter(component -> (component instanceof Frame) && (((Frame) component).isPinneable()) && component.isVisible()).forEach(component -> component.setOpacity(0f));
+        KamiMod.getInstance().getGuiManager().getChildren().stream().filter(component -> (component instanceof Frame) && (((Frame) component).isPinnable()) && component.isVisible()).forEach(component -> component.setOpacity(0f));
     }
 
     public static void saveConfiguration() {

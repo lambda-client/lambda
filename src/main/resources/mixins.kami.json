@@ -4,17 +4,21 @@
   "package": "me.zeroeightsix.kami.mixin.client",
   "refmap": "mixins.kami.refmap.json",
   "client": [
+    "MixinAbstractClientPlayer",
     "MixinBlockLiquid",
     "MixinBlockSoulSand",
     "MixinC00Handshake",
+    "MixinChunkCache",
     "MixinEntity",
     "MixinEntityLlama",
     "MixinEntityPig",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinGuiChat",
+    "MixinGuiNewChat",
     "MixinGuiPlayerTabOverlay",
     "MixinGuiScreen",
+    "MixinLayerArmorBase",
     "MixinMinecraft",
     "MixinModelBoat",
     "MixinNetHandlerPlayClient",
@@ -23,6 +27,7 @@
     "MixinRenderLiving",
     "MixinRenderPlayer",
     "MixinStateImplementation",
-    "MixinAbstractClientPlayer"
+    "MixinFrustum",
+    "MixinVisGraph"
   ]
 }

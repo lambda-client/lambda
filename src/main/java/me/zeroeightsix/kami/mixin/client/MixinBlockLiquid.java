@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.movement.Velocity;
+import me.zeroeightsix.kami.module.modules.movement.Velocity;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;

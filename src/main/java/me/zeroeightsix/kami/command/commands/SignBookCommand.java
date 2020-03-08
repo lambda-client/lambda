@@ -1,21 +1,18 @@
 package me.zeroeightsix.kami.command.commands;
 
+import io.netty.buffer.Unpooled;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
-import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.util.Wrapper;
-
-import net.minecraft.item.ItemWritableBook;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.network.play.client.CPacketCustomPayload;
+import net.minecraft.item.ItemWritableBook;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.play.client.CPacketCustomPayload;
 
 import java.util.ArrayList;
-
-import io.netty.buffer.Unpooled;
 
 /**
  * @author 0x2E | PretendingToCode
@@ -24,7 +21,7 @@ public class SignBookCommand extends Command {
 
     public SignBookCommand() {
         super("signbook", new ChunkBuilder().append("name").build());
-        setDescription("Colored book names. #n for a new line and & for color codes");
+        setDescription("Colored book names. &f#n&7 for a new line and &f&&7 for colour codes");
     }
 
     @Override
@@ -49,7 +46,7 @@ public class SignBookCommand extends Command {
             futureTitle = futureTitle.replaceAll("#n", "\n");
             futureTitle = futureTitle.replaceAll("null", ""); //Random extra null added sometimes
 
-            if(futureTitle.length() > 31){
+            if (futureTitle.length() > 31) {
                 Command.sendChatMessage("Title cannot be over 31 characters.");
                 return;
             }
@@ -60,8 +57,8 @@ public class SignBookCommand extends Command {
 
             NBTTagCompound bookData = is.getTagCompound();
 
-            if(is.hasTagCompound()){
-                if(bookData != null) {
+            if (is.hasTagCompound()) {
+                if (bookData != null) {
                     is.setTagCompound(bookData);
                 }
                 is.getTagCompound().setTag("title", new NBTTagString(futureTitle));

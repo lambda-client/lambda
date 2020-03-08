@@ -65,9 +65,9 @@ public interface Component {
 
     public void setVisible(boolean visible);
 
-    public void setFocussed(boolean focus);
+    public void setFocused(boolean focus);
 
-    public boolean isFocussed();
+    public boolean isFocused();
 
     public ComponentUI getUI();
 

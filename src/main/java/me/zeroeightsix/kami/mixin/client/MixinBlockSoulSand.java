@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.movement.NoSlowDown;
+import me.zeroeightsix.kami.module.modules.movement.NoSlowDown;
 import net.minecraft.block.BlockSoulSand;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;

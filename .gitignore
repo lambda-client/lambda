@@ -5,13 +5,13 @@
 #gradle*
 #gradlew*
 #gradle/
-buildext.sh
-deltags.sh
-buildexttmp.sh
+#buildext.sh
+#deltags.sh
+#buildexttmp.sh
 #build.gradle
-builddonator.sh
-buildkeygen.sh
-build.sh
+#builddonator.sh
+#buildkeygen.sh
+#build.sh
 
 # donator
 
@@ -162,6 +162,7 @@ flycheck_*.el
 ### ForgeGradle ###
 # Minecraft client/server files
 run/
+logs/
 
 ### Intellij+all ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and WebStorm

@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.hidden.Teleport;
+import me.zeroeightsix.kami.module.modules.hidden.Teleport;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.Vec3d;
 
@@ -21,7 +21,7 @@ public class TeleportCommand extends Command {
     DecimalFormat df = new DecimalFormat("#.###");
 
     public TeleportCommand() {
-        super("tp", new ChunkBuilder()
+        super("teleport", new ChunkBuilder()
                 .append("x/stop", true, new ModuleParser())
                 .append("y", true)
                 .append("z", true)

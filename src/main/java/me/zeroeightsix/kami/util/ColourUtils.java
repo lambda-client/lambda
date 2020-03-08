@@ -1,12 +1,14 @@
 package me.zeroeightsix.kami.util;
 
+import net.minecraft.util.text.TextFormatting;
+
 import java.awt.*;
 import java.util.ArrayList;
 
 /**
- * Java Code to get a color name from rgb/hex value/awt color
+ * Java Code to get a colour name from rgb/hex value/awt colour
  * <p>
- * The part of looking up a color name from the rgb values is edited from
+ * The part of looking up a colour name from the rgb values is edited from
  * https://gist.github.com/nightlark/6482130#file-gistfile1-java (that has some errors) by Ryan Mast (nightlark)
  *
  * @author Xiaoxiao Li
@@ -14,7 +16,7 @@ import java.util.ArrayList;
 public class ColourUtils {
 
     /**
-     * Initialize the color list that we have.
+     * Initialize the colour list that we have.
      */
     private ArrayList<ColorName> initColorList() {
         ArrayList<ColorName> colorList = new ArrayList<ColorName>();
@@ -162,7 +164,7 @@ public class ColourUtils {
     }
 
     /**
-     * SubClass of ColorUtils. In order to lookup color name
+     * SubClass of ColorUtils. In order to lookup colour name
      *
      * @author Xiaoxiao Li
      */
@@ -171,7 +173,7 @@ public class ColourUtils {
     }
 
     /**
-     * Get the closest color name from our list
+     * Get the closest colour name from our list
      *
      * @param r
      * @param g
@@ -194,7 +196,7 @@ public class ColourUtils {
         if (closestMatch != null) {
             return closestMatch.getName();
         } else {
-            return "No matched color name.";
+            return "No matched colour name.";
         }
     }
 
@@ -294,6 +296,59 @@ public class ColourUtils {
         public final static int DARK_RED = toRGBA(64, 0, 0, 255);
         public final static int YELLOW = toRGBA(255, 255, 0, 255);
         public final static int RAINBOW = Integer.MIN_VALUE;
+    }
+
+    /**
+     * @author S-B99 28/01/20
+     * https://minecraft.gamepedia.com/Formatting_codes#Color_codes
+     * For strings please see TextFormatting.COLOUR.toString();
+     */
+    public static class ColourCodesMinecraft {
+        public final static int BLACK = toRGBA(0, 0, 0, 255);
+        public final static int DARK_BLUE = toRGBA(0, 0, 170, 255);
+        public final static int DARK_GREEN = toRGBA(0, 170, 0, 255);
+        public final static int DARK_AQUA = toRGBA(0, 170, 170, 255);
+        public final static int DARK_RED = toRGBA(170, 0, 0, 255);
+        public final static int DARK_PURPLE = toRGBA(170, 0, 170, 255);
+        public final static int GOLD = toRGBA(255, 170, 0, 255);
+        public final static int GREY = toRGBA(170, 170, 170, 255);
+        public final static int DARK_GREY = toRGBA(85, 85, 85, 255);
+        public final static int BLUE = toRGBA(85, 85, 255, 255);
+        public final static int GREEN = toRGBA(85, 255, 85, 255);
+        public final static int AQUA = toRGBA(85, 255, 255, 255);
+        public final static int RED = toRGBA(255, 85, 85, 255);
+        public final static int LIGHT_PURPLE = toRGBA(255, 85, 255, 255);
+        public final static int YELLOW = toRGBA(255, 255, 85, 255);
+        public final static int WHITE = toRGBA(255, 255, 255, 255);
+    }
+
+    /**
+     * @author S-B99 06/02/20
+     * Tool for getting Minecraft Textformatting Colors
+     */
+    public enum ColourCode {
+        BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA, DARK_RED, DARK_PURPLE, GOLD, GREY, DARK_GREY, BLUE, GREEN, AQUA, RED, LIGHT_PURPLE, YELLOW, WHITE
+    }
+    public static String getStringColour(ColourCode c) {
+        switch (c) {
+            case BLACK: return TextFormatting.BLACK.toString();
+            case DARK_BLUE: return TextFormatting.DARK_BLUE.toString();
+            case DARK_GREEN: return TextFormatting.DARK_GREEN.toString();
+            case DARK_AQUA: return TextFormatting.DARK_AQUA.toString();
+            case DARK_RED: return TextFormatting.DARK_RED.toString();
+            case DARK_PURPLE: return TextFormatting.DARK_PURPLE.toString();
+            case GOLD: return TextFormatting.GOLD.toString();
+            case GREY: return TextFormatting.GRAY.toString();
+            case DARK_GREY: return TextFormatting.DARK_GRAY.toString();
+            case BLUE: return TextFormatting.BLUE.toString();
+            case GREEN: return TextFormatting.GREEN.toString();
+            case AQUA: return TextFormatting.AQUA.toString();
+            case RED: return TextFormatting.RED.toString();
+            case LIGHT_PURPLE: return TextFormatting.LIGHT_PURPLE.toString();
+            case YELLOW: return TextFormatting.YELLOW.toString();
+            case WHITE: return TextFormatting.WHITE.toString();
+            default: return "";
+        }
     }
 
     public static final int changeAlpha(int origColor, int userInputedAlpha) {

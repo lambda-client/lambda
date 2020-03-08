@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
 import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
@@ -18,10 +17,9 @@ import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.bewwawho.gui.InfoOverlay;
-import me.zeroeightsix.kami.module.modules.bewwawho.util.CalcPing;
+import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
 import me.zeroeightsix.kami.util.ColourHolder;
-import me.zeroeightsix.kami.util.LagCompensator;
+import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.Pair;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
@@ -32,19 +30,20 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityWitherSkull;
+import net.minecraft.init.MobEffects;
 import net.minecraft.util.text.TextFormatting;
 
 import javax.annotation.Nonnull;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-//import java.lang.management.ManagementFactory;
 
 /**
  * Created by 086 on 25/06/2017.
- * Updated by S-B99 on 04/12/19
+ * Updated by S-B99 on 28/01/20
+ * @see me.zeroeightsix.kami.module.modules.gui.InventoryViewer
  */
 public class KamiGUI extends GUI {
 
@@ -52,8 +51,6 @@ public class KamiGUI extends GUI {
     public Theme theme;
 
     public static ColourHolder primaryColour = new ColourHolder(29, 29, 29);
-
-    //public static OperatingSystemMXBean bean = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 
     public KamiGUI() {
         super(new KamiTheme());
@@ -158,8 +155,8 @@ public class KamiGUI extends GUI {
         }
 
         this.addMouseListener(new MouseListener() {
-            private boolean isBetween(int min, int val, int max) {
-                return !(val > max || val < min);
+            private boolean isNotBetween(int min, int val, int max) {
+                return val > max || val < min;
             }
 
             @Override
@@ -170,94 +167,133 @@ public class KamiGUI extends GUI {
                     int[] real = GUI.calculateRealPosition(settingsPanel);
                     int pX = event.getX() - real[0];
                     int pY = event.getY() - real[1];
-                    if (!isBetween(0, pX, settingsPanel.getWidth()) || !isBetween(0, pY, settingsPanel.getHeight()))
+                    if (isNotBetween(0, pX, settingsPanel.getWidth()) || isNotBetween(0, pY, settingsPanel.getHeight()))
                         settingsPanel.setVisible(false);
                 }
             }
 
-            @Override
-            public void onMouseRelease(MouseButtonEvent event) {
+            @Override public void onMouseRelease(MouseButtonEvent event) { }
 
-            }
+            @Override public void onMouseDrag(MouseButtonEvent event) { }
 
-            @Override
-            public void onMouseDrag(MouseButtonEvent event) {
+            @Override public void onMouseMove(MouseMoveEvent event) { }
 
-            }
-
-            @Override
-            public void onMouseMove(MouseMoveEvent event) {
-
-            }
-
-            @Override
-            public void onScroll(MouseScrollEvent event) {
-
-            }
+            @Override public void onScroll(MouseScrollEvent event) { }
         });
 
         ArrayList<Frame> frames = new ArrayList<>();
 
+        /*
+         * Active modules
+         */
         Frame frame = new Frame(getTheme(), new Stretcherlayout(1), "Active modules");
         frame.setCloseable(false);
         frame.addChild(new ActiveModules());
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         frames.add(frame);
 
+        /*
+         * Testing
+         */
+        /*
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "Info2");
+        frame.setCloseable(false);
+        frame.setPinnable(true);
+//        Label information2 = new Label("");
+        EnumButton theme = new EnumButton("Theme", new String[] {"Modern", "Modern2", "Kami", "Kami Blue", "Custom"});
+        ColorizedCheckButton checkButton = new ColorizedCheckButton("Button");
+//        checkButton.addTickListener(() -> {
+//            if (checkButton.isFocused()) {
+//                Command.sendChatMessage("focused");
+//            }
+//            else if (checkButton.isHovered()) {
+//                Command.sendChatMessage("hovered");
+//            }
+//            else if (checkButton.isToggled()) {
+//                Command.sendChatMessage("toggled");
+//            }
+//        });
+
+//        information.setShadow(true);
+//        information2.addTickListener(() -> {
+//            information2.setText("");
+//            information2.addLine(KamiMod.colour + "b" + KamiMod.KAMI_KANJI + KamiMod.colour + "3 " + KamiMod.MODVER);
+//            information2.addLine(KamiMod.colour + "b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + KamiMod.colour + "3 tps");
+//            information2.addLine(KamiMod.colour + "b" + Minecraft.debugFPS + KamiMod.colour + "3 fps");
+//        });
+        frame.addChild(theme, checkButton);
+//        information2.setFontRenderer(fontRenderer);
+        frames.add(frame);
+        */
+        
+        /*
+         * Information Overlay / InfoOverlay
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info");
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            boolean privateInfoNam = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoNam.getValue());
-            boolean privateInfoTps = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoTps.getValue());
-            boolean privateInfoFps = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoFps.getValue());
-            boolean privateInfoPin = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoPin.getValue());
-            boolean privateInfoMem = (((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class)).globalInfoMem.getValue());
-            int privatePingValue = CalcPing.globalInfoPingValue();
-            String privateDisplayN = Wrapper.getMinecraft().player.getName();
-
-
-            if (KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class).isEnabled()) {
-                information.setText("");
-                information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-                if (privateInfoNam) {
-                    information.addLine("\u00A7bWelcome" + Command.SECTION_SIGN + "3 " + privateDisplayN + "!");
-                }
-                if (privateInfoTps) {
-                    information.addLine("\u00A7b" + Math.round(LagCompensator.INSTANCE.getTickRate()) + Command.SECTION_SIGN + "3 tps");
-                }
-                if (privateInfoFps) {
-                    information.addLine("\u00A7b" + Minecraft.debugFPS + Command.SECTION_SIGN + "3 fps");
-                }
-                if (privateInfoPin) {
-                    information.addLine("\u00A7b" + privatePingValue + Command.SECTION_SIGN + "3 ms");
-                }
-                if (privateInfoMem) {
-                    information.addLine("\u00A7b" + (Runtime.getRuntime().freeMemory() / 1000000) + Command.SECTION_SIGN + "3mB free");
-                }
-            } else {
-                information.setText("");
-                information.addLine("\u00A7b" + KamiMod.KAMI_KANJI + "\u00A73 " + KamiMod.MODVER);
-                information.addLine(Command.SECTION_SIGN + "EEnable InfoOverlay!");
-            }
-
-
-            //information.addLine("\u00A7b" + Runtime.getRuntime().availableProcessors() + Command.SECTION_SIGN + "3 cores");
-            //information.addLine("\u00A7b" + Wrapper.getPlayer().getDistance() + Command.SECTION_SIGN + "3 fps");
-
-            //OperatingSystemMXBean.getSystemLoadAverage() / OperatingSystemMXBean.getAvailableProcessors()
-//            information.addLine("\u00A7b" + (Wrapper.getMinecraft().getVersion()) + Command.SECTION_SIGN + "3% used");
-//            information.addLine("\u00A7b" + (Runtime.getRuntime().totalMemory() / 1000000) + Command.SECTION_SIGN + "3MB used");
-
-//            information.addLine("[&3" + Sprint.getSpeed() + "km/h&r]");
-
+            InfoOverlay info = ((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class));;
+            information.setText("");
+            info.infoContents().forEach(information::addLine);
         });
         frame.addChild(information);
         information.setFontRenderer(fontRenderer);
         frames.add(frame);
 
+        /*
+         * Inventory Viewer
+         * This method appears empty but it's used by
+         * me/zeroeightsix/kami/module/modules/gui/InventoryViewer.java
+         */
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
+        frame.setCloseable(false);
+        frame.setMinimizeable(false);
+        frame.setPinnable(true);
+        frame.setPinned(true);
+        Label inventory = new Label("");
+        inventory.setShadow(false);
+        inventory.addTickListener(() -> { // 1 == 2 px in game
+            inventory.setWidth(151);
+            inventory.setHeight(40);
+            inventory.setOpacity(0.1f); // why does this not do anything
+        });
+        frame.addChild(inventory);
+        inventory.setFontRenderer(fontRenderer);
+        frames.add(frame);
+
+        /*
+         * Friends List
+         */
+        frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
+        frame.setCloseable(false);
+        frame.setPinnable(true);
+        Label friends = new Label("");
+        friends.setShadow(true);
+        Frame friendsFrame = frame;
+
+        AtomicInteger friendsAmount = new AtomicInteger();
+        friends.addTickListener(() -> {
+            /* Don't load friends list if it's minimized */
+            if (!friendsFrame.isMinimized()) {
+                friends.setText("");
+                Friends.friends.getValue().forEach(friend -> {
+                    friendsAmount.getAndIncrement();
+                });
+            }
+            else {
+                friends.setText("");
+            }
+        });
+        frame.addChild(friends);
+        friends.setFontRenderer(fontRenderer);
+        frames.add(frame);
+
+        /*
+         * Text Radar
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Text Radar");
         Label list = new Label("");
         DecimalFormat dfHealth = new DecimalFormat("#.#");
@@ -275,10 +311,21 @@ public class KamiGUI extends GUI {
             Map<String, Integer> players = new HashMap<>();
             for (Entity e : entityList) {
                 if (e.getName().equals(mc.player.getName())) continue;
+
                 String posString = (e.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (e.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
+                String weaknessFactor;
+                String strengthFactor;
+                String extraPaddingForFactors;
+                EntityPlayer ePlayer = (EntityPlayer) e;
+
+                if (ePlayer.isPotionActive(MobEffects.WEAKNESS)) weaknessFactor = "W"; else weaknessFactor = "";
+                if (ePlayer.isPotionActive(MobEffects.STRENGTH)) strengthFactor = "S"; else strengthFactor = "";
+                if (weaknessFactor.equals("") && strengthFactor.equals("")) extraPaddingForFactors = "";
+                else extraPaddingForFactors = " ";
+
                 float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
-                healthSB.append(Command.SECTION_SIGN);
+                healthSB.append(KamiMod.colour);
                 if (hpRaw >= 20) {
                     healthSB.append("a");
                 } else if (hpRaw >= 10) {
@@ -289,7 +336,8 @@ public class KamiGUI extends GUI {
                     healthSB.append("c");
                 }
                 healthSB.append(hp);
-                players.put(ChatFormatting.GRAY + posString + " " + healthSB.toString() + " " + ChatFormatting.GRAY + e.getName(), (int) mc.player.getDistance(e));
+
+                players.put(ChatFormatting.GRAY + posString + " " + healthSB.toString() + " " + ChatFormatting.DARK_GRAY + weaknessFactor + ChatFormatting.DARK_PURPLE + strengthFactor + ChatFormatting.GRAY + extraPaddingForFactors + e.getName(), (int) mc.player.getDistance(e));
                 healthSB.setLength(0);
             }
 
@@ -301,17 +349,20 @@ public class KamiGUI extends GUI {
             players = sortByValue(players);
 
             for (Map.Entry<String, Integer> player : players.entrySet()) {
-                list.addLine(Command.SECTION_SIGN + "7" + player.getKey() + " " + Command.SECTION_SIGN + "8" + player.getValue());
+                list.addLine(KamiMod.colour + "7" + player.getKey() + " " + KamiMod.colour + "8" + player.getValue());
             }
         });
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         frame.setMinimumWidth(75);
         list.setShadow(true);
         frame.addChild(list);
         list.setFontRenderer(fontRenderer);
         frames.add(frame);
 
+        /*
+         * Entity List
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Entities");
         Label entityLabel = new Label("");
         frame.setCloseable(false);
@@ -348,14 +399,17 @@ public class KamiGUI extends GUI {
             }
         });
         frame.addChild(entityLabel);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         entityLabel.setShadow(true);
         entityLabel.setFontRenderer(fontRenderer);
         frames.add(frame);
 
+        /*
+         * Coordinates
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Coordinates");
         frame.setCloseable(false);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         Label coordsLabel = new Label("");
         coordsLabel.addTickListener(new TickListener() {
             Minecraft mc = Minecraft.getMinecraft();
@@ -373,24 +427,24 @@ public class KamiGUI extends GUI {
                 int hposZ = (int) (mc.player.posZ * f);
 
                 coordsLabel.setText(String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
                         posX,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         posY,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         posZ,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         hposX,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         posY,
-                        Command.SECTION_SIGN,
-                        Command.SECTION_SIGN,
+                        KamiMod.colour,
+                        KamiMod.colour,
                         hposZ,
-                        Command.SECTION_SIGN
+                        KamiMod.colour
                 ));
             }
         });
@@ -400,10 +454,13 @@ public class KamiGUI extends GUI {
         frame.setHeight(20);
         frames.add(frame);
 
+        /*
+         * Radar
+         */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Radar");
         frame.setCloseable(false);
         frame.setMinimizeable(true);
-        frame.setPinneable(true);
+        frame.setPinnable(true);
         frame.addChild(new Radar());
         frame.setWidth(100);
         frame.setHeight(100);
@@ -466,10 +523,7 @@ public class KamiGUI extends GUI {
         return result;
     }
 
-    @Override
-    public void destroyGUI() {
-        kill();
-    }
+    @Override public void destroyGUI() { kill(); }
 
     private static final int DOCK_OFFSET = 0;
 

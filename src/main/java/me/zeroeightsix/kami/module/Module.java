@@ -17,6 +17,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
+import static me.zeroeightsix.kami.KamiMod.GITHUB_LINK;
+
 /**
  * Created by 086 on 23/08/2017.
  * Updated by S-B99 on 15/12/19
@@ -91,6 +93,7 @@ public class Module {
         MOVEMENT("Movement", false),
         EXPERIMENTAL("Experimental", false),
         GUI("GUI", false),
+        CHAT("Chat", false),
         HIDDEN("Hidden", true);
 
         boolean hidden;
@@ -112,7 +115,7 @@ public class Module {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Info {
         String name();
-        String description() default "Descriptionless";
+        String description() default "No description for this module, please report this so it can be fixed at &b" + GITHUB_LINK;
         Module.Category category();
         boolean alwaysListening() default false;
         ShowOnArray showOnArray() default ShowOnArray.ON;
@@ -122,25 +125,21 @@ public class Module {
         return name.getValue();
     }
 
-    public String getDescription() {
-        return description;
+    public String getChatName() {
+        return "[" + name.getValue() + "] ";
     }
 
-    public Category getCategory() {
-        return category;
-    }
+    public String getDescription() { return description; }
 
-    public boolean isEnabled() {
-        return enabled.getValue();
-    }
+    public Category getCategory() { return category; }
+
+    public boolean isEnabled() { return enabled.getValue(); }
 
     protected void onEnable() {}
 
     protected void onDisable() {}
 
-    public void toggle() {
-        setEnabled(!isEnabled());
-    }
+    public void toggle() { setEnabled(!isEnabled()); }
 
     public void enable() {
         enabled.setValue(true);

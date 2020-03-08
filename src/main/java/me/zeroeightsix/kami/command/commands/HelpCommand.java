@@ -7,6 +7,8 @@ import me.zeroeightsix.kami.module.modules.ClickGUI;
 
 import java.util.Arrays;
 
+import static me.zeroeightsix.kami.KamiMod.WEBSITE_LINK;
+
 /**
  * Created by 086 on 11/11/2017.
  */
@@ -35,26 +37,33 @@ public class HelpCommand extends Command {
 
     public HelpCommand() {
         super("help", new SyntaxChunk[]{});
-        setDescription("Delivers help on certain subjects. Use &b" + Command.getCommandPrefix() + "help subjects&8 for a list.");
+        setDescription("Delivers help on certain subjects. Use &7" + Command.getCommandPrefix() + "help subjects&8 for a list.");
     }
 
     @Override
     public void call(String[] args) {
+        String commandPrefix = Command.getCommandPrefix();
         if (args[0] == null) {
             Command.sendStringChatMessage(new String[]{
-                    KamiMod.KAMI_KANJI,
                     "KAMI Blue " + KamiMod.MODVER,
-                    "commands&7 to view all available commands",
-                    "bind <module> <key>&7 to bind mods",
                     "&7Press &r" + KamiMod.MODULE_MANAGER.getModule(ClickGUI.class).getBindName() + "&7 to open GUI",
-                    "prefix <prefix>&r to change the command prefix.",
-                    "help <subjects:[subject]> &r for more help."
+                    "&7see &b" + WEBSITE_LINK + "&7 for a full version of the faq",
+                    commandPrefix + "description&7 to see the description of a module",
+                    commandPrefix + "commands&7 to view all available commands",
+                    commandPrefix + "bind <module> <key>&7 to bind mods",
+                    commandPrefix + "prefix <prefix>&r to change the command prefix.",
+                    commandPrefix + "help &7<bind|subjects:[subject]>&r for more help."
             });
         } else {
             String subject = args[0];
             if (subject.equals("subjects")) {
                 Command.sendChatMessage("Subjects: " + subjectsList);
-            } else {
+            }
+            else if (subject.equals("bind")) {
+                Command.sendChatMessage("You can also use &7.bind&r modifiers on to allow modules to be bound to keybinds with modifiers, e.g &7ctrl + shift + w or ctrl + c.&r");
+                Command.sendChatMessage("You can unbind modules with backspace in the GUI or by running &7.bind <module> none&r");
+            }
+            else {
                 Subject subject1 = Arrays.stream(subjects).filter(subject2 -> {
                     for (String name : subject2.names)
                         if (name.equalsIgnoreCase(subject))

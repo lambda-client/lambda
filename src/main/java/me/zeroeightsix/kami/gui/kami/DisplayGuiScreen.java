@@ -39,7 +39,7 @@ public class DisplayGuiScreen extends GuiScreen {
         for (Component c : gui.getChildren()) {
             if (c instanceof Frame) {
                 Frame child = (Frame) c;
-                if (child.isPinneable() && child.isVisible()) {
+                if (child.isPinnable() && child.isVisible()) {
                     child.setOpacity(.5f);
                 }
             }
@@ -52,7 +52,7 @@ public class DisplayGuiScreen extends GuiScreen {
     public void onGuiClosed() {
         KamiGUI gui = KamiMod.getInstance().getGuiManager();
 
-        gui.getChildren().stream().filter(component -> (component instanceof Frame) && (((Frame) component).isPinneable()) && component.isVisible()).forEach(component -> component.setOpacity(0f));
+        gui.getChildren().stream().filter(component -> (component instanceof Frame) && (((Frame) component).isPinnable()) && component.isVisible()).forEach(component -> component.setOpacity(0f));
     }
 
     @Override

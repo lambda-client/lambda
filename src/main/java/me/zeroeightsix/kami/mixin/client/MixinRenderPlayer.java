@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.render.Nametags;
+import me.zeroeightsix.kami.module.modules.render.Nametags;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.RenderPlayer;
 import org.spongepowered.asm.mixin.Mixin;

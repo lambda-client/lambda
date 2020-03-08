@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.module.modules.zeroeightysix.misc.FakeVanilla;
+import me.zeroeightsix.kami.module.modules.misc.FakeVanillaClient;
 import net.minecraft.network.EnumConnectionState;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.handshake.client.C00Handshake;
@@ -28,7 +28,7 @@ public class MixinC00Handshake {
 
     @Inject(method = "writePacketData", at = @At(value = "HEAD"), cancellable = true)
     public void writePacketData(PacketBuffer buf, CallbackInfo info) {
-        if (KamiMod.MODULE_MANAGER.isModuleEnabled(FakeVanilla.class)) {
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(FakeVanillaClient.class)) {
             info.cancel();
             buf.writeVarInt(protocolVersion);
             buf.writeString(ip);
