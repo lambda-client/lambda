@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class EnabledCommand extends Command {
     public EnabledCommand() {
-        super("enabledlist", null, "enabled", "enabledmodules");
+        super("enabled", null);
         setDescription("Prints Enabled Modules");
     }
 

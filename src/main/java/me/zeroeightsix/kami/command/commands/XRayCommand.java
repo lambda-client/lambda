@@ -13,7 +13,7 @@ import net.minecraft.block.Block;
  */
 public class XRayCommand extends Command {
     public XRayCommand() {
-        super("xray", new ChunkBuilder().append("help").append("+block|-block|=block").append("list|defaults|clear|invert").build(), "wallhack", "wireframe");
+        super("xray", new ChunkBuilder().append("help").append("+block|-block|=block").append("list|defaults|clear|invert").build());
         setDescription("Allows you to add or remove blocks from the &7xray &8module");
     }
 
