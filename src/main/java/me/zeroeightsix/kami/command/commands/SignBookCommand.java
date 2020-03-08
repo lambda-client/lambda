@@ -20,7 +20,7 @@ import java.util.ArrayList;
 public class SignBookCommand extends Command {
 
     public SignBookCommand() {
-        super("signbook", new ChunkBuilder().append("name").build(), "book", "sign");
+        super("signbook", new ChunkBuilder().append("name").build());
         setDescription("Colored book names. &7#n&8 for a new line and &7&&8 for colour codes");
     }
 
