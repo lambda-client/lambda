@@ -1,7 +1,7 @@
 ---
 name: Incompatibility Report
 about: Incompatible with another mod
-labels: incompatible
+labels: -incompatible
 
 ---
 

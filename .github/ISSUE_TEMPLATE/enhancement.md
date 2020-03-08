@@ -1,7 +1,7 @@
 ---
 name: Enhancement to an existing feature
 about: Suggest an idea for a feature
-labels: enhancement
+labels: enhancement/module
 
 ---
 
