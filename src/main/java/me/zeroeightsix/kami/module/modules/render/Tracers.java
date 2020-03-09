@@ -48,11 +48,13 @@ public class Tracers extends Module {
                     int colour = getColour(entity);
                     if (colour == ColourUtils.Colors.RAINBOW) {
                         if (!friends.getValue()) return;
-                        colour = cycler.current();
-                    } else {
                         if (customColours.getValue()) {
                             colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), (int) (opacity.getValue() * 255f));
+                        } else {
+                            colour = cycler.current();
                         }
+                    } else {
+                        colour = cycler.current();
                     }
                     final float r = ((colour >>> 16) & 0xFF) / 255f;
                     final float g = ((colour >>> 8) & 0xFF) / 255f;
