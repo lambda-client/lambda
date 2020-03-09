@@ -34,6 +34,7 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
@@ -44,8 +45,8 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 /**
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
- * Updated 4 March 2020 by polymer
- * Updated by S-B99 on 04/03/20
+ * Updated 8 March 2020 by polymer
+ * Updated by S-B99 on 07/03/20
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
@@ -60,6 +61,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Double> minDamage = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(30.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize manual placement").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
 
@@ -67,6 +69,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> statusMessages = register(Settings.booleanBuilder("Enable Messages").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Integer> aBlock = register(Settings.integerBuilder("Block Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
     private Setting<Integer> aTracer = register(Settings.integerBuilder("Tracer Transparency").withMinimum(0).withValue(200).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
@@ -97,9 +100,7 @@ public class CrystalAura extends Module {
     private boolean switchCoolDown = false;
     private boolean isAttacking = false;
     private int oldSlot = -1;
-    private int newSlot;
 
-    @Override
     public void onUpdate() {
         if (defaultSetting.getValue()) {
             explodeBehavior.setValue(ExplodeBehavior.ALWAYS);
@@ -149,7 +150,7 @@ public class CrystalAura extends Module {
                         isAttacking = true;
                     }
                     // search for sword and tools in hotbar
-                    newSlot = -1;
+                    int newSlot = -1;
                     for (int i = 0; i < 9; i++) {
                         ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
                         if (stack == ItemStack.EMPTY) {
@@ -294,7 +295,7 @@ public class CrystalAura extends Module {
         			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
                     double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
                     if (self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d) continue;
-                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || 6 >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() && b < 3) {
+                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || 6 >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() && b < 3 || minDamage.getValue() > 0 && minDamage.getValue() >= d && self < d) {
                   	    q = blockPos;
                   	    damage = d;
                   	    renderEnt = entity;
@@ -418,18 +419,18 @@ public class CrystalAura extends Module {
 
     public static float calculateDamage(double posX, double posY, double posZ, Entity entity) {
         float doubleExplosionSize = 6.0F * 2.0F;
-        double distancedsize = entity.getDistance(posX, posY, posZ) / (double) doubleExplosionSize;
+        double distancedSize = entity.getDistance(posX, posY, posZ) / (double) doubleExplosionSize;
         Vec3d vec3d = new Vec3d(posX, posY, posZ);
-        double blockDensity = (double) entity.world.getBlockDensity(vec3d, entity.getEntityBoundingBox());
-        double v = (1.0D - distancedsize) * blockDensity;
+        double blockDensity = entity.world.getBlockDensity(vec3d, entity.getEntityBoundingBox());
+        double v = (1.0D - distancedSize) * blockDensity;
         float damage = (float) ((int) ((v * v + v) / 2.0D * 7.0D * (double) doubleExplosionSize + 1.0D));
-        double finald = 1;
+        double finalD = 1;
         /*if (entity instanceof EntityLivingBase)
-            finald = getBlastReduction((EntityLivingBase) entity,getDamageMultiplied(damage));*/
+            finalD = getBlastReduction((EntityLivingBase) entity,getDamageMultiplied(damage));*/
         if (entity instanceof EntityLivingBase) {
-            finald = getBlastReduction((EntityLivingBase) entity, getDamageMultiplied(damage), new Explosion(mc.world, null, posX, posY, posZ, 6F, false, true));
+            finalD = getBlastReduction((EntityLivingBase) entity, getDamageMultiplied(damage), new Explosion(mc.world, null, posX, posY, posZ, 6F, false, true));
         }
-        return (float) finald;
+        return (float) finalD;
     }
 
     public static float getBlastReduction(EntityLivingBase entity, float damage, Explosion explosion) {
@@ -442,7 +443,7 @@ public class CrystalAura extends Module {
             float f = MathHelper.clamp(k, 0.0F, 20.0F);
             damage = damage * (1.0F - f / 25.0F);
 
-            if (entity.isPotionActive(Potion.getPotionById(11))) {
+            if (entity.isPotionActive(Objects.requireNonNull(Potion.getPotionById(11)))) {
                 damage = damage - (damage / 4);
             }
 
@@ -496,8 +497,12 @@ public class CrystalAura extends Module {
         }
     });
 
-    @Override
+    public void onEnable() {
+        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&aENABLED&r");
+    }
+
     public void onDisable() {
+        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&aDISABLED&r");
         render = null;
         renderEnt = null;
         resetRotation();
