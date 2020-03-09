@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
  * Created 19 November 2019 by hub
  * Updated 12 January 2020 by hub
  * Updated by S-B99 on 18/01/20
+ * Updated 19 February 2020 by aUniqueUser
  */
 @Module.Info(name = "AntiSpam", category = Module.Category.CHAT, description = "Removes spam and advertising from the chat", showOnArray = Module.ShowOnArray.OFF)
 public class AntiSpam extends Module {
@@ -28,6 +29,7 @@ public class AntiSpam extends Module {
     private Setting<Boolean> spammers = register(Settings.b("Spammers", true));
     private Setting<Boolean> insulters = register(Settings.b("Insulters", true));
     private Setting<Boolean> greeters = register(Settings.b("Greeters", true));
+    private Setting<Boolean> hypixelShills = register(Settings.b("Hypixel Shills", true));
     private Setting<Boolean> tradeChat = register(Settings.b("Trade Chat", true));
     private Setting<Boolean> ips = register(Settings.b("Server Ips", true));
     private Setting<Boolean> ipsAgr = register(Settings.b("Ips Aggressive", false));
@@ -76,77 +78,84 @@ public class AntiSpam extends Module {
 
         if (greenText.getValue() && findPatterns(FilterPatterns.GREEN_TEXT, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Green Text: " + message);
+                Command.sendChatMessage(this.getChatName() + "Green Text: " + message);
             }
             return true;
         }
 
         if (discordLinks.getValue() && findPatterns(FilterPatterns.DISCORD, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Discord Link: " + message);
+                Command.sendChatMessage(this.getChatName() + "Discord Link: " + message);
             }
             return true;
         }
 
         if (webLinks.getValue() && findPatterns(FilterPatterns.WEB_LINK, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Web Link: " + message);
+                Command.sendChatMessage(this.getChatName() + "Web Link: " + message);
             }
             return true;
         }
 
         if (ips.getValue() && findPatterns(FilterPatterns.IP_ADDR, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] IP Address: " + message);
+                Command.sendChatMessage(this.getChatName() + "IP Address: " + message);
             }
             return true;
         }
 
         if (ipsAgr.getValue() && findPatterns(FilterPatterns.IP_ADDR_AGR, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] IP Aggressive: " + message);
+                Command.sendChatMessage(this.getChatName() + "IP Aggressive: " + message);
             }
             return true;
         }
 
         if (tradeChat.getValue() && findPatterns(FilterPatterns.TRADE_CHAT, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Trade Chat: " + message);
+                Command.sendChatMessage(this.getChatName() + "Trade Chat: " + message);
             }
             return true;
         }
 
         if (numberSuffix.getValue() && findPatterns(FilterPatterns.NUMBER_SUFFIX, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Number Suffix: " + message);
+                Command.sendChatMessage(this.getChatName() + "Number Suffix: " + message);
             }
             return true;
         }
 
         if (announcers.getValue() && findPatterns(FilterPatterns.ANNOUNCER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Announcer: " + message);
+                Command.sendChatMessage(this.getChatName() + "Announcer: " + message);
             }
             return true;
         }
 
         if (spammers.getValue() && findPatterns(FilterPatterns.SPAMMER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Spammers: " + message);
+                Command.sendChatMessage(this.getChatName() + "Spammers: " + message);
             }
             return true;
         }
 
         if (insulters.getValue() && findPatterns(FilterPatterns.INSULTER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Insulter: " + message);
+                Command.sendChatMessage(this.getChatName() + "Insulter: " + message);
             }
             return true;
         }
 
         if (greeters.getValue() && findPatterns(FilterPatterns.GREETER, message)) {
             if (showBlocked.getValue()) {
-                Command.sendChatMessage("[AntiSpam] Greeter: " + message);
+                Command.sendChatMessage(this.getChatName() + "Greeter: " + message);
+            }
+            return true;
+        }
+
+        if (hypixelShills.getValue() && findPatterns(FilterPatterns.HYPIXEL_SHILLS, message)) {
+            if (showBlocked.getValue()) {
+                Command.sendChatMessage(this.getChatName() + "Hypixel Shills: ");
             }
             return true;
         }
@@ -162,7 +171,7 @@ public class AntiSpam extends Module {
             messageHistory.put(message, System.currentTimeMillis());
             if (isDuplicate) {
                 if (showBlocked.getValue()) {
-                    Command.sendChatMessage("[AntiSpam] Duplicate: " + message);
+                    Command.sendChatMessage(this.getChatName() + "Duplicate: " + message);
                 }
                 return true;
             }
@@ -294,6 +303,14 @@ public class AntiSpam extends Module {
                         "Bye, Bye .+",
                         "Farwell, .+",
                         // incomplete
+                };
+
+        private static final String[] HYPIXEL_SHILLS =
+                {
+                        "/p join",
+                        "/party join",
+                        "road to",
+                        "private games"
                 };
 
         private static final String[] DISCORD =

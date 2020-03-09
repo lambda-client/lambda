@@ -60,7 +60,7 @@ public class DiscordSettings extends Module {
         if (startTime + 10000 <= System.currentTimeMillis()) { // 10 seconds in milliseconds
             if (line1Setting.getValue().equals(LineInfo.COORDS) || line2Setting.getValue().equals(LineInfo.COORDS) || line3Setting.getValue().equals(LineInfo.COORDS) || line4Setting.getValue().equals(LineInfo.COORDS)) {
                 if (!coordsConfirm.getValue() && mc.player != null) {
-                    Command.sendWarningMessage("[DiscordRPC] Warning: In order to use the coords option please enable the coords confirmation option. This will display your coords on the discord rpc. Do NOT use this if you do not want your coords displayed");
+                    Command.sendWarningMessage(this.getChatName() + " Warning: In order to use the coords option please enable the coords confirmation option. This will display your coords on the discord rpc. Do NOT use this if you do not want your coords displayed");
                 }
             }
             startTime = System.currentTimeMillis();
