@@ -57,7 +57,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> autoSwitch = register(Settings.booleanBuilder("Auto Switch").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> place = register(Settings.booleanBuilder("Place").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> explode = register(Settings.booleanBuilder("Explode").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> swordCheck = register(Settings.booleanBuilder("No Sword Explode").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
@@ -506,6 +506,6 @@ public class CrystalAura extends Module {
     }
 
     private boolean passSwordCheck() {
-        return !(mc.player.getHeldItemMainhand().getItem() instanceof ItemSword) || !swordCheck.getValue();
+        return !(mc.player.getHeldItemMainhand().getItem() instanceof ItemTool) || !noToolExplode.getValue();
     }
 }
