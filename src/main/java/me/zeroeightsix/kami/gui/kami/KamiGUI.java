@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
 import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
@@ -271,23 +272,18 @@ public class KamiGUI extends GUI {
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
         frame.setCloseable(false);
         frame.setPinnable(true);
+        frame.setMinimizeable(true);
         Label friends = new Label("");
         friends.setShadow(true);
-        Frame friendsFrame = frame;
 
-        AtomicInteger friendsAmount = new AtomicInteger();
+        Frame finalFrame = frame;
         friends.addTickListener(() -> {
-            /* Don't load friends list if it's minimized */
-            if (!friendsFrame.isMinimized()) {
-                friends.setText("");
-                Friends.friends.getValue().forEach(friend -> {
-                    friendsAmount.getAndIncrement();
-                });
-            }
-            else {
-                friends.setText("");
+            friends.setText("");
+            if (!finalFrame.isMinimized()) {
+                Friends.friends.getValue().forEach(friend -> friends.addLine(friend.getUsername()));
             }
         });
+        
         frame.addChild(friends);
         friends.setFontRenderer(fontRenderer);
         frames.add(frame);
