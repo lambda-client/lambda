@@ -25,9 +25,9 @@ import java.util.List;
 @Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
 public class InventoryViewer extends Module {
     private Setting<Boolean> mcTexture = register(Settings.b("Use ResourcePack", false));
-    private Setting<ViewSize> viewSizeSetting = register(Settings.enumBuilder(ViewSize.class).withName("Icon Size").withValue(ViewSize.LARGE).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Boolean> showIcon = register(Settings.booleanBuilder("Show Icon").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Boolean> docking = register(Settings.booleanBuilder("Automatic Docking").withValue(true).withVisibility(v -> showIcon.getValue() && !mcTexture.getValue()).build());
+    private Setting<ViewSize> viewSizeSetting = register(Settings.enumBuilder(ViewSize.class).withName("Icon Size").withValue(ViewSize.LARGE).withVisibility(v -> showIcon.getValue() && !mcTexture.getValue()).build());
     private Setting<Boolean> coloredBackground = register(Settings.booleanBuilder("Colored Background").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).withVisibility(v -> coloredBackground.getValue() && !mcTexture.getValue()).build());
     private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> coloredBackground.getValue() && !mcTexture.getValue()).build());
