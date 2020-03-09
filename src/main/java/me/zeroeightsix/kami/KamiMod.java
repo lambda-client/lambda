@@ -64,16 +64,18 @@ public class KamiMod {
 
     static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.2-03-07-01";
+    public static final String MODVER = "v1.1.2-03-08-01";
     public static final String MODVERSMALL = "v1.1.2-beta";
     public static final String APP_ID = "638403216278683661";
 
     static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/updateChecker.json";
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/capes.json";
-    public static final String WEBSITE_LINK = "https://github.com/S-B99/KAMI";
+    public static final String GITHUB_LINK = "https://github.com/S-B99/KAMI";
+    public static final String WEBSITE_LINK = "https://blue.bella.wtf";
 
-//    public static final String KAMI_HIRAGANA = "\u304B\u307F";
+
+    //    public static final String KAMI_HIRAGANA = "\u304B\u307F";
 //    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
     public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb";
     public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";

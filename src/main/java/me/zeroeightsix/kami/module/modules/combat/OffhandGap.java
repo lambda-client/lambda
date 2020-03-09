@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
@@ -18,7 +19,7 @@ import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
  * @author polymer (main listener switch function xd)
  * @author S-B99 (made epic and smooth and cleaned up code <3) (why did i rewrite this 4 times)
  * Created by polymer on 21/02/20
- * Updated by S-B99 on 06/03/20
+ * Updated by S-B99 on 07/03/20
  */
 @Module.Info(name = "OffhandGap", category = Module.Category.COMBAT, description = "Holds a God apple when right clicking your sword!")
 public class OffhandGap extends Module {
@@ -76,15 +77,12 @@ public class OffhandGap extends Module {
 	@Override
 	public void onUpdate() {
 		if (mc.player == null) return;
+
 		/* If your health doesn't meet the cutoff then set it to true */
 		cancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
+		if (cancelled) { disableGaps(); return; }
+
 		toUseItem = Items.GOLDEN_APPLE;
-
-		if (cancelled) {
-			disableGaps();
-			return;
-		}
-
 		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
 			for (int i = 0; i < 45; i++) {
 				if (mc.player.inventory.getStackInSlot(i).getItem() == Items.GOLDEN_APPLE) {
@@ -113,6 +111,7 @@ public class OffhandGap extends Module {
 			if (item instanceof ItemFlintAndSteel) return false;
 			if (item instanceof ItemFishingRod) return false;
 			if (item instanceof ItemArmor) return false;
+			if (item instanceof ItemExpBottle) return false;
 			if (preferBlocks.getValue() && item instanceof ItemBlock) return false;
 		}
 		return true;

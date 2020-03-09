@@ -11,8 +11,8 @@ import me.zeroeightsix.kami.module.modules.chat.AutoReply;
  */
 public class AutoReplyCommand extends Command {
     public AutoReplyCommand() {
-        super("autoreply", new ChunkBuilder().append("message").append("=listener").append("-replyCommand").build(), "reply");
-        setDescription("Allows you to customize AutoReply's message setting");
+        super("autoreply", new ChunkBuilder().append("message").append("=listener").append("-replyCommand").build());
+        setDescription("Allows you to customize AutoReply's settings");
     }
 
     @Override

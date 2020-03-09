@@ -26,7 +26,7 @@ public class FriendCommand extends Command {
         super("friend", new ChunkBuilder()
                 .append("mode", true, new EnumParser(new String[]{"add", "del"}))
                 .append("name")
-                .build(), "friends", "f");
+                .build());
         setDescription("Add someone as your friend!");
     }
 

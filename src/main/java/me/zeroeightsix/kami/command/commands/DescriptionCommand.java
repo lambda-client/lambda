@@ -11,7 +11,7 @@ import me.zeroeightsix.kami.module.ModuleManager;
  */
 public class DescriptionCommand extends Command {
     public DescriptionCommand() {
-        super("description", new ChunkBuilder().append("module").build(), "tooltip");
+        super("description", new ChunkBuilder().append("module").build());
         setDescription("Prints a module's description into the chat");
     }
 
