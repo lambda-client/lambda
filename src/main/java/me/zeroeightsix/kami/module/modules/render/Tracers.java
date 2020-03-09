@@ -15,6 +15,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.opengl.GL11;
 
+import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
+
 /**
  * Created by 086 on 11/12/2017.
  */
@@ -26,7 +28,11 @@ public class Tracers extends Module {
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Double> range = register(Settings.d("Range", 200));
+    private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).build());
     private Setting<Float> opacity = register(Settings.floatBuilder("Opacity").withRange(0f, 1f).withValue(1f));
+    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
+    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
+    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
 
     HueCycler cycler = new HueCycler(3600);
 
@@ -43,6 +49,10 @@ public class Tracers extends Module {
                     if (colour == ColourUtils.Colors.RAINBOW) {
                         if (!friends.getValue()) return;
                         colour = cycler.current();
+                    } else {
+                        if (customColours.getValue()) {
+                            colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), (int) (opacity.getValue() * 255f));
+                        }
                     }
                     final float r = ((colour >>> 16) & 0xFF) / 255f;
                     final float g = ((colour >>> 8) & 0xFF) / 255f;

@@ -17,6 +17,8 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 
+import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
+
 /**
  * Updated by S-B99 on 21/02/20
  * Slight updates by 20kdc, 19/02/20
@@ -106,13 +108,8 @@ public class InventoryViewer extends Module {
         // ENABLE LOCAL CHANGES {
         GlStateManager.disableDepth();
         // }
-        if (coloredBackground.getValue()) { // 1 == 2 px in game
-            int colour = 0;
-            colour |= (r.getValue() << 16);
-            colour |= (g.getValue() << 8);
-            colour |= b.getValue();
-            colour |= (a.getValue() << 24);
-            Gui.drawRect(x, y, x + 162, y + 54, colour);
+        if (colorBackground.getValue()) { // 1 == 2 px in game
+            Gui.drawRect(x, y, x + 162, y + 54, settingsToInt(r.getValue(), g.getValue(), b.getValue(), a.getValue()));
         }
         ResourceLocation box = getBox();
         mc.renderEngine.bindTexture(box);
