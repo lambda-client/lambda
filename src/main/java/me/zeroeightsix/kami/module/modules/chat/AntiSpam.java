@@ -337,11 +337,11 @@ public class AntiSpam extends Module {
         };
 
         private static final String[] SPECIAL_BEGINNING = {
-                "^[.,/?!()\\[\\]{}<>«»⏐|\\-+=\\\\]", // the <> don't filter as the player name is removed when matching
+                "^[.,/?!()\\[\\]{}<>|\\-+=\\\\]", // the <> don't filter as the player name is removed when matching
         };
 
         private static final String[] SPECIAL_ENDING = {
-                "[/@#^()\\[\\]{}<>«»⏐|\\-+=\\\\]",
+                "[/@#^()\\[\\]{}<>|\\-+=\\\\]",
         };
 
         private static final String[] OWN_MESSAGE = {

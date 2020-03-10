@@ -107,12 +107,7 @@ public class InventoryViewer extends Module {
         GlStateManager.disableDepth();
         // }
         if (coloredBackground.getValue()) { // 1 == 2 px in game
-            int colour = 0;
-            colour |= (r.getValue() << 16);
-            colour |= (g.getValue() << 8);
-            colour |= b.getValue();
-            colour |= (a.getValue() << 24);
-            Gui.drawRect(x, y, x + 162, y + 54, colour);
+            Gui.drawRect(x, y, x + 162, y + 54, settingsToInt(r.getValue(), g.getValue(), b.getValue(), a.getValue()));
         }
         ResourceLocation box = getBox();
         mc.renderEngine.bindTexture(box);
