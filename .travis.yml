@@ -2,7 +2,8 @@ language: java
 jdk:
 - openjdk8
 before_install:
-- "./scripts/hookName.sh"
+- export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
+- "./scripts/hook.sh"
 - chmod +x gradlew
 - "./gradlew setupDecompWorkspace"
 deploy:
@@ -15,5 +16,3 @@ deploy:
   on:
     repo: S-B99/kamiblue
     tags: true
-after_success:
-- "./scripts/hookUpload.sh"
