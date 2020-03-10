@@ -16,4 +16,5 @@ deploy:
     tags: true
 after_success:
 - chmod +x scripts/hook.sh
-- "./scripts/hook.sh"
+- "./scripts/hookName.sh"
+- "./scripts/hookUpload.sh"
