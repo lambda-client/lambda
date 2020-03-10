@@ -37,12 +37,12 @@ public class HoleESP extends Module {
 
     private Setting<Double> renderDistance = register(Settings.d("Render Distance", 8.0d));
     private Setting<Integer> a0 = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).build());
-    private Setting<Integer> r1 = register(Settings.integerBuilder("Red (Obby)").withMinimum(0).withValue(208).withMaximum(255).build()); // 144
-    private Setting<Integer> g1 = register(Settings.integerBuilder("Green (Obby)").withMinimum(0).withValue(144).withMaximum(255).build());
-    private Setting<Integer> b1 = register(Settings.integerBuilder("Blue (Obby)").withMinimum(0).withValue(255).withMaximum(255).build());
-    private Setting<Integer> r2 = register(Settings.integerBuilder("Red (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).build()); // 208
-    private Setting<Integer> g2 = register(Settings.integerBuilder("Green (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).build());
-    private Setting<Integer> b2 = register(Settings.integerBuilder("Blue (Bedrock)").withMinimum(0).withValue(255).withMaximum(255).build());
+    private Setting<Integer> r1 = register(Settings.integerBuilder("Red (Obby)").withMinimum(0).withValue(208).withMaximum(255).withVisibility(v-> obbySettings()).build());
+    private Setting<Integer> g1 = register(Settings.integerBuilder("Green (Obby)").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v-> obbySettings()).build());
+    private Setting<Integer> b1 = register(Settings.integerBuilder("Blue (Obby)").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v-> obbySettings()).build());
+    private Setting<Integer> r2 = register(Settings.integerBuilder("Red (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v-> bedrockSettings()).build()); // 208
+    private Setting<Integer> g2 = register(Settings.integerBuilder("Green (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v-> bedrockSettings()).build());
+    private Setting<Integer> b2 = register(Settings.integerBuilder("Blue (Bedrock)").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v-> bedrockSettings()).build());
     private Setting<RenderMode> renderModeSetting = register(Settings.e("Render Mode", RenderMode.BLOCK));
     private Setting<RenderBlocks> renderBlocksSetting = register(Settings.e("Render", RenderBlocks.BOTH));
 
@@ -55,6 +55,15 @@ public class HoleESP extends Module {
     private enum RenderBlocks {
         OBBY, BEDROCK, BOTH
     }
+
+    private boolean obbySettings() {
+        return renderBlocksSetting.getValue().equals(RenderBlocks.OBBY) || renderBlocksSetting.getValue().equals(RenderBlocks.BOTH);
+    }
+
+    private boolean bedrockSettings() {
+        return renderBlocksSetting.getValue().equals(RenderBlocks.BEDROCK) || renderBlocksSetting.getValue().equals(RenderBlocks.BOTH);
+    }
+
 
     @Override
     public void onUpdate() {

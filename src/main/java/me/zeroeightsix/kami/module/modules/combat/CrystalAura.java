@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
+import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 
 /**
@@ -63,6 +64,7 @@ public class CrystalAura extends Module {
     private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Double> minDamage = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(30.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize manual placement").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
 
     /* Page Two */
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
@@ -107,6 +109,7 @@ public class CrystalAura extends Module {
             autoSwitch.setValue(true);
             place.setValue(false);
             explode.setValue(false);
+            tracer.setValue(true);
             antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
             range.setValue(4.0);
@@ -119,8 +122,9 @@ public class CrystalAura extends Module {
             r.setValue(155);
             g.setValue(144);
             b.setValue(255);
-            Command.sendChatMessage("[CrystalAura] Set to defaults!");
-            Command.sendChatMessage("[CrystalAura] Close and reopen the CrystalAura setting's menu to see changes");
+            defaultSetting.setValue(false);
+            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
+            Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
         }
        
         Vec3d[] holeOffset = {
@@ -352,7 +356,7 @@ public class CrystalAura extends Module {
             if (customColours.getValue()) colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), aBlock.getValue());
             KamiTessellator.drawBox(render, colour, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
-            if (renderEnt != null) {
+            if (renderEnt != null && tracer.getValue()) {
                 Vec3d p = EntityUtil.getInterpolatedRenderPos(renderEnt, mc.getRenderPartialTicks());
                 float rL = 1;
                 float gL = 1;
@@ -507,5 +511,10 @@ public class CrystalAura extends Module {
 
     private boolean passSwordCheck() {
         return !(mc.player.getHeldItemMainhand().getItem() instanceof ItemTool) || !noToolExplode.getValue();
+    }
+  
+    @Override
+    public String getHudInfo() {
+        return String.valueOf(getItems(Items.END_CRYSTAL));
     }
 }

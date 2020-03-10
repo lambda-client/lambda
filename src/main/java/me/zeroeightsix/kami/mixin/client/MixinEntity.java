@@ -33,5 +33,4 @@ public class MixinEntity {
     public boolean isSneaking(Entity entity) {
         return SafeWalk.shouldSafewalk() || Scaffold.shouldScaffold() || entity.isSneaking();
     }
-
 }

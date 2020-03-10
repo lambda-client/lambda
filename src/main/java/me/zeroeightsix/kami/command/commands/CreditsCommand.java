@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.command.Command;
 public class CreditsCommand extends Command {
 
     public CreditsCommand() {
-        super("credits", null, "creds");
+        super("credits", null);
         setDescription("Prints KAMI Blue's authors and contributors");
     }
 

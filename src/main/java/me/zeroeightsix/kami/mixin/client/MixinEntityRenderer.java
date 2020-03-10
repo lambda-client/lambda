@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.mixin.client;
 
 import com.google.common.base.Predicate;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.misc.NoEntityTrace;
+import me.zeroeightsix.kami.module.modules.player.NoEntityTrace;
 import me.zeroeightsix.kami.module.modules.render.AntiFog;
 import me.zeroeightsix.kami.module.modules.render.Brightness;
 import me.zeroeightsix.kami.module.modules.render.NoHurtCam;
