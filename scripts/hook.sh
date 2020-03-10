@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Send message with branch name 
-curl -H "Content-Type: application/json" -X POST -d '{"username": "Github Actions", "content": "**Branch:** '$BRANCH'"}' "$WEBHOOK"
+curl -H "Content-Type: application/json" -X POST -d '{"username": "KAMI Blue Releases", "content": "**Branch:** '$BRANCH'"}' "$WEBHOOK"
 
 # Upload the release file 
 BUILD_DIR="$(readlink -f ./build/libs/)"
