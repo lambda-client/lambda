@@ -64,7 +64,7 @@ public class KamiMod {
 
     static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.2-03-08-01";
+    public static final String MODVER = "v1.1.2-03-09-01";
     public static final String MODVERSMALL = "v1.1.2-beta";
     public static final String APP_ID = "638403216278683661";
 
