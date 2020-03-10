@@ -8,14 +8,6 @@
     "logoFile": "kami.png",
     "url": "https://github.com/S-B99/KAMI",
     "authorList": ["086", "S-B99"],
-    "credits": "Thank you 086 for the original KAMI\nThank you hub for your contributions\n"
-  },
-  {
-    "modid": "vocoshulkerpeek",
-    "name": "Peek Bypass for KAMI Blue",
-    "version": "1.1.2-03-09-01",
-    "mcversion": "1.12.2",
-    "logoFile": "kami.png",
-    "url": "https://github.com/S-B99/KAMI"
+    "credits": "Thank you 086 for the original KAMI\nThanks to all contributors for your help and time <3\n"
   }
 ]
