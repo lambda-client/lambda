@@ -15,5 +15,5 @@ deploy:
   on:
     repo: S-B99/kamiblue
     tags: true
-after_install:
+after_success:
 - "./scripts/hook.sh"
