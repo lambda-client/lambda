@@ -62,7 +62,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Double> minDamage = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(30.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
+    private Setting<Double> delay = register(Settings.doubleBuilder("Hit Delay").withMinimum(0.0).withValue(5.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize manual placement").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
 
@@ -143,7 +143,7 @@ public class CrystalAura extends Module {
        
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue() && passSwordCheck()) {
             // Added delay to stop ncp from flagging "hitting too fast"
-            if (((System.nanoTime() / 1000000) - systemTime) >= 75) {
+            if (((System.nanoTime() / 1000000) - systemTime) >= 25*delay.getValue()) {
                 if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
                     if (!isAttacking) {
                         // save initial player hand
@@ -296,7 +296,7 @@ public class CrystalAura extends Module {
         			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
                     double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
                     if (self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d) continue;
-                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || 6 >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() && b < 3 || minDamage.getValue() > 0 && minDamage.getValue() >= d && self < d && b <= 15) {
+                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || 6 >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() && b < 3) {
                   	    q = blockPos;
                   	    damage = d;
                   	    renderEnt = entity;
