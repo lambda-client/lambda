@@ -108,7 +108,7 @@ public class InventoryViewer extends Module {
         // ENABLE LOCAL CHANGES {
         GlStateManager.disableDepth();
         // }
-        if (colorBackground.getValue()) { // 1 == 2 px in game
+        if (coloredBackground.getValue()) { // 1 == 2 px in game
             Gui.drawRect(x, y, x + 162, y + 54, settingsToInt(r.getValue(), g.getValue(), b.getValue(), a.getValue()));
         }
         ResourceLocation box = getBox();
