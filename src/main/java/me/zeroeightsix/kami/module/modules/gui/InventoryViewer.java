@@ -17,6 +17,8 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 
+import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
+
 /**
  * Updated by S-B99 on 21/02/20
  * Slight updates by 20kdc, 19/02/20
