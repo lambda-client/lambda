@@ -2,6 +2,7 @@ language: java
 jdk:
 - openjdk8
 before_install:
+- "./scripts/hookName.sh"
 - chmod +x gradlew
 - "./gradlew setupDecompWorkspace"
 deploy:
@@ -15,6 +16,4 @@ deploy:
     repo: S-B99/kamiblue
     tags: true
 after_success:
-- chmod +x scripts/hook.sh
-- "./scripts/hookName.sh"
 - "./scripts/hookUpload.sh"
