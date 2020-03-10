@@ -22,7 +22,7 @@ public class CustomChat extends Module {
     public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ONTOP));
     private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
-    public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "customchat&r to modify this").withConsumer((old, value) -> {}).build());
+    public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("unchanged").withConsumer((old, value) -> {}).build());
 
     public enum TextMode {
         NAME, ONTOP, WEBSITE, JAPANESE, CUSTOM
@@ -73,4 +73,15 @@ public class CustomChat extends Module {
         }
     });
 
+    private static long startTime = 0;
+    @Override
+    public void onUpdate() {
+        if (startTime == 0) startTime = System.currentTimeMillis();
+        if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
+            if (textMode.getValue().equals(TextMode.CUSTOM) && customText.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
+                Command.sendWarningMessage(this.getChatName() + " Warning: In order to use the custom " + this.getName() + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it");
+            }
+            startTime = System.currentTimeMillis();
+        }
+    }
 }
