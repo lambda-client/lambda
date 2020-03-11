@@ -5,7 +5,7 @@
 ### A Minecraft utility mod for anarchy servers
 
 # 
-<a href="https://github.com/S-B99/kamiblue/releases/download/v1.1.2/KAMI-Blue-v1.1.2-release.jar">
+<a href="https://blue.bella.wtf/download">
 <img src="https://github.com/S-B99/kamiblue/blob/assets/assets/icons/download.svg" width="200"/>
 </a>
 
