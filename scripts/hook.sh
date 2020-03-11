@@ -1,5 +1,7 @@
 #!/bin/bash
 
+if [[ "$TRAVIS_PULL_REQUEST" == "true" ]]; then exit 0; else echo "">/dev/null; fi
+
 if [[ "$BRANCH" == "feature/master" ]]; then
     # Send message with branch name
     curl -H "Content-Type: application/json" -X POST -d '{"username": "KAMI Blue Releases", "content": "**Branch:** `'$BRANCH'`"}' "$WEBHOOK"
