@@ -41,7 +41,7 @@ public class AutoEZ extends Module {
 					mc.player.sendChatMessage(getText(mode.getValue()) + event.getTarget().getName());
 					return;
 				}
-				hasBeenCombat = 500;
+				hasBeenCombat = 1000;
 			}
 		}
 	});
