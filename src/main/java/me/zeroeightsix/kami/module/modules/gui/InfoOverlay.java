@@ -88,7 +88,7 @@ public class InfoOverlay extends Module {
     public ArrayList<String> infoContents() {
         ArrayList<String> infoContents = new ArrayList<>();
         if (version.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + KamiMod.KAMI_KANJI + textColour(secondColour.getValue()) + " " + KamiMod.MODVER);
+            infoContents.add(textColour(firstColour.getValue()) + KamiMod.KAMI_KANJI + textColour(secondColour.getValue()) + " " + KamiMod.MODVERSMALL);
         } if (username.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + "Welcome" + textColour(secondColour.getValue()) + " " + mc.getSession().getUsername() + "!");
         } if (time.getValue()) {
