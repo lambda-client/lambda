@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.entity.player.EntityPlayer;
@@ -17,7 +18,7 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 @Module.Info(name = "AutoEZ", category = Module.Category.COMBAT, description = "Sends an insult in chat after killing someone")
 public class AutoEZ extends Module {
 	private Setting<Mode> mode = register(Settings.e("Mode", Mode.ONTOP));
-
+	EntityPlayer focus;
 	int hasBeenCombat;
 	enum Mode {GG, ONTOP, EZD, EZ_HYPIXEL, NAENAE }
 
@@ -34,7 +35,7 @@ public class AutoEZ extends Module {
 	
 	@EventHandler public Listener<AttackEntityEvent> livingDeathEventListener = new Listener<>(event -> {
 		if (event.getTarget() instanceof EntityPlayer) {
-			EntityPlayer focus = (EntityPlayer) event.getTarget();
+			focus = (EntityPlayer) event.getTarget();
 			if (event.getEntityPlayer().getUniqueID() == mc.player.getUniqueID()) {
 				if (focus.getHealth() <= 0.0 || focus.isDead || !mc.world.playerEntities.contains(focus)) {
 					mc.player.sendChatMessage(getText(mode.getValue()) + event.getTarget().getName());
@@ -48,6 +49,12 @@ public class AutoEZ extends Module {
 	@Override
 	public void onUpdate() {
 		if (mc.player.isDead) hasBeenCombat = 0;
+		 if (this.hasBeenCombat > 0 && (this.focus.getHealth() <= 0.0f || this.focus.isDead || mc.world.playerEntities.contains(this.focus))) {
+	            if (ModuleManager.getModuleByName("AutoEZ").isEnabled()) {
+	                mc.player.sendChatMessage(getText(mode.getValue())+focus.getName());
+	            }
+	            this.hasBeenCombat = 0;
+	        }
 		--hasBeenCombat;
 	}
 }
