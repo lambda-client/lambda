@@ -184,8 +184,6 @@ public class Module {
     public void destroy() {
     }
 
-    ;
-
     protected void registerAll(Setting... settings) {
         for (Setting setting : settings) {
             register(setting);
