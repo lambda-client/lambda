@@ -423,6 +423,8 @@ public class KamiGUI extends GUI {
                 int hposX = (int) (mc.player.posX * f);
                 int hposZ = (int) (mc.player.posZ * f);
 
+                String direction = mc.player.getHorizontalFacing().toString();
+
                 coordsLabel.setText(String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
                         KamiMod.colour,
                         posX,
@@ -442,7 +444,7 @@ public class KamiGUI extends GUI {
                         KamiMod.colour,
                         hposZ,
                         KamiMod.colour
-                ));
+                ) + KamiMod.colour + "r " + direction.toUpperCase());
             }
         });
         frame.addChild(coordsLabel);
