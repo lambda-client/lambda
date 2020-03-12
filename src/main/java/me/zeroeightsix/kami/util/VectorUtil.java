@@ -15,6 +15,12 @@ public class VectorUtil {
         return new Vec3d(blockpos.x, blockpos.y, blockpos.z);
     }
     
+    public static Vec3d advanceVec(Vec3d startVec, Vec3d destinationVec, double distance) {
+        Vec3d advanceDirection = destinationVec.subtract(startVec).normalize();
+        if (destinationVec.distanceTo(startVec) < distance) return destinationVec;
+        return advanceDirection.scale(distance);
+    }
+    
     public static List<Vec3d> getVectorsInArea(Vec3d pos1, Vec3d pos2) {
         int x1 = (int) Math.round(pos1.x);
         int x2 = (int) Math.round(pos2.x);
