@@ -21,7 +21,7 @@ public class NBTCommand extends Command {
         super("nbt", new ChunkBuilder()
                 .append("action", true, new EnumParser(new String[]{"get", "copy", "wipe"}))
                 .build());
-        setDescription("Does NBT related stuff (&7get&8, &7copy&8, &7set&8)");
+        setDescription("Does NBT related stuff (&fget&7, &fcopy&7, &fset&7)");
     }
 
     Minecraft mc = Minecraft.getMinecraft();

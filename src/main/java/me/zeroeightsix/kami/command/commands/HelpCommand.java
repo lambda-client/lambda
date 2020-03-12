@@ -37,7 +37,7 @@ public class HelpCommand extends Command {
 
     public HelpCommand() {
         super("help", new SyntaxChunk[]{});
-        setDescription("Delivers help on certain subjects. Use &7" + Command.getCommandPrefix() + "help subjects&8 for a list.");
+        setDescription("Delivers help on certain subjects. Use &f" + Command.getCommandPrefix() + "help subjects&7 for a list.");
     }
 
     @Override
