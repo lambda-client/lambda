@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.experimental;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
@@ -21,7 +22,7 @@ import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPo
 /**
  * @author hub
  * @author polymer
- * Created by polymer on 12/04/20
+ * Created by polymer on 12/03/20
  */
 @Module.Info(name = "HoleFiller", category = Module.Category.EXPERIMENTAL, description="Fills holes around the player to make people easier to crystal.")
 public class HoleFiller extends Module {
