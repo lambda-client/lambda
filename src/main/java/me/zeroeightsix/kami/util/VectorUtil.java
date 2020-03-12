@@ -18,7 +18,9 @@ public class VectorUtil {
     public static Vec3d advanceVec(Vec3d startVec, Vec3d destinationVec, double distance) {
         Vec3d advanceDirection = destinationVec.subtract(startVec).normalize();
         if (destinationVec.distanceTo(startVec) < distance) return destinationVec;
-        return advanceDirection.scale(distance);
+        Vec3d vecAdvancement = advanceDirection.scale(distance);
+        Vec3d advancedVec = new Vec3d(vecAdvancement.x + startVec.x, vecAdvancement.y + startVec.y, vecAdvancement.z + startVec.z)
+        return advancedVec;
     }
     
     public static List<Vec3d> getVectorsInArea(Vec3d pos1, Vec3d pos2) {
