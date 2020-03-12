@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.launchwrapper.LogWrapper;
+import net.minecraft.network.play.client.CPacketChatMessage;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentBase;
 
@@ -57,6 +58,14 @@ public abstract class Command {
             Wrapper.getPlayer().sendMessage(new ChatMessage(message));
         } else {
             LogWrapper.info(message);
+        }
+    }
+
+    public static void sendServerMessage(String message) {
+        if (isSendable()) {
+            Wrapper.getPlayer().connection.sendPacket(new CPacketChatMessage(message));
+        } else {
+            LogWrapper.warning("Could not send server message: \"" + message + "\"");
         }
     }
 
