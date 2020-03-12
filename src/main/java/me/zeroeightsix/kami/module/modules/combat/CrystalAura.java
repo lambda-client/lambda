@@ -504,7 +504,7 @@ public class CrystalAura extends Module {
     }
 
     public void onDisable() {
-        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&aDISABLED&r");
+        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&cDISABLED&r");
         render = null;
         renderEnt = null;
         resetRotation();
