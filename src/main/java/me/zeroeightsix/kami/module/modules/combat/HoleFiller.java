@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.BlockInteractionHelper;
 import me.zeroeightsix.kami.util.Friends;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
@@ -29,14 +30,6 @@ public class HoleFiller extends Module {
     
     public boolean isHole;
     
-    Vec3d[] holeOffset = {
-        	mc.player.getPositionVector().add(1, 0, 0),
-        	mc.player.getPositionVector().add(-1, 0, 0),
-        	mc.player.getPositionVector().add(0, 0, 1),
-        	mc.player.getPositionVector().add(0, 0, -1),
-        	mc.player.getPositionVector().add(0, -1, 0)
-    };
-    
     private final BlockPos[] surroundOffset = {
             new BlockPos(0, -1, 0), // down
             new BlockPos(0, 0, -1), // north
@@ -44,29 +37,25 @@ public class HoleFiller extends Module {
             new BlockPos(0, 0, 1), // south
             new BlockPos(-1, 0, 0) // west
     };
-    
-    private boolean isInHole() {
-    	int holeBlocks = 0;
-    	for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each Vector in the list holeOffset */
-    	    BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
-    		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
-    			holeBlocks++;
-    		}
-    	}
-    	if (holeBlocks == 5) {
-    		return true;
-    	} else {
-    		return false;
-    	}
-    }
+    Vec3d[] holeOffset;
     
     @Override
     public void onUpdate() {
-        entities.addAll(mc.world.playerEntities.stream().filter(entityPlayer -> !Friends.isFriend(entityPlayer.getName())).collect(Collectors.toList()));
+       if (mc.world == null) return;
+       if (mc.player== null) return;
+       Vec3d[] holeOffset = {
+           	mc.player.getPositionVector().add(1, 0, 0),
+           	mc.player.getPositionVector().add(-1, 0, 0),
+           	mc.player.getPositionVector().add(0, 0, 1),
+           	mc.player.getPositionVector().add(0, 0, -1),
+           	mc.player.getPositionVector().add(0, -1, 0)
+       };
+       
+    	entities.addAll(mc.world.playerEntities.stream().filter(entityPlayer -> !Friends.isFriend(entityPlayer.getName())).collect(Collectors.toList()));
         int range = (int) Math.ceil(distance.getValue());
     	CrystalAura ca = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
     	blockPosList = ca.getSphere(getPlayerPos(), range, range, false, true, 0);
-    	for (BlockPos p:blockPosList) {
+    	for (BlockPos p: blockPosList) {
     		isHole = true;
     		// block gotta be air
             if (!mc.world.getBlockState(p).getBlock().equals(Blocks.AIR)) {
@@ -86,6 +75,7 @@ public class HoleFiller extends Module {
                 Block block = mc.world.getBlockState(p.add(o)).getBlock();
                 if (block != Blocks.BEDROCK && block != Blocks.OBSIDIAN && block != Blocks.ENDER_CHEST && block != Blocks.ANVIL) {
                     isHole = false;
+                    break;
                 }
             }
             if (isHole) {
@@ -99,6 +89,9 @@ public class HoleFiller extends Module {
             	}
             blocksToFill.add(p);
             }
+    	}
+    	for (BlockPos p: blocksToFill) {
+    		BlockInteractionHelper.placeBlockScaffold(p);
     	}
     }
 }
