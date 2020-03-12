@@ -58,7 +58,7 @@ public class CustomChat extends Module {
         }
     });
 
-    public boolean isCommand(String s) {
+    private boolean isCommand(String s) {
         for (String value : cmdCheck) {
             if (s.startsWith(value)) return true;
         }
