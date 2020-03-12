@@ -56,16 +56,12 @@ public abstract class Command {
         if (isSendable()) {
             Wrapper.getPlayer().sendMessage(new ChatMessage(message));
         } else {
-            LogWrapper.info("KAMI Blue: Avoided NPE by logging to file instead of chat\n" + message);
+            LogWrapper.info(message);
         }
     }
 
     public static boolean isSendable() {
-        if (Minecraft.getMinecraft().player == null) {
-            return false;
-        } else {
-            return true;
-        }
+        return Minecraft.getMinecraft().player != null;
     }
 
     protected void setDescription(String description) {
