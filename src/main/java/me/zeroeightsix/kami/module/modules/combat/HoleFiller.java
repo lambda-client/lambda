@@ -18,11 +18,18 @@ import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
 
+/**
+ * @author hub
+ * @author polymer
+ * Created by polymer on 12/04/20
+ */
 @Module.Info(name = "HoleFiller", category = Module.Category.COMBAT, description="Fills holes around the player to make people easier to crystal.")
 public class HoleFiller extends Module {
     private Setting<Float> distance = register(Settings.f("Range", 4.0f));
+    /*
     private Setting<Boolean> render = register(Settings.b("Render Filled Blocks", false));
     private Setting<Boolean> holeCheck = register(Settings.b("Only Fill in Hole", true));
+    */ /* unused */
    
     public List<BlockPos> blockPosList;
     public List<BlockPos> blocksToFill;
@@ -37,12 +44,14 @@ public class HoleFiller extends Module {
             new BlockPos(0, 0, 1), // south
             new BlockPos(-1, 0, 0) // west
     };
-    Vec3d[] holeOffset;
+
+    /* Vec3d[] holeOffset; */
     
     @Override
     public void onUpdate() {
-       if (mc.world == null) return;
-       if (mc.player== null) return;
+        /* mc.player can only be null if the world is null, so checking if the mc.player is null *should be sufficient */
+       if (mc.player == null && mc.world == null) return;
+       /*
        Vec3d[] holeOffset = {
            	mc.player.getPositionVector().add(1, 0, 0),
            	mc.player.getPositionVector().add(-1, 0, 0),
@@ -50,27 +59,27 @@ public class HoleFiller extends Module {
            	mc.player.getPositionVector().add(0, 0, -1),
            	mc.player.getPositionVector().add(0, -1, 0)
        };
-       
+       */ /* this is never used */
+
     	entities.addAll(mc.world.playerEntities.stream().filter(entityPlayer -> !Friends.isFriend(entityPlayer.getName())).collect(Collectors.toList()));
         int range = (int) Math.ceil(distance.getValue());
     	CrystalAura ca = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
     	blockPosList = ca.getSphere(getPlayerPos(), range, range, false, true, 0);
+
+    	if (blockPosList == null || blocksToFill == null) return;
     	for (BlockPos p: blockPosList) {
+    	    if (p == null) return;
+
     		isHole = true;
     		// block gotta be air
-            if (!mc.world.getBlockState(p).getBlock().equals(Blocks.AIR)) {
-                continue;
-            }
+            if (!mc.world.getBlockState(p).getBlock().equals(Blocks.AIR)) continue;
 
             // block 1 above gotta be air
-            if (!mc.world.getBlockState(p.add(0, 1, 0)).getBlock().equals(Blocks.AIR)) {
-                continue;
-            }
+            if (!mc.world.getBlockState(p.add(0, 1, 0)).getBlock().equals(Blocks.AIR)) continue;
 
             // block 2 above gotta be air
-            if (!mc.world.getBlockState(p.add(0, 2, 0)).getBlock().equals(Blocks.AIR)) {
-                continue;
-            }
+            if (!mc.world.getBlockState(p.add(0, 2, 0)).getBlock().equals(Blocks.AIR)) continue;
+
             for (BlockPos o : surroundOffset) {
                 Block block = mc.world.getBlockState(p.add(o)).getBlock();
                 if (block != Blocks.BEDROCK && block != Blocks.OBSIDIAN && block != Blocks.ENDER_CHEST && block != Blocks.ANVIL) {
@@ -78,6 +87,7 @@ public class HoleFiller extends Module {
                     break;
                 }
             }
+
             if (isHole) {
             	if (mc.player.getPositionVector().x == p.x && mc.player.getPositionVector().y == p.y && mc.player.getPositionVector().z == p.z) {
             		break;
