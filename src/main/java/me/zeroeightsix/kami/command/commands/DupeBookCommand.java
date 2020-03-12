@@ -38,7 +38,8 @@ public class DupeBookCommand extends Command {
                 pages.appendTag(new NBTTagString(joinedPages.substring(page * 210, (page + 1) * 210)));
             }
 
-            if(is.hasTagCompound()){
+            if (is.hasTagCompound()) {
+                assert is.getTagCompound() != null;
                 is.getTagCompound().setTag("pages", pages);
                 is.getTagCompound().setTag("title", new NBTTagString(""));
                 is.getTagCompound().setTag("author", new NBTTagString(Wrapper.getPlayer().getName()));
@@ -54,7 +55,7 @@ public class DupeBookCommand extends Command {
             Wrapper.getPlayer().connection.sendPacket(new CPacketCustomPayload("MC|BEdit", buf));
             Command.sendChatMessage("Dupe book generated.");
         } else {
-            Command.sendChatMessage("You must be holding a writable book.");
+            Command.sendErrorMessage("You must be holding a writable book.");
         }
     }
 }
