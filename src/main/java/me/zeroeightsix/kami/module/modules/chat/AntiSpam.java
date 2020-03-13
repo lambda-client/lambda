@@ -75,10 +75,8 @@ public class AntiSpam extends Module {
                 .collect(Collectors.toList())
                 .forEach(entry -> messageHistory.remove(entry.getKey()));
 
-        if (detectSpam(removeUsername(sPacketChat.getChatComponent().getUnformattedText()))) event.cancel();
+        if (detectSpam(sPacketChat.getChatComponent().getUnformattedText())) event.cancel();
     });
-
-    private String removeUsername(String username) { return username.replaceAll("<[^>]*> ", ""); }
 
     @Override
     public void onEnable() { messageHistory = new ConcurrentHashMap<>(); }
