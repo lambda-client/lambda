@@ -29,7 +29,7 @@ public class FancyChat extends Module {
             case UWU:
                 return "Error: UWU mode is still experimental";
             case LEET:
-                return "Error: LEET mode is still experimental";
+                return leetConverter(s);
             case MOCKING:
                 return mockingConverter(s);
             default:
@@ -44,6 +44,17 @@ public class FancyChat extends Module {
 //    private String uwuifier(String input) {
 //        input.replace("a", "b");
 //    }
+
+    private String leetConverter(String input) {
+        StringBuilder message = new StringBuilder();
+        for (int i = 0 ; i < input.length() ; i++) {
+            String inputChar = input.charAt(i) + "";
+            inputChar = inputChar.toLowerCase();
+            inputChar = leetSwitch(inputChar);
+            message.append(inputChar);
+        }
+        return message.toString();
+    }
 
     private String mockingConverter(String input) {
         StringBuilder message = new StringBuilder();
@@ -79,4 +90,25 @@ public class FancyChat extends Module {
     }
 
     private boolean isNumberEven(int i) { return (i & 1) == 0; }
+
+    private String leetSwitch(String i) {
+        switch (i) {
+            case "a":
+                return "4";
+            case "e":
+                return "3";
+            case "g":
+                return "6";
+            case "l":
+            case "i":
+                return "1";
+            case "o":
+                return "0";
+            case "s":
+                return "5";
+            case "t":
+                return "7";
+            default: return i;
+        }
+    }
 }
