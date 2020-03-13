@@ -20,17 +20,23 @@ public class AutoEZ extends Module {
 	private Setting<Mode> mode = register(Settings.e("Mode", Mode.ONTOP));
 	EntityPlayer focus;
 	int hasBeenCombat;
-	enum Mode {GG, ONTOP, EZD, EZ_HYPIXEL, NAENAE }
+
+	public enum Mode {
+		GG("gg, "),
+		ONTOP("KAMI BLUE on top! ez "),
+		EZD("You just got ez'd "),
+		EZ_HYPIXEL("E Z Win "),
+		NAENAE("You just got naenae'd by kami blue plus, ");
+
+		private String text;
+
+		Mode(String text) {
+			this.text = text;
+		}
+	}
 
 	private String getText(Mode m) {
-		switch (m) {
-			case GG: return "gg, ";
-			case ONTOP: return "KAMI BLUE on top! ez ";
-			case EZD: return "You just got ez'd ";
-			case EZ_HYPIXEL: return "E Z Win ";
-			case NAENAE: return "You just got naenae'd by kami blue plus, ";
-			default: return null;
-		}
+		return m.text;
 	}
 	
 	@EventHandler public Listener<AttackEntityEvent> livingDeathEventListener = new Listener<>(event -> {
