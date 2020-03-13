@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.experimental;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
@@ -7,9 +8,14 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
 import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockObsidian;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.play.client.CPacketHeldItemChange;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
@@ -24,16 +30,14 @@ import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPo
  * @author polymer
  * Created by polymer on 12/03/20
  */
+
 @Module.Info(name = "HoleFiller", category = Module.Category.EXPERIMENTAL, description="Fills holes around the player to make people easier to crystal.")
 public class HoleFiller extends Module {
-    private Setting<Float> distance = register(Settings.f("Range", 4.0f));
-    /*
+    private Setting<Double> distance = register(Settings.d("Range", 4.0));
     private Setting<Boolean> render = register(Settings.b("Render Filled Blocks", false));
     private Setting<Boolean> holeCheck = register(Settings.b("Only Fill in Hole", true));
-    */ /* unused */
    
     public List<BlockPos> blockPosList;
-    public List<BlockPos> blocksToFill;
     List<Entity> entities = new ArrayList<>();
     
     public boolean isHole;
@@ -45,14 +49,27 @@ public class HoleFiller extends Module {
             new BlockPos(0, 0, 1), // south
             new BlockPos(-1, 0, 0) // west
     };
-
-    /* Vec3d[] holeOffset; */
+    
+    private int findObiInHotbar() {
+        int slot = -1;
+        for (int i = 0; i < 9; ++i) {
+            ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
+            if (stack != ItemStack.EMPTY && stack.getItem() instanceof ItemBlock) {
+                Block block = ((ItemBlock) stack.getItem()).getBlock();
+                if (block instanceof BlockObsidian) {
+                    slot = i;
+                    break;
+                }
+            }
+        }
+        return slot;
+    }
     
     @Override
     public void onUpdate() {
         /* mc.player can only be null if the world is null, so checking if the mc.player is null *should be sufficient */
        if (mc.player == null && mc.world == null) return;
-       /*
+       
        Vec3d[] holeOffset = {
            	mc.player.getPositionVector().add(1, 0, 0),
            	mc.player.getPositionVector().add(-1, 0, 0),
@@ -60,14 +77,14 @@ public class HoleFiller extends Module {
            	mc.player.getPositionVector().add(0, 0, -1),
            	mc.player.getPositionVector().add(0, -1, 0)
        };
-       */ /* this is never used */
+
 
     	entities.addAll(mc.world.playerEntities.stream().filter(entityPlayer -> !Friends.isFriend(entityPlayer.getName())).collect(Collectors.toList()));
         int range = (int) Math.ceil(distance.getValue());
     	CrystalAura ca = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
     	blockPosList = ca.getSphere(getPlayerPos(), range, range, false, true, 0);
 
-    	if (blockPosList == null || blocksToFill == null) return;
+    	if (blockPosList == null) return;
     	for (BlockPos p: blockPosList) {
     	    if (p == null) return;
 
@@ -88,21 +105,39 @@ public class HoleFiller extends Module {
                     break;
                 }
             }
-
-            if (isHole) {
-            	if (mc.player.getPositionVector().x == p.x && mc.player.getPositionVector().y == p.y && mc.player.getPositionVector().z == p.z) {
-            		break;
+            
+            int h = 0;
+            if (holeCheck.getValue()) {	
+            	for (Vec3d o: holeOffset) {
+            		BlockPos q = new BlockPos (o.x, o.y, o.z);
+            		Block b = mc.world.getBlockState(q).getBlock();
+            		if (b == Blocks.OBSIDIAN || b == Blocks.BEDROCK) {
+            			h++;
+            		}	
             	}
-            	for (Entity e: entities) {
-            		if (e.getPositionVector().x-0.2 == p.x && e.getPositionVector().y == p.y && e.getPositionVector().z-0.2 == p.z) {
-                		break;
+            	if (h != 5) return;
+            }
+            
+            if (isHole) {
+            	if (mc.player.getPositionVector().squareDistanceTo(p.x, p.y, p.z) <= 1.2) {
+            		return;
+            	}
+            	for (Entity e : entities) {
+            		if (e.getPositionVector().squareDistanceTo(p.x, p.y, p.z) <= 1.2) {
+                		return;
                 	}
             	}
-            blocksToFill.add(p);
+            	int oldSlot = mc.player.inventory.currentItem;
+            	int obiSlot = -1;
+            	obiSlot = findObiInHotbar();
+            	if (obiSlot == -1) {
+            		Command.sendChatMessage("&cError: &rNo obsidian in hotbar! disabling.");
+            		this.disable();
+            	}
+                mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));
+        		BlockInteractionHelper.placeBlockScaffold(p);
+                mc.player.connection.sendPacket(new CPacketHeldItemChange(oldSlot));
             }
-    	}
-    	for (BlockPos p: blocksToFill) {
-    		BlockInteractionHelper.placeBlockScaffold(p);
     	}
     }
 }
