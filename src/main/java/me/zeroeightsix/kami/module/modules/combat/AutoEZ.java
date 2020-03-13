@@ -49,11 +49,11 @@ public class AutoEZ extends Module {
 	@Override
 	public void onUpdate() {
 		if (mc.player.isDead) hasBeenCombat = 0;
-		 if (this.hasBeenCombat > 0 && (this.focus.getHealth() <= 0.0f || this.focus.isDead || !mc.world.playerEntities.contains(this.focus))) {
+		 if (hasBeenCombat > 0 && (focus.getHealth() <= 0.0f || focus.isDead || !mc.world.playerEntities.contains(this.focus))) {
 	            if (ModuleManager.getModuleByName("AutoEZ").isEnabled()) {
 	                mc.player.sendChatMessage(getText(mode.getValue())+focus.getName());
 	            }
-	            this.hasBeenCombat = 0;
+	            hasBeenCombat = 0;
 	        }
 		--hasBeenCombat;
 	}
