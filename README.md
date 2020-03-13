@@ -11,7 +11,7 @@
 
 ***
 
-[![Dl discord](https://img.shields.io/badge/downloads-32k-brightgreen?logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
+[![Dl discord](https://img.shields.io/badge/downloads-37k-brightgreen?logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
 [![Dl Github](https://img.shields.io/github/downloads/S-B99/kamiblue/total?label=downloads&logo=github)](https://github.com/S-B99/kamiblue/releases)
 
 [![Build Status features-master](https://img.shields.io/travis/com/S-B99/kamiblue/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/kamiblue/)
