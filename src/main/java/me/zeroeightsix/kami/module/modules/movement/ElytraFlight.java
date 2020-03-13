@@ -22,18 +22,24 @@ public class ElytraFlight extends Module {
     private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility(v -> !mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeedHighway = register(Settings.floatBuilder("Fall Speed H").withValue(0.000050000002f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Boolean> overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)));
     private Setting<Float> upSpeedBoost = register(Settings.floatBuilder("Up Speed B").withValue(0.08f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
     private Setting<Float> downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
-
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
+
+        if (!overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY) && speedHighway.getValue() > 1.8f) {
+            speedHighway.setValue(1.8f);
+        }
+
         if (defaultSetting.getValue()) {
             speedHighway.setValue(1.8f);
             fallSpeed.setValue(-.003f);
             fallSpeedHighway.setValue(.000050000002f);
             upSpeedBoost.setValue(0.08f);
             downSpeedBoost.setValue(0.04f);
+            overrideMaxSpeed.setValue(false);
             defaultSetting.setValue(false);
             Command.sendChatMessage(this.getChatName() + " Set to defaults!");
             Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
