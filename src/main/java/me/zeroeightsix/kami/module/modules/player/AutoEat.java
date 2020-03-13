@@ -13,8 +13,8 @@ import net.minecraft.util.FoodStats;
 
 /**
  * Created by 086 on 8/04/2018.
- * Updated by polymer on 09/04/20
- * Updated by S-B99 on 09/04/20
+ * Updated by polymer on 09/03/20
+ * Updated by S-B99 on 09/03/20
  */
 @Module.Info(name = "AutoEat", description = "Automatically eat when hungry", category = Module.Category.PLAYER)
 public class AutoEat extends Module {

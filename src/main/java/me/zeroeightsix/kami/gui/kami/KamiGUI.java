@@ -423,7 +423,11 @@ public class KamiGUI extends GUI {
                 int hposX = (int) (mc.player.posX * f);
                 int hposZ = (int) (mc.player.posZ * f);
 
-                coordsLabel.setText(String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
+                String direction = mc.player.getHorizontalFacing().toString().substring(0, 1).toUpperCase();
+                String colouredSeparator = KamiMod.colour + "7 " + KamiMod.separator + KamiMod.colour + "r";
+
+                /* The 7 in the string formatter is the color */
+                coordsLabel.setText(direction + colouredSeparator + String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
                         KamiMod.colour,
                         posX,
                         KamiMod.colour,

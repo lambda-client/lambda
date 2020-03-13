@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.launchwrapper.LogWrapper;
+import net.minecraft.network.play.client.CPacketChatMessage;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentBase;
 
@@ -56,16 +57,20 @@ public abstract class Command {
         if (isSendable()) {
             Wrapper.getPlayer().sendMessage(new ChatMessage(message));
         } else {
-            LogWrapper.info("KAMI Blue: Avoided NPE by logging to file instead of chat\n" + message);
+            LogWrapper.info(message);
+        }
+    }
+
+    public static void sendServerMessage(String message) {
+        if (isSendable()) {
+            Wrapper.getPlayer().connection.sendPacket(new CPacketChatMessage(message));
+        } else {
+            LogWrapper.warning("Could not send server message: \"" + message + "\"");
         }
     }
 
     public static boolean isSendable() {
-        if (Minecraft.getMinecraft().player == null) {
-            return false;
-        } else {
-            return true;
-        }
+        return Minecraft.getMinecraft().player != null;
     }
 
     protected void setDescription(String description) {

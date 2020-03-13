@@ -75,10 +75,8 @@ public class AntiSpam extends Module {
                 .collect(Collectors.toList())
                 .forEach(entry -> messageHistory.remove(entry.getKey()));
 
-        if (detectSpam(removeUsername(sPacketChat.getChatComponent().getUnformattedText()))) event.cancel();
+        if (isSpam(sPacketChat.getChatComponent().getUnformattedText())) event.cancel();
     });
-
-    private String removeUsername(String username) { return username.replaceAll("<[^>]*> ", ""); }
 
     @Override
     public void onEnable() { messageHistory = new ConcurrentHashMap<>(); }
@@ -86,44 +84,52 @@ public class AntiSpam extends Module {
     @Override
     public void onDisable() { messageHistory = null; }
 
+    private boolean isSpam(String message) {
+        if (!filterOwn.getValue() && findPatterns(FilterPatterns.OWN_MESSAGE, message, false)) {
+            return false;
+        } else {
+            return detectSpam(removeUsername(message));
+        }
+    }
+
+    private String removeUsername(String username) { return username.replaceAll("<[^>]*> ", ""); }
+
     private boolean detectSpam(String message) {
-        if (!filterOwn.getValue() && findPatterns(FilterPatterns.OWN_MESSAGE, message)) return false;
+        if (wordsLongerThen.getValue() && findPatterns(FilterPatterns.LONG_WORD, message, true)) { sendResult(wordsLongerThen.getName(), message); return true; }
 
-        if (wordsLongerThen.getValue() && findPatterns(FilterPatterns.LONG_WORD, message)) return sendResult(wordsLongerThen.getName(), message);
+        if (greenText.getValue() && findPatterns(FilterPatterns.GREEN_TEXT, message, true)) { sendResult(greenText.getName(), message); return true; }
 
-        if (greenText.getValue() && findPatterns(FilterPatterns.GREEN_TEXT, message)) return sendResult(greenText.getName(), message);
+        if (specialCharBegin.getValue() && findPatterns(FilterPatterns.SPECIAL_BEGINNING, message, true)) { sendResult(specialCharBegin.getName(), message); return true; }
 
-        if (specialCharBegin.getValue() && findPatterns(FilterPatterns.SPECIAL_BEGINNING, message)) return sendResult(specialCharBegin.getName(), message);
+        if (specialCharEnding.getValue() && findPatterns(FilterPatterns.SPECIAL_ENDING, message, true)) { sendResult(specialCharEnding.getName(), message); return true; }
 
-        if (specialCharEnding.getValue() && findPatterns(FilterPatterns.SPECIAL_ENDING, message)) return sendResult(specialCharEnding.getName(), message);
+        if (ownsMeAndAll.getValue() && findPatterns(FilterPatterns.OWNS_ME_AND_ALL, message, true)) { sendResult(ownsMeAndAll.getName(), message); return true; }
 
-        if (ownsMeAndAll.getValue() && findPatterns(FilterPatterns.OWNS_ME_AND_ALL, message)) return sendResult(ownsMeAndAll.getName(), message);
+        if (iJustThanksTo.getValue() && findPatterns(FilterPatterns.I_JUST_THANKS_TO, message, true)) { sendResult(iJustThanksTo.getName(), message); return true; }
 
-        if (iJustThanksTo.getValue() && findPatterns(FilterPatterns.I_JUST_THANKS_TO, message)) return sendResult(iJustThanksTo.getName(), message);
+        if (numberSuffix.getValue() && findPatterns(FilterPatterns.NUMBER_SUFFIX, message, true)) { sendResult(numberSuffix.getName(), message); return true; }
 
-        if (numberSuffix.getValue() && findPatterns(FilterPatterns.NUMBER_SUFFIX, message)) return sendResult(numberSuffix.getName(), message);
+        if (numberPrefix.getValue() && findPatterns(FilterPatterns.NUMBER_PREFIX, message, true)) { sendResult(numberPrefix.getName(), message); return true; }
 
-        if (numberPrefix.getValue() && findPatterns(FilterPatterns.NUMBER_PREFIX, message)) return sendResult(numberPrefix.getName(), message);
+        if (discordLinks.getValue() && findPatterns(FilterPatterns.DISCORD, message, true)) { sendResult(discordLinks.getName(), message); return true; }
 
-        if (discordLinks.getValue() && findPatterns(FilterPatterns.DISCORD, message)) return sendResult(discordLinks.getName(), message);
+        if (webLinks.getValue() && findPatterns(FilterPatterns.WEB_LINK, message, true)) { sendResult(webLinks.getName(), message); return true; }
 
-        if (webLinks.getValue() && findPatterns(FilterPatterns.WEB_LINK, message)) return sendResult(webLinks.getName(), message);
+        if (ips.getValue() && findPatterns(FilterPatterns.IP_ADDR, message, true)) { sendResult(ips.getName(), message); return true; }
 
-        if (ips.getValue() && findPatterns(FilterPatterns.IP_ADDR, message)) return sendResult(ips.getName(), message);
+        if (ipsAgr.getValue() && findPatterns(FilterPatterns.IP_ADDR_AGR, message, true)) { sendResult(ipsAgr.getName(), message); return true; }
 
-        if (ipsAgr.getValue() && findPatterns(FilterPatterns.IP_ADDR_AGR, message)) return sendResult(ipsAgr.getName(), message);
+        if (announcers.getValue() && findPatterns(FilterPatterns.ANNOUNCER, message, true)) { sendResult(announcers.getName(), message); return true; }
 
-        if (announcers.getValue() && findPatterns(FilterPatterns.ANNOUNCER, message)) return sendResult(announcers.getName(), message);
+        if (spammers.getValue() && findPatterns(FilterPatterns.SPAMMER, message, true)) { sendResult(spammers.getName(), message); return true; }
 
-        if (spammers.getValue() && findPatterns(FilterPatterns.SPAMMER, message)) return sendResult(spammers.getName(), message);
+        if (insulters.getValue() && findPatterns(FilterPatterns.INSULTER, message, true)) { sendResult(insulters.getName(), message); return true; }
 
-        if (insulters.getValue() && findPatterns(FilterPatterns.INSULTER, message)) return sendResult(insulters.getName(), message);
+        if (greeters.getValue() && findPatterns(FilterPatterns.GREETER, message, true)) { sendResult(greeters.getName(), message); return true; }
 
-        if (greeters.getValue() && findPatterns(FilterPatterns.GREETER, message)) return sendResult(greeters.getName(), message);
+        if (hypixelShills.getValue() && findPatterns(FilterPatterns.HYPIXEL_SHILLS, message, true)) { sendResult(hypixelShills.getName(), message); return true; }
 
-        if (hypixelShills.getValue() && findPatterns(FilterPatterns.HYPIXEL_SHILLS, message)) return sendResult(hypixelShills.getName(), message);
-
-        if (tradeChat.getValue() && findPatterns(FilterPatterns.TRADE_CHAT, message)) return sendResult(tradeChat.getName(), message);
+        if (tradeChat.getValue() && findPatterns(FilterPatterns.TRADE_CHAT, message, true)) { sendResult(tradeChat.getName(), message); return true; }
 
         if (duplicates.getValue()) {
             if (messageHistory == null) messageHistory = new ConcurrentHashMap<>();
@@ -135,14 +141,16 @@ public class AntiSpam extends Module {
             if (isDuplicate) {
                 if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(this.getChatName() + "Duplicate: " + message);
                 else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(this.getChatName() + "Duplicate: " + message);
-                return true;
             }
         }
+
         return false;
     }
 
-    private boolean findPatterns(String[] patterns, String string) {
-        string = string.replaceAll("<[^>]*> ", ""); // remove username first
+    private boolean findPatterns(String[] patterns, String string, boolean removeUsername) {
+        if (removeUsername) {
+            string = string.replaceAll("<[^>]*> ", ""); // remove username first
+        }
         for (String pattern : patterns) {
             if (Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).matcher(string).find()) {
                 return true;
@@ -355,9 +363,8 @@ public class AntiSpam extends Module {
 //        return antiSpam.characters.getValue();
 //    }
 
-    private boolean sendResult(String name, String message) {
+    private void sendResult(String name, String message) {
         if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(this.getChatName() + name + ": " + message);
         else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(this.getChatName() + name + ": " + message);
-        return true;
     }
 }
