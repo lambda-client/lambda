@@ -363,9 +363,8 @@ public class AntiSpam extends Module {
 //        return antiSpam.characters.getValue();
 //    }
 
-    private boolean sendResult(String name, String message) {
+    private void sendResult(String name, String message) {
         if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(this.getChatName() + name + ": " + message);
         else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(this.getChatName() + name + ": " + message);
-        return true;
     }
 }
