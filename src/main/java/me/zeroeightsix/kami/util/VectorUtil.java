@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.util;
 
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.Arrays;
@@ -19,8 +20,7 @@ public class VectorUtil {
         Vec3d advanceDirection = destinationVec.subtract(startVec).normalize();
         if (destinationVec.distanceTo(startVec) < distance) return destinationVec;
         Vec3d vecAdvancement = advanceDirection.scale(distance);
-        Vec3d advancedVec = new Vec3d(vecAdvancement.x + startVec.x, vecAdvancement.y + startVec.y, vecAdvancement.z + startVec.z)
-        return advancedVec;
+        return new Vec3d(vecAdvancement.x + startVec.x, vecAdvancement.y + startVec.y, vecAdvancement.z + startVec.z);
     }
     
     public static List<Vec3d> getVectorsInArea(Vec3d pos1, Vec3d pos2) {
@@ -41,120 +41,60 @@ public class VectorUtil {
         List<Vec3d> returnVectors = Arrays.asList(intPos1, intPos2);
 
         for (int x = x1; x < x2; x++) {
-            for (int y = y1; y < y2; y++) {
-                for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                if (z1 == z2) {
-                    int z = z1;
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-            }
-            for (int y = y1; y > y2; y--) {
-                for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                if (z1 == z2) {
-                    int z = z1;
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-            }
-            if (y1 == y2) {
-                int y = y1;
-
-                for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                if (z1 == z2) {
-                    int z = z1;
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-            }
+            calcHoleAddVectors(y1, y2, z1, z2, returnVectors, x);
         }
         for (int x = x1; x > x2; x--) {
-            for (int y = y1; y < y2; y++) {
-                for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                if (z1 == z2) {
-                    int z = z1;
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-            }
-            for (int y = y1; y > y2; y--) {
-                for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                if (z1 == z2) {
-                    int z = z1;
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-            }
-            if (y1 == y2) {
-                int y = y1;
-
-                for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                if (z1 == z2) {
-                    int z = z1;
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-            }
+            calcHoleAddVectors(y1, y2, z1, z2, returnVectors, x);
         }
         if (x1 == x2) {
-            int x = x1;
 
             for (int y = y1; y < y2; y++) {
                 for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
+                    returnVectors.add(new Vec3d(x1, y, z));
                 }
                 for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
+                    returnVectors.add(new Vec3d(x1, y, z));
                 }
             }
             for (int y = y1; y > y2; y--) {
                 for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
+                    returnVectors.add(new Vec3d(x1, y, z));
                 }
                 for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
+                    returnVectors.add(new Vec3d(x1, y, z));
                 }
             }
-            if (y1 == y2) {
-                int y = y1;
-
-                for (int z = z1; z < z2; z++) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                for (int z = z1; z > z2; z--) {
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-                if (z1 == z2) {
-                    int z = z1;
-                    returnVectors.add(new Vec3d(x, y, z));
-                }
-            }
+            ifYLevelIsEqual(y1, y2, z1, z2, returnVectors, x1);
         }
 
         return returnVectors;
+    }
+
+    private static void ifYLevelIsEqual(int y1, int y2, int z1, int z2, List<Vec3d> returnVectors, int x) {
+        if (y1 == y2) {
+            checkNegAndPosZ(y1, z1, z2, returnVectors, x);
+        }
+    }
+
+    private static void checkNegAndPosZ(int y1, int z1, int z2, List<Vec3d> returnVectors, int x) {
+        for (int z = z1; z < z2; z++) {
+            returnVectors.add(new Vec3d(x, y1, z));
+        }
+        for (int z = z1; z > z2; z--) {
+            returnVectors.add(new Vec3d(x, y1, z));
+        }
+        if (z1 == z2) {
+            returnVectors.add(new Vec3d(x, y1, z1));
+        }
+    }
+
+    private static void calcHoleAddVectors(int y1, int y2, int z1, int z2, List<Vec3d> returnVectors, int x) {
+        for (int y = y1; y < y2; y++) {
+            checkNegAndPosZ(y, z1, z2, returnVectors, x);
+        }
+        for (int y = y1; y > y2; y--) {
+            checkNegAndPosZ(y, z1, z2, returnVectors, x);
+        }
+        ifYLevelIsEqual(y1, y2, z1, z2, returnVectors, x);
     }
 }
