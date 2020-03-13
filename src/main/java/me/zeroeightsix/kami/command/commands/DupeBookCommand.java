@@ -27,9 +27,9 @@ public class DupeBookCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        ItemStack is = Wrapper.getPlayer().inventory.getCurrentItem();
+        ItemStack heldItem = Wrapper.getPlayer().inventory.getCurrentItem();
 
-        if (is.getItem() instanceof ItemWritableBook) {
+        if (heldItem.getItem() instanceof ItemWritableBook) {
             IntStream characterGenerator = new Random().ints(0x80, 0x10ffff - 0x800).map(i -> i < 0xd800 ? i : i + 0x800);
             NBTTagList pages = new NBTTagList();
             String joinedPages = characterGenerator.limit(50 * 210).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
@@ -38,19 +38,19 @@ public class DupeBookCommand extends Command {
                 pages.appendTag(new NBTTagString(joinedPages.substring(page * 210, (page + 1) * 210)));
             }
 
-            if (is.hasTagCompound()) {
-                assert is.getTagCompound() != null;
-                is.getTagCompound().setTag("pages", pages);
-                is.getTagCompound().setTag("title", new NBTTagString(""));
-                is.getTagCompound().setTag("author", new NBTTagString(Wrapper.getPlayer().getName()));
+            if (heldItem.hasTagCompound()) {
+                assert heldItem.getTagCompound() != null;
+                heldItem.getTagCompound().setTag("pages", pages);
+                heldItem.getTagCompound().setTag("title", new NBTTagString(""));
+                heldItem.getTagCompound().setTag("author", new NBTTagString(Wrapper.getPlayer().getName()));
             } else {
-                is.setTagInfo("pages", pages);
-                is.setTagInfo("title", new NBTTagString(""));
-                is.setTagInfo("author", new NBTTagString(Wrapper.getPlayer().getName()));
+                heldItem.setTagInfo("pages", pages);
+                heldItem.setTagInfo("title", new NBTTagString(""));
+                heldItem.setTagInfo("author", new NBTTagString(Wrapper.getPlayer().getName()));
             }
 
             PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-            buf.writeItemStack(is);
+            buf.writeItemStack(heldItem);
 
             Wrapper.getPlayer().connection.sendPacket(new CPacketCustomPayload("MC|BEdit", buf));
             Command.sendChatMessage("Dupe book generated.");
