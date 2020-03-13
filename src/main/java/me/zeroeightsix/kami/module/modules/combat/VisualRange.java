@@ -48,7 +48,7 @@ public class VisualRange extends Module {
                     } else {
                         sendNotification(ChatFormatting.RED.toString() + playerName + ChatFormatting.RESET.toString() + " entered the Battlefield!");
                     }
-                    if (uwuAura.getValue()) Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/w "+ playerName + " hi uwu"));
+                    if (uwuAura.getValue()) Command.sendServerMessage("/w "+ playerName + " hi uwu");
 
                     return;
                 }
@@ -66,7 +66,7 @@ public class VisualRange extends Module {
                         } else {
                             sendNotification(ChatFormatting.RED.toString() + playerName + ChatFormatting.RESET.toString() + " left the Battlefield!");
                         }
-                        if (uwuAura.getValue()) Minecraft.getMinecraft().playerController.connection.sendPacket(new CPacketChatMessage("/w "+ playerName + " bye uwu"));
+                        if (uwuAura.getValue()) Command.sendServerMessage(("/w "+ playerName + " bye uwu"));
                     }
 
                     return;
@@ -84,5 +84,4 @@ public class VisualRange extends Module {
     public void onEnable() {
         this.knownPlayers = new ArrayList<>();
     }
-    
 }
