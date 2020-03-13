@@ -105,7 +105,7 @@ public class FancyChat extends Module {
             case "o":
                 return "0";
             case "s":
-                return "5";
+                return "$";
             case "t":
                 return "7";
             default: return i;
