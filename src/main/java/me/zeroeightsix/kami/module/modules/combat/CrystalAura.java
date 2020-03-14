@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.render.Tracers;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -66,6 +67,8 @@ public class CrystalAura extends Module {
     private Setting<Double> minDmg = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(32.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize manual placement").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
+    private Setting<Boolean> sneakEnable = register(Settings.b("Sneak Enables Surround", true));
+
 
     /* Page Two */
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
@@ -128,7 +131,9 @@ public class CrystalAura extends Module {
             Command.sendChatMessage(this.getChatName() + " Set to defaults!");
             Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
         }
-       
+        
+    	int holeBlocks = 0;
+        
         Vec3d[] holeOffset = {
             	mc.player.getPositionVector().add(1, 0, 0),
             	mc.player.getPositionVector().add(-1, 0, 0),
@@ -185,17 +190,16 @@ public class CrystalAura extends Module {
                 if (explodeBehavior.getValue() == ExplodeBehavior.ALWAYS) {
                 	explode(crystal);
                 }
+                for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
+            	    BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
+            		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
+            			holeBlocks++;
+            		}
+                }
                 if (explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
-                	int holeBlocks = 0;
-                	for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
-                	    BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
-                		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
-                			holeBlocks++;
-                		}
                 		if (holeBlocks == 5) {
                 			explode(crystal);
                 		}
-                	}
                 }
                 if (explodeBehavior.getValue() == ExplodeBehavior.PREVENT_SUICIDE) {
                 	if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.5 && mc.player.getPosition().getY() == crystal.getPosition().getY()|| mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3 && mc.player.getPosition().getY() == crystal.getPosition().getY()||mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 0.5 && mc.player.getPosition().getY() != crystal.getPosition().getY()) {
@@ -204,6 +208,9 @@ public class CrystalAura extends Module {
                 }
                 if (explodeBehavior.getValue() == ExplodeBehavior.LEFTCLICK_ONLY && mc.gameSettings.keyBindAttack.isKeyDown()) {
                 	explode(crystal);
+                }
+                if (sneakEnable.getValue() && mc.player.isSneaking() && holeBlocks < 5) {
+                	ModuleManager.getModuleByName("Surround").enable();
                 }
                 return;
             }
