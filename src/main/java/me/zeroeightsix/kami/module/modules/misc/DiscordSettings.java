@@ -33,8 +33,8 @@ public class DiscordSettings extends Module {
                 else if (mc.getCurrentServerData() != null) return "Multiplayer";
                 else return "Main Menu";
             case USERNAME:
-                if (mc.player != null) return mc.getSession().getUsername();
-                else return "(Not logged in)";
+                if (mc.player != null) return mc.player.getName();
+                else return mc.getSession().getUsername();
             case HEALTH:
                 if (mc.player != null) return "(" + ((int) mc.player.getHealth()) + " hp)";
                 else return "(No hp)";
