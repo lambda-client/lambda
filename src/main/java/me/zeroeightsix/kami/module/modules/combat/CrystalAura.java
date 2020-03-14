@@ -82,6 +82,7 @@ public class CrystalAura extends Module {
     private enum ExplodeBehavior {
     	HOLE_ONLY,
     	PREVENT_SUICIDE,
+    	LEFTCLICK_ONLY,
    		ALWAYS
     }
     private enum PlaceBehavior {
@@ -200,6 +201,9 @@ public class CrystalAura extends Module {
                 	if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.5 && mc.player.getPosition().getY() == crystal.getPosition().getY()|| mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3 && mc.player.getPosition().getY() == crystal.getPosition().getY()||mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 0.5 && mc.player.getPosition().getY() != crystal.getPosition().getY()) {
                 		explode(crystal);
                 	}
+                }
+                if (explodeBehavior.getValue() == ExplodeBehavior.LEFTCLICK_ONLY && mc.gameSettings.keyBindAttack.isKeyDown()) {
+                	explode(crystal);
                 }
                 return;
             }
