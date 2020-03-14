@@ -177,18 +177,12 @@ public class CrystalAura extends Module {
                 	boolean wasPlacing = place.getValue();
             		if (mc.gameSettings.keyBindUseItem.isKeyDown() && place.getValue()) {
                     	place.setValue(false);
-                    	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
-                    	mc.playerController.attackEntity(mc.player, crystal);
-                    	mc.player.swingArm(EnumHand.MAIN_HAND);
-                    	systemTime = System.nanoTime() / 1000000;
+            			explode(crystal);
             		}
                 	if (!place.getValue() && wasPlacing) place.setValue(true);
             	}
                 if (explodeBehavior.getValue() == ExplodeBehavior.ALWAYS) {
-                	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
-                	mc.playerController.attackEntity(mc.player, crystal);
-                	mc.player.swingArm(EnumHand.MAIN_HAND);
-                	systemTime = System.nanoTime() / 1000000;
+                	explode(crystal);
                 }
                 if (explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
                 	int holeBlocks = 0;
@@ -198,19 +192,13 @@ public class CrystalAura extends Module {
                 			holeBlocks++;
                 		}
                 		if (holeBlocks == 5) {
-                			lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
-                        	mc.playerController.attackEntity(mc.player, crystal);
-                        	mc.player.swingArm(EnumHand.MAIN_HAND);
-                        	systemTime = System.nanoTime() / 1000000;  
+                			explode(crystal);
                 		}
                 	}
                 }
                 if (explodeBehavior.getValue() == ExplodeBehavior.PREVENT_SUICIDE) {
                 	if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.5 && mc.player.getPosition().getY() == crystal.getPosition().getY()|| mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3 && mc.player.getPosition().getY() == crystal.getPosition().getY()||mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 0.5 && mc.player.getPosition().getY() != crystal.getPosition().getY()) {
-                		lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
-                    	mc.playerController.attackEntity(mc.player, crystal);
-                    	mc.player.swingArm(EnumHand.MAIN_HAND);
-                    	systemTime = System.nanoTime() / 1000000; 
+                		explode(crystal);
                 	}
                 }
                 return;
@@ -508,6 +496,13 @@ public class CrystalAura extends Module {
         render = null;
         renderEnt = null;
         resetRotation();
+    }
+    
+    public void explode(EntityEnderCrystal crystal) {
+    	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
+    	mc.playerController.attackEntity(mc.player, crystal);
+    	mc.player.swingArm(EnumHand.MAIN_HAND);
+    	systemTime = System.nanoTime() / 1000000; 
     }
 
     private boolean passSwordCheck() {
