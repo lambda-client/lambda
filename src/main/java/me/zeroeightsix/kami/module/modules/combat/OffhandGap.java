@@ -99,7 +99,6 @@ public class OffhandGap extends Module {
 		cancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
 		if (cancelled) { disableGaps(); return; }
 
-		Command.sendChatMessage(crystalAura.range.getValueAsString());
 		toUseItem = Items.GOLDEN_APPLE;
 		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
 			for (int i = 0; i < 45; i++) {
