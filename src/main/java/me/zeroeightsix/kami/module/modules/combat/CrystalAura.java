@@ -202,7 +202,7 @@ public class CrystalAura extends Module {
                 if (explodeBehavior.getValue() == ExplodeBehavior.LEFT_CLICK_ONLY && mc.gameSettings.keyBindAttack.isKeyDown()) {
                 	explode(crystal);
                 }
-                if (sneakEnable.getValue() && mc.player.isSneaking() && holeBlocks < 5) {
+                if (sneakEnable.getValue() && mc.player.isSneaking() && holeBlocks != 5) {
                 	ModuleManager.getModuleByName("Surround").enable();
                 }
                 return;
