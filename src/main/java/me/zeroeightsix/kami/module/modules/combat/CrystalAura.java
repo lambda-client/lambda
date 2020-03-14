@@ -52,51 +52,37 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Page> pageSetting = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());
+    private Setting<Page> p = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());
     /* Page One */
-    private Setting<ExplodeBehavior> explodeBehavior = register(Settings.enumBuilder(ExplodeBehavior.class).withName("Explode Behavior").withValue(ExplodeBehavior.ALWAYS).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<PlaceBehavior> placeBehavior = register(Settings.enumBuilder(PlaceBehavior.class).withName("Place Behavior").withValue(PlaceBehavior.TRADITIONAL).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> autoSwitch = register(Settings.booleanBuilder("Auto Switch").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> place = register(Settings.booleanBuilder("Place").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> explode = register(Settings.booleanBuilder("Explode").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Double> delay = register(Settings.doubleBuilder("Hit Delay").withMinimum(0.0).withValue(5.0).withMaximum(10.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Double> minDmg = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(32.0).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize manual placement").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
-    private Setting<Boolean> sneakEnable = register(Settings.b("Sneak Enables Surround", true));
-
-
+    private Setting<ExplodeBehavior> explodeBehavior = register(Settings.enumBuilder(ExplodeBehavior.class).withName("Explode Behavior").withValue(ExplodeBehavior.ALWAYS).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<PlaceBehavior> placeBehavior = register(Settings.enumBuilder(PlaceBehavior.class).withName("Place Behavior").withValue(PlaceBehavior.TRADITIONAL).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> autoSwitch = register(Settings.booleanBuilder("Auto Switch").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> place = register(Settings.booleanBuilder("Place").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> explode = register(Settings.booleanBuilder("Explode").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    public  Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Double> delay = register(Settings.doubleBuilder("Hit Delay").withMinimum(0.0).withValue(5.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Double> minDmg = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(32.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize Manual").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> sneakEnable = register(Settings.booleanBuilder("Sneak Surround").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     /* Page Two */
-    private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> statusMessages = register(Settings.booleanBuilder("Enable Messages").withValue(false).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> pageSetting.getValue().equals(Page.TWO)).build());
-    private Setting<Integer> aBlock = register(Settings.integerBuilder("Block Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
-    private Setting<Integer> aTracer = register(Settings.integerBuilder("Tracer Transparency").withMinimum(0).withValue(200).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
-    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
-    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
-    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> pageSetting.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> tracer = register(Settings.booleanBuilder("Tracer").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Integer> aBlock = register(Settings.integerBuilder("Block Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> aTracer = register(Settings.integerBuilder("Tracer Transparency").withMinimum(0).withValue(200).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Boolean> statusMessages = register(Settings.booleanBuilder("Status Messages").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
 
-    private enum ExplodeBehavior {
-    	HOLE_ONLY,
-    	PREVENT_SUICIDE,
-    	LEFTCLICK_ONLY,
-   		ALWAYS
-    }
-    private enum PlaceBehavior {
-    	MULTI,
-    	TRADITIONAL
-    }
-
-    private enum Page {
-        ONE,
-        TWO
-    }
+    private enum ExplodeBehavior { HOLE_ONLY, PREVENT_SUICIDE, LEFT_CLICK_ONLY, ALWAYS }
+    private enum PlaceBehavior { MULTI, TRADITIONAL }
+    private enum Page { ONE, TWO }
     
     private BlockPos render;
     private Entity renderEnt;
@@ -114,19 +100,26 @@ public class CrystalAura extends Module {
             autoSwitch.setValue(true);
             place.setValue(false);
             explode.setValue(false);
-            tracer.setValue(true);
+            noToolExplode.setValue(false);
             antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
             range.setValue(4.0);
+            delay.setValue(5.0);
+            minDmg.setValue(0.0);
+            placePriority.setValue(false);
+            sneakEnable.setValue(true);
+
             players.setValue(true);
             mobs.setValue(false);
             animals.setValue(false);
+            tracer.setValue(true);
             customColours.setValue(true);
             aBlock.setValue(44);
             aTracer.setValue(200);
             r.setValue(155);
             g.setValue(144);
             b.setValue(255);
+            statusMessages.setValue(false);
             defaultSetting.setValue(false);
             Command.sendChatMessage(this.getChatName() + " Set to defaults!");
             Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
@@ -206,7 +199,7 @@ public class CrystalAura extends Module {
                 		explode(crystal);
                 	}
                 }
-                if (explodeBehavior.getValue() == ExplodeBehavior.LEFTCLICK_ONLY && mc.gameSettings.keyBindAttack.isKeyDown()) {
+                if (explodeBehavior.getValue() == ExplodeBehavior.LEFT_CLICK_ONLY && mc.gameSettings.keyBindAttack.isKeyDown()) {
                 	explode(crystal);
                 }
                 if (sneakEnable.getValue() && mc.player.isSneaking() && holeBlocks < 5) {
