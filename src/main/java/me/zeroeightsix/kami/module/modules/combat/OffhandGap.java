@@ -8,12 +8,15 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.entity.item.EntityEnderCrystal;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.*;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+
+import java.util.Comparator;
 
 /**
  * @author polymer (main listener switch function xd)
@@ -27,6 +30,7 @@ public class OffhandGap extends Module {
 	private Setting<Boolean> eatWhileAttacking = register(Settings.b("Eat While Attacking", false));
 	private Setting<Boolean> swordOrAxeOnly = register(Settings.b("Sword or Axe Only", true));
 	private Setting<Boolean> preferBlocks = register(Settings.booleanBuilder("Prefer Placing Blocks").withValue(false).withVisibility(v -> !swordOrAxeOnly.getValue()).build());
+	private Setting<Boolean> crystalCheck = register(Settings.b("Crystal Check",false));
 //	private Setting<Mode> modeSetting = register(Settings.e("Use Mode", Mode.GAPPLE));
 
 //	private enum Mode {
@@ -70,6 +74,16 @@ public class OffhandGap extends Module {
 			/* Force disable if under health limit */
 			else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
 				disableGaps();
+			}
+			else if (crystalCheck.getValue()) {
+				EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
+		                .filter(entity -> entity instanceof EntityEnderCrystal)
+		                .map(entity -> (EntityEnderCrystal) entity)
+		                .min(Comparator.comparing(c -> mc.player.getDistance(c)))
+		                .orElse(null);
+				if (crystal.getPosition().distanceSq(mc.player.getPosition().x, mc.player.getPosition().y, mc.player.getPosition().z) <= 4) {
+					disableGaps();
+				}
 			}
 		} catch (NullPointerException ignored) { }
 	});
