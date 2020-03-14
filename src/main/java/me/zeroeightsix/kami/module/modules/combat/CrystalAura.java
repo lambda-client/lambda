@@ -144,7 +144,7 @@ public class CrystalAura extends Module {
        
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue() && passSwordCheck()) {
             // Added delay to stop ncp from flagging "hitting too fast"
-            if (((System.nanoTime() / 1000000) - systemTime) >= 25*delay.getValue()) {
+            if (((System.nanoTime() / 1000000f) - systemTime) >= 25*delay.getValue()) {
                 if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
                     if (!isAttacking) {
                         // save initial player hand
@@ -502,7 +502,7 @@ public class CrystalAura extends Module {
     	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
     	mc.playerController.attackEntity(mc.player, crystal);
     	mc.player.swingArm(EnumHand.MAIN_HAND);
-    	systemTime = System.nanoTime() / 1000000; 
+    	systemTime = System.nanoTime() / 1000000L;
     }
 
     private boolean passSwordCheck() {
