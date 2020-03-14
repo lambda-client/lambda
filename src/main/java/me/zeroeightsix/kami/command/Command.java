@@ -54,7 +54,7 @@ public abstract class Command {
     }
 
     public static void sendRawChatMessage(String message) {
-        if (isSendable()) {
+        if (Minecraft.getMinecraft().player != null) {
             Wrapper.getPlayer().sendMessage(new ChatMessage(message));
         } else {
             LogWrapper.info(message);
@@ -62,15 +62,11 @@ public abstract class Command {
     }
 
     public static void sendServerMessage(String message) {
-        if (isSendable()) {
+        if (Minecraft.getMinecraft().player != null) {
             Wrapper.getPlayer().connection.sendPacket(new CPacketChatMessage(message));
         } else {
             LogWrapper.warning("Could not send server message: \"" + message + "\"");
         }
-    }
-
-    public static boolean isSendable() {
-        return Minecraft.getMinecraft().player != null;
     }
 
     protected void setDescription(String description) {
