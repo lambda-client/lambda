@@ -184,7 +184,7 @@ public class CrystalAura extends Module {
                 	explode(crystal);
                 }
                 for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
-            	    BlockPos offset = new BlockPos(vecOffset.x,vecOffset.y, vecOffset.z);
+            	    BlockPos offset = new BlockPos(vecOffset.x, vecOffset.y, vecOffset.z);
             		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
             			holeBlocks++;
             		}

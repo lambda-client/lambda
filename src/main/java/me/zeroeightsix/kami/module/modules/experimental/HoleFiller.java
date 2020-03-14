@@ -146,7 +146,7 @@ public class HoleFiller extends Module {
                     this.disable();
                 }
                 mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));
-                lookAtPacket(p.x,p.y,p.z,mc.player);
+                lookAtPacket(p.x, p.y, p.z, mc.player);
                 BlockInteractionHelper.placeBlockScaffold(p);
                 if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
                     ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
