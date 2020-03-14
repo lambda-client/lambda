@@ -2,10 +2,12 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 
@@ -51,16 +53,23 @@ public class AutoEZ extends Module {
 			}
 		}
 	});
+
+	@EventHandler
+	public Listener<GuiScreenEvent.Displayed> listener = new Listener<>(event -> {
+		if (!(event.getScreen() instanceof GuiGameOver)) return;
+		if (mc.player.getHealth() > 0) {
+			hasBeenCombat = 0;
+		}
+	});
 	
 	@Override
 	public void onUpdate() {
-		if (mc.player.isDead) hasBeenCombat = 0;
-		 if (hasBeenCombat > 0 && (focus.getHealth() <= 0.0f || focus.isDead || !mc.world.playerEntities.contains(this.focus))) {
-	            if (ModuleManager.getModuleByName("AutoEZ").isEnabled()) {
-	                mc.player.sendChatMessage(getText(mode.getValue())+focus.getName());
-	            }
-	            hasBeenCombat = 0;
-	        }
+		if (hasBeenCombat > 0 && (focus.getHealth() <= 0.0f || focus.isDead || !mc.world.playerEntities.contains(this.focus))) {
+			if (ModuleManager.getModuleByName("AutoEZ").isEnabled()) {
+				mc.player.sendChatMessage(getText(mode.getValue())+focus.getName());
+			}
+			hasBeenCombat = 0;
+		}
 		--hasBeenCombat;
 	}
 }
