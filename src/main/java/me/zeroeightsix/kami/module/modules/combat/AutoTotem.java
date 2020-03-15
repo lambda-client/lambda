@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -15,6 +16,7 @@ import net.minecraft.item.ItemStack;
 @Module.Info(name = "AutoTotem", category = Module.Category.COMBAT, description = "Refills your offhand with totems")
 public class AutoTotem extends Module {
     private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.REPLACE_OFFHAND));
+    private Setting<Double> healthSetting = register(Settings.doubleBuilder("Max replace health").withValue(20.0).withVisibility(v -> modeSetting.getValue().equals(Mode.REPLACE_OFFHAND)));
 
     private enum Mode {
         NEITHER, REPLACE_OFFHAND, INVENTORY
@@ -26,6 +28,7 @@ public class AutoTotem extends Module {
 
     @Override
     public void onUpdate() {
+        if (!passHealthCheck()) return;
         if (!modeSetting.getValue().equals(Mode.INVENTORY) && mc.currentScreen instanceof GuiContainer)
             return; // this stops autototem from running if you're in a chest or something
         if (returnI) {
@@ -71,6 +74,13 @@ public class AutoTotem extends Module {
                 mc.playerController.windowClick(0, t < 9 ? t + 36 : t, 0, ClickType.PICKUP, mc.player);
             }
         }
+    }
+
+    private boolean passHealthCheck() {
+        if (modeSetting.getValue().equals(Mode.REPLACE_OFFHAND)) {
+            return mc.player.getHealth() + mc.player.getAbsorptionAmount() <= healthSetting.getValue();
+        }
+        return true;
     }
 
     @Override
