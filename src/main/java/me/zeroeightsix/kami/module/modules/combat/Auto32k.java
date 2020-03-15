@@ -30,7 +30,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
+import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
 /**
  * Created by hub on 7 August 2019
@@ -38,39 +38,6 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketI
  */
 @Module.Info(name = "Hidden:Auto32k", category = Module.Category.HIDDEN, description = "Places blocks to dispense a 32k")
 public class Auto32k extends Module {
-
-    private static final List<Block> blackList = Arrays.asList(
-            Blocks.ENDER_CHEST,
-            Blocks.CHEST,
-            Blocks.TRAPPED_CHEST,
-            Blocks.CRAFTING_TABLE,
-            Blocks.ANVIL,
-            Blocks.BREWING_STAND,
-            Blocks.HOPPER,
-            Blocks.DROPPER,
-            Blocks.DISPENSER,
-            Blocks.TRAPDOOR
-    );
-
-    private static final List<Block> shulkerList = Arrays.asList(
-            Blocks.WHITE_SHULKER_BOX,
-            Blocks.ORANGE_SHULKER_BOX,
-            Blocks.MAGENTA_SHULKER_BOX,
-            Blocks.LIGHT_BLUE_SHULKER_BOX,
-            Blocks.YELLOW_SHULKER_BOX,
-            Blocks.LIME_SHULKER_BOX,
-            Blocks.PINK_SHULKER_BOX,
-            Blocks.GRAY_SHULKER_BOX,
-            Blocks.SILVER_SHULKER_BOX,
-            Blocks.CYAN_SHULKER_BOX,
-            Blocks.PURPLE_SHULKER_BOX,
-            Blocks.BLUE_SHULKER_BOX,
-            Blocks.BROWN_SHULKER_BOX,
-            Blocks.GREEN_SHULKER_BOX,
-            Blocks.RED_SHULKER_BOX,
-            Blocks.BLACK_SHULKER_BOX
-    );
-
     private static final DecimalFormat df = new DecimalFormat("#.#");
 
     private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
