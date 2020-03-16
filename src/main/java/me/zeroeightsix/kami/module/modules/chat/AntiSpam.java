@@ -122,8 +122,8 @@ public class AntiSpam extends Module {
 
             messageHistory.put(message, System.currentTimeMillis());
             if (isDuplicate) {
-                if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(this.getChatName() + "Duplicate: " + message);
-                else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(this.getChatName() + "Duplicate: " + message);
+                if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(getChatName() + "Duplicate: " + message);
+                else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + "Duplicate: " + message);
             }
         }
 
@@ -364,7 +364,7 @@ public class AntiSpam extends Module {
 //    }
 
     private void sendResult(String name, String message) {
-        if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(this.getChatName() + name + ": " + message);
-        else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(this.getChatName() + name + ": " + message);
+        if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(getChatName() + name + ": " + message);
+        else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + name + ": " + message);
     }
 }

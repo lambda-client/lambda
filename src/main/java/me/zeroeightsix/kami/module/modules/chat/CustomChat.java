@@ -71,7 +71,7 @@ public class CustomChat extends Module {
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
             if (textMode.getValue().equals(TextMode.CUSTOM) && customText.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
-                Command.sendWarningMessage(this.getChatName() + " Warning: In order to use the custom " + this.getName() + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it");
+                Command.sendWarningMessage(getChatName() + " Warning: In order to use the custom " + getName() + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it");
             }
             startTime = System.currentTimeMillis();
         }

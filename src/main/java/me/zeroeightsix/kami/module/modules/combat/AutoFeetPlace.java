@@ -181,7 +181,7 @@ public class AutoFeetPlace extends Module {
         if (missingObiDisable && disableNone.getValue()) {
             missingObiDisable = false;
             if (infoMessage.getValue()) {
-                Command.sendChatMessage(this.getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+                Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
             }
             this.disable();
         }
