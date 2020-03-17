@@ -85,16 +85,15 @@ public class Module {
     }
 
     public enum Category {
+        CHAT("Chat", false),
         COMBAT("Combat", false),
-        EXPLOITS("Exploits", false),
-        RENDER("Render", false),
-        MISC("Misc", false),
-        PLAYER("Player", false),
-        MOVEMENT("Movement", false),
         EXPERIMENTAL("Experimental", false),
         GUI("GUI", false),
-        CHAT("Chat", false),
-        HIDDEN("Hidden", true);
+        HIDDEN("Hidden", true),
+        MISC("Misc", false),
+        MOVEMENT("Movement", false),
+        PLAYER("Player", false),
+        RENDER("Render", false);
 
         boolean hidden;
         String name;
