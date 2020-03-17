@@ -1,31 +1,4 @@
-// make folders
-
-task mkdir {
-    group = "kami"
-    doLast {
-        mkdir System.getProperty("user.home") + "/.minecraft/mods/1.12.2/"
-    }
-}
-
-// delete old versions
-
-task rmOld(type: Delete) {
-    group = "kami"
-    delete fileTree(System.getProperty("user.home") + "/.minecraft/mods/1.12.2/").matching {
-        include "k*-release.jar"
-    }
-}
-
-// copy file
-
-task copy(type: Copy) {
-    group = "kami"
-    from file("build/libs/")
-    include 'k*-release.jar'
-    into file(System.getProperty("user.home") + "/.minecraft/mods/1.12.2/")
-}
-
-// forge's stuff 
+// forge's stuff
 
 buildscript {
     repositories {

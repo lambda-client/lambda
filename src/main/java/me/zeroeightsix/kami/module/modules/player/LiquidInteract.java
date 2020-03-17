@@ -7,6 +7,6 @@ import me.zeroeightsix.kami.module.Module;
  * @see me.zeroeightsix.kami.mixin.client.MixinBlockLiquid
  * Thanks to THEREALWWEFAN231 for the Mixin
  */
-@Module.Info(name = "LiquidInteract", category = Module.Category.PLAYER, description = "Makes liquid interaction like blocks")
+@Module.Info(name = "LiquidInteract", category = Module.Category.PLAYER, description = "Place blocks on liquid!")
 public class LiquidInteract extends Module {
 }
