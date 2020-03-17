@@ -13,16 +13,12 @@ import net.minecraft.entity.Entity;
  */
 @Module.Info(name = "AntiFriendHit", description = "Don't hit your friends", category = Module.Category.COMBAT, alwaysListening = true)
 public class AntiFriendHit extends Module {
-
-
     @EventHandler
     Listener<ClientPlayerAttackEvent> listener = new Listener<>(event -> {
-        if (!this.isEnabled()) return;
+        if (isDisabled()) return;
         Entity e = mc.objectMouseOver.entityHit;
         if (e instanceof EntityOtherPlayerMP && Friends.isFriend(e.getName())) {
             event.cancel();
         }
     });
-
-
 }

@@ -123,7 +123,7 @@ public class AutoTrap extends Module {
                 if (infoMessage.getValue()) {
                     Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
                 }
-                this.disable();
+                disable();
                 return;
             }
         } else {
@@ -191,7 +191,7 @@ public class AutoTrap extends Module {
             if (infoMessage.getValue()) {
                 Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
             }
-            this.disable();
+            disable();
         }
     }
 
