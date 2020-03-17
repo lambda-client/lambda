@@ -121,8 +121,8 @@ public class CrystalAura extends Module {
             b.setValue(255);
             statusMessages.setValue(false);
             defaultSetting.setValue(false);
-            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
-            Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
+            Command.sendChatMessage(getChatName() + " Set to defaults!");
+            Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
         }
         
     	int holeBlocks = 0;

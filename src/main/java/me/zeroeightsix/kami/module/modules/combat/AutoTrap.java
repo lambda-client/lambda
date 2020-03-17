@@ -121,7 +121,7 @@ public class AutoTrap extends Module {
         if (firstRun) {
             if (findObiInHotbar() == -1) {
                 if (infoMessage.getValue()) {
-                    Command.sendChatMessage(this.getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+                    Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
                 }
                 this.disable();
                 return;
@@ -189,7 +189,7 @@ public class AutoTrap extends Module {
         if (missingObiDisable) {
             missingObiDisable = false;
             if (infoMessage.getValue()) {
-                Command.sendChatMessage(this.getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+                Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
             }
             this.disable();
         }

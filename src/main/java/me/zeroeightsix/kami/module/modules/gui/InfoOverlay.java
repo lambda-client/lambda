@@ -98,7 +98,7 @@ public class InfoOverlay extends Module {
         } if (fps.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + Minecraft.debugFPS + textColour(secondColour.getValue()) + " fps");
         } if (speed.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.speed() + textColour(secondColour.getValue()) + " " + unitType(speedUnit.getValue()));
+            infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.speed(useUnitKmH()) + textColour(secondColour.getValue()) + " " + unitType(speedUnit.getValue()));
         } if (timerSpeed.getValue()) {
             infoContents.add(textColour(firstColour.getValue()) + formatTimerSpeed() + textColour(secondColour.getValue()) + "t");
         } if (ping.getValue()) {

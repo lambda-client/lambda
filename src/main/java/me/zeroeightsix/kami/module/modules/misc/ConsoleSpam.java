@@ -20,8 +20,8 @@ public class ConsoleSpam extends Module {
 
     @Override
     public void onEnable() {
-        Command.sendChatMessage(this.getChatName() + " Every time you right click a sign, a warning will appear in console.");
-        Command.sendChatMessage(this.getChatName() + " Use an autoclicker to automate this process.");
+        Command.sendChatMessage(getChatName() + " Every time you right click a sign, a warning will appear in console.");
+        Command.sendChatMessage(getChatName() + " Use an autoclicker to automate this process.");
     }
 
     @EventHandler
