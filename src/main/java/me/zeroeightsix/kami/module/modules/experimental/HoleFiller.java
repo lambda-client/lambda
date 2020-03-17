@@ -17,6 +17,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockObsidian;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -44,6 +45,7 @@ public class HoleFiller extends Module {
     private Setting<Double> distance = register(Settings.d("Range", 4.0));
     private Setting<Boolean> render = register(Settings.b("Render Filled Blocks", false));
     private Setting<Boolean> holeCheck = register(Settings.b("Only Fill in Hole", true));
+    private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", false));
 
     public List<BlockPos> blockPosList;
     List<Entity> entities = new ArrayList<>();
@@ -79,7 +81,7 @@ public class HoleFiller extends Module {
     @Override
     public void onUpdate() {
         /* mc.player can only be null if the world is null, so checking if the mc.player is null *should be sufficient */
-        if (mc.player == null && mc.world == null) return;
+        if (mc.player == null || mc.world == null) return;
 
         Vec3d[] holeOffset = {
             mc.player.getPositionVector().add(1, 0, 0),
@@ -94,6 +96,16 @@ public class HoleFiller extends Module {
         int range = (int) Math.ceil(distance.getValue());
         CrystalAura ca = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
         blockPosList = ca.getSphere(getPlayerPos(), range, range, false, true, 0);
+        for (Entity p : entities) {
+            List<BlockPos> maybe = ca.getSphere(p.getPosition(), range, range, false, true, 0);
+            for (BlockPos pos : maybe) {
+                if (ignoreWalls.getValue()) {
+                    blockPosList.add(pos);
+                } else if (mc.world.rayTraceBlocks(new Vec3d(mc.player.getPosition().x, mc.player.getPosition().y + p.getEyeHeight(), mc.player.getPosition().z), new Vec3d(pos.x, pos.y + (double)p.getEyeHeight(), pos.z), false, true, false) != null) {
+                    blockPosList.add(pos);
+                }
+            }
+        }
 
         if (blockPosList == null) return;
         for (BlockPos p: blockPosList) {
