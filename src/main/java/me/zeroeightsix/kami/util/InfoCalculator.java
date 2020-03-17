@@ -1,15 +1,10 @@
 package me.zeroeightsix.kami.util;
 
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
 import net.minecraft.item.ItemStack;
-import net.minecraft.launchwrapper.LogWrapper;
 import net.minecraft.util.math.MathHelper;
 
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * @author S-B99
@@ -49,16 +44,11 @@ public class InfoCalculator extends Module {
 
     /* Speed */
     private static DecimalFormat formatter = new DecimalFormat("#.#");
-    private static InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
-
-    public static String speed() {
+    public static String speed(boolean useUnitKmH) {
         float currentTps = mc.timer.tickLength / 1000.0f;
-        if (info.useUnitKmH()) {
-            return formatter.format(((MathHelper.sqrt(Math.pow(coordsDiff("x"), 2) + Math.pow(coordsDiff("y"), 2)) / currentTps)) * 3.6); // convert mps to kmh
-        }
-        else {
-            return formatter.format((MathHelper.sqrt(Math.pow(coordsDiff("x"), 2) + Math.pow(coordsDiff("y"), 2)) / currentTps));
-        }
+        double multiply = 1.0;
+        if (useUnitKmH) multiply = 3.6; // convert mps to kmh
+        return formatter.format(((MathHelper.sqrt(Math.pow(coordsDiff("x"), 2) + Math.pow(coordsDiff("z"), 2)) / currentTps)) * multiply);
     }
 
     private static double coordsDiff(String s) {
