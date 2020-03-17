@@ -12,8 +12,20 @@ public class VectorUtil {
         return new BlockPos(vec.x, vec.y, vec.z);
     }
 
+    public static List<BlockPos> Vec3dToBlockPos(List<Vec3d> vecList) {
+        List<BlockPos> returnList = null;
+        for (Vec3d v : vecList) returnList.add(new BlockPos(v.x, v.y, v.z));
+        return returnList;
+    }
+
     public static Vec3d BlockPosToVec3d(BlockPos blockpos) {
         return new Vec3d(blockpos.x, blockpos.y, blockpos.z);
+    }
+
+    public static List<Vec3d> BlockPosToVec3d(List<BlockPos> blockposList) {
+        List<Vec3d> returnList = null;
+        for (BlockPos v : blockposList) returnList.add(new Vec3d(v.x, v.y, v.z));
+        return returnList;
     }
     
     public static Vec3d advanceVec(Vec3d startVec, Vec3d destinationVec, double distance) {
