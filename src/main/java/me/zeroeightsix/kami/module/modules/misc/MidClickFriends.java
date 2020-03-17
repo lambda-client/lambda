@@ -22,7 +22,7 @@ public class MidClickFriends extends Module {
     private int delay = 0;
 
     @Override
-    public void onUpdate(){
+    public void onUpdate() {
         if (delay > 0) {
             delay--;
         }
@@ -31,7 +31,7 @@ public class MidClickFriends extends Module {
     @EventHandler
     public Listener<InputEvent.MouseInputEvent> mouseListener = new Listener<>(event -> {
         if (delay == 0) {
-            if(Mouse.getEventButton() == 2) { // 0 is left, 1 is right, 2 is middle
+            if (Mouse.getEventButton() == 2) { // 0 is left, 1 is right, 2 is middle
                 if (Minecraft.getMinecraft().objectMouseOver.typeOfHit.equals(RayTraceResult.Type.ENTITY)) {
                     Entity lookedAtEntity = Minecraft.getMinecraft().objectMouseOver.entityHit;
                     if (!(lookedAtEntity instanceof EntityOtherPlayerMP)) {
@@ -47,14 +47,14 @@ public class MidClickFriends extends Module {
         }
     });
 
-    private void remove(String name){
+    private void remove(String name) {
         delay = 20;
         Friends.Friend friend = Friends.friends.getValue().stream().filter(friend1 -> friend1.getUsername().equalsIgnoreCase(name)).findFirst().get();
         Friends.friends.getValue().remove(friend);
         Command.sendChatMessage("&b" + friend.getUsername() + "&r has been unfriended.");
     }
 
-    private void add(String name){
+    private void add(String name) {
         delay = 20;
         new Thread(() -> {
             Friends.Friend f = new FriendCommand().getFriendByName(name);

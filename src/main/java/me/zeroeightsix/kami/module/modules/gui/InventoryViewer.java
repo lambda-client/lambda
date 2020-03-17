@@ -165,5 +165,5 @@ public class InventoryViewer extends Module {
     }
 
     @Override
-    public void onDisable() { this.enable(); }
+    public void onDisable() { enable(); }
 }

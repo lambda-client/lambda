@@ -136,7 +136,7 @@ public class AutoSpawner extends Module {
 
     @Override
     protected void onEnable() {
-        if (mc.player == null) { this.disable(); return; }
+        if (mc.player == null) { disable(); return; }
 
         buildStage = 1;
         delayStep = 1;
@@ -387,7 +387,7 @@ public class AutoSpawner extends Module {
                     if (debug.getValue()) {
                         Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
                     }
-                    this.disable();
+                    disable();
                 }
                 return;
             }
@@ -410,7 +410,7 @@ public class AutoSpawner extends Module {
                     if (debug.getValue()) {
                         Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Position not valid, disabling.");
                     }
-                    this.disable();
+                    disable();
                 }
                 return;
             }
@@ -457,7 +457,7 @@ public class AutoSpawner extends Module {
                 isSneaking = false;
             }
 
-            if (useMode.getValue().equals(UseMode.SINGLE)) this.disable();
+            if (useMode.getValue().equals(UseMode.SINGLE)) disable();
 
             buildStage = 3;
         } else if (buildStage == 3) {

@@ -26,7 +26,7 @@ public class ChatTimestamp extends Module {
 
     @EventHandler
     public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
-        if (mc.player == null || this.isDisabled()) return;
+        if (mc.player == null || isDisabled()) return;
 
         if (!(event.getPacket() instanceof SPacketChat)) return;
         SPacketChat sPacketChat = (SPacketChat) event.getPacket();

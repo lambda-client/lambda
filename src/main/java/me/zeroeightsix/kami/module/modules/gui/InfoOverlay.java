@@ -119,5 +119,5 @@ public class InfoOverlay extends Module {
         return infoContents;
     }
 
-    public void onDisable() { this.enable(); }
+    public void onDisable() { enable(); }
 }

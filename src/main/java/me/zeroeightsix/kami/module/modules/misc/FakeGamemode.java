@@ -24,7 +24,7 @@ public class FakeGamemode extends Module {
             if (mc.player.dimension == 1) {
                 if (disable2b.getValue()) {
                     Command.sendWarningMessage(getChatName() + " Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
-                    this.disable();
+                    disable();
                 }
             }
             return;
@@ -44,7 +44,7 @@ public class FakeGamemode extends Module {
     }
 
     public void onEnable() {
-        if (mc.player == null) { this.disable(); return; }
+        if (mc.player == null) disable();
         else gameType = mc.playerController.getCurrentGameType();
     }
 

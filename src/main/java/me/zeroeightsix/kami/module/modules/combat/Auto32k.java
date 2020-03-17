@@ -56,7 +56,7 @@ public class Auto32k extends Module {
     protected void onEnable() {
 
         if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
-            this.disable();
+            disable();
             return;
         }
 
@@ -95,7 +95,7 @@ public class Auto32k extends Module {
             if (debugMessages.getValue()) {
                 Command.sendChatMessage(getChatName() + "Hopper missing, disabling.");
             }
-            this.disable();
+            disable();
             return;
         }
 
@@ -103,7 +103,7 @@ public class Auto32k extends Module {
             if (debugMessages.getValue()) {
                 Command.sendChatMessage(getChatName() + "Shulker missing, disabling.");
             }
-            this.disable();
+            disable();
             return;
         }
 
@@ -198,7 +198,7 @@ public class Auto32k extends Module {
             if (debugMessages.getValue()) {
                 Command.sendChatMessage(getChatName() + "No valid position in range to place!");
             }
-            this.disable();
+            disable();
             return;
         }
 
@@ -241,7 +241,7 @@ public class Auto32k extends Module {
         }
 
         if (!moveToHotbar.getValue()) {
-            this.disable();
+            disable();
             return;
         }
 
@@ -264,7 +264,7 @@ public class Auto32k extends Module {
             if (autoEnableHitAura.getValue()) {
                 ModuleManager.getModuleByName("Aura").enable();
             }
-            this.disable();
+            disable();
         }
 
     }

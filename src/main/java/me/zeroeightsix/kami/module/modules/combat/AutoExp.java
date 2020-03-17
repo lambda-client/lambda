@@ -70,7 +70,7 @@ public class AutoExp extends Module {
             if (xpSlot == -1) {
                 if (autoDisable.getValue()) {
                     Command.sendWarningMessage(getChatName() + " No XP in hotbar, disabling");
-                    this.disable();
+                    disable();
                 }
                 return;
             }
