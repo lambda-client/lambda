@@ -8,12 +8,16 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.entity.item.EntityEnderCrystal;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.*;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+
+import java.util.Comparator;
+import java.util.Objects;
 
 /**
  * @author polymer (main listener switch function xd)
@@ -27,6 +31,7 @@ public class OffhandGap extends Module {
 	private Setting<Boolean> eatWhileAttacking = register(Settings.b("Eat While Attacking", false));
 	private Setting<Boolean> swordOrAxeOnly = register(Settings.b("Sword or Axe Only", true));
 	private Setting<Boolean> preferBlocks = register(Settings.booleanBuilder("Prefer Placing Blocks").withValue(false).withVisibility(v -> !swordOrAxeOnly.getValue()).build());
+	private Setting<Boolean> crystalCheck = register(Settings.b("Crystal Check", false));
 //	private Setting<Mode> modeSetting = register(Settings.e("Use Mode", Mode.GAPPLE));
 
 //	private enum Mode {
@@ -38,6 +43,7 @@ public class OffhandGap extends Module {
 	boolean cancelled = false;
 	Item usedItem;
 	Item toUseItem;
+	CrystalAura crystalAura;
 
 	@EventHandler
 	private Listener<PacketEvent.Send> sendListener = new Listener<>(e ->{
@@ -70,6 +76,17 @@ public class OffhandGap extends Module {
 			/* Force disable if under health limit */
 			else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
 				disableGaps();
+			}
+			/* Disable if there are crystals in the range of CrystalAura */
+			else if (crystalCheck.getValue() && crystalAura.isEnabled()) {
+				EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
+		                .filter(entity -> entity instanceof EntityEnderCrystal)
+		                .map(entity -> (EntityEnderCrystal) entity)
+		                .min(Comparator.comparing(c -> mc.player.getDistance(c)))
+		                .orElse(null);
+				if (Objects.requireNonNull(crystal).getPosition().distanceSq(mc.player.getPosition().x, mc.player.getPosition().y, mc.player.getPosition().z) <= crystalAura.range.getValue()) {
+					disableGaps();
+				}
 			}
 		} catch (NullPointerException ignored) { }
 	});
@@ -143,4 +160,6 @@ public class OffhandGap extends Module {
 	public String getHudInfo() {
 		return String.valueOf(getItems(Items.GOLDEN_APPLE));
 	}
+
+	public void onEnable() { crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura"); }
 }
