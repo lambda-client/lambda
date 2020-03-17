@@ -13,7 +13,9 @@ public class VectorUtil {
     }
 
     public static List<BlockPos> Vec3dToBlockPos(List<Vec3d> vecList) {
+        // define return list
         List<BlockPos> returnList = null;
+        // loop over each vector in the list and convert them into blockpos, then add into returnList
         for (Vec3d v : vecList) returnList.add(new BlockPos(v.x, v.y, v.z));
         return returnList;
     }
@@ -23,7 +25,9 @@ public class VectorUtil {
     }
 
     public static List<Vec3d> BlockPosToVec3d(List<BlockPos> blockposList) {
+        // define return list
         List<Vec3d> returnList = null;
+        // loop over each vector in the list and convert them into blockpos, then add into returnList
         for (BlockPos v : blockposList) returnList.add(new Vec3d(v.x, v.y, v.z));
         return returnList;
     }
@@ -35,6 +39,7 @@ public class VectorUtil {
     }
     
     public static List<Vec3d> getVectorsInArea(Vec3d pos1, Vec3d pos2) {
+        // round points and define as integers
         int x1 = (int) Math.round(pos1.x);
         int x2 = (int) Math.round(pos2.x);
         int y1 = (int) Math.round(pos1.y);
@@ -42,15 +47,19 @@ public class VectorUtil {
         int z1 = (int) Math.round(pos1.z);
         int z2 = (int) Math.round(pos2.z);
         
+        // define integer vectors
         Vec3d intPos1 = new Vec3d(x1, y1, z1);
         Vec3d intPos2 = new Vec3d(x2, y2, z2);
         
+        // check if vectors are the same. if true then return integer vector 1
         if (intPos1 == intPos2) {
             return Collections.singletonList(intPos1);
         }
 
+        // define returnVectors as integer vectors
         List<Vec3d> returnVectors = Arrays.asList(intPos1, intPos2);
 
+        // quick maffs i don't know how to explain
         for (int x = x1; x < x2; x++) {
             for (int y = y1; y < y2; y++) {
                 for (int z = z1; z < z2; z++) {
