@@ -303,7 +303,7 @@ public class CrystalAura extends Module {
             resetRotation();
             return;
         } 
-        //this sends a constant packet flow for default packets
+        // this sends a constant packet flow for default packets
         if (place.getValue()) {
         	render = q;
             if (!offhand && mc.player.inventory.currentItem != crystalSlot) {
