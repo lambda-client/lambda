@@ -19,11 +19,6 @@ import net.minecraft.network.play.client.CPacketCustomPayload;
  */
 @Module.Info(name = "BetterBeacons", category = Module.Category.MISC, description = "Choose any of the 5 beacon effects regardless of beacon base height")
 public class BetterBeacons extends Module {
-    
-    private static BetterBeacons INSTANCE = new BetterBeacons();
-    public static boolean enabled() { return INSTANCE.isEnabled(); }
-    public BetterBeacons() { INSTANCE = this; }
-
     private Setting<Effects> effects = register(Settings.e("Effect", Effects.SPEED));
 
     private boolean doCancelPacket = true;
@@ -47,6 +42,8 @@ public class BetterBeacons extends Module {
             doCancelPacket = false;
 
             PacketBuffer data = ((CPacketCustomPayload) event.getPacket()).getBufferData();
+            /* i1 is actually not unused, reading the int discards the bytes it read, allowing k1 to read the next bytes */
+            @SuppressWarnings("unused")
             int i1 = data.readInt(); // primary
             int k1 = data.readInt(); // secondary
 
