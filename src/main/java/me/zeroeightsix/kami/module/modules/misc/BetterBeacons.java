@@ -26,27 +26,18 @@ public class BetterBeacons extends Module {
 
     private Setting<Effects> effects = register(Settings.e("Effect", Effects.SPEED));
 
-    private int potionID = 1;
     private boolean doCancelPacket = true;
 
     private enum Effects { SPEED, HASTE, RESISTANCE, JUMP_BOOST, STRENGTH }
 
-    @Override
-    public void onUpdate() {
-        if (effects.getValue().equals(Effects.SPEED)) {
-            potionID = 1;
-        }
-        if (effects.getValue().equals(Effects.HASTE)) {
-            potionID = 3;
-        }
-        if (effects.getValue().equals(Effects.RESISTANCE)) {
-            potionID = 11;
-        }
-        if (effects.getValue().equals(Effects.JUMP_BOOST)) {
-            potionID = 8;
-        }
-        if (effects.getValue().equals(Effects.STRENGTH)) {
-            potionID = 5;
+    private int getPotionID() {
+        switch (effects.getValue()) {
+            case SPEED: return 1;
+            case HASTE: return 3;
+            case RESISTANCE: return 11;
+            case JUMP_BOOST: return 8;
+            case STRENGTH: return 5;
+            default: return -1;
         }
     }
 
@@ -62,7 +53,7 @@ public class BetterBeacons extends Module {
             event.cancel();
 
             PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-            buf.writeInt(potionID);
+            buf.writeInt(getPotionID());
             buf.writeInt(k1);
 
             Wrapper.getPlayer().connection.sendPacket(new CPacketCustomPayload("MC|Beacon", buf));
