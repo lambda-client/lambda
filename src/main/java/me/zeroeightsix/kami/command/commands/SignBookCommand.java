@@ -44,7 +44,7 @@ public class SignBookCommand extends Command {
             String futureTitle = String.join(" ", toAdd);
             futureTitle = futureTitle.replaceAll("&", Character.toString((char)c));
             futureTitle = futureTitle.replaceAll("#n", "\n");
-            futureTitle = futureTitle.replaceAll("null", ""); //Random extra null added sometimes
+            futureTitle = futureTitle.replaceAll("null", ""); // Random extra null added sometimes
 
             if (futureTitle.length() > 31) {
                 Command.sendChatMessage("Title cannot be over 31 characters.");

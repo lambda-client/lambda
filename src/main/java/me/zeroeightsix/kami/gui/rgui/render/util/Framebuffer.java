@@ -13,7 +13,7 @@ public class Framebuffer {
     private int framebufferTexture;
     private int framebufferDepthbuffer;
 
-    public Framebuffer() {//call when loading the game
+    public Framebuffer() {// call when loading the game
         this(Display.getWidth(), Display.getHeight());
     }
 
@@ -23,22 +23,22 @@ public class Framebuffer {
         initialiseFramebuffer();
     }
 
-    public void cleanUp() {//call when closing the game
+    public void cleanUp() {// call when closing the game
         GL30.glDeleteFramebuffers(framebufferID);
         GL11.glDeleteTextures(framebufferTexture);
         GL30.glDeleteRenderbuffers(framebufferDepthbuffer);
     }
 
-    public void bindFrameBuffer() {//call before rendering to this FBO
+    public void bindFrameBuffer() {// call before rendering to this FBO
         bindFrameBuffer(framebufferID, WIDTH, HEIGHT);
     }
 
-    public void unbindFramebuffer() {//call to switch to default frame buffer
+    public void unbindFramebuffer() {// call to switch to default frame buffer
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
         GL11.glViewport(0, 0, Display.getWidth(), Display.getHeight());
     }
 
-    public int getFramebufferTexture() {//get the resulting texture
+    public int getFramebufferTexture() {// get the resulting texture
         return framebufferTexture;
     }
 
@@ -50,18 +50,18 @@ public class Framebuffer {
     }
 
     private void bindFrameBuffer(int frameBuffer, int width, int height) {
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);//To make sure the texture isn't bound
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);// To make sure the texture isn't bound
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, frameBuffer);
         GL11.glViewport(0, 0, width, height);
     }
 
     private int createFrameBuffer() {
         int frameBuffer = GL30.glGenFramebuffers();
-        //generate name for frame buffer
+        // generate name for frame buffer
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, frameBuffer);
-        //create the framebuffer
+        // create the framebuffer
         GL11.glDrawBuffer(GL30.GL_COLOR_ATTACHMENT0);
-        //indicate that we will always render to colour attachment 0
+        // indicate that we will always render to colour attachment 0
         return frameBuffer;
     }
 

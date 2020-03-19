@@ -47,8 +47,8 @@ public class BetterBeacons extends Module {
             doCancelPacket = false;
 
             PacketBuffer data = ((CPacketCustomPayload) event.getPacket()).getBufferData();
-            int i1 = data.readInt(); //primary
-            int k1 = data.readInt(); //secondary
+            int i1 = data.readInt(); // primary
+            int k1 = data.readInt(); // secondary
 
             event.cancel();
 
