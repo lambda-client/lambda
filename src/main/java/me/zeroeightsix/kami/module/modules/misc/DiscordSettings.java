@@ -18,11 +18,11 @@ public class DiscordSettings extends Module {
     public Setting<Boolean> coordsConfirm = register(Settings.b("Coords Confirm", false));
     public Setting<LineInfo> line1Setting = register(Settings.e("Line 1 Left", LineInfo.VERSION)); // details left
     public Setting<LineInfo> line3Setting = register(Settings.e("Line 1 Right", LineInfo.USERNAME)); // details right
-    public Setting<LineInfo> line2Setting = register(Settings.e("Line 2 Left", LineInfo.SERVERIP)); // state left
+    public Setting<LineInfo> line2Setting = register(Settings.e("Line 2 Left", LineInfo.SERVER_IP)); // state left
     public Setting<LineInfo> line4Setting = register(Settings.e("Line 2 Right", LineInfo.HEALTH)); // state right
 
     public enum LineInfo {
-        VERSION, WORLD, USERNAME, HEALTH, SERVERIP, COORDS, NONE
+        VERSION, WORLD, USERNAME, HEALTH, SERVER_IP, COORDS, NONE
     }
 
     public String getLine(LineInfo line) {
@@ -36,14 +36,15 @@ public class DiscordSettings extends Module {
                 if (mc.player != null) return mc.player.getName();
                 else return mc.getSession().getUsername();
             case HEALTH:
-                if (mc.player != null) return "(" + ((int) mc.player.getHealth()) + " hp)";
-                else return "(No hp)";
-            case SERVERIP:
+                if (mc.player != null) return ((int) mc.player.getHealth()) + " hp";
+                else return "null hp";
+            case SERVER_IP:
                 if (mc.getCurrentServerData() != null) return mc.getCurrentServerData().serverIP;
-                else return "(Offline)";
+                else if (mc.isIntegratedServerRunning()) return "Offline";
+                else return "Main Menu";
             case COORDS:
                 if (mc.player != null && coordsConfirm.getValue()) return "(" + (int) mc.player.posX + " " + (int) mc.player.posY + " " + (int) mc.player.posZ + ")";
-                else return "(No coords)";
+                else return "null coords";
             default: return "";
         }
     }
