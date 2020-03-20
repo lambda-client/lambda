@@ -16,6 +16,7 @@ import net.minecraft.util.text.TextFormatting;
 
 import java.util.ArrayList;
 
+import static me.zeroeightsix.kami.command.Command.sendDisableMessage;
 import static me.zeroeightsix.kami.util.ColourUtils.getStringColour;
 
 /**
@@ -119,5 +120,5 @@ public class InfoOverlay extends Module {
         return infoContents;
     }
 
-    public void onDisable() { enable(); }
+    public void onDisable() { sendDisableMessage(getName()); }
 }

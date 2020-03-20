@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -23,4 +24,6 @@ public class TabFriends extends Module {
         if (Friends.isFriend(dname)) return String.format("%sa%s", KamiMod.colour, dname);
         return dname;
     }
+
+    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }

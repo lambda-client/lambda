@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.gui;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -25,4 +26,5 @@ public class CleanGUI extends Module {
         return INSTANCE.isEnabled();
     }
 
+    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }

@@ -164,6 +164,5 @@ public class InventoryViewer extends Module {
         GlStateManager.popMatrix();
     }
 
-    @Override
-    public void onDisable() { enable(); }
+    public void onDisable() { sendDisableMessage(getName()); }
 }
