@@ -28,9 +28,9 @@ public class AutoEat extends Module {
     }
 
     private boolean passItemCheck(Item item) {
-			if (item == Items.ROTTEN_FLESH) return false;
-			if (item == Items.SPIDER_EYE) return false;
-			if (item == Items.PUFFER_FISH) return false;
+        if (item == Items.ROTTEN_FLESH) return false;
+        if (item == Items.SPIDER_EYE) return false;
+        if (item == Items.FISH && new ItemStack(Items.FISH).getItemDamage() == 3) return false;
 		return true;
 	}
     
