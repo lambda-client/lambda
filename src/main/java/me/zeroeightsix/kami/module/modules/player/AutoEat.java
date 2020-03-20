@@ -30,6 +30,7 @@ public class AutoEat extends Module {
     private boolean passItemCheck(Item item) {
 			if (item == Items.ROTTEN_FLESH) return false;
 			if (item == Items.SPIDER_EYE) return false;
+			if (item == Items.PUFFER_FISH) return false;
 		return true;
 	}
     
