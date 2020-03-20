@@ -69,18 +69,18 @@ public class DisplayGuiScreen extends GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        gui.handleMouseDown(this.mouseX, this.mouseY);
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        gui.handleMouseDown(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
     }
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
-        gui.handleMouseRelease(this.mouseX, this.mouseY);
+        gui.handleMouseRelease(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
     }
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        gui.handleMouseDrag(this.mouseX, this.mouseY);
+        gui.handleMouseDrag(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
     }
 
     @Override
@@ -88,13 +88,13 @@ public class DisplayGuiScreen extends GuiScreen {
         if (Mouse.hasWheel()) {
             int a = Mouse.getDWheel();
             if (a != 0) {
-                gui.handleWheel(this.mouseX, this.mouseY, a);
+                gui.handleWheel(mouseX, mouseY, a);
             }
         }
     }
 
     @Override
-    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+    protected void keyTyped(char typedChar, int keyCode) {
         if (ModuleManager.getModuleByName("clickGUI").getBind().isDown(keyCode) || keyCode == Keyboard.KEY_ESCAPE) {
             mc.displayGuiScreen(lastScreen);
         }
@@ -119,8 +119,8 @@ public class DisplayGuiScreen extends GuiScreen {
     private void calculateMouse() {
         Minecraft minecraft = Minecraft.getMinecraft();
         int scaleFactor = getScale();
-        this.mouseX = Mouse.getX() / scaleFactor;
-        this.mouseY = minecraft.displayHeight / scaleFactor - Mouse.getY() / scaleFactor - 1;
+        mouseX = Mouse.getX() / scaleFactor;
+        mouseY = minecraft.displayHeight / scaleFactor - Mouse.getY() / scaleFactor - 1;
     }
 
 }
