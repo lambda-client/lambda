@@ -327,7 +327,7 @@ public class ColourUtils {
      * Tool for getting Minecraft Textformatting Colors
      */
     public enum ColourCode {
-        BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA, DARK_RED, DARK_PURPLE, GOLD, GREY, DARK_GREY, BLUE, GREEN, AQUA, RED, LIGHT_PURPLE, YELLOW, WHITE
+        BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA, DARK_RED, DARK_PURPLE, GOLD, GRAY, DARK_GRAY, BLUE, GREEN, AQUA, RED, LIGHT_PURPLE, YELLOW, WHITE
     }
     public static String getStringColour(ColourCode c) {
         switch (c) {
@@ -338,8 +338,8 @@ public class ColourUtils {
             case DARK_RED: return TextFormatting.DARK_RED.toString();
             case DARK_PURPLE: return TextFormatting.DARK_PURPLE.toString();
             case GOLD: return TextFormatting.GOLD.toString();
-            case GREY: return TextFormatting.GRAY.toString();
-            case DARK_GREY: return TextFormatting.DARK_GRAY.toString();
+            case GRAY: return TextFormatting.GRAY.toString();
+            case DARK_GRAY: return TextFormatting.DARK_GRAY.toString();
             case BLUE: return TextFormatting.BLUE.toString();
             case GREEN: return TextFormatting.GREEN.toString();
             case AQUA: return TextFormatting.AQUA.toString();

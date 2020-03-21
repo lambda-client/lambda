@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
-import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
+import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.ColourSet.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -28,11 +28,11 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
 
         String text = component.getName(); // on toggle, toggled, hovered enabled
         int c = component.isPressed() ?
-                settingsToInt(buttonPressed.getRed(), buttonPressed.getGreen(), buttonPressed.getBlue()) : component.isToggled() ?
-                settingsToInt(buttonIdleT.getRed(), buttonIdleT.getGreen(), buttonIdleT.getBlue()) :
-                settingsToInt(buttonHoveredT.getRed(), buttonHoveredT.getGreen(), buttonHoveredT.getBlue());
+                rgbToInt(buttonPressed.getRed(), buttonPressed.getGreen(), buttonPressed.getBlue()) : component.isToggled() ?
+                rgbToInt(buttonIdleT.getRed(), buttonIdleT.getGreen(), buttonIdleT.getBlue()) :
+                rgbToInt(buttonHoveredT.getRed(), buttonHoveredT.getGreen(), buttonHoveredT.getBlue());
         if (component.isHovered())
-            c = (c & settingsToInt(buttonHoveredN.getRed(), buttonHoveredN.getGreen(), buttonHoveredN.getBlue())) << 1;
+            c = (c & rgbToInt(buttonHoveredN.getRed(), buttonHoveredN.getGreen(), buttonHoveredN.getBlue())) << 1;
 
         glColor3f(1, 1, 1);
         glEnable(GL_TEXTURE_2D);
