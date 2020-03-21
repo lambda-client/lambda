@@ -38,9 +38,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
-import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+import static me.zeroeightsix.kami.util.ColourConverter.*;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 
 /**
@@ -346,7 +345,7 @@ public class CrystalAura extends Module {
         if (render != null) {
             KamiTessellator.prepare(GL11.GL_QUADS);
             int colour = 0x44ffffff;
-            if (customColours.getValue()) colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), aBlock.getValue());
+            if (customColours.getValue()) colour = rgbToInt(r.getValue(), g.getValue(), b.getValue(), aBlock.getValue());
             KamiTessellator.drawBox(render, colour, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
             if (renderEnt != null && tracer.getValue()) {

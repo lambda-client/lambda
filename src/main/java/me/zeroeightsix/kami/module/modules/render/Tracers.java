@@ -15,7 +15,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.opengl.GL11;
 
-import static me.zeroeightsix.kami.util.ColourConverter.settingsToInt;
+import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 
 /**
  * Created by 086 on 11/12/2017.
@@ -49,7 +49,7 @@ public class Tracers extends Module {
                     if (colour == ColourUtils.Colors.RAINBOW) {
                         if (!friends.getValue()) return;
                         if (customColours.getValue()) {
-                            colour = settingsToInt(r.getValue(), g.getValue(), b.getValue(), (int) (opacity.getValue() * 255f));
+                            colour = rgbToInt(r.getValue(), g.getValue(), b.getValue(), (int) (opacity.getValue() * 255f));
                         } else {
                             colour = cycler.current();
                         }
