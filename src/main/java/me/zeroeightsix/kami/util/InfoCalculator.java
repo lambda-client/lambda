@@ -85,4 +85,8 @@ public class InfoCalculator extends Module {
         return Math.round(value * scale) / scale;
     }
     /* End of round */
+
+    /* Is Even */
+    public static boolean isNumberEven(int i) { return (i & 1) == 0; }
+    /* End of Is Even */
 }
