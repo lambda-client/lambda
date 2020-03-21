@@ -76,4 +76,6 @@ public class CustomChat extends Module {
             startTime = System.currentTimeMillis();
         }
     }
+
+    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }

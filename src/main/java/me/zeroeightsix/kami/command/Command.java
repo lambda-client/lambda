@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.command;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
@@ -51,6 +52,15 @@ public abstract class Command {
     public static void sendStringChatMessage(String[] messages) {
         sendChatMessage("");
         for (String s : messages) sendRawChatMessage(s);
+    }
+
+    public static void sendDisableMessage(String moduleName) {
+        sendErrorMessage("Error: The " + moduleName + " module is only for configuring the GUI element. In order to show the GUI element you need to hit the pin in the upper left of the module");
+        ModuleManager.getModuleByName(moduleName).enable();
+    }
+
+    public static void sendAutoDisableMessage(String moduleName, boolean startup) {
+        if (startup) sendWarningMessage("Note: The " + moduleName + " module has automatic startup enabled. If you want to keep it disabled, disable the automatic startup setting");
     }
 
     public static void sendRawChatMessage(String message) {

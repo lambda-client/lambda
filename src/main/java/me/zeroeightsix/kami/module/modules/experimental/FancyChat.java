@@ -11,6 +11,8 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 
 import java.util.Random;
 
+import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
+
 /**
  * @author S-B99
  * Updated by S-B99 on 12/03/20
@@ -88,8 +90,6 @@ public class FancyChat extends Module {
         }
         return false;
     }
-
-    private boolean isNumberEven(int i) { return (i & 1) == 0; }
 
     private String leetSwitch(String i) {
         switch (i) {

@@ -68,4 +68,5 @@ public class DiscordSettings extends Module {
         }
     }
 
+    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }

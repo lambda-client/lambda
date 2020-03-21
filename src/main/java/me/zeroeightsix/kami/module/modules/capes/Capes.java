@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.capes;
 
 import com.google.gson.Gson;
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.util.Wrapper;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -152,4 +153,6 @@ public class Capes extends Module {
             textureManager.loadTexture(location, textureCape);
         }
     }
+
+    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }
