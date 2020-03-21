@@ -50,16 +50,12 @@ public class InfoOverlay extends Module {
     private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
     private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
     private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
-    private Setting<ColourUtils.ColourCode> firstColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("First Colour").withValue(ColourUtils.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
-    private Setting<ColourUtils.ColourCode> secondColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("Second Colour").withValue(ColourUtils.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    public Setting<ColourUtils.ColourCode> firstColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("First Colour").withValue(ColourUtils.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    public Setting<ColourUtils.ColourCode> secondColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("Second Colour").withValue(ColourUtils.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
 
-    private enum SpeedUnit {
-        MPS, KMH;
-    }
+    private enum SpeedUnit { MPS, KMH }
 
-    private enum Page {
-        ONE, TWO, THREE
-    }
+    private enum Page { ONE, TWO, THREE }
 
     public boolean useUnitKmH() {
         return speedUnit.getValue().equals(SpeedUnit.KMH);

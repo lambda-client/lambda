@@ -134,6 +134,8 @@ public class Module {
 
     public boolean isEnabled() { return enabled.getValue(); }
 
+    public boolean isOnArray() { return showOnArray.getValue().equals(ShowOnArray.ON); }
+
     protected void onEnable() {}
 
     protected void onDisable() {}

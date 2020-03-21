@@ -197,6 +197,7 @@ public class KamiMod {
         try { // load modules that are on by default // autoenable
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
+            ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
 
             if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("Capes").setEnabled(true);
