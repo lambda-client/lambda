@@ -69,7 +69,7 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
                 rgb = Color.HSBtoRGB(hue[0], toF(activeMods.saturationR.getValue()), toF(activeMods.brightnessR.getValue()));
             } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CATEGORY)) {
                 rgb = ActiveModules.getCategoryColour(module);
-            } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CUSTOM)){
+            } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CUSTOM)) {
                 rgb = Color.HSBtoRGB(toF(activeMods.hueC.getValue()), toF(activeMods.saturationC.getValue()), toF(activeMods.brightnessC.getValue()));
             } else {
                 rgb = activeMods.getInfoColour(i);
