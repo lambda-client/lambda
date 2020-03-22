@@ -22,9 +22,8 @@ import org.lwjgl.input.Mouse;
  * Inspired by ForgeHax, recreated with expressed permission from creator
  *
  * TODO: Fix delay timer because that shit broken
- * TODO: Move this back to proper category
  */
-@Module.Info(name = "EntityTools", category = Module.Category.EXPERIMENTAL, description = "Right click entities to perform actions on them")
+@Module.Info(name = "EntityTools", category = Module.Category.UTILS, description = "Right click entities to perform actions on them")
 public class EntityTools extends Module {
     private Setting<Mode> mode = register(Settings.e("Mode", Mode.DELETE));
     private int delay = 0;
@@ -50,7 +49,7 @@ public class EntityTools extends Module {
                 if (mode.getValue().equals(Mode.INFO)) {
                     NBTTagCompound tag = new NBTTagCompound();
                     mc.objectMouseOver.entityHit.writeToNBT(tag);
-                    Command.sendChatMessage(getChatName() + "&6&lEntity Tags:\n" + tag + "");
+                    Command.sendChatMessage(getChatName() + "&6Entity Tags:\n" + tag + "");
                 }
             }
         }

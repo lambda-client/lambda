@@ -20,9 +20,8 @@ import java.util.Objects;
  * @author 0x2E | PretendingToCode
  *
  * TODO: Fix delay timer because that shit broken
- * TODO: Move this back to proper category
  */
-@Module.Info(name = "BlockData", category = Module.Category.EXPERIMENTAL, description = "Right click blocks to display their data")
+@Module.Info(name = "BlockData", category = Module.Category.UTILS, description = "Right click blocks to display their data")
 public class BlockData extends Module {
     private int delay = 0;
 
@@ -46,7 +45,7 @@ public class BlockData extends Module {
                     NBTTagCompound tag = new NBTTagCompound();
                     Objects.requireNonNull(t).writeToNBT(tag);
 
-                    Command.sendChatMessage(getChatName() + "&6&lBlock Tags:\n" + tag + "");
+                    Command.sendChatMessage(getChatName() + "&6Block Tags:\n" + tag + "");
                 }
             }
         }
