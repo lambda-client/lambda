@@ -35,6 +35,7 @@ public class ActiveModules extends Module {
             case PLAYER: return rgbToInt(66, 245, 126);
             case MOVEMENT: return rgbToInt(66, 182, 245);
             case MISC: return rgbToInt(170, 66, 245);
+            case UTILS: return rgbToInt(245, 66, 236);
             default: return rgbToInt(139, 100, 255);
         }
     }
