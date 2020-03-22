@@ -55,7 +55,7 @@ public abstract class Command {
     }
 
     public static void sendDisableMessage(String moduleName) {
-        sendErrorMessage("Error: The " + moduleName + " module is only for configuring the GUI element. In order to show the GUI element you need to hit the pin in the upper left of the module");
+        sendErrorMessage("Error: The " + moduleName + " module is only for configuring the GUI element. In order to show the GUI element you need to hit the pin in the upper left of the GUI element");
         ModuleManager.getModuleByName(moduleName).enable();
     }
 

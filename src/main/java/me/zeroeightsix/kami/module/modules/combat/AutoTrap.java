@@ -51,6 +51,7 @@ public class AutoTrap extends Module {
     private Setting<Boolean> rotate = register(Settings.b("Rotate", false));
     private Setting<Boolean> noGlitchBlocks = register(Settings.b("NoGlitchBlocks", true));
     private Setting<Boolean> activeInFreecam = register(Settings.b("Active In Freecam", true));
+    private Setting<Boolean> selfTrap = register(Settings.b("Self Trap", false));
     private Setting<Boolean> infoMessage = register(Settings.b("Debug", false));
 
     private EntityPlayer closestTarget;
@@ -289,7 +290,7 @@ public class AutoTrap extends Module {
         closestTarget = null;
 
         for (EntityPlayer target : playerList) {
-            if (target == mc.player) continue;
+            if (target == mc.player && !selfTrap.getValue()) continue;
 
             if (mc.player.getDistance(target) > range.getValue() + 3) continue;
 
