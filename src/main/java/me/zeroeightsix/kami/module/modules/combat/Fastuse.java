@@ -49,7 +49,7 @@ public class Fastuse extends Module {
             }
         }
 
-        if (passItemCheck(mc.player.getActiveItemStack().getItem())) {
+        if (passItemCheck(mc.player.getHeldItemMainhand().getItem()) || passItemCheck(mc.player.getHeldItemOffhand().getItem())) {
             mc.rightClickDelayTimer = 0;
         }
     }
