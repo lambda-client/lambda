@@ -34,7 +34,7 @@ public class Fastuse extends Module {
     public void onUpdate() {
         if (mc.player == null) return;
 
-        if (bow.getValue() && mc.player.getHeldItemMainhand().getItem() instanceof ItemBow && mc.player.isHandActive() && mc.player.getItemInUseMaxCount() >= 3) {
+        if (all.getValue() || bow.getValue() && mc.player.getHeldItemMainhand().getItem() instanceof ItemBow && mc.player.isHandActive() && mc.player.getItemInUseMaxCount() >= 3) {
             mc.player.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, mc.player.getHorizontalFacing()));
             mc.player.connection.sendPacket(new CPacketPlayerTryUseItem(mc.player.getActiveHand()));
             mc.player.stopActiveHand();
