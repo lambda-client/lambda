@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.Module.Category;
-import me.zeroeightsix.kami.module.Module.Info;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.InfoCalculator;
@@ -11,7 +10,7 @@ import me.zeroeightsix.kami.util.InfoCalculator;
  * @author TBM
  * Updated by S-B99 on 28/01/20
  */
-@Info(name = "TimerSpeed", description = "Automatically change your timer to go fast", category = Category.MOVEMENT)
+@Module.Info(name = "TimerSpeed", description = "Automatically change your timer to go fast", category = Category.MOVEMENT)
 public class TimerSpeed extends Module {
     private float tickDelay = 0.0f;
     private static float curSpeed = 0.0f;
