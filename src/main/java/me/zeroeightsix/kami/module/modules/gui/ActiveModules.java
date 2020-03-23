@@ -27,15 +27,15 @@ public class ActiveModules extends Module {
 
     public static int getCategoryColour(Module module) {
         switch (module.getCategory()) {
-            case CHAT: return rgbToInt(245, 66, 66);
-            case COMBAT: return rgbToInt(245, 135, 66);
-            case EXPERIMENTAL: return rgbToInt(245, 66, 129);
-            case GUI: return rgbToInt(245, 203, 66);
-            case RENDER: return rgbToInt(194, 245, 66);
-            case PLAYER: return rgbToInt(66, 245, 126);
-            case MOVEMENT: return rgbToInt(66, 182, 245);
-            case MISC: return rgbToInt(170, 66, 245);
-            case UTILS: return rgbToInt(245, 66, 236);
+            case CHAT: return rgbToInt(129, 171, 174);
+            case COMBAT: return rgbToInt(162, 25, 14);
+            case EXPERIMENTAL: return rgbToInt(175, 175, 31);
+            case GUI: return rgbToInt(158, 159, 197);
+            case RENDER: return rgbToInt(51, 197, 130);
+            case PLAYER: return rgbToInt(99, 202, 191);
+            case MOVEMENT: return rgbToInt(7, 77, 227);
+            case MISC: return rgbToInt(247, 215, 59);
+            case UTILS: return rgbToInt(46, 212, 77);
             default: return rgbToInt(139, 100, 255);
         }
     }
