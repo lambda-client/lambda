@@ -67,11 +67,6 @@ public class InfoOverlay extends Module {
         }
     }
 
-    private String formatTimerSpeed() {
-        String formatted = getStringColour(secondColour.getValue()) + "." + getStringColour(firstColour.getValue());
-        return TimerSpeed.returnGui().replace(".", formatted);
-    }
-
     public static String getStringColour(TextFormatting c) {
         return c.toString();
     }
@@ -87,7 +82,7 @@ public class InfoOverlay extends Module {
         } if (username.getValue()) {
             infoContents.add(getStringColour(firstColour.getValue()) + "Welcome" + getStringColour(secondColour.getValue()) + " " + mc.getSession().getUsername() + "!");
         } if (time.getValue()) {
-            infoContents.add(getStringColour(firstColour.getValue()) + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET);
+            infoContents.add(getStringColour(firstColour.getValue()) + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()));
         } if (tps.getValue()) {
             infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.tps() + getStringColour(secondColour.getValue()) + " tps");
         } if (fps.getValue()) {
@@ -95,7 +90,7 @@ public class InfoOverlay extends Module {
         } if (speed.getValue()) {
             infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.speed(useUnitKmH()) + getStringColour(secondColour.getValue()) + " " + unitType(speedUnit.getValue()));
         } if (timerSpeed.getValue()) {
-            infoContents.add(getStringColour(firstColour.getValue()) + formatTimerSpeed() + getStringColour(secondColour.getValue()) + "t");
+            infoContents.add(getStringColour(firstColour.getValue()) + TimerSpeed.returnGui() + getStringColour(secondColour.getValue()) + "t");
         } if (ping.getValue()) {
             infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.ping() + getStringColour(secondColour.getValue()) + " ms");
         } if (durability.getValue()) {

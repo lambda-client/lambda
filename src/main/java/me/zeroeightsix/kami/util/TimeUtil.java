@@ -51,7 +51,6 @@ public class TimeUtil {
     }
 
     public static String getFinalTime(TextFormatting colourCode2, TextFormatting colourCode1, TimeUnit timeUnit, TimeType timeType, Boolean doLocale) {
-        String formatted = getStringColour(colourCode2) + ":" + getStringColour(colourCode1);
         String locale = "";
         String time = time(TimeUtil.dateFormatter(TimeUnit.H24, TimeType.HH));
         if (timeUnit == TimeUnit.H12 && doLocale) {
@@ -61,6 +60,6 @@ public class TimeUtil {
                 locale = "am";
             }
         }
-        return getStringColour(colourCode1) + time(dateFormatter(timeUnit, timeType)).replace(":", formatted) + getStringColour(colourCode2) + locale;
+        return getStringColour(colourCode1) + time(dateFormatter(timeUnit, timeType)) + getStringColour(colourCode2) + locale;
     }
 }

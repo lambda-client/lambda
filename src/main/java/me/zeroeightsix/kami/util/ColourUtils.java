@@ -298,30 +298,6 @@ public class ColourUtils {
         public final static int RAINBOW = Integer.MIN_VALUE;
     }
 
-    /**
-     * @author S-B99 28/01/20
-     * https://minecraft.gamepedia.com/Formatting_codes#Color_codes
-     * For strings please see TextFormatting.COLOUR.toString();
-     */
-    public static class ColourCodesMinecraft {
-        public final static int BLACK = toRGBA(0, 0, 0, 255);
-        public final static int DARK_BLUE = toRGBA(0, 0, 170, 255);
-        public final static int DARK_GREEN = toRGBA(0, 170, 0, 255);
-        public final static int DARK_AQUA = toRGBA(0, 170, 170, 255);
-        public final static int DARK_RED = toRGBA(170, 0, 0, 255);
-        public final static int DARK_PURPLE = toRGBA(170, 0, 170, 255);
-        public final static int GOLD = toRGBA(255, 170, 0, 255);
-        public final static int GREY = toRGBA(170, 170, 170, 255);
-        public final static int DARK_GREY = toRGBA(85, 85, 85, 255);
-        public final static int BLUE = toRGBA(85, 85, 255, 255);
-        public final static int GREEN = toRGBA(85, 255, 85, 255);
-        public final static int AQUA = toRGBA(85, 255, 255, 255);
-        public final static int RED = toRGBA(255, 85, 85, 255);
-        public final static int LIGHT_PURPLE = toRGBA(255, 85, 255, 255);
-        public final static int YELLOW = toRGBA(255, 255, 85, 255);
-        public final static int WHITE = toRGBA(255, 255, 255, 255);
-    }
-
     public static final int changeAlpha(int origColor, int userInputedAlpha) {
         origColor = origColor & 0x00ffffff; // drop the previous alpha value
         return (userInputedAlpha << 24) | origColor; // add the one the user inputted

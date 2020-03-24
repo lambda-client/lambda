@@ -4,20 +4,25 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.util.text.TextFormatting;
+
+import java.awt.*;
 
 import static me.zeroeightsix.kami.command.Command.sendDisableMessage;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
+import static me.zeroeightsix.kami.util.ColourTextFormatting.colourEnumMap;
 import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
 import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
 
 /**
  * @author S-B99
  * Created by S-B99 on 20/03/20
+ * Updated by S-B99 on 24/03/20
  */
 @Module.Info(name = "ActiveModules", category = Module.Category.GUI, description = "Configures ActiveModules Colour", showOnArray = Module.ShowOnArray.OFF)
 public class ActiveModules extends Module {
     public Setting<Mode> mode = register(Settings.e("Mode", Mode.RAINBOW));
-    private Setting<Integer> rainbowSpeed = register(Settings.integerBuilder().withName("Speed F").withValue(30).withMinimum(0).withMaximum(100).withVisibility(v -> mode.getValue().equals(Mode.RAINBOW)).build());
+    private Setting<Integer> rainbowSpeed = register(Settings.integerBuilder().withName("Speed R").withValue(30).withMinimum(0).withMaximum(100).withVisibility(v -> mode.getValue().equals(Mode.RAINBOW)).build());
     public Setting<Integer> saturationR = register(Settings.integerBuilder().withName("Saturation R").withValue(117).withMinimum(0).withMaximum(255).withVisibility(v -> mode.getValue().equals(Mode.RAINBOW)).build());
     public Setting<Integer> brightnessR = register(Settings.integerBuilder().withName("Brightness R").withValue(255).withMinimum(0).withMaximum(255).withVisibility(v -> mode.getValue().equals(Mode.RAINBOW)).build());
     public Setting<Integer> hueC = register(Settings.integerBuilder().withName("Hue C").withValue(178).withMinimum(0).withMaximum(255).withVisibility(v -> mode.getValue().equals(Mode.CUSTOM)).build());
@@ -41,70 +46,45 @@ public class ActiveModules extends Module {
     }
 
     public int getInfoColour(int position) {
-        if (!alternate.getValue()) return getSecondInfoColourFromSettings();
+        if (!alternate.getValue()) return settingsToColour(false);
         else {
             if (isNumberEven(position)) {
-                return getFirstInfoColourFromSettings();
+                return settingsToColour(true);
             } else {
-                return getSecondInfoColourFromSettings();
+                return settingsToColour(false);
             }
         }
     }
 
-    //TODO: fix this dogshit code with the ColourTextFormatting class
-    private int getFirstInfoColourFromSettings() {
-        InfoOverlay infoOverlay = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
-        switch (infoOverlay.firstColour.getValue()) {
-            case BLACK: return rgbToInt(0,0, 0);
-            case DARK_BLUE: return rgbToInt(0, 0, 170);
-            case DARK_GREEN: return rgbToInt(0, 170, 0);
-            case DARK_AQUA: return rgbToInt(0, 170, 170);
-            case DARK_RED: return rgbToInt(170, 0, 0);
-            case DARK_PURPLE: return rgbToInt(170, 0, 170);
-            case GOLD: return rgbToInt(255, 170, 0);
-            case GRAY: return rgbToInt(170, 170, 0);
-            case DARK_GRAY: return rgbToInt(85, 85, 85);
-            case BLUE: return rgbToInt(85, 85, 255);
-            case GREEN: return rgbToInt(85, 255, 85);
-            case AQUA: return rgbToInt(85, 225, 225);
-            case RED: return rgbToInt(255, 85, 85);
-            case LIGHT_PURPLE: return rgbToInt(255, 85, 255);
-            case YELLOW: return rgbToInt(255, 255, 85);
-            case WHITE: return rgbToInt(255, 255, 255);
+    private int settingsToColour(boolean isOne) {
+        Color localColor;
+        switch (infoGetSetting(isOne)) {
+            case UNDERLINE:
+            case ITALIC:
+            case RESET:
+            case STRIKETHROUGH:
+            case OBFUSCATED:
+            case BOLD:
+                localColor = colourEnumMap.get(TextFormatting.WHITE).colorLocal; break;
+            default:
+                localColor = colourEnumMap.get(infoGetSetting(isOne)).colorLocal;
         }
-        return rgbToInt(155, 144, 255);
+        return rgbToInt(localColor.getRed(), localColor.getGreen(), localColor.getBlue());
     }
 
-    private int getSecondInfoColourFromSettings() {
+    private TextFormatting infoGetSetting(boolean isOne) {
         InfoOverlay infoOverlay = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
-        switch (infoOverlay.secondColour.getValue()) {
-            case BLACK: return rgbToInt(0,0, 0);
-            case DARK_BLUE: return rgbToInt(0, 0, 170);
-            case DARK_GREEN: return rgbToInt(0, 170, 0);
-            case DARK_AQUA: return rgbToInt(0, 170, 170);
-            case DARK_RED: return rgbToInt(170, 0, 0);
-            case DARK_PURPLE: return rgbToInt(170, 0, 170);
-            case GOLD: return rgbToInt(255, 170, 0);
-            case GRAY: return rgbToInt(170, 170, 0);
-            case DARK_GRAY: return rgbToInt(85, 85, 85);
-            case BLUE: return rgbToInt(85, 85, 255);
-            case GREEN: return rgbToInt(85, 255, 85);
-            case AQUA: return rgbToInt(85, 225, 225);
-            case RED: return rgbToInt(255, 85, 85);
-            case LIGHT_PURPLE: return rgbToInt(255, 85, 255);
-            case YELLOW: return rgbToInt(255, 255, 85);
-            case WHITE: return rgbToInt(255, 255, 255);
-        }
-        return rgbToInt(155, 144, 255);
+        if (isOne) return infoOverlay.firstColour.getValue();
+        else return infoOverlay.secondColour.getValue();
+
     }
 
     public int getRainbowSpeed() {
-        if (rainbowSpeed.getValue() == 0) return 10000000; // if 0 basically just never change the color
         int rSpeed = reverseNumber(rainbowSpeed.getValue(), 1, 100);
         if (rSpeed == 0) return 1; // can't divide by 0
         else return rSpeed;
     }
 
-    public enum Mode { RAINBOW, CATEGORY, CUSTOM, INFO_OVERLAY }
+    public enum Mode { RAINBOW, CUSTOM, CATEGORY, INFO_OVERLAY }
     public void onDisable() { sendDisableMessage(getName()); }
 }
