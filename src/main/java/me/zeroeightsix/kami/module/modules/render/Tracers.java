@@ -29,7 +29,7 @@ public class Tracers extends Module {
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Double> range = register(Settings.d("Range", 200));
     private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).build());
-    private Setting<Float> opacity = register(Settings.floatBuilder("Opacity").withRange(0f, 1f).withValue(1f));
+    private Setting<Float> opacity = register(Settings.floatBuilder("Opacity").withRange(0f, 1f).withValue(1f).build());
     private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
     private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
     private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
