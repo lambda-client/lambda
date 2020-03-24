@@ -21,6 +21,7 @@ import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
  */
 @Module.Info(name = "ActiveModules", category = Module.Category.GUI, description = "Configures ActiveModules Colour", showOnArray = Module.ShowOnArray.OFF)
 public class ActiveModules extends Module {
+    private Setting<Boolean> forgeHax = register(Settings.b("ForgeHax", false));
     public Setting<Mode> mode = register(Settings.e("Mode", Mode.RAINBOW));
     private Setting<Integer> rainbowSpeed = register(Settings.integerBuilder().withName("Speed R").withValue(30).withMinimum(0).withMaximum(100).withVisibility(v -> mode.getValue().equals(Mode.RAINBOW)).build());
     public Setting<Integer> saturationR = register(Settings.integerBuilder().withName("Saturation R").withValue(117).withMinimum(0).withMaximum(255).withVisibility(v -> mode.getValue().equals(Mode.RAINBOW)).build());
@@ -83,6 +84,11 @@ public class ActiveModules extends Module {
         int rSpeed = reverseNumber(rainbowSpeed.getValue(), 1, 100);
         if (rSpeed == 0) return 1; // can't divide by 0
         else return rSpeed;
+    }
+
+    public String fHax() {
+        if (forgeHax.getValue()) return ">";
+        else return "";
     }
 
     public enum Mode { RAINBOW, CUSTOM, CATEGORY, INFO_OVERLAY }
