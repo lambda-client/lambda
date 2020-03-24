@@ -40,7 +40,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     }
 
     /**
-     * Author: TBM
+     * @author TBM
      */
     @Inject(method = "displayGUIChest", at = @At("HEAD"), cancellable = true)
     public void onDisplayGUIChest(IInventory chestInventory, CallbackInfo ci) {
