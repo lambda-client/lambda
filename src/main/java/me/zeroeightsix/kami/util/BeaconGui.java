@@ -28,27 +28,27 @@ public class BeaconGui extends GuiBeacon {
         super(playerInventory, tileBeaconIn);
     }
 
-    boolean doRenderBtns;
+    boolean doRenderButtons;
 
     @Override
     public void initGui() {
         super.initGui();
-        doRenderBtns = true;
+        doRenderButtons = true;
     }
 
     @Override
     public void updateScreen() {
         super.updateScreen();
-        if (doRenderBtns) {
+        if (doRenderButtons) {
             int id = 20;
             int newY = this.guiTop;
             for (Potion[] pos1 : EFFECTS_LIST) {
-                for (int i = 0; i < pos1.length; i++) {
-                    BeaconGui.PowerButtonCustom custompotion =
-                            new BeaconGui.PowerButtonCustom(id, guiLeft-27, newY, pos1[i], 0);
-                    this.buttonList.add(custompotion);
-                    if (pos1[i] == Potion.getPotionById(BeaconSelector.effect)) {
-                        custompotion.setSelected(true);
+                for (Potion potion : pos1) {
+                    PowerButtonCustom customPotion =
+                            new PowerButtonCustom(id, guiLeft - 27, newY, potion, 0);
+                    this.buttonList.add(customPotion);
+                    if (potion == Potion.getPotionById(BeaconSelector.effect)) {
+                        customPotion.setSelected(true);
                     }
                     newY += 27;
                     id++;
