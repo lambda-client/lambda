@@ -69,14 +69,14 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
                 rgb = Color.HSBtoRGB(hue[0], toF(activeMods.saturationR.getValue()), toF(activeMods.brightnessR.getValue()));
             } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CATEGORY)) {
                 rgb = ActiveModules.getCategoryColour(module);
-            } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CUSTOM)){
+            } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CUSTOM)) {
                 rgb = Color.HSBtoRGB(toF(activeMods.hueC.getValue()), toF(activeMods.saturationC.getValue()), toF(activeMods.brightnessC.getValue()));
             } else {
                 rgb = activeMods.getInfoColour(i);
             }
 
-            String s = module.getHudInfo();
-            String text = module.getName() + (s == null ? "" : " " + KamiMod.colour + "7" + s);
+            String hudInfo = module.getHudInfo();
+            String text = activeMods.fHax() + module.getName() + (hudInfo == null ? "" : " " + KamiMod.colour + "7" + hudInfo);
             int textWidth = renderer.getStringWidth(text);
             int textHeight = renderer.getFontHeight() + 1;
             int red = (rgb >> 16) & 0xFF;

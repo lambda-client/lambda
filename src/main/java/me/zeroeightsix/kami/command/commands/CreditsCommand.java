@@ -15,38 +15,37 @@ public class CreditsCommand extends Command {
     @Override
     public void call(String[] args) {
         Command.sendChatMessage("\n" +
-                "&l&9Author: \n" +
-                "&b086\n" +
-                "&l&9Contributors: \n" +
-                "&bBella (S-B99)\n" +
-                "&bhub (blockparole)\n" +
-                "&bSasha (EmotionalLove)\n" +
-                "&bQther (d1gress / Vonr)\n" +
-                "&bHHSGPA\n" +
-                "&b20kdc\n" +
-                "&bIronException\n" +
-                "&bcats (Cuhnt)\n" +
-                "&bKatatje\n" +
-                "&bDeauthorized\n" +
-                "&bsnowmii\n" +
-                "&bkdb424\n" +
-                "&Jack (jacksonellsworth03)\n" +
-                "&bcookiedragon234\n" +
-                "&b0x2E (PretendingToCode)\n" +
-                "&bbabbaj\n" +
-                "&bZeroMemes\n" +
-                "&bTheBritishMidget (TBM)\n" +
-                "&bHamburger (Hamburger2k)\n" +
-                "&bDarki\n" +
-                "&bFINZ0\n" +
-                "&bCrystallinqq\n" +
-                "&bElementars\n" +
-                "&bfsck\n" +
-                "&bJamie (jamie27)\n" +
-                "&bWaizy\n" +
-                "&bIt is the end\n" +
-                "&bfluffcq\n" +
-                "&bleijurv\n" +
-                "&bpolymer");
+                "&l&9Author:\n" +
+                "086\n" +
+                "&l&9Contributors:\n" +
+                "Bella (S-B99)\n" +
+                "hub (blockparole)\n" +
+                "Sasha (EmotionalLove)\n" +
+                "Qther (d1gress / Vonr)\n" +
+                "HHSGPA\n" +
+                "20kdc\n" +
+                "IronException\n" +
+                "cats (Cuhnt)\n" +
+                "Katatje\n" +
+                "Deauthorized\n" +
+                "snowmii\n" +
+                "kdb424\n" +
+                "Jack (jacksonellsworth03)\n" +
+                "cookiedragon234\n" +
+                "0x2E (PretendingToCode)\n" +
+                "babbaj\n" +
+                "ZeroMemes\n" +
+                "TheBritishMidget (TBM)\n" +
+                "Hamburger (Hamburger2k)\n" +
+                "Darki\n" +
+                "Crystallinqq\n" +
+                "Elementars\n" +
+                "fsck\n" +
+                "Jamie (jamie27)\n" +
+                "Waizy\n" +
+                "It is the end\n" +
+                "fluffcq\n" +
+                "leijurv\n" +
+                "polymer");
     }
 }

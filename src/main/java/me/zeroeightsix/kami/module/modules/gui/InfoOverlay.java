@@ -5,7 +5,6 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.movement.TimerSpeed;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.ColourUtils;
 import me.zeroeightsix.kami.util.InfoCalculator;
 import me.zeroeightsix.kami.util.TimeUtil;
 import net.minecraft.client.Minecraft;
@@ -17,7 +16,6 @@ import net.minecraft.util.text.TextFormatting;
 import java.util.ArrayList;
 
 import static me.zeroeightsix.kami.command.Command.sendDisableMessage;
-import static me.zeroeightsix.kami.util.ColourUtils.getStringColour;
 
 /**
  * @author S-B99
@@ -50,8 +48,8 @@ public class InfoOverlay extends Module {
     private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
     private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
     private Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
-    public Setting<ColourUtils.ColourCode> firstColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("First Colour").withValue(ColourUtils.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
-    public Setting<ColourUtils.ColourCode> secondColour = register(Settings.enumBuilder(ColourUtils.ColourCode.class).withName("Second Colour").withValue(ColourUtils.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    public Setting<TextFormatting> firstColour = register(Settings.enumBuilder(TextFormatting.class).withName("First Colour").withValue(TextFormatting.valueOf("WHITE")).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    public Setting<TextFormatting> secondColour = register(Settings.enumBuilder(TextFormatting.class).withName("Second Colour").withValue(TextFormatting.valueOf("BLUE")).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
 
     private enum SpeedUnit { MPS, KMH }
 
@@ -69,13 +67,8 @@ public class InfoOverlay extends Module {
         }
     }
 
-    private String formatTimerSpeed() {
-        String formatted = textColour(secondColour.getValue()) + "." + textColour(firstColour.getValue());
-        return TimerSpeed.returnGui().replace(".", formatted);
-    }
-
-    private String textColour(ColourUtils.ColourCode c) {
-        return getStringColour(c);
+    public static String getStringColour(TextFormatting c) {
+        return c.toString();
     }
 
     public static int getItems(Item i) {
@@ -85,33 +78,33 @@ public class InfoOverlay extends Module {
     public ArrayList<String> infoContents() {
         ArrayList<String> infoContents = new ArrayList<>();
         if (version.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + KamiMod.KAMI_KANJI + textColour(secondColour.getValue()) + " " + KamiMod.MODVERSMALL);
+            infoContents.add(getStringColour(firstColour.getValue()) + KamiMod.KAMI_KANJI + getStringColour(secondColour.getValue()) + " " + KamiMod.MODVERSMALL);
         } if (username.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + "Welcome" + textColour(secondColour.getValue()) + " " + mc.getSession().getUsername() + "!");
+            infoContents.add(getStringColour(firstColour.getValue()) + "Welcome" + getStringColour(secondColour.getValue()) + " " + mc.getSession().getUsername() + "!");
         } if (time.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET);
+            infoContents.add(getStringColour(firstColour.getValue()) + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()));
         } if (tps.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.tps() + textColour(secondColour.getValue()) + " tps");
+            infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.tps() + getStringColour(secondColour.getValue()) + " tps");
         } if (fps.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + Minecraft.debugFPS + textColour(secondColour.getValue()) + " fps");
+            infoContents.add(getStringColour(firstColour.getValue()) + Minecraft.debugFPS + getStringColour(secondColour.getValue()) + " fps");
         } if (speed.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.speed(useUnitKmH()) + textColour(secondColour.getValue()) + " " + unitType(speedUnit.getValue()));
+            infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.speed(useUnitKmH()) + getStringColour(secondColour.getValue()) + " " + unitType(speedUnit.getValue()));
         } if (timerSpeed.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + formatTimerSpeed() + textColour(secondColour.getValue()) + "t");
+            infoContents.add(getStringColour(firstColour.getValue()) + TimerSpeed.returnGui() + getStringColour(secondColour.getValue()) + "t");
         } if (ping.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.ping() + textColour(secondColour.getValue()) + " ms");
+            infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.ping() + getStringColour(secondColour.getValue()) + " ms");
         } if (durability.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.dura() + textColour(secondColour.getValue()) + " dura");
+            infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.dura() + getStringColour(secondColour.getValue()) + " dura");
         } if (memory.getValue()) {
-            infoContents.add(textColour(firstColour.getValue()) + InfoCalculator.memory() + textColour(secondColour.getValue()) + "mB free");
+            infoContents.add(getStringColour(firstColour.getValue()) + InfoCalculator.memory() + getStringColour(secondColour.getValue()) + "mB free");
         } if (totems.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.TOTEM_OF_UNDYING) + textColour(secondColour.getValue()) + " Totems");
+        	infoContents.add(getStringColour(firstColour.getValue()) + getItems(Items.TOTEM_OF_UNDYING) + getStringColour(secondColour.getValue()) + " Totems");
         } if (endCrystals.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.END_CRYSTAL) + textColour(secondColour.getValue()) + " Crystals");
+        	infoContents.add(getStringColour(firstColour.getValue()) + getItems(Items.END_CRYSTAL) + getStringColour(secondColour.getValue()) + " Crystals");
         } if (expBottles.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.EXPERIENCE_BOTTLE) + textColour(secondColour.getValue()) + " EXP Bottles");
+        	infoContents.add(getStringColour(firstColour.getValue()) + getItems(Items.EXPERIENCE_BOTTLE) + getStringColour(secondColour.getValue()) + " EXP Bottles");
         } if (godApples.getValue()) {
-        	infoContents.add(textColour(firstColour.getValue()) + getItems(Items.GOLDEN_APPLE) + textColour(secondColour.getValue()) + " God Apples");
+        	infoContents.add(getStringColour(firstColour.getValue()) + getItems(Items.GOLDEN_APPLE) + getStringColour(secondColour.getValue()) + " God Apples");
         }
         return infoContents;
     }

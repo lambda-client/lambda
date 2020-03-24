@@ -25,7 +25,7 @@ public class GenerateWebsiteCommand extends Command {
     @Override
     public void call(String[] args) {
         List<Module> mods = new ArrayList<>(ModuleManager.getModules());
-        String[] modCategories = new String[]{"Chat", "Combat", "Gui", "Misc", "Movement", "Player", "Render"};
+        String[] modCategories = new String[]{"Chat", "Combat", "Gui", "Misc", "Movement", "Player", "Render", "Utils"};
         List<String> modCategoriesList = new ArrayList<>(java.util.Arrays.asList(modCategories));
 
         List<String> modsChat = new ArrayList<>();
@@ -35,6 +35,7 @@ public class GenerateWebsiteCommand extends Command {
         List<String> modsMovement = new ArrayList<>();
         List<String> modsPlayer = new ArrayList<>();
         List<String> modsRender = new ArrayList<>();
+        List<String> modsUtils = new ArrayList<>();
 
         mods.forEach(module -> {
             switch (module.getCategory()) {
@@ -52,6 +53,8 @@ public class GenerateWebsiteCommand extends Command {
                     modsPlayer.add(nameAndDescription(module));
                 case RENDER:
                     modsRender.add(nameAndDescription(module));
+                case UTILS:
+                    modsUtils.add(nameAndDescription(module));
             }
         });
 
@@ -64,7 +67,7 @@ public class GenerateWebsiteCommand extends Command {
                     KamiMod.log.info("        <li>" + module.getName() + "<p><i>" + module.getDescription() + "</i></p></li>");
                 }
             });
-            KamiMod.log.info("    </ul></p>"); // cat#$*UWUnuzzl3s70U
+            KamiMod.log.info("    </ul></p>");
             KamiMod.log.info("</details>");
 
         });

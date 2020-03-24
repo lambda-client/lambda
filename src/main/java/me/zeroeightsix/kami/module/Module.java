@@ -84,6 +84,10 @@ public class Module {
         return originalName;
     }
 
+    /**
+     * @see me.zeroeightsix.kami.command.commands.GenerateWebsiteCommand
+     * @see me.zeroeightsix.kami.module.modules.gui.ActiveModules
+     */
     public enum Category {
         CHAT("Chat", false),
         COMBAT("Combat", false),
@@ -93,7 +97,8 @@ public class Module {
         MISC("Misc", false),
         MOVEMENT("Movement", false),
         PLAYER("Player", false),
-        RENDER("Render", false);
+        RENDER("Render", false),
+        UTILS("Utils", false);
 
         boolean hidden;
         String name;
