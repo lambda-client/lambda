@@ -17,24 +17,10 @@ import net.minecraft.network.play.client.CPacketCustomPayload;
 /***
  * Created by 0x2E | PretendingToCode
  */
-@Module.Info(name = "BetterBeacons", category = Module.Category.MISC, description = "Choose any of the 5 beacon effects regardless of beacon base height")
-public class BetterBeacons extends Module {
-    private Setting<Effects> effects = register(Settings.e("Effect", Effects.SPEED));
-
+@Module.Info(name = "BeaconSelector", category = Module.Category.MISC, description = "Choose any of the 5 beacon effects regardless of beacon base height")
+public class BeaconSelector extends Module {
+    public static int effect = -1;
     private boolean doCancelPacket = true;
-
-    private enum Effects { SPEED, HASTE, RESISTANCE, JUMP_BOOST, STRENGTH }
-
-    private int getPotionID() {
-        switch (effects.getValue()) {
-            case SPEED: return 1;
-            case HASTE: return 3;
-            case RESISTANCE: return 11;
-            case JUMP_BOOST: return 8;
-            case STRENGTH: return 5;
-            default: return -1;
-        }
-    }
 
     @EventHandler
     public Listener<PacketEvent.Send> packetListener = new Listener<>(event -> {
@@ -50,7 +36,7 @@ public class BetterBeacons extends Module {
             event.cancel();
 
             PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-            buf.writeInt(getPotionID());
+            buf.writeInt(effect);
             buf.writeInt(k1);
 
             Wrapper.getPlayer().connection.sendPacket(new CPacketCustomPayload("MC|Beacon", buf));
