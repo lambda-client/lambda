@@ -32,9 +32,9 @@ import net.minecraft.util.math.Vec3d;
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian to take less damage")
 public class Surround extends Module {
 
-    private Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
+    public Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
     private Setting<Boolean> spoofRotations = register(Settings.b("Spoof Rotations", true));
-    private Setting<Boolean> spoofHotbar = register(Settings.b("Spoof Hotbar", true));
+    private Setting<Boolean> spoofHotbar = register(Settings.b("Spoof Hotbar", false));
     private Setting<Double> blockPerTick = register(Settings.doubleBuilder("Blocks per Tick").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
     private Setting<AutoCenter> autoCenter = register(Settings.e("Auto Center", AutoCenter.TP));
