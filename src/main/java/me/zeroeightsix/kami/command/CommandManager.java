@@ -49,7 +49,7 @@ public class CommandManager {
             }
         }
 
-        Command.sendChatMessage("&7Unknown command. try '&f" + Command.getCommandPrefix() + "commands&7' for a list of commands.");
+        Command.sendChatMessage("&7Unknown command. try '&f" + Command.getCommandPrefix() + "cmds&7' for a list of commands.");
     }
 
     public static String[] removeElement(String[] input, int indexToDelete) {
