@@ -12,6 +12,8 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentBase;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +22,7 @@ public abstract class Command {
     protected String label;
     protected String syntax;
     protected String description;
+    protected List<String> aliases;
 
     public final Minecraft mc = Minecraft.getMinecraft();
 
@@ -27,10 +30,11 @@ public abstract class Command {
 
     public static Setting<String> commandPrefix = Settings.s("commandPrefix", ".");
 
-    public Command(String label, SyntaxChunk[] syntaxChunks) {
+    public Command(String label, SyntaxChunk[] syntaxChunks, String... aliases) {
         this.label = label;
         this.syntaxChunks = syntaxChunks;
         this.description = "Descriptionless";
+        this.aliases = Arrays.asList(aliases);
     }
 
     public static void sendChatMessage(String message) {
@@ -138,5 +142,9 @@ public abstract class Command {
                 return c;
         }
         return null;
+    }
+
+    public List<String> getAliases() {
+        return aliases;
     }
 }

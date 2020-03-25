@@ -15,8 +15,9 @@ public class CreditsCommand extends Command {
     @Override
     public void call(String[] args) {
         Command.sendChatMessage("\n" +
+                "Name (Github if not same as name)" +
                 "&l&9Author:\n" +
-                "086\n" +
+                "086 (zeroeightysix)\n" +
                 "&l&9Contributors:\n" +
                 "Bella (S-B99)\n" +
                 "hub (blockparole)\n" +
@@ -46,6 +47,10 @@ public class CreditsCommand extends Command {
                 "It is the end\n" +
                 "fluffcq\n" +
                 "leijurv\n" +
-                "polymer");
+                "polymer\n" +
+                "Battery Settings (Bluskript)\n" +
+                "An-En (AnotherEntity)\n" +
+                "Arisa (Arisa-Snowbell)\n" +
+                "UrM0ther");
     }
 }

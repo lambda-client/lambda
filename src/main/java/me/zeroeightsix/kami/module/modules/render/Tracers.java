@@ -19,6 +19,8 @@ import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 
 /**
  * Created by 086 on 11/12/2017.
+ * <p>
+ * Kurisu Makise is best girl
  */
 @Module.Info(name = "Tracers", description = "Draws lines to other living entities", category = Module.Category.RENDER)
 public class Tracers extends Module {
@@ -28,6 +30,7 @@ public class Tracers extends Module {
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Double> range = register(Settings.d("Range", 200));
+    private Setting<Boolean> renderInvis = register(Settings.b("Invisible", false));
     private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).build());
     private Setting<Float> opacity = register(Settings.floatBuilder("Opacity").withRange(0f, 1f).withValue(1f).build());
     private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
@@ -41,6 +44,12 @@ public class Tracers extends Module {
         GlStateManager.pushMatrix();
         Minecraft.getMinecraft().world.loadedEntityList.stream()
                 .filter(EntityUtil::isLiving)
+                .filter(entity -> {
+                    if (entity.isInvisible()) {
+                        return renderInvis.getValue();
+                    }
+                    return true;
+                })
                 .filter(entity -> !EntityUtil.isFakeLocalPlayer(entity))
                 .filter(entity -> (entity instanceof EntityPlayer ? players.getValue() && mc.player != entity : (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue())))
                 .filter(entity -> mc.player.getDistance(entity) < range.getValue())

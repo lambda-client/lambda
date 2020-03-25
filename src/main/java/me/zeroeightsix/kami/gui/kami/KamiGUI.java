@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
 import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
@@ -39,7 +38,6 @@ import javax.annotation.Nonnull;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -281,6 +279,8 @@ public class KamiGUI extends GUI {
             friends.setText("");
             if (!finalFrame.isMinimized()) {
                 Friends.friends.getValue().forEach(friend -> friends.addLine(friend.getUsername()));
+            } else {
+                friends.setWidth(50);
             }
         });
 
@@ -363,36 +363,42 @@ public class KamiGUI extends GUI {
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Entities");
         Label entityLabel = new Label("");
         frame.setCloseable(false);
+        Frame finalFrame1 = frame;
         entityLabel.addTickListener(new TickListener() {
             Minecraft mc = Wrapper.getMinecraft();
 
             @Override
             public void onTick() {
-                if (mc.player == null || !entityLabel.isVisible()) return;
+                if (!finalFrame1.isMinimized()) {
+                    if (mc.player == null || !entityLabel.isVisible()) return;
 
-                final List<Entity> entityList = new ArrayList<>(mc.world.loadedEntityList);
-                if (entityList.size() <= 1) {
+                    final List<Entity> entityList = new ArrayList<>(mc.world.loadedEntityList);
+                    if (entityList.size() <= 1) {
+                        entityLabel.setText("");
+                        return;
+                    }
+                    final Map<String, Integer> entityCounts = entityList.stream()
+                            .filter(Objects::nonNull)
+                            .filter(e -> !(e instanceof EntityPlayer))
+                            .collect(Collectors.groupingBy(KamiGUI::getEntityName,
+                                    Collectors.reducing(0, ent -> {
+                                        if (ent instanceof EntityItem)
+                                            return ((EntityItem) ent).getItem().getCount();
+                                        return 1;
+                                    }, Integer::sum)
+                            ));
+
                     entityLabel.setText("");
-                    return;
+                    finalFrame1.setWidth(50);
+                    entityCounts.entrySet().stream()
+                            .sorted(Map.Entry.comparingByValue())
+                            .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
+                            .forEach(entityLabel::addLine);
+
+                    //entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
+                } else {
+                    finalFrame1.setWidth(50);
                 }
-                final Map<String, Integer> entityCounts = entityList.stream()
-                        .filter(Objects::nonNull)
-                        .filter(e -> !(e instanceof EntityPlayer))
-                        .collect(Collectors.groupingBy(KamiGUI::getEntityName,
-                                Collectors.reducing(0, ent -> {
-                                    if (ent instanceof EntityItem)
-                                        return ((EntityItem) ent).getItem().getCount();
-                                    return 1;
-                                }, Integer::sum)
-                        ));
-
-                entityLabel.setText("");
-                entityCounts.entrySet().stream()
-                        .sorted(Map.Entry.comparingByValue())
-                        .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
-                        .forEach(entityLabel::addLine);
-
-                //entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
             }
         });
         frame.addChild(entityLabel);
