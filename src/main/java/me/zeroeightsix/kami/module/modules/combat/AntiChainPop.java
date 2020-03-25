@@ -25,7 +25,7 @@ import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
  */
 @Module.Info(name = "AntiChainPop", description = "Enables Surround when popping a totem", category = Module.Category.COMBAT)
 public class AntiChainPop extends Module {
-    private Setting<Mode> mode = register(Settings.e("Mode", Mode.ITEMS));
+    private Setting<Mode> mode = register(Settings.e("Mode", Mode.PACKET));
     private int totems = 0;
 
     @EventHandler
