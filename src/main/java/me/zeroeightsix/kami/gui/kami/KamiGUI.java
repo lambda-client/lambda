@@ -281,6 +281,8 @@ public class KamiGUI extends GUI {
             friends.setText("");
             if (!finalFrame.isMinimized()) {
                 Friends.friends.getValue().forEach(friend -> friends.addLine(friend.getUsername()));
+            } else {
+                friends.setWidth(50);
             }
         });
 
