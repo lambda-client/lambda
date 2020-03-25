@@ -27,7 +27,10 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
-import me.zeroeightsix.kami.util.*;
+import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.LagCompensator;
+import me.zeroeightsix.kami.util.RichPresence;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -198,6 +201,7 @@ public class KamiMod {
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
             ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
+            ModuleManager.getModuleByName("FixGui").setEnabled(true);
 
             if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("Capes").setEnabled(true);

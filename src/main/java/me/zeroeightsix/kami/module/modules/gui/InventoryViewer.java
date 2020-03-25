@@ -1,9 +1,6 @@
 package me.zeroeightsix.kami.module.modules.gui;
 
-import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
-import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -16,10 +13,8 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
-import java.util.List;
-
 import static me.zeroeightsix.kami.command.Command.sendDisableMessage;
-import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
+import static me.zeroeightsix.kami.util.GuiFrameUtil.getFrameByName;
 
 /**
  * Updated by S-B99 on 21/02/20
@@ -43,20 +38,6 @@ public class InventoryViewer extends Module {
     private boolean isTop = false;
     private boolean isBottom = false;
 
-    KamiGUI kamiGUI = KamiMod.getInstance().getGuiManager();
-
-    // This is bad, but without a rearchitecture, it's probably staying... - 20kdc
-    private Frame getInventoryViewer() {
-        kamiGUI = KamiMod.getInstance().getGuiManager();
-        if (kamiGUI == null)
-            return null;
-        List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
-        for (Frame frame : frames)
-            if (frame.getTitle().equalsIgnoreCase("inventory viewer"))
-                return frame;
-        return null;
-    }
-
     private int invMoveHorizontal() {
         if (!docking.getValue() || mcTexture.getValue()) return 0;
         if (isLeft) return 45;
@@ -72,7 +53,7 @@ public class InventoryViewer extends Module {
     }
 
     private void updatePos() {
-        Frame frame = getInventoryViewer();
+        Frame frame = getFrameByName("inventory viewer");
         if (frame == null)
             return;
         isTop = frame.getDocking().isTop();
@@ -125,11 +106,11 @@ public class InventoryViewer extends Module {
 
     @Override
     public void onRender() {
-        Frame frame = getInventoryViewer();
+        Frame frame = getFrameByName("inventory viewer");
         if (frame == null)
             return;
         if (frame.isPinned()) {
-            final NonNullList<ItemStack> items = InventoryViewer.mc.player.inventory.mainInventory;
+            final NonNullList<ItemStack> items = mc.player.inventory.mainInventory;
             boxRender(frame.getX(), frame.getY());
             itemRender(items, frame.getX(), frame.getY());
         }
