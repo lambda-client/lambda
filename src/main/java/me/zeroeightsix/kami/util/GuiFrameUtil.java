@@ -44,7 +44,7 @@ public class GuiFrameUtil {
         List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
         for (Frame frame : frames) {
             int divider = mc.gameSettings.guiScale;
-            if (divider == 0) divider = 4;
+            if (divider == 0) divider = 3;
             if (frame.getX() > (Display.getWidth() / divider)) {
                 frame.setX((Display.getWidth() / divider) - frame.getWidth());
             }
