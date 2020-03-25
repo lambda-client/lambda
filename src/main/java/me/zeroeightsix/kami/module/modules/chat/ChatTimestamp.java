@@ -8,19 +8,22 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.ColourTextFormatting;
 import me.zeroeightsix.kami.util.ColourUtils;
 import me.zeroeightsix.kami.util.TimeUtil;
 import net.minecraft.network.play.server.SPacketChat;
 import net.minecraft.util.text.TextFormatting;
 
+import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
+
 /**
  * @author S-B99
- * Updated by S-B99 on 06/02/20
+ * Updated by S-B99 on 25/03/20
  */
 @Module.Info(name = "ChatTimestamp", category = Module.Category.CHAT, description = "Shows the time a message was sent beside the message", showOnArray = Module.ShowOnArray.OFF)
 public class ChatTimestamp extends Module {
-    private Setting<TextFormatting> firstColour = register(Settings.e("First Colour", TextFormatting.valueOf("GRAY")));
-    private Setting<TextFormatting> secondColour = register(Settings.e("Second Colour", TextFormatting.valueOf("WHITE")));
+    private Setting<ColourTextFormatting.ColourCode> firstColour = register(Settings.e("First Colour", ColourTextFormatting.ColourCode.GRAY));
+    private Setting<ColourTextFormatting.ColourCode> secondColour = register(Settings.e("Second Colour", ColourTextFormatting.ColourCode.WHITE));
     private Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.e("Time Format", TimeUtil.TimeType.HHMM));
     private Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.e("Time Unit", TimeUtil.TimeUnit.H12));
     private Setting<Boolean> doLocale = register(Settings.b("Show AMPM", true));
@@ -38,7 +41,11 @@ public class ChatTimestamp extends Module {
     });
 
     private boolean addTime(String message) {
-        Command.sendRawChatMessage("<" + TimeUtil.getFinalTime(secondColour.getValue(), firstColour.getValue(), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET + "> " + message);
+        Command.sendRawChatMessage("<" + TimeUtil.getFinalTime(setToText(secondColour.getValue()), setToText(firstColour.getValue()), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET + "> " + message);
         return true;
+    }
+
+    private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {
+        return toTextMap.get(colourCode);
     }
 }

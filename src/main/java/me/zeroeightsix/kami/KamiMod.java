@@ -21,6 +21,7 @@ import me.zeroeightsix.kami.module.modules.capes.Capes;
 import me.zeroeightsix.kami.module.modules.chat.CustomChat;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
+import me.zeroeightsix.kami.module.modules.hidden.FixGui;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
@@ -55,7 +56,7 @@ import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 17/02/19
+ * Updated by S-B99 on 25/03/19
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -201,13 +202,15 @@ public class KamiMod {
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
             ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
-            ModuleManager.getModuleByName("FixGui").setEnabled(true);
 
             if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("Capes").setEnabled(true);
             }
             if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
+            }
+            if (((FixGui) ModuleManager.getModuleByName("Hidden:FixGui")).shouldAutoEnable.getValue()) {
+                ModuleManager.getModuleByName("Hidden:FixGui").setEnabled(true);
             }
             if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
                 ModuleManager.getModuleByName("TabFriends").setEnabled(true);

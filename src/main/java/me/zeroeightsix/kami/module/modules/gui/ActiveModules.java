@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.ColourTextFormatting;
 import net.minecraft.util.text.TextFormatting;
 
 import java.awt.*;
@@ -11,13 +12,14 @@ import java.awt.*;
 import static me.zeroeightsix.kami.command.Command.sendDisableMessage;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourTextFormatting.colourEnumMap;
+import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
 import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
 import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
 
 /**
  * @author S-B99
  * Created by S-B99 on 20/03/20
- * Updated by S-B99 on 24/03/20
+ * Updated by S-B99 on 25/03/20
  */
 @Module.Info(name = "ActiveModules", category = Module.Category.GUI, description = "Configures ActiveModules Colour", showOnArray = Module.ShowOnArray.OFF)
 public class ActiveModules extends Module {
@@ -75,9 +77,13 @@ public class ActiveModules extends Module {
 
     private TextFormatting infoGetSetting(boolean isOne) {
         InfoOverlay infoOverlay = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
-        if (isOne) return infoOverlay.firstColour.getValue();
-        else return infoOverlay.secondColour.getValue();
+        if (isOne) return setToText(infoOverlay.firstColour.getValue());
+        else return setToText(infoOverlay.secondColour.getValue());
 
+    }
+
+    private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {
+        return toTextMap.get(colourCode);
     }
 
     public int getRainbowSpeed() {
