@@ -251,12 +251,12 @@ public class Nametags extends Module {
         GlStateManager.popMatrix();
     }
 
-    public void drawDamage(ItemStack itemstack,int x,int y) {
+    public void drawDamage(ItemStack itemstack, int x, int y) {
         float green = ((float) itemstack.getMaxDamage() - (float) itemstack.getItemDamage()) / (float) itemstack.getMaxDamage();
         float red = 1 - green;
         int dmg = 100 - (int) (red * 100);
         GlStateManager.disableDepth();
-        mc.fontRenderer.drawStringWithShadow(dmg + "", x + 8 - mc.fontRenderer.getStringWidth(dmg + "") / 2, y-11, ColourHolder.toHex((int) (red * 255), (int) (green * 255), 0));
+        mc.fontRenderer.drawStringWithShadow(dmg + "", x + 8 - mc.fontRenderer.getStringWidth(dmg + "") / 2f, y-11, ColourHolder.toHex((int) (red * 255), (int) (green * 255), 0));
         GlStateManager.enableDepth();
     }
 
