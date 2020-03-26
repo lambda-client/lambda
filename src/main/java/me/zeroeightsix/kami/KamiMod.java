@@ -75,7 +75,7 @@ public class KamiMod {
     static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/updateChecker.json";
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/capes.json";
-    public static final String GITHUB_LINK = "https://github.com/S-B99/KAMI";
+    public static final String GITHUB_LINK = "https://github.com/S-B99/kamiblue/";
     public static final String WEBSITE_LINK = "https://blue.bella.wtf";
 
 
