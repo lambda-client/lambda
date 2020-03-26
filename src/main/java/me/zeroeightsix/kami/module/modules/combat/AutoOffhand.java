@@ -9,6 +9,8 @@ import net.minecraft.inventory.ClickType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+
 /**
  * Created by 086 on 22/01/2018.
  * Updated by S-B99 on 25/03/20
@@ -97,6 +99,6 @@ public class AutoOffhand extends Module {
 
     @Override
     public String getHudInfo() {
-        return String.valueOf(totems);
+        return "" + getItems(settingToItem());
     }
 }
