@@ -32,10 +32,7 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.Explosion;
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
@@ -78,6 +75,7 @@ public class CrystalAura extends Module {
     private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
     private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
     private Setting<Boolean> statusMessages = register(Settings.booleanBuilder("Status Messages").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Integer> triesUntilGiveUp = register(Settings.integerBuilder("Hit Attempts").withValue(-1).withMinimum(-1).withMaximum(20).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
 
     private enum ExplodeBehavior { HOLE_ONLY, PREVENT_SUICIDE, LEFT_CLICK_ONLY, ALWAYS }
     private enum PlaceBehavior { MULTI, TRADITIONAL }
@@ -91,6 +89,10 @@ public class CrystalAura extends Module {
     private boolean switchCoolDown = false;
     private boolean isAttacking = false;
     private int oldSlot = -1;
+
+    private static UUID lastCrystal;
+    private static List<UUID> ignoredCrystals = null;
+    private static int tries;
 
     public void onUpdate() {
         if (defaultSetting.getValue()) {
@@ -123,7 +125,13 @@ public class CrystalAura extends Module {
             Command.sendChatMessage(getChatName() + " Set to defaults!");
             Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
         }
-        
+
+        if (mc.player == null) {
+            ignoredCrystals = null;
+            lastCrystal = null;
+            tries = 0;
+        }
+
     	int holeBlocks = 0;
         
         Vec3d[] holeOffset = {
@@ -139,6 +147,7 @@ public class CrystalAura extends Module {
                 .map(entity -> (EntityEnderCrystal) entity)
                 .min(Comparator.comparing(c -> mc.player.getDistance(c)))
                 .orElse(null);
+        for (UUID u : ignoredCrystals) if (crystal != null && crystal.getUniqueID() == u) return;
        
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue() && passSwordCheck()) {
             // Added delay to stop ncp from flagging "hitting too fast"
@@ -502,10 +511,15 @@ public class CrystalAura extends Module {
     }
     
     public void explode(EntityEnderCrystal crystal) {
+        if (lastCrystal != crystal.getUniqueID()) lastCrystal = crystal.getUniqueID();
+        tries++;
+
     	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
     	mc.playerController.attackEntity(mc.player, crystal);
     	mc.player.swingArm(EnumHand.MAIN_HAND);
     	systemTime = System.nanoTime() / 1000000L;
+
+        if (tries > triesUntilGiveUp.getValue()) { ignoredCrystals.add(lastCrystal); }
     }
 
     private boolean passSwordCheck() {
