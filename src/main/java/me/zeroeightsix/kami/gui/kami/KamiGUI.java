@@ -250,7 +250,7 @@ public class KamiGUI extends GUI {
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);
-        frame.setMinimizeable(false);
+        frame.setMinimizeable(true);
         frame.setPinnable(true);
         frame.setPinned(true);
         Label inventory = new Label("");

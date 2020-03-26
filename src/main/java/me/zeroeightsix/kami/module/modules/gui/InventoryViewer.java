@@ -109,7 +109,7 @@ public class InventoryViewer extends Module {
         Frame frame = getFrameByName("inventory viewer");
         if (frame == null)
             return;
-        if (frame.isPinned()) {
+        if (frame.isPinned() && !frame.isMinimized()) {
             final NonNullList<ItemStack> items = mc.player.inventory.mainInventory;
             boxRender(frame.getX(), frame.getY());
             itemRender(items, frame.getX(), frame.getY());
