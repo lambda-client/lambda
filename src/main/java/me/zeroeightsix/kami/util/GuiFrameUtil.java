@@ -40,7 +40,7 @@ public class GuiFrameUtil {
 
     public static void fixFrames(Minecraft mc) {
         KamiGUI kamiGUI = KamiMod.getInstance().getGuiManager();
-        if (kamiGUI == null) return;
+        if (kamiGUI == null || mc.player == null) return;
         List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
         for (Frame frame : frames) {
             int divider = mc.gameSettings.guiScale;
