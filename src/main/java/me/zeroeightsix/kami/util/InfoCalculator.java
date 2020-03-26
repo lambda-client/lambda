@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.util;
 
 import me.zeroeightsix.kami.module.Module;
+import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.MathHelper;
 
@@ -24,10 +25,10 @@ import java.text.DecimalFormat;
  * TPS:
  * @author 086
  */
-public class InfoCalculator extends Module {
+public class InfoCalculator {
 
     // Ping {
-    public static int ping() {
+    public static int ping(Minecraft mc) {
         if (mc.getConnection() == null) { // tested, this is not null in mp
             return 1;
         } else if (mc.player == null) { // this actually takes about 30 seconds to load in Minecraft
@@ -44,25 +45,25 @@ public class InfoCalculator extends Module {
 
     // Speed {
     private static DecimalFormat formatter = new DecimalFormat("#.#");
-    public static String speed(boolean useUnitKmH) {
+    public static String speed(boolean useUnitKmH, Minecraft mc) {
         float currentTps = mc.timer.tickLength / 1000.0f;
         double multiply = 1.0;
         if (useUnitKmH) multiply = 3.6; // convert mps to kmh
-        return formatter.format(((MathHelper.sqrt(Math.pow(coordsDiff("x"), 2) + Math.pow(coordsDiff("z"), 2)) / currentTps)) * multiply);
+        return formatter.format(((MathHelper.sqrt(Math.pow(coordsDiff('x', mc), 2) + Math.pow(coordsDiff('z', mc), 2)) / currentTps)) * multiply);
     }
 
-    private static double coordsDiff(String s) {
+    private static double coordsDiff(char s, Minecraft mc) {
         switch (s) {
-            case "x": return mc.player.posX - mc.player.prevPosX;
-            case "z": return mc.player.posZ - mc.player.prevPosZ;
+            case 'x': return mc.player.posX - mc.player.prevPosX;
+            case 'z': return mc.player.posZ - mc.player.prevPosZ;
             default: return 0.0;
         }
     }
     // }
 
     // Durability {
-    public static int dura() {
-        ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
+    public static int dura(Minecraft mc) {
+        ItemStack itemStack = mc.player.getHeldItemMainhand();
         return itemStack.getMaxDamage() - itemStack.getItemDamage();
     }
     // }
@@ -110,4 +111,18 @@ public class InfoCalculator extends Module {
         }
     }
     // }
+
+    // Dimension {
+    public static String playerDimension(Minecraft mc) {
+        switch(mc.player.dimension) {
+            case -1:
+                return "Nether";
+            case 0:
+                return "Overworld";
+            case 1:
+                return "End";
+            default:
+                return  "No Dimension";
+        }
+    }
 }
