@@ -74,13 +74,13 @@ public class InfoOverlay extends Module {
         } if (fps.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + Minecraft.debugFPS + getStringColour(setToText(secondColour.getValue())) + " fps");
         } if (speed.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.speed(useUnitKmH()) + getStringColour(setToText(secondColour.getValue())) + " " + unitType(speedUnit.getValue()));
+            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.speed(useUnitKmH(), mc) + getStringColour(setToText(secondColour.getValue())) + " " + unitType(speedUnit.getValue()));
         } if (timerSpeed.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + TimerSpeed.returnGui() + getStringColour(setToText(secondColour.getValue())) + "t");
         } if (ping.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.ping() + getStringColour(setToText(secondColour.getValue())) + " ms");
+            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.ping(mc) + getStringColour(setToText(secondColour.getValue())) + " ms");
         } if (durability.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.dura() + getStringColour(setToText(secondColour.getValue())) + " dura");
+            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.dura(mc) + getStringColour(setToText(secondColour.getValue())) + " dura");
         } if (memory.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.memory() + getStringColour(setToText(secondColour.getValue())) + "mB free");
         } if (totems.getValue()) {

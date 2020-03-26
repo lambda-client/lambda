@@ -40,6 +40,8 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.util.InfoCalculator.cardinalToAxis;
+
 /**
  * Created by 086 on 25/06/2017.
  * Updated by S-B99 on 28/01/20
@@ -250,7 +252,7 @@ public class KamiGUI extends GUI {
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);
-        frame.setMinimizeable(false);
+        frame.setMinimizeable(true);
         frame.setPinnable(true);
         frame.setPinned(true);
         Label inventory = new Label("");
@@ -429,7 +431,7 @@ public class KamiGUI extends GUI {
                 int hposX = (int) (mc.player.posX * f);
                 int hposZ = (int) (mc.player.posZ * f);
 
-                char direction = Character.toUpperCase(mc.player.getHorizontalFacing().toString().charAt(0));
+                String direction = cardinalToAxis(Character.toUpperCase(mc.player.getHorizontalFacing().toString().charAt(0)));
                 String colouredSeparator = KamiMod.colour + "7 " + KamiMod.separator + KamiMod.colour + "r";
 
                 /* The 7 in the string formatter is the color */

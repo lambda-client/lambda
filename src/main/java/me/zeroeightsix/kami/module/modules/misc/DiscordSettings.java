@@ -7,6 +7,8 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
+import static me.zeroeightsix.kami.util.InfoCalculator.playerDimension;
+
 /**
  * @author S-B99
  * Updated by S-B99 on 13/01/20
@@ -22,7 +24,7 @@ public class DiscordSettings extends Module {
     public Setting<LineInfo> line4Setting = register(Settings.e("Line 2 Right", LineInfo.HEALTH)); // state right
 
     public enum LineInfo {
-        VERSION, WORLD, USERNAME, HEALTH, SERVER_IP, COORDS, NONE
+        VERSION, WORLD, DIMENSION, USERNAME, HEALTH, SERVER_IP, COORDS, NONE
     }
 
     public String getLine(LineInfo line) {
@@ -32,19 +34,21 @@ public class DiscordSettings extends Module {
                 if (mc.isIntegratedServerRunning()) return "Singleplayer";
                 else if (mc.getCurrentServerData() != null) return "Multiplayer";
                 else return "Main Menu";
+            case DIMENSION:
+                return playerDimension(mc);
             case USERNAME:
                 if (mc.player != null) return mc.player.getName();
                 else return mc.getSession().getUsername();
             case HEALTH:
                 if (mc.player != null) return ((int) mc.player.getHealth()) + " hp";
-                else return "null hp";
+                else return "No hp";
             case SERVER_IP:
                 if (mc.getCurrentServerData() != null) return mc.getCurrentServerData().serverIP;
                 else if (mc.isIntegratedServerRunning()) return "Offline";
                 else return "Main Menu";
             case COORDS:
                 if (mc.player != null && coordsConfirm.getValue()) return "(" + (int) mc.player.posX + " " + (int) mc.player.posY + " " + (int) mc.player.posZ + ")";
-                else return "null coords";
+                else return "No coords";
             default: return "";
         }
     }
