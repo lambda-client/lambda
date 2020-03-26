@@ -26,7 +26,7 @@ import java.text.DecimalFormat;
  */
 public class InfoCalculator extends Module {
 
-    /* Ping */
+    // Ping {
     public static int ping() {
         if (mc.getConnection() == null) { // tested, this is not null in mp
             return 1;
@@ -40,9 +40,9 @@ public class InfoCalculator extends Module {
             return -1;
         }
     }
-    /* End of Ping */
+    // }
 
-    /* Speed */
+    // Speed {
     private static DecimalFormat formatter = new DecimalFormat("#.#");
     public static String speed(boolean useUnitKmH) {
         float currentTps = mc.timer.tickLength / 1000.0f;
@@ -58,39 +58,56 @@ public class InfoCalculator extends Module {
             default: return 0.0;
         }
     }
-    /* End of Speed*/
+    // }
 
-    /* Durability*/
+    // Durability {
     public static int dura() {
         ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
         return itemStack.getMaxDamage() - itemStack.getItemDamage();
     }
-    /* End of Durability */
+    // }
 
-    /* Memory */
+    // Memory {
     public static String memory() {
         return "" + (Runtime.getRuntime().freeMemory() / 1000000);
     }
-    /* End of Memory*/
+    // }
 
-    /* Ticks Per Second */
+    // Ticks Per Second {
     public static String tps() {
         return "" + Math.round(LagCompensator.INSTANCE.getTickRate());
     }
-    /* End of ticks Per Second */
+    // }
 
-    /* Round */
+    // Round {
     public static double round(double value, int places) {
         double scale = Math.pow(10, places);
         return Math.round(value * scale) / scale;
     }
-    /* End of round */
+    // }
 
-    /* Is Even */
+    // Is Even {
     public static boolean isNumberEven(int i) { return (i & 1) == 0; }
-    /* End of Is Even */
+    // }
 
-    /* Reverse Number */
+    // Reverse Number {
     public static int reverseNumber(int num, int min, int max) { return (max + min) - num; }
-    /* End of Reverse Number */
+    // }
+
+    // Cardinal to Axis {
+    public static String cardinalToAxis(char cardinal) {
+        switch(cardinal) {
+            case 'N':
+                return "-Z";
+            case 'S':
+                return "+Z";
+            case 'E':
+                return "+X";
+            case 'W':
+                return "-X";
+            default:
+                return "invalid";
+        }
+    }
+    // }
 }
