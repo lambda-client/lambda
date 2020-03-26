@@ -53,9 +53,9 @@ public class OffhandGap extends Module {
 				return;
 			}
 			if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
-				if (ModuleManager.isModuleEnabled("AutoTotem")) {
+				if (ModuleManager.isModuleEnabled("AutoOffhand")) {
 					autoTotemWasEnabled = true;
-					ModuleManager.getModuleByName("AutoTotem").disable();
+					ModuleManager.getModuleByName("AutoOffhand").disable();
 				}
 				if (!eatWhileAttacking.getValue()) { /* Save item for later when using preventDesync */
 					usedItem = mc.player.getHeldItemMainhand().getItem();
@@ -135,9 +135,9 @@ public class OffhandGap extends Module {
 	}
 
 	private void disableGaps() {
-		if (autoTotemWasEnabled != ModuleManager.isModuleEnabled("AutoTotem")) {
+		if (autoTotemWasEnabled != ModuleManager.isModuleEnabled("AutoOffhand")) {
 			moveGapsToInventory(gaps);
-			ModuleManager.getModuleByName("AutoTotem").enable();
+			ModuleManager.getModuleByName("AutoOffhand").enable();
 			autoTotemWasEnabled = false;
 		}
 	}
