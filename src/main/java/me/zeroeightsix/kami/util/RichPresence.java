@@ -7,7 +7,7 @@ import javax.net.ssl.HttpsURLConnection;
 import java.io.InputStreamReader;
 import java.net.URL;
 
-/***
+/**
  * @author S-B99
  */
 public class RichPresence {

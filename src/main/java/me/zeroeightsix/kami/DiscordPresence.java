@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 
 import static me.zeroeightsix.kami.KamiMod.APP_ID;
 
-/***
+/**
  * @author S-B99
  * Updated by S-B99 on 13/01/20
  */

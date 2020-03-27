@@ -9,6 +9,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import static me.zeroeightsix.kami.util.CommandUtil.runAliases;
+
 public class CommandManager {
 
     private ArrayList<Command> commands;
@@ -43,7 +45,11 @@ public class CommandManager {
         }
 
         for (Command c : commands) {
-            if (c.getLabel().equalsIgnoreCase(label) || c.getAliases().stream().anyMatch(alias -> alias.equalsIgnoreCase(label))) {
+            if (c.getLabel().equalsIgnoreCase(label)) {
+                c.call(parts);
+                runAliases(c);
+                return;
+            } else if (c.getAliases().stream().anyMatch(alias -> alias.equalsIgnoreCase(label))) {
                 c.call(parts);
                 return;
             }

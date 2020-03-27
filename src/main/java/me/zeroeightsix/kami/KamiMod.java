@@ -17,13 +17,6 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.module.modules.chat.CustomChat;
-import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
-import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
-import me.zeroeightsix.kami.module.modules.hidden.FixGui;
-import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
-import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -199,31 +192,7 @@ public class KamiMod {
 
 
         try { // load modules that are on by default // autoenable
-            ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
-            ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
-            ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
-
-            if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("Capes").setEnabled(true);
-            }
-            if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
-            }
-            if (((FixGui) ModuleManager.getModuleByName("Hidden:FixGui")).shouldAutoEnable.getValue()) {
-                ModuleManager.getModuleByName("Hidden:FixGui").setEnabled(true);
-            }
-            if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("TabFriends").setEnabled(true);
-            }
-            if (((CustomChat) ModuleManager.getModuleByName("CustomChat")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("CustomChat").setEnabled(true);
-            }
-            if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
-            }
-            if (((PrefixChat) ModuleManager.getModuleByName("PrefixChat")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("PrefixChat").setEnabled(true);
-            }
+            ModuleManager.getModuleByName("Hidden:RunConfig").setEnabled(true);
         }
         catch (NullPointerException e) {
             KamiMod.log.error("NPE in loading always enabled modules\n");

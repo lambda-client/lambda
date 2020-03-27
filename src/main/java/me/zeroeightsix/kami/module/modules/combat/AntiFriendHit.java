@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.util.Friends;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.entity.Entity;
 
-/***
+/**
  * @author Sasha
  */
 @Module.Info(name = "AntiFriendHit", description = "Don't hit your friends", category = Module.Category.COMBAT, alwaysListening = true)

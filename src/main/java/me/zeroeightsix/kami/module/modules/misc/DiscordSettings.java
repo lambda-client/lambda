@@ -15,8 +15,6 @@ import static me.zeroeightsix.kami.util.InfoCalculator.playerDimension;
  */
 @Module.Info(name = "DiscordSettings", category = Module.Category.MISC, description = "Discord Rich Presence")
 public class DiscordSettings extends Module {
-
-    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
     public Setting<Boolean> coordsConfirm = register(Settings.b("Coords Confirm", false));
     public Setting<LineInfo> line1Setting = register(Settings.e("Line 1 Left", LineInfo.VERSION)); // details left
     public Setting<LineInfo> line3Setting = register(Settings.e("Line 1 Right", LineInfo.USERNAME)); // details right
@@ -71,6 +69,4 @@ public class DiscordSettings extends Module {
             startTime = System.currentTimeMillis();
         }
     }
-
-    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }

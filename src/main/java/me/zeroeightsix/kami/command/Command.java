@@ -63,10 +63,6 @@ public abstract class Command {
         ModuleManager.getModuleByName(moduleName).enable();
     }
 
-    public static void sendAutoDisableMessage(String moduleName, boolean startup) {
-        if (startup) sendWarningMessage("Note: The " + moduleName + " module has automatic startup enabled. If you want to keep it disabled, disable the automatic startup setting");
-    }
-
     public static void sendRawChatMessage(String message) {
         if (Minecraft.getMinecraft().player != null) {
             Wrapper.getPlayer().sendMessage(new ChatMessage(message));
