@@ -17,13 +17,6 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.module.modules.chat.CustomChat;
-import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
-import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
-import me.zeroeightsix.kami.module.modules.hidden.FixGui;
-import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
-import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -199,7 +192,7 @@ public class KamiMod {
 
 
         try { // load modules that are on by default // autoenable
-            ModuleManager.getModuleByName("Hidden:FirstRun").setEnabled(true);
+            ModuleManager.getModuleByName("Hidden:RunConfig").setEnabled(true);
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
             ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
             ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
