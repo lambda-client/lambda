@@ -32,10 +32,8 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.Explosion;
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
@@ -58,15 +56,16 @@ public class CrystalAura extends Module {
     private Setting<Boolean> autoSwitch = register(Settings.booleanBuilder("Auto Switch").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> place = register(Settings.booleanBuilder("Place").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> explode = register(Settings.booleanBuilder("Explode").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     public  Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Double> delay = register(Settings.doubleBuilder("Hit Delay").withMinimum(0.0).withValue(5.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Integer> hitAttempts = register(Settings.integerBuilder("Hit Attempts").withValue(-1).withMinimum(-1).withMaximum(20).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Double> minDmg = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(32.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize Manual").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> sneakEnable = register(Settings.booleanBuilder("Sneak Surround").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize Manual").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     /* Page Two */
+    private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(false).withVisibility(v -> !antiWeakness.getValue() && p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
@@ -82,7 +81,7 @@ public class CrystalAura extends Module {
     private enum ExplodeBehavior { HOLE_ONLY, PREVENT_SUICIDE, LEFT_CLICK_ONLY, ALWAYS }
     private enum PlaceBehavior { MULTI, TRADITIONAL }
     private enum Page { ONE, TWO }
-    
+
     private BlockPos render;
     private Entity renderEnt;
     private long systemTime = -1;
@@ -91,6 +90,10 @@ public class CrystalAura extends Module {
     private boolean switchCoolDown = false;
     private boolean isAttacking = false;
     private int oldSlot = -1;
+
+    private static EntityEnderCrystal lastCrystal;
+    private static List<EntityEnderCrystal> ignoredCrystals = new ArrayList<>();
+    private static int tries = 0;
 
     public void onUpdate() {
         if (defaultSetting.getValue()) {
@@ -123,23 +126,32 @@ public class CrystalAura extends Module {
             Command.sendChatMessage(getChatName() + " Set to defaults!");
             Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
         }
-        
-    	int holeBlocks = 0;
-        
+
+        if (mc.player == null) {
+            ignoredCrystals = null;
+            lastCrystal = null;
+            tries = 0;
+        }
+
+        int holeBlocks = 0;
+
         Vec3d[] holeOffset = {
-            	mc.player.getPositionVector().add(1, 0, 0),
-            	mc.player.getPositionVector().add(-1, 0, 0),
-            	mc.player.getPositionVector().add(0, 0, 1),
-            	mc.player.getPositionVector().add(0, 0, -1),
-            	mc.player.getPositionVector().add(0, -1, 0)
+                mc.player.getPositionVector().add(1, 0, 0),
+                mc.player.getPositionVector().add(-1, 0, 0),
+                mc.player.getPositionVector().add(0, 0, 1),
+                mc.player.getPositionVector().add(0, 0, -1),
+                mc.player.getPositionVector().add(0, -1, 0)
         };
-       
+
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
                 .filter(entity -> entity instanceof EntityEnderCrystal)
+                .filter(entity -> !ignored(entity))
                 .map(entity -> (EntityEnderCrystal) entity)
                 .min(Comparator.comparing(c -> mc.player.getDistance(c)))
                 .orElse(null);
-       
+
+
+
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue() && passSwordCheck()) {
             // Added delay to stop ncp from flagging "hitting too fast"
             if (((System.nanoTime() / 1000000f) - systemTime) >= 25*delay.getValue()) {
@@ -172,41 +184,41 @@ public class CrystalAura extends Module {
                     }
                 }
                 if (placePriority.getValue()) {
-                	boolean wasPlacing = place.getValue();
-            		if (mc.gameSettings.keyBindUseItem.isKeyDown() && place.getValue()) {
-                    	place.setValue(false);
-            			explode(crystal);
-            		}
-                	if (!place.getValue() && wasPlacing) place.setValue(true);
-            	}
+                    boolean wasPlacing = place.getValue();
+                    if (mc.gameSettings.keyBindUseItem.isKeyDown() && place.getValue()) {
+                        place.setValue(false);
+                        explode(crystal);
+                    }
+                    if (!place.getValue() && wasPlacing) place.setValue(true);
+                }
                 if (explodeBehavior.getValue() == ExplodeBehavior.ALWAYS) {
-                	explode(crystal);
+                    explode(crystal);
                 }
                 for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
-            	    BlockPos offset = new BlockPos(vecOffset.x, vecOffset.y, vecOffset.z);
-            		if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
-            			holeBlocks++;
-            		}
+                    BlockPos offset = new BlockPos(vecOffset.x, vecOffset.y, vecOffset.z);
+                    if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
+                        holeBlocks++;
+                    }
                 }
                 if (explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
-                		if (holeBlocks == 5) {
-                			explode(crystal);
-                		}
+                    if (holeBlocks == 5) {
+                        explode(crystal);
+                    }
                 }
                 if (explodeBehavior.getValue() == ExplodeBehavior.PREVENT_SUICIDE) {
-                	if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.5 && mc.player.getPosition().getY() == crystal.getPosition().getY()|| mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3 && mc.player.getPosition().getY() == crystal.getPosition().getY()||mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 0.5 && mc.player.getPosition().getY() != crystal.getPosition().getY()) {
-                		explode(crystal);
-                	}
+                    if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.5 && mc.player.getPosition().getY() == crystal.getPosition().getY()|| mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3 && mc.player.getPosition().getY() == crystal.getPosition().getY()||mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 0.5 && mc.player.getPosition().getY() != crystal.getPosition().getY()) {
+                        explode(crystal);
+                    }
                 }
                 if (explodeBehavior.getValue() == ExplodeBehavior.LEFT_CLICK_ONLY && mc.gameSettings.keyBindAttack.isKeyDown()) {
-                	explode(crystal);
+                    explode(crystal);
                 }
                 if (sneakEnable.getValue() && mc.player.isSneaking() && holeBlocks != 5) {
-                	ModuleManager.getModuleByName("Surround").enable();
+                    ModuleManager.getModuleByName("Surround").enable();
                 }
                 return;
             }
-            
+
         } else {
             resetRotation();
             if (oldSlot != -1) {
@@ -273,38 +285,38 @@ public class CrystalAura extends Module {
                 }
             }
         }
-        
+
         if (place.getValue() && placeBehavior.getValue() == PlaceBehavior.MULTI) {
-        	for (Entity entity : entities) {
-        		  
-        		if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0) {
-                      continue;
-                }	
-        		for (BlockPos blockPos : blocks) {
+            for (Entity entity : entities) {
+
+                if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0) {
+                    continue;
+                }
+                for (BlockPos blockPos : blocks) {
                     double b = entity.getDistanceSq(blockPos);
                     if (b > 75) {
-                  	  continue;
+                        continue;
                     }
-        			double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
+                    double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
                     double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
                     if (self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d) continue;
                     if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || 6 >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() && b < 4 || b < 9 && d >= minDmg.getValue() && minDmg.getValue() > 0.0) {
-                  	    q = blockPos;
-                  	    damage = d;
-                  	    renderEnt = entity;
+                        q = blockPos;
+                        damage = d;
+                        renderEnt = entity;
                     }
-        		}
-        	}
+                }
+            }
         }
         if (damage == .5) {
             render = null;
             renderEnt = null;
             resetRotation();
             return;
-        } 
+        }
         // this sends a constant packet flow for default packets
         if (place.getValue()) {
-        	render = q;
+            render = q;
             if (!offhand && mc.player.inventory.currentItem != crystalSlot) {
                 if (autoSwitch.getValue()) {
                     mc.player.inventory.currentItem = crystalSlot;
@@ -339,7 +351,7 @@ public class CrystalAura extends Module {
             }
         }
     }
-    
+
     @Override
     public void onWorldRender(RenderEvent event) {
         if (render != null) {
@@ -380,7 +392,7 @@ public class CrystalAura extends Module {
                 && mc.world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(boost)).isEmpty()
                 && mc.world.getEntitiesWithinAABB(Entity.class, new AxisAlignedBB(boost2)).isEmpty();
     }
-    
+
     public static BlockPos getPlayerPos() {
         return new BlockPos(Math.floor(mc.player.posX), Math.floor(mc.player.posY), Math.floor(mc.player.posZ));
     }
@@ -498,24 +510,48 @@ public class CrystalAura extends Module {
         if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&cDISABLED&r");
         render = null;
         renderEnt = null;
+        lastCrystal = null;
+        ignoredCrystals = null;
         resetRotation();
     }
-    
+
     public void explode(EntityEnderCrystal crystal) {
-    	lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
-    	mc.playerController.attackEntity(mc.player, crystal);
-    	mc.player.swingArm(EnumHand.MAIN_HAND);
-    	systemTime = System.nanoTime() / 1000000L;
+        if (crystal == null) return;
+
+        if (lastCrystal == crystal) tries++;
+        else {
+            lastCrystal = crystal;
+            tries = 0;
+        }
+
+        try {
+            if (hitAttempts.getValue() != -1 && tries > hitAttempts.getValue()) {
+                ignoredCrystals.add(crystal);
+                tries = 0;
+            } else {
+                lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
+                mc.playerController.attackEntity(mc.player, crystal);
+                mc.player.swingArm(EnumHand.MAIN_HAND);
+            }
+        } catch (Throwable ignored) { }
+
+        systemTime = System.nanoTime() / 1000000L;
     }
 
     private boolean passSwordCheck() {
         if (!noToolExplode.getValue() || antiWeakness.getValue()) return true;
-        else if (noToolExplode.getValue() && (mc.player.getHeldItemMainhand().getItem() instanceof ItemTool || mc.player.getHeldItemMainhand().getItem() instanceof ItemSword)) return false;
-        return true;
+        else return !noToolExplode.getValue() || (!(mc.player.getHeldItemMainhand().getItem() instanceof ItemTool) && !(mc.player.getHeldItemMainhand().getItem() instanceof ItemSword));
     }
-  
+
     @Override
     public String getHudInfo() {
         return String.valueOf(getItems(Items.END_CRYSTAL));
     }
+
+    private boolean ignored(Entity e) {
+        if (ignoredCrystals == null) return false;
+        for (EntityEnderCrystal c : ignoredCrystals) if (e != null && e == c) return true;
+        return false;
+    }
+
 }
