@@ -1,21 +1,21 @@
 package me.zeroeightsix.kami.util;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class VectorUtil {
 
+    // Gets distance between vecA and vecB
     public static double getDistance(Vec3d vecA, Vec3d vecB) {
-        return MathHelper.sqrt((vecA.x - vecB.x) * (vecA.x - vecB.x) + (vecA.y - vecB.y) * (vecA.y - vecB.y) + (vecA.z - vecB.z) * (vecA.z - vecB.z));
+        return Math.sqrt(Math.pow(vecA.x - vecB.x, 2) + Math.pow(vecA.y - vecB.y, 2) + Math.pow(vecA.z - vecB.z, 2));
     }
 
-    public static List<Vec3d> extendVec(Vec3d startVec, Vec3d destinationVec, int steps) {
-        List<Vec3d> returnList = new ArrayList<>();
+    // Gets vectors between two given vectors (startVec and destinationVec) every (distance between the given vectors) / steps
+    public static ArrayList<Vec3d> extendVec(Vec3d startVec, Vec3d destinationVec, int steps) {
+        ArrayList<Vec3d> returnList = new ArrayList<>(steps + 1);
         double stepDistance = getDistance(startVec, destinationVec) / steps;
 
         for (int i = 0; i < Math.max(steps, 1) + 1; i++) {
@@ -25,13 +25,15 @@ public class VectorUtil {
         return returnList;
     }
 
+    // Returns vector based on startVec that is moved towards destinationVec by distance
     public static Vec3d advanceVec(Vec3d startVec, Vec3d destinationVec, double distance) {
         Vec3d advanceDirection = destinationVec.subtract(startVec).normalize();
         if (destinationVec.distanceTo(startVec) < distance) return destinationVec;
         return advanceDirection.scale(distance);
     }
 
-    public static List<BlockPos> getIntPositionsInArea(Vec3d pos1, Vec3d pos2) {
+    // Get all rounded block positions inside a 3-dimensional area between pos1 and pos2.
+    public static ArrayList<BlockPos> getBlockPositionsInArea(Vec3d pos1, Vec3d pos2) {
         int minX = (int) Math.round(Math.min(pos1.x, pos2.x));
         int maxX = (int) Math.round(Math.max(pos1.x, pos2.x));
 
@@ -41,7 +43,7 @@ public class VectorUtil {
         int minZ = (int) Math.round(Math.min(pos1.z, pos2.z));
         int maxZ = (int) Math.round(Math.max(pos1.z, pos2.z));
 
-        List<BlockPos> returnList = Arrays.asList(new BlockPos[(maxX - minX) * (maxY-minY) * (maxZ-minZ)]);
+        ArrayList<BlockPos> returnList = new ArrayList<>((maxX - minX) * (maxY - minY) * (maxZ - minZ));
 
         for (int x = minX; x < maxX; x++) {
             for (int y = minY; y < maxY; y++) {
@@ -52,17 +54,18 @@ public class VectorUtil {
         return returnList;
     }
 
-    public static List<BlockPos> getIntPositionsInArea(BlockPos pos1, BlockPos pos2) {
-        int minX = (int) Math.round(Math.min(pos1.x, pos2.x));
-        int maxX = (int) Math.round(Math.max(pos1.x, pos2.x));
+    // Get all rounded block positions inside a 3-dimensional area between pos1 and pos2.
+    public static List<BlockPos> getBlockPositionsInArea(BlockPos pos1, BlockPos pos2) {
+        int minX = Math.min(pos1.x, pos2.x);
+        int maxX = Math.max(pos1.x, pos2.x);
 
-        int minY = (int) Math.round(Math.min(pos1.y, pos2.y));
-        int maxY = (int) Math.round(Math.max(pos1.y, pos2.y));
+        int minY = Math.min(pos1.y, pos2.y);
+        int maxY = Math.max(pos1.y, pos2.y);
 
-        int minZ = (int) Math.round(Math.min(pos1.z, pos2.z));
-        int maxZ = (int) Math.round(Math.max(pos1.z, pos2.z));
+        int minZ = Math.min(pos1.z, pos2.z);
+        int maxZ = Math.max(pos1.z, pos2.z);
 
-        List<BlockPos> returnList = Arrays.asList(new BlockPos[(maxX - minX) * (maxY-minY) * (maxZ-minZ)]);
+        ArrayList<BlockPos> returnList = new ArrayList<>((maxX - minX) * (maxY - minY) * (maxZ - minZ));
 
         for (int x = minX; x < maxX; x++) {
             for (int y = minY; y < maxY; y++) {
