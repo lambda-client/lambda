@@ -47,7 +47,8 @@ import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
  * Updated 8 March 2020 by polymer
- * Updated by S-B99 on 07/03/20
+ * Updated by qther on 27/03/20
+ * Updated by S-B99 on 27/03/20
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
