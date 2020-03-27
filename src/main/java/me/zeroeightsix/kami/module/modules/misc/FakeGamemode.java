@@ -7,7 +7,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.GameType;
 
-/***
+/**
  * Created by @S-B99 on 20/11/19
  * Yes, this is 100% original code. Go away
  */

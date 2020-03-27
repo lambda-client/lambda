@@ -193,9 +193,6 @@ public class KamiMod {
 
         try { // load modules that are on by default // autoenable
             ModuleManager.getModuleByName("Hidden:RunConfig").setEnabled(true);
-            ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
-            ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
-            ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
         }
         catch (NullPointerException e) {
             KamiMod.log.error("NPE in loading always enabled modules\n");

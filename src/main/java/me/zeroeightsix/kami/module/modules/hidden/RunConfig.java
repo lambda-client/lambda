@@ -17,7 +17,12 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
     private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
 
-    public void onUpdate() {
+    public void onEnable() {
+        ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
+        ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
+        ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
+        ModuleManager.getModuleByName("CommandConfig").setEnabled(true);
+
         if (!hasRunCapes.getValue()) {
             ModuleManager.getModuleByName("Capes").setEnabled(true);
             hasRunCapes.setValue(true);
@@ -38,5 +43,6 @@ public class RunConfig extends Module {
             ModuleManager.getModuleByName("CustomChat").setEnabled(true);
             hasRunCustomChat.setValue(true);
         }
+        disable();
     }
 }
