@@ -32,12 +32,15 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.Explosion;
 import org.lwjgl.opengl.GL11;
 
-import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
-import static me.zeroeightsix.kami.util.ColourConverter.*;
+import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 
 /**
@@ -65,7 +68,7 @@ public class CrystalAura extends Module {
     private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize Manual").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     /* Page Two */
     private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(false).withVisibility(v -> !antiWeakness.getValue() && p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(true).withVisibility(v -> !antiWeakness.getValue() && p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
@@ -93,7 +96,7 @@ public class CrystalAura extends Module {
 
     private static EntityEnderCrystal lastCrystal;
     private static List<EntityEnderCrystal> ignoredCrystals = new ArrayList<>();
-    private static int tries = 0;
+    private static int hitTries = 0;
 
     public void onUpdate() {
         if (defaultSetting.getValue()) {
@@ -102,15 +105,16 @@ public class CrystalAura extends Module {
             autoSwitch.setValue(true);
             place.setValue(false);
             explode.setValue(false);
-            noToolExplode.setValue(false);
-            antiWeakness.setValue(false);
             checkAbsorption.setValue(true);
             range.setValue(4.0);
             delay.setValue(5.0);
+            hitAttempts.setValue(-1);
             minDmg.setValue(0.0);
-            placePriority.setValue(false);
             sneakEnable.setValue(true);
+            placePriority.setValue(false);
 
+            antiWeakness.setValue(false);
+            noToolExplode.setValue(true);
             players.setValue(true);
             mobs.setValue(false);
             animals.setValue(false);
@@ -122,16 +126,18 @@ public class CrystalAura extends Module {
             g.setValue(144);
             b.setValue(255);
             statusMessages.setValue(false);
+
             defaultSetting.setValue(false);
             Command.sendChatMessage(getChatName() + " Set to defaults!");
             Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
         }
 
         if (mc.player == null) {
-            ignoredCrystals = null;
-            lastCrystal = null;
-            tries = 0;
+            resetHitAttempts();
+            return;
         }
+
+        resetHitAttempts(hitAttempts.getValue() == -1);
 
         int holeBlocks = 0;
 
@@ -502,32 +508,28 @@ public class CrystalAura extends Module {
         }
     });
 
-    public void onEnable() {
-        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&aENABLED&r");
-    }
+    public void onEnable() { sendMessage("&aENABLED&r"); }
 
     public void onDisable() {
-        if (statusMessages.getValue()) Command.sendChatMessage(this.getChatName() + "&cDISABLED&r");
+        sendMessage("&cDISABLED&r");
         render = null;
         renderEnt = null;
-        lastCrystal = null;
-        ignoredCrystals = null;
         resetRotation();
     }
 
     public void explode(EntityEnderCrystal crystal) {
         if (crystal == null) return;
 
-        if (lastCrystal == crystal) tries++;
+        if (lastCrystal == crystal) hitTries++;
         else {
             lastCrystal = crystal;
-            tries = 0;
+            hitTries = 0;
         }
 
         try {
-            if (hitAttempts.getValue() != -1 && tries > hitAttempts.getValue()) {
+            if (hitAttempts.getValue() != -1 && hitTries > hitAttempts.getValue()) {
                 ignoredCrystals.add(crystal);
-                tries = 0;
+                hitTries = 0;
             } else {
                 lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
                 mc.playerController.attackEntity(mc.player, crystal);
@@ -554,4 +556,39 @@ public class CrystalAura extends Module {
         return false;
     }
 
+    private void resetHitAttempts() {
+        sendMessage("&l&9Reset&r&9 hit attempts crystals");
+        lastCrystal = null;
+        ignoredCrystals = null;
+        hitTries = 0;
+    }
+
+    private void resetHitAttempts(boolean should) {
+        if (should) {
+            lastCrystal = null;
+            ignoredCrystals = null;
+            hitTries = 0;
+        } else if (resetTime()) {
+            sendMessage("&l&9Reset&r&9 hit attempts crystals");
+            lastCrystal = null;
+            ignoredCrystals = null;
+            hitTries = 0;
+        }
+    }
+
+    private static long startTime = 0;
+    private boolean resetTime() {
+        if (startTime == 0) startTime = System.currentTimeMillis();
+        if (startTime + 900000 <= System.currentTimeMillis()) { // 15 minutes in milliseconds
+            startTime = System.currentTimeMillis();
+            return true;
+        }
+        return false;
+    }
+
+    private void sendMessage(String message) {
+        if (statusMessages.getValue()) {
+            Command.sendChatMessage(getChatName() + message);
+        }
+    }
 }
