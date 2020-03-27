@@ -4,7 +4,7 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.event.events.EntityUseTotem;
+import me.zeroeightsix.kami.event.events.EntityUseTotemEvent;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -69,7 +69,7 @@ public class TotemPopCounter extends Module {
     }
 
     @EventHandler
-    public Listener<EntityUseTotem> listListener = new Listener<>(event -> {
+    public Listener<EntityUseTotemEvent> listListener = new Listener<>(event -> {
         if (playerList == null) playerList = new HashMap<>();
 
         if (playerList.get(event.getEntity().getName()) == null) {
@@ -171,7 +171,7 @@ public class TotemPopCounter extends Module {
             if (packet.getOpCode() == 35) {
                 Entity entity = packet.getEntity(mc.world);
                 if (friendCheck(entity.getName()) || selfCheck(entity.getName())) {
-                    EVENT_BUS.post(new EntityUseTotem(entity));
+                    EVENT_BUS.post(new EntityUseTotemEvent(entity));
                 }
             }
         }
