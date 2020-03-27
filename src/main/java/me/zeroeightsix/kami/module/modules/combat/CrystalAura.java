@@ -509,7 +509,9 @@ public class CrystalAura extends Module {
     }
 
     private boolean passSwordCheck() {
-        return !(mc.player.getHeldItemMainhand().getItem() instanceof ItemTool) || !noToolExplode.getValue();
+        if (!noToolExplode.getValue() || antiWeakness.getValue()) return true;
+        else if (noToolExplode.getValue() && (mc.player.getHeldItemMainhand().getItem() instanceof ItemTool || mc.player.getHeldItemMainhand().getItem() instanceof ItemSword)) return false;
+        return true;
     }
   
     @Override
