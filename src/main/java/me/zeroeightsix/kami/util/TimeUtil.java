@@ -62,4 +62,17 @@ public class TimeUtil {
         }
         return getStringColour(colourCode1) + time(dateFormatter(timeUnit, timeType)) + getStringColour(colourCode2) + locale;
     }
+
+    public static String getFinalTime(TimeUnit timeUnit, TimeType timeType, Boolean doLocale) {
+        String locale = "";
+        String time = time(TimeUtil.dateFormatter(TimeUnit.H24, TimeType.HH));
+        if (timeUnit == TimeUnit.H12 && doLocale) {
+            if ((Integer.parseInt(time)) - 12 >= 0) { // checks if the 24 hour time minus 12 is negative or 0, if it is it's pm
+                locale = "pm";
+            } else {
+                locale = "am";
+            }
+        }
+        return time(dateFormatter(timeUnit, timeType)) + locale;
+    }
 }

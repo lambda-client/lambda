@@ -75,6 +75,8 @@ dependencies {
         exclude group: 'com.google.guava', module: 'guava'
     }
     compile 'club.minnced:java-discord-rpc:v2.0.1'
+    compile 'com.github.MrPowerGamerBR:TemmieWebhook:-SNAPSHOT'
+    compile 'com.github.kevinsawicki:http-request:http-request-6.0'
 }
 
 processResources {
@@ -108,6 +110,8 @@ shadowJar {
         include(dependency('org.yaml:snakeyaml'))
         include(dependency('org.reflections:reflections'))
         include(dependency('org.javassist:javassist'))
+        include(dependency('com.github.MrPowerGamerBR:TemmieWebhook'))
+        include(dependency('com.github.kevinsawicki:http-request'))
     }
     exclude 'dummyThing' // can someone explain why this is here
     classifier = 'release'
