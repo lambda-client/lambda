@@ -199,31 +199,10 @@ public class KamiMod {
 
 
         try { // load modules that are on by default // autoenable
+            ModuleManager.getModuleByName("Hidden:FirstRun").setEnabled(true);
             ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
-            ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
             ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
-
-            if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("Capes").setEnabled(true);
-            }
-            if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
-            }
-            if (((FixGui) ModuleManager.getModuleByName("Hidden:FixGui")).shouldAutoEnable.getValue()) {
-                ModuleManager.getModuleByName("Hidden:FixGui").setEnabled(true);
-            }
-            if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("TabFriends").setEnabled(true);
-            }
-            if (((CustomChat) ModuleManager.getModuleByName("CustomChat")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("CustomChat").setEnabled(true);
-            }
-            if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
-            }
-            if (((PrefixChat) ModuleManager.getModuleByName("PrefixChat")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("PrefixChat").setEnabled(true);
-            }
+            ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
         }
         catch (NullPointerException e) {
             KamiMod.log.error("NPE in loading always enabled modules\n");
