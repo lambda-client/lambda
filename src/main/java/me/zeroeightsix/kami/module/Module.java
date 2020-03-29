@@ -119,7 +119,7 @@ public class Module {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Info {
         String name();
-        String description() default "No description for this module, please report this so it can be fixed at &b" + GITHUB_LINK;
+        String description();
         Module.Category category();
         boolean alwaysListening() default false;
         ShowOnArray showOnArray() default ShowOnArray.ON;
