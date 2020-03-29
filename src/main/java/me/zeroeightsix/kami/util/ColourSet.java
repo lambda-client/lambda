@@ -15,7 +15,7 @@ public class ColourSet {
     public static Color bgColourHover = new Color(67, 54, 191); // light colored
     public static double bgColourOther = 229.5;
 
-    public static Color buttonPressed = new Color(177, 52, 235);
+    public static Color buttonPressed = new Color(116, 101, 247);
 
     public static Color buttonIdleN = new Color(200, 200, 200); // lighter grey
     public static Color buttonHoveredN = new Color(190, 190, 190); // light grey
