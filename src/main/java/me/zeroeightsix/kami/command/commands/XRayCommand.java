@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.command.commands;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.ModuleManager;
@@ -19,7 +20,7 @@ public class XRayCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        XRay xr = (XRay) ModuleManager.getModuleByName("XRay");
+        XRay xr = (XRay) KamiMod.MODULE_MANAGER.getModule(XRay.class);
         if (xr == null) {
             Command.sendErrorMessage("&cThe module is not available for some reason. Make sure the name you're calling is correct and that you have the module installed!!");
             return;

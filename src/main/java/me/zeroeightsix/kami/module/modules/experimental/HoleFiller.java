@@ -2,10 +2,10 @@ package me.zeroeightsix.kami.module.modules.experimental;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
@@ -17,7 +17,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockObsidian;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -94,7 +93,7 @@ public class HoleFiller extends Module {
 
         entities.addAll(mc.world.playerEntities.stream().filter(entityPlayer -> !Friends.isFriend(entityPlayer.getName())).collect(Collectors.toList()));
         int range = (int) Math.ceil(distance.getValue());
-        CrystalAura ca = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+        CrystalAura ca = (CrystalAura) KamiMod.MODULE_MANAGER.getModule(CrystalAura.class);
         blockPosList = ca.getSphere(getPlayerPos(), range, range, false, true, 0);
         for (Entity p : entities) {
             List<BlockPos> maybe = ca.getSphere(p.getPosition(), range, range, false, true, 0);
@@ -160,8 +159,8 @@ public class HoleFiller extends Module {
                 mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));
                 lookAtPacket(p.x, p.y, p.z, mc.player);
                 BlockInteractionHelper.placeBlockScaffold(p);
-                if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
-                    ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
+                if (KamiMod.MODULE_MANAGER.isModuleEnabled(NoBreakAnimation.class)) {
+                    ((NoBreakAnimation) KamiMod.MODULE_MANAGER.getModule(NoBreakAnimation.class)).resetMining();
                 }
                 resetRotation();
                 mc.player.connection.sendPacket(new CPacketHeldItemChange(oldSlot));

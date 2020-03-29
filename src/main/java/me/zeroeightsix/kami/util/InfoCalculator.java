@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.util;
 
-import me.zeroeightsix.kami.module.Module;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.MathHelper;
@@ -45,6 +44,7 @@ public class InfoCalculator {
 
     // Speed {
     private static DecimalFormat formatter = new DecimalFormat("#.#");
+
     public static String speed(boolean useUnitKmH, Minecraft mc) {
         float currentTps = mc.timer.tickLength / 1000.0f;
         double multiply = 1.0;
@@ -114,6 +114,7 @@ public class InfoCalculator {
 
     // Dimension {
     public static String playerDimension(Minecraft mc) {
+        if (mc.player == null) return "No Dimension";
         switch(mc.player.dimension) {
             case -1:
                 return "Nether";

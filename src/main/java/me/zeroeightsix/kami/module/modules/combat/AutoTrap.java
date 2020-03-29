@@ -1,9 +1,11 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -117,7 +119,7 @@ public class AutoTrap extends Module {
     public void onUpdate() {
         if (mc.player == null || mc.player.getHealth() <= 0) return;
 
-        if (!activeInFreecam.getValue() && ModuleManager.isModuleEnabled("Freecam")) return;
+        if (!activeInFreecam.getValue() && KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) return;
 
         if (firstRun) {
             if (findObiInHotbar() == -1) {
@@ -259,8 +261,8 @@ public class AutoTrap extends Module {
             mc.player.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, neighbour, opposite));
         }
 
-        if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
-            ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(NoBreakAnimation.class)) {
+            ((NoBreakAnimation) KamiMod.MODULE_MANAGER.getModule(NoBreakAnimation.class)).resetMining();
         }
         return true;
     }

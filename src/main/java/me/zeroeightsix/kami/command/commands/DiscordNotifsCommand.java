@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.chat.DiscordNotifs;
 
 /**
@@ -17,7 +16,7 @@ public class DiscordNotifsCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        DiscordNotifs df = (DiscordNotifs) ModuleManager.getModuleByName("DiscordNotifs");
+        DiscordNotifs df = (DiscordNotifs) KamiMod.MODULE_MANAGER.getModule(DiscordNotifs.class);
         if (args[0] != null && !args[0].equals("")) {
             df.url.setValue(args[0]);
             Command.sendChatMessage(df.getChatName() + "Set URL to \"" + args[0] + "\"!");

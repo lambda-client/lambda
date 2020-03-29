@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.gui;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
@@ -76,7 +77,7 @@ public class ActiveModules extends Module {
     }
 
     private TextFormatting infoGetSetting(boolean isOne) {
-        InfoOverlay infoOverlay = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
+        InfoOverlay infoOverlay = (InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class);
         if (isOne) return setToText(infoOverlay.firstColour.getValue());
         else return setToText(infoOverlay.secondColour.getValue());
 

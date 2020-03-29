@@ -1,11 +1,9 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.gui.ActiveModules;
 import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.opengl.GL11;
@@ -33,14 +31,14 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
         FontRenderer renderer = Wrapper.getFontRenderer();
-        List<Module> mods = ModuleManager.getModules().stream()
+        List<Module> mods = KamiMod.MODULE_MANAGER.getModules().stream()
                 .filter(Module::isEnabled)
                 .filter(Module::isOnArray)
                 .sorted(Comparator.comparing(module -> renderer.getStringWidth(module.getName() + (module.getHudInfo() == null ? "" : module.getHudInfo() + " ")) * (component.sort_up ? -1 : 1)))
                 .collect(Collectors.toList());
 
         final int[] y = {2};
-        activeMods = (ActiveModules) ModuleManager.getModuleByName("ActiveModules");
+        activeMods = (ActiveModules) KamiMod.MODULE_MANAGER.getModule(ActiveModules.class);
 
         if (component.getParent().getY() < 26 && Wrapper.getPlayer().getActivePotionEffects().size() > 0 && component.getParent().getOpacity() == 0)
             y[0] = Math.max(component.getParent().getY(), 26 - component.getParent().getY());

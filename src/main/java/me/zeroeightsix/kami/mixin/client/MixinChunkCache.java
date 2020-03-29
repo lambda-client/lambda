@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.mixin.client;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.render.XRay;
 import net.minecraft.block.state.IBlockState;
@@ -22,7 +23,7 @@ public class MixinChunkCache {
 
     @Inject(method = "getBlockState", at = @At("RETURN"), cancellable = true)
     public void getState(BlockPos pos, CallbackInfoReturnable<IBlockState> info) {
-        if (ModuleManager.isModuleEnabled("XRay"))
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(XRay.class))
             info.setReturnValue(XRay.transform(info.getReturnValue()));
     }
 

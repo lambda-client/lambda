@@ -2,8 +2,8 @@ package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.render.Pathfind;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -34,7 +34,7 @@ public class AutoWalk extends Module {
                 event.getMovementInput().moveForward = 1;
                 if (mc.player.isInWater() || mc.player.isInLava()) mc.player.movementInput.jump = true;
                 else if (mc.player.collidedHorizontally && mc.player.onGround) mc.player.jump();
-                if (!ModuleManager.isModuleEnabled("Pathfind") || Pathfind.points.isEmpty()) return;
+                if (!KamiMod.MODULE_MANAGER.isModuleEnabled(Pathfind.class) || Pathfind.points.isEmpty()) return;
                 PathPoint next = Pathfind.points.get(0);
                 lookAt(next);
                 break;

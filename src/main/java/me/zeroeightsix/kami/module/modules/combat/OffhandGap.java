@@ -2,10 +2,9 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.entity.item.EntityEnderCrystal;
@@ -13,6 +12,9 @@ import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.*;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
+
+import java.util.Comparator;
+import java.util.Objects;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
 
@@ -53,9 +55,9 @@ public class OffhandGap extends Module {
 				return;
 			}
 			if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
-				if (ModuleManager.isModuleEnabled("AutoOffhand")) {
+				if (KamiMod.MODULE_MANAGER.isModuleEnabled(AutoOffhand.class)) {
 					autoTotemWasEnabled = true;
-					ModuleManager.getModuleByName("AutoOffhand").disable();
+					KamiMod.MODULE_MANAGER.getModule(AutoOffhand.class).disable();
 				}
 				if (!eatWhileAttacking.getValue()) { /* Save item for later when using preventDesync */
 					usedItem = mc.player.getHeldItemMainhand().getItem();
@@ -78,7 +80,8 @@ public class OffhandGap extends Module {
 				disableGaps();
 			}
 			/* Disable if there are crystals in the range of CrystalAura */
-			else if (crystalCheck.getValue() && crystalAura.isEnabled()) {
+			crystalAura = (CrystalAura) KamiMod.MODULE_MANAGER.getModule(CrystalAura.class);
+			if (crystalCheck.getValue() && crystalAura.isEnabled()) {
 				EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
 		                .filter(entity -> entity instanceof EntityEnderCrystal)
 		                .map(entity -> (EntityEnderCrystal) entity)
@@ -135,9 +138,9 @@ public class OffhandGap extends Module {
 	}
 
 	private void disableGaps() {
-		if (autoTotemWasEnabled != ModuleManager.isModuleEnabled("AutoOffhand")) {
+		if (autoTotemWasEnabled != KamiMod.MODULE_MANAGER.isModuleEnabled(AutoOffhand.class)) {
 			moveGapsToInventory(gaps);
-			ModuleManager.getModuleByName("AutoOffhand").enable();
+			KamiMod.MODULE_MANAGER.getModule(AutoOffhand.class).enable();
 			autoTotemWasEnabled = false;
 		}
 	}

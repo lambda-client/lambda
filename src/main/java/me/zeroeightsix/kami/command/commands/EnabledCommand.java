@@ -1,9 +1,9 @@
 package me.zeroeightsix.kami.command.commands;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import net.minecraft.util.text.TextFormatting;
 import org.apache.commons.lang3.StringUtils;
 
@@ -25,7 +25,10 @@ public class EnabledCommand extends Command {
     @Override
     public void call(String[] args) {
         AtomicReference<String> enabled = new AtomicReference<>("");
-        List<Module> mods = new ArrayList<>(ModuleManager.getModules());
+        List<Module> mods = new ArrayList<>(KamiMod.MODULE_MANAGER.getModules());
+
+        String f = "";
+        if (args[0] != null) f = "(filter: " + args[0] + ")";
 
         String f = "";
         if (args[0] != null) f = "(filter: " + args[0] + ")";

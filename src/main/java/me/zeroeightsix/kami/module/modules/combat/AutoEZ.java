@@ -4,7 +4,6 @@ import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.gui.GuiGameOver;
@@ -64,10 +63,9 @@ public class AutoEZ extends Module {
 	
 	@Override
 	public void onUpdate() {
-		if (hasBeenCombat > 0 && (focus.getHealth() <= 0.0f || focus.isDead || !mc.world.playerEntities.contains(this.focus))) {
-			if (ModuleManager.getModuleByName("AutoEZ").isEnabled()) {
-				mc.player.sendChatMessage(getText(mode.getValue())+focus.getName());
-			}
+		if (mc.player == null) return;
+		if (hasBeenCombat > 0 && (focus.getHealth() <= 0.0f || focus.isDead || !mc.world.playerEntities.contains(focus))) {
+			mc.player.sendChatMessage(getText(mode.getValue())+focus.getName());
 			hasBeenCombat = 0;
 		}
 		--hasBeenCombat;

@@ -11,7 +11,6 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.ServerConnectedEvent;
 import me.zeroeightsix.kami.event.events.ServerDisconnectedEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -140,8 +139,8 @@ public class DiscordNotifs extends Module {
     }
 
     private String getTime() {
-        if (!time.getValue() || ModuleManager.getModuleByName("ChatTimestamp").isEnabled()) return "";
-        InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
+        if (!time.getValue() || KamiMod.MODULE_MANAGER.isModuleEnabled(ChatTimestamp.class)) return "";
+        InfoOverlay info = (InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class);
         return "[" + TimeUtil.getFinalTime(info.timeUnitSetting.getValue(), info.timeTypeSetting.getValue(), info.doLocale.getValue()) + "] ";
     }
 

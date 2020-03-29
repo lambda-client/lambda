@@ -1,8 +1,8 @@
 package me.zeroeightsix.kami.command.commands;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.hidden.FixGui;
 
 /**
@@ -16,7 +16,7 @@ public class FixGuiCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        FixGui fixGui = (FixGui) ModuleManager.getModuleByName("Hidden:FixGui");
+        FixGui fixGui = (FixGui) KamiMod.MODULE_MANAGER.getModule(FixGui.class);
         if (fixGui.isEnabled()) {
             fixGui.disable();
             Command.sendChatMessage("[" + getLabel() + "] Disabled");

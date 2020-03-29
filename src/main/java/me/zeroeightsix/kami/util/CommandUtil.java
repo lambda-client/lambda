@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.util;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.gui.CommandConfig;
 
 /**
@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.module.modules.gui.CommandConfig;
  */
 public class CommandUtil {
     public static void runAliases(Command command) {
-        if (!((CommandConfig) ModuleManager.getModuleByName("CommandConfig")).aliasInfo.getValue()) return;
+        if (!((CommandConfig) KamiMod.MODULE_MANAGER.getModule(CommandConfig.class)).aliasInfo.getValue()) return;
         int amount = command.getAliases().size();
         if (amount > 0) {
             Command.sendChatMessage("'" + command.getLabel() + "' has " + grammar1(amount) + "alias" + grammar2(amount));

@@ -24,7 +24,7 @@ public class GenerateWebsiteCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        List<Module> mods = new ArrayList<>(ModuleManager.getModules());
+        List<Module> mods = new ArrayList<>(KamiMod.MODULE_MANAGER.getModules());
         String[] modCategories = new String[]{"Chat", "Combat", "Gui", "Misc", "Movement", "Player", "Render", "Utils"};
         List<String> modCategoriesList = new ArrayList<>(java.util.Arrays.asList(modCategories));
 

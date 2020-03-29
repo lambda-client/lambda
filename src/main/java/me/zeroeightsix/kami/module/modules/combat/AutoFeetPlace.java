@@ -1,9 +1,10 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -107,7 +108,8 @@ public class AutoFeetPlace extends Module {
 
     @Override
     public void onUpdate() {
-        if (mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+
+        if (mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             return;
         }
 
@@ -244,8 +246,8 @@ public class AutoFeetPlace extends Module {
         mc.player.swingArm(EnumHand.MAIN_HAND);
         mc.rightClickDelayTimer = 4;
 
-        if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
-            ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(NoBreakAnimation.class)) {
+            ((NoBreakAnimation) KamiMod.MODULE_MANAGER.getModule(NoBreakAnimation.class)).resetMining();
         }
         return true;
     }
