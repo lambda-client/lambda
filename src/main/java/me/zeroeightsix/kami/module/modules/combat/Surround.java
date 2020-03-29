@@ -7,14 +7,16 @@ import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
-import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockObsidian;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.play.client.*;
+import net.minecraft.network.play.client.CPacketAnimation;
+import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.network.play.client.CPacketEntityAction.Action;
+import net.minecraft.network.play.client.CPacketHeldItemChange;
+import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketPlayer.Rotation;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -60,7 +62,7 @@ public class Surround extends Module {
         if (!isDisabled() && mc.player != null && !ModuleManager.isModuleEnabled("Freecam")) {
             if (offsetStep == 0) {
                 basePos = (new BlockPos(mc.player.getPositionVector())).down();
-                playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
+                playerHotbarSlot = mc.player.inventory.currentItem;
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                     Command.sendChatMessage(getChatName() + " Starting Loop, current Player Slot: " + playerHotbarSlot);
                 }
@@ -138,7 +140,7 @@ public class Surround extends Module {
         }
         /* End of Autocenter*/
 
-        playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
+        playerHotbarSlot = mc.player.inventory.currentItem;
         lastHotbarSlot = -1;
         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
             Command.sendChatMessage(getChatName() + " Saving initial Slot  = " + playerHotbarSlot);
@@ -155,7 +157,7 @@ public class Surround extends Module {
                 if (spoofHotbar.getValue()) {
                     mc.player.connection.sendPacket(new CPacketHeldItemChange(playerHotbarSlot));
                 } else {
-                    Wrapper.getPlayer().inventory.currentItem = playerHotbarSlot;
+                    mc.player.inventory.currentItem = playerHotbarSlot;
                 }
             }
             playerHotbarSlot = -1;
@@ -176,7 +178,7 @@ public class Surround extends Module {
             if (spoofHotbar.getValue()) {
                 mc.player.connection.sendPacket(new CPacketHeldItemChange(playerHotbarSlot));
             } else {
-                Wrapper.getPlayer().inventory.currentItem = playerHotbarSlot;
+                mc.player.inventory.currentItem = playerHotbarSlot;
             }
 
             lastHotbarSlot = playerHotbarSlot;
@@ -187,7 +189,7 @@ public class Surround extends Module {
     }
 
     private void placeBlock(BlockPos blockPos) {
-        if (!Wrapper.getWorld().getBlockState(blockPos).getMaterial().isReplaceable()) {
+        if (!mc.world.getBlockState(blockPos).getMaterial().isReplaceable()) {
             if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
                 Command.sendChatMessage(getChatName() + " Block is already placed, skipping");
             }
@@ -205,7 +207,7 @@ public class Surround extends Module {
     private int findObiInHotbar() {
         int slot = -1;
         for (int i = 0; i < 9; ++i) {
-            ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack != ItemStack.EMPTY && stack.getItem() instanceof ItemBlock) {
                 Block block = ((ItemBlock) stack.getItem()).getBlock();
                 if (block instanceof BlockObsidian) {
@@ -218,7 +220,7 @@ public class Surround extends Module {
     }
 
     public void placeBlockExecute(BlockPos pos) {
-        Vec3d eyesPos = new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + (double) Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
+        Vec3d eyesPos = new Vec3d(mc.player.posX, mc.player.posY + (double) mc.player.getEyeHeight(), mc.player.posZ);
         EnumFacing[] var3 = EnumFacing.values();
 
         for (EnumFacing side : var3) {
@@ -262,12 +264,12 @@ public class Surround extends Module {
                         if (spoofHotbar.getValue()) {
                             mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));
                         } else {
-                            Wrapper.getPlayer().inventory.currentItem = obiSlot;
+                            mc.player.inventory.currentItem = obiSlot;
                         }
                         lastHotbarSlot = obiSlot;
                     }
 
-                    mc.playerController.processRightClickBlock(Wrapper.getPlayer(), mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
+                    mc.playerController.processRightClickBlock(mc.player, mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
                     mc.player.connection.sendPacket(new CPacketAnimation(EnumHand.MAIN_HAND));
                     if (needSneak) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
@@ -294,12 +296,12 @@ public class Surround extends Module {
     }
 
     private static IBlockState getState(BlockPos pos) {
-        return Wrapper.getWorld().getBlockState(pos);
+        return mc.world.getBlockState(pos);
     }
 
     private static void faceVectorPacketInstant(Vec3d vec) {
         float[] rotations = getLegitRotations(vec);
-        Wrapper.getPlayer().connection.sendPacket(new Rotation(rotations[0], rotations[1], Wrapper.getPlayer().onGround));
+        mc.player.connection.sendPacket(new Rotation(rotations[0], rotations[1], mc.player.onGround));
     }
 
     private static float[] getLegitRotations(Vec3d vec) {
@@ -310,10 +312,10 @@ public class Surround extends Module {
         double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
         float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
         float pitch = (float) (-Math.toDegrees(Math.atan2(diffY, diffXZ)));
-        return new float[]{Wrapper.getPlayer().rotationYaw + MathHelper.wrapDegrees(yaw - Wrapper.getPlayer().rotationYaw), Wrapper.getPlayer().rotationPitch + MathHelper.wrapDegrees(pitch - Wrapper.getPlayer().rotationPitch)};
+        return new float[]{mc.player.rotationYaw + MathHelper.wrapDegrees(yaw - mc.player.rotationYaw), mc.player.rotationPitch + MathHelper.wrapDegrees(pitch - mc.player.rotationPitch)};
     }
 
     private static Vec3d getEyesPos() {
-        return new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + (double) Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
+        return new Vec3d(mc.player.posX, mc.player.posY + (double) mc.player.getEyeHeight(), mc.player.posZ);
     }
 }
