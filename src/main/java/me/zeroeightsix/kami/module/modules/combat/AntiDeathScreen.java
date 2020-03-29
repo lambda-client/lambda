@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.client.gui.GuiGameOver;
 
-/***
+/**
  * Created by S-B99 on 30/11/19
  */
 @Module.Info(name = "AntiDeathScreen", description = "Fixes random death screen glitches", category = Module.Category.COMBAT)

@@ -1,7 +1,5 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.module.modules.chat.CustomChat;
 import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
 import me.zeroeightsix.kami.module.modules.render.ShulkerPreview;
 import net.minecraft.client.Minecraft;
@@ -97,6 +95,15 @@ public class MixinGuiScreen {
         }
     }
 
+    /**
+     * @author cookiedragon234
+     * see https://github.com/S-B99/kamiblue/pull/293 for discussion
+     * authors words:
+     * Also @S-B99 you should be more careful with merging commits, especially from people who are new to coding. Stuff like this is obviously stolen, and can get your repository DMCA'd.
+     *
+     * as shown be the rest of his discussion, he was fine with it
+     * I even aknowledged when it was added, after cookies approval, that it was pasted from backdoored. 
+     */
     @Inject(method = "Lnet/minecraft/client/gui/GuiScreen;drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
         if (this.mc.world != null && MODULE_MANAGER.isModuleEnabled(CleanGUI.class) && (((CleanGUI) MODULE_MANAGER.getModule(CleanGUI.class)).inventoryGlobal.getValue())) {

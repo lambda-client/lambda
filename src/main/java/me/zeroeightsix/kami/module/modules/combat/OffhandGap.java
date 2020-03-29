@@ -7,10 +7,14 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.entity.item.EntityEnderCrystal;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.*;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
+
+import java.util.Comparator;
+import java.util.Objects;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
 
@@ -26,6 +30,7 @@ public class OffhandGap extends Module {
 	private Setting<Boolean> eatWhileAttacking = register(Settings.b("Eat While Attacking", false));
 	private Setting<Boolean> swordOrAxeOnly = register(Settings.b("Sword or Axe Only", true));
 	private Setting<Boolean> preferBlocks = register(Settings.booleanBuilder("Prefer Placing Blocks").withValue(false).withVisibility(v -> !swordOrAxeOnly.getValue()).build());
+	private Setting<Boolean> crystalCheck = register(Settings.b("Crystal Check", false));
 //	private Setting<Mode> modeSetting = register(Settings.e("Use Mode", Mode.GAPPLE));
 
 //	private enum Mode {
@@ -37,6 +42,7 @@ public class OffhandGap extends Module {
 	boolean cancelled = false;
 	Item usedItem;
 	Item toUseItem;
+	CrystalAura crystalAura;
 
 	@EventHandler
 	private Listener<PacketEvent.Send> sendListener = new Listener<>(e ->{
@@ -46,9 +52,9 @@ public class OffhandGap extends Module {
 				return;
 			}
 			if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
-				if (KamiMod.MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
+				if (KamiMod.MODULE_MANAGER.isModuleEnabled(AutoOffhand.class)) {
 					autoTotemWasEnabled = true;
-					KamiMod.MODULE_MANAGER.getModule(AutoTotem.class).disable();
+					KamiMod.MODULE_MANAGER.getModule(AutoOffhand.class).disable();
 				}
 				if (!eatWhileAttacking.getValue()) { /* Save item for later when using preventDesync */
 					usedItem = mc.player.getHeldItemMainhand().getItem();
@@ -69,6 +75,18 @@ public class OffhandGap extends Module {
 			/* Force disable if under health limit */
 			else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
 				disableGaps();
+			}
+			/* Disable if there are crystals in the range of CrystalAura */
+			crystalAura = (CrystalAura) KamiMod.MODULE_MANAGER.getModule(CrystalAura.class);
+			if (crystalCheck.getValue() && crystalAura.isEnabled()) {
+				EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
+		                .filter(entity -> entity instanceof EntityEnderCrystal)
+		                .map(entity -> (EntityEnderCrystal) entity)
+		                .min(Comparator.comparing(c -> mc.player.getDistance(c)))
+		                .orElse(null);
+				if (Objects.requireNonNull(crystal).getPosition().distanceSq(mc.player.getPosition().x, mc.player.getPosition().y, mc.player.getPosition().z) <= crystalAura.range.getValue()) {
+					disableGaps();
+				}
 			}
 		} catch (NullPointerException ignored) { }
 	});
@@ -117,9 +135,9 @@ public class OffhandGap extends Module {
 	}
 
 	private void disableGaps() {
-		if (autoTotemWasEnabled != KamiMod.MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
+		if (autoTotemWasEnabled != KamiMod.MODULE_MANAGER.isModuleEnabled(AutoOffhand.class)) {
 			moveGapsToInventory(gaps);
-			KamiMod.MODULE_MANAGER.getModule(AutoTotem.class).enable();
+			KamiMod.MODULE_MANAGER.getModule(AutoOffhand.class).enable();
 			autoTotemWasEnabled = false;
 		}
 	}

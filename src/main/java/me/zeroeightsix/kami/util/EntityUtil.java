@@ -156,7 +156,7 @@ public class EntityUtil {
         double pitch = Math.asin(diry);
         double yaw = Math.atan2(dirz, dirx);
 
-        //to degree
+        // to degree
         pitch = pitch * 180.0d / Math.PI;
         yaw = yaw * 180.0d / Math.PI;
 

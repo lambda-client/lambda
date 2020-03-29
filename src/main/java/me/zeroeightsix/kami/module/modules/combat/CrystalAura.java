@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
@@ -34,29 +35,56 @@ import org.lwjgl.opengl.GL11;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
 
 /**
  * Created by 086 on 28/12/2017.
  * Updated 3 December 2019 by hub
+ * Updated 8 March 2020 by polymer
+ * Updated by qther on 27/03/20
+ * Updated by S-B99 on 27/03/20
  */
 @Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
 public class CrystalAura extends Module {
-
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Boolean> autoSwitch = register(Settings.b("Auto Switch", true));
-    private Setting<Boolean> players = register(Settings.b("Players", true));
-    private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
-    private Setting<Boolean> animals = register(Settings.b("Animals", false));
-    private Setting<Boolean> place = register(Settings.b("Place", false));
-    private Setting<Boolean> explode = register(Settings.b("Explode", false));
-    private Setting<Double> range = register(Settings.d("Range", 4.0));
-    private Setting<Boolean> tracer = register(Settings.b("Tracer", true));
-    private Setting<Boolean> antiWeakness = register(Settings.b("Anti Weakness", false));
-    private Setting<Boolean> checkAbsorption = register(Settings.b("Check Absorption", true));
+    private Setting<Page> p = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());
+    /* Page One */
+    private Setting<ExplodeBehavior> explodeBehavior = register(Settings.enumBuilder(ExplodeBehavior.class).withName("Explode Behavior").withValue(ExplodeBehavior.ALWAYS).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<PlaceBehavior> placeBehavior = register(Settings.enumBuilder(PlaceBehavior.class).withName("Place Behavior").withValue(PlaceBehavior.TRADITIONAL).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> autoSwitch = register(Settings.booleanBuilder("Auto Switch").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> place = register(Settings.booleanBuilder("Place").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> explode = register(Settings.booleanBuilder("Explode").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    public  Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Double> delay = register(Settings.doubleBuilder("Hit Delay").withMinimum(0.0).withValue(5.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Integer> hitAttempts = register(Settings.integerBuilder("Hit Attempts").withValue(-1).withMinimum(-1).withMaximum(20).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Double> minDmg = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(32.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> sneakEnable = register(Settings.booleanBuilder("Sneak Surround").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> placePriority = register(Settings.booleanBuilder("Prioritize Manual").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    /* Page Two */
+    private Setting<Boolean> antiWeakness = register(Settings.booleanBuilder("Anti Weakness").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(true).withVisibility(v -> !antiWeakness.getValue() && p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> tracer = register(Settings.booleanBuilder("Tracer").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Integer> aBlock = register(Settings.integerBuilder("Block Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> aTracer = register(Settings.integerBuilder("Tracer Transparency").withMinimum(0).withValue(200).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
+    private Setting<Boolean> statusMessages = register(Settings.booleanBuilder("Status Messages").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+
+    private enum ExplodeBehavior { HOLE_ONLY, PREVENT_SUICIDE, LEFT_CLICK_ONLY, ALWAYS }
+    private enum PlaceBehavior { MULTI, TRADITIONAL }
+    private enum Page { ONE, TWO }
 
     private BlockPos render;
     private Entity renderEnt;
@@ -66,34 +94,74 @@ public class CrystalAura extends Module {
     private boolean switchCoolDown = false;
     private boolean isAttacking = false;
     private int oldSlot = -1;
-    private int newSlot;
 
-    @Override
+    private static EntityEnderCrystal lastCrystal;
+    private static List<EntityEnderCrystal> ignoredCrystals = new ArrayList<>();
+    private static int hitTries = 0;
+
     public void onUpdate() {
         if (defaultSetting.getValue()) {
+            explodeBehavior.setValue(ExplodeBehavior.ALWAYS);
+            placeBehavior.setValue(PlaceBehavior.TRADITIONAL);
             autoSwitch.setValue(true);
+            place.setValue(false);
+            explode.setValue(false);
+            checkAbsorption.setValue(true);
+            range.setValue(4.0);
+            delay.setValue(5.0);
+            hitAttempts.setValue(-1);
+            minDmg.setValue(0.0);
+            sneakEnable.setValue(true);
+            placePriority.setValue(false);
+
+            antiWeakness.setValue(false);
+            noToolExplode.setValue(true);
             players.setValue(true);
             mobs.setValue(false);
             animals.setValue(false);
-            place.setValue(false);
-            explode.setValue(false);
-            range.setValue(4.0);
             tracer.setValue(true);
-            antiWeakness.setValue(false);
-            checkAbsorption.setValue(true);
+            customColours.setValue(true);
+            aBlock.setValue(44);
+            aTracer.setValue(200);
+            r.setValue(155);
+            g.setValue(144);
+            b.setValue(255);
+            statusMessages.setValue(false);
+
             defaultSetting.setValue(false);
-            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
-            Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
+            Command.sendChatMessage(getChatName() + " Set to defaults!");
+            Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
         }
+
+        if (mc.player == null) {
+            resetHitAttempts();
+            return;
+        }
+
+        resetHitAttempts(hitAttempts.getValue() == -1);
+
+        int holeBlocks = 0;
+
+        Vec3d[] holeOffset = {
+                mc.player.getPositionVector().add(1, 0, 0),
+                mc.player.getPositionVector().add(-1, 0, 0),
+                mc.player.getPositionVector().add(0, 0, 1),
+                mc.player.getPositionVector().add(0, 0, -1),
+                mc.player.getPositionVector().add(0, -1, 0)
+        };
 
         EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
                 .filter(entity -> entity instanceof EntityEnderCrystal)
+                .filter(entity -> !ignored(entity))
                 .map(entity -> (EntityEnderCrystal) entity)
                 .min(Comparator.comparing(c -> mc.player.getDistance(c)))
                 .orElse(null);
-        if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue()) {
-            //Added delay to stop ncp from flagging "hitting too fast"
-            if (((System.nanoTime() / 1000000) - systemTime) >= 250) {
+
+
+
+        if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue() && passSwordCheck()) {
+            // Added delay to stop ncp from flagging "hitting too fast"
+            if (((System.nanoTime() / 1000000f) - systemTime) >= 25*delay.getValue()) {
                 if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
                     if (!isAttacking) {
                         // save initial player hand
@@ -101,7 +169,7 @@ public class CrystalAura extends Module {
                         isAttacking = true;
                     }
                     // search for sword and tools in hotbar
-                    newSlot = -1;
+                    int newSlot = -1;
                     for (int i = 0; i < 9; i++) {
                         ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
                         if (stack == ItemStack.EMPTY) {
@@ -122,12 +190,42 @@ public class CrystalAura extends Module {
                         switchCoolDown = true;
                     }
                 }
-                lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
-                mc.playerController.attackEntity(mc.player, crystal);
-                mc.player.swingArm(EnumHand.MAIN_HAND);
-                systemTime = System.nanoTime() / 1000000;
+                if (placePriority.getValue()) {
+                    boolean wasPlacing = place.getValue();
+                    if (mc.gameSettings.keyBindUseItem.isKeyDown() && place.getValue()) {
+                        place.setValue(false);
+                        explode(crystal);
+                    }
+                    if (!place.getValue() && wasPlacing) place.setValue(true);
+                }
+                if (explodeBehavior.getValue() == ExplodeBehavior.ALWAYS) {
+                    explode(crystal);
+                }
+                for (Vec3d vecOffset:holeOffset) { /* for placeholder offset for each BlockPos in the list holeOffset */
+                    BlockPos offset = new BlockPos(vecOffset.x, vecOffset.y, vecOffset.z);
+                    if (mc.world.getBlockState(offset).getBlock() == Blocks.OBSIDIAN || mc.world.getBlockState(offset).getBlock() == Blocks.BEDROCK) {
+                        holeBlocks++;
+                    }
+                }
+                if (explodeBehavior.getValue() == ExplodeBehavior.HOLE_ONLY) {
+                    if (holeBlocks == 5) {
+                        explode(crystal);
+                    }
+                }
+                if (explodeBehavior.getValue() == ExplodeBehavior.PREVENT_SUICIDE) {
+                    if (mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) <= 0.5 && mc.player.getPosition().getY() == crystal.getPosition().getY()|| mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 2.3 && mc.player.getPosition().getY() == crystal.getPosition().getY()||mc.player.getPositionVector().distanceTo(crystal.getPositionVector()) >= 0.5 && mc.player.getPosition().getY() != crystal.getPosition().getY()) {
+                        explode(crystal);
+                    }
+                }
+                if (explodeBehavior.getValue() == ExplodeBehavior.LEFT_CLICK_ONLY && mc.gameSettings.keyBindAttack.isKeyDown()) {
+                    explode(crystal);
+                }
+                if (sneakEnable.getValue() && mc.player.isSneaking() && holeBlocks != 5) {
+                    KamiMod.MODULE_MANAGER.getModule(Surround.class).enable();
+                }
+                return;
             }
-            return;
+
         } else {
             resetRotation();
             if (oldSlot != -1) {
@@ -164,8 +262,8 @@ public class CrystalAura extends Module {
         BlockPos q = null;
         double damage = .5;
         for (Entity entity : entities) {
-            // stop if the entities health is 0 or less then 0 (somehow) or if the entity is you
-            if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0) {
+            // stop if the entities health is 0 or less then 0 (somehow) or if the entity is you, don't do excess calculation if multiplace is enabled
+            if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0 || placeBehavior.getValue() == PlaceBehavior.MULTI) {
                 continue;
             }
             for (BlockPos blockPos : blocks) {
@@ -194,15 +292,38 @@ public class CrystalAura extends Module {
                 }
             }
         }
+
+        if (place.getValue() && placeBehavior.getValue() == PlaceBehavior.MULTI) {
+            for (Entity entity : entities) {
+
+                if (entity == mc.player || ((EntityLivingBase) entity).getHealth() <= 0) {
+                    continue;
+                }
+                for (BlockPos blockPos : blocks) {
+                    double b = entity.getDistanceSq(blockPos);
+                    if (b > 75) {
+                        continue;
+                    }
+                    double d = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, entity);
+                    double self = calculateDamage(blockPos.x + .5, blockPos.y + 1, blockPos.z + .5, mc.player);
+                    if (self >= mc.player.getHealth()+mc.player.getAbsorptionAmount() || self > d) continue;
+                    if (b < 10 && d >= 15 || d >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() || 6 >= ((EntityLivingBase) entity).getHealth() + ((EntityLivingBase) entity).getAbsorptionAmount() && b < 4 || b < 9 && d >= minDmg.getValue() && minDmg.getValue() > 0.0) {
+                        q = blockPos;
+                        damage = d;
+                        renderEnt = entity;
+                    }
+                }
+            }
+        }
         if (damage == .5) {
             render = null;
             renderEnt = null;
             resetRotation();
             return;
         }
-        render = q;
-
+        // this sends a constant packet flow for default packets
         if (place.getValue()) {
+            render = q;
             if (!offhand && mc.player.inventory.currentItem != crystalSlot) {
                 if (autoSwitch.getValue()) {
                     mc.player.inventory.currentItem = crystalSlot;
@@ -227,7 +348,6 @@ public class CrystalAura extends Module {
             //mc.playerController.processRightClickBlock(mc.player, mc.world, q, f, new Vec3d(0, 0, 0), EnumHand.MAIN_HAND);
             mc.player.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(q, f, offhand ? EnumHand.OFF_HAND : EnumHand.MAIN_HAND, 0, 0, 0));
         }
-        //this sends a constant packet flow for default packets
         if (isSpoofingAngles) {
             if (togglePitch) {
                 mc.player.rotationPitch += 0.0004;
@@ -237,25 +357,36 @@ public class CrystalAura extends Module {
                 togglePitch = true;
             }
         }
-
     }
 
     @Override
     public void onWorldRender(RenderEvent event) {
         if (render != null) {
             KamiTessellator.prepare(GL11.GL_QUADS);
-            KamiTessellator.drawBox(render, 0x44ffffff, GeometryMasks.Quad.ALL);
+            int colour = 0x44ffffff;
+            if (customColours.getValue()) colour = rgbToInt(r.getValue(), g.getValue(), b.getValue(), aBlock.getValue());
+            KamiTessellator.drawBox(render, colour, GeometryMasks.Quad.ALL);
             KamiTessellator.release();
             if (renderEnt != null && tracer.getValue()) {
                 Vec3d p = EntityUtil.getInterpolatedRenderPos(renderEnt, mc.getRenderPartialTicks());
-                Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), 1, 1, 1, 1);
+                float rL = 1;
+                float gL = 1;
+                float bL = 1;
+                float aL = 1;
+                if (customColours.getValue()) {
+                    rL = toF(r.getValue());
+                    gL = toF(g.getValue());
+                    bL = toF(b.getValue());
+                    aL = toF(aTracer.getValue());
+                }
+                Tracers.drawLineFromPosToPos(render.x - mc.getRenderManager().renderPosX + .5d, render.y - mc.getRenderManager().renderPosY + 1, render.z - mc.getRenderManager().renderPosZ + .5d, p.x, p.y, p.z, renderEnt.getEyeHeight(), rL, gL, bL, aL);
             }
         }
     }
 
     private void lookAtPacket(double px, double py, double pz, EntityPlayer me) {
         double[] v = calculateLookAt(px, py, pz, me);
-        setYawAndPitch((float) v[0], (float) v[1]);
+        setYawAndPitch((float) v[0], (float) v[1]+1f);
     }
 
     private boolean canPlaceCrystal(BlockPos blockPos) {
@@ -300,18 +431,18 @@ public class CrystalAura extends Module {
 
     public static float calculateDamage(double posX, double posY, double posZ, Entity entity) {
         float doubleExplosionSize = 6.0F * 2.0F;
-        double distancedsize = entity.getDistance(posX, posY, posZ) / (double) doubleExplosionSize;
+        double distancedSize = entity.getDistance(posX, posY, posZ) / (double) doubleExplosionSize;
         Vec3d vec3d = new Vec3d(posX, posY, posZ);
-        double blockDensity = (double) entity.world.getBlockDensity(vec3d, entity.getEntityBoundingBox());
-        double v = (1.0D - distancedsize) * blockDensity;
+        double blockDensity = entity.world.getBlockDensity(vec3d, entity.getEntityBoundingBox());
+        double v = (1.0D - distancedSize) * blockDensity;
         float damage = (float) ((int) ((v * v + v) / 2.0D * 7.0D * (double) doubleExplosionSize + 1.0D));
-        double finald = 1;
+        double finalD = 1;
         /*if (entity instanceof EntityLivingBase)
-            finald = getBlastReduction((EntityLivingBase) entity,getDamageMultiplied(damage));*/
+            finalD = getBlastReduction((EntityLivingBase) entity,getDamageMultiplied(damage));*/
         if (entity instanceof EntityLivingBase) {
-            finald = getBlastReduction((EntityLivingBase) entity, getDamageMultiplied(damage), new Explosion(mc.world, null, posX, posY, posZ, 6F, false, true));
+            finalD = getBlastReduction((EntityLivingBase) entity, getDamageMultiplied(damage), new Explosion(mc.world, null, posX, posY, posZ, 6F, false, true));
         }
-        return (float) finald;
+        return (float) finalD;
     }
 
     public static float getBlastReduction(EntityLivingBase entity, float damage, Explosion explosion) {
@@ -324,7 +455,7 @@ public class CrystalAura extends Module {
             float f = MathHelper.clamp(k, 0.0F, 20.0F);
             damage = damage * (1.0F - f / 25.0F);
 
-            if (entity.isPotionActive(Potion.getPotionById(11))) {
+            if (entity.isPotionActive(Objects.requireNonNull(Potion.getPotionById(11)))) {
                 damage = damage - (damage / 4);
             }
 
@@ -343,6 +474,7 @@ public class CrystalAura extends Module {
     public static float calculateDamage(EntityEnderCrystal crystal, Entity entity) {
         return calculateDamage(crystal.posX, crystal.posY, crystal.posZ, entity);
     }
+
 
     //Better Rotation Spoofing System:
 
@@ -367,7 +499,7 @@ public class CrystalAura extends Module {
 
 
     @EventHandler
-    private Listener<PacketEvent.Send> packetListener = new Listener<>(event -> {
+    private Listener<PacketEvent.Send> cPacketListener = new Listener<>(event -> {
         Packet packet = event.getPacket();
         if (packet instanceof CPacketPlayer) {
             if (isSpoofingAngles) {
@@ -377,15 +509,87 @@ public class CrystalAura extends Module {
         }
     });
 
-    @Override
+    public void onEnable() { sendMessage("&aENABLED&r"); }
+
     public void onDisable() {
+        sendMessage("&cDISABLED&r");
         render = null;
         renderEnt = null;
         resetRotation();
     }
 
+    public void explode(EntityEnderCrystal crystal) {
+        if (crystal == null) return;
+
+        if (lastCrystal == crystal) hitTries++;
+        else {
+            lastCrystal = crystal;
+            hitTries = 0;
+        }
+
+        try {
+            if (hitAttempts.getValue() != -1 && hitTries > hitAttempts.getValue()) {
+                ignoredCrystals.add(crystal);
+                hitTries = 0;
+            } else {
+                lookAtPacket(crystal.posX, crystal.posY, crystal.posZ, mc.player);
+                mc.playerController.attackEntity(mc.player, crystal);
+                mc.player.swingArm(EnumHand.MAIN_HAND);
+            }
+        } catch (Throwable ignored) { }
+
+        systemTime = System.nanoTime() / 1000000L;
+    }
+
+    private boolean passSwordCheck() {
+        if (!noToolExplode.getValue() || antiWeakness.getValue()) return true;
+        else return !noToolExplode.getValue() || (!(mc.player.getHeldItemMainhand().getItem() instanceof ItemTool) && !(mc.player.getHeldItemMainhand().getItem() instanceof ItemSword));
+    }
+
     @Override
     public String getHudInfo() {
         return String.valueOf(getItems(Items.END_CRYSTAL));
+    }
+
+    private boolean ignored(Entity e) {
+        if (ignoredCrystals == null) return false;
+        for (EntityEnderCrystal c : ignoredCrystals) if (e != null && e == c) return true;
+        return false;
+    }
+
+    private void resetHitAttempts() {
+        sendMessage("&l&9Reset&r&9 hit attempts crystals");
+        lastCrystal = null;
+        ignoredCrystals = null;
+        hitTries = 0;
+    }
+
+    private void resetHitAttempts(boolean should) {
+        if (should) {
+            lastCrystal = null;
+            ignoredCrystals = null;
+            hitTries = 0;
+        } else if (resetTime()) {
+            sendMessage("&l&9Reset&r&9 hit attempts crystals");
+            lastCrystal = null;
+            ignoredCrystals = null;
+            hitTries = 0;
+        }
+    }
+
+    private static long startTime = 0;
+    private boolean resetTime() {
+        if (startTime == 0) startTime = System.currentTimeMillis();
+        if (startTime + 900000 <= System.currentTimeMillis()) { // 15 minutes in milliseconds
+            startTime = System.currentTimeMillis();
+            return true;
+        }
+        return false;
+    }
+
+    private void sendMessage(String message) {
+        if (statusMessages.getValue()) {
+            Command.sendChatMessage(getChatName() + message);
+        }
     }
 }

@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.gui.mc;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
+import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.util.text.ITextComponent;
 import org.lwjgl.input.Mouse;
@@ -11,9 +12,9 @@ import org.lwjgl.opengl.GL11;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
-import static me.zeroeightsix.kami.util.ColourSet.chatOutline;
 
 public class KamiGuiChat extends GuiChat {
 
@@ -71,9 +72,12 @@ public class KamiGuiChat extends GuiChat {
         if (args.length == 0) return; // Hell naw!
 
         for (Command c : KamiMod.getInstance().getCommandManager().getCommands()) {
-            if ((c.getLabel().startsWith(args[0]) && !line.endsWith(" ")) || c.getLabel().equals(args[0])) {
+            if (line.endsWith(" ")) break;
+
+            if (c.getLabel().startsWith(args[0]) || c.getLabel().equals(args[0]))
                 options.put(c.getLabel(), c);
-            }
+
+            if (c.getAliases() != null) c.getAliases().stream().filter(alias -> alias.startsWith(args[0]) || alias.equals(args[0])).forEach(alias -> options.put(alias, c));
         }
 
         if (options.isEmpty()) {
@@ -85,7 +89,12 @@ public class KamiGuiChat extends GuiChat {
 
         Command alphaCommand = map.firstEntry().getValue();
 
-        currentFillinLine = alphaCommand.getLabel().substring(args[0].length());
+        AtomicBoolean isAlias = new AtomicBoolean(false);
+        currentFillinLine = alphaCommand.getAliases().stream().filter(alias ->
+                alias.startsWith(args[0])).findFirst().map(s -> { isAlias.set(true);
+                    return s.substring(args[0].length());
+                }).orElseGet(() ->
+                alphaCommand.getLabel().substring(args[0].length()));
 
         if (alphaCommand.getSyntaxChunks() == null || alphaCommand.getSyntaxChunks().length == 0)
             return;
@@ -106,8 +115,7 @@ public class KamiGuiChat extends GuiChat {
             currentFillinLine += result + (result == "" ? "" : " ") + "";
         }
 
-        if (cutSpace)
-            currentFillinLine = currentFillinLine.substring(1);
+        if (cutSpace) currentFillinLine = currentFillinLine.substring(1);
     }
 
     @Override
@@ -134,7 +142,7 @@ public class KamiGuiChat extends GuiChat {
 
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glColor3f(toF(chatOutline.getRed()), toF(chatOutline.getGreen()), toF(chatOutline.getBlue()));
+        GL11.glColor3f(toF(GuiC.chatOutline.color.getRed()), toF(GuiC.chatOutline.color.getGreen()), toF(GuiC.chatOutline.color.getBlue()));
         GL11.glBegin(GL11.GL_LINES);
         {
             GL11.glVertex2f(this.inputField.x - 2, this.inputField.y - 2);

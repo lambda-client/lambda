@@ -1,12 +1,10 @@
 package me.zeroeightsix.kami.module.modules.gui;
 
-import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
-import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.ColourConverter;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
@@ -15,7 +13,8 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
-import java.util.List;
+import static me.zeroeightsix.kami.command.Command.sendDisableMessage;
+import static me.zeroeightsix.kami.util.GuiFrameUtil.getFrameByName;
 
 /**
  * Updated by S-B99 on 21/02/20
@@ -25,33 +24,19 @@ import java.util.List;
 @Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "View your inventory on screen", showOnArray = Module.ShowOnArray.OFF)
 public class InventoryViewer extends Module {
     private Setting<Boolean> mcTexture = register(Settings.b("Use ResourcePack", false));
-    private Setting<ViewSize> viewSizeSetting = register(Settings.enumBuilder(ViewSize.class).withName("Icon Size").withValue(ViewSize.LARGE).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Boolean> showIcon = register(Settings.booleanBuilder("Show Icon").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
-    private Setting<Boolean> colorBackground = register(Settings.booleanBuilder("Colored Background").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
-    private Setting<Boolean> docking = register(Settings.booleanBuilder("Automatic Docking").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
-    private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
-    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
-    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
-    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Boolean> docking = register(Settings.booleanBuilder("Automatic Docking").withValue(true).withVisibility(v -> showIcon.getValue() && !mcTexture.getValue()).build());
+    private Setting<ViewSize> viewSizeSetting = register(Settings.enumBuilder(ViewSize.class).withName("Icon Size").withValue(ViewSize.LARGE).withVisibility(v -> showIcon.getValue() && !mcTexture.getValue()).build());
+    private Setting<Boolean> coloredBackground = register(Settings.booleanBuilder("Colored Background").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).withVisibility(v -> coloredBackground.getValue() && !mcTexture.getValue()).build());
+    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> coloredBackground.getValue() && !mcTexture.getValue()).build());
+    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> coloredBackground.getValue() && !mcTexture.getValue()).build());
+    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> coloredBackground.getValue() && !mcTexture.getValue()).build());
 
     private boolean isLeft = false;
     private boolean isRight = false;
     private boolean isTop = false;
     private boolean isBottom = false;
-
-    KamiGUI kamiGUI = KamiMod.getInstance().getGuiManager();
-
-    // This is bad, but without a rearchitecture, it's probably staying... - 20kdc
-    private Frame getInventoryViewer() {
-        kamiGUI = KamiMod.getInstance().getGuiManager();
-        if (kamiGUI == null)
-            return null;
-        List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
-        for (Frame frame : frames)
-            if (frame.getTitle().equalsIgnoreCase("inventory viewer"))
-                return frame;
-        return null;
-    }
 
     private int invMoveHorizontal() {
         if (!docking.getValue() || mcTexture.getValue()) return 0;
@@ -68,7 +53,7 @@ public class InventoryViewer extends Module {
     }
 
     private void updatePos() {
-        Frame frame = getInventoryViewer();
+        Frame frame = getFrameByName("inventory viewer");
         if (frame == null)
             return;
         isTop = frame.getDocking().isTop();
@@ -106,13 +91,8 @@ public class InventoryViewer extends Module {
         // ENABLE LOCAL CHANGES {
         GlStateManager.disableDepth();
         // }
-        if (colorBackground.getValue()) { // 1 == 2 px in game
-            int colour = 0;
-            colour |= (r.getValue() << 16);
-            colour |= (g.getValue() << 8);
-            colour |= b.getValue();
-            colour |= (a.getValue() << 24);
-            Gui.drawRect(x, y, x + 162, y + 54, colour);
+        if (coloredBackground.getValue()) { // 1 == 2 px in game
+            Gui.drawRect(x, y, x + 162, y + 54, ColourConverter.rgbToInt(r.getValue(), g.getValue(), b.getValue(), a.getValue()));
         }
         ResourceLocation box = getBox();
         mc.renderEngine.bindTexture(box);
@@ -126,11 +106,11 @@ public class InventoryViewer extends Module {
 
     @Override
     public void onRender() {
-        Frame frame = getInventoryViewer();
+        Frame frame = getFrameByName("inventory viewer");
         if (frame == null)
             return;
-        if (frame.isPinned()) {
-            final NonNullList<ItemStack> items = InventoryViewer.mc.player.inventory.mainInventory;
+        if (frame.isPinned() && !frame.isMinimized()) {
+            final NonNullList<ItemStack> items = mc.player.inventory.mainInventory;
             boxRender(frame.getX(), frame.getY());
             itemRender(items, frame.getX(), frame.getY());
         }
@@ -167,6 +147,5 @@ public class InventoryViewer extends Module {
         GlStateManager.popMatrix();
     }
 
-    @Override
-    public void onDisable() { this.enable(); }
+    public void onDisable() { sendDisableMessage(getName()); }
 }

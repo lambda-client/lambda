@@ -13,6 +13,7 @@ import net.minecraft.network.play.server.SPacketExplosion;
 
 /**
  * Created by 086 on 16/11/2017.
+ * @see me.zeroeightsix.kami.mixin.client.MixinBlockLiquid
  */
 @Module.Info(name = "Velocity", description = "Modify knockback impact", category = Module.Category.MOVEMENT)
 public class Velocity extends Module {

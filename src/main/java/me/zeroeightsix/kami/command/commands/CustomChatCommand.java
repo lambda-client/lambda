@@ -11,7 +11,7 @@ import me.zeroeightsix.kami.module.modules.chat.CustomChat;
  */
 public class CustomChatCommand extends Command {
     public CustomChatCommand() {
-        super("customchat", new ChunkBuilder().append("ending").build());
+        super("customchat", new ChunkBuilder().append("ending").build(), "chat");
         setDescription("Allows you to customize CustomChat's custom setting");
     }
 

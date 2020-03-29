@@ -1,8 +1,6 @@
 package me.zeroeightsix.kami.util;
 
-import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
+import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.MathHelper;
 
@@ -26,10 +24,10 @@ import java.text.DecimalFormat;
  * TPS:
  * @author 086
  */
-public class InfoCalculator extends Module {
+public class InfoCalculator {
 
-    /* Ping */
-    public static int ping() {
+    // Ping {
+    public static int ping(Minecraft mc) {
         if (mc.getConnection() == null) { // tested, this is not null in mp
             return 1;
         } else if (mc.player == null) { // this actually takes about 30 seconds to load in Minecraft
@@ -42,54 +40,90 @@ public class InfoCalculator extends Module {
             return -1;
         }
     }
-    /* End of Ping */
+    // }
 
-    /* Speed */
+    // Speed {
     private static DecimalFormat formatter = new DecimalFormat("#.#");
-    private static InfoOverlay info = (InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class);
 
-    public static String speed() {
+    public static String speed(boolean useUnitKmH, Minecraft mc) {
         float currentTps = mc.timer.tickLength / 1000.0f;
-        if (info.useUnitKmH()) {
-            return formatter.format(((MathHelper.sqrt(Math.pow(coordsDiff("x"), 2) + Math.pow(coordsDiff("y"), 2)) / currentTps)) * 3.6); // convert mps to kmh
-        }
-        else {
-            return formatter.format((MathHelper.sqrt(Math.pow(coordsDiff("x"), 2) + Math.pow(coordsDiff("y"), 2)) / currentTps));
-        }
+        double multiply = 1.0;
+        if (useUnitKmH) multiply = 3.6; // convert mps to kmh
+        return formatter.format(((MathHelper.sqrt(Math.pow(coordsDiff('x', mc), 2) + Math.pow(coordsDiff('z', mc), 2)) / currentTps)) * multiply);
     }
 
-    private static double coordsDiff(String s) {
+    private static double coordsDiff(char s, Minecraft mc) {
         switch (s) {
-            case "x": return mc.player.posX - mc.player.prevPosX;
-            case "z": return mc.player.posZ - mc.player.prevPosZ;
+            case 'x': return mc.player.posX - mc.player.prevPosX;
+            case 'z': return mc.player.posZ - mc.player.prevPosZ;
             default: return 0.0;
         }
     }
-    /* End of Speed*/
+    // }
 
-    /* Durability*/
-    public static int dura() {
-        ItemStack itemStack = Wrapper.getMinecraft().player.getHeldItemMainhand();
+    // Durability {
+    public static int dura(Minecraft mc) {
+        ItemStack itemStack = mc.player.getHeldItemMainhand();
         return itemStack.getMaxDamage() - itemStack.getItemDamage();
     }
-    /* End of Durability */
+    // }
 
-    /* Memory */
+    // Memory {
     public static String memory() {
         return "" + (Runtime.getRuntime().freeMemory() / 1000000);
     }
-    /* End of Memory*/
+    // }
 
-    /* Ticks Per Second */
+    // Ticks Per Second {
     public static String tps() {
         return "" + Math.round(LagCompensator.INSTANCE.getTickRate());
     }
-    /* End of ticks Per Second */
+    // }
 
-    /* Round */
+    // Round {
     public static double round(double value, int places) {
         double scale = Math.pow(10, places);
         return Math.round(value * scale) / scale;
     }
-    /* End of round */
+    // }
+
+    // Is Even {
+    public static boolean isNumberEven(int i) { return (i & 1) == 0; }
+    // }
+
+    // Reverse Number {
+    public static int reverseNumber(int num, int min, int max) { return (max + min) - num; }
+    // }
+
+    // Cardinal to Axis {
+    public static String cardinalToAxis(char cardinal) {
+        switch(cardinal) {
+            case 'N':
+                return "-Z";
+            case 'S':
+                return "+Z";
+            case 'E':
+                return "+X";
+            case 'W':
+                return "-X";
+            default:
+                return "invalid";
+        }
+    }
+    // }
+
+    // Dimension {
+    public static String playerDimension(Minecraft mc) {
+        if (mc.player == null) return "No Dimension";
+        switch(mc.player.dimension) {
+            case -1:
+                return "Nether";
+            case 0:
+                return "Overworld";
+            case 1:
+                return "End";
+            default:
+                return  "No Dimension";
+        }
+    }
 }

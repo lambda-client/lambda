@@ -9,6 +9,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import static me.zeroeightsix.kami.util.CommandUtil.runAliases;
+
 public class CommandManager {
 
     private ArrayList<Command> commands;
@@ -34,7 +36,7 @@ public class CommandManager {
     public void callCommand(String command) {
         String[] parts = command.split(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"); // Split by every space if it isn't surrounded by quotes
 
-        String label = parts[0].substring(1);
+        String label = parts[0].contains(" ") ? parts[0].substring(parts[0].indexOf(" ")).substring(1) : parts[0].substring(1);
         String[] args = removeElement(parts, 0);
 
         for (int i = 0; i < args.length; i++) {
@@ -45,11 +47,15 @@ public class CommandManager {
         for (Command c : commands) {
             if (c.getLabel().equalsIgnoreCase(label)) {
                 c.call(parts);
+                runAliases(c);
+                return;
+            } else if (c.getAliases().stream().anyMatch(alias -> alias.equalsIgnoreCase(label))) {
+                c.call(parts);
                 return;
             }
         }
 
-        Command.sendChatMessage("Unknown command. try 'commands' for a list of commands.");
+        Command.sendChatMessage("&7Unknown command. try '&f" + Command.getCommandPrefix() + "cmds&7' for a list of commands.");
     }
 
     public static String[] removeElement(String[] input, int indexToDelete) {

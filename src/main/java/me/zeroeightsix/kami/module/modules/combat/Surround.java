@@ -8,7 +8,6 @@ import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.BlockInteractionHelper;
-import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockObsidian;
 import net.minecraft.block.state.IBlockState;
@@ -36,9 +35,9 @@ import net.minecraft.util.math.Vec3d;
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian to take less damage")
 public class Surround extends Module {
 
-    private Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
+    public Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
     private Setting<Boolean> spoofRotations = register(Settings.b("Spoof Rotations", true));
-    private Setting<Boolean> spoofHotbar = register(Settings.b("Spoof Hotbar", true));
+    private Setting<Boolean> spoofHotbar = register(Settings.b("Spoof Hotbar", false));
     private Setting<Double> blockPerTick = register(Settings.doubleBuilder("Blocks per Tick").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
     private Setting<AutoCenter> autoCenter = register(Settings.e("Auto Center", AutoCenter.TP));
@@ -64,9 +63,9 @@ public class Surround extends Module {
         if (!this.isDisabled() && mc.player != null && !KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             if (offsetStep == 0) {
                 basePos = (new BlockPos(mc.player.getPositionVector())).down();
-                playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
+                playerHotbarSlot = mc.player.inventory.currentItem;
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(this.getChatName() + " Starting Loop, current Player Slot: " + playerHotbarSlot);
+                    Command.sendChatMessage(getChatName() + " Starting Loop, current Player Slot: " + playerHotbarSlot);
                 }
 
                 if (!spoofHotbar.getValue()) {
@@ -76,7 +75,7 @@ public class Surround extends Module {
 
             for (int i = 0; i < (int) Math.floor(blockPerTick.getValue()); ++i) {
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(this.getChatName() + " Loop iteration: " + offsetStep);
+                    Command.sendChatMessage(getChatName() + " Loop iteration: " + offsetStep);
                 }
 
                 if (offsetStep >= surroundTargets.length) {
@@ -94,10 +93,10 @@ public class Surround extends Module {
     /* Autocenter */
     private void centerPlayer(double x, double y, double z) {
         if (debugMsgs.getValue().equals(DebugMsgs.ALL) && playerPos != null) {
-            Command.sendChatMessage(this.getChatName() + " Player position is " + playerPos.toString());
+            Command.sendChatMessage(getChatName() + " Player position is " + playerPos.toString());
         }
         else if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(this.getChatName() + " Player position is null");
+            Command.sendChatMessage(getChatName() + " Player position is null");
         }
         mc.player.connection.sendPacket(new CPacketPlayer.Position(x, y, z, true));
         mc.player.setPosition(x, y, z);
@@ -142,24 +141,24 @@ public class Surround extends Module {
         }
         /* End of Autocenter*/
 
-        playerHotbarSlot = Wrapper.getPlayer().inventory.currentItem;
+        playerHotbarSlot = mc.player.inventory.currentItem;
         lastHotbarSlot = -1;
         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(this.getChatName() + " Saving initial Slot  = " + playerHotbarSlot);
+            Command.sendChatMessage(getChatName() + " Saving initial Slot  = " + playerHotbarSlot);
         }
     }
 
     public void onDisable() {
         if (mc.player != null) {
             if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                Command.sendChatMessage(this.getChatName() + " Disabling");
+                Command.sendChatMessage(getChatName() + " Disabling");
             }
 
             if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
                 if (spoofHotbar.getValue()) {
                     mc.player.connection.sendPacket(new CPacketHeldItemChange(playerHotbarSlot));
                 } else {
-                    Wrapper.getPlayer().inventory.currentItem = playerHotbarSlot;
+                    mc.player.inventory.currentItem = playerHotbarSlot;
                 }
             }
             playerHotbarSlot = -1;
@@ -170,17 +169,17 @@ public class Surround extends Module {
     private void endLoop() {
         offsetStep = 0;
         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(this.getChatName() + " Ending Loop");
+            Command.sendChatMessage(getChatName() + " Ending Loop");
         }
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
             if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                Command.sendChatMessage(this.getChatName() + " Setting Slot back to  = " + playerHotbarSlot);
+                Command.sendChatMessage(getChatName() + " Setting Slot back to  = " + playerHotbarSlot);
             }
 
             if (spoofHotbar.getValue()) {
                 mc.player.connection.sendPacket(new CPacketHeldItemChange(playerHotbarSlot));
             } else {
-                Wrapper.getPlayer().inventory.currentItem = playerHotbarSlot;
+                mc.player.inventory.currentItem = playerHotbarSlot;
             }
 
             lastHotbarSlot = playerHotbarSlot;
@@ -191,12 +190,12 @@ public class Surround extends Module {
     }
 
     private void placeBlock(BlockPos blockPos) {
-        if (!Wrapper.getWorld().getBlockState(blockPos).getMaterial().isReplaceable()) {
+        if (!mc.world.getBlockState(blockPos).getMaterial().isReplaceable()) {
             if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                Command.sendChatMessage(this.getChatName() + " Block is already placed, skipping");
+                Command.sendChatMessage(getChatName() + " Block is already placed, skipping");
             }
         } else if (!BlockInteractionHelper.checkForNeighbours(blockPos) && debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(this.getChatName() + " !checkForNeighbours(blockPos), disabling! ");
+            Command.sendChatMessage(getChatName() + " !checkForNeighbours(blockPos), disabling! ");
         } else {
             if (placeAnimation.getValue()) mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
             placeBlockExecute(blockPos);
@@ -209,7 +208,7 @@ public class Surround extends Module {
     private int findObiInHotbar() {
         int slot = -1;
         for (int i = 0; i < 9; ++i) {
-            ItemStack stack = Wrapper.getPlayer().inventory.getStackInSlot(i);
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack != ItemStack.EMPTY && stack.getItem() instanceof ItemBlock) {
                 Block block = ((ItemBlock) stack.getItem()).getBlock();
                 if (block instanceof BlockObsidian) {
@@ -222,7 +221,7 @@ public class Surround extends Module {
     }
 
     public void placeBlockExecute(BlockPos pos) {
-        Vec3d eyesPos = new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + (double) Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
+        Vec3d eyesPos = new Vec3d(mc.player.posX, mc.player.posY + (double) mc.player.getEyeHeight(), mc.player.posZ);
         EnumFacing[] var3 = EnumFacing.values();
 
         for (EnumFacing side : var3) {
@@ -230,7 +229,7 @@ public class Surround extends Module {
             EnumFacing side2 = side.getOpposite();
             if (!canBeClicked(neighbor)) {
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(this.getChatName() + " No neighbor to click at!");
+                    Command.sendChatMessage(getChatName() + " No neighbor to click at!");
                 }
             } else {
                 Vec3d hitVec = (new Vec3d(neighbor)).add(0.5D, 0.5D, 0.5D).add((new Vec3d(side2.getDirectionVec())).scale(0.5D));
@@ -242,7 +241,7 @@ public class Surround extends Module {
                     Block blockBelow = mc.world.getBlockState(neighbor).getBlock();
                     if (BlockInteractionHelper.blackList.contains(blockBelow) || BlockInteractionHelper.shulkerList.contains(blockBelow)) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
-                            Command.sendChatMessage(this.getChatName() + " Sneak enabled!");
+                            Command.sendChatMessage(getChatName() + " Sneak enabled!");
                         }
                         needSneak = true;
                     }
@@ -253,7 +252,7 @@ public class Surround extends Module {
                     int obiSlot = findObiInHotbar();
                     if (obiSlot == -1) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
-                            Command.sendChatMessage(this.getChatName() + " No obsidian in hotbar, disabling!");
+                            Command.sendChatMessage(getChatName() + " No obsidian in hotbar, disabling!");
                         }
                         disable();
                         return;
@@ -261,21 +260,21 @@ public class Surround extends Module {
 
                     if (lastHotbarSlot != obiSlot) {
                         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                            Command.sendChatMessage(this.getChatName() + " Setting Slot to obsidian at  = " + obiSlot);
+                            Command.sendChatMessage(getChatName() + " Setting Slot to obsidian at  = " + obiSlot);
                         }
                         if (spoofHotbar.getValue()) {
                             mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));
                         } else {
-                            Wrapper.getPlayer().inventory.currentItem = obiSlot;
+                            mc.player.inventory.currentItem = obiSlot;
                         }
                         lastHotbarSlot = obiSlot;
                     }
 
-                    mc.playerController.processRightClickBlock(Wrapper.getPlayer(), mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
+                    mc.playerController.processRightClickBlock(mc.player, mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND);
                     mc.player.connection.sendPacket(new CPacketAnimation(EnumHand.MAIN_HAND));
                     if (needSneak) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
-                            Command.sendChatMessage(this.getChatName() + " Sneak disabled!");
+                            Command.sendChatMessage(getChatName() + " Sneak disabled!");
                         }
                         mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.STOP_SNEAKING));
                     }
@@ -283,7 +282,7 @@ public class Surround extends Module {
                 }
 
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(this.getChatName() + " Distance > 4.25 blocks!");
+                    Command.sendChatMessage(getChatName() + " Distance > 4.25 blocks!");
                 }
             }
         }
@@ -298,12 +297,12 @@ public class Surround extends Module {
     }
 
     private static IBlockState getState(BlockPos pos) {
-        return Wrapper.getWorld().getBlockState(pos);
+        return mc.world.getBlockState(pos);
     }
 
     private static void faceVectorPacketInstant(Vec3d vec) {
         float[] rotations = getLegitRotations(vec);
-        Wrapper.getPlayer().connection.sendPacket(new Rotation(rotations[0], rotations[1], Wrapper.getPlayer().onGround));
+        mc.player.connection.sendPacket(new Rotation(rotations[0], rotations[1], mc.player.onGround));
     }
 
     private static float[] getLegitRotations(Vec3d vec) {
@@ -314,10 +313,10 @@ public class Surround extends Module {
         double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
         float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
         float pitch = (float) (-Math.toDegrees(Math.atan2(diffY, diffXZ)));
-        return new float[]{Wrapper.getPlayer().rotationYaw + MathHelper.wrapDegrees(yaw - Wrapper.getPlayer().rotationYaw), Wrapper.getPlayer().rotationPitch + MathHelper.wrapDegrees(pitch - Wrapper.getPlayer().rotationPitch)};
+        return new float[]{mc.player.rotationYaw + MathHelper.wrapDegrees(yaw - mc.player.rotationYaw), mc.player.rotationPitch + MathHelper.wrapDegrees(pitch - mc.player.rotationPitch)};
     }
 
     private static Vec3d getEyesPos() {
-        return new Vec3d(Wrapper.getPlayer().posX, Wrapper.getPlayer().posY + (double) Wrapper.getPlayer().getEyeHeight(), Wrapper.getPlayer().posZ);
+        return new Vec3d(mc.player.posX, mc.player.posY + (double) mc.player.getEyeHeight(), mc.player.posZ);
     }
 }

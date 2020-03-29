@@ -75,7 +75,7 @@ public class AutoFeetPlace extends Module {
     @Override
     protected void onEnable() {
         if (mc.player == null) {
-            this.disable();
+            disable();
             return;
         }
 
@@ -115,7 +115,7 @@ public class AutoFeetPlace extends Module {
 
         if (triggerable.getValue() && totalTicksRunning >= timeoutTicks.getValue()) {
             totalTicksRunning = 0;
-            this.disable();
+            disable();
             return;
         }
 
@@ -183,9 +183,9 @@ public class AutoFeetPlace extends Module {
         if (missingObiDisable && disableNone.getValue()) {
             missingObiDisable = false;
             if (infoMessage.getValue()) {
-                Command.sendChatMessage(this.getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+                Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
             }
-            this.disable();
+            disable();
         }
     }
 

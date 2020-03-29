@@ -19,24 +19,29 @@ import java.util.Objects;
 public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
-    private Setting<Float> fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility(v -> !mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Boolean> overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)));
+    private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility(v -> !overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Float> speedHighwayOverride = register(Settings.floatBuilder("Speed H O").withValue(1.8f).withVisibility(v -> overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeedHighway = register(Settings.floatBuilder("Fall Speed H").withValue(0.000050000002f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Float> fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility(v -> !mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> upSpeedBoost = register(Settings.floatBuilder("Up Speed B").withValue(0.08f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
     private Setting<Float> downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
 
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
+
         if (defaultSetting.getValue()) {
             speedHighway.setValue(1.8f);
+            speedHighwayOverride.setValue(1.8f);
             fallSpeed.setValue(-.003f);
             fallSpeedHighway.setValue(.000050000002f);
             upSpeedBoost.setValue(0.08f);
             downSpeedBoost.setValue(0.04f);
+            overrideMaxSpeed.setValue(false);
             defaultSetting.setValue(false);
-            Command.sendChatMessage(this.getChatName() + " Set to defaults!");
-            Command.sendChatMessage(this.getChatName() + " Close and reopen the " + this.getName() + " settings menu to see changes");
+            Command.sendChatMessage(getChatName() + " Set to defaults!");
+            Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
         }
 
         if (mc.player.capabilities.isFlying) {
@@ -44,7 +49,7 @@ public class ElytraFlight extends Module {
                 mc.player.setSprinting(false);
                 mc.player.setVelocity(0, 0, 0);
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.getValue(), mc.player.posZ);
-                mc.player.capabilities.setFlySpeed(speedHighway.getValue());
+                mc.player.capabilities.setFlySpeed(getHighwaySpeed());
             }
             else {
                 mc.player.setVelocity(0, 0, 0);
@@ -98,6 +103,14 @@ public class ElytraFlight extends Module {
         mc.player.capabilities.setFlySpeed(0.05f);
         if (mc.player.capabilities.isCreativeMode) return;
         mc.player.capabilities.allowFlying = false;
+    }
+
+    private float getHighwaySpeed() {
+        if (overrideMaxSpeed.getValue()) {
+            return speedHighwayOverride.getValue();
+        } else {
+            return speedHighway.getValue();
+        }
     }
 
     public enum ElytraFlightMode {

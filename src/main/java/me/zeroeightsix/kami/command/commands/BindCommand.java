@@ -24,7 +24,7 @@ public class BindCommand extends Command {
                 .append("[key]|[on|off]", true)
                 .build()
         );
-        setDescription("Binds a command and or settings to a key");
+        setDescription("Binds a module to a key, or allows you to change modifier options");
     }
 
     @Override

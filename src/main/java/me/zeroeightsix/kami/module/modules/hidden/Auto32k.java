@@ -1,8 +1,10 @@
-package me.zeroeightsix.kami.module.modules.combat;
+package me.zeroeightsix.kami.module.modules.hidden;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.modules.combat.Aura;
+import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
 import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -28,10 +30,13 @@ import net.minecraft.util.math.Vec3d;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
-import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
+import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
 /**
  * Created by hub on 7 August 2019
@@ -39,45 +44,12 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketI
  */
 @Module.Info(name = "Hidden:Auto32k", category = Module.Category.HIDDEN, description = "Places blocks to dispense a 32k")
 public class Auto32k extends Module {
-
-    private static final List<Block> blackList = Arrays.asList(
-            Blocks.ENDER_CHEST,
-            Blocks.CHEST,
-            Blocks.TRAPPED_CHEST,
-            Blocks.CRAFTING_TABLE,
-            Blocks.ANVIL,
-            Blocks.BREWING_STAND,
-            Blocks.HOPPER,
-            Blocks.DROPPER,
-            Blocks.DISPENSER,
-            Blocks.TRAPDOOR
-    );
-
-    private static final List<Block> shulkerList = Arrays.asList(
-            Blocks.WHITE_SHULKER_BOX,
-            Blocks.ORANGE_SHULKER_BOX,
-            Blocks.MAGENTA_SHULKER_BOX,
-            Blocks.LIGHT_BLUE_SHULKER_BOX,
-            Blocks.YELLOW_SHULKER_BOX,
-            Blocks.LIME_SHULKER_BOX,
-            Blocks.PINK_SHULKER_BOX,
-            Blocks.GRAY_SHULKER_BOX,
-            Blocks.SILVER_SHULKER_BOX,
-            Blocks.CYAN_SHULKER_BOX,
-            Blocks.PURPLE_SHULKER_BOX,
-            Blocks.BLUE_SHULKER_BOX,
-            Blocks.BROWN_SHULKER_BOX,
-            Blocks.GREEN_SHULKER_BOX,
-            Blocks.RED_SHULKER_BOX,
-            Blocks.BLACK_SHULKER_BOX
-    );
-
     private static final DecimalFormat df = new DecimalFormat("#.#");
 
     private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
     private Setting<Boolean> autoEnableHitAura = register(Settings.b("Auto enable Hit Aura", true));
     //private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
-    private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
+    private Setting<Double> placeRange = register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<Integer> yOffset = register(Settings.i("Y Offset (Hopper)", 2));
     private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
     private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
@@ -90,7 +62,7 @@ public class Auto32k extends Module {
     protected void onEnable() {
 
         if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
-            this.disable();
+            disable();
             return;
         }
 
@@ -127,17 +99,17 @@ public class Auto32k extends Module {
 
         if (hopperSlot == -1) {
             if (debugMessages.getValue()) {
-                Command.sendChatMessage(this.getChatName() + "Hopper missing, disabling.");
+                Command.sendChatMessage(getChatName() + "Hopper missing, disabling.");
             }
-            this.disable();
+            disable();
             return;
         }
 
         if (shulkerSlot == -1) {
             if (debugMessages.getValue()) {
-                Command.sendChatMessage(this.getChatName() + "Shulker missing, disabling.");
+                Command.sendChatMessage(getChatName() + "Shulker missing, disabling.");
             }
-            this.disable();
+            disable();
             return;
         }
 
@@ -200,13 +172,13 @@ public class Auto32k extends Module {
 
             if (placeCloseToEnemy.getValue()) {
                 if (debugMessages.getValue()) {
-                    Command.sendChatMessage(this.getChatName() + "Placing close to Enemy");
+                    Command.sendChatMessage(getChatName() + "Placing close to Enemy");
                 }
                 // Get Key with lowest Value (closest to enemies)
                 placeTarget = Collections.min(placeTargetMap.entrySet(), Map.Entry.comparingByValue()).getKey();
             } else {
                 if (debugMessages.getValue()) {
-                    Command.sendChatMessage(this.getChatName() + "Placing far from Enemy");
+                    Command.sendChatMessage(getChatName() + "Placing far from Enemy");
                 }
                 // Get Key with highest Value (furthest away from enemies)
                 placeTarget = Collections.max(placeTargetMap.entrySet(), Map.Entry.comparingByValue()).getKey();
@@ -215,7 +187,7 @@ public class Auto32k extends Module {
         } else {
 
             if (debugMessages.getValue()) {
-                Command.sendChatMessage(this.getChatName() + "No enemy nearby, placing at first valid position.");
+                Command.sendChatMessage(getChatName() + "No enemy nearby, placing at first valid position.");
             }
 
             // Use any place target position if no enemies are around
@@ -230,14 +202,14 @@ public class Auto32k extends Module {
 
         if (placeTarget == null) {
             if (debugMessages.getValue()) {
-                Command.sendChatMessage(this.getChatName() + "No valid position in range to place!");
+                Command.sendChatMessage(getChatName() + "No valid position in range to place!");
             }
-            this.disable();
+            disable();
             return;
         }
 
         if (debugMessages.getValue()) {
-            Command.sendChatMessage(this.getChatName() + "Place Target: " + placeTarget.x + " " + placeTarget.y + " " + placeTarget.z + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTarget))));
+            Command.sendChatMessage(getChatName() + "Place Target: " + placeTarget.x + " " + placeTarget.y + " " + placeTarget.z + " Distance: " + df.format(mc.player.getPositionVector().distanceTo(new Vec3d(placeTarget))));
         }
 
         mc.player.inventory.currentItem = hopperSlot;
@@ -275,7 +247,7 @@ public class Auto32k extends Module {
         }
 
         if (!moveToHotbar.getValue()) {
-            this.disable();
+            disable();
             return;
         }
 
@@ -298,7 +270,7 @@ public class Auto32k extends Module {
             if (autoEnableHitAura.getValue()) {
                 KamiMod.MODULE_MANAGER.getModule(Aura.class).enable();
             }
-            this.disable();
+            disable();
         }
 
     }

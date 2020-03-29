@@ -17,14 +17,7 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.module.modules.chat.CustomChat;
-import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
-import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
-import me.zeroeightsix.kami.module.modules.gui.InventoryViewer;
-import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
-import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
-import me.zeroeightsix.kami.module.modules.render.TabFriends;
+import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -57,7 +50,7 @@ import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 17/02/19
+ * Updated by S-B99 on 25/03/19
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -67,16 +60,16 @@ import java.util.Optional;
 )
 public class KamiMod {
 
-    static final String MODNAME = "KAMI Blue";
+    public static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.2-03-07-01";
+    public static final String MODVER = "v1.1.2-beta";
     public static final String MODVERSMALL = "v1.1.2-beta";
     public static final String APP_ID = "638403216278683661";
 
     static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/updateChecker.json";
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/capes.json";
-    public static final String GITHUB_LINK = "https://github.com/S-B99/KAMI";
+    public static final String GITHUB_LINK = "https://github.com/S-B99/kamiblue/";
     public static final String WEBSITE_LINK = "https://blue.bella.wtf";
 
 
@@ -201,28 +194,7 @@ public class KamiMod {
 
 
         try { // load modules that are on by default // autoenable
-            //((DiscordSettings) KamiMod.MODULE_MANAGER.getModule(DiscordSettings.class));
-            MODULE_MANAGER.getModule(InfoOverlay.class).setEnabled(true);
-            MODULE_MANAGER.getModule(InventoryViewer.class).setEnabled(true);
-
-            if (((Capes) MODULE_MANAGER.getModule(Capes.class)).startupGlobal.getValue()) {
-                MODULE_MANAGER.getModule(Capes.class).setEnabled(true);
-            }
-            if (((DiscordSettings) MODULE_MANAGER.getModule(DiscordSettings.class)).startupGlobal.getValue()) {
-                MODULE_MANAGER.getModule(DiscordSettings.class).setEnabled(true);
-            }
-            if (((TabFriends) MODULE_MANAGER.getModule(TabFriends.class)).startupGlobal.getValue()) {
-                MODULE_MANAGER.getModule(TabFriends.class).setEnabled(true);
-            }
-            if (((CustomChat) MODULE_MANAGER.getModule(CustomChat.class)).startupGlobal.getValue()) {
-                MODULE_MANAGER.getModule(CustomChat.class).setEnabled(true);
-            }
-            if (((CleanGUI) MODULE_MANAGER.getModule(CleanGUI.class)).startupGlobal.getValue()) {
-                MODULE_MANAGER.getModule(CleanGUI.class).setEnabled(true);
-            }
-            if (((PrefixChat) MODULE_MANAGER.getModule(PrefixChat.class)).startupGlobal.getValue()) {
-                MODULE_MANAGER.getModule(PrefixChat.class).setEnabled(true);
-            }
+            MODULE_MANAGER.getModule(RunConfig.class).enable();
         }
         catch (NullPointerException e) {
             KamiMod.log.error("NPE in loading always enabled modules\n");

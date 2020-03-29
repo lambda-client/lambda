@@ -59,7 +59,7 @@ public class Aura extends Module {
             return;
         }
         if (autoWait.getValue() && infoMsg.getValue()) {
-            Command.sendWarningMessage(this.getChatName() + " When Auto Tick Delay is turned on whatever you give Tick Delay doesn't matter, it uses the current TPS instead");
+            Command.sendWarningMessage(getChatName() + " When Auto Tick Delay is turned on whatever you give Tick Delay doesn't matter, it uses the current TPS instead");
         }
     }
 

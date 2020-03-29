@@ -12,7 +12,7 @@ import java.util.Comparator;
 public class CommandsCommand extends Command {
 
     public CommandsCommand() {
-        super("commands", SyntaxChunk.EMPTY);
+        super("commands", SyntaxChunk.EMPTY, "cmds");
         setDescription("Gives you this list of commands");
     }
 

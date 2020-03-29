@@ -5,13 +5,13 @@
 ### A Minecraft utility mod for anarchy servers
 
 # 
-<a href="https://github.com/S-B99/kamiblue/releases/download/v1.1.2/KAMI-Blue-v1.1.2-release.jar">
+<a href="https://blue.bella.wtf/download">
 <img src="https://github.com/S-B99/kamiblue/blob/assets/assets/icons/download.svg" width="200"/>
 </a>
 
 ***
 
-[![Dl discord](https://img.shields.io/badge/downloads-32k-brightgreen?logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
+[![Dl discord](https://img.shields.io/badge/downloads-37k-brightgreen?logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
 [![Dl Github](https://img.shields.io/github/downloads/S-B99/kamiblue/total?label=downloads&logo=github)](https://github.com/S-B99/kamiblue/releases)
 
 [![Build Status features-master](https://img.shields.io/travis/com/S-B99/kamiblue/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/kamiblue/)

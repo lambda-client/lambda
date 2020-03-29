@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
-/***
+/**
  * @author S-B99
  * Created by S-B99 on 20/12/19
  * Updated by S-B99 on 22/12/19

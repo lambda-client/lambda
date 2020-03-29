@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/***
+/**
  * @author 3arthqu4ke
  * Updated by S-B99 on 27/12/19
  */

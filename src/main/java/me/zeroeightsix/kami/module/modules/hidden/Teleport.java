@@ -20,7 +20,7 @@ public class Teleport extends Module {
     public void onUpdate() {
         if (finalPos == null) {
             Command.sendErrorMessage("Position not set, use .tp");
-            this.disable();
+            disable();
             return;
         }
 
@@ -30,7 +30,7 @@ public class Teleport extends Module {
             lastPos = new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ);
             if (finalPos.distanceTo(new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ)) < 0.3 || blocksPerTeleport == 0) {
                 Command.sendChatMessage("Teleport Finished!");
-                this.disable();
+                disable();
             } else {
                 mc.player.setVelocity(0, 0, 0);
             }
@@ -41,7 +41,7 @@ public class Teleport extends Module {
             } else {
                 final Vec3d vec = tpDirectionVec.scale(finalPos.distanceTo(new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ)));
                 mc.player.setPosition(mc.player.posX + vec.x, mc.player.posY + vec.y, mc.player.posZ + vec.z);
-                this.disable();
+                disable();
             }
             lastTp = System.currentTimeMillis();
         } else if (lastTp + 2000L > System.currentTimeMillis()) {

@@ -17,7 +17,7 @@ import me.zeroeightsix.kami.module.Module;
 @Module.Info(name = "AutoReply", description = "Automatically replies to messages", category = Module.Category.CHAT)
 public class AutoReply extends Module {
     public Setting<Boolean> customMessage = register(Settings.b("Custom Message", false));
-    public Setting<String> message = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "&rautoreply to modify this").withConsumer((old, value) -> {}).withVisibility(v -> customMessage.getValue()).build());
+    public Setting<String> message = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "autoreply&r to modify this").withConsumer((old, value) -> {}).withVisibility(v -> customMessage.getValue()).build());
     public Setting<Boolean> customListener = register(Settings.b("Custom Listener", false));
     public Setting<String> listener = register(Settings.stringBuilder("Custom Listener Name").withValue("unchanged").withConsumer((old, value) -> {}).withVisibility(v -> customListener.getValue()).build());
     public Setting<Boolean> customReplyCommand = register(Settings.b("Custom Reply Command", false));
@@ -53,10 +53,10 @@ public class AutoReply extends Module {
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
             if (customListener.getValue() && listener.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
-                Command.sendWarningMessage(this.getChatName() + " Warning: In order to use the custom listener, please run the &7" + Command.getCommandPrefix() + "&rautoreply =LISTENERNAME command to change it");
+                Command.sendWarningMessage(getChatName() + " Warning: In order to use the custom listener, please run the &7" + Command.getCommandPrefix() + "autoreply&r =LISTENERNAME command to change it");
             }
             if (customReplyCommand.getValue() && replyCommand.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
-                Command.sendWarningMessage(this.getChatName() + " Warning: In order to use the custom reply command, please run the &7" + Command.getCommandPrefix() + "&rautoreply -REPLYCOMMAND command to change it");
+                Command.sendWarningMessage(getChatName() + " Warning: In order to use the custom reply command, please run the &7" + Command.getCommandPrefix() + "autoreply&r -REPLYCOMMAND command to change it");
             }
             startTime = System.currentTimeMillis();
         }

@@ -1,31 +1,4 @@
-// make folders
-
-task mkdir {
-    group = "kami"
-    doLast {
-        mkdir System.getProperty("user.home") + "/.minecraft/mods/1.12.2/"
-    }
-}
-
-// delete old versions
-
-task rmOld(type: Delete) {
-    group = "kami"
-    delete fileTree(System.getProperty("user.home") + "/.minecraft/mods/1.12.2/").matching {
-        include "k*-release.jar"
-    }
-}
-
-// copy file
-
-task copy(type: Copy) {
-    group = "kami"
-    from file("build/libs/")
-    include 'k*-release.jar'
-    into file(System.getProperty("user.home") + "/.minecraft/mods/1.12.2/")
-}
-
-// forge's stuff 
+// forge's stuff
 
 buildscript {
     repositories {
@@ -102,6 +75,8 @@ dependencies {
         exclude group: 'com.google.guava', module: 'guava'
     }
     compile 'club.minnced:java-discord-rpc:v2.0.1'
+    compile 'com.github.MrPowerGamerBR:TemmieWebhook:-SNAPSHOT'
+    compile 'com.github.kevinsawicki:http-request:http-request-6.0'
 }
 
 processResources {
@@ -135,6 +110,8 @@ shadowJar {
         include(dependency('org.yaml:snakeyaml'))
         include(dependency('org.reflections:reflections'))
         include(dependency('org.javassist:javassist'))
+        include(dependency('com.github.MrPowerGamerBR:TemmieWebhook'))
+        include(dependency('com.github.kevinsawicki:http-request'))
     }
     exclude 'dummyThing' // can someone explain why this is here
     classifier = 'release'

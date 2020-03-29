@@ -69,8 +69,8 @@ public class AutoExp extends Module {
             int xpSlot = findXpPots();
             if (xpSlot == -1) {
                 if (autoDisable.getValue()) {
-                    Command.sendWarningMessage(this.getChatName() + " No XP in hotbar, disabling");
-                    this.disable();
+                    Command.sendWarningMessage(getChatName() + " No XP in hotbar, disabling");
+                    disable();
                 }
                 return;
             }

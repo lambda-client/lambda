@@ -7,7 +7,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.GameType;
 
-/***
+/**
  * Created by @S-B99 on 20/11/19
  * Yes, this is 100% original code. Go away
  */
@@ -23,8 +23,8 @@ public class FakeGamemode extends Module {
         if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() != null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
             if (mc.player.dimension == 1) {
                 if (disable2b.getValue()) {
-                    Command.sendWarningMessage(this.getChatName() + " Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
-                    this.disable();
+                    Command.sendWarningMessage(getChatName() + " Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
+                    disable();
                 }
             }
             return;
@@ -44,7 +44,7 @@ public class FakeGamemode extends Module {
     }
 
     public void onEnable() {
-        if (mc.player == null) { this.disable(); return; }
+        if (mc.player == null) disable();
         else gameType = mc.playerController.getCurrentGameType();
     }
 

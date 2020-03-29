@@ -84,17 +84,21 @@ public class Module {
         return originalName;
     }
 
+    /**
+     * @see me.zeroeightsix.kami.command.commands.GenerateWebsiteCommand
+     * @see me.zeroeightsix.kami.module.modules.gui.ActiveModules
+     */
     public enum Category {
+        CHAT("Chat", false),
         COMBAT("Combat", false),
-        EXPLOITS("Exploits", false),
-        RENDER("Render", false),
-        MISC("Misc", false),
-        PLAYER("Player", false),
-        MOVEMENT("Movement", false),
         EXPERIMENTAL("Experimental", false),
         GUI("GUI", false),
-        CHAT("Chat", false),
-        HIDDEN("Hidden", true);
+        HIDDEN("Hidden", true),
+        MISC("Misc", false),
+        MOVEMENT("Movement", false),
+        PLAYER("Player", false),
+        RENDER("Render", false),
+        UTILS("Utils", false);
 
         boolean hidden;
         String name;
@@ -115,7 +119,7 @@ public class Module {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Info {
         String name();
-        String description() default "No description for this module, please report this so it can be fixed at &b" + GITHUB_LINK;
+        String description();
         Module.Category category();
         boolean alwaysListening() default false;
         ShowOnArray showOnArray() default ShowOnArray.ON;
@@ -134,6 +138,8 @@ public class Module {
     public Category getCategory() { return category; }
 
     public boolean isEnabled() { return enabled.getValue(); }
+
+    public boolean isOnArray() { return showOnArray.getValue().equals(ShowOnArray.ON); }
 
     protected void onEnable() {}
 
@@ -183,8 +189,6 @@ public class Module {
      */
     public void destroy() {
     }
-
-    ;
 
     protected void registerAll(Setting... settings) {
         for (Setting setting : settings) {
