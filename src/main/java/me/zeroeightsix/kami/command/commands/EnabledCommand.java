@@ -41,7 +41,7 @@ public class EnabledCommand extends Command {
                 }
             }
         });
-        
+
         enabled.set(StringUtils.chop(StringUtils.chop(String.valueOf(enabled)))); // this looks horrible but I don't know how else to do it sorry
         Command.sendChatMessage("Enabled modules: " + f + "\n" + TextFormatting.GRAY + enabled);
     }

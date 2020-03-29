@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.gui.mc;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
+import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.util.text.ITextComponent;
 import org.lwjgl.input.Mouse;
@@ -14,7 +15,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
-import static me.zeroeightsix.kami.util.ColourSet.chatOutline;
 
 public class KamiGuiChat extends GuiChat {
 
@@ -142,7 +142,7 @@ public class KamiGuiChat extends GuiChat {
 
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glColor3f(toF(chatOutline.getRed()), toF(chatOutline.getGreen()), toF(chatOutline.getBlue()));
+        GL11.glColor3f(toF(GuiC.chatOutline.color.getRed()), toF(GuiC.chatOutline.color.getGreen()), toF(GuiC.chatOutline.color.getBlue()));
         GL11.glBegin(GL11.GL_LINES);
         {
             GL11.glVertex2f(this.inputField.x - 2, this.inputField.y - 2);
