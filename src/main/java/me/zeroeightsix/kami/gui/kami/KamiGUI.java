@@ -2,9 +2,7 @@ package me.zeroeightsix.kami.gui.kami;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.gui.kami.component.ActiveModules;
-import me.zeroeightsix.kami.gui.kami.component.Radar;
-import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
+import me.zeroeightsix.kami.gui.kami.component.*;
 import me.zeroeightsix.kami.gui.kami.theme.kami.KamiTheme;
 import me.zeroeightsix.kami.gui.rgui.GUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
@@ -197,7 +195,7 @@ public class KamiGUI extends GUI {
         /*
          * Testing
          */
-        /*
+
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info2");
         frame.setCloseable(false);
         frame.setPinnable(true);
@@ -226,7 +224,7 @@ public class KamiGUI extends GUI {
         frame.addChild(theme, checkButton);
 //        information2.setFontRenderer(fontRenderer);
         frames.add(frame);
-        */
+
         
         /*
          * Information Overlay / InfoOverlay

@@ -15,7 +15,7 @@ public class CreditsCommand extends Command {
     @Override
     public void call(String[] args) {
         Command.sendChatMessage("\n" +
-                "Name (Github if not same as name)" +
+                "Name (Github if not same as name)\n" +
                 "&l&9Author:\n" +
                 "086 (zeroeightysix)\n" +
                 "&l&9Contributors:\n" +
