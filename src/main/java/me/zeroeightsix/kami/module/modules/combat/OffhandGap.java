@@ -163,6 +163,4 @@ public class OffhandGap extends Module {
 	public String getHudInfo() {
 		return String.valueOf(getItems(Items.GOLDEN_APPLE));
 	}
-
-	public void onEnable() { crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura"); }
 }

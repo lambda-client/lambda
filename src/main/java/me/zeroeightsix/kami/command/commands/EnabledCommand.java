@@ -30,9 +30,6 @@ public class EnabledCommand extends Command {
         String f = "";
         if (args[0] != null) f = "(filter: " + args[0] + ")";
 
-        String f = "";
-        if (args[0] != null) f = "(filter: " + args[0] + ")";
-
         mods.forEach(module -> {
             if (args[0] == null) {
                 if (module.isEnabled()) {
