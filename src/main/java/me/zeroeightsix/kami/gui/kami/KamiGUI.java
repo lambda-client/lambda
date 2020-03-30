@@ -194,7 +194,7 @@ public class KamiGUI extends GUI {
         /*
          * Testing
          */
-
+        /*
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Info2");
         frame.setCloseable(false);
         frame.setPinnable(true);
@@ -223,7 +223,7 @@ public class KamiGUI extends GUI {
         frame.addChild(theme, checkButton);
 //        information2.setFontRenderer(fontRenderer);
         frames.add(frame);
-
+        */
         
         /*
          * Information Overlay / InfoOverlay
