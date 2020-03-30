@@ -31,7 +31,7 @@ import java.util.Map;
 public class Capes extends Module {
 
     // This allows controlling if other capes (Mojang, OptiFine) should override the KAMI Blue cape.
-    public Setting<Boolean> overrideOtherCapes = Settings.b("Override Mojang / Opti capes", false);
+    public Setting<Boolean> overrideOtherCapes = register(Settings.b("Override Other Capes", true));
 
     public static Capes INSTANCE;
 
