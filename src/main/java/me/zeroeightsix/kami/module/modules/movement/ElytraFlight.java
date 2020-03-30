@@ -33,13 +33,15 @@ public class ElytraFlight extends Module {
         if (mc.player == null) return;
 
         if (defaultSetting.getValue()) {
+            easyTakeOff.setValue(true);
+            takeOffMode.setValue(TakeoffMode.PACKET);
+            overrideMaxSpeed.setValue(false);
             speedHighway.setValue(1.8f);
             speedHighwayOverride.setValue(1.8f);
-            fallSpeed.setValue(-.003f);
             fallSpeedHighway.setValue(.000050000002f);
+            fallSpeed.setValue(-.003f);
             upSpeedBoost.setValue(0.08f);
             downSpeedBoost.setValue(0.04f);
-            overrideMaxSpeed.setValue(false);
             defaultSetting.setValue(false);
             Command.sendChatMessage(getChatName() + " Set to defaults!");
             Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
@@ -56,6 +58,11 @@ public class ElytraFlight extends Module {
                     Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
                 default:
             }
+        }
+
+        if (mode.getValue().equals(ElytraFlightMode.HIGHWAY) && easyTakeOff.getValue() && mc.player.isElytraFlying()) {
+            easyTakeOff.setValue(false);
+            Command.sendChatMessage(getChatName() + "Disabled takeoff!");
         }
 
         if (mc.player.capabilities.isFlying) {
