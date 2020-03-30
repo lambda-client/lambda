@@ -129,7 +129,7 @@ public class ModuleManager {
                 return module.getValue();
             }
         }
-        throw new ModuleNotFoundException("getModuleByName(String) failed. Check spelling.");
+        throw new ModuleNotFoundException("Error: Module not found. Check the spelling of the module. (getModuleByName(String) failed)");
     }
 
     public boolean isModuleEnabled(Class<? extends Module> clazz) {
