@@ -63,14 +63,21 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
             Module module = mods.get(i);
             int rgb;
 
-            if (activeMods.mode.getValue().equals(ActiveModules.Mode.RAINBOW)) {
-                rgb = Color.HSBtoRGB(hue[0], toF(activeMods.saturationR.getValue()), toF(activeMods.brightnessR.getValue()));
-            } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CATEGORY)) {
-                rgb = ActiveModules.getCategoryColour(module);
-            } else if (activeMods.mode.getValue().equals(ActiveModules.Mode.CUSTOM)) {
-                rgb = Color.HSBtoRGB(toF(activeMods.hueC.getValue()), toF(activeMods.saturationC.getValue()), toF(activeMods.brightnessC.getValue()));
-            } else {
-                rgb = activeMods.getInfoColour(i);
+            switch (activeMods.mode.getValue()) {
+                case RAINBOW:
+                    rgb = Color.HSBtoRGB(hue[0], toF(activeMods.saturationR.getValue()), toF(activeMods.brightnessR.getValue()));
+                    break;
+                case CATEGORY:
+                    rgb = ActiveModules.getCategoryColour(module);
+                    break;
+                case CUSTOM:
+                    rgb = Color.HSBtoRGB(toF(activeMods.hueC.getValue()), toF(activeMods.saturationC.getValue()), toF(activeMods.brightnessC.getValue()));
+                    break;
+                case INFO_OVERLAY:
+                    rgb = activeMods.getInfoColour(i);
+                    break;
+                default:
+                    rgb = 0;
             }
 
             String hudInfo = module.getHudInfo();
