@@ -39,7 +39,8 @@ public class DiscordNotifs extends Module {
     private Setting<Boolean> all = register(Settings.b("All Messages", false));
     private Setting<Boolean> queue = register(Settings.booleanBuilder("Queue Position").withValue(true).withVisibility(v -> !all.getValue()).build());
     private Setting<Boolean> restart = register(Settings.booleanBuilder("Restart Msgs").withValue(true).withVisibility(v -> !all.getValue()).build());
-    private Setting<Boolean> direct = register(Settings.booleanBuilder("Direct Msgs").withValue(true).withVisibility(v -> !all.getValue()).build());
+    private Setting<Boolean> direct = register(Settings.booleanBuilder("Received DMs").withValue(true).withVisibility(v -> !all.getValue()).build());
+    private Setting<Boolean> directSent = register(Settings.booleanBuilder("Send DMs").withValue(true).withVisibility(v -> !all.getValue()).build());
     public Setting<String> url = register(Settings.s("URL", "unchanged"));
     public Setting<String> pingID = register(Settings.s("Ping ID", "unchanged"));
     public Setting<String> avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "raw/assets/assets/icons/kami.png"));
@@ -77,8 +78,7 @@ public class DiscordNotifs extends Module {
     private static long startTime = 0;
     private boolean timeout(String message) {
         if (!timeout.getValue()) return true;
-        else if (isRestart(message)) return true;
-        else if (isDirect(message) || isDirectOther(message)) return true;
+        else if (isRestart(message) || isDirect(message) || isDirectOther(message)) return true;
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + (timeoutTime.getValue() * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
@@ -97,7 +97,7 @@ public class DiscordNotifs extends Module {
     }
 
     private boolean isDirectOther(String message) {
-        return direct.getValue() && Pattern.compile("to.*:", Pattern.CASE_INSENSITIVE).matcher(message).find();
+        return directSent.getValue() && Pattern.compile("to .+:", Pattern.CASE_INSENSITIVE).matcher(message).find();
     }
 
     private boolean isQueue(String message) {
