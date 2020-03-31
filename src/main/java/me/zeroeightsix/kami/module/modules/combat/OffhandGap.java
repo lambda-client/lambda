@@ -18,9 +18,6 @@ import java.util.Objects;
 
 import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
 
-import java.util.Comparator;
-import java.util.Objects;
-
 /**
  * @author polymer (main listener switch function xd)
  * @author S-B99 (made epic and smooth and cleaned up code <3) (why did i rewrite this 4 times)
@@ -55,9 +52,9 @@ public class OffhandGap extends Module {
 				return;
 			}
 			if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
-				if (KamiMod.MODULE_MANAGER.isModuleEnabled(AutoOffhand.class)) {
+				if (KamiMod.MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
 					autoTotemWasEnabled = true;
-					KamiMod.MODULE_MANAGER.getModule(AutoOffhand.class).disable();
+					KamiMod.MODULE_MANAGER.getModule(AutoTotem.class).disable();
 				}
 				if (!eatWhileAttacking.getValue()) { /* Save item for later when using preventDesync */
 					usedItem = mc.player.getHeldItemMainhand().getItem();
@@ -138,9 +135,9 @@ public class OffhandGap extends Module {
 	}
 
 	private void disableGaps() {
-		if (autoTotemWasEnabled != KamiMod.MODULE_MANAGER.isModuleEnabled(AutoOffhand.class)) {
+		if (autoTotemWasEnabled != KamiMod.MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
 			moveGapsToInventory(gaps);
-			KamiMod.MODULE_MANAGER.getModule(AutoOffhand.class).enable();
+			KamiMod.MODULE_MANAGER.getModule(AutoTotem.class).enable();
 			autoTotemWasEnabled = false;
 		}
 	}

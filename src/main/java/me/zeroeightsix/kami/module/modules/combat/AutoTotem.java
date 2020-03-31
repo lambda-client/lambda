@@ -15,11 +15,11 @@ import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
  * Created by 086 on 22/01/2018.
  * Updated by S-B99 on 25/03/20
  */
-@Module.Info(name = "AutoOffhand", category = Module.Category.COMBAT, description = "Refills your offhand with totems or other items")
-public class AutoOffhand extends Module {
+@Module.Info(name = "AutoTotem", category = Module.Category.COMBAT, description = "Refills your offhand with totems or other items")
+public class AutoTotem extends Module {
     private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.REPLACE_OFFHAND));
-    private Setting<Boolean> smartOffhand = register(Settings.booleanBuilder("Custom Item").withValue(false).withVisibility(v -> modeSetting.getValue().equals(Mode.REPLACE_OFFHAND)));
-    private Setting<Double> healthSetting = register(Settings.doubleBuilder("Custom Item Health").withValue(14.0).withVisibility(v -> smartOffhand.getValue() && modeSetting.getValue().equals(Mode.REPLACE_OFFHAND)));
+    private Setting<Boolean> smartOffhand = register(Settings.booleanBuilder("Custom Item").withValue(false).withVisibility(v -> modeSetting.getValue().equals(Mode.REPLACE_OFFHAND)).build());
+    private Setting<Double> healthSetting = register(Settings.doubleBuilder("Custom Item Health").withValue(14.0).withVisibility(v -> smartOffhand.getValue() && modeSetting.getValue().equals(Mode.REPLACE_OFFHAND)).build());
     private Setting<CustomItem> smartItemSetting = register(Settings.enumBuilder(CustomItem.class).withName("Item").withValue(CustomItem.GAPPLE).withVisibility(v -> smartOffhand.getValue()).build());
 
     private enum Mode { NEITHER, REPLACE_OFFHAND, INVENTORY;}
