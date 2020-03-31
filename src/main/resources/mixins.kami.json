@@ -15,6 +15,7 @@
     "MixinEntityPig",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
+    "MixinFrustum",
     "MixinGuiChat",
     "MixinGuiNewChat",
     "MixinGuiPlayerTabOverlay",
@@ -28,7 +29,6 @@
     "MixinRenderLiving",
     "MixinRenderPlayer",
     "MixinStateImplementation",
-    "MixinFrustum",
     "MixinVisGraph"
   ]
 }

@@ -1,14 +1,16 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import com.google.common.base.Predicate;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.module.modules.misc.CameraClip;
+import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.module.modules.player.NoEntityTrace;
 import me.zeroeightsix.kami.module.modules.render.AntiFog;
 import me.zeroeightsix.kami.module.modules.render.Brightness;
 import me.zeroeightsix.kami.module.modules.render.NoHurtCam;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.EntityRenderer;
@@ -39,7 +41,7 @@ public class MixinEntityRenderer {
 
     @Redirect(method = "orientCamera", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/WorldClient;rayTraceBlocks(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/RayTraceResult;"))
     public RayTraceResult rayTraceBlocks(WorldClient world, Vec3d start, Vec3d end) {
-        if (ModuleManager.isModuleEnabled("CameraClip"))
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(CameraClip.class))
             return null;
         else
             return world.rayTraceBlocks(start, end);
@@ -85,7 +87,7 @@ public class MixinEntityRenderer {
     public boolean noclipIsSpectator(AbstractClientPlayer acp) {
         // [WebringOfTheDamned]
         // Freecam doesn't actually use spectator mode, but it can go through walls, and only spectator mode is "allowed to" go through walls as far as the renderer is concerned
-        if (ModuleManager.isModuleEnabled("Freecam"))
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class))
             return true;
         return acp.isSpectator();
     }

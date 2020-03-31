@@ -1,20 +1,15 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
-import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.setting.Setting;
-import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.Wrapper;
-
+import io.netty.buffer.Unpooled;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
-
-import io.netty.buffer.Unpooled;
-
+import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.client.CPacketCustomPayload;
 
-/***
+/**
  * Created by 0x2E | PretendingToCode
  */
 @Module.Info(name = "BeaconSelector", category = Module.Category.MISC, description = "Choose any of the 5 beacon effects regardless of beacon base height")

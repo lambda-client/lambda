@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketEntityAction;
@@ -19,7 +18,9 @@ import java.util.Objects;
 public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Boolean> overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)));
+    private Setting<Boolean> easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff").withValue(true).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<TakeoffMode> takeOffMode = register(Settings.enumBuilder(TakeoffMode.class).withName("Takeoff Mode").withValue(TakeoffMode.PACKET).withVisibility(v -> easyTakeOff.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Boolean> overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility(v -> !overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> speedHighwayOverride = register(Settings.floatBuilder("Speed H O").withValue(1.8f).withVisibility(v -> overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeedHighway = register(Settings.floatBuilder("Fall Speed H").withValue(0.000050000002f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
@@ -32,16 +33,36 @@ public class ElytraFlight extends Module {
         if (mc.player == null) return;
 
         if (defaultSetting.getValue()) {
+            easyTakeOff.setValue(true);
+            takeOffMode.setValue(TakeoffMode.PACKET);
+            overrideMaxSpeed.setValue(false);
             speedHighway.setValue(1.8f);
             speedHighwayOverride.setValue(1.8f);
-            fallSpeed.setValue(-.003f);
             fallSpeedHighway.setValue(.000050000002f);
+            fallSpeed.setValue(-.003f);
             upSpeedBoost.setValue(0.08f);
             downSpeedBoost.setValue(0.04f);
-            overrideMaxSpeed.setValue(false);
             defaultSetting.setValue(false);
             Command.sendChatMessage(getChatName() + " Set to defaults!");
             Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
+        }
+
+        if (mode.getValue().equals(ElytraFlightMode.HIGHWAY)
+                && easyTakeOff.getValue()
+                && !mc.player.isElytraFlying()
+                && !mc.player.onGround) {
+            switch (takeOffMode.getValue()) {
+                case CLIENT:
+                    mc.player.capabilities.isFlying = true;
+                case PACKET:
+                    Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
+                default:
+            }
+        }
+
+        if (mode.getValue().equals(ElytraFlightMode.HIGHWAY) && easyTakeOff.getValue() && mc.player.isElytraFlying()) {
+            easyTakeOff.setValue(false);
+            Command.sendChatMessage(getChatName() + "Disabled takeoff!");
         }
 
         if (mc.player.capabilities.isFlying) {
@@ -50,8 +71,7 @@ public class ElytraFlight extends Module {
                 mc.player.setVelocity(0, 0, 0);
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.getValue(), mc.player.posZ);
                 mc.player.capabilities.setFlySpeed(getHighwaySpeed());
-            }
-            else {
+            } else {
                 mc.player.setVelocity(0, 0, 0);
                 mc.player.capabilities.setFlySpeed(.915f);
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeed.getValue(), mc.player.posZ);
@@ -113,7 +133,6 @@ public class ElytraFlight extends Module {
         }
     }
 
-    public enum ElytraFlightMode {
-        BOOST, FLY, HIGHWAY
-    }
+    private enum ElytraFlightMode { BOOST, FLY, HIGHWAY }
+    private enum TakeoffMode { CLIENT, PACKET }
 }

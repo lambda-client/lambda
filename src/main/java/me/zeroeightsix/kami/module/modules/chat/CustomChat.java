@@ -17,7 +17,6 @@ import static me.zeroeightsix.kami.KamiMod.*;
  */
 @Module.Info(name = "CustomChat", category = Module.Category.CHAT, description = "Add a custom suffix to the end of your message!", showOnArray = Module.ShowOnArray.OFF)
 public class CustomChat extends Module {
-    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
     public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ON_TOP));
     private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
@@ -76,6 +75,4 @@ public class CustomChat extends Module {
             startTime = System.currentTimeMillis();
         }
     }
-
-    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }

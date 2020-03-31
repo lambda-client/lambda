@@ -2,11 +2,10 @@ package me.zeroeightsix.kami.module.modules.capes;
 
 import com.google.gson.Gson;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.IImageBuffer;
 import net.minecraft.client.renderer.ThreadDownloadImageData;
@@ -22,7 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/***
+/**
  * @author Crystallinqq
  * Updated by S-B99 on 20/12/19
  * Updated by 20kdc on 17/02/20 - changed implementation method, made a module again, made async
@@ -30,10 +29,9 @@ import java.util.Map;
  */
 @Module.Info(name = "Capes", category = Module.Category.GUI, description = "Controls the display of KAMI Blue capes", showOnArray = Module.ShowOnArray.OFF)
 public class Capes extends Module {
-    public Setting<Boolean> startupGlobal = register(Settings.b("Enable Automatically", true));
 
     // This allows controlling if other capes (Mojang, OptiFine) should override the KAMI Blue cape.
-    public Setting<Boolean> overrideOtherCapes = Settings.b("Override Mojang / Opti capes", false);
+    public Setting<Boolean> overrideOtherCapes = register(Settings.b("Override Other Capes", true));
 
     public static Capes INSTANCE;
 
@@ -153,6 +151,4 @@ public class Capes extends Module {
             textureManager.loadTexture(location, textureCape);
         }
     }
-
-    public void onDisable() { Command.sendAutoDisableMessage(getName(), startupGlobal.getValue()); }
 }

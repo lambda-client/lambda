@@ -17,13 +17,7 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.module.modules.chat.CustomChat;
-import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
-import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
-import me.zeroeightsix.kami.module.modules.hidden.FixGui;
-import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
-import me.zeroeightsix.kami.module.modules.render.TabFriends;
+import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -96,6 +90,7 @@ public class KamiMod {
     public static final Logger log = LogManager.getLogger("KAMI Blue");
 
     public static final EventBus EVENT_BUS = new EventManager();
+    public static final ModuleManager MODULE_MANAGER = new ModuleManager();
 
     @Mod.Instance
     private static KamiMod INSTANCE;
@@ -170,9 +165,9 @@ public class KamiMod {
     public void init(FMLInitializationEvent event) {
         KamiMod.log.info("\n\nInitializing " + MODNAME + " " + MODVER);
 
-        ModuleManager.initialize();
+        KamiMod.MODULE_MANAGER.register();
 
-        ModuleManager.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
+        KamiMod.MODULE_MANAGER.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
         MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
         LagCompensator.INSTANCE = new LagCompensator();
 
@@ -189,41 +184,17 @@ public class KamiMod {
         KamiMod.log.info("Settings loaded");
 
         // custom names aren't known at compile-time
-        //ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
+        //KamiMod.MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
         new RichPresence();
         KamiMod.log.info("Rich Presence Users init!\n");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
-        ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
+        KamiMod.MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
 
         try { // load modules that are on by default // autoenable
-            ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
-            ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
-            ModuleManager.getModuleByName("ActiveModules").setEnabled(true);
-
-            if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("Capes").setEnabled(true);
-            }
-            if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
-            }
-            if (((FixGui) ModuleManager.getModuleByName("Hidden:FixGui")).shouldAutoEnable.getValue()) {
-                ModuleManager.getModuleByName("Hidden:FixGui").setEnabled(true);
-            }
-            if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("TabFriends").setEnabled(true);
-            }
-            if (((CustomChat) ModuleManager.getModuleByName("CustomChat")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("CustomChat").setEnabled(true);
-            }
-            if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
-            }
-            if (((PrefixChat) ModuleManager.getModuleByName("PrefixChat")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("PrefixChat").setEnabled(true);
-            }
+            MODULE_MANAGER.getModule(RunConfig.class).enable();
         }
         catch (NullPointerException e) {
             KamiMod.log.error("NPE in loading always enabled modules\n");
@@ -312,7 +283,7 @@ public class KamiMod {
         if (!Files.exists(outputFile))
             Files.createFile(outputFile);
         Configuration.saveConfiguration(outputFile);
-        ModuleManager.getModules().forEach(Module::destroy);
+        KamiMod.MODULE_MANAGER.getModules().forEach(Module::destroy);
     }
 
     public static boolean isFilenameValid(String file) {

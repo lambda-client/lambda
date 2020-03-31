@@ -17,7 +17,6 @@ import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
 import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.Friends;
@@ -67,7 +66,7 @@ public class KamiGUI extends GUI {
     @Override
     public void initializeGUI() {
         HashMap<Module.Category, Pair<Scrollpane, SettingsPanel>> categoryScrollpaneHashMap = new HashMap<>();
-        for (Module module : ModuleManager.getModules()) {
+        for (Module module : KamiMod.MODULE_MANAGER.getModules()) {
             if (module.getCategory().isHidden()) continue;
             Module.Category moduleCategory = module.getCategory();
             if (!categoryScrollpaneHashMap.containsKey(moduleCategory)) {
@@ -237,7 +236,7 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
+            InfoOverlay info = ((InfoOverlay) KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class));;
             information.setText("");
             info.infoContents().forEach(information::addLine);
         });
@@ -271,7 +270,7 @@ public class KamiGUI extends GUI {
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
         frame.setCloseable(false);
-        frame.setPinnable(true);
+        frame.setPinnable(false);
         frame.setMinimizeable(true);
         Label friends = new Label("");
         friends.setShadow(true);

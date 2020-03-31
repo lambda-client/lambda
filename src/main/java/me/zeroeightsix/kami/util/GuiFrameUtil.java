@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.util;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
@@ -51,6 +50,8 @@ public class GuiFrameUtil {
             if (frame.getY() > (Display.getHeight() / divider)) {
                 frame.setY((Display.getHeight() / divider) - frame.getHeight());
             }
+            if (frame.getX() < 0) frame.setX(0);
+            if (frame.getY() < 0) frame.setY(0);
         }
     }
 }

@@ -1,15 +1,15 @@
-package me.zeroeightsix.kami.module.modules.gui;
+package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
-/***
+/**
  * @author S-B99
  * Created by S-B99 on 20/12/19
  * Updated by S-B99 on 22/12/19
  */
-@Module.Info(name = "Zoom", category = Module.Category.GUI, description = "Configures FOV", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "Zoom", category = Module.Category.RENDER, description = "Configures FOV", showOnArray = Module.ShowOnArray.OFF)
 public class Zoom extends Module {
 
     private float fov = 0;

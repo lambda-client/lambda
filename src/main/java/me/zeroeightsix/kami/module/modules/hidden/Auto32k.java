@@ -1,9 +1,11 @@
 package me.zeroeightsix.kami.module.modules.hidden;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.combat.Aura;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
+import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Friends;
@@ -28,7 +30,10 @@ import net.minecraft.util.math.Vec3d;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
@@ -44,7 +49,7 @@ public class Auto32k extends Module {
     private Setting<Boolean> moveToHotbar = register(Settings.b("Move 32k to Hotbar", true));
     private Setting<Boolean> autoEnableHitAura = register(Settings.b("Auto enable Hit Aura", true));
     //private Setting<Double> placeRange = register(Settings.d("Place Range", 4.0d));
-    private Setting<Double> placeRange = this.register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
+    private Setting<Double> placeRange = register(Settings.doubleBuilder("Place range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).build());
     private Setting<Integer> yOffset = register(Settings.i("Y Offset (Hopper)", 2));
     private Setting<Boolean> placeCloseToEnemy = register(Settings.b("Place close to enemy", false));
     private Setting<Boolean> placeObiOnTop = register(Settings.b("Place Obi on Top", true));
@@ -56,7 +61,7 @@ public class Auto32k extends Module {
     @Override
     protected void onEnable() {
 
-        if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             disable();
             return;
         }
@@ -110,7 +115,7 @@ public class Auto32k extends Module {
 
         int range = (int) Math.ceil(placeRange.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+        CrystalAura crystalAura = (CrystalAura) KamiMod.MODULE_MANAGER.getModule(CrystalAura.class);
         List<BlockPos> placeTargetList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
         Map<BlockPos, Double> placeTargetMap = new HashMap<>();
 
@@ -233,7 +238,7 @@ public class Auto32k extends Module {
     @Override
     public void onUpdate() {
 
-        if (isDisabled() || mc.player == null || ModuleManager.isModuleEnabled("Freecam")) {
+        if (isDisabled() || mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
             return;
         }
 
@@ -263,7 +268,7 @@ public class Auto32k extends Module {
         if (swapReady) {
             mc.playerController.windowClick(((GuiContainer) mc.currentScreen).inventorySlots.windowId, 0, swordSlot - 32, ClickType.SWAP, mc.player);
             if (autoEnableHitAura.getValue()) {
-                ModuleManager.getModuleByName("Aura").enable();
+                KamiMod.MODULE_MANAGER.getModule(Aura.class).enable();
             }
             disable();
         }
@@ -372,7 +377,7 @@ public class Auto32k extends Module {
     //@Override
     //protected void onDisable() {
     //	if (autoEnableHitAura.getValue()) {
-    //		ModuleManager.getModuleByName("Aura").disable();
+    //		KamiMod.MODULE_MANAGER.getModuleByName("Aura").disable();
     //	}
     //}
 

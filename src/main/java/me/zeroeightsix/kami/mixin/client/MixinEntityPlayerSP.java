@@ -3,7 +3,8 @@ package me.zeroeightsix.kami.mixin.client;
 import com.mojang.authlib.GameProfile;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.chat.PortalChat;
+import me.zeroeightsix.kami.module.modules.misc.BeaconSelector;
 import me.zeroeightsix.kami.util.BeaconGui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -29,14 +30,16 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         super(worldIn, gameProfileIn);
     }
 
+    @SuppressWarnings("UnnecessaryReturnStatement")
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;closeScreen()V"))
     public void closeScreen(EntityPlayerSP entityPlayerSP) {
-        if (ModuleManager.isModuleEnabled("PortalChat")) return;
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(PortalChat.class)) return;
     }
 
+    @SuppressWarnings("UnnecessaryReturnStatement")
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;displayGuiScreen(Lnet/minecraft/client/gui/GuiScreen;)V"))
     public void closeScreen(Minecraft minecraft, GuiScreen screen) {
-        if (ModuleManager.isModuleEnabled("PortalChat")) return;
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(PortalChat.class)) return;
     }
 
     /**
@@ -44,7 +47,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
      */
     @Inject(method = "displayGUIChest", at = @At("HEAD"), cancellable = true)
     public void onDisplayGUIChest(IInventory chestInventory, CallbackInfo ci) {
-        if (ModuleManager.getModuleByName("BeaconSelector").isEnabled()) {
+        if (KamiMod.MODULE_MANAGER.isModuleEnabled(BeaconSelector.class)) {
             if (chestInventory instanceof IInteractionObject) {
                 if ("minecraft:beacon".equals(((IInteractionObject)chestInventory).getGuiID())) {
                     Minecraft.getMinecraft().displayGuiScreen(new BeaconGui(this.inventory, chestInventory));
