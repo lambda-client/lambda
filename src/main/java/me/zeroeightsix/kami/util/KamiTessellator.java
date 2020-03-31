@@ -191,6 +191,17 @@ public class KamiTessellator extends Tessellator {
         }
     }
 
+    /**
+     * @author polymer
+     */
+    public static void drawBoxSmall(float x, float y, float z, int argb, int sides) {
+        final int a = (argb >>> 24) & 0xFF;
+        final int r = (argb >>> 16) & 0xFF;
+        final int g = (argb >>> 8) & 0xFF;
+        final int b = argb & 0xFF;
+        drawBox(INSTANCE.getBuffer(), x, y, z, 0.25f, 0.25f, 0.25f, r, g, b, a, sides);
+    }
+
     public static void drawRectangle(float x, float y, float w, float h, int color) {
         float r = (float) (color >> 16 & 255) / 255.0F;
         float g = (float) (color >> 8 & 255) / 255.0F;
