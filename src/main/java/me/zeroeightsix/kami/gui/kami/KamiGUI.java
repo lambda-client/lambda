@@ -268,7 +268,7 @@ public class KamiGUI extends GUI {
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
         frame.setCloseable(false);
-        frame.setPinnable(true);
+        frame.setPinnable(false);
         frame.setMinimizeable(true);
         Label friends = new Label("");
         friends.setShadow(true);
