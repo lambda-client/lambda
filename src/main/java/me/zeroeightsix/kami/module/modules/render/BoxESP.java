@@ -28,10 +28,10 @@ public class BoxESP extends Module {
     private Setting<Boolean> arrows = register(Settings.b("Arrows", true));
     private Setting<Boolean> throwable = register(Settings.b("Throwable", true));
     private Setting<Boolean> items = register(Settings.b("Items", false));
-    private Setting<Integer> alpha = register(Settings.integerBuilder("Red").withMinimum(1).withMaximum(255).withValue(100).build());
+    private Setting<Integer> alpha = register(Settings.integerBuilder("Alpha").withMinimum(1).withMaximum(255).withValue(100).build());
     private Setting<Integer> red = register(Settings.integerBuilder("Red").withMinimum(1).withMaximum(255).withValue(155).build());
-    private Setting<Integer> green = register(Settings.integerBuilder("Red").withMinimum(1).withMaximum(255).withValue(144).build());
-    private Setting<Integer> blue = register(Settings.integerBuilder("Red").withMinimum(1).withMaximum(255).withValue(255).build());
+    private Setting<Integer> green = register(Settings.integerBuilder("Green").withMinimum(1).withMaximum(255).withValue(144).build());
+    private Setting<Integer> blue = register(Settings.integerBuilder("Blue").withMinimum(1).withMaximum(255).withValue(255).build());
 
     @Override
     public void onWorldRender(RenderEvent event) {
