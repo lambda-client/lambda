@@ -8,8 +8,8 @@ import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
 import java.awt.*;
 
+import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
-import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.*;
 import static org.lwjgl.opengl.GL11.*;
 
 /**

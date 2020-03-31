@@ -2,18 +2,13 @@ package me.zeroeightsix.kami.module.modules.utils;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-
-import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.util.Wrapper;
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-
-import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.nbt.NBTTagCompound;
-
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
-
 import org.lwjgl.input.Mouse;
 
 /**

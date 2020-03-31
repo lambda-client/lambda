@@ -17,8 +17,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
-import static me.zeroeightsix.kami.KamiMod.GITHUB_LINK;
-
 /**
  * Created by 086 on 23/08/2017.
  * Updated by S-B99 on 15/12/19

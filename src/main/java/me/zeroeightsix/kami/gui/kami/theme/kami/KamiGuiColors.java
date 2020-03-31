@@ -2,8 +2,6 @@ package me.zeroeightsix.kami.gui.kami.theme.kami;
 
 import java.awt.*;
 
-import static me.zeroeightsix.kami.util.ColourConverter.toF;
-
 /**
  * @author S-B99
  * Class for all the main GUI colours used by the default kami theme

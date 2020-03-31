@@ -1,14 +1,14 @@
 package me.zeroeightsix.kami.module.modules.chat;
 
+import me.zero.alpine.listener.EventHandler;
+import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.event.events.PacketEvent;
+import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.network.play.server.SPacketChat;
-import me.zero.alpine.listener.EventHandler;
-import me.zeroeightsix.kami.event.events.PacketEvent;
-import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.module.Module;
 
 /**
  * @author Diamarald

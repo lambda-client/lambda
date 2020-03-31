@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
 import me.zeroeightsix.kami.gui.kami.RenderHelper;
+import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Scrollpane;
@@ -8,7 +9,6 @@ import me.zeroeightsix.kami.gui.rgui.component.listen.MouseListener;
 import me.zeroeightsix.kami.gui.rgui.component.listen.RenderListener;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
-import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import org.lwjgl.opengl.GL11;
 
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
