@@ -123,8 +123,8 @@ public class DiscordNotifs extends Module {
         else return "";
     }
     private String getMessageType(String message) {
-        if (isDirect(message)) return ": you got a direct message!\n";
-        if (isDirectOther(message)) return ": you sent a direct message!\n";
+        if (isDirect(message)) return "You got a direct message!\n";
+        if (isDirectOther(message)) return "You sent a direct message!\n";
         if (message.equals("KamiBlueMessageType1")) return "Connected to " + getServer();
         if (message.equals("KamiBlueMessageType2")) return "Disconnected from " + getServer();
         return "";
@@ -132,7 +132,7 @@ public class DiscordNotifs extends Module {
 
     private String formatPingID() {
         if (!importantPings.getValue()) return "";
-        else return "<@!" + pingID.getValue() + "> ";
+        else return "<@!" + pingID.getValue() + ">: ";
     }
 
     private String getServer() {
