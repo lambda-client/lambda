@@ -38,11 +38,6 @@ public class AutoFish extends Module {
 
     public void onUpdate() {
         if (defaultSetting.getValue()) defaults();
-        if (recast.getValue()) {
-            Command.sendChatMessage("owo");
-        } else {
-            Command.sendChatMessage("uwu");
-        }
         if (mc.player != null && recast.getValue()) {
             mc.rightClickMouse();
             recast.setValue(false);
