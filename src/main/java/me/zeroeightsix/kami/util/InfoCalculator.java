@@ -97,7 +97,7 @@ public class InfoCalculator {
 
     // Cardinal to Axis {
     public static String cardinalToAxis(char cardinal) {
-        switch(cardinal) {
+        switch (cardinal) {
             case 'N':
                 return "-Z";
             case 'S':
@@ -115,7 +115,7 @@ public class InfoCalculator {
     // Dimension {
     public static String playerDimension(Minecraft mc) {
         if (mc.player == null) return "No Dimension";
-        switch(mc.player.dimension) {
+        switch (mc.player.dimension) {
             case -1:
                 return "Nether";
             case 0:
