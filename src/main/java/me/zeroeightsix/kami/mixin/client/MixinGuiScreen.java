@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
+import me.zeroeightsix.kami.module.modules.render.CleanGUI;
 import me.zeroeightsix.kami.module.modules.render.ShulkerPreview;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
