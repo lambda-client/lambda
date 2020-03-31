@@ -136,6 +136,9 @@ public class ModuleManager {
         return getModule(clazz).isEnabled();
     }
 
+    /**
+     * @deprecated Use `isModuleEnabled(Class<? extends Module>)` instead
+     */
     @Deprecated
     public boolean isModuleEnabled(String moduleName) {
         return getModule(moduleName).isEnabled();

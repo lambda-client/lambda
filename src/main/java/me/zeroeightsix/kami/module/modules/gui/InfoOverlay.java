@@ -95,7 +95,7 @@ public class InfoOverlay extends Module {
         return infoContents;
     }
 
-    public void onDisable() { sendDisableMessage(getName()); }
+    public void onDisable() { sendDisableMessage(this.getClass()); }
 
     private enum SpeedUnit { MPS, KMH }
 

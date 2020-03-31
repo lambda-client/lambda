@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.gui;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.ColourTextFormatting;
@@ -99,5 +98,5 @@ public class ActiveModules extends Module {
     }
 
     public enum Mode { RAINBOW, CUSTOM, CATEGORY, INFO_OVERLAY }
-    public void onDisable() { sendDisableMessage(getName()); }
+    public void onDisable() { sendDisableMessage(this.getClass()); }
 }
