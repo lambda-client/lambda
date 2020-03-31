@@ -11,7 +11,7 @@ import net.minecraftforge.client.event.InputUpdateEvent;
 
 /**
  * Created by 086 on 15/12/2017.
- * Updated by S-B99 on 21/03/20
+ * Updated by S-B99 on 31/03/20
  * @see me.zeroeightsix.kami.mixin.client.MixinBlockSoulSand
  * @see net.minecraft.client.entity.EntityPlayerSP#onLivingUpdate()
  */
@@ -26,15 +26,13 @@ public class NoSlowDown extends Module {
     private Setting<Boolean> potion = register(Settings.booleanBuilder().withName("Potions").withValue(true).withVisibility(v -> !allItems.getValue()).build());
     private Setting<Boolean> shield = register(Settings.booleanBuilder().withName("Shield").withValue(true).withVisibility(v -> !allItems.getValue()).build());
 
+    /*
+     * InputUpdateEvent is called just before the player is slowed down @see EntityPlayerSP.onLivingUpdate)
+     * We'll abuse this fact, and multiply moveStrafe and moveForward by 5 to nullify the *0.2f hardcoded by Mojang.
+     */
     @EventHandler
     private Listener<InputUpdateEvent> eventListener = new Listener<>(event -> {
-        /*
-         * InputUpdateEvent is called just before the player is slowed down @see EntityPlayerSP.onLivingUpdate)
-         * We'll abuse this fact, and multiply moveStrafe and moveForward by 5 to nullify the *0.2f hardcoded by mojang.
-         */
-
-        // Check if the player should be slowed down or not
-        if (passItemCheck(mc.player.getActiveItemStack().getItem()) && mc.player.isHandActive() && !mc.player.isRiding()) {
+        if (passItemCheck(mc.player.getActiveItemStack().getItem()) && !mc.player.isRiding()) {
             event.getMovementInput().moveStrafe *= 5;
             event.getMovementInput().moveForward *= 5;
         }
@@ -50,11 +48,11 @@ public class NoSlowDown extends Module {
     public void onDisable() { Blocks.SLIME_BLOCK.slipperiness = 0.8f; }
 
     private boolean passItemCheck(Item item) {
-        if (allItems.getValue()) return true;
-        if (food.getValue() && item instanceof ItemFood) return true;
-        if (bow.getValue() && item instanceof ItemBow) return true;
-        if (potion.getValue() && item instanceof ItemPotion) return true;
-        if (shield.getValue() && item instanceof ItemShield) return true;
-        return false;
+        if (!mc.player.isHandActive()) return false;
+        return allItems.getValue()
+                || (food.getValue() && item instanceof ItemFood)
+                || (bow.getValue() && item instanceof ItemBow)
+                || (potion.getValue() && item instanceof ItemPotion)
+                || (shield.getValue() && item instanceof ItemShield);
     }
 }
