@@ -10,7 +10,7 @@ import static me.zeroeightsix.kami.command.Command.sendErrorMessage;
 /**
  * @author S-B99
  */
-@Module.Info(name = "CommandConfig", category = Module.Category.GUI, description = "Configures options related to commands", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "CommandConfig", category = Module.Category.CLIENT, description = "Configures options related to commands", showOnArray = Module.ShowOnArray.OFF)
 public class CommandConfig extends Module {
     public Setting<Boolean> aliasInfo = register(Settings.b("Alias Info", true));
     public Setting<Boolean> prefixChat = register(Settings.b("PrefixChat", true));

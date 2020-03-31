@@ -25,7 +25,7 @@ import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
  * PVP Information by Polymer on 04/03/20
  * Updated by S-B99 on 25/03/20
  */
-@Module.Info(name = "InfoOverlay", category = Module.Category.GUI, description = "Configures the game information overlay", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "InfoOverlay", category = Module.Category.CLIENT, description = "Configures the game information overlay", showOnArray = Module.ShowOnArray.OFF)
 public class InfoOverlay extends Module {
     /* This is so horrible but there's no other way */
     private Setting<Page> page = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());

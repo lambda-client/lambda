@@ -90,7 +90,7 @@ public class Module {
         CHAT("Chat", false),
         COMBAT("Combat", false),
         EXPERIMENTAL("Experimental", false),
-        GUI("GUI", false),
+        CLIENT("Client", false),
         HIDDEN("Hidden", true),
         MISC("Misc", false),
         MOVEMENT("Movement", false),

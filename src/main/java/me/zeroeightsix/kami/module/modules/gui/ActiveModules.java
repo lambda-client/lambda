@@ -21,7 +21,7 @@ import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
  * Created by S-B99 on 20/03/20
  * Updated by S-B99 on 25/03/20
  */
-@Module.Info(name = "ActiveModules", category = Module.Category.GUI, description = "Configures ActiveModules Colour", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "ActiveModules", category = Module.Category.CLIENT, description = "Configures ActiveModules Colour", showOnArray = Module.ShowOnArray.OFF)
 public class ActiveModules extends Module {
     private Setting<Boolean> forgeHax = register(Settings.b("ForgeHax", false));
     public Setting<Mode> mode = register(Settings.e("Mode", Mode.RAINBOW));
@@ -38,7 +38,7 @@ public class ActiveModules extends Module {
             case CHAT: return rgbToInt(129, 171, 174);
             case COMBAT: return rgbToInt(162, 25, 14);
             case EXPERIMENTAL: return rgbToInt(175, 175, 31);
-            case GUI: return rgbToInt(158, 159, 197);
+            case CLIENT: return rgbToInt(158, 159, 197);
             case RENDER: return rgbToInt(51, 197, 130);
             case PLAYER: return rgbToInt(99, 202, 191);
             case MOVEMENT: return rgbToInt(7, 77, 227);

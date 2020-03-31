@@ -24,12 +24,12 @@ public class GenerateWebsiteCommand extends Command {
     @Override
     public void call(String[] args) {
         List<Module> mods = new ArrayList<>(KamiMod.MODULE_MANAGER.getModules());
-        String[] modCategories = new String[]{"Chat", "Combat", "Gui", "Misc", "Movement", "Player", "Render", "Utils"};
+        String[] modCategories = new String[]{"Chat", "Combat", "Client", "Misc", "Movement", "Player", "Render", "Utils"};
         List<String> modCategoriesList = new ArrayList<>(java.util.Arrays.asList(modCategories));
 
         List<String> modsChat = new ArrayList<>();
         List<String> modsCombat = new ArrayList<>();
-        List<String> modsGui = new ArrayList<>();
+        List<String> modsClient = new ArrayList<>();
         List<String> modsMisc = new ArrayList<>();
         List<String> modsMovement = new ArrayList<>();
         List<String> modsPlayer = new ArrayList<>();
@@ -42,8 +42,8 @@ public class GenerateWebsiteCommand extends Command {
                     modsChat.add(nameAndDescription(module));
                 case COMBAT:
                     modsCombat.add(nameAndDescription(module));
-                case GUI:
-                    modsGui.add(nameAndDescription(module));
+                case CLIENT:
+                    modsClient.add(nameAndDescription(module));
                 case MISC:
                     modsMisc.add(nameAndDescription(module));
                 case MOVEMENT:

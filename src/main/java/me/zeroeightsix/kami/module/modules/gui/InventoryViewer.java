@@ -21,7 +21,7 @@ import static me.zeroeightsix.kami.util.GuiFrameUtil.getFrameByName;
  * Slight updates by 20kdc, 19/02/20
  * Everything except somethingRender() methods was written by S-B99
  */
-@Module.Info(name = "InventoryViewer", category = Module.Category.GUI, description = "Configures Inventory Viewer's options", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "InventoryViewer", category = Module.Category.CLIENT, description = "Configures Inventory Viewer's options", showOnArray = Module.ShowOnArray.OFF)
 public class InventoryViewer extends Module {
     private Setting<Boolean> mcTexture = register(Settings.b("Use ResourcePack", false));
     private Setting<Boolean> showIcon = register(Settings.booleanBuilder("Show Icon").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
