@@ -10,6 +10,7 @@ import java.util.List;
  * Utilities for managing and transforming blockPos positions
  *
  * @author Qther / Vonr
+ * Updated by S-B99 on 31/03/20
  */
 public class VectorUtil {
 
