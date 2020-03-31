@@ -42,8 +42,6 @@ public class GuiFrameUtil {
         if (kamiGUI == null || mc.player == null) return;
         List<Frame> frames = ContainerHelper.getAllChildren(Frame.class, kamiGUI);
         for (Frame frame : frames) {
-            if (frame.getX() < 0) frame.setX(0);
-            if (frame.getY() < 0) frame.setY(0);
             int divider = mc.gameSettings.guiScale;
             if (divider == 0) divider = 3;
             if (frame.getX() > (Display.getWidth() / divider)) {
@@ -52,6 +50,8 @@ public class GuiFrameUtil {
             if (frame.getY() > (Display.getHeight() / divider)) {
                 frame.setY((Display.getHeight() / divider) - frame.getHeight());
             }
+            if (frame.getX() < 0) frame.setX(0);
+            if (frame.getY() < 0) frame.setY(0);
         }
     }
 }
