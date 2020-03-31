@@ -89,10 +89,7 @@ public class DiscordNotifs extends Module {
 
     private boolean shouldSend(String message) {
         if (all.getValue()) return true;
-        else if (isRestart(message)) return true;
-        else if (isDirect(message) || isDirectOther(message)) return true;
-        else if (isQueue(message)) return true;
-        else return false;
+        else return isRestart(message) || isDirect(message) || isDirectOther(message) || isQueue(message) || isImportantQueue(message);
     }
 
     private boolean isDirect(String message) {
@@ -108,15 +105,20 @@ public class DiscordNotifs extends Module {
         else return queue.getValue() && message.contains("2b2t is full");
     }
 
+    private boolean isImportantQueue(String message) {
+        return importantPings.getValue() && (
+                message.contains("Position in queue: 1") ||
+                message.contains("Position in queue: 2") ||
+                message.contains("Position in queue: 3"));
+    }
+
     private boolean isRestart(String message) {
         return restart.getValue() && message.contains("[SERVER] Server restarting in");
     }
 
     /* Text formatting and misc methods */
     private String getPingID(String message) {
-        if (isRestart(message)) return formatPingID();
-        else if (isDirect(message)) return formatPingID();
-        else if (isDirectOther(message)) return formatPingID();
+        if (isRestart(message) || isDirect(message) || isDirectOther(message) || isImportantQueue(message)) return formatPingID();
         else if ((message.equals("KamiBlueMessageType1")) || (message.equals("KamiBlueMessageType2"))) return formatPingID();
         else return "";
     }
