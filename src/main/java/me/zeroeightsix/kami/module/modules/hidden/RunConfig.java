@@ -26,10 +26,10 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
 
     public void onEnable() {
-        KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class).enable();
         KamiMod.MODULE_MANAGER.getModule(ActiveModules.class).enable();
-        KamiMod.MODULE_MANAGER.getModule(InventoryViewer.class).enable();
         KamiMod.MODULE_MANAGER.getModule(CommandConfig.class).enable();
+        KamiMod.MODULE_MANAGER.getModule(InfoOverlay.class).enable();
+        KamiMod.MODULE_MANAGER.getModule(InventoryViewer.class).enable();
 
         if (!hasRunCapes.getValue()) {
             KamiMod.MODULE_MANAGER.getModule(Capes.class).enable();
