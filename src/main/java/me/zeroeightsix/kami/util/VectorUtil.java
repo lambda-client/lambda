@@ -4,7 +4,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Utilities for managing and transforming blockPos positions
@@ -76,7 +75,7 @@ public class VectorUtil {
         int minZ = (int) Math.round(Math.min(pos1.z, pos2.z));
         int maxZ = (int) Math.round(Math.max(pos1.z, pos2.z));
 
-        return (ArrayList<BlockPos>) getBlockPos(minX, maxX, minY, maxY, minZ, maxZ);
+        return getBlockPos(minX, maxX, minY, maxY, minZ, maxZ);
     }
 
     /**
@@ -86,7 +85,7 @@ public class VectorUtil {
      * @param pos2 Ending blockPos
      * @return block positions inside a 3d area between pos1 and pos2
      */
-    public static List<BlockPos> getBlockPositionsInArea(BlockPos pos1, BlockPos pos2) {
+    public static ArrayList<BlockPos> getBlockPositionsInArea(BlockPos pos1, BlockPos pos2) {
         int minX = Math.min(pos1.x, pos2.x);
         int maxX = Math.max(pos1.x, pos2.x);
 
@@ -99,7 +98,7 @@ public class VectorUtil {
         return getBlockPos(minX, maxX, minY, maxY, minZ, maxZ);
     }
 
-    private static List<BlockPos> getBlockPos(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+    private static ArrayList<BlockPos> getBlockPos(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         ArrayList<BlockPos> returnList = new ArrayList<>((maxX - minX) * (maxY - minY) * (maxZ - minZ));
 
         for (int x = minX; x < maxX; x++) {
