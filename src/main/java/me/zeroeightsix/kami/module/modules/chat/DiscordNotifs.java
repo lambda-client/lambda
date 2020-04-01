@@ -108,9 +108,9 @@ public class DiscordNotifs extends Module {
 
     private boolean isImportantQueue(String message) {
         return importantPings.getValue() && (
-                message.contains("Position in queue: 1") ||
-                message.contains("Position in queue: 2") ||
-                message.contains("Position in queue: 3"));
+                message.equals("Position in queue: 1") ||
+                message.equals("Position in queue: 2") ||
+                message.equals("Position in queue: 3"));
     }
 
     private boolean isRestart(String message) {
