@@ -163,11 +163,11 @@ public class KamiMod {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        KamiMod.log.info("\n\nInitializing " + MODNAME + " " + MODVER);
+        log.info("\n\nInitializing " + MODNAME + " " + MODVER);
 
-        KamiMod.MODULE_MANAGER.register();
+        MODULE_MANAGER.register();
 
-        KamiMod.MODULE_MANAGER.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
+        MODULE_MANAGER.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
         MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
         LagCompensator.INSTANCE = new LagCompensator();
 
@@ -181,24 +181,19 @@ public class KamiMod {
         Friends.initFriends();
         SettingsRegister.register("commandPrefix", Command.commandPrefix);
         loadConfiguration();
-        KamiMod.log.info("Settings loaded");
+        log.info("Settings loaded");
 
         // custom names aren't known at compile-time
         //KamiMod.MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
         new RichPresence();
-        KamiMod.log.info("Rich Presence Users init!\n");
+        log.info("Rich Presence Users init!\n");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
-        KamiMod.MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
+        MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
-
-        try { // load modules that are on by default // autoenable
-            MODULE_MANAGER.getModule(RunConfig.class).enable();
-        }
-        catch (NullPointerException e) {
-            KamiMod.log.error("NPE in loading always enabled modules\n");
-        }
+        // load modules that are on by default // autoenable
+        MODULE_MANAGER.getModule(RunConfig.class).enable();
 
         KamiMod.log.info(MODNAME + " Mod initialized!\n");
     }

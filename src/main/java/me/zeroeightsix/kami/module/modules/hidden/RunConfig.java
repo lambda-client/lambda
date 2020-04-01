@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.module.modules.hidden;
 
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
 import me.zeroeightsix.kami.module.modules.chat.CustomChat;
@@ -13,6 +14,11 @@ import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
+import java.awt.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 /**
  * @author S-B99
  * Horribly designed class for uh, running things only once.
@@ -24,6 +30,8 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunFixGui = register(Settings.b("FixGui", false));
     private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
     private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
+    private Setting<Boolean> hasRun420 = register(Settings.b("420", false));
+    private Setting<Boolean> shouldInfoMsg = register(Settings.b("420e", false));
 
     public void onEnable() {
         KamiMod.MODULE_MANAGER.getModule(ActiveModules.class).enable();
@@ -51,6 +59,25 @@ public class RunConfig extends Module {
             KamiMod.MODULE_MANAGER.getModule(CustomChat.class).enable();
             hasRunCustomChat.setValue(true);
         }
-        disable();
+        if (!hasRun420.getValue()) {
+            try {
+                Desktop.getDesktop().browse(new URI("https://youtu.be/dQw4w9WgXcQ"));
+                shouldInfoMsg.setValue(true);
+            } catch (IOException | URISyntaxException e) {
+                e.printStackTrace();
+            }
+            hasRun420.setValue(true);
+        }
+//        disable();
+    }
+
+    public void onUpdate() {
+        if (mc.player == null || mc.world == null) return;
+        if (!shouldInfoMsg.getValue()) disable();
+        else {
+            Command.sendChatMessage("Happy April fools!");
+            shouldInfoMsg.setValue(false);
+            disable();
+        }
     }
 }
