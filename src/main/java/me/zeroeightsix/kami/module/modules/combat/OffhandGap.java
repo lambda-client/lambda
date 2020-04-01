@@ -77,7 +77,7 @@ public class OffhandGap extends Module {
 				disableGaps();
 			}
 			/* Disable if there are crystals in the range of CrystalAura */
-			crystalAura = (CrystalAura) MODULE_MANAGER.getModule(CrystalAura.class);
+			crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
 			if (crystalCheck.getValue() && crystalAura.isEnabled()) {
 				EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
 		                .filter(entity -> entity instanceof EntityEnderCrystal)

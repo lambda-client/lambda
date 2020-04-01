@@ -111,7 +111,7 @@ public class ForgeEventProcessor {
     @SubscribeEvent(priority = EventPriority.NORMAL, receiveCanceled = true)
     public void onKeyInput(InputEvent.KeyInputEvent event) {
         if (!Keyboard.getEventKeyState()) return;
-        CommandConfig commandConfig = (CommandConfig) MODULE_MANAGER.getModule(CommandConfig.class);
+        CommandConfig commandConfig = MODULE_MANAGER.getModuleT(CommandConfig.class);
         if (    commandConfig.isEnabled()
                 && (commandConfig.prefixChat.getValue())
                 && ("" + Keyboard.getEventCharacter()).equalsIgnoreCase(Command.getCommandPrefix())

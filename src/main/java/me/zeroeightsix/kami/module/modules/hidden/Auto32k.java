@@ -115,7 +115,7 @@ public class Auto32k extends Module {
 
         int range = (int) Math.ceil(placeRange.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) MODULE_MANAGER.getModule(CrystalAura.class);
+        CrystalAura crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
         List<BlockPos> placeTargetList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
         Map<BlockPos, Double> placeTargetMap = new HashMap<>();
 

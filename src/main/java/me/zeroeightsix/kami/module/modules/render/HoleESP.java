@@ -76,7 +76,7 @@ public class HoleESP extends Module {
 
         int range = (int) Math.ceil(renderDistance.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) MODULE_MANAGER.getModule(CrystalAura.class);
+        CrystalAura crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
         List<BlockPos> blockPosList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
 
         for (BlockPos pos : blockPosList) {

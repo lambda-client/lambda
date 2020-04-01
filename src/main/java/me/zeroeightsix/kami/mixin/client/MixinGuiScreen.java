@@ -106,7 +106,7 @@ public class MixinGuiScreen {
      */
     @Inject(method = "Lnet/minecraft/client/gui/GuiScreen;drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
-        if (this.mc.world != null && MODULE_MANAGER.isModuleEnabled(CleanGUI.class) && (((CleanGUI) MODULE_MANAGER.getModule(CleanGUI.class)).inventoryGlobal.getValue())) {
+        if (this.mc.world != null && MODULE_MANAGER.isModuleEnabled(CleanGUI.class) && (MODULE_MANAGER.getModuleT(CleanGUI.class).inventoryGlobal.getValue())) {
             ci.cancel();
         }
     }

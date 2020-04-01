@@ -18,7 +18,7 @@ public class DiscordNotifsCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        DiscordNotifs df = (DiscordNotifs) MODULE_MANAGER.getModule(DiscordNotifs.class);
+        DiscordNotifs df = MODULE_MANAGER.getModuleT(DiscordNotifs.class);
         if (args[0] != null && !args[0].equals("")) {
             df.url.setValue(args[0]);
             Command.sendChatMessage(df.getChatName() + "Set URL to \"" + args[0] + "\"!");

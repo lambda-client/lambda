@@ -392,7 +392,7 @@ public class AutoSpawner extends Module {
                 return;
             }
 
-            CrystalAura crystalAura = (CrystalAura) MODULE_MANAGER.getModule(CrystalAura.class);
+            CrystalAura crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
             List<BlockPos> blockPosList = crystalAura.getSphere(mc.player.getPosition().down(), placeRange.getValue(), placeRange.getValue().intValue(), false, true, 0);
 
             boolean noPositionInArea = true;

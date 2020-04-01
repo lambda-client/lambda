@@ -19,10 +19,10 @@ public class KamiSettingsPanelUI extends AbstractComponentUI<SettingsPanel> {
         super.renderComponent(component, fontRenderer);
 
         GL11.glLineWidth(2.0F);
-        float red = (float) ((GUIColour) MODULE_MANAGER.getModule(GUIColour.class)).red.getValue() / 255.0F;
-        float green = (float) ((GUIColour) MODULE_MANAGER.getModule(GUIColour.class)).green.getValue() / 255.0F;
-        float blue = (float) ((GUIColour) MODULE_MANAGER.getModule(GUIColour.class)).blue.getValue() / 255.0F;
-        float alpha = (float) ((GUIColour) MODULE_MANAGER.getModule(GUIColour.class)).alpha.getValue() / 255.0F;
+        float red = (float) MODULE_MANAGER.getModuleT(GUIColour.class).red.getValue() / 255.0F;
+        float green = (float) MODULE_MANAGER.getModuleT(GUIColour.class).green.getValue() / 255.0F;
+        float blue = (float) MODULE_MANAGER.getModuleT(GUIColour.class).blue.getValue() / 255.0F;
+        float alpha = (float) MODULE_MANAGER.getModuleT(GUIColour.class).alpha.getValue() / 255.0F;
         if (MODULE_MANAGER.getModule(GUIColour.class).isEnabled()) {
             GL11.glColor4f(red, green, blue, alpha);
         } else {

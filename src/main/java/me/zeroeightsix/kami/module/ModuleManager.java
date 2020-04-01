@@ -120,6 +120,17 @@ public class ModuleManager {
     }
 
     /**
+     * Get typed module object so that no casting is needed afterwards.
+     *
+     * @param clazz Module class
+     * @param <T> Type of module
+     * @return Object
+     */
+    public <T extends Module> T getModuleT(Class<T> clazz) {
+        return (T) modules.get(clazz);
+    }
+
+    /**
      * @deprecated Use `getModule(Class<? extends Module>)` instead
      */
     @Deprecated

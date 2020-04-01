@@ -247,7 +247,7 @@ public class AutoFeetPlace extends Module {
         mc.rightClickDelayTimer = 4;
 
         if (MODULE_MANAGER.isModuleEnabled(NoBreakAnimation.class)) {
-            ((NoBreakAnimation) MODULE_MANAGER.getModule(NoBreakAnimation.class)).resetMining();
+            MODULE_MANAGER.getModuleT(NoBreakAnimation.class).resetMining();
         }
         return true;
     }

@@ -50,7 +50,7 @@ public class AntiChainPop extends Module {
     private void itemMode() {
         int old = totems;
         if (getItems(Items.TOTEM_OF_UNDYING) < old) {
-            Surround surround = (Surround) MODULE_MANAGER.getModule(Surround.class);
+            Surround surround = MODULE_MANAGER.getModuleT(Surround.class);
             surround.autoDisable.setValue(true);
             surround.enable();
         }
@@ -58,7 +58,7 @@ public class AntiChainPop extends Module {
     }
 
     private void packetMode() {
-        Surround surround = (Surround) MODULE_MANAGER.getModule(Surround.class);
+        Surround surround = MODULE_MANAGER.getModuleT(Surround.class);
         surround.autoDisable.setValue(true);
         surround.enable();
     }
