@@ -143,7 +143,7 @@ public class DiscordNotifs extends Module {
 
     private String getTime() {
         if (!time.getValue() || MODULE_MANAGER.isModuleEnabled(ChatTimestamp.class)) return "";
-        InfoOverlay info = (InfoOverlay) MODULE_MANAGER.getModule(InfoOverlay.class);
+        InfoOverlay info = MODULE_MANAGER.getModuleT(InfoOverlay.class);
         return "[" + TimeUtil.getFinalTime(info.timeUnitSetting.getValue(), info.timeTypeSetting.getValue(), info.doLocale.getValue()) + "] ";
     }
 

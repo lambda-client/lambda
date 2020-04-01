@@ -20,7 +20,7 @@ public class XRayCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        XRay xr = (XRay) MODULE_MANAGER.getModule(XRay.class);
+        XRay xr = MODULE_MANAGER.getModuleT(XRay.class);
         if (xr == null) {
             Command.sendErrorMessage("&cThe module is not available for some reason. Make sure the name you're calling is correct and that you have the module installed!!");
             return;

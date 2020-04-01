@@ -93,7 +93,7 @@ public class HoleFiller extends Module {
 
         entities.addAll(mc.world.playerEntities.stream().filter(entityPlayer -> !Friends.isFriend(entityPlayer.getName())).collect(Collectors.toList()));
         int range = (int) Math.ceil(distance.getValue());
-        CrystalAura ca = (CrystalAura) MODULE_MANAGER.getModule(CrystalAura.class);
+        CrystalAura ca = MODULE_MANAGER.getModuleT(CrystalAura.class);
         blockPosList = ca.getSphere(getPlayerPos(), range, range, false, true, 0);
         for (Entity p : entities) {
             List<BlockPos> maybe = ca.getSphere(p.getPosition(), range, range, false, true, 0);
@@ -160,7 +160,7 @@ public class HoleFiller extends Module {
                 lookAtPacket(p.x, p.y, p.z, mc.player);
                 BlockInteractionHelper.placeBlockScaffold(p);
                 if (MODULE_MANAGER.isModuleEnabled(NoBreakAnimation.class)) {
-                    ((NoBreakAnimation) MODULE_MANAGER.getModule(NoBreakAnimation.class)).resetMining();
+                    MODULE_MANAGER.getModuleT(NoBreakAnimation.class).resetMining();
                 }
                 resetRotation();
                 mc.player.connection.sendPacket(new CPacketHeldItemChange(oldSlot));

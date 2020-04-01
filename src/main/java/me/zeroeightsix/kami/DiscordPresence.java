@@ -42,7 +42,7 @@ public class DiscordPresence {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 DiscordPresence.rpc.Discord_RunCallbacks();
-                discordSettings = ((DiscordSettings) MODULE_MANAGER.getModule(DiscordSettings.class));
+                discordSettings = MODULE_MANAGER.getModuleT(DiscordSettings.class);
                 String separator = " | ";
                 details = discordSettings.getLine(discordSettings.line1Setting.getValue()) + separator + discordSettings.getLine(discordSettings.line3Setting.getValue());
                 state = discordSettings.getLine(discordSettings.line2Setting.getValue()) + separator + discordSettings.getLine(discordSettings.line4Setting.getValue());
@@ -56,7 +56,7 @@ public class DiscordPresence {
         }
     }
     private static void setRpcFromSettings() {
-        discordSettings = ((DiscordSettings) MODULE_MANAGER.getModule(DiscordSettings.class));
+        discordSettings = MODULE_MANAGER.getModuleT(DiscordSettings.class);
         details = discordSettings.getLine(discordSettings.line1Setting.getValue()) + " " + discordSettings.getLine(discordSettings.line3Setting.getValue());
         state = discordSettings.getLine(discordSettings.line2Setting.getValue()) + " " + discordSettings.getLine(discordSettings.line4Setting.getValue());
         DiscordPresence.presence.details = details;

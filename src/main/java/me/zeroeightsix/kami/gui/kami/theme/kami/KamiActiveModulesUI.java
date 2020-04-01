@@ -39,7 +39,7 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
                 .collect(Collectors.toList());
 
         final int[] y = {2};
-        activeMods = (ActiveModules) MODULE_MANAGER.getModule(ActiveModules.class);
+        activeMods = MODULE_MANAGER.getModuleT(ActiveModules.class);
 
         if (component.getParent().getY() < 26 && Wrapper.getPlayer().getActivePotionEffects().size() > 0 && component.getParent().getOpacity() == 0)
             y[0] = Math.max(component.getParent().getY(), 26 - component.getParent().getY());

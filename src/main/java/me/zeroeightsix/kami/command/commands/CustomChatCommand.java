@@ -18,7 +18,7 @@ public class CustomChatCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        CustomChat cC = (CustomChat) MODULE_MANAGER.getModule(CustomChat.class);
+        CustomChat cC = MODULE_MANAGER.getModuleT(CustomChat.class);
         if (cC == null) {
             Command.sendErrorMessage("&cThe CustomChat module is not available for some reason. Make sure the name you're calling is correct and that you have the module installed!!");
             return;

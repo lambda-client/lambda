@@ -10,7 +10,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
  */
 public class CommandUtil {
     public static void runAliases(Command command) {
-        if (!((CommandConfig) MODULE_MANAGER.getModule(CommandConfig.class)).aliasInfo.getValue()) return;
+        if (!MODULE_MANAGER.getModuleT(CommandConfig.class).aliasInfo.getValue()) return;
         int amount = command.getAliases().size();
         if (amount > 0) {
             Command.sendChatMessage("'" + command.getLabel() + "' has " + grammar1(amount) + "alias" + grammar2(amount));

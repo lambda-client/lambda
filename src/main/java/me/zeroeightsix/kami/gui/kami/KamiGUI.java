@@ -237,7 +237,7 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            InfoOverlay info = ((InfoOverlay) MODULE_MANAGER.getModule(InfoOverlay.class));;
+            InfoOverlay info = MODULE_MANAGER.getModuleT(InfoOverlay.class);
             information.setText("");
             info.infoContents().forEach(information::addLine);
         });
