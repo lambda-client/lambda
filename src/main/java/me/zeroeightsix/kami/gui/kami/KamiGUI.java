@@ -245,10 +245,10 @@ public class KamiGUI extends GUI {
         information.setFontRenderer(fontRenderer);
         frames.add(frame);
 
-        /*
+        /**
          * Inventory Viewer
-         * This method appears empty but it's used by
-         * me/zeroeightsix/kami/module/modules/gui/InventoryViewer.java
+         *
+         * {@link me.zeroeightsix.kami.module.modules.gui.InventoryViewer}
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);
