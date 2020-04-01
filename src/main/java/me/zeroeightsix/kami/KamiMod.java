@@ -195,7 +195,7 @@ public class KamiMod {
         // load modules that are on by default // autoenable
         MODULE_MANAGER.getModule(RunConfig.class).enable();
 
-        KamiMod.log.info(MODNAME + " Mod initialized!\n");
+        log.info(MODNAME + " Mod initialized!\n");
     }
 
     public static String getConfigName() {
