@@ -2,10 +2,8 @@ package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.movement.ElytraFlight;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.EntityUtil;
@@ -14,8 +12,6 @@ import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-
-import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 /**
  * Created by 086 on 19/11/2017.
@@ -33,10 +29,6 @@ public class NoFall extends Module {
 
     @EventHandler
     public Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
-        if (MODULE_MANAGER.getModule(ElytraFlight.class).isEnabled() && fallMode.getValue().equals(FallMode.PACKET)) {
-            Command.sendChatMessage(getChatName() + "ElytraFlight is not compatible with the 'packet' mode, disabling");
-            disable();
-        }
         if ((fallMode.getValue().equals(FallMode.PACKET)) && event.getPacket() instanceof CPacketPlayer) {
             ((CPacketPlayer) event.getPacket()).onGround = true;
         }
