@@ -1,3 +1,7 @@
+## Attention: this repo is looking for a maintainer 
+
+Please contact me at `bella#1111` on Discord, or email me at `bella.who.two@gmail.com` if you're interested in taking over
+
 <img src="https://github.com/S-B99/kamiblue/blob/assets/assets/icons/kami.svg" align="left" width="120"/>
 
 # KAMI Blue 
