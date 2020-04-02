@@ -23,7 +23,7 @@ public class FancyChat extends Module {
     private Setting<Boolean> randomSetting = register(Settings.booleanBuilder("Random Case").withValue(true).withVisibility(v -> modeSetting.getValue().equals(Mode.MOCKING)).build());
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
 
-    private enum Mode { UWU, LEET, MOCKING }
+    private enum Mode { UWU, LEET, MOCKING, GREEN_TEXT }
     private static Random random = new Random();
 
     private String getText(Mode t, String s) {
@@ -34,6 +34,8 @@ public class FancyChat extends Module {
                 return leetConverter(s);
             case MOCKING:
                 return mockingConverter(s);
+            case GREEN_TEXT:
+                return greenConverter(s);
             default:
                 return "";
         }
@@ -71,6 +73,10 @@ public class FancyChat extends Module {
             message.append(inputChar);
         }
         return message.toString();
+    }
+
+    private String greenConverter(String input) {
+        return "> " + input;
     }
 
     @EventHandler
