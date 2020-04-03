@@ -9,6 +9,7 @@ import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.modules.gui.CommandConfig;
 import me.zeroeightsix.kami.module.modules.render.BossStack;
+import me.zeroeightsix.kami.module.modules.render.Zoom;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
@@ -112,10 +113,7 @@ public class ForgeEventProcessor {
     public void onKeyInput(InputEvent.KeyInputEvent event) {
         if (!Keyboard.getEventKeyState()) return;
         CommandConfig commandConfig = MODULE_MANAGER.getModuleT(CommandConfig.class);
-        if (    commandConfig.isEnabled()
-                && (commandConfig.prefixChat.getValue())
-                && ("" + Keyboard.getEventCharacter()).equalsIgnoreCase(Command.getCommandPrefix())
-                && !(Minecraft.getMinecraft().player.isSneaking())) {
+        if (commandConfig.prefixChat.getValue() && ("" + Keyboard.getEventCharacter()).equalsIgnoreCase(Command.getCommandPrefix()) && !(Minecraft.getMinecraft().player.isSneaking())) {
             Minecraft.getMinecraft().displayGuiScreen(new GuiChat(Command.getCommandPrefix()));
         } else {
             MODULE_MANAGER.onBind(Keyboard.getEventKey());

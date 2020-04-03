@@ -36,7 +36,7 @@ public class Zoom extends Module {
     public void onUpdate() {
         if (mc.player == null) return;
         mc.gameSettings.fovSetting = fovChange.getValue();
-        if (smoothCamera.getValue()) mc.gameSettings.smoothCamera = true; else mc.gameSettings.smoothCamera = false;
+        mc.gameSettings.smoothCamera = smoothCamera.getValue();
         if (sens.getValue()) mc.gameSettings.mouseSensitivity = sensi * sensChange.getValue();
     }
 }
