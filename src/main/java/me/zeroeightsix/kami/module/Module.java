@@ -139,6 +139,8 @@ public class Module {
 
     public boolean isOnArray() { return showOnArray.getValue().equals(ShowOnArray.ON); }
 
+    public boolean isProduction() { return !category.equals(Category.EXPERIMENTAL) && !category.equals(Category.HIDDEN); }
+
     protected void onEnable() {}
 
     protected void onDisable() {}
