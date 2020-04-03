@@ -431,11 +431,10 @@ public class KamiGUI extends GUI {
                 int hposX = (int) (mc.player.posX * f);
                 int hposZ = (int) (mc.player.posZ * f);
 
-                String direction = cardinalToAxis(Character.toUpperCase(mc.player.getHorizontalFacing().toString().charAt(0)));
+                String cardinal = cardinalToAxis(Character.toUpperCase(mc.player.getHorizontalFacing().toString().charAt(0)));
+                /* The 7 and f in the string formatter is the color */
                 String colouredSeparator = KamiMod.colour + "7 " + KamiMod.separator + KamiMod.colour + "r";
-
-                /* The 7 in the string formatter is the color */
-                coordsLabel.setText(direction + colouredSeparator + String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
+                String ow = String.format("%sf%,d%s7, %sf%,d%s7, %sf%,d %s7",
                         KamiMod.colour,
                         posX,
                         KamiMod.colour,
@@ -444,7 +443,9 @@ public class KamiGUI extends GUI {
                         KamiMod.colour,
                         KamiMod.colour,
                         posZ,
-                        KamiMod.colour,
+                        KamiMod.colour
+                );
+                String nether = String.format(" (%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
                         KamiMod.colour,
                         hposX,
                         KamiMod.colour,
@@ -454,7 +455,10 @@ public class KamiGUI extends GUI {
                         KamiMod.colour,
                         hposZ,
                         KamiMod.colour
-                ));
+                );
+                coordsLabel.setText("");
+                coordsLabel.addLine(ow);
+                coordsLabel.addLine(cardinal + colouredSeparator + nether);
             }
         });
         frame.addChild(coordsLabel);
