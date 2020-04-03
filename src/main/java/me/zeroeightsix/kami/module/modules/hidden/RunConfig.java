@@ -18,7 +18,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
  * @author S-B99
  * Horribly designed class for uh, running things only once.
  */
-@Module.Info(name = "Hidden:RunConfig", category = Module.Category.HIDDEN, showOnArray = Module.ShowOnArray.OFF, description = "Default manager for first runs")
+@Module.Info(name = "RunConfig", category = Module.Category.HIDDEN, showOnArray = Module.ShowOnArray.OFF, description = "Default manager for first runs")
 public class RunConfig extends Module {
     private Setting<Boolean> hasRunCapes = register(Settings.b("Capes", false));
     private Setting<Boolean> hasRunDiscordSettings = register(Settings.b("DiscordSettings", false));

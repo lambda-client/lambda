@@ -14,6 +14,7 @@ public class ModuleParser extends AbstractParser {
 
         Module chosen = MODULE_MANAGER.getModules().stream()
                 .filter(module -> module.getName().toLowerCase().startsWith(chunkValue.toLowerCase()))
+                .filter(Module::isProduction)
                 .findFirst()
                 .orElse(null);
         if (chosen == null) return null;

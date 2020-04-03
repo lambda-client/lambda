@@ -42,7 +42,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
  * Created by hub on 7 August 2019
  * Updated by hub on 21 November 2019
  */
-@Module.Info(name = "Hidden:Auto32k", category = Module.Category.HIDDEN, description = "Places blocks to dispense a 32k")
+@Module.Info(name = "Auto32k", category = Module.Category.HIDDEN, description = "Places blocks to dispense a 32k")
 public class Auto32k extends Module {
     private static final DecimalFormat df = new DecimalFormat("#.#");
 
