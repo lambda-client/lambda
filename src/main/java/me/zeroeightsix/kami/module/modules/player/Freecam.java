@@ -12,6 +12,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.client.CPacketInput;
 import net.minecraft.network.play.client.CPacketPlayer;
+import net.minecraft.network.play.client.CPacketUseEntity;
+import net.minecraft.network.play.client.CPacketVehicleMove;
 import net.minecraftforge.client.event.PlayerSPPushOutOfBlocksEvent;
 
 /**
@@ -21,7 +23,7 @@ import net.minecraftforge.client.event.PlayerSPPushOutOfBlocksEvent;
 public class Freecam extends Module {
 
     private Setting<Integer> speed = register(Settings.i("Speed", 5)); // /100 in practice
-
+    private Setting<Boolean> packetCancel = register(Settings.b("Packet Cancel", false));
     private double posX, posY, posZ;
     private float pitch, yaw;
 
@@ -95,20 +97,20 @@ public class Freecam extends Module {
     }
 
     @EventHandler
-    private Listener<PlayerMoveEvent> moveListener = new Listener<>(event -> {
-        mc.player.noClip = true;
-    });
+    private Listener<PlayerMoveEvent> moveListener = new Listener<>(event -> mc.player.noClip = true);
 
     @EventHandler
-    private Listener<PlayerSPPushOutOfBlocksEvent> pushListener = new Listener<>(event -> {
-        event.setCanceled(true);
-    });
+    private Listener<PlayerSPPushOutOfBlocksEvent> pushListener = new Listener<>(event -> event.setCanceled(true));
 
     @EventHandler
     private Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketPlayer || event.getPacket() instanceof CPacketInput) {
             event.cancel();
         }
+        if (packetCancel.getValue() && (event.getPacket() instanceof CPacketUseEntity || event.getPacket() instanceof CPacketVehicleMove)) {
+            event.cancel();
+        }
+
     });
 
 }
