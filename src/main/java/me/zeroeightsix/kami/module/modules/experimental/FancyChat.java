@@ -11,6 +11,7 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 
 import java.util.Random;
 
+import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
 import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
 
 /**
@@ -89,6 +90,22 @@ public class FancyChat extends Module {
             ((CPacketChatMessage) event.getPacket()).message = s;
         }
     });
+
+    @Override
+    public String getHudInfo() {
+        switch (modeSetting.getValue()) {
+            case GREEN_TEXT:
+                return ">";
+            case MOCKING:
+                return "mOcK";
+            case LEET:
+                return "1337";
+            case UWU:
+                return "uwu";
+            default:
+                return "";
+        }
+    }
 
     private boolean isCommand(String s) {
         for (String value : CustomChat.cmdCheck) {
