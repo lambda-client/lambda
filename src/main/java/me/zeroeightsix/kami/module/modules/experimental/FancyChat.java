@@ -11,7 +11,6 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 
 import java.util.Random;
 
-import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
 import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
 
 /**
