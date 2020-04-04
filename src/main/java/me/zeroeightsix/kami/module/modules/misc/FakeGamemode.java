@@ -14,21 +14,12 @@ import net.minecraft.world.GameType;
 @Module.Info(name = "FakeGamemode", description = "Fakes your current gamemode client side", category = Module.Category.MISC)
 public class FakeGamemode extends Module {
     private Setting<GamemodeChanged> gamemode = register(Settings.e("Mode", GamemodeChanged.CREATIVE));
-    private Setting<Boolean> disable2b = register(Settings.b("AntiKick 2b2t", true));
     private GameType gameType;
 
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
-        if (Minecraft.getMinecraft().getCurrentServerData() == null || (Minecraft.getMinecraft().getCurrentServerData() != null && Minecraft.getMinecraft().getCurrentServerData().serverIP.equalsIgnoreCase("2b2t.org"))) {
-            if (mc.player.dimension == 1) {
-                if (disable2b.getValue()) {
-                    Command.sendWarningMessage(getChatName() + " Using this on 2b2t queue might get you kicked, please disable the AntiKick option if you're sure");
-                    disable();
-                }
-            }
-            return;
-        } else if (gamemode.getValue().equals(GamemodeChanged.CREATIVE)) {
+        if (gamemode.getValue().equals(GamemodeChanged.CREATIVE)) {
             mc.playerController.setGameType(gameType);
             mc.playerController.setGameType(GameType.CREATIVE);
         } else if (gamemode.getValue().equals(GamemodeChanged.SURVIVAL)) {
