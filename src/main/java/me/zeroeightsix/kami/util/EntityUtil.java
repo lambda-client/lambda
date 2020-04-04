@@ -197,7 +197,7 @@ public class EntityUtil {
 
             JsonParser parser = new JsonParser();
 
-            return parser.parse(jsonUrl).getAsJsonArray().get(0).getAsJsonObject().get("name").toString();
+            return parser.parse(jsonUrl).getAsJsonArray().get(parser.parse(jsonUrl).getAsJsonArray().size() - 1).getAsJsonObject().get("name").toString();
         } catch (IOException ex) {
             KamiMod.log.error(ex.getStackTrace());
 
