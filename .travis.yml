@@ -14,7 +14,7 @@ deploy:
   file_glob: true
   skip_cleanup: true
   on:
-    repo: S-B99/kamiblue
+    repo: kami-blue/client
     tags: true
 after_success:
 - "./scripts/hook.sh"

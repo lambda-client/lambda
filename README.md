@@ -18,7 +18,7 @@ Please contact me at `bella#1111` on Discord, or email me at `bella.who.two@gmai
 [![Dl discord](https://img.shields.io/badge/downloads-47k-brightgreen?logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
 [![Dl Github](https://img.shields.io/github/downloads/kami-blue/client/total?label=downloads&logo=github)](https://github.com/kami-blue/client/releases)
 
-[![Build Status features-master](https://img.shields.io/travis/com/S-B99/kamiblue/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/kamiblue/)
+[![Build Status features-master](https://img.shields.io/travis/com/kami-blue/client/feature/master?logo=gradle&label=build)](https://travis-ci.com/kami-blue/client)
 [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
 [![Commits Mine](https://img.shields.io/github/commits-since/kami-blue/client/v1.0.1/feature/master?color=light-green&label=commits&logo=git&logoColor=white)](https://github.com/kami-blue/client/releases)
 
@@ -44,4 +44,4 @@ Please go to [https://blue.bella.wtf](https://blue.bella.wtf) for documentation 
 
 The [Minecraft Forge team](https://github.com/MinecraftForge) for [forge](https://files.minecraftforge.net/)
 
-All the [contributors](https://github.com/S-B99/kamiblue/graphs/contributors), including the ones who will be remembered in comments and in our hearts. This has been a huge community effort and I couldn't have done it without them.
+All the [contributors](https://github.com/kami-blue/client/graphs/contributors), including the ones who will be remembered in comments and in our hearts. This has been a huge community effort and I couldn't have done it without them.
