@@ -13,8 +13,9 @@ if [[ "$BRANCH" == "master" ]]; then
     BUILD_DIR="$(readlink -f ./build/libs/)"
     JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
 
-    mv JAR_DIR BUILD_DIR/kamiblue-1.12.2-${COMMIT_TRIM}.jar
-    JAR_DIR=./build/libs/kamiblue-1.12.2-${COMMIT_TRIM}.jar
+    mv ${JAR_DIR} ${BUILD_DIR}/kamiblue-1.12.2-${COMMIT_TRIM}-release.jar
+
+    JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
 
     curl -F content=@"$JAR_DIR" "$WEBHOOK"
 else
