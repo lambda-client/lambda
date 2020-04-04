@@ -2,7 +2,7 @@
 
 Please contact me at `bella#1111` on Discord, or email me at `bella.who.two@gmail.com` if you're interested in taking over
 
-<img src="https://github.com/S-B99/kamiblue/blob/assets/assets/icons/kami.svg" align="left" width="120"/>
+<img src="https://github.com/kami-blue/assets/blob/assets/assets/icons/kami.svg" align="left" width="120"/>
 
 # KAMI Blue 
 
@@ -10,17 +10,17 @@ Please contact me at `bella#1111` on Discord, or email me at `bella.who.two@gmai
 
 # 
 <a href="https://blue.bella.wtf/download">
-<img src="https://github.com/S-B99/kamiblue/blob/assets/assets/icons/download.svg" width="200"/>
+<img src="https://github.com/kami-blue/assets/blob/assets/assets/icons/download.svg" width="200"/>
 </a>
 
 ***
 
 [![Dl discord](https://img.shields.io/badge/downloads-47k-brightgreen?logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
-[![Dl Github](https://img.shields.io/github/downloads/S-B99/kamiblue/total?label=downloads&logo=github)](https://github.com/S-B99/kamiblue/releases)
+[![Dl Github](https://img.shields.io/github/downloads/kami-blue/client/total?label=downloads&logo=github)](https://github.com/kami-blue/client/releases)
 
 [![Build Status features-master](https://img.shields.io/travis/com/S-B99/kamiblue/feature/master?logo=gradle&label=build)](https://travis-ci.com/S-B99/kamiblue/)
 [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
-[![Commits Mine](https://img.shields.io/github/commits-since/S-B99/kamiblue/v1.0.1/feature/master?color=light-green&label=commits&logo=git&logoColor=white)](https://github.com/S-B99/kamiblue/releases)
+[![Commits Mine](https://img.shields.io/github/commits-since/kami-blue/client/v1.0.1/feature/master?color=light-green&label=commits&logo=git&logoColor=white)](https://github.com/kami-blue/client/releases)
 
 [![Paypal](https://img.shields.io/badge/paypal-donate-red?color=169bd7&logo=paypal)](https://paypal.me/bellawhotwo) 
 [![BTC](https://img.shields.io/badge/btc-clickme-red?color=f08b16&logo=bitcoin)](https://www.blockchain.com/btc/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7)

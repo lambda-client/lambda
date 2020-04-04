@@ -97,7 +97,7 @@ public class MixinGuiScreen {
 
     /**
      * @author cookiedragon234
-     * see https://github.com/S-B99/kamiblue/pull/293 for discussion
+     * see https://github.com/kami-blue/client/pull/293 for discussion
      * authors words:
      * Also @S-B99 you should be more careful with merging commits, especially from people who are new to coding. Stuff like this is obviously stolen, and can get your repository DMCA'd.
      *
