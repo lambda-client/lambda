@@ -31,40 +31,51 @@ public class ElytraFlight extends Module {
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
+        if (defaultSetting.getValue()) defaults();
 
-        if (defaultSetting.getValue()) {
-            easyTakeOff.setValue(true);
-            takeOffMode.setValue(TakeoffMode.PACKET);
-            overrideMaxSpeed.setValue(false);
-            speedHighway.setValue(1.8f);
-            speedHighwayOverride.setValue(1.8f);
-            fallSpeedHighway.setValue(.000050000002f);
-            fallSpeed.setValue(-.003f);
-            upSpeedBoost.setValue(0.08f);
-            downSpeedBoost.setValue(0.04f);
-            defaultSetting.setValue(false);
-            Command.sendChatMessage(getChatName() + " Set to defaults!");
-            Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
-        }
+        takeOff();
+        setFlySpeed();
 
-        if (mode.getValue().equals(ElytraFlightMode.HIGHWAY)
-                && easyTakeOff.getValue()
-                && !mc.player.isElytraFlying()
-                && !mc.player.onGround) {
-            switch (takeOffMode.getValue()) {
-                case CLIENT:
-                    mc.player.capabilities.isFlying = true;
-                case PACKET:
-                    Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
-                default:
+//        Command.sendChatMessage("Rotation: " + mc.player.rotationPitch + " Camera: " + mc.player.cameraPitch);
+
+        /* required on some servers in order to land */
+        if (mc.player.onGround) mc.player.capabilities.allowFlying = false;
+
+        if (!mc.player.isElytraFlying()) return;
+
+        if (mode.getValue() == ElytraFlightMode.BOOST) {
+            if (mc.player.isInWater()) {
+                Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
+                return;
             }
-        }
 
-        if (mode.getValue().equals(ElytraFlightMode.HIGHWAY) && easyTakeOff.getValue() && mc.player.isElytraFlying()) {
-            easyTakeOff.setValue(false);
-            Command.sendChatMessage(getChatName() + "Disabled takeoff!");
-        }
+            if (mc.gameSettings.keyBindJump.isKeyDown())
+                mc.player.motionY += upSpeedBoost.getValue();
+            else
+                if (mc.gameSettings.keyBindSneak.isKeyDown())
+                    mc.player.motionY -= downSpeedBoost.getValue();
 
+            if (mc.gameSettings.keyBindForward.isKeyDown()) {
+                float yaw = (float) Math.toRadians(mc.player.rotationYaw);
+                mc.player.motionX -= MathHelper.sin(yaw) * 0.05F;
+                mc.player.motionZ += MathHelper.cos(yaw) * 0.05F;
+            } else
+                if (mc.gameSettings.keyBindBack.isKeyDown()) {
+                    float yaw = (float) Math.toRadians(mc.player.rotationYaw);
+                    mc.player.motionX += MathHelper.sin(yaw) * 0.05F;
+                    mc.player.motionZ -= MathHelper.cos(yaw) * 0.05F;
+                }
+        } else {
+            mc.player.capabilities.setFlySpeed(.915f);
+            mc.player.capabilities.isFlying = true;
+
+            if (mc.player.capabilities.isCreativeMode)
+                return;
+            mc.player.capabilities.allowFlying = true;
+        }
+    }
+
+    private void setFlySpeed() {
         if (mc.player.capabilities.isFlying) {
             if (mode.getValue().equals(ElytraFlightMode.HIGHWAY)) {
                 mc.player.setSprinting(false);
@@ -77,43 +88,23 @@ public class ElytraFlight extends Module {
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeed.getValue(), mc.player.posZ);
             }
         }
+    }
 
-        if (mc.player.onGround) {
-            mc.player.capabilities.allowFlying = false;
+    private void takeOff() {
+        if (!(mode.getValue().equals(ElytraFlightMode.HIGHWAY) && easyTakeOff.getValue())) return;
+        if (!mc.player.isElytraFlying() && !mc.player.onGround) {
+            switch (takeOffMode.getValue()) {
+                case CLIENT:
+                    mc.player.capabilities.isFlying = true;
+                case PACKET:
+                    Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
+                default:
+            }
         }
 
-        if (!mc.player.isElytraFlying()) return;
-        switch (mode.getValue()) {
-            case BOOST:
-                if (mc.player.isInWater()) {
-                    Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
-                    return;
-                }
-
-                if (mc.gameSettings.keyBindJump.isKeyDown())
-                    mc.player.motionY += upSpeedBoost.getValue();
-                else if (mc.gameSettings.keyBindSneak.isKeyDown())
-                    mc.player.motionY -= downSpeedBoost.getValue();
-
-                if (mc.gameSettings.keyBindForward.isKeyDown()) {
-                    float yaw = (float) Math
-                            .toRadians(mc.player.rotationYaw);
-                    mc.player.motionX -= MathHelper.sin(yaw) * 0.05F;
-                    mc.player.motionZ += MathHelper.cos(yaw) * 0.05F;
-                } else if (mc.gameSettings.keyBindBack.isKeyDown()) {
-                    float yaw = (float) Math
-                            .toRadians(mc.player.rotationYaw);
-                    mc.player.motionX += MathHelper.sin(yaw) * 0.05F;
-                    mc.player.motionZ -= MathHelper.cos(yaw) * 0.05F;
-                }
-                break;
-            default:
-                mc.player.capabilities.setFlySpeed(.915f);
-                mc.player.capabilities.isFlying = true;
-
-                if (mc.player.capabilities.isCreativeMode) return;
-                mc.player.capabilities.allowFlying = true;
-                break;
+        if (mc.player.isElytraFlying()) {
+            easyTakeOff.setValue(false);
+            Command.sendChatMessage(getChatName() + "Disabled takeoff!");
         }
     }
 
@@ -123,6 +114,21 @@ public class ElytraFlight extends Module {
         mc.player.capabilities.setFlySpeed(0.05f);
         if (mc.player.capabilities.isCreativeMode) return;
         mc.player.capabilities.allowFlying = false;
+    }
+
+    private void defaults() {
+        easyTakeOff.setValue(true);
+        takeOffMode.setValue(TakeoffMode.PACKET);
+        overrideMaxSpeed.setValue(false);
+        speedHighway.setValue(1.8f);
+        speedHighwayOverride.setValue(1.8f);
+        fallSpeedHighway.setValue(.000050000002f);
+        fallSpeed.setValue(-.003f);
+        upSpeedBoost.setValue(0.08f);
+        downSpeedBoost.setValue(0.04f);
+        defaultSetting.setValue(false);
+        Command.sendChatMessage(getChatName() + " Set to defaults!");
+        Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
     }
 
     private float getHighwaySpeed() {
