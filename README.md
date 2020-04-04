@@ -18,9 +18,9 @@ Please contact me at `bella#1111` on Discord, or email me at `bella.who.two@gmai
 [![Dl discord](https://img.shields.io/badge/downloads-47k-brightgreen?logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
 [![Dl Github](https://img.shields.io/github/downloads/kami-blue/client/total?label=downloads&logo=github)](https://github.com/kami-blue/client/releases)
 
-[![Build Status features-master](https://img.shields.io/travis/com/kami-blue/client/feature/master?logo=gradle&label=build)](https://travis-ci.com/kami-blue/client)
+[![Build Status features-master](https://img.shields.io/travis/com/kami-blue/client/master?logo=gradle&label=build)](https://travis-ci.com/kami-blue/client)
 [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
-[![Commits Mine](https://img.shields.io/github/commits-since/kami-blue/client/v1.0.1/feature/master?color=light-green&label=commits&logo=git&logoColor=white)](https://github.com/kami-blue/client/releases)
+[![Commits Mine](https://img.shields.io/github/commits-since/kami-blue/client/v1.0.1/master?color=light-green&label=commits&logo=git&logoColor=white)](https://github.com/kami-blue/client/releases)
 
 [![Paypal](https://img.shields.io/badge/paypal-donate-red?color=169bd7&logo=paypal)](https://paypal.me/bellawhotwo) 
 [![BTC](https://img.shields.io/badge/btc-clickme-red?color=f08b16&logo=bitcoin)](https://www.blockchain.com/btc/address/19pH4aNZZMPJkqQ2826BauRokyBs1NYon7)
