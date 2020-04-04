@@ -15,7 +15,7 @@ if [[ "$BRANCH" == "master" ]]; then
 
     mv ${JAR_DIR} ${BUILD_DIR}/kamiblue-1.12.2-${COMMIT_TRIM}-release.jar
 
-    JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
+    JAR_DIR="$(ls "$BUILD_DIR" | grep "$COMMIT_TRIM")"
 
     curl -F content=@"$JAR_DIR" "$WEBHOOK"
 else
