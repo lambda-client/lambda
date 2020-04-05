@@ -3,6 +3,7 @@
 if [[ "$TRAVIS_PULL_REQUEST" == "true" ]]; then exit 0; else echo "">/dev/null; fi
 
 CUR_VER="$(cat ./scripts/curVer)"
+CUR_VER="${CUR_VER:1}"
 COMMIT_TRIM="${TRAVIS_COMMIT::7}"
 COMMIT_MSG="$TRAVIS_COMMIT_MESSAGE"
 
