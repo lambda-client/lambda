@@ -17,7 +17,7 @@ import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
+import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
 import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.Pair;
@@ -45,7 +45,7 @@ import static me.zeroeightsix.kami.util.InfoCalculator.cardinalToAxis;
 /**
  * Created by 086 on 25/06/2017.
  * Updated by S-B99 on 28/01/20
- * @see me.zeroeightsix.kami.module.modules.gui.InventoryViewer
+ * @see me.zeroeightsix.kami.module.modules.client.InventoryViewer
  */
 public class KamiGUI extends GUI {
 
@@ -248,7 +248,7 @@ public class KamiGUI extends GUI {
         /**
          * Inventory Viewer
          *
-         * {@link me.zeroeightsix.kami.module.modules.gui.InventoryViewer}
+         * {@link me.zeroeightsix.kami.module.modules.client.InventoryViewer}
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);

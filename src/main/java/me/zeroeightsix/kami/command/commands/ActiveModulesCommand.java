@@ -3,14 +3,10 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.gui.ActiveModules;
+import me.zeroeightsix.kami.module.modules.client.ActiveModules;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 

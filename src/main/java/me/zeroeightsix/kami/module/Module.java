@@ -84,7 +84,7 @@ public class Module {
 
     /**
      * @see me.zeroeightsix.kami.command.commands.GenerateWebsiteCommand
-     * @see me.zeroeightsix.kami.module.modules.gui.ActiveModules
+     * @see me.zeroeightsix.kami.module.modules.client.ActiveModules
      */
     public enum Category {
         CHAT("Chat", false),

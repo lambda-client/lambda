@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.util;
 
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.module.modules.gui.CommandConfig;
+import me.zeroeightsix.kami.module.modules.client.CommandConfig;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 

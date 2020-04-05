@@ -6,7 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getStringColour;
+import static me.zeroeightsix.kami.module.modules.client.InfoOverlay.getStringColour;
 
 /**
  * @author S-B99

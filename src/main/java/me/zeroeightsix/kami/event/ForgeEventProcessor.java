@@ -7,7 +7,7 @@ import me.zeroeightsix.kami.event.events.DisplaySizeChangedEvent;
 import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
-import me.zeroeightsix.kami.module.modules.gui.CommandConfig;
+import me.zeroeightsix.kami.module.modules.client.CommandConfig;
 import me.zeroeightsix.kami.module.modules.render.BossStack;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import me.zeroeightsix.kami.util.Wrapper;

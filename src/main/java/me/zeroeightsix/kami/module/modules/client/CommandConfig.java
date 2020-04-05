@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.gui;
+package me.zeroeightsix.kami.module.modules.client;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;

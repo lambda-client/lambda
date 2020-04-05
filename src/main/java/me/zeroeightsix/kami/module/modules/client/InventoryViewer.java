@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.gui;
+package me.zeroeightsix.kami.module.modules.client;
 
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.Module;

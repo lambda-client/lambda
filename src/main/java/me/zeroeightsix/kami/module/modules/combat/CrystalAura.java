@@ -38,7 +38,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
-import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+import static me.zeroeightsix.kami.module.modules.client.InfoOverlay.getItems;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;

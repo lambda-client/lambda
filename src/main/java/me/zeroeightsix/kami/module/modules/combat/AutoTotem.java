@@ -9,7 +9,7 @@ import net.minecraft.inventory.ClickType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+import static me.zeroeightsix.kami.module.modules.client.InfoOverlay.getItems;
 
 /**
  * Created by 086 on 22/01/2018.

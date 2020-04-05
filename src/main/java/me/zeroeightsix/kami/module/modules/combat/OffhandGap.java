@@ -16,7 +16,7 @@ import java.util.Comparator;
 import java.util.Objects;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
-import static me.zeroeightsix.kami.module.modules.gui.InfoOverlay.getItems;
+import static me.zeroeightsix.kami.module.modules.client.InfoOverlay.getItems;
 
 /**
  * @author polymer (main listener switch function xd)
