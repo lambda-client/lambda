@@ -11,7 +11,7 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.ServerConnectedEvent;
 import me.zeroeightsix.kami.event.events.ServerDisconnectedEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
+import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.TimeUtil;
@@ -20,10 +20,9 @@ import net.minecraft.client.multiplayer.GuiConnecting;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.play.server.SPacketChat;
 
-import java.util.regex.Pattern;
-
 import static me.zeroeightsix.kami.KamiMod.EVENT_BUS;
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageDetectionHelper.*;
 
 /**
  * @author S-B99
@@ -56,8 +55,8 @@ public class DiscordNotifs extends Module {
 
         SPacketChat sPacketChat = (SPacketChat) event.getPacket();
         String message = sPacketChat.getChatComponent().getUnformattedText();
-        if (timeout(message) && shouldSend(message)) {
-            sendMessage(getPingID(message) + getMessageType(message) + getTime() + message, avatar.getValue());
+        if (timeout(message) && shouldSend(all.getValue(), restart.getValue(), direct.getValue(), directSent.getValue(), queue.getValue(), importantPings.getValue(), message)) {
+            sendMessage(getPingID(message) + getMessageType(direct.getValue(), directSent.getValue(), message, getServer()) + getTime() + message, avatar.getValue());
         }
     });
 
@@ -65,21 +64,21 @@ public class DiscordNotifs extends Module {
     public Listener<ServerConnectedEvent> listener1 = new Listener<>(event -> {
         if (isDisabled()) return;
         if (!disconnect.getValue()) return;
-        sendMessage(getPingID("KamiBlueMessageType1") + getTime() + getMessageType("KamiBlueMessageType1"), avatar.getValue());
+        sendMessage(getPingID("KamiBlueMessageType1") + getTime() + getMessageType(direct.getValue(), directSent.getValue(), "KamiBlueMessageType1", getServer()), avatar.getValue());
     });
 
     @EventHandler
     public Listener<ServerDisconnectedEvent> listener2 = new Listener<>(event -> {
         if (isDisabled()) return;
         if (!disconnect.getValue()) return;
-        sendMessage(getPingID("KamiBlueMessageType2") + getTime() + getMessageType("KamiBlueMessageType2"), avatar.getValue());
+        sendMessage(getPingID("KamiBlueMessageType2") + getTime() + getMessageType(direct.getValue(), directSent.getValue(), "KamiBlueMessageType2", getServer()), avatar.getValue());
     });
 
     /* Getters for messages */
     private static long startTime = 0;
     private boolean timeout(String message) {
         if (!timeout.getValue()) return true;
-        else if (isRestart(message) || isDirect(message) || isDirectOther(message)) return true;
+        else if (isRestart(restart.getValue(), message) || isDirect(direct.getValue(), message) || isDirectOther(directSent.getValue(), message)) return true;
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + (timeoutTime.getValue() * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
@@ -88,47 +87,11 @@ public class DiscordNotifs extends Module {
         return false;
     }
 
-    private boolean shouldSend(String message) {
-        if (all.getValue()) return true;
-        else return isRestart(message) || isDirect(message) || isDirectOther(message) || isQueue(message) || isImportantQueue(message);
-    }
-
-    private boolean isDirect(String message) {
-        return direct.getValue() && message.contains("whispers:");
-    }
-
-    private boolean isDirectOther(String message) {
-        return directSent.getValue() && Pattern.compile("to .+:", Pattern.CASE_INSENSITIVE).matcher(message).find();
-    }
-
-    private boolean isQueue(String message) {
-        if (queue.getValue() && message.contains("Position in queue:")) return true;
-        else return queue.getValue() && message.contains("2b2t is full");
-    }
-
-    private boolean isImportantQueue(String message) {
-        return importantPings.getValue() && (
-                message.equals("Position in queue: 1") ||
-                message.equals("Position in queue: 2") ||
-                message.equals("Position in queue: 3"));
-    }
-
-    private boolean isRestart(String message) {
-        return restart.getValue() && message.contains("[SERVER] Server restarting in");
-    }
-
     /* Text formatting and misc methods */
     private String getPingID(String message) {
-        if (isRestart(message) || isDirect(message) || isDirectOther(message) || isImportantQueue(message)) return formatPingID();
+        if (isRestart(restart.getValue(), message) || isDirect(direct.getValue(), message) || isDirectOther(directSent.getValue(), message) || isImportantQueue(importantPings.getValue(), message)) return formatPingID();
         else if ((message.equals("KamiBlueMessageType1")) || (message.equals("KamiBlueMessageType2"))) return formatPingID();
         else return "";
-    }
-    private String getMessageType(String message) {
-        if (isDirect(message)) return "You got a direct message!\n";
-        if (isDirectOther(message)) return "You sent a direct message!\n";
-        if (message.equals("KamiBlueMessageType1")) return "Connected to " + getServer();
-        if (message.equals("KamiBlueMessageType2")) return "Disconnected from " + getServer();
-        return "";
     }
 
     private String formatPingID() {
