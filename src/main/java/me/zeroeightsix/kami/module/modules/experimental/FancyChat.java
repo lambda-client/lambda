@@ -29,7 +29,7 @@ public class FancyChat extends Module {
     private String getText(Mode t, String s) {
         switch (t) {
             case UWU:
-                return "Error: UWU mode is still experimental";
+                return uwuConverter(s);
             case LEET:
                 return leetConverter(s);
             case MOCKING:
@@ -40,14 +40,6 @@ public class FancyChat extends Module {
                 return "";
         }
     }
-
-    // rules:
-    // ove > uv
-    // l > w
-    //
-//    private String uwuifier(String input) {
-//        input.replace("a", "b");
-//    }
 
     private String leetConverter(String input) {
         StringBuilder message = new StringBuilder();
@@ -73,6 +65,16 @@ public class FancyChat extends Module {
             message.append(inputChar);
         }
         return message.toString();
+    }
+
+    private String uwuConverter(String input) {
+        input = input.replace("ove", "uv");
+        input = input.replace("the", "da");
+        input = input.replace("is", "ish");
+        input = input.replace("r", "w");
+        input = input.replace("ve", "v");
+        input = input.replace("l", "w");
+        return input;
     }
 
     private String greenConverter(String input) {
