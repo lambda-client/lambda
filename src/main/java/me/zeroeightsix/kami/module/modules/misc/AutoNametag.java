@@ -23,7 +23,10 @@ import net.minecraft.util.EnumHand;
 public class AutoNametag extends Module {
     private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.WITHER));
     private Setting<Float> range = register(Settings.floatBuilder("Range").withMinimum(2.0f).withValue(3.5f).withMaximum(10.0f).build());
+    private Setting<Boolean> autoSlot = register(Settings.b("Auto Slot", true));
     private Setting<Boolean> debug = register(Settings.b("Debug", false));
+
+    private String currentName = "";
 
     public void onUpdate() {
         useNameTag();
@@ -34,7 +37,7 @@ public class AutoNametag extends Module {
         for (Entity w : mc.world.getLoadedEntityList()) {
             switch (modeSetting.getValue()) {
                 case WITHER:
-                    if (w instanceof EntityWither && !w.hasCustomName()) {
+                    if (w instanceof EntityWither && !w.getDisplayName().getUnformattedText().equals(currentName)) {
                         final EntityWither wither = (EntityWither) w;
                         if (mc.player.getDistance(wither) <= range.getValue()) {
                             if (debug.getValue())
@@ -45,7 +48,7 @@ public class AutoNametag extends Module {
                     }
                     return;
                 case ANY:
-                    if (w instanceof EntityMob || w instanceof EntityAnimal && !w.hasCustomName()) {
+                    if (w instanceof EntityMob || w instanceof EntityAnimal && !w.getDisplayName().getUnformattedText().equals(currentName)) {
                         if (mc.player.getDistance(w) <= range.getValue()) {
                             if (debug.getValue())
                                 Command.sendChatMessage("Found unnamed " + w.getDisplayName().getUnformattedText());
@@ -55,16 +58,20 @@ public class AutoNametag extends Module {
                     }
             }
         }
-        mc.player.inventory.currentItem = originalSlot;
+        if (autoSlot.getValue()) mc.player.inventory.currentItem = originalSlot;
     }
 
     private void selectNameTags() {
+        if (!autoSlot.getValue()) return;
         int tagSlot = -1;
         for (int i = 0; i < 9; i++) {
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack == ItemStack.EMPTY || stack.getItem() instanceof ItemBlock) continue;
             Item tag = stack.getItem();
-            if (tag instanceof ItemNameTag) tagSlot = i;
+            if (tag instanceof ItemNameTag) {
+                tagSlot = i;
+                currentName = stack.getDisplayName();
+            }
         }
 
         if (tagSlot == -1) {
