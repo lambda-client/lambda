@@ -19,7 +19,7 @@ import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
 /**
  * @author S-B99
  * Created by S-B99 on 20/03/20
- * Updated by S-B99 on 25/03/20
+ * Updated by S-B99 on 04/04/20
  */
 @Module.Info(name = "ActiveModules", category = Module.Category.CLIENT, description = "Configures ActiveModules colours and modes", showOnArray = Module.ShowOnArray.OFF)
 public class ActiveModules extends Module {
@@ -33,19 +33,19 @@ public class ActiveModules extends Module {
     public Setting<Integer> brightnessC = register(Settings.integerBuilder().withName("Brightness C").withValue(255).withMinimum(0).withMaximum(255).withVisibility(v -> mode.getValue().equals(Mode.CUSTOM)).build());
     private Setting<Boolean> alternate = register(Settings.booleanBuilder().withName("Alternate").withValue(true).withVisibility(v -> mode.getValue().equals(Mode.INFO_OVERLAY)).build());
 
-    public static int getCategoryColour(Module module) {
-        switch (module.getCategory()) {
-            case CHAT: return rgbToInt(129, 171, 174);
-            case COMBAT: return rgbToInt(162, 25, 14);
-            case EXPERIMENTAL: return rgbToInt(175, 175, 31);
-            case CLIENT: return rgbToInt(158, 159, 197);
-            case RENDER: return rgbToInt(51, 197, 130);
-            case PLAYER: return rgbToInt(99, 202, 191);
-            case MOVEMENT: return rgbToInt(7, 77, 227);
-            case MISC: return rgbToInt(247, 215, 59);
-            case UTILS: return rgbToInt(46, 212, 77);
-            default: return rgbToInt(139, 100, 255);
-        }
+    public Setting<String> chat = register(Settings.s("Chat", "162,136,227"));
+    public Setting<String> combat = register(Settings.s("Combat", "229,68,109"));
+    public Setting<String> experimental = register(Settings.s("Experimental", "211,188,192"));
+    public Setting<String> client = register(Settings.s("Client", "56,2,59"));
+    public Setting<String> render = register(Settings.s("Render", "105,48,109"));
+    public Setting<String> player = register(Settings.s("Player", "255,137,102"));
+    public Setting<String> movement = register(Settings.s("Movement", "111,60,145"));
+    public Setting<String> misc = register(Settings.s("Misc", "165,102,139"));
+    public Setting<String> utils = register(Settings.s("Utils", "242,215,238"));
+
+    private static int getRgb(String input, int arrayPos) {
+        String[] toConvert = input.split(",");
+        return Integer.parseInt(toConvert[arrayPos]);
     }
 
     public int getInfoColour(int position) {
@@ -84,6 +84,21 @@ public class ActiveModules extends Module {
 
     private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {
         return toTextMap.get(colourCode);
+    }
+
+    public int getCategoryColour(Module module) {
+        switch (module.getCategory()) {
+            case CHAT: return rgbToInt(getRgb(chat.getValue(), 0), getRgb(chat.getValue(), 1), getRgb(chat.getValue(), 2));
+            case COMBAT: return rgbToInt(getRgb(combat.getValue(), 0), getRgb(combat.getValue(), 1), getRgb(combat.getValue(), 2));
+            case EXPERIMENTAL: return rgbToInt(getRgb(experimental.getValue(), 0), getRgb(experimental.getValue(), 1), getRgb(experimental.getValue(), 2));
+            case CLIENT: return rgbToInt(getRgb(client.getValue(), 0), getRgb(client.getValue(), 1), getRgb(client.getValue(), 2));
+            case RENDER: return rgbToInt(getRgb(render.getValue(), 0), getRgb(render.getValue(), 1), getRgb(render.getValue(), 2));
+            case PLAYER: return rgbToInt(getRgb(player.getValue(), 0), getRgb(player.getValue(), 1), getRgb(player.getValue(), 2));
+            case MOVEMENT: return rgbToInt(getRgb(movement.getValue(), 0), getRgb(movement.getValue(), 1), getRgb(movement.getValue(), 2));
+            case MISC: return rgbToInt(getRgb(misc.getValue(), 0), getRgb(misc.getValue(), 1), getRgb(misc.getValue(), 2));
+            case UTILS: return rgbToInt(getRgb(utils.getValue(), 0), getRgb(utils.getValue(), 1), getRgb(utils.getValue(), 2));
+            default: return rgbToInt(1, 1, 1);
+        }
     }
 
     public int getRainbowSpeed() {

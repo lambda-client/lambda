@@ -96,6 +96,10 @@ public abstract class Command {
         return label;
     }
 
+    public String getChatLabel() {
+        return "[" + label + "] ";
+    }
+
     public abstract void call(String[] args);
 
     public SyntaxChunk[] getSyntaxChunks() {
