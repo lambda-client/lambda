@@ -42,7 +42,6 @@ public class AutoSpawner extends Module {
     private Setting<Boolean> party = register(Settings.b("Party", false));
     private Setting<Boolean> partyWithers = register(Settings.booleanBuilder("Withers").withValue(false).withVisibility(v -> party.getValue()).build());
     private Setting<EntityMode> entityMode = register(Settings.enumBuilder(EntityMode.class).withName("Entity Mode").withValue(EntityMode.SNOW).withVisibility(v -> !party.getValue()).build());
-    private Setting<Boolean> nametagWithers = register(Settings.booleanBuilder("Nametag").withValue(true).withVisibility(v -> party.getValue() && partyWithers.getValue() || !party.getValue() && entityMode.getValue().equals(EntityMode.WITHER)).build());
     private Setting<Float> placeRange = register(Settings.floatBuilder("Place Range").withMinimum(2.0f).withValue(3.5f).withMaximum(10.0f).build());
     private Setting<Integer> delay = register(Settings.integerBuilder("Delay").withMinimum(12).withValue(20).withMaximum(100).withVisibility(v -> useMode.getValue().equals(UseMode.SPAM)).build());
     private Setting<Boolean> rotate = register(Settings.b("Rotate", true));
@@ -82,38 +81,6 @@ public class AutoSpawner extends Module {
         mc.playerController.processRightClickBlock(mc.player, mc.world, neighbour, opposite, hitVec, EnumHand.MAIN_HAND);
         mc.player.swingArm(EnumHand.MAIN_HAND);
         mc.rightClickDelayTimer = 4;
-    }
-
-    private void useNameTag() {
-        int originalSlot = mc.player.inventory.currentItem;
-        for (Entity w : mc.world.getLoadedEntityList()) {
-            if (w instanceof EntityWither && w.getDisplayName().getUnformattedText().equalsIgnoreCase("Wither")) {
-                final EntityWither wither = (EntityWither) w;
-                if (mc.player.getDistance(wither) <= placeRange.getValue()) {
-                    if (debug.getValue()) Command.sendChatMessage("Found Unnamed Wither");
-                    selectNameTags();
-                    mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);
-                }
-            }
-        }
-        mc.player.inventory.currentItem = originalSlot;
-    }
-
-    private void selectNameTags() {
-        int tagSlot = -1;
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.inventory.getStackInSlot(i);
-            if (stack == ItemStack.EMPTY || stack.getItem() instanceof ItemBlock) continue;
-            Item tag = stack.getItem();
-            if (tag instanceof ItemNameTag) tagSlot = i;
-        }
-
-        if (tagSlot == -1) {
-            if (debug.getValue()) Command.sendErrorMessage(getChatName() + "Error: No nametags in hotbar");
-            return;
-        }
-
-        mc.player.inventory.currentItem = tagSlot;
     }
 
     private static EnumFacing getPlaceableSide(BlockPos pos) {
@@ -355,8 +322,6 @@ public class AutoSpawner extends Module {
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
-
-        if (nametagWithers.getValue() && (party.getValue() && partyWithers.getValue() || !party.getValue() && entityMode.getValue().equals(EntityMode.WITHER))) useNameTag();
 
         if (buildStage == 1) {
             isSneaking = false;
