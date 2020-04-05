@@ -15,6 +15,8 @@ if [[ "$BRANCH" == "master" ]]; then
     BUILD_DIR="$(readlink -f ./build/libs/)"
     JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
 
+    ls # debug, sorry for the messages ;-;
+
     mv ${JAR_DIR} ${BUILD_DIR}/kamiblue-1.1.2-release-${COMMIT_TRIM}.jar
 
     JAR_DIR="$(ls "$BUILD_DIR" | grep "$COMMIT_TRIM")"
