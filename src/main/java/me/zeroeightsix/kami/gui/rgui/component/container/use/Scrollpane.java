@@ -51,16 +51,14 @@ public class Scrollpane extends OrganisedContainer {
             public void onPreRender() {
                 translatex = scrolledX;
                 translatey = scrolledY;
-                //GL11.glTranslatef(-translatex, -translatey, 0);
                 int[] real = GUI.calculateRealPosition(Scrollpane.this);
                 int scale = DisplayGuiScreen.getScale();
-                GL11.glScissor(getX() * scale + real[0] * scale - ((Container) getParent()).getOriginOffsetX() - 1, Display.getHeight() - getHeight() * scale - real[1] * scale - 1, getWidth() * scale + ((Container) getParent()).getOriginOffsetX() * scale + 1, getHeight() * scale + 1);
+                GL11.glScissor(getX() * scale + real[0] * scale - getParent().getOriginOffsetX() - 1, Display.getHeight() - getHeight() * scale - real[1] * scale - 1, getWidth() * scale + getParent().getOriginOffsetX() * scale + 1, getHeight() * scale + 1);
                 GL11.glEnable(GL11.GL_SCISSOR_TEST);
             }
 
             @Override
             public void onPostRender() {
-                //GL11.glTranslatef(translatex, translatey, 0);
                 GL11.glDisable(GL11.GL_SCISSOR_TEST);
             }
         });
@@ -173,14 +171,6 @@ public class Scrollpane extends OrganisedContainer {
 
     public boolean isDoScrollY() {
         return doScrollY;
-    }
-
-    public void setDoScrollY(boolean doScrollY) {
-        this.doScrollY = doScrollY;
-    }
-
-    public void setDoScrollX(boolean doScrollX) {
-        this.doScrollX = doScrollX;
     }
 
     public void setScrolledX(int scrolledX) {
