@@ -5,7 +5,10 @@ import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.gui.ActiveModules;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -13,11 +16,11 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 /**
  * @author S-B99
- * Updated by S-B99 on 04/04/20
+ * Updated by S-B99 on 05/04/20
  */
 public class ActiveModulesCommand extends Command {
     public ActiveModulesCommand() {
-        super("activemodules", new ChunkBuilder().append("category").append("r").append("g").append("b").build(), "activemods", "modules");
+        super("activemodules", new ChunkBuilder().append("r").append("g").append("b").append("category").build(), "activemods", "modules");
         setDescription("Allows you to customize ActiveModule's category colours");
     }
 
@@ -28,10 +31,11 @@ public class ActiveModulesCommand extends Command {
             return;
         }
 
-        // TODO: this nulls for some reason
+        int argPos = 0;
         for (String arg : args) {
-            if (Pattern.compile("[^0-9]").matcher(arg).find()) {
-                if (!(arg.equals(args[0]))) {
+            argPos++;
+            if (argPos < 3) {
+                if (Pattern.compile("[^0-9]").matcher(arg).find()) { // this HAS to be a separate if statement otherwise it nulls
                     Command.sendErrorMessage(getChatLabel() + "Error: argument '" + arg + "' contains a non-numeric character. You can only set numbers as the RGB");
                     return;
                 }
@@ -39,37 +43,45 @@ public class ActiveModulesCommand extends Command {
         }
 
         ActiveModules am = MODULE_MANAGER.getModuleT(ActiveModules.class);
-        switch (args[0].toLowerCase()) {
+        switch (args[3].toLowerCase()) {
             case "chat":
-                am.chat.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.chat.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.chat.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "combat":
-                am.combat.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.combat.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.combat.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "experimental":
-                am.experimental.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.experimental.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.experimental.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "client":
-                am.client.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.client.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.client.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "render":
-                am.render.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.render.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.render.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "player":
-                am.player.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.player.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.player.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "movement":
-                am.movement.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.movement.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.movement.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "misc":
-                am.misc.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.misc.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.misc.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             case "utils":
-                am.utils.setValue(args[1] + "," + args[2] + "," + args[3]);
+                am.utils.setValue(args[0] + "," + args[1] + "," + args[2]);
+                Command.sendChatMessage("Set " + am.utils.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
             default:
-                Command.sendErrorMessage("Category '" + args[0] + "' not found! Valid categories: \n" + MODULE_MANAGER.getModules().stream().filter(Module::isProduction).collect(Collectors.toList()));
-                return;
+                Command.sendErrorMessage("Category '" + args[3] + "' not found! Valid categories: \n" + Arrays.toString(Arrays.stream(Module.Category.values()).filter(Module.Category::isHidden).toArray()));
         }
 
     }
