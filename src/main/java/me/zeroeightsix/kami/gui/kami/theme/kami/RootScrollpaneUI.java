@@ -35,7 +35,7 @@ public class RootScrollpaneUI extends AbstractComponentUI<Scrollpane> {
         component.addMouseListener(new MouseListener() {
             @Override
             public void onMouseDown(MouseButtonEvent event) {
-                if (System.currentTimeMillis() - lastScroll < barLife && scrollComponent.liesIn(component) && component.canScrollY()) {
+                if (component.canScrollY()) {
                     double progress = (double) component.getScrolledY() / (double) component.getMaxScrollY();
                     int barHeight = 30;
                     int y = (int) ((component.getHeight() - barHeight) * progress);
@@ -82,9 +82,9 @@ public class RootScrollpaneUI extends AbstractComponentUI<Scrollpane> {
 
             @Override
             public void onPostRender() {
-                if (dragBar)
-                    lastScroll = System.currentTimeMillis();
-                if (System.currentTimeMillis() - lastScroll < barLife && scrollComponent.liesIn(component) && component.canScrollY()) {
+                lastScroll = System.currentTimeMillis();
+
+                if (component.canScrollY()) {
                     float alpha = Math.min(1, (barLife - (System.currentTimeMillis() - lastScroll)) / 100f) / 3f;
                     if (dragBar) alpha = 0.4f;
                     GL11.glColor4f(toF(GuiC.scrollBar.color.getRed()), toF(GuiC.scrollBar.color.getGreen()), toF(GuiC.scrollBar.color.getBlue()), alpha);
