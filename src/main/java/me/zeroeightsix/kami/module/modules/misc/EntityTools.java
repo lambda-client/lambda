@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.utils;
+package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -18,7 +18,7 @@ import org.lwjgl.input.Mouse;
  *
  * TODO: Fix delay timer because that shit broken
  */
-@Module.Info(name = "EntityTools", category = Module.Category.UTILS, description = "Right click entities to perform actions on them")
+@Module.Info(name = "EntityTools", category = Module.Category.MISC, description = "Right click entities to perform actions on them")
 public class EntityTools extends Module {
     private Setting<Mode> mode = register(Settings.e("Mode", Mode.DELETE));
     private int delay = 0;

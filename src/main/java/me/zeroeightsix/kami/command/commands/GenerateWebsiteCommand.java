@@ -30,7 +30,7 @@ public class GenerateWebsiteCommand extends Command {
     @Override
     public void call(String[] args) {
         List<Module> mods = MODULE_MANAGER.getModules().stream().filter(Module::isProduction).collect(Collectors.toList());
-        String[] modCategories = new String[]{"Chat", "Combat", "Client", "Misc", "Movement", "Player", "Render", "Utils"};
+        String[] modCategories = new String[]{"Chat", "Combat", "Client", "Misc", "Movement", "Player", "Render"};
         List<String> modCategoriesList = new ArrayList<>(java.util.Arrays.asList(modCategories));
 
         List<String> modsChat = new ArrayList<>();
@@ -40,7 +40,6 @@ public class GenerateWebsiteCommand extends Command {
         List<String> modsMovement = new ArrayList<>();
         List<String> modsPlayer = new ArrayList<>();
         List<String> modsRender = new ArrayList<>();
-        List<String> modsUtils = new ArrayList<>();
 
         mods.forEach(module -> {
             switch (module.getCategory()) {
@@ -58,8 +57,6 @@ public class GenerateWebsiteCommand extends Command {
                     modsPlayer.add(nameAndDescription(module));
                 case RENDER:
                     modsRender.add(nameAndDescription(module));
-                case UTILS:
-                    modsUtils.add(nameAndDescription(module));
             }
         });
 

@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.utils;
+package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -15,7 +15,7 @@ import static me.zeroeightsix.kami.util.InfoCalculator.round;
  * @author S-B99
  * Thanks Brady and cooker and leij for helping me not be completely retarded 
  */
-@Module.Info(name = "ServerNotRespond", description = "Displays a warning when the server is lagging", category = Module.Category.UTILS)
+@Module.Info(name = "ServerNotRespond", description = "Displays a warning when the server is lagging", category = Module.Category.PLAYER)
 public class ServerNotRespond extends Module {
     private Setting<Double> timeout = register(Settings.doubleBuilder().withName("Timeout").withValue(1.0).withMinimum(0.0).withMaximum(10.0).build());
     private long serverLastUpdated;

@@ -95,8 +95,7 @@ public class Module {
         MISC("Misc", false),
         MOVEMENT("Movement", false),
         PLAYER("Player", false),
-        RENDER("Render", false),
-        UTILS("Utils", false);
+        RENDER("Render", false);
 
         boolean hidden;
         String name;

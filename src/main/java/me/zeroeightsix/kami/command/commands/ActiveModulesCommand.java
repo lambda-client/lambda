@@ -72,10 +72,6 @@ public class ActiveModulesCommand extends Command {
                 am.misc.setValue(args[0] + "," + args[1] + "," + args[2]);
                 Command.sendChatMessage("Set " + am.misc.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
                 return;
-            case "utils":
-                am.utils.setValue(args[0] + "," + args[1] + "," + args[2]);
-                Command.sendChatMessage("Set " + am.utils.getName() + " colour to " + args[0] + " " + args[1] + " " + args[2]);
-                return;
             default:
                 Command.sendErrorMessage("Category '" + args[3] + "' not found! Valid categories: \n" + Arrays.toString(Arrays.stream(Module.Category.values()).filter(Module.Category::isHidden).toArray()));
         }

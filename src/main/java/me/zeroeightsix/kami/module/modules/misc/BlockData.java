@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.utils;
+package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -20,7 +20,7 @@ import java.util.Objects;
  *
  * TODO: Fix delay timer because that shit broken
  */
-@Module.Info(name = "BlockData", category = Module.Category.UTILS, description = "Right click blocks to display their data")
+@Module.Info(name = "BlockData", category = Module.Category.MISC, description = "Right click blocks to display their data")
 public class BlockData extends Module {
     private int delay = 0;
 

@@ -41,7 +41,6 @@ public class ActiveModules extends Module {
     public Setting<String> player = register(Settings.s("Player", "255,137,102"));
     public Setting<String> movement = register(Settings.s("Movement", "111,60,145"));
     public Setting<String> misc = register(Settings.s("Misc", "165,102,139"));
-    public Setting<String> utils = register(Settings.s("Utils", "242,215,238"));
 
     private static int getRgb(String input, int arrayPos) {
         String[] toConvert = input.split(",");
@@ -96,7 +95,6 @@ public class ActiveModules extends Module {
             case PLAYER: return rgbToInt(getRgb(player.getValue(), 0), getRgb(player.getValue(), 1), getRgb(player.getValue(), 2));
             case MOVEMENT: return rgbToInt(getRgb(movement.getValue(), 0), getRgb(movement.getValue(), 1), getRgb(movement.getValue(), 2));
             case MISC: return rgbToInt(getRgb(misc.getValue(), 0), getRgb(misc.getValue(), 1), getRgb(misc.getValue(), 2));
-            case UTILS: return rgbToInt(getRgb(utils.getValue(), 0), getRgb(utils.getValue(), 1), getRgb(utils.getValue(), 2));
             default: return rgbToInt(1, 1, 1);
         }
     }
