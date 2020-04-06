@@ -1,12 +1,8 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import com.mojang.authlib.GameProfile;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

@@ -2,11 +2,13 @@ package me.zeroeightsix.kami.gui.kami.theme.kami;
 
 import me.zeroeightsix.kami.gui.kami.RenderHelper;
 import me.zeroeightsix.kami.gui.kami.RootSmallFontRenderer;
+import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.use.Slider;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -18,7 +20,7 @@ public class RootSliderUI extends AbstractComponentUI<Slider> {
 
     @Override
     public void renderComponent(Slider component, FontRenderer aa) {
-        glColor4f(1, 0.33f, 0.33f, component.getOpacity());
+        glColor4f(toF(GuiC.sliderColour.color.getRed()), toF(GuiC.sliderColour.color.getGreen()), toF(GuiC.sliderColour.color.getBlue()), component.getOpacity());
         glLineWidth(2.5f);
         int height = component.getHeight();
         double value = component.getValue();
@@ -35,12 +37,12 @@ public class RootSliderUI extends AbstractComponentUI<Slider> {
             glVertex2d(component.getWidth(), height / downscale);
         }
         glEnd();
-        glColor3f(1, 0.33f, 0.33f);
+        glColor3f(toF(GuiC.sliderColour.color.getRed()), toF(GuiC.sliderColour.color.getGreen()), toF(GuiC.sliderColour.color.getBlue()));
         RenderHelper.drawCircle((int) w, height / downscale, 2f);
 
         String s = value + "";
         if (component.isPressed()) {
-            w -= smallFontRenderer.getStringWidth(s) / 2;
+            w -= smallFontRenderer.getStringWidth(s) / 2f;
             w = Math.max(0, Math.min(w, component.getWidth() - smallFontRenderer.getStringWidth(s)));
             smallFontRenderer.drawString((int) w, 0, s);
         } else {

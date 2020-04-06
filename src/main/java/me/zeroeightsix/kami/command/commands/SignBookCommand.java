@@ -20,8 +20,8 @@ import java.util.ArrayList;
 public class SignBookCommand extends Command {
 
     public SignBookCommand() {
-        super("signbook", new ChunkBuilder().append("name").build(), "book", "sign");
-        setDescription("Colored book names. &7#n&8 for a new line and &7&&8 for colour codes");
+        super("signbook", new ChunkBuilder().append("name").build(), "sign");
+        setDescription("Colored book names. &f#n&7 for a new line and &f&&7 for colour codes");
     }
 
     @Override
@@ -44,7 +44,7 @@ public class SignBookCommand extends Command {
             String futureTitle = String.join(" ", toAdd);
             futureTitle = futureTitle.replaceAll("&", Character.toString((char)c));
             futureTitle = futureTitle.replaceAll("#n", "\n");
-            futureTitle = futureTitle.replaceAll("null", ""); //Random extra null added sometimes
+            futureTitle = futureTitle.replaceAll("null", ""); // Random extra null added sometimes
 
             if (futureTitle.length() > 31) {
                 Command.sendChatMessage("Title cannot be over 31 characters.");

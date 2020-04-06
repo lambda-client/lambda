@@ -1,5 +1,7 @@
 package me.zeroeightsix.kami.util;
 
+import com.google.gson.JsonParser;
+import me.zeroeightsix.kami.KamiMod;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityAgeable;
@@ -13,6 +15,10 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import org.apache.commons.io.IOUtils;
+
+import java.io.IOException;
+import java.net.URL;
 
 public class EntityUtil {
 
@@ -156,7 +162,7 @@ public class EntityUtil {
         double pitch = Math.asin(diry);
         double yaw = Math.atan2(dirz, dirx);
 
-        //to degree
+        // to degree
         pitch = pitch * 180.0d / Math.PI;
         yaw = yaw * 180.0d / Math.PI;
 
@@ -177,4 +183,27 @@ public class EntityUtil {
         return (double) (MathHelper.cos(yaw * 0.017453292F));
     }
 
+    /**
+     * Gets the MC username tied to a given UUID.
+     *
+     * @param uuid UUID to get name from.
+     * @return The name tied to the UUID.
+     */
+    public static String getNameFromUUID(String uuid) {
+        try {
+            KamiMod.log.info("Attempting to get name from UUID: " + uuid);
+
+            String jsonUrl = IOUtils.toString(new URL("https://api.mojang.com/user/profiles/" + uuid.replace("-", "") + "/names"));
+
+            JsonParser parser = new JsonParser();
+
+            return parser.parse(jsonUrl).getAsJsonArray().get(parser.parse(jsonUrl).getAsJsonArray().size() - 1).getAsJsonObject().get("name").toString();
+        } catch (IOException ex) {
+            KamiMod.log.error(ex.getStackTrace());
+
+            KamiMod.log.error("Failed to get username from UUID due to an exception. Maybe your internet is being the big gay? Somehow?");
+        }
+
+        return null;
+    }
 }

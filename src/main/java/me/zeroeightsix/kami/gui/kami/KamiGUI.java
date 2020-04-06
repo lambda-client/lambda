@@ -17,8 +17,7 @@ import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.gui.InfoOverlay;
+import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
 import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.Pair;
@@ -38,13 +37,15 @@ import javax.annotation.Nonnull;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.InfoCalculator.cardinalToAxis;
 
 /**
  * Created by 086 on 25/06/2017.
  * Updated by S-B99 on 28/01/20
- * @see me.zeroeightsix.kami.module.modules.gui.InventoryViewer
+ * @see me.zeroeightsix.kami.module.modules.client.InventoryViewer
  */
 public class KamiGUI extends GUI {
 
@@ -66,7 +67,7 @@ public class KamiGUI extends GUI {
     @Override
     public void initializeGUI() {
         HashMap<Module.Category, Pair<Scrollpane, SettingsPanel>> categoryScrollpaneHashMap = new HashMap<>();
-        for (Module module : ModuleManager.getModules()) {
+        for (Module module : MODULE_MANAGER.getModules()) {
             if (module.getCategory().isHidden()) continue;
             Module.Category moduleCategory = module.getCategory();
             if (!categoryScrollpaneHashMap.containsKey(moduleCategory)) {
@@ -236,7 +237,7 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            InfoOverlay info = (InfoOverlay) ModuleManager.getModuleByName("InfoOverlay");
+            InfoOverlay info = MODULE_MANAGER.getModuleT(InfoOverlay.class);
             information.setText("");
             info.infoContents().forEach(information::addLine);
         });
@@ -244,14 +245,14 @@ public class KamiGUI extends GUI {
         information.setFontRenderer(fontRenderer);
         frames.add(frame);
 
-        /*
+        /**
          * Inventory Viewer
-         * This method appears empty but it's used by
-         * me/zeroeightsix/kami/module/modules/gui/InventoryViewer.java
+         *
+         * {@link me.zeroeightsix.kami.module.modules.client.InventoryViewer}
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Inventory Viewer");
         frame.setCloseable(false);
-        frame.setMinimizeable(false);
+        frame.setMinimizeable(true);
         frame.setPinnable(true);
         frame.setPinned(true);
         Label inventory = new Label("");
@@ -270,24 +271,21 @@ public class KamiGUI extends GUI {
          */
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Friends");
         frame.setCloseable(false);
-        frame.setPinnable(true);
+        frame.setPinnable(false);
+        frame.setMinimizeable(true);
         Label friends = new Label("");
         friends.setShadow(true);
-        Frame friendsFrame = frame;
 
-        AtomicInteger friendsAmount = new AtomicInteger();
+        Frame finalFrame = frame;
         friends.addTickListener(() -> {
-            /* Don't load friends list if it's minimized */
-            if (!friendsFrame.isMinimized()) {
-                friends.setText("");
-                Friends.friends.getValue().forEach(friend -> {
-                    friendsAmount.getAndIncrement();
-                });
-            }
-            else {
-                friends.setText("");
+            friends.setText("");
+            if (!finalFrame.isMinimized()) {
+                Friends.friends.getValue().forEach(friend -> friends.addLine(friend.getUsername()));
+            } else {
+                friends.setWidth(50);
             }
         });
+
         frame.addChild(friends);
         friends.setFontRenderer(fontRenderer);
         frames.add(frame);
@@ -312,10 +310,18 @@ public class KamiGUI extends GUI {
             Map<String, Integer> players = new HashMap<>();
             for (Entity e : entityList) {
                 if (e.getName().equals(mc.player.getName())) continue;
+
                 String posString = (e.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (e.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
-                String strengthfactor = "";
-                EntityPlayer eplayer = (EntityPlayer) e;
-                if (eplayer.isPotionActive(MobEffects.STRENGTH)) strengthfactor = "S "; else strengthfactor = "  ";
+                String weaknessFactor;
+                String strengthFactor;
+                String extraPaddingForFactors;
+                EntityPlayer ePlayer = (EntityPlayer) e;
+
+                if (ePlayer.isPotionActive(MobEffects.WEAKNESS)) weaknessFactor = "W"; else weaknessFactor = "";
+                if (ePlayer.isPotionActive(MobEffects.STRENGTH)) strengthFactor = "S"; else strengthFactor = "";
+                if (weaknessFactor.equals("") && strengthFactor.equals("")) extraPaddingForFactors = "";
+                else extraPaddingForFactors = " ";
+
                 float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
                 healthSB.append(KamiMod.colour);
@@ -329,7 +335,8 @@ public class KamiGUI extends GUI {
                     healthSB.append("c");
                 }
                 healthSB.append(hp);
-                players.put(ChatFormatting.GRAY + posString + " " + healthSB.toString() + " " + ChatFormatting.RED + strengthfactor + ChatFormatting.GRAY + e.getName(), (int) mc.player.getDistance(e));
+
+                players.put(ChatFormatting.GRAY + posString + " " + healthSB.toString() + " " + ChatFormatting.DARK_GRAY + weaknessFactor + ChatFormatting.DARK_PURPLE + strengthFactor + ChatFormatting.GRAY + extraPaddingForFactors + e.getName(), (int) mc.player.getDistance(e));
                 healthSB.setLength(0);
             }
 
@@ -358,36 +365,42 @@ public class KamiGUI extends GUI {
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Entities");
         Label entityLabel = new Label("");
         frame.setCloseable(false);
+        Frame finalFrame1 = frame;
         entityLabel.addTickListener(new TickListener() {
             Minecraft mc = Wrapper.getMinecraft();
 
             @Override
             public void onTick() {
-                if (mc.player == null || !entityLabel.isVisible()) return;
+                if (!finalFrame1.isMinimized()) {
+                    if (mc.player == null || !entityLabel.isVisible()) return;
 
-                final List<Entity> entityList = new ArrayList<>(mc.world.loadedEntityList);
-                if (entityList.size() <= 1) {
+                    final List<Entity> entityList = new ArrayList<>(mc.world.loadedEntityList);
+                    if (entityList.size() <= 1) {
+                        entityLabel.setText("");
+                        return;
+                    }
+                    final Map<String, Integer> entityCounts = entityList.stream()
+                            .filter(Objects::nonNull)
+                            .filter(e -> !(e instanceof EntityPlayer))
+                            .collect(Collectors.groupingBy(KamiGUI::getEntityName,
+                                    Collectors.reducing(0, ent -> {
+                                        if (ent instanceof EntityItem)
+                                            return ((EntityItem) ent).getItem().getCount();
+                                        return 1;
+                                    }, Integer::sum)
+                            ));
+
                     entityLabel.setText("");
-                    return;
+                    finalFrame1.setWidth(50);
+                    entityCounts.entrySet().stream()
+                            .sorted(Map.Entry.comparingByValue())
+                            .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
+                            .forEach(entityLabel::addLine);
+
+                    //entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
+                } else {
+                    finalFrame1.setWidth(50);
                 }
-                final Map<String, Integer> entityCounts = entityList.stream()
-                        .filter(Objects::nonNull)
-                        .filter(e -> !(e instanceof EntityPlayer))
-                        .collect(Collectors.groupingBy(KamiGUI::getEntityName,
-                                Collectors.reducing(0, ent -> {
-                                    if (ent instanceof EntityItem)
-                                        return ((EntityItem) ent).getItem().getCount();
-                                    return 1;
-                                }, Integer::sum)
-                        ));
-
-                entityLabel.setText("");
-                entityCounts.entrySet().stream()
-                        .sorted(Map.Entry.comparingByValue())
-                        .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
-                        .forEach(entityLabel::addLine);
-
-                //entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
             }
         });
         frame.addChild(entityLabel);
@@ -418,7 +431,10 @@ public class KamiGUI extends GUI {
                 int hposX = (int) (mc.player.posX * f);
                 int hposZ = (int) (mc.player.posZ * f);
 
-                coordsLabel.setText(String.format(" %sf%,d%s7, %sf%,d%s7, %sf%,d %s7(%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
+                String cardinal = cardinalToAxis(Character.toUpperCase(mc.player.getHorizontalFacing().toString().charAt(0)));
+                /* The 7 and f in the string formatter is the color */
+                String colouredSeparator = KamiMod.colour + "7 " + KamiMod.separator + KamiMod.colour + "r";
+                String ow = String.format("%sf%,d%s7, %sf%,d%s7, %sf%,d %s7",
                         KamiMod.colour,
                         posX,
                         KamiMod.colour,
@@ -427,7 +443,9 @@ public class KamiGUI extends GUI {
                         KamiMod.colour,
                         KamiMod.colour,
                         posZ,
-                        KamiMod.colour,
+                        KamiMod.colour
+                );
+                String nether = String.format(" (%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
                         KamiMod.colour,
                         hposX,
                         KamiMod.colour,
@@ -437,7 +455,10 @@ public class KamiGUI extends GUI {
                         KamiMod.colour,
                         hposZ,
                         KamiMod.colour
-                ));
+                );
+                coordsLabel.setText("");
+                coordsLabel.addLine(ow);
+                coordsLabel.addLine(cardinal + colouredSeparator + nether);
             }
         });
         frame.addChild(coordsLabel);

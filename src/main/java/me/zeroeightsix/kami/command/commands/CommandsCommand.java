@@ -12,14 +12,14 @@ import java.util.Comparator;
 public class CommandsCommand extends Command {
 
     public CommandsCommand() {
-        super("commands", SyntaxChunk.EMPTY, "cmd", "cmds");
+        super("commands", SyntaxChunk.EMPTY, "cmds");
         setDescription("Gives you this list of commands");
     }
 
     @Override
     public void call(String[] args) {
         KamiMod.getInstance().getCommandManager().getCommands().stream().sorted(Comparator.comparing(command -> command.getLabel())).forEach(command ->
-                Command.sendChatMessage("&7" + Command.getCommandPrefix() + command.getLabel() + "&r ~ &8" + command.getDescription())
+                Command.sendChatMessage("&f" + Command.getCommandPrefix() + command.getLabel() + "&r ~ &7" + command.getDescription())
         );
     }
 }

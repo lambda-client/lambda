@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.gui.kami;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.ClickGUI;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -14,6 +14,7 @@ import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.glEnable;
 
@@ -69,18 +70,18 @@ public class DisplayGuiScreen extends GuiScreen {
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        gui.handleMouseDown(this.mouseX, this.mouseY);
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        gui.handleMouseDown(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
     }
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
-        gui.handleMouseRelease(this.mouseX, this.mouseY);
+        gui.handleMouseRelease(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
     }
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        gui.handleMouseDrag(this.mouseX, this.mouseY);
+        gui.handleMouseDrag(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
     }
 
     @Override
@@ -88,17 +89,16 @@ public class DisplayGuiScreen extends GuiScreen {
         if (Mouse.hasWheel()) {
             int a = Mouse.getDWheel();
             if (a != 0) {
-                gui.handleWheel(this.mouseX, this.mouseY, a);
+                gui.handleWheel(mouseX, mouseY, a);
             }
         }
     }
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (ModuleManager.getModuleByName("clickGUI").getBind().isDown(keyCode) || keyCode == Keyboard.KEY_ESCAPE) {
+        if (MODULE_MANAGER.getModule(ClickGUI.class).getBind().isDown(keyCode) || keyCode == Keyboard.KEY_ESCAPE) {
             mc.displayGuiScreen(lastScreen);
-        }
-        else {
+        } else {
             gui.handleKeyDown(keyCode);
             gui.handleKeyUp(keyCode);
         }
@@ -119,8 +119,8 @@ public class DisplayGuiScreen extends GuiScreen {
     private void calculateMouse() {
         Minecraft minecraft = Minecraft.getMinecraft();
         int scaleFactor = getScale();
-        this.mouseX = Mouse.getX() / scaleFactor;
-        this.mouseY = minecraft.displayHeight / scaleFactor - Mouse.getY() / scaleFactor - 1;
+        mouseX = Mouse.getX() / scaleFactor;
+        mouseY = minecraft.displayHeight / scaleFactor - Mouse.getY() / scaleFactor - 1;
     }
 
 }

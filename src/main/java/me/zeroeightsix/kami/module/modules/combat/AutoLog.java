@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.misc.AutoReconnect;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.client.Minecraft;
@@ -12,6 +12,8 @@ import net.minecraft.network.play.server.SPacketDisconnect;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 /**
  * Created by 086 on 9/04/2018.
@@ -53,7 +55,7 @@ public class AutoLog extends Module {
     }
 
     private void log() {
-        ModuleManager.getModuleByName("AutoReconnect").disable();
+        MODULE_MANAGER.getModule(AutoReconnect.class).disable();
         shouldLog = true;
         lastLog = System.currentTimeMillis();
     }

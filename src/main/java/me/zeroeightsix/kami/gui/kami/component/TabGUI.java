@@ -4,7 +4,6 @@ import me.zeroeightsix.kami.gui.rgui.component.AbstractComponent;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -12,6 +11,8 @@ import net.minecraftforge.fml.common.gameevent.InputEvent;
 import org.lwjgl.input.Keyboard;
 
 import java.util.*;
+
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 /**
  * Created by 086 on 11/08/2017.
@@ -32,8 +33,7 @@ public class TabGUI extends AbstractComponent implements EventListener {
         for (Module.Category category : Module.Category.values())
             tabMap.put(category, new Tab(category.getName()));
 
-        ArrayList<Module> features = new ArrayList<>();
-        features.addAll(ModuleManager.getModules());
+        ArrayList<Module> features = new ArrayList<>(MODULE_MANAGER.getModules());
 
         for (Module feature : features)
             if (feature.getCategory() != null && !feature.getCategory().isHidden())

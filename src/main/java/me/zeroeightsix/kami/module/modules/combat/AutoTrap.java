@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.combat;
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.canBeClicked;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
 
@@ -51,6 +52,7 @@ public class AutoTrap extends Module {
     private Setting<Boolean> rotate = register(Settings.b("Rotate", false));
     private Setting<Boolean> noGlitchBlocks = register(Settings.b("NoGlitchBlocks", true));
     private Setting<Boolean> activeInFreecam = register(Settings.b("Active In Freecam", true));
+    private Setting<Boolean> selfTrap = register(Settings.b("Self Trap", false));
     private Setting<Boolean> infoMessage = register(Settings.b("Debug", false));
 
     private EntityPlayer closestTarget;
@@ -83,7 +85,7 @@ public class AutoTrap extends Module {
 
     @Override
     protected void onEnable() {
-        if (mc.player == null) return;
+        if (mc.player == null || mc.player.getHealth() <= 0) return;
 
         firstRun = true;
 
@@ -95,7 +97,7 @@ public class AutoTrap extends Module {
 
     @Override
     protected void onDisable() {
-        if (mc.player == null) return;
+        if (mc.player == null || mc.player.getHealth() <= 0) return;
 
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
             mc.player.inventory.currentItem = playerHotbarSlot;
@@ -114,16 +116,16 @@ public class AutoTrap extends Module {
 
     @Override
     public void onUpdate() {
-        if (mc.player == null) return;
+        if (mc.player == null || mc.player.getHealth() <= 0) return;
 
-        if (!activeInFreecam.getValue() && ModuleManager.isModuleEnabled("Freecam")) return;
+        if (!activeInFreecam.getValue() && MODULE_MANAGER.isModuleEnabled(Freecam.class)) return;
 
         if (firstRun) {
             if (findObiInHotbar() == -1) {
                 if (infoMessage.getValue()) {
-                    Command.sendChatMessage("[AutoTrap] " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+                    Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
                 }
-                this.disable();
+                disable();
                 return;
             }
         } else {
@@ -189,9 +191,9 @@ public class AutoTrap extends Module {
         if (missingObiDisable) {
             missingObiDisable = false;
             if (infoMessage.getValue()) {
-                Command.sendChatMessage("[AutoTrap] " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+                Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
             }
-            this.disable();
+            disable();
         }
     }
 
@@ -258,8 +260,8 @@ public class AutoTrap extends Module {
             mc.player.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, neighbour, opposite));
         }
 
-        if (ModuleManager.getModuleByName("NoBreakAnimation").isEnabled()) {
-            ((NoBreakAnimation) ModuleManager.getModuleByName("NoBreakAnimation")).resetMining();
+        if (MODULE_MANAGER.isModuleEnabled(NoBreakAnimation.class)) {
+            MODULE_MANAGER.getModuleT(NoBreakAnimation.class).resetMining();
         }
         return true;
     }
@@ -289,7 +291,7 @@ public class AutoTrap extends Module {
         closestTarget = null;
 
         for (EntityPlayer target : playerList) {
-            if (target == mc.player) continue;
+            if (target == mc.player && !selfTrap.getValue()) continue;
 
             if (mc.player.getDistance(target) > range.getValue() + 3) continue;
 

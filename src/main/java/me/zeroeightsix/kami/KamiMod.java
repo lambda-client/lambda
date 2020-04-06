@@ -17,18 +17,15 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.capes.Capes;
-import me.zeroeightsix.kami.module.modules.chat.ChatSuffix;
-import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
-import me.zeroeightsix.kami.module.modules.gui.PrefixChat;
-import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
-import me.zeroeightsix.kami.module.modules.player.AntiCompressionBan;
-import me.zeroeightsix.kami.module.modules.render.TabFriends;
+import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.setting.config.Configuration;
-import me.zeroeightsix.kami.util.*;
+import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.LagCompensator;
+import me.zeroeightsix.kami.util.RichPresence;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -53,7 +50,7 @@ import java.util.Optional;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 17/02/19
+ * Updated by S-B99 on 25/03/19
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -63,17 +60,20 @@ import java.util.Optional;
 )
 public class KamiMod {
 
-    static final String MODNAME = "KAMI Blue";
+    public static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.2-21-02-03";
+    public static final String MODVER = "v1.1.2-beta";
     public static final String MODVERSMALL = "v1.1.2-beta";
     public static final String APP_ID = "638403216278683661";
 
-    static final String UPDATE_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/updateChecker.json";
-    public static final String DONATORS_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/donators.json";
-    public static final String CAPES_JSON = "https://raw.githubusercontent.com/S-B99/kamiblue/assets/assets/capes.json";
+    static final String UPDATE_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/updateChecker.json";
+    public static final String DONATORS_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/donators.json";
+    public static final String CAPES_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/capes.json";
+    public static final String GITHUB_LINK = "https://github.com/kami-blue/client/";
+    public static final String WEBSITE_LINK = "https://blue.bella.wtf";
 
-//    public static final String KAMI_HIRAGANA = "\u304B\u307F";
+
+    //    public static final String KAMI_HIRAGANA = "\u304B\u307F";
 //    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
     public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb";
     public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
@@ -90,6 +90,7 @@ public class KamiMod {
     public static final Logger log = LogManager.getLogger("KAMI Blue");
 
     public static final EventBus EVENT_BUS = new EventManager();
+    public static final ModuleManager MODULE_MANAGER = new ModuleManager();
 
     @Mod.Instance
     private static KamiMod INSTANCE;
@@ -142,6 +143,11 @@ public class KamiMod {
                             DiscordPresence.presence.smallImageText = "900th member";
                             break;
                         }
+                        case 5: {
+                            DiscordPresence.presence.smallImageKey = "github1";
+                            DiscordPresence.presence.smallImageText = "contributor!! uwu";
+                            break;
+                        }
                         default: {
                             DiscordPresence.presence.smallImageKey = "donator2";
                             DiscordPresence.presence.smallImageText = "donator <3";
@@ -157,11 +163,11 @@ public class KamiMod {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        KamiMod.log.info("\n\nInitializing " + MODNAME + " " + MODVER);
+        log.info("\n\nInitializing " + MODNAME + " " + MODVER);
 
-        ModuleManager.initialize();
+        MODULE_MANAGER.register();
 
-        ModuleManager.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
+        MODULE_MANAGER.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
         MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
         LagCompensator.INSTANCE = new LagCompensator();
 
@@ -175,50 +181,21 @@ public class KamiMod {
         Friends.initFriends();
         SettingsRegister.register("commandPrefix", Command.commandPrefix);
         loadConfiguration();
-        KamiMod.log.info("Settings loaded");
+        log.info("Settings loaded");
 
         // custom names aren't known at compile-time
-        //ModuleManager.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
+        //MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
         new RichPresence();
-        KamiMod.log.info("Rich Presence Users init!\n");
+        log.info("Rich Presence Users init!\n");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
-        ModuleManager.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
+        MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
 
+        // load modules that are on by default // autoenable
+        MODULE_MANAGER.getModule(RunConfig.class).enable();
 
-        try { // load modules that are on by default // autoenable
-            ModuleManager.getModuleByName("InfoOverlay").setEnabled(true);
-            ModuleManager.getModuleByName("InventoryViewer").setEnabled(true);
-            ModuleManager.getModuleByName("Capes").setEnabled(true);
-
-            if (((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("DiscordSettings").setEnabled(true);
-            }
-            if (((AntiCompressionBan) ModuleManager.getModuleByName("AntiCompressionBan")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("AntiCompressionBan").setEnabled(true);
-            }
-            if (((TabFriends) ModuleManager.getModuleByName("TabFriends")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("TabFriends").setEnabled(true);
-            }
-            if (((ChatSuffix) ModuleManager.getModuleByName("ChatSuffix")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("ChatSuffix").setEnabled(true);
-            }
-            if (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("CleanGUI").setEnabled(true);
-            }
-            if (((PrefixChat) ModuleManager.getModuleByName("PrefixChat")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("PrefixChat").setEnabled(true);
-            }
-            if (((Capes) ModuleManager.getModuleByName("Capes")).startupGlobal.getValue()) {
-                ModuleManager.getModuleByName("Capes").setEnabled(true);
-            }
-        }
-        catch (NullPointerException e) {
-            KamiMod.log.error("NPE in loading always enabled modules\n");
-        }
-
-        KamiMod.log.info(MODNAME + " Mod initialized!\n");
+        log.info(MODNAME + " Mod initialized!\n");
     }
 
     public static String getConfigName() {
@@ -301,7 +278,7 @@ public class KamiMod {
         if (!Files.exists(outputFile))
             Files.createFile(outputFile);
         Configuration.saveConfiguration(outputFile);
-        ModuleManager.getModules().forEach(Module::destroy);
+        MODULE_MANAGER.getModules().forEach(Module::destroy);
     }
 
     public static boolean isFilenameValid(String file) {

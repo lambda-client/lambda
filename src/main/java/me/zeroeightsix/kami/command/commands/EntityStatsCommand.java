@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.util.EntityUtil;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.passive.AbstractHorse;
 
@@ -10,17 +11,18 @@ import java.math.RoundingMode;
 /**
  * Created by d1gress/Qther on 25/11/2017, updated on 16/12/2019
  * Updated by EmotionalLove on 16/12/2019
+ * Updated by Dewy on 4th April, 2020
  */
-
 public class EntityStatsCommand extends Command {
 
     public EntityStatsCommand() {
-        super("entitystats", null, "estats", "horestats", "hstats", "vehiclestats");
+        super("entitystats", null, "estats");
         setDescription("Print the statistics of the entity you're currently riding");
     }
 
     @Override
     public void call(String[] args) {
+
         if (mc.player.getRidingEntity() != null && mc.player.getRidingEntity() instanceof AbstractHorse) {
             AbstractHorse horse = (AbstractHorse) mc.player.getRidingEntity();
             // TODO: Function that resolves UUID's to Minecraft usernames. @bella
@@ -33,7 +35,7 @@ public class EntityStatsCommand extends Command {
             builder.append("\n&cMax Health: ").append(maxHealth);
             builder.append("\n&cSpeed: ").append(speed);
             builder.append("\n&cJump: ").append(jump);
-            builder.append("\n&cOwner: ").append(ownerId);
+            builder.append("\n&cOwner: ").append(EntityUtil.getNameFromUUID(ownerId).replace("\"", ""));
 
             Command.sendChatMessage(builder.toString());
         } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {

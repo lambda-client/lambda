@@ -82,17 +82,21 @@ public class Module {
         return originalName;
     }
 
+    /**
+     * @see me.zeroeightsix.kami.command.commands.GenerateWebsiteCommand
+     * @see me.zeroeightsix.kami.module.modules.client.ActiveModules
+     */
     public enum Category {
-        COMBAT("Combat", false),
-        EXPLOITS("Exploits", false),
-        RENDER("Render", false),
-        MISC("Misc", false),
-        PLAYER("Player", false),
-        MOVEMENT("Movement", false),
-        EXPERIMENTAL("Experimental", false),
-        GUI("GUI", false),
         CHAT("Chat", false),
-        HIDDEN("Hidden", true);
+        COMBAT("Combat", false),
+        EXPERIMENTAL("Experimental", false),
+        CLIENT("Client", false),
+        HIDDEN("Hidden", true),
+        MISC("Misc", false),
+        MOVEMENT("Movement", false),
+        PLAYER("Player", false),
+        RENDER("Render", false),
+        UTILS("Utils", false);
 
         boolean hidden;
         String name;
@@ -113,7 +117,7 @@ public class Module {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Info {
         String name();
-        String description() default "Descriptionless";
+        String description();
         Module.Category category();
         boolean alwaysListening() default false;
         ShowOnArray showOnArray() default ShowOnArray.ON;
@@ -123,25 +127,25 @@ public class Module {
         return name.getValue();
     }
 
-    public String getDescription() {
-        return description;
+    public String getChatName() {
+        return "[" + name.getValue() + "] ";
     }
 
-    public Category getCategory() {
-        return category;
-    }
+    public String getDescription() { return description; }
 
-    public boolean isEnabled() {
-        return enabled.getValue();
-    }
+    public Category getCategory() { return category; }
+
+    public boolean isEnabled() { return enabled.getValue(); }
+
+    public boolean isOnArray() { return showOnArray.getValue().equals(ShowOnArray.ON); }
+
+    public boolean isProduction() { return !category.equals(Category.EXPERIMENTAL) && !category.equals(Category.HIDDEN); }
 
     protected void onEnable() {}
 
     protected void onDisable() {}
 
-    public void toggle() {
-        setEnabled(!isEnabled());
-    }
+    public void toggle() { setEnabled(!isEnabled()); }
 
     public void enable() {
         enabled.setValue(true);
@@ -185,8 +189,6 @@ public class Module {
      */
     public void destroy() {
     }
-
-    ;
 
     protected void registerAll(Setting... settings) {
         for (Setting setting : settings) {

@@ -9,6 +9,8 @@ import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 
+import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -48,7 +50,7 @@ public class KamiEnumButtonUI extends AbstractComponentUI<EnumButton> {
         float downscale = 1.1f;
 
         glDisable(GL_TEXTURE_2D);
-        glColor3f(.60f, .56f, 1.00f); // SEARCHCOLOUR: Enum and Bind Colours
+        glColor3f(toF(GuiC.enumColour.color.getRed()), toF(GuiC.enumColour.color.getGreen()), toF(GuiC.enumColour.color.getBlue())); // SEARCHCOLOUR: Enum and Bind Colours
         glBegin(GL_LINES);
         {
             glVertex2d(startX, height / downscale);

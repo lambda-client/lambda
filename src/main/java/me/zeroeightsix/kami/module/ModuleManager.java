@@ -14,36 +14,29 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import org.lwjgl.opengl.GL11;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by 086 on 23/08/2017.
+ * Updated by Sasha
  */
 public class ModuleManager {
 
-    public static ArrayList<Module> modules = new ArrayList<>();
+    /**
+     * Linked map for the registered Modules
+     */
+    private Map<Class<? extends Module>, Module> modules = new LinkedHashMap<>();
 
     /**
-     * Lookup map for getting by **original** name
+     * Registers modules, and then calls updateLookup() for indexing.
      */
-    static HashMap<String, Integer> lookup = new HashMap<>();
-
-    public static void updateLookup() {
-        lookup.clear();
-        for (int i = 0; i < modules.size(); i++) {
-            lookup.put(modules.get(i).getOriginalName().toLowerCase(), i);
-        }
-    }
-
-    public static void initialize() {
+    public void register() {
+        KamiMod.log.info("Registering modules...");
         Set<Class> classList = ClassFinder.findClasses(ClickGUI.class.getPackage().getName(), Module.class);
-        classList.forEach(aClass -> {
+        classList.stream().sorted(Comparator.comparing(Class::getSimpleName)).forEach(aClass -> {
             try {
                 Module module = (Module) aClass.getConstructor().newInstance();
-                modules.add(module);
+                modules.put(module.getClass(), module);
             } catch (InvocationTargetException e) {
                 e.getCause().printStackTrace();
                 System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
@@ -52,20 +45,23 @@ public class ModuleManager {
                 System.err.println("Couldn't initiate module " + aClass.getSimpleName() + "! Err: " + e.getClass().getSimpleName() + ", message: " + e.getMessage());
             }
         });
-        KamiMod.log.info("Modules initialised");
-        getModules().sort(Comparator.comparing(Module::getOriginalName));
-        updateLookup();
+        KamiMod.log.info("Modules registered");
     }
 
-    public static void onUpdate() {
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onUpdate);
+    public void onUpdate() {
+        modules.forEach((clazz, mod) -> {
+            if (mod.alwaysListening || mod.isEnabled()) mod.onUpdate();
+        });
+        //modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onUpdate);
     }
 
-    public static void onRender() {
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(Module::onRender);
+    public void onRender() {
+        modules.forEach((clazz, mod) -> {
+            if (mod.alwaysListening || mod.isEnabled()) mod.onRender();
+        });
     }
 
-    public static void onWorldRender(RenderWorldLastEvent event) {
+    public void onWorldRender(RenderWorldLastEvent event) {
         Minecraft.getMinecraft().profiler.startSection("kami");
 
         Minecraft.getMinecraft().profiler.startSection("setup");
@@ -78,16 +74,18 @@ public class ModuleManager {
         GlStateManager.disableDepth();
 
         GlStateManager.glLineWidth(1f);
-        Vec3d renderPos = EntityUtil.getInterpolatedPos(Wrapper.getPlayer(), event.getPartialTicks());
+        Vec3d renderPos = EntityUtil.getInterpolatedPos(Objects.requireNonNull(Wrapper.getMinecraft().getRenderViewEntity()), event.getPartialTicks());
 
         RenderEvent e = new RenderEvent(KamiTessellator.INSTANCE, renderPos);
         e.resetTranslation();
         Minecraft.getMinecraft().profiler.endSection();
 
-        modules.stream().filter(module -> module.alwaysListening || module.isEnabled()).forEach(module -> {
-            Minecraft.getMinecraft().profiler.startSection(module.getOriginalName());
-            module.onWorldRender(e);
-            Minecraft.getMinecraft().profiler.endSection();
+        modules.forEach((clazz, mod) -> {
+            if (mod.alwaysListening || mod.isEnabled()) {
+                Minecraft.getMinecraft().profiler.startSection(mod.getOriginalName());
+                mod.onWorldRender(e);
+                Minecraft.getMinecraft().profiler.endSection();
+            }
         });
 
         Minecraft.getMinecraft().profiler.startSection("release");
@@ -104,31 +102,64 @@ public class ModuleManager {
         Minecraft.getMinecraft().profiler.endSection();
     }
 
-    public static void onBind(int eventKey) {
+    public void onBind(int eventKey) {
         if (eventKey == 0) return; // if key is the 'none' key (stuff like mod key in i3 might return 0)
-        modules.forEach(module -> {
+        modules.forEach((clazz, module) -> {
             if (module.getBind().isDown(eventKey)) {
                 module.toggle();
             }
         });
     }
 
-    public static ArrayList<Module> getModules() {
-        return modules;
+    public Collection<Module> getModules() {
+        return Collections.unmodifiableCollection(this.modules.values());
     }
 
+    public Module getModule(Class<? extends Module> clazz) {
+        return modules.get(clazz);
+    }
 
-    public static Module getModuleByName(String name) {
-        Integer index = lookup.get(name.toLowerCase());
-        if (index == null) {
-            throw new IllegalArgumentException("getModuleByName() failed. Are you calling this too early? Is the module spelled correctly? Please check!!!!");
+    /**
+     * Get typed module object so that no casting is needed afterwards.
+     *
+     * @param clazz Module class
+     * @param <T> Type of module
+     * @return Object
+     */
+    public <T extends Module> T getModuleT(Class<T> clazz) {
+        return (T) modules.get(clazz);
+    }
+
+    /**
+     * @deprecated Use `getModule(Class<? extends Module>)` instead
+     */
+    @Deprecated
+    public Module getModule(String name) {
+        for (Map.Entry<Class<? extends Module>, Module> module : modules.entrySet()) {
+            if (module.getClass().getSimpleName().equalsIgnoreCase(name) || module.getValue().getOriginalName().equalsIgnoreCase(name)) {
+                return module.getValue();
+            }
         }
-        return modules.get(index);
+        throw new ModuleNotFoundException("Error: Module not found. Check the spelling of the module. (getModuleByName(String) failed)");
     }
 
-    public static boolean isModuleEnabled(String moduleName) {
-        Module m = getModuleByName(moduleName);
-        if (m == null) return false;
-        return m.isEnabled();
+    public boolean isModuleEnabled(Class<? extends Module> clazz) {
+        return getModule(clazz).isEnabled();
+    }
+
+    /**
+     * @deprecated Use `isModuleEnabled(Class<? extends Module>)` instead
+     */
+    @Deprecated
+    public boolean isModuleEnabled(String moduleName) {
+        return getModule(moduleName).isEnabled();
+    }
+
+    public static class ModuleNotFoundException extends IllegalArgumentException {
+
+        public ModuleNotFoundException(String s) {
+            super(s);
+        }
     }
 }
+

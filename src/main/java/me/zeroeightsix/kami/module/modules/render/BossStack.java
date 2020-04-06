@@ -23,7 +23,7 @@ import java.util.UUID;
 public class BossStack extends Module {
 
     private static Setting<BossStackMode> mode = Settings.e("Mode", BossStackMode.STACK);
-    private static Setting<Double> scale = Settings.d("Scale", .5d);
+    private static Setting<Double> scale = Settings.doubleBuilder().withName("Scale").withMinimum(0.1d).withValue(0.5d).build();
 
     private static final ResourceLocation GUI_BARS_TEXTURES = new ResourceLocation("textures/gui/bars.png");
 

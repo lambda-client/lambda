@@ -6,7 +6,8 @@ import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 
-import static me.zeroeightsix.kami.util.ColourSet.*;
+import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
+import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -16,18 +17,21 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
     @Override
     public void renderComponent(CheckButton component, FontRenderer ff) {
 
-        glColor4f(checkButtonBackgroundColour.getRed(), checkButtonBackgroundColour.getGreen(), checkButtonBackgroundColour.getBlue(), component.getOpacity());
-        if (component.isToggled()) { // I don't know why the R in this one is separate, 086 wrote it that way
-            glColor3f(checkButtonBackgroundColourOther, checkButtonBackgroundColour.getGreen(), checkButtonBackgroundColour.getBlue());
+        glColor4f(toF(GuiC.bgColour.color.getRed()), toF(GuiC.bgColour.color.getGreen()), toF(GuiC.bgColour.color.getBlue()), component.getOpacity());
+        if (component.isToggled()) { // red used to be a separate value, toF(229.5d)
+            glColor3f(toF(GuiC.bgColour.color.getRed()), toF(GuiC.bgColour.color.getGreen()), toF(GuiC.bgColour.color.getBlue()));
         }
         if (component.isHovered() || component.isPressed()) {
-            glColor4f(checkButtonBackgroundColourHover.getRed(), checkButtonBackgroundColourHover.getGreen(), checkButtonBackgroundColourHover.getBlue(), component.getOpacity());
+            glColor4f(toF(GuiC.bgColourHover.color.getRed()), toF(GuiC.bgColourHover.color.getGreen()), toF(GuiC.bgColourHover.color.getBlue()), component.getOpacity());
         }
 
-        String text = component.getName();
-        int c = component.isPressed() ? 0xaaaaaa : component.isToggled() ? 0xff3333 : 0xdddddd;
+        String text = component.getName(); // on toggle, toggled, hovered enabled
+        int c = component.isPressed() ?
+                GuiC.buttonPressed.color.getRGB() : component.isToggled() ?
+                GuiC.buttonIdleT.color.getRGB() :
+                GuiC.buttonHoveredT.color.getRGB();
         if (component.isHovered())
-            c = (c & 0x7f7f7f) << 1;
+            c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1;
 
         glColor3f(1, 1, 1);
         glEnable(GL_TEXTURE_2D);

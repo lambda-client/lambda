@@ -19,8 +19,8 @@ import me.zeroeightsix.kami.util.ColourHolder;
 import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.opengl.GL11;
 
+import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
-import static me.zeroeightsix.kami.util.ColourSet.*;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -49,8 +49,8 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
 
         glColor4f(.17f, .17f, .18f, .9f);
         RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight()); // Main window
-        glColor3f(componentWindowOutline.getRed(), componentWindowOutline.getGreen(), componentWindowOutline.getBlue());
-        glLineWidth(componentWindowOutlineWidth);
+        glColor3f(toF(GuiC.windowOutline.color.getRed()), toF(GuiC.windowOutline.color.getGreen()), toF(GuiC.windowOutline.color.getBlue()));
+        glLineWidth(GuiC.windowOutlineWidth.aFloat);
         RenderHelper.drawRectangle(0, 0, component.getWidth(), component.getHeight()); // Border / Outline
 
         GL11.glColor3f(1, 1, 1);
@@ -106,9 +106,9 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
 
         if (component.isPinnable()) {
             if (component.isPinned())
-                glColor3f(componentPinnedColour.getRed(), componentPinnedColour.getGreen(), componentPinnedColour.getBlue());
+                glColor3f(toF(GuiC.pinnedWindow.color.getRed()), toF(GuiC.pinnedWindow.color.getGreen()), toF(GuiC.pinnedWindow.color.getBlue()));
             else
-                glColor3f(componentUnpinnedColour, componentUnpinnedColour, componentUnpinnedColour);
+                glColor3f(toF(GuiC.unpinnedWindow.aDouble), toF(GuiC.unpinnedWindow.aDouble), toF(GuiC.unpinnedWindow.aDouble));
             RenderHelper.drawCircle(7, 4, 2f);
             glLineWidth(3f);
             glBegin(GL_LINES);
@@ -120,7 +120,7 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
         }
 
         if (component.equals(xLineComponent)) {
-            glColor3f(componentLineColour, componentLineColour, componentLineColour);
+            glColor3f(toF(GuiC.lineWindow.aDouble), toF(GuiC.lineWindow.aDouble), toF(GuiC.lineWindow.aDouble));
             glLineWidth(1f);
             glBegin(GL_LINES);
             {

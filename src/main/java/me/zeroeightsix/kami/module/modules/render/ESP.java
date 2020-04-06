@@ -18,6 +18,7 @@ import static org.lwjgl.opengl.GL11.*;
 /**
  * Created by 086 on 14/12/2017.
  * Updated by d1gress/Qther on 27/11/2019.
+ * Kurisu Makise is cute
  */
 @Module.Info(name = "ESP", category = Module.Category.RENDER, description = "Highlights entities")
 public class ESP extends Module {
@@ -26,10 +27,10 @@ public class ESP extends Module {
     private Setting<Boolean> players = register(Settings.b("Players", true));
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
+    private Setting<Boolean> renderInvis = register(Settings.b("Invisible", false));
 
     public enum ESPMode {
-        RECTANGLE,
-        GLOW
+        RECTANGLE, GLOW
     }
 
     @Override
@@ -44,6 +45,12 @@ public class ESP extends Module {
 
                 mc.world.loadedEntityList.stream()
                         .filter(EntityUtil::isLiving)
+                        .filter(entity -> {
+                            if (entity.isInvisible()) {
+                                return renderInvis.getValue();
+                            }
+                            return true;
+                        })
                         .filter(entity -> mc.player != entity)
                         .map(entity -> (EntityLivingBase) entity)
                         .filter(entityLivingBase -> !entityLivingBase.isDead)

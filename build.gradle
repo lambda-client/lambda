@@ -1,31 +1,4 @@
-// make folders
-
-task mkdir {
-    group = "kami"
-    doLast {
-        mkdir System.getProperty("user.home") + "/.minecraft/mods/1.12.2/"
-    }
-}
-
-// delete old versions
-
-task rmOld(type: Delete) {
-    group = "kami"
-    delete fileTree(System.getProperty("user.home") + "/.minecraft/mods/1.12.2/").matching {
-        include "k*-release.jar"
-    }
-}
-
-// copy file
-
-task copy(type: Copy) {
-    group = "kami"
-    from file("build/libs/")
-    include 'k*-release.jar'
-    into file(System.getProperty("user.home") + "/.minecraft/mods/1.12.2/")
-}
-
-// forge's stuff 
+// forge's stuff
 
 buildscript {
     repositories {
@@ -41,8 +14,8 @@ buildscript {
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-        classpath 'org.spongepowered:mixingradle:0.4-SNAPSHOT'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.3'
     }
 }
 
@@ -84,24 +57,26 @@ repositories {
         url = "https://jitpack.io"
     }
     mavenCentral()
-	jcenter()
+    jcenter()
 }
 
 dependencies {
-    //mixin needs to be distributed with the mod, very important
-    compile("org.spongepowered:mixin:0.7.4-SNAPSHOT") {
+    // mixin needs to be distributed with the mod, very important
+    compile("org.spongepowered:mixin:0.7.8-SNAPSHOT") { // do NOT update this to 8.0 or above, it breaks compatibility with future client
         exclude module: 'launchwrapper'
         exclude module: 'guava'
         exclude module: 'gson'
         exclude module: 'commons-io'
     }
-    compile "com.github.ZeroMemes:Alpine:1.5"
+    compile "com.github.ZeroMemes:Alpine:1.7"
     compile group: 'net.jodah', name: 'typetools', version: '0.5.0'
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.19'
-    compile(group: 'org.reflections', name: 'reflections', version: '0.9.11') {
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.25'
+    compile(group: 'org.reflections', name: 'reflections', version: '0.9.12') {
         exclude group: 'com.google.guava', module: 'guava'
     }
     compile 'club.minnced:java-discord-rpc:v2.0.1'
+    compile 'com.github.MrPowerGamerBR:TemmieWebhook:-SNAPSHOT'
+    compile 'com.github.kevinsawicki:http-request:http-request-6.0'
 }
 
 processResources {
@@ -135,6 +110,8 @@ shadowJar {
         include(dependency('org.yaml:snakeyaml'))
         include(dependency('org.reflections:reflections'))
         include(dependency('org.javassist:javassist'))
+        include(dependency('com.github.MrPowerGamerBR:TemmieWebhook'))
+        include(dependency('com.github.kevinsawicki:http-request'))
     }
     exclude 'dummyThing' // can someone explain why this is here
     classifier = 'release'

@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.gui.CleanGUI;
+import me.zeroeightsix.kami.module.modules.render.CleanGUI;
+import me.zeroeightsix.kami.module.modules.render.ShulkerPreview;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+
 /**
  * Created by 086 on 24/12/2017.
  */
@@ -30,7 +32,7 @@ public class MixinGuiScreen {
 
     @Inject(method = "renderToolTip", at = @At("HEAD"), cancellable = true)
     public void renderToolTip(ItemStack stack, int x, int y, CallbackInfo info) {
-        if (ModuleManager.isModuleEnabled("ShulkerPreview") && stack.getItem() instanceof ItemShulkerBox) {
+        if (MODULE_MANAGER.isModuleEnabled(ShulkerPreview.class) && stack.getItem() instanceof ItemShulkerBox) {
             NBTTagCompound tagCompound = stack.getTagCompound();
             if (tagCompound != null && tagCompound.hasKey("BlockEntityTag", 10)) {
                 NBTTagCompound blockEntityTag = tagCompound.getCompoundTag("BlockEntityTag");
@@ -93,9 +95,18 @@ public class MixinGuiScreen {
         }
     }
 
+    /**
+     * @author cookiedragon234
+     * see https://github.com/kami-blue/client/pull/293 for discussion
+     * authors words:
+     * Also @S-B99 you should be more careful with merging commits, especially from people who are new to coding. Stuff like this is obviously stolen, and can get your repository DMCA'd.
+     *
+     * as shown be the rest of his discussion, he was fine with it
+     * I even aknowledged when it was added, after cookies approval, that it was pasted from backdoored. 
+     */
     @Inject(method = "Lnet/minecraft/client/gui/GuiScreen;drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
-        if (this.mc.world != null && ModuleManager.isModuleEnabled("CleanGUI") && (((CleanGUI) ModuleManager.getModuleByName("CleanGUI")).inventoryGlobal.getValue())) {
+        if (this.mc.world != null && MODULE_MANAGER.isModuleEnabled(CleanGUI.class) && (MODULE_MANAGER.getModuleT(CleanGUI.class).inventoryGlobal.getValue())) {
             ci.cancel();
         }
     }

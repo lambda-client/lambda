@@ -3,18 +3,19 @@ package me.zeroeightsix.kami;
 import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 
 import static me.zeroeightsix.kami.KamiMod.APP_ID;
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
-/***
+/**
  * @author S-B99
  * Updated by S-B99 on 13/01/20
+ * Updated (slightly) by Dewy on 3rd April 2020
  */
 public class DiscordPresence {
     public static DiscordRichPresence presence;
-    private static boolean hasStarted;
+    private static boolean connected;
     private static final DiscordRPC rpc;
     private static String details;
     private static String state;
@@ -22,11 +23,11 @@ public class DiscordPresence {
 
     public static void start() {
         KamiMod.log.info("Starting Discord RPC");
-        if (DiscordPresence.hasStarted) return;
-        DiscordPresence.hasStarted = true;
+        if (DiscordPresence.connected) return;
+        DiscordPresence.connected = true;
 
         final DiscordEventHandlers handlers = new DiscordEventHandlers();
-        handlers.disconnected = ((var1, var2) -> KamiMod.log.info("Discord RPC disconnected, var1: " + var1 + ", var2: " + var2));
+//        handlers.disconnected = ((var1, var2) -> KamiMod.log.info("Discord RPC disconnected, var1: " + var1 + ", var2: " + var2));
         DiscordPresence.rpc.Discord_Initialize(APP_ID, handlers, true, "");
         DiscordPresence.presence.startTimestamp = System.currentTimeMillis() / 1000L;
 
@@ -38,11 +39,19 @@ public class DiscordPresence {
         KamiMod.log.info("Discord RPC initialised successfully");
     }
 
+    public static void end() {
+        KamiMod.log.info("Shutting down Discord RPC...");
+
+        DiscordPresence.connected = false;
+
+        DiscordPresence.rpc.Discord_Shutdown();
+    }
+
     private static void setRpcFromSettingsNonInt() {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 DiscordPresence.rpc.Discord_RunCallbacks();
-                discordSettings = ((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings"));
+                discordSettings = MODULE_MANAGER.getModuleT(DiscordSettings.class);
                 String separator = " | ";
                 details = discordSettings.getLine(discordSettings.line1Setting.getValue()) + separator + discordSettings.getLine(discordSettings.line3Setting.getValue());
                 state = discordSettings.getLine(discordSettings.line2Setting.getValue()) + separator + discordSettings.getLine(discordSettings.line4Setting.getValue());
@@ -56,7 +65,7 @@ public class DiscordPresence {
         }
     }
     private static void setRpcFromSettings() {
-        discordSettings = ((DiscordSettings) ModuleManager.getModuleByName("DiscordSettings"));
+        discordSettings = MODULE_MANAGER.getModuleT(DiscordSettings.class);
         details = discordSettings.getLine(discordSettings.line1Setting.getValue()) + " " + discordSettings.getLine(discordSettings.line3Setting.getValue());
         state = discordSettings.getLine(discordSettings.line2Setting.getValue()) + " " + discordSettings.getLine(discordSettings.line4Setting.getValue());
         DiscordPresence.presence.details = details;
@@ -69,7 +78,7 @@ public class DiscordPresence {
     static {
         rpc = DiscordRPC.INSTANCE;
         DiscordPresence.presence = new DiscordRichPresence();
-        DiscordPresence.hasStarted = false;
+        DiscordPresence.connected = false;
     }
 
     /* I have no idea how to disconnect rpc properly atm */

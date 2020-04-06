@@ -1,8 +1,12 @@
 package me.zeroeightsix.kami.util;
 
+import net.minecraft.util.text.TextFormatting;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+
+import static me.zeroeightsix.kami.module.modules.client.InfoOverlay.getStringColour;
 
 /**
  * @author S-B99
@@ -22,7 +26,7 @@ public class TimeUtil {
     }
 
     public enum TimeUnit {
-        h24, h12
+        H24, H12
     }
 
     private static String formatTimeString(TimeType timeType) {
@@ -36,9 +40,9 @@ public class TimeUtil {
     public static SimpleDateFormat dateFormatter(TimeUnit timeUnit, TimeType timeType) {
         SimpleDateFormat formatter;
         switch (timeUnit) {
-            case h12:
+            case H12:
                 formatter = new SimpleDateFormat("hh" + formatTimeString(timeType), Locale.UK); break;
-            case h24:
+            case H24:
                 formatter = new SimpleDateFormat("HH" + formatTimeString(timeType), Locale.UK); break;
             default:
                 throw new IllegalStateException("Unexpected value: " + timeUnit);
@@ -46,17 +50,29 @@ public class TimeUtil {
         return formatter;
     }
 
-    public static String getFinalTime(ColourUtils.ColourCode colourCode2, ColourUtils.ColourCode colourCode1, TimeUnit timeUnit, TimeType timeType, Boolean doLocale) {
-        String formatted = ColourUtils.getStringColour(colourCode2) + ":" + ColourUtils.getStringColour(colourCode1);
+    public static String getFinalTime(TextFormatting colourCode2, TextFormatting colourCode1, TimeUnit timeUnit, TimeType timeType, Boolean doLocale) {
         String locale = "";
-        String time = time(TimeUtil.dateFormatter(TimeUnit.h24, TimeType.HH));
-        if (timeUnit == TimeUnit.h12 && doLocale) {
+        String time = time(TimeUtil.dateFormatter(TimeUnit.H24, TimeType.HH));
+        if (timeUnit == TimeUnit.H12 && doLocale) {
             if ((Integer.parseInt(time)) - 12 >= 0) { // checks if the 24 hour time minus 12 is negative or 0, if it is it's pm
                 locale = "pm";
             } else {
                 locale = "am";
             }
         }
-        return ColourUtils.getStringColour(colourCode1) + time(dateFormatter(timeUnit, timeType)).replace(":", formatted) + ColourUtils.getStringColour(colourCode2) + locale;
+        return getStringColour(colourCode1) + time(dateFormatter(timeUnit, timeType)) + getStringColour(colourCode2) + locale;
+    }
+
+    public static String getFinalTime(TimeUnit timeUnit, TimeType timeType, Boolean doLocale) {
+        String locale = "";
+        String time = time(TimeUtil.dateFormatter(TimeUnit.H24, TimeType.HH));
+        if (timeUnit == TimeUnit.H12 && doLocale) {
+            if ((Integer.parseInt(time)) - 12 >= 0) { // checks if the 24 hour time minus 12 is negative or 0, if it is it's pm
+                locale = "pm";
+            } else {
+                locale = "am";
+            }
+        }
+        return time(dateFormatter(timeUnit, timeType)) + locale;
     }
 }

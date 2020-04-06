@@ -15,8 +15,12 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.opengl.GL11;
 
+import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
+
 /**
  * Created by 086 on 11/12/2017.
+ * <p>
+ * Kurisu Makise is best girl
  */
 @Module.Info(name = "Tracers", description = "Draws lines to other living entities", category = Module.Category.RENDER)
 public class Tracers extends Module {
@@ -26,7 +30,12 @@ public class Tracers extends Module {
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Double> range = register(Settings.d("Range", 200));
-    private Setting<Float> opacity = register(Settings.floatBuilder("Opacity").withRange(0f, 1f).withValue(1f));
+    private Setting<Boolean> renderInvis = register(Settings.b("Invisible", false));
+    private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).build());
+    private Setting<Float> opacity = register(Settings.floatBuilder("Opacity").withRange(0f, 1f).withValue(1f).build());
+    private Setting<Integer> r = register(Settings.integerBuilder("Red").withMinimum(0).withValue(155).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
+    private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
+    private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
 
     HueCycler cycler = new HueCycler(3600);
 
@@ -35,6 +44,12 @@ public class Tracers extends Module {
         GlStateManager.pushMatrix();
         Minecraft.getMinecraft().world.loadedEntityList.stream()
                 .filter(EntityUtil::isLiving)
+                .filter(entity -> {
+                    if (entity.isInvisible()) {
+                        return renderInvis.getValue();
+                    }
+                    return true;
+                })
                 .filter(entity -> !EntityUtil.isFakeLocalPlayer(entity))
                 .filter(entity -> (entity instanceof EntityPlayer ? players.getValue() && mc.player != entity : (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue())))
                 .filter(entity -> mc.player.getDistance(entity) < range.getValue())
@@ -42,6 +57,12 @@ public class Tracers extends Module {
                     int colour = getColour(entity);
                     if (colour == ColourUtils.Colors.RAINBOW) {
                         if (!friends.getValue()) return;
+                        if (customColours.getValue()) {
+                            colour = rgbToInt(r.getValue(), g.getValue(), b.getValue(), (int) (opacity.getValue() * 255f));
+                        } else {
+                            colour = cycler.current();
+                        }
+                    } else {
                         colour = cycler.current();
                     }
                     final float r = ((colour >>> 16) & 0xFF) / 255f;
@@ -139,7 +160,6 @@ public class Tracers extends Module {
 
     public static void drawLineFromPosToPos(double posx, double posy, double posz, double posx2, double posy2, double posz2, double up, float red, float green, float blue, float opacity) {
         GL11.glBlendFunc(770, 771);
-        GL11.glEnable(GL11.GL_BLEND);
         GL11.glLineWidth(1.5f);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -161,7 +181,6 @@ public class Tracers extends Module {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(true);
-        GL11.glDisable(GL11.GL_BLEND);
         GL11.glColor3d(1d, 1d, 1d);
         GlStateManager.enableLighting();
     }

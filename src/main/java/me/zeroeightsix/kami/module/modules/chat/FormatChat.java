@@ -20,11 +20,11 @@ public class FormatChat extends Module {
     @Override
     public void onEnable() {
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
-            Command.sendWarningMessage("[FormatChat] &6&lWarning: &r&6This does not work in singleplayer");
-            this.disable();
+            Command.sendWarningMessage(getChatName() + " &6&lWarning: &r&6This does not work in singleplayer");
+            disable();
         }
         else {
-            Command.sendWarningMessage("[FormatChat] &6&lWarning: &r&6This will kick you on most servers!");
+            Command.sendWarningMessage(getChatName() + " &6&lWarning: &r&6This will kick you on most servers!");
         }
     }
 

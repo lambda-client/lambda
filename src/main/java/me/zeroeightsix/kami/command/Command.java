@@ -7,39 +7,35 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.launchwrapper.LogWrapper;
+import net.minecraft.network.play.client.CPacketChatMessage;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentBase;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 public abstract class Command {
 
     protected String label;
     protected String syntax;
     protected String description;
-    protected ArrayList<String> aliases;
+    protected List<String> aliases;
 
     public final Minecraft mc = Minecraft.getMinecraft();
 
     protected SyntaxChunk[] syntaxChunks;
 
-    public static Setting<String> commandPrefix = Settings.s("commandPrefix", ".");
-
-    public Command(String label, SyntaxChunk[] syntaxChunks, ArrayList<String> aliases) {
-        this.label = label;
-        this.syntaxChunks = syntaxChunks;
-        this.description = "Descriptionless";
-        this.aliases = aliases;
-    }
+    public static Setting<String> commandPrefix = Settings.s("commandPrefix", ";");
 
     public Command(String label, SyntaxChunk[] syntaxChunks, String... aliases) {
         this.label = label;
         this.syntaxChunks = syntaxChunks;
         this.description = "Descriptionless";
-        this.aliases = new ArrayList<String>(Arrays.asList(aliases));
+        this.aliases = Arrays.asList(aliases);
     }
 
     public static void sendChatMessage(String message) {
@@ -63,19 +59,24 @@ public abstract class Command {
         for (String s : messages) sendRawChatMessage(s);
     }
 
+    public static void sendDisableMessage(Class clazz) {
+        sendErrorMessage("Error: The " + MODULE_MANAGER.getModule(clazz).getName() + " module is only for configuring the GUI element. In order to show the GUI element you need to hit the pin in the upper left of the GUI element");
+        MODULE_MANAGER.getModule(clazz).enable();
+    }
+
     public static void sendRawChatMessage(String message) {
-        if (isSendable()) {
+        if (Minecraft.getMinecraft().player != null) {
             Wrapper.getPlayer().sendMessage(new ChatMessage(message));
         } else {
-            LogWrapper.info("KAMI Blue: Avoided NPE by logging to file instead of chat\n" + message);
+            LogWrapper.info(message);
         }
     }
 
-    public static boolean isSendable() {
-        if (Minecraft.getMinecraft().player == null) {
-            return false;
+    public static void sendServerMessage(String message) {
+        if (Minecraft.getMinecraft().player != null) {
+            Wrapper.getPlayer().connection.sendPacket(new CPacketChatMessage(message));
         } else {
-            return true;
+            LogWrapper.warning("Could not send server message: \"" + message + "\"");
         }
     }
 
@@ -95,8 +96,8 @@ public abstract class Command {
         return label;
     }
 
-    public ArrayList<String> getAliases() {
-        return aliases;
+    public String getChatLabel() {
+        return "[" + label + "] ";
     }
 
     public abstract void call(String[] args);
@@ -142,5 +143,9 @@ public abstract class Command {
                 return c;
         }
         return null;
+    }
+
+    public List<String> getAliases() {
+        return aliases;
     }
 }

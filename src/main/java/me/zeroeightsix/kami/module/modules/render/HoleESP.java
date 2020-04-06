@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -17,6 +16,7 @@ import java.awt.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
 
 
@@ -37,12 +37,12 @@ public class HoleESP extends Module {
 
     private Setting<Double> renderDistance = register(Settings.d("Render Distance", 8.0d));
     private Setting<Integer> a0 = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).build());
-    private Setting<Integer> r1 = register(Settings.integerBuilder("Red (Obby)").withMinimum(0).withValue(208).withMaximum(255).build()); // 144
-    private Setting<Integer> g1 = register(Settings.integerBuilder("Green (Obby)").withMinimum(0).withValue(144).withMaximum(255).build());
-    private Setting<Integer> b1 = register(Settings.integerBuilder("Blue (Obby)").withMinimum(0).withValue(255).withMaximum(255).build());
-    private Setting<Integer> r2 = register(Settings.integerBuilder("Red (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).build()); // 208
-    private Setting<Integer> g2 = register(Settings.integerBuilder("Green (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).build());
-    private Setting<Integer> b2 = register(Settings.integerBuilder("Blue (Bedrock)").withMinimum(0).withValue(255).withMaximum(255).build());
+    private Setting<Integer> r1 = register(Settings.integerBuilder("Red (Obby)").withMinimum(0).withValue(208).withMaximum(255).withVisibility(v-> obbySettings()).build());
+    private Setting<Integer> g1 = register(Settings.integerBuilder("Green (Obby)").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v-> obbySettings()).build());
+    private Setting<Integer> b1 = register(Settings.integerBuilder("Blue (Obby)").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v-> obbySettings()).build());
+    private Setting<Integer> r2 = register(Settings.integerBuilder("Red (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v-> bedrockSettings()).build()); // 208
+    private Setting<Integer> g2 = register(Settings.integerBuilder("Green (Bedrock)").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v-> bedrockSettings()).build());
+    private Setting<Integer> b2 = register(Settings.integerBuilder("Blue (Bedrock)").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v-> bedrockSettings()).build());
     private Setting<RenderMode> renderModeSetting = register(Settings.e("Render Mode", RenderMode.BLOCK));
     private Setting<RenderBlocks> renderBlocksSetting = register(Settings.e("Render", RenderBlocks.BOTH));
 
@@ -56,6 +56,15 @@ public class HoleESP extends Module {
         OBBY, BEDROCK, BOTH
     }
 
+    private boolean obbySettings() {
+        return renderBlocksSetting.getValue().equals(RenderBlocks.OBBY) || renderBlocksSetting.getValue().equals(RenderBlocks.BOTH);
+    }
+
+    private boolean bedrockSettings() {
+        return renderBlocksSetting.getValue().equals(RenderBlocks.BEDROCK) || renderBlocksSetting.getValue().equals(RenderBlocks.BOTH);
+    }
+
+
     @Override
     public void onUpdate() {
 
@@ -67,7 +76,7 @@ public class HoleESP extends Module {
 
         int range = (int) Math.ceil(renderDistance.getValue());
 
-        CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+        CrystalAura crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
         List<BlockPos> blockPosList = crystalAura.getSphere(getPlayerPos(), range, range, false, true, 0);
 
         for (BlockPos pos : blockPosList) {

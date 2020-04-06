@@ -3,18 +3,20 @@ package me.zeroeightsix.kami.module.modules.misc;
 import com.mojang.realmsclient.gui.ChatFormatting;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.boss.EntityWither;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemNameTag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.util.EnumFacing;
@@ -26,6 +28,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.List;
 import java.util.Random;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 
 /**
@@ -42,7 +45,7 @@ public class AutoSpawner extends Module {
     private Setting<Float> placeRange = register(Settings.floatBuilder("Place Range").withMinimum(2.0f).withValue(3.5f).withMaximum(10.0f).build());
     private Setting<Integer> delay = register(Settings.integerBuilder("Delay").withMinimum(12).withValue(20).withMaximum(100).withVisibility(v -> useMode.getValue().equals(UseMode.SPAM)).build());
     private Setting<Boolean> rotate = register(Settings.b("Rotate", true));
-    private Setting<Boolean> notifications = register(Settings.b("Notifications", false));
+    private Setting<Boolean> debug = register(Settings.b("Debug", false));
 
     private static boolean isSneaking;
 
@@ -57,12 +60,9 @@ public class AutoSpawner extends Module {
     private int delayStep;
 
     private static void placeBlock(BlockPos pos, boolean rotate) {
-
         EnumFacing side = getPlaceableSide(pos);
 
-        if (side == null) {
-            return;
-        }
+        if (side == null) return;
 
         BlockPos neighbour = pos.offset(side);
         EnumFacing opposite = side.getOpposite();
@@ -76,20 +76,15 @@ public class AutoSpawner extends Module {
             isSneaking = true;
         }
 
-        if (rotate) {
-            faceVectorPacketInstant(hitVec);
-        }
+        if (rotate) faceVectorPacketInstant(hitVec);
 
         mc.playerController.processRightClickBlock(mc.player, mc.world, neighbour, opposite, hitVec, EnumHand.MAIN_HAND);
         mc.player.swingArm(EnumHand.MAIN_HAND);
         mc.rightClickDelayTimer = 4;
-
     }
 
     private static EnumFacing getPlaceableSide(BlockPos pos) {
-
         for (EnumFacing side : EnumFacing.values()) {
-
             BlockPos neighbour = pos.offset(side);
 
             if (!mc.world.getBlockState(neighbour).getBlock().canCollideCheck(mc.world.getBlockState(neighbour), false)) {
@@ -104,29 +99,21 @@ public class AutoSpawner extends Module {
         }
 
         return null;
-
     }
 
     @Override
     protected void onEnable() {
-
-        if (mc.player == null) {
-            this.disable();
-            return;
-        }
+        if (mc.player == null) { disable(); return; }
 
         buildStage = 1;
         delayStep = 1;
-
     }
 
     private boolean checkBlocksInHotbar() {
-
         headSlot = -1;
         bodySlot = -1;
 
         for (int i = 0; i < 9; i++) {
-
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
 
             if (stack == ItemStack.EMPTY) {
@@ -142,9 +129,7 @@ public class AutoSpawner extends Module {
                     continue;
                 }
 
-                if (!(stack.getItem() instanceof ItemBlock)) {
-                    continue;
-                }
+                if (!(stack.getItem() instanceof ItemBlock)) continue;
 
                 Block block = ((ItemBlock) stack.getItem()).getBlock();
                 if (block instanceof BlockSoulSand) {
@@ -152,14 +137,10 @@ public class AutoSpawner extends Module {
                         bodySlot = i;
                     }
                 }
-
             }
 
             if (entityMode.getValue().equals(EntityMode.IRON)) {
-
-                if (!(stack.getItem() instanceof ItemBlock)) {
-                    continue;
-                }
+                if (!(stack.getItem() instanceof ItemBlock)) continue;
 
                 Block block = ((ItemBlock) stack.getItem()).getBlock();
 
@@ -174,14 +155,10 @@ public class AutoSpawner extends Module {
                         bodySlot = i;
                     }
                 }
-
             }
 
             if (entityMode.getValue().equals(EntityMode.SNOW)) {
-
-                if (!(stack.getItem() instanceof ItemBlock)) {
-                    continue;
-                }
+                if (!(stack.getItem() instanceof ItemBlock)) continue;
 
                 Block block = ((ItemBlock) stack.getItem()).getBlock();
 
@@ -198,33 +175,22 @@ public class AutoSpawner extends Module {
                 }
 
             }
-
         }
 
         return (bodySlot != -1 && headSlot != -1);
-
     }
 
     private boolean testStructure() {
+        if (entityMode.getValue().equals(EntityMode.WITHER)) return testWitherStructure();
 
-        if (entityMode.getValue().equals(EntityMode.WITHER)) {
-            return testWitherStructure();
-        }
+        if (entityMode.getValue().equals(EntityMode.IRON)) return testIronGolemStructure();
 
-        if (entityMode.getValue().equals(EntityMode.IRON)) {
-            return testIronGolemStructure();
-        }
-
-        if (entityMode.getValue().equals(EntityMode.SNOW)) {
-            return testSnowGolemStructure();
-        }
+        if (entityMode.getValue().equals(EntityMode.SNOW)) return testSnowGolemStructure();
 
         return false;
-
     }
 
     private boolean testWitherStructure() {
-
         boolean noRotationPlaceable = true;
         rotationPlaceableX = true;
         rotationPlaceableZ = true;
@@ -232,19 +198,13 @@ public class AutoSpawner extends Module {
 
         // IntelliJ dumb, this can cause NPE!
         //noinspection ConstantConditions
-        if (mc.world.getBlockState(placeTarget) == null) {
-            return false;
-        }
+        if (mc.world.getBlockState(placeTarget) == null) return false;
 
         // dont place on grass
         Block block = mc.world.getBlockState(placeTarget).getBlock();
-        if ((block instanceof BlockTallGrass) || (block instanceof BlockDeadBush)) {
-            isShitGrass = true;
-        }
+        if ((block instanceof BlockTallGrass) || (block instanceof BlockDeadBush)) isShitGrass = true;
 
-        if (getPlaceableSide(placeTarget.up()) == null) {
-            return false;
-        }
+        if (getPlaceableSide(placeTarget.up()) == null) return false;
 
         for (BlockPos pos : BodyParts.bodyBase) {
             if (placingIsBlocked(placeTarget.add(pos))) {
@@ -277,11 +237,9 @@ public class AutoSpawner extends Module {
         }
 
         return !isShitGrass && noRotationPlaceable && (rotationPlaceableX || rotationPlaceableZ);
-
     }
 
     private boolean testIronGolemStructure() {
-
         boolean noRotationPlaceable = true;
         rotationPlaceableX = true;
         rotationPlaceableZ = true;
@@ -289,19 +247,13 @@ public class AutoSpawner extends Module {
 
         // IntelliJ dumb, this can cause NPE!
         //noinspection ConstantConditions
-        if (mc.world.getBlockState(placeTarget) == null) {
-            return false;
-        }
+        if (mc.world.getBlockState(placeTarget) == null) return false;
 
         // dont place on grass
         Block block = mc.world.getBlockState(placeTarget).getBlock();
-        if ((block instanceof BlockTallGrass) || (block instanceof BlockDeadBush)) {
-            isShitGrass = true;
-        }
+        if ((block instanceof BlockTallGrass) || (block instanceof BlockDeadBush)) isShitGrass = true;
 
-        if (getPlaceableSide(placeTarget.up()) == null) {
-            return false;
-        }
+        if (getPlaceableSide(placeTarget.up()) == null) return false;
 
         for (BlockPos pos : BodyParts.bodyBase) {
             if (placingIsBlocked(placeTarget.add(pos))) {
@@ -365,24 +317,18 @@ public class AutoSpawner extends Module {
         }
 
         return !isShitGrass && noRotationPlaceable;
-
     }
 
     @Override
     public void onUpdate() {
-
-        if (mc.player == null) {
-            return;
-        }
+        if (mc.player == null) return;
 
         if (buildStage == 1) {
-
             isSneaking = false;
             rotationPlaceableX = false;
             rotationPlaceableZ = false;
 
             if (party.getValue()) {
-
                 Random random = new Random();
                 int partyMode;
 
@@ -399,20 +345,19 @@ public class AutoSpawner extends Module {
                 } else if (partyMode == 2) {
                     entityMode.setValue(EntityMode.WITHER);
                 }
-
             }
 
             if (!checkBlocksInHotbar()) {
                 if (!party.getValue()) {
-                    if (notifications.getValue()) {
-                        Command.sendChatMessage("[AutoSpawner] " + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
+                    if (debug.getValue()) {
+                        Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
                     }
-                    this.disable();
+                    disable();
                 }
                 return;
             }
 
-            CrystalAura crystalAura = (CrystalAura) ModuleManager.getModuleByName("CrystalAura");
+            CrystalAura crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
             List<BlockPos> blockPosList = crystalAura.getSphere(mc.player.getPosition().down(), placeRange.getValue(), placeRange.getValue().intValue(), false, true, 0);
 
             boolean noPositionInArea = true;
@@ -427,22 +372,19 @@ public class AutoSpawner extends Module {
 
             if (noPositionInArea) {
                 if (useMode.getValue().equals(UseMode.SINGLE)) {
-                    if (notifications.getValue()) {
-                        Command.sendChatMessage("[AutoSpawner] " + ChatFormatting.RED.toString() + "Position not valid, disabling.");
+                    if (debug.getValue()) {
+                        Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Position not valid, disabling.");
                     }
-                    this.disable();
+                    disable();
                 }
                 return;
             }
 
             mc.player.inventory.currentItem = bodySlot;
 
-            for (BlockPos pos : BodyParts.bodyBase) {
-                placeBlock(placeTarget.add(pos), rotate.getValue());
-            }
+            for (BlockPos pos : BodyParts.bodyBase) placeBlock(placeTarget.add(pos), rotate.getValue());
 
             if (entityMode.getValue().equals(EntityMode.WITHER) || entityMode.getValue().equals(EntityMode.IRON)) {
-
                 if (rotationPlaceableX) {
                     for (BlockPos pos : BodyParts.ArmsX) {
                         placeBlock(placeTarget.add(pos), rotate.getValue());
@@ -452,17 +394,14 @@ public class AutoSpawner extends Module {
                         placeBlock(placeTarget.add(pos), rotate.getValue());
                     }
                 }
-
             }
 
             buildStage = 2;
 
         } else if (buildStage == 2) {
-
             mc.player.inventory.currentItem = headSlot;
 
             if (entityMode.getValue().equals(EntityMode.WITHER)) {
-
                 if (rotationPlaceableX) {
                     for (BlockPos pos : BodyParts.headsX) {
                         placeBlock(placeTarget.add(pos), rotate.getValue());
@@ -472,15 +411,10 @@ public class AutoSpawner extends Module {
                         placeBlock(placeTarget.add(pos), rotate.getValue());
                     }
                 }
-
             }
 
             if (entityMode.getValue().equals(EntityMode.IRON) || entityMode.getValue().equals(EntityMode.SNOW)) {
-
-                for (BlockPos pos : BodyParts.head) {
-                    placeBlock(placeTarget.add(pos), rotate.getValue());
-                }
-
+                for (BlockPos pos : BodyParts.head) placeBlock(placeTarget.add(pos), rotate.getValue());
             }
 
             if (isSneaking) {
@@ -488,33 +422,23 @@ public class AutoSpawner extends Module {
                 isSneaking = false;
             }
 
-            if (useMode.getValue().equals(UseMode.SINGLE)) {
-                this.disable();
-            }
+            if (useMode.getValue().equals(UseMode.SINGLE)) disable();
 
             buildStage = 3;
-
         } else if (buildStage == 3) {
-
             if (delayStep < delay.getValue()) {
                 delayStep++;
             } else {
                 delayStep = 1;
                 buildStage = 1;
-
             }
-
         }
-
     }
 
     private boolean placingIsBlocked(BlockPos pos) {
-
         // check if block is already placed
         Block block = mc.world.getBlockState(pos).getBlock();
-        if (!(block instanceof BlockAir)) {
-            return true;
-        }
+        if (!(block instanceof BlockAir)) return true;
 
         // check if entity blocks placing
         for (Entity entity : mc.world.getEntitiesWithinAABBExcludingEntity(null, new AxisAlignedBB(pos))) {
@@ -524,7 +448,6 @@ public class AutoSpawner extends Module {
         }
 
         return false;
-
     }
 
     @Override
@@ -548,7 +471,6 @@ public class AutoSpawner extends Module {
     }
 
     private static class BodyParts {
-
         private static final BlockPos[] bodyBase = {
                 new BlockPos(0, 1, 0),
                 new BlockPos(0, 2, 0),
@@ -579,7 +501,5 @@ public class AutoSpawner extends Module {
         private static final BlockPos[] head = {
                 new BlockPos(0, 3, 0)
         };
-
     }
-
 }

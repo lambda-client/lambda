@@ -4,15 +4,17 @@ import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.ISettingUnknown;
 import me.zeroeightsix.kami.setting.Setting;
 
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+
 /**
  * Created by 086 on 18/11/2017.
+ * Updated by S-B99 on 24/02/20
  */
 public class SetCommand extends Command {
 
@@ -32,7 +34,7 @@ public class SetCommand extends Command {
             return;
         }
 
-        Module m = ModuleManager.getModuleByName(args[0]);
+        Module m = MODULE_MANAGER.getModule(args[0]);
         if (m == null) {
             Command.sendChatMessage("Unknown module &b" + args[0] + "&r!");
             return;
@@ -64,8 +66,12 @@ public class SetCommand extends Command {
         }
 
         try {
-            setting.setValueFromString(args[2]);
-            Command.sendChatMessage("Set &b" + setting.getName() + "&r to &3" + args[2] + "&r.");
+            String arg2 = args[2];
+            if (setting.getClass().getSimpleName().equals("EnumSetting")) {
+                arg2 = arg2.toUpperCase();
+            }
+            setting.setValueFromString(arg2); /* PLEASE MAKE SURE TO USE PROPER NAMING WHEN USING ENUMS */ /* if you use improper lowercase letters it will *not* work with this command ~S-B99 */
+            Command.sendChatMessage("Set &b" + setting.getName() + "&r to &3" + arg2 + "&r.");
         } catch (Exception e) {
             e.printStackTrace();
             Command.sendChatMessage("Unable to set value! &6" + e.getMessage());
