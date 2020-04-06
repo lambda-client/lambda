@@ -19,20 +19,17 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 /**
  * Created by 086 on 2/10/2018.
+ * Updated by S-B99 on 06/04/20
  */
 @Module.Info(name = "AutoTool", description = "Automatically switch to the best tools when mining or attacking", category = Module.Category.MISC)
 public class AutoTool extends Module {
-    private Setting<Aura.HitMode> preferTool = register(Settings.e("Prefer Tool", Aura.HitMode.SWORD));
+    private Setting<Aura.HitMode> preferTool = register(Settings.e("Prefer", Aura.HitMode.NONE));
 
     @EventHandler
-    private Listener<PlayerInteractEvent.LeftClickBlock> leftClickListener = new Listener<>(event -> {
-        equipBestTool(mc.world.getBlockState(event.getPos()));
-    });
+    private Listener<PlayerInteractEvent.LeftClickBlock> leftClickListener = new Listener<>(event -> equipBestTool(mc.world.getBlockState(event.getPos())));
 
     @EventHandler
-    private Listener<AttackEntityEvent> attackListener = new Listener<>(event -> {
-        equipBestWeapon();
-    });
+    private Listener<AttackEntityEvent> attackListener = new Listener<>(event -> equipBestWeapon(preferTool.getValue()));
 
     private void equipBestTool(IBlockState blockState) {
         int bestSlot = -1;
@@ -53,47 +50,29 @@ public class AutoTool extends Module {
         if (bestSlot != -1) equip(bestSlot);
     }
 
-    public void equipBestWeapon() {
-        int bestSlot = -1;
-        double maxDamage = 0;
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.inventory.getStackInSlot(i);
-            if (stack.isEmpty) continue;
-            if (!(stack.getItem() instanceof ItemSword) && preferTool.getValue().equals(Aura.HitMode.SWORD) ||
-                    !(stack.getItem() instanceof ItemAxe && preferTool.getValue().equals(Aura.HitMode.AXE))) continue;
-            if (stack.getItem() instanceof ItemTool) {
-                double damage = (((ItemTool) stack.getItem()).attackDamage + (double) EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED));
-                if (damage > maxDamage) {
-                    maxDamage = damage;
-                    bestSlot = i;
-                }
-            } else if (stack.getItem() instanceof ItemSword) {
-                double damage = (((ItemSword) stack.getItem()).getAttackDamage() + (double) EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED));
-                if (damage > maxDamage) {
-                    maxDamage = damage;
-                    bestSlot = i;
-                }
-            }
-        }
-        if (bestSlot != -1) equip(bestSlot);
-    }
-
     public static void equipBestWeapon(Aura.HitMode hitMode) {
         int bestSlot = -1;
         double maxDamage = 0;
         for (int i = 0; i < 9; i++) {
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
             if (stack.isEmpty) continue;
-            if (!(stack.getItem() instanceof ItemSword) && hitMode.equals(Aura.HitMode.SWORD) ||
-                    !(stack.getItem() instanceof ItemAxe && hitMode.equals(Aura.HitMode.AXE))) continue;
-            if (stack.getItem() instanceof ItemTool) {
+            if (!(stack.getItem() instanceof ItemAxe) && hitMode.equals(Aura.HitMode.AXE)) continue;
+            if (!(stack.getItem() instanceof ItemSword) && hitMode.equals(Aura.HitMode.SWORD)) continue;
+
+            if (stack.getItem() instanceof ItemSword && (hitMode.equals(Aura.HitMode.SWORD) || hitMode.equals(Aura.HitMode.NONE))) {
+                double damage = (((ItemSword) stack.getItem()).getAttackDamage() + (double) EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED));
+                if (damage > maxDamage) {
+                    maxDamage = damage;
+                    bestSlot = i;
+                }
+            } else if (stack.getItem() instanceof ItemAxe && (hitMode.equals(Aura.HitMode.AXE) || hitMode.equals(Aura.HitMode.NONE))) {
                 double damage = (((ItemTool) stack.getItem()).attackDamage + (double) EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED));
                 if (damage > maxDamage) {
                     maxDamage = damage;
                     bestSlot = i;
                 }
-            } else if (stack.getItem() instanceof ItemSword) {
-                double damage = (((ItemSword) stack.getItem()).getAttackDamage() + (double) EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED));
+            } else if (stack.getItem() instanceof ItemTool) {
+                double damage = (((ItemTool) stack.getItem()).attackDamage + (double) EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED));
                 if (damage > maxDamage) {
                     maxDamage = damage;
                     bestSlot = i;
@@ -107,5 +86,4 @@ public class AutoTool extends Module {
         mc.player.inventory.currentItem = slot;
         mc.playerController.syncCurrentPlayItem();
     }
-
 }
