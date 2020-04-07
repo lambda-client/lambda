@@ -9,6 +9,7 @@ import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -50,11 +51,18 @@ public class RadarUI extends AbstractComponentUI<Radar> {
                 continue;
             float red = 1f;
             float green = 1f;
+            float blue = 1f;
 
-            if (EntityUtil.isPassive(e))
+            if (EntityUtil.isPassive(e)) {
                 red = 0;
-            else
+                blue = 0;
+            } else if (EntityUtil.isHostileMob(e)) {
                 green = 0;
+                blue = 0;
+            } else {
+                red = 0;
+                green = 0;
+            }
 
             double dX = e.posX - Wrapper.getPlayer().posX;
             double dZ = e.posZ - Wrapper.getPlayer().posZ;
@@ -64,7 +72,7 @@ public class RadarUI extends AbstractComponentUI<Radar> {
             if (distance > radius * scale || Math.abs(Wrapper.getPlayer().posY - e.posY) > 30)
                 continue;
 
-            glColor4f(red, green, 0f, 0.5f);
+            glColor4f(red, green, blue, 0.5f);
             RenderHelper.drawCircle((int) dX / scale, (int) dZ / scale, 2.5f / scale);
         }
 
