@@ -13,7 +13,7 @@ import org.lwjgl.input.Keyboard;
  */
 @Module.Info(name = "InventoryMove", description = "Allows you to walk around with GUIs opened", category = Module.Category.MOVEMENT)
 public class InventoryMove extends Module {
-    private Setting<Integer> speed = register(Settings.i("Look speed", 20));
+    private Setting<Integer> speed = register(Settings.i("Look speed", 10));
     public void onUpdate() {
         if (mc.player == null || mc.currentScreen == null || mc.currentScreen instanceof GuiChat) return;
         if (Keyboard.isKeyDown(Keyboard.KEY_LEFT)) {
