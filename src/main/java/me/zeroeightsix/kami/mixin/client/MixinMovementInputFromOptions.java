@@ -20,7 +20,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
  *
  * @see InventoryMove
  */
-@Mixin(value = MovementInputFromOptions.class, priority = 999)
+@Mixin(value = MovementInputFromOptions.class, priority = Integer.MAX_VALUE)
 public abstract class MixinMovementInputFromOptions extends MovementInput {
     @Redirect(method = "updatePlayerMoveState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isKeyDown()Z"))
     public boolean isKeyPressed(KeyBinding keyBinding) {
