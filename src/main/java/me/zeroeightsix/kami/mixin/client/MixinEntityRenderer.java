@@ -35,7 +35,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 /**
  * Created by 086 on 11/12/2017.
  */
-@Mixin(EntityRenderer.class)
+@Mixin(value = EntityRenderer.class, priority = Integer.MAX_VALUE)
 public class MixinEntityRenderer {
 
     private boolean nightVision = false;
