@@ -70,7 +70,7 @@ dependencies {
     }
     compile "com.github.ZeroMemes:Alpine:1.7"
     compile group: 'net.jodah', name: 'typetools', version: '0.5.0'
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.25'
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.26'
     compile(group: 'org.reflections', name: 'reflections', version: '0.9.12') {
         exclude group: 'com.google.guava', module: 'guava'
     }
