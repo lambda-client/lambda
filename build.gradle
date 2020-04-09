@@ -70,11 +70,11 @@ dependencies {
     }
     compile "com.github.ZeroMemes:Alpine:1.7"
     compile group: 'net.jodah', name: 'typetools', version: '0.5.0'
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.25'
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.26'
     compile(group: 'org.reflections', name: 'reflections', version: '0.9.12') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile 'club.minnced:java-discord-rpc:v2.0.1'
+    compile 'club.minnced:java-discord-rpc:2.0.2'
     compile 'com.github.MrPowerGamerBR:TemmieWebhook:-SNAPSHOT'
     compile 'com.github.kevinsawicki:http-request:http-request-6.0'
 }
