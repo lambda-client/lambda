@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * Created by 086 on 16/11/2017.
  * Updated by Polymer on 16/01/20
  */
-@Mixin(Entity.class)
+@Mixin(value = Entity.class, priority = Integer.MAX_VALUE)
 public class MixinEntity {
 
     @Redirect(method = "applyEntityCollision", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;addVelocity(DDD)V"))
