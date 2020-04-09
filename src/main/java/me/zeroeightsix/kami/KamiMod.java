@@ -54,6 +54,7 @@ import java.util.Optional;
 /**
  * Created by 086 on 7/11/2017.
  * Updated by S-B99 on 25/03/19
+ * Updated by Dewy on 09/04/2020
  */
 @Mod(
         modid = KamiMod.MODID,
@@ -67,7 +68,7 @@ public class KamiMod {
     public static final String MODID = "kamiblue";
     public static final String MODVER = "v1.1.2-beta";
     public static final String MODVERSMALL = "v1.1.2-beta";
-    public static final String MODVERBROAD = "v1.1.1"; // Not really, just for testing
+    public static final String MODVERBROAD = "v1.1.2";
 
     public static final String MCVER = "1.12.2";
 
@@ -99,7 +100,9 @@ public class KamiMod {
     public static final EventBus EVENT_BUS = new EventManager();
     public static final ModuleManager MODULE_MANAGER = new ModuleManager();
 
+    public static String latest;
     public static boolean isLatest;
+    public static boolean hasAskedToUpdate = false;
 
     @Mod.Instance
     private static KamiMod INSTANCE;
@@ -322,6 +325,7 @@ public class KamiMod {
             String latestVersion = parser.parse(IOUtils.toString(new URL(UPDATE_JSON))).getAsJsonObject().getAsJsonObject("promos").get(MCVER + "-latest").getAsString();
 
             isLatest = latestVersion.equals(MODVERBROAD);
+            latest = latestVersion;
 
             if (!isLatest) {
                 KamiMod.log.warn("You are running an outdated version of KAMI Blue.\nCurrent: " + MODVERBROAD + "\nLatest: " + latestVersion);
@@ -336,6 +340,4 @@ public class KamiMod {
             KamiMod.log.error(e.getStackTrace());
         }
     }
-
-
 }
