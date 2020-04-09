@@ -67,7 +67,7 @@ public class KamiMod {
     public static final String MODID = "kamiblue";
     public static final String MODVER = "v1.1.2-beta";
     public static final String MODVERSMALL = "v1.1.2-beta";
-    public static final String MODVERBROAD = "v1.1.1";
+    public static final String MODVERBROAD = "v1.1.1"; // Not really, just for testing
 
     public static final String MCVER = "1.12.2";
 
@@ -98,6 +98,8 @@ public class KamiMod {
 
     public static final EventBus EVENT_BUS = new EventManager();
     public static final ModuleManager MODULE_MANAGER = new ModuleManager();
+
+    public static boolean isLatest;
 
     @Mod.Instance
     private static KamiMod INSTANCE;
@@ -319,7 +321,9 @@ public class KamiMod {
             JsonParser parser = new JsonParser();
             String latestVersion = parser.parse(IOUtils.toString(new URL(UPDATE_JSON))).getAsJsonObject().getAsJsonObject("promos").get(MCVER + "-latest").getAsString();
 
-            if (!latestVersion.equals(MODVERBROAD)) {
+            isLatest = latestVersion.equals(MODVERBROAD);
+
+            if (!isLatest) {
                 KamiMod.log.warn("You are running an outdated version of KAMI Blue.\nCurrent: " + MODVERBROAD + "\nLatest: " + latestVersion);
 
                 return;
@@ -332,4 +336,6 @@ public class KamiMod {
             KamiMod.log.error(e.getStackTrace());
         }
     }
+
+
 }
