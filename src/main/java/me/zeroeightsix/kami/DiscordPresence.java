@@ -27,7 +27,6 @@ public class DiscordPresence {
         DiscordPresence.connected = true;
 
         final DiscordEventHandlers handlers = new DiscordEventHandlers();
-//        handlers.disconnected = ((var1, var2) -> KamiMod.log.info("Discord RPC disconnected, var1: " + var1 + ", var2: " + var2));
         DiscordPresence.rpc.Discord_Initialize(APP_ID, handlers, true, "");
         DiscordPresence.presence.startTimestamp = System.currentTimeMillis() / 1000L;
 
@@ -80,13 +79,4 @@ public class DiscordPresence {
         DiscordPresence.presence = new DiscordRichPresence();
         DiscordPresence.connected = false;
     }
-
-    /* I have no idea how to disconnect rpc properly atm */
-//    private static /* synthetic */ void lambdastart1() {
-//        setRpcSettings();
-//    }
-//
-//    private static /* synthetic */ void lambdastart0(final int var1, final String var2) {
-//        System.out.println("Discord RPC disconnected, var1: " + var1 + ", var2: " + var2);
-//    }
 }
