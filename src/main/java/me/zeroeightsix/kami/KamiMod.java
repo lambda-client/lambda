@@ -59,8 +59,7 @@ import java.util.Optional;
 @Mod(
         modid = KamiMod.MODID,
         name = KamiMod.MODNAME,
-        version = KamiMod.MODVER,
-        updateJSON = KamiMod.UPDATE_JSON
+        version = KamiMod.MODVER
 )
 public class KamiMod {
 
