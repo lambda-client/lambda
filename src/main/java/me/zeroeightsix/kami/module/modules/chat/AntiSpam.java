@@ -16,6 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
+import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
+
 /**
  * @author hub
  * @author S-B99
@@ -54,6 +57,7 @@ public class AntiSpam extends Module {
     private Setting<Integer> duplicatesTimeout = register(Settings.integerBuilder("Duplicates Timeout").withMinimum(1).withValue(30).withMaximum(600).withVisibility(v -> duplicates.getValue() && p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> webLinks = register(Settings.booleanBuilder("Web Links").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> filterOwn = register(Settings.booleanBuilder("Filter Own").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> filterDMs = register(Settings.booleanBuilder("Filter DMs").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<ShowBlocked> showBlocked = register(Settings.enumBuilder(ShowBlocked.class).withName("Show Blocked").withValue(ShowBlocked.LOG_FILE).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
 
     private ConcurrentHashMap<String, Long> messageHistory;
@@ -94,7 +98,7 @@ public class AntiSpam extends Module {
                 "^<" + mc.player.getName() + "> ",
                 "^To .+: ",
         };
-        if (!filterOwn.getValue() && findPatterns(OWN_MESSAGE, message, false)) {
+        if ((!filterOwn.getValue() && findPatterns(OWN_MESSAGE, message, false)) || isDirect(filterDMs.getValue(), message) || isDirectOther(filterDMs.getValue(), message)) {
             return false;
         } else {
             return detectSpam(removeUsername(message));
