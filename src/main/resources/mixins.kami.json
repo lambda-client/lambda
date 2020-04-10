@@ -17,6 +17,7 @@
     "MixinEntityRenderer",
     "MixinFrustum",
     "MixinGuiChat",
+    "MixinGuiMainMenu",
     "MixinGuiNewChat",
     "MixinGuiPlayerTabOverlay",
     "MixinGuiScreen",

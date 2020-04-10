@@ -9,6 +9,7 @@ CUR_BETA="$(cat ./scripts/curBeta)"
 sed -i "s/modVersion=.*/modVersion=${CUR_VER:1}$CUR_BETA/" gradle.properties
 sed -i "s/MODVER = \".*\";/MODVER = \"$CUR_VER$CUR_BETA\";/" src/main/java/me/zeroeightsix/kami/KamiMod.java
 sed -i "s/MODVERSMALL = \".*\";/MODVERSMALL = \"$CUR_VER$CUR_BETA\";/" src/main/java/me/zeroeightsix/kami/KamiMod.java
+sed -i "s/MODVERBROAD = \".*\";/MODVERBROAD = \"$CUR_VER\";/" src/main/java/me/zeroeightsix/kami/KamiMod.java
 sed -i "s/\"version\": \".*\",/\"version\": \"${CUR_VER:1}$CUR_BETA\",/" src/main/resources/mcmod.info
 
 git reset
