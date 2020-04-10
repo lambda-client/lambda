@@ -43,7 +43,7 @@ public class DiscordNotifs extends Module {
     private Setting<Boolean> directSent = register(Settings.booleanBuilder("Send DMs").withValue(true).withVisibility(v -> !all.getValue()).build());
     public Setting<String> url = register(Settings.s("URL", "unchanged"));
     public Setting<String> pingID = register(Settings.s("Ping ID", "unchanged"));
-    public Setting<String> avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "raw/assets/assets/icons/kami.png"));
+    public Setting<String> avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "assets/raw/assets/assets/icons/kami.png"));
 
     private static ServerData cServer;
 
