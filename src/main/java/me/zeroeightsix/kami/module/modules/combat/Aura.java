@@ -24,16 +24,19 @@ import net.minecraft.util.math.Vec3d;
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
+    private Setting<WaitMode> delayMode = register(Settings.e("Mode", WaitMode.DELAY));
+    private Setting<Boolean> autoSpamDelay = register(Settings.booleanBuilder("Auto Spam Delay").withValue(true).withVisibility(v -> delayMode.getValue().equals(WaitMode.SPAM)).build());
+    private Setting<Double> waitTick = register(Settings.doubleBuilder("Spam Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).withVisibility(v -> !autoSpamDelay.getValue() && delayMode.getValue().equals(WaitMode.SPAM)).build());
+    private Setting<Boolean> eat = register(Settings.b("While Eating", true));
+    private Setting<Boolean> multi = register(Settings.b("Multi", true));
     private Setting<Boolean> attackPlayers = register(Settings.b("Players", true));
     private Setting<Boolean> attackMobs = register(Settings.b("Mobs", false));
     private Setting<Boolean> attackAnimals = register(Settings.b("Animals", false));
     private Setting<Double> hitRange = register(Settings.d("Hit Range", 5.5d));
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", true));
     private Setting<HitMode> prefer = register(Settings.e("Prefer", HitMode.SWORD));
-    private Setting<Boolean> autoTool = register(Settings.b("Auto Tool", true));
-    private Setting<WaitMode> delayMode = register(Settings.e("Mode", WaitMode.DELAY));
-    private Setting<Boolean> autoSpamDelay = register(Settings.booleanBuilder("Auto Spam Delay").withValue(true).withVisibility(v -> delayMode.getValue().equals(WaitMode.SPAM)).build());
-    private Setting<Double> waitTick = register(Settings.doubleBuilder("Spam Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).withVisibility(v -> !autoSpamDelay.getValue() && delayMode.getValue().equals(WaitMode.SPAM)).build());
+    private Setting<Boolean> autoTool = register(Settings.b("Auto Weapon", true));
+    private Setting<Boolean> sync = register(Settings.b("TPS Sync", false));
     private Setting<Boolean> infoMsg = register(Settings.booleanBuilder("Info Message").withValue(true).withVisibility(v -> false));
 
     private int waitCounter;
@@ -46,7 +49,7 @@ public class Aura extends Module {
         if (mc.player == null) return;
         if (autoSpamDelay.getValue() && infoMsg.getValue()) {
             infoMsg.setValue(false);
-            Command.sendWarningMessage("[Aura] When Auto Tick Delay is turned on whatever you give Tick Delay doesn't matter, it uses the current TPS instead");
+            Command.sendWarningMessage("[Aura] When Auto Spam Delay is turned on whatever you give Spam Delay doesn't matter");
         }
     }
 
@@ -54,18 +57,16 @@ public class Aura extends Module {
     public void onUpdate() {
         if (mc.player == null || mc.player.isDead) return;
 
-        double autoWaitTick = 0;
+        float autoWaitTick = 20.0f - LagCompensator.INSTANCE.getTickRate();
+        final boolean canAttack = (mc.player.getCooledAttackStrength(this.sync.getValue() ? -autoWaitTick : 0.0f) >= 1);
 
-        if (autoSpamDelay.getValue()) {
-            autoWaitTick = 20 - (Math.round(LagCompensator.INSTANCE.getTickRate() * 10) / 10.0);
+        if (!eat.getValue()) {
+            boolean shield = mc.player.getHeldItemOffhand().getItem().equals(Items.SHIELD) && mc.player.getActiveHand() == EnumHand.OFF_HAND;
+
+            if (mc.player.isHandActive() && !shield) {
+                return;
+            }
         }
-
-        boolean shield = mc.player.getHeldItemOffhand().getItem().equals(Items.SHIELD) && mc.player.getActiveHand() == EnumHand.OFF_HAND;
-
-        if (mc.player.isHandActive() && !shield) {
-            return;
-        }
-
         if (delayMode.getValue().equals(WaitMode.DELAY)) {
             if (mc.player.getCooledAttackStrength(getLagComp()) < 1) {
                 return;
@@ -76,11 +77,15 @@ public class Aura extends Module {
 
         if (autoSpamDelay.getValue()) {
             if (delayMode.getValue().equals(WaitMode.SPAM) && autoWaitTick > 0) {
-                if (waitCounter < autoWaitTick) {
-                    waitCounter++;
-                    return;
-                } else {
-                    waitCounter = 0;
+                if (sync.getValue()) {
+                    if (waitCounter < autoWaitTick) {
+                        waitCounter++;
+                        return;
+                    } else {
+                        waitCounter = 0;
+                    }
+                }else{
+                    if (!canAttack) return;
                 }
             }
         } else {
@@ -110,7 +115,7 @@ public class Aura extends Module {
 
             if (attackPlayers.getValue() && target instanceof EntityPlayer && !Friends.isFriend(target.getName())) {
                 attack(target);
-                return;
+                if (!multi.getValue()) return;
             } else {
                 if (EntityUtil.isPassive(target) ? attackAnimals.getValue() : (EntityUtil.isMobAggressive(target) && attackMobs.getValue())) {
                     if ((autoTool.getValue())) {
@@ -119,7 +124,7 @@ public class Aura extends Module {
                     if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe) {
                         attack(target);
                     }
-                    return;
+                    if (!multi.getValue()) return;
                 }
             }
         }
