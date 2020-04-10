@@ -28,10 +28,10 @@ public class CustomChat extends Module {
 
     private String getText(TextMode t) {
         switch (t) {
-            case NAME: return KAMI_BLUE;
-            case ON_TOP: return KAMI_ONTOP;
-            case WEBSITE: return KAMI_WEBSITE;
-            case JAPANESE: return KAMI_JAPANESE_ONTOP;
+            case NAME: return "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
+            case ON_TOP: return "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07 \u1d0f\u0274 \u1d1b\u1d0f\u1d18";
+            case WEBSITE: return "\u0299\u029f\u1d1c\u1d07\u002e\u0299\u1d07\u029f\u029f\u1d00\u002e\u1d21\u1d1b\u0493";
+            case JAPANESE: return "\u4e0a\u306b\u30ab\u30df\u30d6\u30eb\u30fc";
             case CUSTOM: return customText.getValue();
             default: return "";
         }
@@ -40,7 +40,7 @@ public class CustomChat extends Module {
     private String getFull(DecoMode d) {
         switch (d) {
             case NONE: return " " + getText(textMode.getValue());
-            case CLASSIC: return  " " + quoteLeft + " " + getText(textMode.getValue()) + " " + quoteRight;
+            case CLASSIC: return  " \u00ab " + getText(textMode.getValue()) + " \u00bb";
             case SEPARATOR: return " " + separator + " " + getText(textMode.getValue());
             default: return "";
         }
