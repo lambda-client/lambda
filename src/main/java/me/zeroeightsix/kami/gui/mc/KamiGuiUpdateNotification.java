@@ -29,7 +29,7 @@ public class KamiGuiUpdateNotification extends GuiScreen {
         super.initGui();
 
         this.buttonList.add(new GuiButton(0, this.width / 2 - 100, 200, "Download Latest (Recommended)"));
-        this.buttonList.add(new GuiButton(1, this.width / 2 - 100, 230, "Use Current Version"));
+        this.buttonList.add(new GuiButton(1, this.width / 2 - 100, 230, KamiMod.colour + "cUse Current Version"));
     }
 
     @Override
@@ -51,6 +51,14 @@ public class KamiGuiUpdateNotification extends GuiScreen {
         if (button.id == 0) {
             try {
                 WebUtils.openWebLink(new URI("https://blue.bella.wtf/download"));
+
+                if (singleOrMulti == 1) {
+                    mc.displayGuiScreen(new GuiWorldSelection(new GuiMainMenu()));
+
+                    return;
+                }
+
+                mc.displayGuiScreen(new GuiMultiplayer(new GuiMainMenu())); // Multi
             } catch (URISyntaxException e) {
                 KamiMod.log.error("Contact the KAMI Blue developers. Download link could not be parsed into URI reference form.");
             }
