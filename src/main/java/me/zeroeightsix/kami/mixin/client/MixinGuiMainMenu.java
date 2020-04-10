@@ -20,7 +20,7 @@ public abstract class MixinGuiMainMenu {
 
     @Inject(method = "actionPerformed", at = @At("HEAD"), cancellable = true)
     public void onActionPerformed(GuiButton btn, CallbackInfo callbackInfo) {
-        if (!KamiMod.hasAskedToUpdate) {
+        if (!KamiMod.hasAskedToUpdate && KamiMod.latest != null) {
             if (!KamiMod.isLatest) {
                 if (btn.id == 1) {
                     Wrapper.getMinecraft().displayGuiScreen(new KamiGuiUpdateNotification("KAMI Blue Update", "A newer release of KAMI Blue is available (" + KamiMod.latest + ").", btn.id));

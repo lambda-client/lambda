@@ -73,7 +73,7 @@ public class KamiMod {
 
     public static final String APP_ID = "638403216278683661";
 
-    static final String UPDATE_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/updateChecker.json";
+    private static final String UPDATE_JSON = "https://raw.githubusdercontent.com/kami-blue/assets/assets/assets/updateChecker.json";
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/capes.json";
     public static final String GITHUB_LINK = "https://github.com/kami-blue/";
@@ -90,7 +90,7 @@ public class KamiMod {
     public static final EventBus EVENT_BUS = new EventManager();
     public static final ModuleManager MODULE_MANAGER = new ModuleManager();
 
-    public static String latest;
+    public static String latest; // latest version (null if no internet or exception occurred)
     public static boolean isLatest;
     public static boolean hasAskedToUpdate = false;
 
@@ -324,9 +324,10 @@ public class KamiMod {
 
             KamiMod.log.info("Your KAMI Blue (" + MODVERBROAD + ") is up-to-date with the latest stable release.");
         } catch (IOException e) {
-            KamiMod.log.error("Oes noes! An exception was thrown during the update check.");
+            latest = null;
 
-            KamiMod.log.error(e.getStackTrace());
+            KamiMod.log.error("Oes noes! An exception was thrown during the update check.");
+            e.printStackTrace();
         }
     }
 }
