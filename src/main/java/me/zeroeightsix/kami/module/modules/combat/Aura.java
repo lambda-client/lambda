@@ -59,7 +59,7 @@ public class Aura extends Module {
         if (mc.player == null || mc.player.isDead) return;
 
         float autoWaitTick = 20.0f - LagCompensator.INSTANCE.getTickRate();
-        final boolean canAttack = (mc.player.getCooledAttackStrength(this.sync.getValue() ? -autoWaitTick : 0.0f) >= 1);
+        final boolean canAttack = (mc.player.getCooledAttackStrength(sync.getValue() ? -autoWaitTick : 0.0f) >= 1);
 
         if (!eat.getValue()) {
             boolean shield = mc.player.getHeldItemOffhand().getItem().equals(Items.SHIELD) && mc.player.getActiveHand() == EnumHand.OFF_HAND;
@@ -99,9 +99,7 @@ public class Aura extends Module {
                 }
             }
         }
-        if ((autoTool.getValue())) {
-            AutoTool.equipBestWeapon(prefer.getValue());
-        }
+
         for (Entity target : mc.world.loadedEntityList) {
             if (!EntityUtil.isLiving(target))
                 continue;
@@ -117,10 +115,12 @@ public class Aura extends Module {
                 continue; // If walls is on & you can't see the feet or head of the target, skip. 2 raytraces needed
 
             if (attackPlayers.getValue() && target instanceof EntityPlayer && !Friends.isFriend(target.getName())) {
+                if ((autoTool.getValue())) AutoTool.equipBestWeapon(prefer.getValue());
                 attack(target);
                 if (!multi.getValue()) return;
             } else {
                 if (EntityUtil.isPassive(target) ? attackAnimals.getValue() : (EntityUtil.isMobAggressive(target) && attackMobs.getValue())) {
+                    if ((autoTool.getValue())) AutoTool.equipBestWeapon(prefer.getValue());
                     attack(target);
                     if (!multi.getValue()) return;
                 }
