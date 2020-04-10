@@ -54,7 +54,7 @@ public class AutoEat extends Module {
             mc.player.setActiveHand(EnumHand.OFF_HAND);
             eating = true;
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
-            mc.rightClickMouse();
+            mc.playerController.processRightClick(mc.player, mc.world, EnumHand.OFF_HAND);
         } else {
             for (int i = 0; i < 9; i++) {
                 if (isValid(mc.player.inventory.getStackInSlot(i), stats.getFoodLevel())) {
@@ -62,7 +62,7 @@ public class AutoEat extends Module {
                     mc.player.inventory.currentItem = i;
                     eating = true;
                     KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
-                    mc.rightClickMouse();
+                    mc.playerController.processRightClick(mc.player, mc.world, EnumHand.MAIN_HAND);
                     return;
                 }
             }
