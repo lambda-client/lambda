@@ -27,7 +27,6 @@ import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.LagCompensator;
 import me.zeroeightsix.kami.util.RichPresence;
 import me.zeroeightsix.kami.util.Wrapper;
-import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -50,6 +49,8 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+
+import static me.zeroeightsix.kami.DiscordPresence.setCustomIcons;
 
 /**
  * Created by 086 on 7/11/2017.
@@ -118,49 +119,7 @@ public class KamiMod {
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        if (RichPresence.INSTANCE.customUsers != null) {
-            for (RichPresence.CustomUser user : RichPresence.INSTANCE.customUsers) {
-                if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
-                    switch (Integer.parseInt(user.type)) {
-                        case 0: {
-                            DiscordPresence.presence.smallImageKey = "booster";
-                            DiscordPresence.presence.smallImageText = "booster uwu";
-                            break;
-                        }
-                        case 1: {
-                            DiscordPresence.presence.smallImageKey = "inviter";
-                            DiscordPresence.presence.smallImageText = "inviter owo";
-                            break;
-                        }
-                        case 2: {
-                            DiscordPresence.presence.smallImageKey = "giveaway";
-                            DiscordPresence.presence.smallImageText = "giveaway winner";
-                            break;
-                        }
-                        case 3: {
-                            DiscordPresence.presence.smallImageKey = "contest";
-                            DiscordPresence.presence.smallImageText = "contest winner";
-                            break;
-                        }
-                        case 4: {
-                            DiscordPresence.presence.smallImageKey = "nine";
-                            DiscordPresence.presence.smallImageText = "900th member";
-                            break;
-                        }
-                        case 5: {
-                            DiscordPresence.presence.smallImageKey = "github1";
-                            DiscordPresence.presence.smallImageText = "contributor!! uwu";
-                            break;
-                        }
-                        default: {
-                            DiscordPresence.presence.smallImageKey = "donator2";
-                            DiscordPresence.presence.smallImageText = "donator <3";
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+        setCustomIcons();
         Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVERSMALL);
     }
 

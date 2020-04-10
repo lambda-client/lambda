@@ -4,6 +4,8 @@ import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
+import me.zeroeightsix.kami.util.RichPresence;
+import net.minecraft.client.Minecraft;
 
 import static me.zeroeightsix.kami.KamiMod.APP_ID;
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
@@ -78,5 +80,51 @@ public class DiscordPresence {
         rpc = DiscordRPC.INSTANCE;
         DiscordPresence.presence = new DiscordRichPresence();
         DiscordPresence.connected = false;
+    }
+
+    public static void setCustomIcons() {
+        if (RichPresence.INSTANCE.customUsers != null) {
+            for (RichPresence.CustomUser user : RichPresence.INSTANCE.customUsers) {
+                if (user.uuid.equalsIgnoreCase(Minecraft.getMinecraft().session.getProfile().getId().toString())) {
+                    switch (Integer.parseInt(user.type)) {
+                        case 0: {
+                            presence.smallImageKey = "booster";
+                            presence.smallImageText = "booster uwu";
+                            break;
+                        }
+                        case 1: {
+                            presence.smallImageKey = "inviter";
+                            presence.smallImageText = "inviter owo";
+                            break;
+                        }
+                        case 2: {
+                            presence.smallImageKey = "giveaway";
+                            presence.smallImageText = "giveaway winner";
+                            break;
+                        }
+                        case 3: {
+                            presence.smallImageKey = "contest";
+                            presence.smallImageText = "contest winner";
+                            break;
+                        }
+                        case 4: {
+                            presence.smallImageKey = "nine";
+                            presence.smallImageText = "900th member";
+                            break;
+                        }
+                        case 5: {
+                            presence.smallImageKey = "github1";
+                            presence.smallImageText = "contributor!! uwu";
+                            break;
+                        }
+                        default: {
+                            presence.smallImageKey = "donator2";
+                            presence.smallImageText = "donator <3";
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
