@@ -99,7 +99,9 @@ public class Aura extends Module {
                 }
             }
         }
-
+        if ((autoTool.getValue())) {
+            AutoTool.equipBestWeapon(prefer.getValue());
+        }
         for (Entity target : mc.world.loadedEntityList) {
             if (!EntityUtil.isLiving(target))
                 continue;
@@ -119,12 +121,7 @@ public class Aura extends Module {
                 if (!multi.getValue()) return;
             } else {
                 if (EntityUtil.isPassive(target) ? attackAnimals.getValue() : (EntityUtil.isMobAggressive(target) && attackMobs.getValue())) {
-                    if ((autoTool.getValue())) {
-                        AutoTool.equipBestWeapon(prefer.getValue());
-                    }
-                    if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe) {
-                        attack(target);
-                    }
+                    attack(target);
                     if (!multi.getValue()) return;
                 }
             }
