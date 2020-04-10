@@ -16,6 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
+import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
+
 /**
  * @author hub
  * @author S-B99
@@ -54,6 +58,7 @@ public class AntiSpam extends Module {
     private Setting<Integer> duplicatesTimeout = register(Settings.integerBuilder("Duplicates Timeout").withMinimum(1).withValue(30).withMaximum(600).withVisibility(v -> duplicates.getValue() && p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> webLinks = register(Settings.booleanBuilder("Web Links").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> filterOwn = register(Settings.booleanBuilder("Filter Own").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> filterDMs = register(Settings.booleanBuilder("Filter DMs").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<ShowBlocked> showBlocked = register(Settings.enumBuilder(ShowBlocked.class).withName("Show Blocked").withValue(ShowBlocked.LOG_FILE).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
 
     private ConcurrentHashMap<String, Long> messageHistory;
@@ -89,12 +94,16 @@ public class AntiSpam extends Module {
     public void onDisable() { messageHistory = null; }
 
     private boolean isSpam(String message) {
+        ChatTimestamp chatTimestamp = MODULE_MANAGER.getModuleT(ChatTimestamp.class);
+        if (chatTimestamp.isEnabled()) {
+            message = message.substring(chatTimestamp.returnFormatted().length() + 1);
+        }
         /* Quick bandaid fix for mc.player being null when the module is being registered, so don't register it with the map */
         final String[] OWN_MESSAGE = {
                 "^<" + mc.player.getName() + "> ",
                 "^To .+: ",
         };
-        if (!filterOwn.getValue() && findPatterns(OWN_MESSAGE, message, false)) {
+        if ((!filterOwn.getValue() && findPatterns(OWN_MESSAGE, message, false)) || isDirect(filterDMs.getValue(), message) || isDirectOther(filterDMs.getValue(), message)) {
             return false;
         } else {
             return detectSpam(removeUsername(message));
