@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.player;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -19,13 +20,17 @@ import net.minecraft.util.FoodStats;
  */
 @Module.Info(name = "AutoEat", description = "Automatically eat when hungry", category = Module.Category.PLAYER)
 public class AutoEat extends Module {
-    private Setting<Integer> foodLevel = register(Settings.integerBuilder("Eat level").withValue(15).withMinimum(1).withMaximum(20).build());
-	
+    private Setting<Integer> foodLevel = register(Settings.integerBuilder("Below Hunger").withValue(15).withMinimum(1).withMaximum(20).build());
+    private Setting<Integer> healthLevel = register(Settings.integerBuilder("Below Health").withValue(8).withMinimum(1).withMaximum(20).build());
+
     private int lastSlot = -1;
     private boolean eating = false;
 
     private boolean isValid(ItemStack stack, int food) {
-        return (stack.getItem() instanceof ItemFood && (foodLevel.getValue()- food) >= ((ItemFood) stack.getItem()).getHealAmount(stack)) && passItemCheck(stack.getItem());
+        return (
+                (passItemCheck(stack.getItem()) && stack.getItem() instanceof ItemFood && (foodLevel.getValue() - food) >= ((ItemFood) stack.getItem()).getHealAmount(stack)) ||
+                (passItemCheck(stack.getItem()) && stack.getItem() instanceof ItemFood && (healthLevel.getValue() - (mc.player.getHealth() + mc.player.getAbsorptionAmount()) > 0f))
+        );
     }
 
     private boolean passItemCheck(Item item) {
@@ -38,6 +43,7 @@ public class AutoEat extends Module {
     
     @Override
     public void onUpdate() {
+        if (mc.player == null) return;
         if (eating && !mc.player.isHandActive()) {
             if (lastSlot != -1) {
                 mc.player.inventory.currentItem = lastSlot;
