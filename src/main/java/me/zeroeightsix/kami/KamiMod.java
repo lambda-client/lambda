@@ -65,9 +65,9 @@ public class KamiMod {
 
     public static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.2-beta";
-    public static final String MODVERSMALL = "v1.1.2-beta";
-    public static final String MODVERBROAD = "v1.1.2";
+    public static final String MODVER = "v1.1.2-beta"; // this is changed to v1.1.2-commit for debugging during travis releases
+    public static final String MODVERSMALL = "v1.1.2-beta"; // shown to the user
+    public static final String MODVERBROAD = "v1.1.1"; // used for update checking
 
     public static final String MCVER = "1.12.2";
 
@@ -79,9 +79,6 @@ public class KamiMod {
     public static final String GITHUB_LINK = "https://github.com/kami-blue/client/";
     public static final String WEBSITE_LINK = "https://blue.bella.wtf";
 
-
-    //    public static final String KAMI_HIRAGANA = "\u304B\u307F";
-//    public static final String KAMI_KATAKANA = "\u30AB\u30DF";
     public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb";
     public static final String KAMI_BLUE = "\u1d0b\u1d00\u1d0d\u026a \u0299\u029f\u1d1c\u1d07";
     public static final String KAMI_JAPANESE_ONTOP = "\u4e0a\u306b\u30ab\u30df\u30d6\u30eb\u30fc";
@@ -171,7 +168,6 @@ public class KamiMod {
             }
         }
         Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVERSMALL);
-//        Display.setIcon(WindowIcon.ExtractByteBufferFromImagePath("kami.png"));
     }
 
     @Mod.EventHandler
@@ -332,7 +328,7 @@ public class KamiMod {
                 return;
             }
 
-            KamiMod.log.info("Your KAMI Blue (" + MODVERBROAD + ") is fully up-to-date.");
+            KamiMod.log.info("Your KAMI Blue (" + MODVERBROAD + ") is up-to-date with the latest stable release.");
         } catch (IOException e) {
             KamiMod.log.error("Oes noes! An exception was thrown during the update check.");
 
