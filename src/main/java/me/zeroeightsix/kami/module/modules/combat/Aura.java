@@ -20,7 +20,8 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Created by 086 on 12/12/2017.
  * Updated by hub on 31 October 2019
- * Updated by S-B99 on 06/04/20
+ * Updated by S-B99 on 10/04/20
+ * Updated by bot-debug on 10/04/20
  */
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 public class Aura extends Module {
@@ -84,7 +85,7 @@ public class Aura extends Module {
                     } else {
                         waitCounter = 0;
                     }
-                }else{
+                } else {
                     if (!canAttack) return;
                 }
             }
@@ -133,7 +134,6 @@ public class Aura extends Module {
     private void attack(Entity e) {
         mc.playerController.attackEntity(mc.player, e);
         mc.player.swingArm(EnumHand.MAIN_HAND);
-
     }
 
     private float getLagComp() {
