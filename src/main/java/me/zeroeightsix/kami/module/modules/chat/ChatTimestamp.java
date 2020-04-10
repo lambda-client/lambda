@@ -43,6 +43,10 @@ public class ChatTimestamp extends Module {
         return true;
     }
 
+    public String returnFormatted() {
+        return "<" + TimeUtil.getFinalTime(timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + "> ";
+    }
+
     private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {
         return toTextMap.get(colourCode);
     }

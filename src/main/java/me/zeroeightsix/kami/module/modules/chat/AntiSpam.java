@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
 
@@ -93,6 +94,10 @@ public class AntiSpam extends Module {
     public void onDisable() { messageHistory = null; }
 
     private boolean isSpam(String message) {
+        ChatTimestamp chatTimestamp = MODULE_MANAGER.getModuleT(ChatTimestamp.class);
+        if (chatTimestamp.isEnabled()) {
+            message = message.substring(chatTimestamp.returnFormatted().length() + 1);
+        }
         /* Quick bandaid fix for mc.player being null when the module is being registered, so don't register it with the map */
         final String[] OWN_MESSAGE = {
                 "^<" + mc.player.getName() + "> ",
