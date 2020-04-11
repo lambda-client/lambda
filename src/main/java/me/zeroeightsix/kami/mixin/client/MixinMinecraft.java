@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.mixin.client;
 
+import me.zeroeightsix.kami.DiscordPresence;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.util.Wrapper;
@@ -102,7 +103,11 @@ public class MixinMinecraft {
 
     @Inject(method = "shutdown", at = @At("HEAD"))
     public void shutdown(CallbackInfo info) {
-        save();
+        System.out.println("Shutting down: saving KAMI configuration");
+        KamiMod.saveConfiguration();
+        System.out.println("Configuration saved.");
+
+        DiscordPresence.end();
     }
 
     private void save() {

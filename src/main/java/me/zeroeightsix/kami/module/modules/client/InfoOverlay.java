@@ -109,6 +109,10 @@ public class InfoOverlay extends Module {
         return mc.player.inventory.mainInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum() + mc.player.inventory.offHandInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
     }
 
+    public static int getArmor(Item i) {
+        return mc.player.inventory.armorInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
+    }
+
     private String unitType(SpeedUnit s) {
         switch (s) {
             case MPS: return "m/s";
