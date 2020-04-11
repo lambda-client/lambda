@@ -103,10 +103,7 @@ public class MixinMinecraft {
 
     @Inject(method = "shutdown", at = @At("HEAD"))
     public void shutdown(CallbackInfo info) {
-        System.out.println("Shutting down: saving KAMI configuration");
-        KamiMod.saveConfiguration();
-        System.out.println("Configuration saved.");
-
+        save();
         DiscordPresence.end();
     }
 
