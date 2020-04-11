@@ -37,7 +37,6 @@ public class OffhandGap extends Module {
 	boolean autoTotemWasEnabled = false;
 	boolean cancelled = false;
 	boolean isGuiOpened = false;
-	boolean tryToReEnable = false;
 	Item usedItem;
 	CrystalAura crystalAura;
 
@@ -151,7 +150,7 @@ public class OffhandGap extends Module {
 	}
 
 	private void moveGapsWaitForNoGui() {
-		if (isGuiOpened || !tryToReEnable) return;
+		if (isGuiOpened) return;
 		moveGapsToInventory(gaps);
 	}
 
