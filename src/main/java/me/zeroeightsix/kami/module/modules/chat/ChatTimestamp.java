@@ -33,7 +33,7 @@ public class ChatTimestamp extends Module {
         if (!(event.getPacket() instanceof SPacketChat)) return;
         SPacketChat sPacketChat = (SPacketChat) event.getPacket();
 
-        if (addTime(sPacketChat.getChatComponent().getUnformattedText())) {
+        if (addTime(sPacketChat.getChatComponent().getFormattedText())) {
             event.cancel();
         }
     });

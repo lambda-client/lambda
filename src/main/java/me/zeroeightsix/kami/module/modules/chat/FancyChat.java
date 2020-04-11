@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.experimental;
+package me.zeroeightsix.kami.module.modules.chat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
@@ -17,28 +17,63 @@ import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
  * @author S-B99
  * Updated by S-B99 on 12/03/20
  */
-@Module.Info(name = "FancyChat", category = Module.Category.EXPERIMENTAL, description = "Makes messages you send fancy", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(name = "FancyChat", category = Module.Category.CHAT, description = "Makes messages you send fancy", showOnArray = Module.ShowOnArray.OFF)
 public class FancyChat extends Module {
-    private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.MOCKING));
-    private Setting<Boolean> randomSetting = register(Settings.booleanBuilder("Random Case").withValue(true).withVisibility(v -> modeSetting.getValue().equals(Mode.MOCKING)).build());
+    private Setting<Boolean> uwu = register(Settings.b("uwu", true));
+    private Setting<Boolean> leet = register(Settings.b("1337", false));
+    private Setting<Boolean> mock = register(Settings.b("mOcK", false));
+    private Setting<Boolean> green = register(Settings.b(">", false));
+    private Setting<Boolean> randomSetting = register(Settings.booleanBuilder("Random Case").withValue(true).withVisibility(v -> mock.getValue()).build());
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
 
-    private enum Mode { UWU, LEET, MOCKING, GREEN_TEXT }
     private static Random random = new Random();
 
-    private String getText(Mode t, String s) {
-        switch (t) {
-            case UWU:
-                return uwuConverter(s);
-            case LEET:
-                return leetConverter(s);
-            case MOCKING:
-                return mockingConverter(s);
-            case GREEN_TEXT:
-                return greenConverter(s);
-            default:
-                return "";
+    private String getText(String s) {
+        if (uwu.getValue()) s = uwuConverter(s);
+        if (leet.getValue()) s = leetConverter(s);
+        if (mock.getValue()) s = mockingConverter(s);
+        if (green.getValue()) s = greenConverter(s);
+        return s;
+    }
+
+    private String greenConverter(String input) {
+        return "> " + input;
+    }
+
+    @EventHandler
+    public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
+        if (event.getPacket() instanceof CPacketChatMessage) {
+            String s = ((CPacketChatMessage) event.getPacket()).getMessage();
+            if (!commands.getValue() && isCommand(s)) return;
+            s = getText(s);
+            if (s.length() >= 256) s = s.substring(0, 256);
+            ((CPacketChatMessage) event.getPacket()).message = s;
         }
+    });
+
+    @Override
+    public String getHudInfo() {
+        StringBuilder returned = new StringBuilder();
+        if (uwu.getValue()) {
+            returned.append("uwu");
+        }
+        if (leet.getValue()) {
+            returned.append(" 1337");
+        }
+        if (mock.getValue()) {
+            returned.append(" mOcK");
+        }
+        if (green.getValue()) {
+            returned.append(" >");
+        }
+        return returned.toString();
+    }
+
+    private boolean isCommand(String s) {
+        for (String value : CustomChat.cmdCheck) {
+            if (s.startsWith(value)) return true;
+        }
+        return false;
     }
 
     private String leetConverter(String input) {
@@ -75,44 +110,6 @@ public class FancyChat extends Module {
         input = input.replace("ve", "v");
         input = input.replace("l", "w");
         return input;
-    }
-
-    private String greenConverter(String input) {
-        return "> " + input;
-    }
-
-    @EventHandler
-    public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
-        if (event.getPacket() instanceof CPacketChatMessage) {
-            String s = ((CPacketChatMessage) event.getPacket()).getMessage();
-            if (!commands.getValue() && isCommand(s)) return;
-            s = getText(modeSetting.getValue(), s);
-            if (s.length() >= 256) s = s.substring(0, 256);
-            ((CPacketChatMessage) event.getPacket()).message = s;
-        }
-    });
-
-    @Override
-    public String getHudInfo() {
-        switch (modeSetting.getValue()) {
-            case GREEN_TEXT:
-                return ">";
-            case MOCKING:
-                return "mOcK";
-            case LEET:
-                return "1337";
-            case UWU:
-                return "uwu";
-            default:
-                return "";
-        }
-    }
-
-    private boolean isCommand(String s) {
-        for (String value : CustomChat.cmdCheck) {
-            if (s.startsWith(value)) return true;
-        }
-        return false;
     }
 
     private String leetSwitch(String i) {
