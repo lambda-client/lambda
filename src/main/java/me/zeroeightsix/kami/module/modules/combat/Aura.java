@@ -38,21 +38,11 @@ public class Aura extends Module {
     private Setting<HitMode> prefer = register(Settings.e("Prefer", HitMode.SWORD));
     private Setting<Boolean> autoTool = register(Settings.b("Auto Weapon", true));
     private Setting<Boolean> sync = register(Settings.b("TPS Sync", false));
-    private Setting<Boolean> infoMsg = register(Settings.booleanBuilder("Info Message").withValue(true).withVisibility(v -> false));
 
     private int waitCounter;
 
     public enum HitMode { SWORD, AXE, NONE }
     private enum WaitMode { DELAY, SPAM }
-
-    @Override
-    public void onEnable() {
-        if (mc.player == null) return;
-        if (autoSpamDelay.getValue() && infoMsg.getValue()) {
-            infoMsg.setValue(false);
-            Command.sendWarningMessage("[Aura] When Auto Spam Delay is turned on whatever you give Spam Delay doesn't matter");
-        }
-    }
 
     @Override
     public void onUpdate() {
