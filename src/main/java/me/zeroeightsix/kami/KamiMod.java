@@ -270,7 +270,7 @@ public class KamiMod {
             KamiMod.log.info("Attempting KAMI Blue update check...");
 
             JsonParser parser = new JsonParser();
-            String latestVersion = parser.parse(IOUtils.toString(new URL(UPDATE_JSON))).getAsJsonObject().getAsJsonObject("promos").get(MCVER + "-latest").getAsString();
+            String latestVersion = parser.parse(IOUtils.toString(new URL(UPDATE_JSON))).getAsJsonObject().getAsJsonObject("version").get(MCVER + "-latest").getAsString();
 
             isLatest = latestVersion.equals(MODVERBROAD);
             latest = latestVersion;
