@@ -2,8 +2,9 @@ package me.zeroeightsix.kami.mixin.client;
 
 import io.netty.channel.ChannelHandlerContext;
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
-import me.zeroeightsix.kami.module.modules.misc.NoPacketKick;
+import me.zeroeightsix.kami.module.modules.player.NoPacketKick;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,10 +12,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.io.IOException;
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 /**
  * Created by 086 on 13/11/2017.
+ * NoPacketKick fixed by 0x2E | PretendingToCode 4/10/2020
  */
 @Mixin(NetworkManager.class)
 public class MixinNetworkManager {
@@ -41,7 +43,11 @@ public class MixinNetworkManager {
 
     @Inject(method = "exceptionCaught", at = @At("HEAD"), cancellable = true)
     private void exceptionCaught(ChannelHandlerContext p_exceptionCaught_1_, Throwable p_exceptionCaught_2_, CallbackInfo info) {
-        if (p_exceptionCaught_2_ instanceof IOException && NoPacketKick.isEnabled()) info.cancel();
+        if (MODULE_MANAGER.isModuleEnabled(NoPacketKick.class)){
+            Command.sendWarningMessage("[NoPacketKick] Caught exception - " + p_exceptionCaught_2_.toString());
+            info.cancel();
+        }
+        return; // DON'T REMOVE THE FUCKING RETURN
     }
 
 }
