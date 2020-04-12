@@ -41,7 +41,7 @@ public class SetCommand extends Command {
         }
 
         if (args[1] == null) {
-            String settings = String.join(", ", m.settingList.stream().map(setting -> setting.getName()).collect(Collectors.toList()));
+            String settings = m.settingList.stream().map(Setting::getName).collect(Collectors.joining(", "));
             if (settings.isEmpty())
                 Command.sendChatMessage("Module &b" + m.getName() + "&r has no settings.");
             else {

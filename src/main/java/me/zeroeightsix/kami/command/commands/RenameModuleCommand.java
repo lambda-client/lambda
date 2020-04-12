@@ -35,8 +35,6 @@ public class RenameModuleCommand extends Command {
             module.setName(name);
         } catch (ModuleManager.ModuleNotFoundException x) {
             sendChatMessage("Unknown module '" + args[0] + "'!");
-            return;
         }
     }
-
 }

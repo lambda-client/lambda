@@ -110,7 +110,7 @@ public abstract class Command {
 
         String text;
 
-        public ChatMessage(String text) {
+        ChatMessage(String text) {
 
             Pattern p = Pattern.compile("&[0123456789abcdefrlosmk]");
             Matcher m = p.matcher(text);
@@ -135,14 +135,6 @@ public abstract class Command {
             return new ChatMessage(text);
         }
 
-    }
-
-    protected SyntaxChunk getSyntaxChunk(String name) {
-        for (SyntaxChunk c : syntaxChunks) {
-            if (c.getType().equals(name))
-                return c;
-        }
-        return null;
     }
 
     public List<String> getAliases() {

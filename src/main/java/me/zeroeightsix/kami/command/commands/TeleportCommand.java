@@ -18,8 +18,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 public class TeleportCommand extends Command {
 
-    Minecraft mc = Minecraft.getMinecraft();
-    DecimalFormat df = new DecimalFormat("#.###");
+    private DecimalFormat df = new DecimalFormat("#.###");
 
     public TeleportCommand() {
         super("teleport", new ChunkBuilder()
@@ -40,7 +39,7 @@ public class TeleportCommand extends Command {
         }
 
         if (args.length >= 4 && args[3] != null) {
-            Teleport.blocksPerTeleport = Double.valueOf(args[3]);
+            Teleport.blocksPerTeleport = Double.parseDouble(args[3]);
         } else {
             Teleport.blocksPerTeleport = 10000.0d;
         }

@@ -13,6 +13,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.client.CPacketCustomPayload;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * @author 0x2E | PretendingToCode
@@ -35,11 +36,8 @@ public class SignBookCommand extends Command {
         }
 
         if (is.getItem() instanceof ItemWritableBook) {
-            ArrayList<String> toAdd = new ArrayList<String>();
 
-            for (int i = 0; i < args.length; i++) {
-                toAdd.add(args[i]);
-            }
+            ArrayList<String> toAdd = new ArrayList<>(Arrays.asList(args));
 
             String futureTitle = String.join(" ", toAdd);
             futureTitle = futureTitle.replaceAll("&", Character.toString((char)c));

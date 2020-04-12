@@ -58,7 +58,7 @@ public class CommandManager {
         Command.sendChatMessage("&7Unknown command. try '&f" + Command.getCommandPrefix() + "cmds&7' for a list of commands.");
     }
 
-    public static String[] removeElement(String[] input, int indexToDelete) {
+    private static String[] removeElement(String[] input, int indexToDelete) {
         List result = new LinkedList();
 
         for (int i = 0; i < input.length; i++) {
@@ -72,13 +72,6 @@ public class CommandManager {
     private static String strip(String str, String key) {
         if (str.startsWith(key) && str.endsWith(key)) return str.substring(key.length(), str.length() - key.length());
         return str;
-    }
-
-    public Command getCommandByLabel(String commandLabel) {
-        for (Command c : commands) {
-            if (c.getLabel().equals(commandLabel)) return c;
-        }
-        return null;
     }
 
     public ArrayList<Command> getCommands() {

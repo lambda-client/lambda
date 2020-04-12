@@ -74,7 +74,6 @@ public class BindCommand extends Command {
             sendChatMessage("Bind for &b" + m.getName() + "&r set to &b" + rkey.toUpperCase());
         } catch (ModuleManager.ModuleNotFoundException x) {
             sendChatMessage("Unknown module '" + module + "'!");
-            return;
         }
     }
 }

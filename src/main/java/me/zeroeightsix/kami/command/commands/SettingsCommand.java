@@ -49,7 +49,6 @@ public class SettingsCommand extends Command {
             Command.sendStringChatMessage(result);
         } catch (ModuleManager.ModuleNotFoundException x) {
             Command.sendChatMessage("Couldn't find a module &b" + args[0] + "!");
-            return;
         }
     }
 }

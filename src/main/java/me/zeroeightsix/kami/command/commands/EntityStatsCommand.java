@@ -31,13 +31,11 @@ public class EntityStatsCommand extends Command {
             double jump = round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 4);
             String ownerId = horse.getOwnerUniqueId() == null ? "Not tamed." : horse.getOwnerUniqueId().toString();
 
-            StringBuilder builder = new StringBuilder("&6Entity Statistics:");
-            builder.append("\n&cMax Health: ").append(maxHealth);
-            builder.append("\n&cSpeed: ").append(speed);
-            builder.append("\n&cJump: ").append(jump);
-            builder.append("\n&cOwner: ").append(EntityUtil.getNameFromUUID(ownerId).replace("\"", ""));
-
-            Command.sendChatMessage(builder.toString());
+            String builder = "&6Entity Statistics:" + "\n&cMax Health: " + maxHealth +
+                      "\n&cSpeed: " + speed +
+                      "\n&cJump: " + jump +
+                      "\n&cOwner: " + EntityUtil.getNameFromUUID(ownerId).replace("\"", "");
+            Command.sendChatMessage(builder);
         } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
             EntityLivingBase entity = (EntityLivingBase) mc.player.getRidingEntity();
             Command.sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");

@@ -47,7 +47,6 @@ public class PathCommand extends Command {
                 Command.sendChatMessage("Path created!");
         } catch (NumberFormatException e) {
             Command.sendChatMessage("Error: input must be numerical");
-            return;
         }
     }
 }

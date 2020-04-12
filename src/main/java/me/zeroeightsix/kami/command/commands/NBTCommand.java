@@ -24,9 +24,8 @@ public class NBTCommand extends Command {
         setDescription("Does NBT related stuff (&fget&7, &fcopy&7, &fset&7)");
     }
 
-    Minecraft mc = Minecraft.getMinecraft();
     private final Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-    StringSelection nbt;
+    private StringSelection nbt;
 
     @Override
     public void call(String[] args) {

@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 /**
@@ -33,16 +34,15 @@ public class FriendCommand extends Command {
     @Override
     public void call(String[] args) {
         if (args[0] == null) {
-            if (Friends.INSTANCE.friends.getValue().isEmpty()) {
+            if (Friends.friends.getValue().isEmpty()) {
                 Command.sendChatMessage("You currently don't have any friends added. &bfriend add <name>&r to add one.");
                 return;
             }
             String f = "";
-            for (Friends.Friend friend : Friends.INSTANCE.friends.getValue())
+            for (Friends.Friend friend : Friends.friends.getValue())
                 f += friend.getUsername() + ", ";
             f = f.substring(0, f.length() - 2);
             Command.sendChatMessage("Your friends: " + f);
-            return;
         } else {
             if (args[1] == null) {
                 Command.sendChatMessage(String.format(Friends.isFriend(args[0]) ? "Yes, %s is your friend." : "No, %s isn't a friend of yours.", args[0]));
@@ -62,24 +62,21 @@ public class FriendCommand extends Command {
                         Command.sendChatMessage("Failed to find UUID of " + args[1]);
                         return;
                     }
-                    Friends.INSTANCE.friends.getValue().add(f);
+                    Friends.friends.getValue().add(f);
                     Command.sendChatMessage("&b" + f.getUsername() + "&r has been friended.");
                 }).start();
 
-                return;
             } else if (args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("delete")) {
                 if (!Friends.isFriend(args[1])) {
                     Command.sendChatMessage("That player isn't your friend.");
                     return;
                 }
 
-                Friends.Friend friend = Friends.INSTANCE.friends.getValue().stream().filter(friend1 -> friend1.getUsername().equalsIgnoreCase(args[1])).findFirst().get();
-                Friends.INSTANCE.friends.getValue().remove(friend);
+                Friends.Friend friend = Friends.friends.getValue().stream().filter(friend1 -> friend1.getUsername().equalsIgnoreCase(args[1])).findFirst().get();
+                Friends.friends.getValue().remove(friend);
                 Command.sendChatMessage("&b" + friend.getUsername() + "&r has been unfriended.");
-                return;
             } else {
                 Command.sendChatMessage("Please specify either &6add&r or &6remove");
-                return;
             }
         }
     }
@@ -100,8 +97,7 @@ public class FriendCommand extends Command {
                     try {
                         String id = element.getAsJsonArray().get(0).getAsJsonObject().get("id").getAsString();
                         String username = element.getAsJsonArray().get(0).getAsJsonObject().get("name").getAsString();
-                        Friends.Friend friend = new Friends.Friend(username, UUIDTypeAdapter.fromString(id));
-                        return friend;
+                        return new Friends.Friend(username, UUIDTypeAdapter.fromString(id));
                     } catch (Exception e) {
                         e.printStackTrace();
                         Command.sendChatMessage("Couldn't find player ID. (2)");
@@ -110,14 +106,12 @@ public class FriendCommand extends Command {
             }
             return null;
         }
-        Friends.Friend f = new Friends.Friend(profile.getGameProfile().getName(), profile.getGameProfile().getId());
-        return f;
+        return new Friends.Friend(profile.getGameProfile().getName(), profile.getGameProfile().getId());
     }
 
     private static String requestIDs(String data) {
         try {
             String query = "https://api.mojang.com/profiles/minecraft";
-            String json = data;
 
             URL url = new URL(query);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -128,7 +122,7 @@ public class FriendCommand extends Command {
             conn.setRequestMethod("POST");
 
             OutputStream os = conn.getOutputStream();
-            os.write(json.getBytes("UTF-8"));
+            os.write(data.getBytes(StandardCharsets.UTF_8));
             os.close();
 
             // read the response
@@ -145,7 +139,6 @@ public class FriendCommand extends Command {
 
     private static String convertStreamToString(InputStream is) {
         java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-        String r = s.hasNext() ? s.next() : "/";
-        return r;
+        return s.hasNext() ? s.next() : "/";
     }
 }

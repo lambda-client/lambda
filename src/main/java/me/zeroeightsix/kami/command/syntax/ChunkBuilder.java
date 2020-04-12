@@ -8,8 +8,8 @@ import java.util.List;
  */
 public class ChunkBuilder {
 
-    private static final SyntaxChunk[] EXAMPLE = new SyntaxChunk[0];
-    List<SyntaxChunk> chunks = new ArrayList<>();
+    private static final SyntaxChunk[] EXAMPLE = SyntaxChunk.EMPTY;
+    private List<SyntaxChunk> chunks = new ArrayList<>();
 
     public ChunkBuilder append(SyntaxChunk syntaxChunk) {
         chunks.add(syntaxChunk);
