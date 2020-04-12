@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketChatMessage;
 
-import static me.zeroeightsix.kami.KamiMod.*;
+import static me.zeroeightsix.kami.KamiMod.separator;
 
 /**
  * Created by 086 on 8/04/2018.

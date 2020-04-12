@@ -11,7 +11,7 @@ public class AntiLevitation extends Module {
 
     @Override
     public void onUpdate() {
-        if (mc.player.isPotionActive(Potion.getPotionFromResourceLocation("levitation"))){
+        if (mc.player.isPotionActive(Potion.getPotionFromResourceLocation("levitation"))) {
             mc.player.removeActivePotionEffect(Potion.getPotionFromResourceLocation("levitation"));
         }
     }
