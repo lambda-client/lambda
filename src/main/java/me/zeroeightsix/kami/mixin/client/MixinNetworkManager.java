@@ -43,7 +43,7 @@ public class MixinNetworkManager {
 
     @Inject(method = "exceptionCaught", at = @At("HEAD"), cancellable = true)
     private void exceptionCaught(ChannelHandlerContext p_exceptionCaught_1_, Throwable p_exceptionCaught_2_, CallbackInfo info) {
-        if (MODULE_MANAGER.isModuleEnabled(NoPacketKick.class)){
+        if (MODULE_MANAGER.isModuleEnabled(NoPacketKick.class)) {
             Command.sendWarningMessage("[NoPacketKick] Caught exception - " + p_exceptionCaught_2_.toString());
             info.cancel();
         }
