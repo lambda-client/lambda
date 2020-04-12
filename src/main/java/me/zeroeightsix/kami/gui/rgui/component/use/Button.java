@@ -62,6 +62,10 @@ public class Button extends AbstractComponent {
         return description;
     }
 
+    public boolean hasDescription() {
+        return description != null;
+    }
+
     public void setDescription(String description) {
         this.description = description;
     }

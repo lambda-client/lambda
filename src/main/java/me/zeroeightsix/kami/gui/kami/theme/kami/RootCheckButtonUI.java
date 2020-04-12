@@ -33,7 +33,9 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 GuiC.buttonHoveredT.color.getRGB();
         if (component.isHovered()) {
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1;
-            Command.sendChatMessage(component.getName() + ": " + component.getDescription());
+            if (component.hasDescription()) {
+                Command.sendChatMessage(component.getName() + ": " + component.getDescription());
+            }
         }
 
         glColor3f(1, 1, 1);
