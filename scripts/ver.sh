@@ -12,6 +12,3 @@ sed -i "s/MODVERSMALL = \".*\";/MODVERSMALL = \"$CUR_VER$CUR_BETA\";/" src/main/
 sed -i "s/MODVERBROAD = \".*\";/MODVERBROAD = \"$CUR_VER\";/" src/main/java/me/zeroeightsix/kami/KamiMod.java
 sed -i "s/\"version\": \".*\",/\"version\": \"${CUR_VER:1}$CUR_BETA\",/" src/main/resources/mcmod.info
 
-git reset
-git add gradle.properties src/main/java/me/zeroeightsix/kami/KamiMod.java src/main/resources/mcmod.info
-git commit -m "[BOT] New release: $CUR_VER$CUR_BETA"
