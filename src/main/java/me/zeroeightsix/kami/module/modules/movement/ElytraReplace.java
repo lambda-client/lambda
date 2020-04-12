@@ -8,6 +8,8 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+
 /**
  * Created by Dewy on the 4th of April, 2020
  */
@@ -15,6 +17,7 @@ import net.minecraft.inventory.ClickType;
 @Module.Info(name = "ElytraReplace", description = "Automatically swap and replace your chestplate and elytra. Not an AFK tool, be warned.", category = Module.Category.MOVEMENT)
 public class ElytraReplace extends Module {
     private Setting<InventoryMode> inventoryMode = register(Settings.e("Inventoryable", InventoryMode.ON));
+    private Setting<Boolean> elytraFlightCheck = register(Settings.b("ElytraFlight Check", true));
 
     private boolean currentlyMovingElytra = false;
     private boolean currentlyMovingChestplate = false;
@@ -87,7 +90,7 @@ public class ElytraReplace extends Module {
             }
         }
 
-        if (!onGround()) {
+        if (!onGround() && passElytraFlightCheck()) {
             int slot = -420;
 
             if (elytraCount == 0) {
@@ -132,5 +135,11 @@ public class ElytraReplace extends Module {
 
     private boolean onGround() {
         return mc.player.onGround;
+    }
+
+    private boolean passElytraFlightCheck() {
+        if (elytraFlightCheck.getValue() && MODULE_MANAGER.isModuleEnabled(ElytraFlight.class)) {
+            return true;
+        } else return !elytraFlightCheck.getValue();
     }
 }
