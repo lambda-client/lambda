@@ -49,14 +49,13 @@ public class ElytraReplace extends Module {
         }
 
         if (onGround()) {
+            int slot = -420;
+
+            if (chestplateCount == 0) {
+                return;
+            }
+
             if (mc.player.inventory.armorInventory.get(2).isEmpty()) {
-
-                if (chestplateCount == 0) {
-                    return;
-                }
-
-                int slot = -420;
-
                 for (int i = 0; i < 45; i++) {
                     if (mc.player.inventory.getStackInSlot(i).getItem() == Items.DIAMOND_CHESTPLATE) {
                         slot = i;
@@ -72,12 +71,6 @@ public class ElytraReplace extends Module {
             }
 
             if (!(mc.player.inventory.armorInventory.get(2).getItem() == Items.DIAMOND_CHESTPLATE)) {
-                if (chestplateCount == 0) {
-                    return;
-                }
-
-                int slot = -420;
-
                 for (int i = 0; i < 45; i++) {
                     if (mc.player.inventory.getStackInSlot(i).getItem() == Items.DIAMOND_CHESTPLATE) {
                         slot = i;
@@ -89,18 +82,19 @@ public class ElytraReplace extends Module {
                 mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
                 mc.playerController.windowClick(0, 6, 0, ClickType.PICKUP, mc.player);
                 mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
+
+                return;
             }
         }
 
         if (!onGround()) {
+            int slot = -420;
+
+            if (elytraCount == 0) {
+                return;
+            }
+
             if (mc.player.inventory.armorInventory.get(2).isEmpty()) {
-
-                if (elytraCount == 0) {
-                    return;
-                }
-
-                int slot = -420;
-
                 for (int i = 0; i < 45; i++) {
                     if (mc.player.inventory.getStackInSlot(i).getItem() == Items.ELYTRA) {
                         slot = i;
@@ -116,12 +110,6 @@ public class ElytraReplace extends Module {
             }
 
             if (!(mc.player.inventory.armorInventory.get(2).getItem() == Items.ELYTRA)) {
-                if (elytraCount == 0) {
-                    return;
-                }
-
-                int slot = -420;
-
                 for (int i = 0; i < 45; i++) {
                     if (mc.player.inventory.getStackInSlot(i).getItem() == Items.ELYTRA) {
                         slot = i;
