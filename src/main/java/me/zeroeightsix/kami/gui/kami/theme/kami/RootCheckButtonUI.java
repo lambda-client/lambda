@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
@@ -30,8 +31,10 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 GuiC.buttonPressed.color.getRGB() : component.isToggled() ?
                 GuiC.buttonIdleT.color.getRGB() :
                 GuiC.buttonHoveredT.color.getRGB();
-        if (component.isHovered())
+        if (component.isHovered()) {
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1;
+            Command.sendChatMessage(component.getName() + ": " + component.getDescription());
+        }
 
         glColor3f(1, 1, 1);
         glEnable(GL_TEXTURE_2D);

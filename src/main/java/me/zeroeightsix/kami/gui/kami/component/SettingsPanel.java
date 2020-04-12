@@ -51,12 +51,13 @@ public class SettingsPanel extends OrganisedContainer {
             for (Setting setting : module.settingList) {
                 if (!setting.isVisible()) continue;
                 String name = setting.getName();
+                String description = "thisIsASetting";
                 boolean isNumber = setting instanceof NumberSetting;
                 boolean isBoolean = setting instanceof BooleanSetting;
                 boolean isEnum = setting instanceof EnumSetting;
 
                 if (setting.getValue() instanceof Bind) {
-                    addChild(new BindButton("Bind", module));
+                    addChild(new BindButton("Bind", description, module));
                 }
 
                 if (isNumber) {
@@ -106,7 +107,7 @@ public class SettingsPanel extends OrganisedContainer {
                         addChild(slider);
                     }
                 } else if (isBoolean) {
-                    CheckButton checkButton = new CheckButton(name);
+                    CheckButton checkButton = new CheckButton(name, description);
                     checkButton.setToggled(((BooleanSetting) setting).getValue());
                     checkButton.addPoof(new CheckButton.CheckButtonPoof<CheckButton, CheckButton.CheckButtonPoof.CheckButtonPoofInfo>() {
                         @Override
@@ -122,7 +123,7 @@ public class SettingsPanel extends OrganisedContainer {
                     Class<? extends Enum> type = ((EnumSetting) setting).clazz;
                     Object[] con = type.getEnumConstants();
                     String[] modes = Arrays.stream(con).map(o -> o.toString().toUpperCase()).toArray(String[]::new);
-                    EnumButton enumbutton = new EnumButton(name, modes);
+                    EnumButton enumbutton = new EnumButton(name, description, modes);
                     enumbutton.addPoof(new EnumButton.EnumbuttonIndexPoof<EnumButton, EnumButton.EnumbuttonIndexPoof.EnumbuttonInfo>() {
                         @Override
                         public void execute(EnumButton component, EnumbuttonInfo info) {
