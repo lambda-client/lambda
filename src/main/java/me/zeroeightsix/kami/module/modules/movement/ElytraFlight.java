@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -8,6 +7,8 @@ import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.Objects;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 11/04/2018.
@@ -36,7 +37,7 @@ public class ElytraFlight extends Module {
         takeOff();
         setFlySpeed();
 
-//        Command.sendChatMessage("Rotation: " + mc.player.rotationPitch + " Camera: " + mc.player.cameraPitch);
+//        sendChatMessage("Rotation: " + mc.player.rotationPitch + " Camera: " + mc.player.cameraPitch);
 
         /* required on some servers in order to land */
         if (mc.player.onGround) mc.player.capabilities.allowFlying = false;
@@ -104,7 +105,7 @@ public class ElytraFlight extends Module {
 
         if (mc.player.isElytraFlying()) {
             easyTakeOff.setValue(false);
-            Command.sendChatMessage(getChatName() + "Disabled takeoff!");
+            sendChatMessage(getChatName() + "Disabled takeoff!");
         }
     }
 
@@ -127,8 +128,8 @@ public class ElytraFlight extends Module {
         upSpeedBoost.setValue(0.08f);
         downSpeedBoost.setValue(0.04f);
         defaultSetting.setValue(false);
-        Command.sendChatMessage(getChatName() + " Set to defaults!");
-        Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
+        sendChatMessage(getChatName() + " Set to defaults!");
+        sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
     }
 
     private float getHighwaySpeed() {

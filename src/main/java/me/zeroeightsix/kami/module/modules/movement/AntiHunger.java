@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -11,6 +10,7 @@ import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.network.play.client.CPacketPlayer;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 import static net.minecraft.network.play.client.CPacketEntityAction.Action.START_SPRINTING;
 import static net.minecraft.network.play.client.CPacketEntityAction.Action.STOP_SPRINTING;
 
@@ -26,7 +26,7 @@ public class AntiHunger extends Module {
     @EventHandler
     public Listener<PacketEvent.Send> packetListener = new Listener<>(event -> {
         if (MODULE_MANAGER.getModule(ElytraFlight.class).isEnabled() && cancelMovementState.getValue()) {
-            Command.sendChatMessage(getChatName() + "ElytraFlight is not compatible with the 'Cancel Movement State' option, disabling");
+            sendChatMessage(getChatName() + "ElytraFlight is not compatible with the 'Cancel Movement State' option, disabling");
             disable();
         }
         if (event.getPacket() instanceof CPacketEntityAction) {

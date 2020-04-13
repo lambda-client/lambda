@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.Module;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author S-B99
@@ -22,7 +23,7 @@ public class DescriptionCommand extends Command {
             if (s == null)
                 continue;
             Module module = MODULE_MANAGER.getModule(s);
-            Command.sendChatMessage(module.getChatName() + "Description: &7" + module.getDescription());
+            sendChatMessage(module.getChatName() + "Description: &7" + module.getDescription());
         }
     }
 }

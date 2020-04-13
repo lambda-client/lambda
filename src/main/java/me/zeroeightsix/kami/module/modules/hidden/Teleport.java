@@ -1,8 +1,10 @@
 package me.zeroeightsix.kami.module.modules.hidden;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.util.math.Vec3d;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * Created by d1gress/Qther on 26/11/2019.
@@ -19,7 +21,7 @@ public class Teleport extends Module {
     @Override
     public void onUpdate() {
         if (finalPos == null) {
-            Command.sendErrorMessage("Position not set, use .tp");
+            sendErrorMessage("Position not set, use .tp");
             disable();
             return;
         }
@@ -29,7 +31,7 @@ public class Teleport extends Module {
         if (mc.world.isBlockLoaded(mc.player.getPosition())) {
             lastPos = new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ);
             if (finalPos.distanceTo(new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ)) < 0.3 || blocksPerTeleport == 0) {
-                Command.sendChatMessage("Teleport Finished!");
+                sendChatMessage("Teleport Finished!");
                 disable();
             } else {
                 mc.player.setVelocity(0, 0, 0);

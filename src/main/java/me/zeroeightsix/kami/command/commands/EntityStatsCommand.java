@@ -8,6 +8,8 @@ import net.minecraft.entity.passive.AbstractHorse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * Created by d1gress/Qther on 25/11/2017, updated on 16/12/2019
  * Updated by EmotionalLove on 16/12/2019
@@ -35,12 +37,12 @@ public class EntityStatsCommand extends Command {
                       "\n&cSpeed: " + speed +
                       "\n&cJump: " + jump +
                       "\n&cOwner: " + EntityUtil.getNameFromUUID(ownerId).replace("\"", "");
-            Command.sendChatMessage(builder);
+            sendChatMessage(builder);
         } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
             EntityLivingBase entity = (EntityLivingBase) mc.player.getRidingEntity();
-            Command.sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");
+            sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");
         } else {
-            Command.sendChatMessage("&4&lError: &cNot riding a compatible entity.");
+            sendChatMessage("&4&lError: &cNot riding a compatible entity.");
         }
     }
 

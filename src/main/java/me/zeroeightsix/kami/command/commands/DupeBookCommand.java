@@ -15,6 +15,9 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
+
 /**
  * @author 0x2E | PretendingToCode
  */
@@ -53,9 +56,9 @@ public class DupeBookCommand extends Command {
             buf.writeItemStack(heldItem);
 
             Wrapper.getPlayer().connection.sendPacket(new CPacketCustomPayload("MC|BEdit", buf));
-            Command.sendChatMessage("Dupe book generated.");
+            sendChatMessage("Dupe book generated.");
         } else {
-            Command.sendErrorMessage("You must be holding a writable book.");
+            sendErrorMessage("You must be holding a writable book.");
         }
     }
 }

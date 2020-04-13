@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.render;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.ChunkEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
@@ -21,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -97,13 +97,13 @@ public class ChunkFinder extends Module {
         if (!closeFile.getValue())
             return;
         closeFile.setValue(false);
-        Command.sendChatMessage("close file");
+        sendChatMessage("close file");
         logWriterClose();
     }
 
     @Override
     protected void onDisable() {
-        Command.sendChatMessage("onDisable");
+        sendChatMessage("onDisable");
         logWriterClose();
         chunks.clear();
     }
@@ -162,7 +162,7 @@ public class ChunkFinder extends Module {
         } catch (Exception e) {
             e.printStackTrace();
             KamiMod.log.error("some exception happened when trying to start the logging -> " + e.getMessage());
-            Command.sendChatMessage("onLogStart: " + e.getMessage());
+            sendChatMessage("onLogStart: " + e.getMessage());
         }
     }
 
@@ -179,7 +179,7 @@ public class ChunkFinder extends Module {
             } catch (Exception e) {
                 e.printStackTrace();
                 KamiMod.log.error("some exception happened when getting canonicalFile -> " + e.getMessage());
-                Command.sendChatMessage("onGetPath: " + e.getMessage());
+                sendChatMessage("onGetPath: " + e.getMessage());
             }
 
             // Gets the "depth" of this directory relative the the game's run directory, 2 is the location of the world
@@ -218,7 +218,7 @@ public class ChunkFinder extends Module {
         } catch (IOException e) {
             e.printStackTrace();
             KamiMod.log.error("some exception happened when trying to make the file -> " + e.getMessage());
-            Command.sendChatMessage("onCreateFile: " + e.getMessage());
+            sendChatMessage("onCreateFile: " + e.getMessage());
         }
         return rV;
     }
@@ -242,8 +242,8 @@ public class ChunkFinder extends Module {
 
                 // extra because name might be different
                 if (!rV.exists()) {
-                    Command.sendChatMessage("nhack wdl directory doesnt exist: " + folderName);
-                    Command.sendChatMessage("creating the directory now. It is recommended to update the ip");
+                    sendChatMessage("nhack wdl directory doesnt exist: " + folderName);
+                    sendChatMessage("creating the directory now. It is recommended to update the ip");
                 }
                 break;
             default: // make folder structure in .minecraft

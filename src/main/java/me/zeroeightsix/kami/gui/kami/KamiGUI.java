@@ -206,13 +206,13 @@ public class KamiGUI extends GUI {
         ColorizedCheckButton checkButton = new ColorizedCheckButton("Button");
 //        checkButton.addTickListener(() -> {
 //            if (checkButton.isFocused()) {
-//                Command.sendChatMessage("focused");
+//                sendChatMessage("focused");
 //            }
 //            else if (checkButton.isHovered()) {
-//                Command.sendChatMessage("hovered");
+//                sendChatMessage("hovered");
 //            }
 //            else if (checkButton.isToggled()) {
-//                Command.sendChatMessage("toggled");
+//                sendChatMessage("toggled");
 //            }
 //        });
 

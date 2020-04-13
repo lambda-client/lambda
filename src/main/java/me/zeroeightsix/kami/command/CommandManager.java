@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import static me.zeroeightsix.kami.util.CommandUtil.runAliases;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 public class CommandManager {
 
@@ -55,7 +56,7 @@ public class CommandManager {
             }
         }
 
-        Command.sendChatMessage("&7Unknown command. try '&f" + Command.getCommandPrefix() + "cmds&7' for a list of commands.");
+        sendChatMessage("&7Unknown command. try '&f" + Command.getCommandPrefix() + "cmds&7' for a list of commands.");
     }
 
     private static String[] removeElement(String[] input, int indexToDelete) {

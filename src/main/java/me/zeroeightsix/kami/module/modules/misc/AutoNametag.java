@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -13,6 +12,9 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemNameTag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * @author S-B99
@@ -41,7 +43,7 @@ public class AutoNametag extends Module {
                         final EntityWither wither = (EntityWither) w;
                         if (mc.player.getDistance(wither) <= range.getValue()) {
                             if (debug.getValue())
-                                Command.sendChatMessage("Found unnamed Wither");
+                                sendChatMessage("Found unnamed Wither");
                             selectNameTags();
                             mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);
                         }
@@ -51,7 +53,7 @@ public class AutoNametag extends Module {
                     if (w instanceof EntityMob || w instanceof EntityAnimal && !w.getDisplayName().getUnformattedText().equals(currentName)) {
                         if (mc.player.getDistance(w) <= range.getValue()) {
                             if (debug.getValue())
-                                Command.sendChatMessage("Found unnamed " + w.getDisplayName().getUnformattedText());
+                                sendChatMessage("Found unnamed " + w.getDisplayName().getUnformattedText());
                             selectNameTags();
                             mc.playerController.interactWithEntity(mc.player, w, EnumHand.MAIN_HAND);
                         }
@@ -75,7 +77,7 @@ public class AutoNametag extends Module {
         }
 
         if (tagSlot == -1) {
-            if (debug.getValue()) Command.sendErrorMessage(getChatName() + "Error: No nametags in hotbar");
+            if (debug.getValue()) sendErrorMessage(getChatName() + "Error: No nametags in hotbar");
             disable();
             return;
         }

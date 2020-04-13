@@ -2,12 +2,12 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zeroeightsix.kami.DiscordPresence;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
 import static me.zeroeightsix.kami.util.InfoCalculator.playerDimension;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * @author S-B99
@@ -64,7 +64,7 @@ public class DiscordSettings extends Module {
         if (startTime + 10000 <= System.currentTimeMillis()) { // 10 seconds in milliseconds
             if (line1Setting.getValue().equals(LineInfo.COORDS) || line2Setting.getValue().equals(LineInfo.COORDS) || line3Setting.getValue().equals(LineInfo.COORDS) || line4Setting.getValue().equals(LineInfo.COORDS)) {
                 if (!coordsConfirm.getValue() && mc.player != null) {
-                    Command.sendWarningMessage(getChatName() + " Warning: In order to use the coords option please enable the coords confirmation option. This will display your coords on the discord rpc. Do NOT use this if you do not want your coords displayed");
+                    sendWarningMessage(getChatName() + " Warning: In order to use the coords option please enable the coords confirmation option. This will display your coords on the discord rpc. Do NOT use this if you do not want your coords displayed");
                 }
             }
             startTime = System.currentTimeMillis();

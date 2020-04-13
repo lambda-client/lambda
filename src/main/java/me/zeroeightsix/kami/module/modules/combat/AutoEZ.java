@@ -11,6 +11,8 @@ import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
+
 /**
  * @author polymer
  * @author cookiedragon234
@@ -82,7 +84,7 @@ public class AutoEZ extends Module {
 		if (startTime == 0) startTime = System.currentTimeMillis();
 		if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
 			if (mode.getValue().equals(Mode.CUSTOM) && customText.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
-				Command.sendWarningMessage(getChatName() + " Warning: In order to use the custom " + getName() + ", please run the &7" + Command.getCommandPrefix() + "autoez&r command to change it, with '&7$NAME&f' being the username of the killed player");
+				sendWarningMessage(getChatName() + " Warning: In order to use the custom " + getName() + ", please run the &7" + Command.getCommandPrefix() + "autoez&r command to change it, with '&7$NAME&f' being the username of the killed player");
 			}
 			startTime = System.currentTimeMillis();
 		}

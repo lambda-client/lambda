@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -10,6 +9,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import org.lwjgl.input.Mouse;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author 0x2E | PretendingToCode
@@ -44,7 +45,7 @@ public class EntityTools extends Module {
                 if (mode.getValue().equals(Mode.INFO)) {
                     NBTTagCompound tag = new NBTTagCompound();
                     mc.objectMouseOver.entityHit.writeToNBT(tag);
-                    Command.sendChatMessage(getChatName() + "&6Entity Tags:\n" + tag + "");
+                    sendChatMessage(getChatName() + "&6Entity Tags:\n" + tag + "");
                 }
             }
         }

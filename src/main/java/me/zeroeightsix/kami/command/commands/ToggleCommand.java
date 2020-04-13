@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 17/11/2017.
@@ -23,15 +24,15 @@ public class ToggleCommand extends Command {
     @Override
     public void call(String[] args) {
         if (args.length == 0) {
-            Command.sendChatMessage("Please specify a module!");
+            sendChatMessage("Please specify a module!");
             return;
         }
         try {
             Module m = MODULE_MANAGER.getModule(args[0]);
             m.toggle();
-            Command.sendChatMessage(m.getName() + (m.isEnabled() ? " &aenabled" : " &cdisabled"));
+            sendChatMessage(m.getName() + (m.isEnabled() ? " &aenabled" : " &cdisabled"));
         } catch (ModuleManager.ModuleNotFoundException x) {
-            Command.sendChatMessage("Unknown module '" + args[0] + "'");
+            sendChatMessage("Unknown module '" + args[0] + "'");
         }
     }
 }

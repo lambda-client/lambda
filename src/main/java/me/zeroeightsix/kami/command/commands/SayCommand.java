@@ -3,6 +3,8 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;
+
 /**
  * @author S-B99
  * Created by S-B99 on 12/03/20
@@ -21,6 +23,6 @@ public class SayCommand extends Command {
                 message.append(" ").append(arg);
             }
         }
-        Command.sendServerMessage(message.toString());
+        sendServerMessage(message.toString());
     }
 }

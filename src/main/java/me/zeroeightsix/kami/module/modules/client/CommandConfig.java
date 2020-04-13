@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
-import static me.zeroeightsix.kami.command.Command.sendErrorMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * @author S-B99

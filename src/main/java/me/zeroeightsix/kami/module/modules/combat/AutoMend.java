@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -10,6 +9,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.init.Items;
 
 import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * Created 17 October 2019 by hub
@@ -65,7 +65,7 @@ public class AutoMend extends Module {
                 int xpSlot = findXpPots();
                 if (xpSlot == -1) {
                     if (autoDisable.getValue()) {
-                        Command.sendWarningMessage(getChatName() + " No XP in hotbar, disabling");
+                        sendWarningMessage(getChatName() + " No XP in hotbar, disabling");
                         disable();
                     }
                     return;

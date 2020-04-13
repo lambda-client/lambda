@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.ServerConnectedEvent;
@@ -18,6 +17,7 @@ import net.minecraft.network.play.server.SPacketSoundEffect;
 import java.util.Random;
 
 import static me.zeroeightsix.kami.KamiMod.EVENT_BUS;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 22/03/2018.
@@ -107,7 +107,7 @@ public class AutoFish extends Module {
         extraDelay.setValue(300);
         variation.setValue(50);
         defaultSetting.setValue(false);
-        Command.sendChatMessage(getChatName() + " Set to defaults!");
-        Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
+        sendChatMessage(getChatName() + " Set to defaults!");
+        sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
     }
 }

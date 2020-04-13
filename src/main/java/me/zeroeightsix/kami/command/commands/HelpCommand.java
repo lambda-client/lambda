@@ -2,13 +2,14 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
-import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.module.modules.ClickGUI;
 
 import java.util.Arrays;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.KamiMod.WEBSITE_LINK;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendStringChatMessage;
 
 /**
  * Created by 086 on 11/11/2017.
@@ -45,7 +46,7 @@ public class HelpCommand extends Command {
     public void call(String[] args) {
         String commandPrefix = Command.getCommandPrefix();
         if (args[0] == null) {
-            Command.sendStringChatMessage(new String[]{
+            sendStringChatMessage(new String[]{
                     "KAMI Blue " + KamiMod.MODVER,
                     "&7Press &r" + MODULE_MANAGER.getModule(ClickGUI.class).getBindName() + "&7 to open GUI",
                     "&7see &b" + WEBSITE_LINK + "&7 for a full version of the faq",
@@ -58,11 +59,11 @@ public class HelpCommand extends Command {
         } else {
             String subject = args[0];
             if (subject.equals("subjects")) {
-                Command.sendChatMessage("Subjects: " + subjectsList);
+                sendChatMessage("Subjects: " + subjectsList);
             }
             else if (subject.equals("bind")) {
-                Command.sendChatMessage("You can also use &7.bind&r modifiers on to allow modules to be bound to keybinds with modifiers, e.g &7ctrl + shift + w or ctrl + c.&r");
-                Command.sendChatMessage("You can unbind modules with backspace in the GUI or by running &7.bind <module> none&r");
+                sendChatMessage("You can also use &7.bind&r modifiers on to allow modules to be bound to keybinds with modifiers, e.g &7ctrl + shift + w or ctrl + c.&r");
+                sendChatMessage("You can unbind modules with backspace in the GUI or by running &7.bind <module> none&r");
             }
             else {
                 Subject subject1 = Arrays.stream(subjects).filter(subject2 -> {
@@ -72,10 +73,10 @@ public class HelpCommand extends Command {
                     return false;
                 }).findFirst().orElse(null);
                 if (subject1 == null) {
-                    Command.sendChatMessage("No help found for &b" + args[0]);
+                    sendChatMessage("No help found for &b" + args[0]);
                     return;
                 }
-                Command.sendStringChatMessage(subject1.info);
+                sendStringChatMessage(subject1.info);
             }
         }
     }

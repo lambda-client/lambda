@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.render;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.block.*;
@@ -18,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 25/01/2018.
@@ -42,7 +43,7 @@ public class Pathfind extends Module {
         Path path = finder.findPath(mc.world, zombie, new BlockPos(end.x, end.y, end.z), Float.MAX_VALUE);
         zombie.setPathPriority(PathNodeType.WATER, 0);
         if (path == null) {
-            Command.sendChatMessage("Failed to create path!");
+            sendChatMessage("Failed to create path!");
             return false;
         }
         points = new ArrayList<>(Arrays.asList(path.points));
@@ -96,9 +97,9 @@ public class Pathfind extends Module {
                 points.clear();
                 to = null;
                 if (b)
-                    Command.sendChatMessage("Arrived!");
+                    sendChatMessage("Arrived!");
                 else
-                    Command.sendChatMessage("Can't go on: pathfinder has hit dead end");
+                    sendChatMessage("Can't go on: pathfinder has hit dead end");
             }
         }
     }

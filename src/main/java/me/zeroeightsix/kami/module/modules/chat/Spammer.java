@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.chat;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -12,6 +11,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.*;
 
 /**
  * @author S-B99
@@ -27,7 +28,7 @@ public class Spammer extends Module {
     public void onEnable() {
         BufferedReader bufferedReader;
         try {
-            Command.sendChatMessage(getChatName() + "Trying to find '&7spammer.txt&f'");
+            sendChatMessage(getChatName() + "Trying to find '&7spammer.txt&f'");
             bufferedReader = new BufferedReader(new FileReader("spammer.txt"));
             String line;
             while ((line = bufferedReader.readLine()) != null) {
@@ -36,10 +37,10 @@ public class Spammer extends Module {
             bufferedReader.close();
             spammer = tempLines.toArray(new String[]{});
         } catch (FileNotFoundException exception) {
-            Command.sendErrorMessage(getChatName() + "Couldn't find a file called '&7spammer.txt&f' inside your '&7.minecraft&f' folder, disabling");
+            sendErrorMessage(getChatName() + "Couldn't find a file called '&7spammer.txt&f' inside your '&7.minecraft&f' folder, disabling");
             disable();
         } catch (IOException exception) {
-            Command.sendErrorMessage(exception.toString());
+            sendErrorMessage(exception.toString());
         }
 
     }
@@ -53,7 +54,7 @@ public class Spammer extends Module {
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + (timeoutTime.getValue() * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
-            Command.sendServerMessage(message);
+            sendServerMessage(message);
         }
     }
 

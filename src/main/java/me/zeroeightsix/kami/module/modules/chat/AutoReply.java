@@ -10,6 +10,8 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.network.play.server.SPacketChat;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
+
 /**
  * @author Diamarald
  * Updated by S-B99 on 03/03/20
@@ -53,10 +55,10 @@ public class AutoReply extends Module {
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
             if (customListener.getValue() && listener.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
-                Command.sendWarningMessage(getChatName() + " Warning: In order to use the custom listener, please run the &7" + Command.getCommandPrefix() + "autoreply&r =LISTENERNAME command to change it");
+                sendWarningMessage(getChatName() + " Warning: In order to use the custom listener, please run the &7" + Command.getCommandPrefix() + "autoreply&r =LISTENERNAME command to change it");
             }
             if (customReplyCommand.getValue() && replyCommand.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
-                Command.sendWarningMessage(getChatName() + " Warning: In order to use the custom reply command, please run the &7" + Command.getCommandPrefix() + "autoreply&r -REPLYCOMMAND command to change it");
+                sendWarningMessage(getChatName() + " Warning: In order to use the custom reply command, please run the &7" + Command.getCommandPrefix() + "autoreply&r -REPLYCOMMAND command to change it");
             }
             startTime = System.currentTimeMillis();
         }

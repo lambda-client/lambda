@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author S-B99
@@ -13,8 +14,8 @@ public class CommandUtil {
         if (!MODULE_MANAGER.getModuleT(CommandConfig.class).aliasInfo.getValue()) return;
         int amount = command.getAliases().size();
         if (amount > 0) {
-            Command.sendChatMessage("'" + command.getLabel() + "' has " + grammar1(amount) + "alias" + grammar2(amount));
-            Command.sendChatMessage(command.getAliases().toString());
+            sendChatMessage("'" + command.getLabel() + "' has " + grammar1(amount) + "alias" + grammar2(amount));
+            sendChatMessage(command.getAliases().toString());
         }
     }
 

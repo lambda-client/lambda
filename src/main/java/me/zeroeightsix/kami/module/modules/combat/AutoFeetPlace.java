@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
@@ -28,6 +27,7 @@ import net.minecraft.util.math.Vec3d;
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.canBeClicked;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.faceVectorPacketInstant;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author hub
@@ -183,7 +183,7 @@ public class AutoFeetPlace extends Module {
         if (missingObiDisable && disableNone.getValue()) {
             missingObiDisable = false;
             if (infoMessage.getValue()) {
-                Command.sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
+                sendChatMessage(getChatName() + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!");
             }
             disable();
         }

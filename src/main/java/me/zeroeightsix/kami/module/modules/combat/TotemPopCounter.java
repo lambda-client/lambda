@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.combat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.EntityUseTotemEvent;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
@@ -20,6 +19,8 @@ import java.util.HashMap;
 
 import static me.zeroeightsix.kami.KamiMod.EVENT_BUS;
 import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;
 
 /**
  * @author S-B99
@@ -153,10 +154,10 @@ public class TotemPopCounter extends Module {
     private void sendMessage(String message) {
         switch (announceSetting.getValue()) {
             case CLIENT:
-                Command.sendRawChatMessage(message);
+                sendRawChatMessage(message);
                 return;
             case EVERYONE:
-                Command.sendServerMessage(message);
+                sendServerMessage(message);
                 return;
             default:
         }

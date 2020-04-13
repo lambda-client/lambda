@@ -6,11 +6,7 @@ import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.*;
-
-import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  * @author S-B99

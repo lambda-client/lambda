@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.chat;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -8,6 +7,9 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * @author S-B99
@@ -60,11 +62,11 @@ public class AutoQMain extends Module {
         SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
         Date date = new Date(System.currentTimeMillis());
         System.out.println(formatter.format(date));
-        Command.sendChatMessage("&7Run &b/queue main&7 at " + (formatter.format(date)));
+        sendChatMessage("&7Run &b/queue main&7 at " + (formatter.format(date)));
         mc.playerController.connection.sendPacket(new CPacketChatMessage("/queue main"));
     }
 
-    private void sendMessage(String message) { if (showWarns.getValue()) Command.sendWarningMessage(getChatName() + message); }
+    private void sendMessage(String message) { if (showWarns.getValue()) sendWarningMessage(getChatName() + message); }
 
     public void onDisable() { delayTime = 0; }
 }

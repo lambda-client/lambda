@@ -23,6 +23,7 @@ import net.minecraft.network.play.server.SPacketChat;
 import static me.zeroeightsix.kami.KamiMod.EVENT_BUS;
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.*;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * @author S-B99
@@ -120,11 +121,11 @@ public class DiscordNotifs extends Module {
     public void onUpdate() {
         if (isDisabled()) return;
         if (url.getValue().equals("unchanged")) {
-            Command.sendErrorMessage(getChatName() + "You must first set a webhook url with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
+            sendErrorMessage(getChatName() + "You must first set a webhook url with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
             disable();
         }
         else if (pingID.getValue().equals("unchanged") && importantPings.getValue()) {
-            Command.sendErrorMessage(getChatName() + "For Pings to work, you must set a Discord ID with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
+            sendErrorMessage(getChatName() + "For Pings to work, you must set a Discord ID with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
             disable();
         }
     }

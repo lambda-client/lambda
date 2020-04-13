@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.misc.AutoTool;
 import me.zeroeightsix.kami.setting.Setting;
@@ -12,8 +11,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
-import net.minecraft.item.ItemAxe;
-import net.minecraft.item.ItemSword;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.Vec3d;
 

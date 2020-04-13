@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendStringChatMessage;
 
 /**
  * Created by 086 on 18/11/2017.
@@ -30,22 +32,22 @@ public class SetCommand extends Command {
     @Override
     public void call(String[] args) {
         if (args[0] == null) {
-            Command.sendChatMessage("Please specify a module!");
+            sendChatMessage("Please specify a module!");
             return;
         }
 
         Module m = MODULE_MANAGER.getModule(args[0]);
         if (m == null) {
-            Command.sendChatMessage("Unknown module &b" + args[0] + "&r!");
+            sendChatMessage("Unknown module &b" + args[0] + "&r!");
             return;
         }
 
         if (args[1] == null) {
             String settings = m.settingList.stream().map(Setting::getName).collect(Collectors.joining(", "));
             if (settings.isEmpty())
-                Command.sendChatMessage("Module &b" + m.getName() + "&r has no settings.");
+                sendChatMessage("Module &b" + m.getName() + "&r has no settings.");
             else {
-                Command.sendStringChatMessage(new String[]{
+                sendStringChatMessage(new String[]{
                         "Please specify a setting! Choose one of the following:", settings
                 });
             }
@@ -54,14 +56,14 @@ public class SetCommand extends Command {
 
         Optional<Setting> optionalSetting = m.settingList.stream().filter(setting1 -> setting1.getName().equalsIgnoreCase(args[1])).findFirst();
         if (!optionalSetting.isPresent()) {
-            Command.sendChatMessage("Unknown setting &b" + args[1] + "&r in &b" + m.getName() + "&r!");
+            sendChatMessage("Unknown setting &b" + args[1] + "&r in &b" + m.getName() + "&r!");
             return;
         }
 
         ISettingUnknown setting = optionalSetting.get();
 
         if (args[2] == null) {
-            Command.sendChatMessage("&b" + setting.getName() + "&r is a &3" + setting.getValueClass().getSimpleName() + "&r. Its current value is &3" + setting.getValueAsString());
+            sendChatMessage("&b" + setting.getName() + "&r is a &3" + setting.getValueClass().getSimpleName() + "&r. Its current value is &3" + setting.getValueAsString());
             return;
         }
 
@@ -71,10 +73,10 @@ public class SetCommand extends Command {
                 arg2 = arg2.toUpperCase();
             }
             setting.setValueFromString(arg2); /* PLEASE MAKE SURE TO USE PROPER NAMING WHEN USING ENUMS */ /* if you use improper lowercase letters it will *not* work with this command ~S-B99 */
-            Command.sendChatMessage("Set &b" + setting.getName() + "&r to &3" + arg2 + "&r.");
+            sendChatMessage("Set &b" + setting.getName() + "&r to &3" + arg2 + "&r.");
         } catch (Exception e) {
             e.printStackTrace();
-            Command.sendChatMessage("Unable to set value! &6" + e.getMessage());
+            sendChatMessage("Unable to set value! &6" + e.getMessage());
         }
     }
 }

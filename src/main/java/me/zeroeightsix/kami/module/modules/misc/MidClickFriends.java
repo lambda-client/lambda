@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.commands.FriendCommand;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.util.Friends;
@@ -12,6 +11,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import org.lwjgl.input.Mouse;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author Indrit
@@ -51,7 +52,7 @@ public class MidClickFriends extends Module {
         delay = 20;
         Friends.Friend friend = Friends.friends.getValue().stream().filter(friend1 -> friend1.getUsername().equalsIgnoreCase(name)).findFirst().get();
         Friends.friends.getValue().remove(friend);
-        Command.sendChatMessage("&b" + friend.getUsername() + "&r has been unfriended.");
+        sendChatMessage("&b" + friend.getUsername() + "&r has been unfriended.");
     }
 
     private void add(String name) {
@@ -59,11 +60,11 @@ public class MidClickFriends extends Module {
         new Thread(() -> {
             Friends.Friend f = new FriendCommand().getFriendByName(name);
             if (f == null) {
-                Command.sendChatMessage("Failed to find UUID of " + name);
+                sendChatMessage("Failed to find UUID of " + name);
                 return;
             }
             Friends.friends.getValue().add(f);
-            Command.sendChatMessage("&b" + f.getUsername() + "&r has been friended.");
+            sendChatMessage("&b" + f.getUsername() + "&r has been friended.");
         }).start();
     }
 }

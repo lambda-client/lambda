@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
@@ -9,14 +8,11 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.boss.EntityWither;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemNameTag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.util.EnumFacing;
@@ -30,6 +26,7 @@ import java.util.Random;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created 26 November 2019 by hub
@@ -350,7 +347,7 @@ public class AutoSpawner extends Module {
             if (!checkBlocksInHotbar()) {
                 if (!party.getValue()) {
                     if (debug.getValue()) {
-                        Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
+                        sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
                     }
                     disable();
                 }
@@ -373,7 +370,7 @@ public class AutoSpawner extends Module {
             if (noPositionInArea) {
                 if (useMode.getValue().equals(UseMode.SINGLE)) {
                     if (debug.getValue()) {
-                        Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Position not valid, disabling.");
+                        sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Position not valid, disabling.");
                     }
                     disable();
                 }

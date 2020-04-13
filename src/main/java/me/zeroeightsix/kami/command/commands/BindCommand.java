@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.setting.builder.SettingBuilder;
 import me.zeroeightsix.kami.util.Wrapper;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 12/11/2017.
@@ -31,7 +32,7 @@ public class BindCommand extends Command {
     @Override
     public void call(String[] args) {
         if (args.length == 1) {
-            Command.sendChatMessage("Please specify a module.");
+            sendChatMessage("Please specify a module.");
             return;
         }
 

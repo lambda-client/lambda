@@ -2,6 +2,8 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * Created by S-B99 on 01/12/2019.
  */
@@ -14,7 +16,7 @@ public class CreditsCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        Command.sendChatMessage("\n" +
+        sendChatMessage("\n" +
                 "Name (Github if not same as name)\n" +
                 "&l&9Author:\n" +
                 "086 (zeroeightysix)\n" +

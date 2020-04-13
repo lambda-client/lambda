@@ -6,6 +6,8 @@ import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 
 import java.util.Comparator;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * Created by 086 on 12/11/2017.
  */
@@ -19,7 +21,7 @@ public class CommandsCommand extends Command {
     @Override
     public void call(String[] args) {
         KamiMod.getInstance().getCommandManager().getCommands().stream().sorted(Comparator.comparing(Command::getLabel)).forEach(command ->
-                Command.sendChatMessage("&f" + Command.getCommandPrefix() + command.getLabel() + "&r ~ &7" + command.getDescription())
+                sendChatMessage("&f" + Command.getCommandPrefix() + command.getLabel() + "&r ~ &7" + command.getDescription())
         );
     }
 }

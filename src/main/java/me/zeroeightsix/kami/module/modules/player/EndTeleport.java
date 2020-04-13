@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -14,6 +13,8 @@ import net.minecraft.util.text.TextComponentString;
 
 import java.util.Objects;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
+
 /**
  * Created by 0x2E | PretendingToCode
  */
@@ -24,10 +25,10 @@ public class EndTeleport extends Module {
     @Override
     public void onEnable() {
         if (Wrapper.getMinecraft().getCurrentServerData() == null) {
-            Command.sendWarningMessage(getChatName() + "This module does not work in singleplayer");
+            sendWarningMessage(getChatName() + "This module does not work in singleplayer");
             disable();
         } else if (!confirmed.getValue()) {
-            Command.sendWarningMessage(getChatName() + "This module will kick you from the server! It is part of the exploit and cannot be avoided");
+            sendWarningMessage(getChatName() + "This module will kick you from the server! It is part of the exploit and cannot be avoided");
         }
     }
 

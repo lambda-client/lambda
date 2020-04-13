@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -17,6 +16,8 @@ import net.minecraft.network.play.client.CPacketCreativeInventoryAction;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by d1gress/Qther on 25/11/2019.
@@ -36,7 +37,7 @@ public class BookCrash extends Module {
     @Override
     public void onUpdate() {
         if (Minecraft.getMinecraft().getCurrentServerData() == null || Minecraft.getMinecraft().getCurrentServerData().serverIP.isEmpty()) {
-            Command.sendChatMessage("Not connected to a server");
+            sendChatMessage("Not connected to a server");
             disable();
         }
 

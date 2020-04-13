@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.experimental;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
@@ -32,6 +31,7 @@ import java.util.stream.Collectors;
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPos;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author hub
@@ -153,7 +153,7 @@ public class HoleFiller extends Module {
                 int obiSlot = -1;
                 obiSlot = findObiInHotbar();
                 if (obiSlot == -1) {
-                    Command.sendChatMessage("&cError: &rNo obsidian in hotbar! disabling.");
+                    sendChatMessage("&cError: &rNo obsidian in hotbar! disabling.");
                     this.disable();
                 }
                 mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));

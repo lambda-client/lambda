@@ -15,6 +15,8 @@ import net.minecraft.network.play.client.CPacketCustomPayload;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * @author 0x2E | PretendingToCode
  */
@@ -31,7 +33,7 @@ public class SignBookCommand extends Command {
         int c = 0x00A7;
 
         if (args.length == 1) {
-            Command.sendChatMessage("Please specify a title.");
+            sendChatMessage("Please specify a title.");
             return;
         }
 
@@ -45,7 +47,7 @@ public class SignBookCommand extends Command {
             futureTitle = futureTitle.replaceAll("null", ""); // Random extra null added sometimes
 
             if (futureTitle.length() > 31) {
-                Command.sendChatMessage("Title cannot be over 31 characters.");
+                sendChatMessage("Title cannot be over 31 characters.");
                 return;
             }
 
@@ -71,9 +73,9 @@ public class SignBookCommand extends Command {
             buf.writeItemStack(is);
 
             Wrapper.getPlayer().connection.sendPacket(new CPacketCustomPayload("MC|BSign", buf));
-            Command.sendChatMessage("Signed book with title: " + futureTitle + "&r");
+            sendChatMessage("Signed book with title: " + futureTitle + "&r");
         } else {
-            Command.sendChatMessage("You must be holding a writable book.");
+            sendChatMessage("You must be holding a writable book.");
         }
     }
 }
