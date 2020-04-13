@@ -1,5 +1,7 @@
 package me.zeroeightsix.kami.gui.kami;
 
+import org.lwjgl.opengl.GL11;
+
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -135,6 +137,14 @@ public class RenderHelper {
         }
         glEnd();
 
+    }
+
+    public static void drawTooltip(int x, int y, int width, int height, float lineWidth, float boxR, float boxG, float boxB, float boxA, float lineR, float lineG, float lineB) {
+        GL11.glColor4f(boxR, boxG, boxB, boxA);
+        drawFilledRectangle(x, y, width, height);
+        GL11.glColor3f(lineR, lineG, lineB);
+        GL11.glLineWidth(lineWidth);
+        RenderHelper.drawRectanglePos(x, y, width, height);
     }
 
 }

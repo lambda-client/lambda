@@ -41,11 +41,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 glDisable(GL_SCISSOR_TEST);
                 glDepthRange(0, 0.01);
 
-                GL11.glColor4f(0.17F, 0.17F, 0.18F, 0.9F);
-                RenderHelper.drawFilledRectangle(component.getWidth() + 14, -4, 50, component.getHeight() + 4);
-                GL11.glColor3f(.60f, .56f, 1.00f);
-                GL11.glLineWidth(1.5F);
-                RenderHelper.drawRectangle(component.getWidth() + 14, -4, 50, component.getHeight() + 4);
+                RenderHelper.drawTooltip(component.getWidth() + 14, -4, 100, component.getHeight() + 4, 1.5f, 0.17F, 0.17F, 0.18F, 0.9F, .60f, .56f, 1.00f);
 
                 glEnable(GL_SCISSOR_TEST);
                 glDepthRange(0, 1.0);
