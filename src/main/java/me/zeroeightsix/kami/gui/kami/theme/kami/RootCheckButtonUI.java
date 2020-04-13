@@ -50,7 +50,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                         toF(GuiC.windowOutline.color.getRed()), toF(GuiC.windowOutline.color.getGreen()), toF(GuiC.windowOutline.color.getBlue()));
                 RenderHelper.drawText(component.getWidth() + 17, component.getDescription(), rgbToInt(255, 255, 255));
 
-                glEnable(GL_SCISSOR_TEST); // stop drawing inside the container
+                glEnable(GL_SCISSOR_TEST); // stop drawing outside of the container
                 glDepthRange(0, 1.0); // set the render priority back to normal
             }
         }
