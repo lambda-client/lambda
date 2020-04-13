@@ -1,11 +1,16 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.kami.RenderHelper;
+import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
+import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
+
+import java.util.List;
 
 import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
@@ -34,7 +39,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 GuiC.buttonHoveredT.color.getRGB();
         if (component.isHovered()) {
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1; // hovered text color
-            if (component.hasDescription()) {
+            if (component.hasDescription() && !isSettingsOpen()) {
                 glDisable(GL_SCISSOR_TEST); // let it draw outside of the container
                 glDepthRange(0, 0.01); // set render priority to the top
 
@@ -60,5 +65,15 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
     public void handleAddComponent(CheckButton component, Container container) {
         component.setWidth(KamiGUI.fontRenderer.getStringWidth(component.getName()) + 14);
         component.setHeight(KamiGUI.fontRenderer.getFontHeight() + 2);
+    }
+
+    private boolean isSettingsOpen() {
+        List<SettingsPanel> panels = ContainerHelper.getAllChildren(SettingsPanel.class, KamiMod.getInstance().getGuiManager());
+        for (SettingsPanel settingsPanel : panels) {
+            if (settingsPanel.isVisible()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
