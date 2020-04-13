@@ -66,7 +66,6 @@ public class CreditsCommand extends Command {
                 "\nAn-En (AnotherEntity)" +
                 "\nArisa (Arisa-Snowbell)" +
                 "\nJamie (jamie27)" +
-                "\nDarki (DarkiBoi)" +
                 "\nWaizy (WaizyNet)" +
                 "\nIt is the end (Itistheend)" +
                 "\nbabbaj" +
