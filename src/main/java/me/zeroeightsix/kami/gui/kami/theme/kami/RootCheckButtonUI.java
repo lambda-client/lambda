@@ -19,6 +19,7 @@ import static org.lwjgl.opengl.GL11.*;
 
 /**
  * Created by 086 on 4/08/2017.
+ * Tooltips added by S-B99 on 13/04/20
  */
 public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentUI<CheckButton> {
     @Override
@@ -49,8 +50,8 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                         toF(GuiC.windowOutline.color.getRed()), toF(GuiC.windowOutline.color.getGreen()), toF(GuiC.windowOutline.color.getBlue()));
                 RenderHelper.drawText(component.getWidth() + 17, component.getDescription(), rgbToInt(255, 255, 255));
 
-                glEnable(GL_SCISSOR_TEST);
-                glDepthRange(0, 1.0);
+                glEnable(GL_SCISSOR_TEST); // stop drawing inside the container
+                glDepthRange(0, 1.0); // set the render priority back to normal
             }
         }
 
@@ -67,6 +68,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
         component.setHeight(KamiGUI.fontRenderer.getFontHeight() + 2);
     }
 
+    /* in all honesty this is probably resource inefficient but there isn't any other way of getting panels :/ */
     private boolean isSettingsOpen() {
         List<SettingsPanel> panels = ContainerHelper.getAllChildren(SettingsPanel.class, KamiMod.getInstance().getGuiManager());
         for (SettingsPanel settingsPanel : panels) {
