@@ -36,7 +36,11 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1;
             if (component.hasDescription()) {
                 Command.sendChatMessage(component.getName() + ": " + component.getDescription());
-                RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight());
+                glDisable(GL_SCISSOR_TEST);
+                glDepthRange(0, 0.01);
+                RenderHelper.drawFilledRectangle(component.getWidth() + 14, 0, component.getWidth() * 2, component.getHeight());
+                glEnable(GL_SCISSOR_TEST);
+                glDepthRange(0, 1.0);
             }
         }
 
