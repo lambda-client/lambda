@@ -36,12 +36,12 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
         if (component.isHovered()) {
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1;
             if (component.hasDescription()) {
-                Command.sendChatMessage(component.getName() + ": " + component.getDescription());
+//                Command.sendChatMessage(component.getName() + ": " + component.getDescription());
 
                 glDisable(GL_SCISSOR_TEST);
                 glDepthRange(0, 0.01);
 
-                RenderHelper.drawTooltip(component.getWidth() + 14, -4, 100, component.getHeight() + 4, 1.5f, 0.17F, 0.17F, 0.18F, 0.9F, .60f, .56f, 1.00f);
+                RenderHelper.drawTooltip(component.getWidth() + 14, 0, 100, component.getHeight(), 1.5f, 0.17F, 0.17F, 0.18F, 0.9F, .60f, .56f, 1.00f);
 
                 glEnable(GL_SCISSOR_TEST);
                 glDepthRange(0, 1.0);
