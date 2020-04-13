@@ -49,7 +49,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
 
     @Override
     public void handleAddComponent(CheckButton component, Container container) {
-        component.setWidth(KamiGUI.fontRenderer.getStringWidth(component.getName()) + 28);
+        component.setWidth(KamiGUI.fontRenderer.getStringWidth(component.getName()) + 14);
         component.setHeight(KamiGUI.fontRenderer.getFontHeight() + 2);
     }
 }
