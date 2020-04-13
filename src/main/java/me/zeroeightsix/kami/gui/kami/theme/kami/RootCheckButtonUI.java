@@ -1,13 +1,11 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.kami.RenderHelper;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
-import org.lwjgl.opengl.GL11;
 
 import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
@@ -40,7 +38,10 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 glDisable(GL_SCISSOR_TEST); // let it draw outside of the container
                 glDepthRange(0, 0.01); // set render priority to the top
 
-                RenderHelper.drawTooltip(component.getWidth() + 14, 0, KamiGUI.fontRenderer.getStringWidth(component.getDescription() + 2), KamiGUI.fontRenderer.getFontHeight() + 6, 1.5f, 0.17F, 0.17F, 0.18F, 0.9F, .60f, .56f, 1.00f);
+                RenderHelper.drawTooltip(component.getWidth() + 14, 0,
+                        KamiGUI.fontRenderer.getStringWidth(component.getDescription() + 2), KamiGUI.fontRenderer.getFontHeight() + 6,
+                        1.5f, 0.17F, 0.17F, 0.18F, 0.9F,
+                        toF(GuiC.windowOutline.color.getRed()), toF(GuiC.windowOutline.color.getGreen()), toF(GuiC.windowOutline.color.getBlue()));
                 RenderHelper.drawText(component.getWidth() + 17, component.getDescription(), rgbToInt(255, 255, 255));
 
                 glEnable(GL_SCISSOR_TEST);
