@@ -151,10 +151,10 @@ public class RenderHelper {
         glPopMatrix();
     }
 
-    public static void drawText(int x, String text, int color) {
+    public static void drawText(int x, int y, int color, String text) {
         glColor3f(1, 1, 1);
         glEnable(GL_TEXTURE_2D);
-        KamiGUI.fontRenderer.drawString(x, KamiGUI.fontRenderer.getFontHeight() / 2, color, text);
+        KamiGUI.fontRenderer.drawString(x, y, color, text);
         glDisable(GL_TEXTURE_2D);
     }
 }

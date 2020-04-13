@@ -48,7 +48,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                         KamiGUI.fontRenderer.getStringWidth(component.getDescription() + 2), KamiGUI.fontRenderer.getFontHeight() + 6,
                         1.5f, 0.17F, 0.17F, 0.18F, 0.9F,
                         toF(GuiC.windowOutline.color.getRed()), toF(GuiC.windowOutline.color.getGreen()), toF(GuiC.windowOutline.color.getBlue()));
-                RenderHelper.drawText(component.getWidth() + 17, component.getDescription(), rgbToInt(255, 255, 255));
+                RenderHelper.drawText(component.getWidth() + 17, KamiGUI.fontRenderer.getFontHeight() / 2, rgbToInt(255, 255, 255), component.getDescription());
 
                 glEnable(GL_SCISSOR_TEST); // stop drawing outside of the container
                 glDepthRange(0, 1.0); // set the render priority back to normal
