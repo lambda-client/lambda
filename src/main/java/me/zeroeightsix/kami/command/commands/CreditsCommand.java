@@ -32,18 +32,18 @@ public class CreditsCommand extends Command {
                 11698651, // jacksonellworth03
                 44139104, // TheBritishMidget
                 59456376, // Hamburger2k
-                // 0x2E
+                41800112, // PretendingToCode
                 52386117, // Bluskript
                 26636167, // AnotherEntity
                 22961592, // ArisaSnowbell
-                // jamie27
+                13212688, // jamie27
                 50775247, // DarkiBoi
                 12820770, // Babbaj
                 11377481, // Crystallinqq
                 3837873, // leijurv
                 49104462, // Elementars
                 56689414, // WaizyNet
-                // It is the end
+                58238984, // Itistheend
 
                 // Bots
                 27856297 // dependabot
@@ -61,18 +61,18 @@ public class CreditsCommand extends Command {
                 "\nJack (jacksonellsworth03)" +
                 "\nTheBritishMidget (TBM)" +
                 "\nHamburger (Hamburger2k)" +
-                "\n0x2E (PretendingToCode)" + // no github afaik
+                "\n0x2E (PretendingToCode)" +
                 "\nBattery Settings (Bluskript)" +
                 "\nAn-En (AnotherEntity)" +
                 "\nArisa (Arisa-Snowbell)" +
-                "\nJamie (jamie27)" + // no idea who this is
+                "\nJamie (jamie27)" +
                 "\nDarki (DarkiBoi)" +
                 "\nWaizy (WaizyNet)" +
+                "\nIt is the end (Itistheend)" +
                 "\nbabbaj" +
                 "\nCrystallinqq" +
                 "\nleijurv" +
-                "\nElementars" +
-                "\nIt is the end"; // get his github
+                "\nElementars";
 
                 for (WebUtils.GithubUser u : WebUtils.getContributors(exceptions)) {
                     message = message.concat("\n" + u.login);
