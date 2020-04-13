@@ -10,6 +10,7 @@ import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import org.lwjgl.opengl.GL11;
 
 import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
+import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static org.lwjgl.opengl.GL11.*;
 
@@ -34,14 +35,13 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 GuiC.buttonIdleT.color.getRGB() :
                 GuiC.buttonHoveredT.color.getRGB();
         if (component.isHovered()) {
-            c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1;
+            c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1; // hovered text color
             if (component.hasDescription()) {
-//                Command.sendChatMessage(component.getName() + ": " + component.getDescription());
+                glDisable(GL_SCISSOR_TEST); // let it draw outside of the container
+                glDepthRange(0, 0.01); // set render priority to the top
 
-                glDisable(GL_SCISSOR_TEST);
-                glDepthRange(0, 0.01);
-
-                RenderHelper.drawTooltip(component.getWidth() + 14, 0, 100, component.getHeight(), 1.5f, 0.17F, 0.17F, 0.18F, 0.9F, .60f, .56f, 1.00f);
+                RenderHelper.drawTooltip(component.getWidth() + 14, 0, KamiGUI.fontRenderer.getStringWidth(component.getDescription() + 2), KamiGUI.fontRenderer.getFontHeight() + 6, 1.5f, 0.17F, 0.17F, 0.18F, 0.9F, .60f, .56f, 1.00f);
+                RenderHelper.drawText(component.getWidth() + 17, component.getDescription(), rgbToInt(255, 255, 255));
 
                 glEnable(GL_SCISSOR_TEST);
                 glDepthRange(0, 1.0);
