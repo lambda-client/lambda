@@ -55,10 +55,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
             }
         }
 
-        glColor3f(1, 1, 1);
-        glEnable(GL_TEXTURE_2D);
-        KamiGUI.fontRenderer.drawString(component.getWidth() / 2 - KamiGUI.fontRenderer.getStringWidth(text) / 2, KamiGUI.fontRenderer.getFontHeight() / 2 - 2, c, text);
-        glDisable(GL_TEXTURE_2D);
+        RenderHelper.drawText(component.getWidth() / 2 - KamiGUI.fontRenderer.getStringWidth(text) / 2, KamiGUI.fontRenderer.getFontHeight() / 2 - 2, c, text);
         glDisable(GL_BLEND);
     }
 
