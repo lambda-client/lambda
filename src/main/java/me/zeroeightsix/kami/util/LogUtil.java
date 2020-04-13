@@ -17,7 +17,7 @@ public class LogUtil {
 
     public static void writeCoords(int x, int y, int z, String locationName) {
         try {
-            FileWriter fW = new FileWriter("KAMIBlueCoords.txt");
+            FileWriter fW = new FileWriter("KAMIBlueCoords.txt", true);
             fW.write(formatter(x, y, z, locationName));
             fW.close();
         } catch (IOException e) {
