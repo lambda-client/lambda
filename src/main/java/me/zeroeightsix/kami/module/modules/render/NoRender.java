@@ -25,7 +25,7 @@ public class NoRender extends Module {
     private Setting<Boolean> paint = register(Settings.b("Paintings", false));
     private Setting<Boolean> fire = register(Settings.b("Fire"));
     private Setting<Boolean> explosion = register(Settings.b("Explosions"));
-
+    public Setting<Boolean> beacon = register(Settings.b("Beacon Beams", false));
 
     @EventHandler
     public Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {

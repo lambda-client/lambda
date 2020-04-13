@@ -31,6 +31,7 @@
     "MixinRenderLiving",
     "MixinRenderPlayer",
     "MixinStateImplementation",
+    "MixinTileEntityBeacon",
     "MixinVisGraph"
   ]
 }
