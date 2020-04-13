@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.gui.kami.theme.kami;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
+import me.zeroeightsix.kami.gui.kami.RenderHelper;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
@@ -35,6 +36,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1;
             if (component.hasDescription()) {
                 Command.sendChatMessage(component.getName() + ": " + component.getDescription());
+                RenderHelper.drawFilledRectangle(0, 0, component.getWidth(), component.getHeight());
             }
         }
 
