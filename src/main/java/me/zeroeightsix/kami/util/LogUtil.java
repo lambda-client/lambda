@@ -12,12 +12,12 @@ import java.io.IOException;
 public class LogUtil {
     public static void writePlayerCoords(String locationName) {
         Minecraft mc = Minecraft.getMinecraft();
-        writeCoordsLog((int) mc.player.posX, (int) mc.player.posY, (int) mc.player.posZ, locationName);
+        writeCoords((int) mc.player.posX, (int) mc.player.posY, (int) mc.player.posZ, locationName);
     }
 
-    public static void writeCoordsLog(int x, int y, int z, String locationName) {
+    public static void writeCoords(int x, int y, int z, String locationName) {
         try {
-            FileWriter fW = new FileWriter("KAMIBlueCoordsLog.txt", true);
+            FileWriter fW = new FileWriter("KAMIBlueCoords.txt", true);
             fW.write(formatter(x, y, z, locationName));
             fW.close();
         } catch (IOException e) {
