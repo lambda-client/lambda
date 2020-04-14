@@ -25,9 +25,8 @@ public class AntiHunger extends Module {
 
     @EventHandler
     public Listener<PacketEvent.Send> packetListener = new Listener<>(event -> {
-        if (MODULE_MANAGER.getModule(ElytraFlight.class).isEnabled() && cancelMovementState.getValue()) {
-            sendChatMessage(getChatName() + "ElytraFlight is not compatible with the 'Cancel Movement State' option, disabling");
-            disable();
+        if (MODULE_MANAGER.getModule(ElytraFlight.class).isEnabled()) {
+            return;
         }
         if (event.getPacket() instanceof CPacketEntityAction) {
             final CPacketEntityAction packet = (CPacketEntityAction) event.getPacket();
