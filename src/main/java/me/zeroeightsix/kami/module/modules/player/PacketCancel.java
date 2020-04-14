@@ -13,12 +13,12 @@ import net.minecraft.network.play.client.*;
  */
 @Module.Info(name = "PacketCancel", description = "Cancels specific packets used for various actions", category = Module.Category.PLAYER)
 public class PacketCancel extends Module {
-    private final Setting<Boolean> all = register(Settings.b("All", false));
-    private final Setting<Boolean> packetInput = register(Settings.booleanBuilder("CPacketInput").withValue(true).withVisibility(v -> !all.getValue()));
-    private final Setting<Boolean> packetPlayer = register(Settings.booleanBuilder("CPacketPlayer").withValue(true).withVisibility(v -> !all.getValue()));
-    private final Setting<Boolean> packetEntityAction = register(Settings.booleanBuilder("CPacketEntityAction").withValue(true).withVisibility(v -> !all.getValue()));
-    private final Setting<Boolean> packetUseEntity = register(Settings.booleanBuilder("CPacketUseEntity").withValue(true).withVisibility(v -> !all.getValue()));
-    private final Setting<Boolean> packetVehicleMove = register(Settings.booleanBuilder("CPacketVehicleMove").withValue(true).withVisibility(v -> !all.getValue()));
+    private Setting<Boolean> all = register(Settings.b("All", false));
+    private Setting<Boolean> packetInput = register(Settings.booleanBuilder("CPacketInput").withValue(true).withVisibility(v -> !all.getValue()));
+    private Setting<Boolean> packetPlayer = register(Settings.booleanBuilder("CPacketPlayer").withValue(true).withVisibility(v -> !all.getValue()));
+    private Setting<Boolean> packetEntityAction = register(Settings.booleanBuilder("CPacketEntityAction").withValue(true).withVisibility(v -> !all.getValue()));
+    private Setting<Boolean> packetUseEntity = register(Settings.booleanBuilder("CPacketUseEntity").withValue(true).withVisibility(v -> !all.getValue()));
+    private Setting<Boolean> packetVehicleMove = register(Settings.booleanBuilder("CPacketVehicleMove").withValue(true).withVisibility(v -> !all.getValue()));
     private int numPackets;
     
     @EventHandler
