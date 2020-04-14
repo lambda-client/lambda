@@ -8,6 +8,7 @@ import java.io.IOException;
 /**
  * @author S-B99
  * Created by S-B99 on 18/02/20
+ * Updated by wnuke on 14/04/20
  */
 public class LogUtil {
     public static int[] getCurrentCoord(boolean chunk) {
