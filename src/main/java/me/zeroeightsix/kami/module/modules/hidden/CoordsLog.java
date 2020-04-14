@@ -33,7 +33,7 @@ public class CoordsLog extends Module {
             return;
         timeout();
         if (!playerIsDead && 0 >= mc.player.getHealth()) {
-            logCoordinates();a
+            logCoordinates();
             playerIsDead = true;
             return;
         }
