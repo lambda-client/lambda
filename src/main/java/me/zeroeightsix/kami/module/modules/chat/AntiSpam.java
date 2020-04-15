@@ -356,6 +356,7 @@ public class AntiSpam extends Module {
 
         private static final String[] I_JUST_THANKS_TO = {
                 "i just.*thanks to",
+                "i just.*using",
         };
 
         private static final String[] SPECIAL_BEGINNING = {
