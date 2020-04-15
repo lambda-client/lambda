@@ -107,7 +107,7 @@ public class AutoFish extends Module {
         extraDelay.setValue(300);
         variation.setValue(50);
         defaultSetting.setValue(false);
-        sendChatMessage(getChatName() + " Set to defaults!");
-        sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
+        sendChatMessage(getChatName() + "Set to defaults!");
+        sendChatMessage(getChatName() + "Close and reopen the " + getName() + " settings menu to see changes");
     }
 }
