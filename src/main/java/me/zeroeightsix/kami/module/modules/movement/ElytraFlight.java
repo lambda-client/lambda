@@ -30,6 +30,7 @@ public class ElytraFlight extends Module {
     private Setting<Boolean> easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff H").withValue(true).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Boolean> hoverControl = register(Settings.booleanBuilder("Hover").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
     private Setting<Boolean> easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
+    private Setting<Boolean> timerControl = register(Settings.booleanBuilder("Takeoff Timer").withValue(false).withVisibility(v -> easyTakeOffControl.getValue() && mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
     private Setting<TakeoffMode> takeOffMode = register(Settings.enumBuilder(TakeoffMode.class).withName("Takeoff Mode").withValue(TakeoffMode.PACKET).withVisibility(v -> easyTakeOff.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Boolean> overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility(v -> !overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
@@ -81,7 +82,7 @@ public class ElytraFlight extends Module {
         if (!mc.player.isElytraFlying()) {
             if (easyTakeOffControl.getValue() && !mc.player.onGround && mc.player.motionY < -0.04) {
                 Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
-                mc.timer.tickLength = 200.0f;
+                if (timerControl.getValue()) mc.timer.tickLength = 200.0f;
                 event.cancel();
                 return;
             }
