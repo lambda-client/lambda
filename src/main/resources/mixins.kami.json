@@ -13,6 +13,7 @@
     "MixinEntity",
     "MixinEntityLlama",
     "MixinEntityPig",
+    "MixinEntityPlayer",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinFrustum",
