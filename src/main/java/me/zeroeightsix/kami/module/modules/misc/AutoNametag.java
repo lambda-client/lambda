@@ -32,6 +32,7 @@ public class AutoNametag extends Module {
 
     public void onUpdate() {
         useNameTag();
+        findNameTags();
     }
 
     private void useNameTag() {
@@ -83,6 +84,17 @@ public class AutoNametag extends Module {
         }
 
         mc.player.inventory.currentItem = tagSlot;
+    }
+
+    private void findNameTags() {
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
+            if (stack == ItemStack.EMPTY || stack.getItem() instanceof ItemBlock) continue;
+            Item tag = stack.getItem();
+            if (tag instanceof ItemNameTag) {
+                currentName = stack.getDisplayName();
+            }
+        }
     }
 
     private enum Mode { WITHER, ANY }
