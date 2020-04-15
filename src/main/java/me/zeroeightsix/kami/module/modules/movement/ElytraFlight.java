@@ -115,7 +115,6 @@ public class ElytraFlight extends Module {
 
         packetYaw = yawDeg;
         float yaw = (float) Math.toRadians(yawDeg);
-        /*float pitch = (float) Math.toRadians(ElytraFlight.mc.player.rotationPitch);*/
         double motionAmount = Math.sqrt(mc.player.motionX * mc.player.motionX + mc.player.motionZ * mc.player.motionZ);
         hoverState = hoverState ? mc.player.posY < hoverTarget + 0.1 : mc.player.posY < hoverTarget + 0.0;
         doHover = hoverState && hoverControl.getValue();
