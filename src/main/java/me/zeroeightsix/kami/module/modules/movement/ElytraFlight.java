@@ -1,13 +1,20 @@
 package me.zeroeightsix.kami.module.modules.movement;
 
+import me.zero.alpine.listener.EventHandler;
+import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.event.events.PacketEvent;
+import me.zeroeightsix.kami.event.events.PlayerTravelEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketEntityAction;
+import net.minecraft.network.play.client.CPacketPlayer;
+import net.minecraft.network.play.server.SPacketPlayerPosLook;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.Objects;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
@@ -20,15 +27,20 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
-    private Setting<Boolean> easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff").withValue(true).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Boolean> easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff H").withValue(true).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Boolean> hoverControl = register(Settings.booleanBuilder("Hover").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
+    private Setting<Boolean> easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
     private Setting<TakeoffMode> takeOffMode = register(Settings.enumBuilder(TakeoffMode.class).withName("Takeoff Mode").withValue(TakeoffMode.PACKET).withVisibility(v -> easyTakeOff.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Boolean> overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility(v -> !overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Float> speedControl = register(Settings.floatBuilder("Speed C").withValue(1.8f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
     private Setting<Float> speedHighwayOverride = register(Settings.floatBuilder("Speed H O").withValue(1.8f).withVisibility(v -> overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> fallSpeedHighway = register(Settings.floatBuilder("Fall Speed H").withValue(0.000050000002f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
-    private Setting<Float> fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility(v -> !mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
+    private Setting<Float> fallSpeedControl = register(Settings.floatBuilder("Fall Speed C").withValue(0.001f).withMaximum(0.3f).withMinimum(0.0f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
+    private Setting<Float> fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility(v -> !mode.getValue().equals(ElytraFlightMode.CONTROL) || !mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> upSpeedBoost = register(Settings.floatBuilder("Up Speed B").withValue(0.08f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
     private Setting<Float> downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
+    private Setting<Double> downSpeedControl = register(Settings.doubleBuilder("Down Speed C").withMaximum(10.0).withMinimum(0.0).withValue(2.0).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
 
     private ElytraFlightMode enabledMode;
     private boolean hasDoneWarning;
@@ -36,6 +48,7 @@ public class ElytraFlight extends Module {
     /* Control mode states */
     private double hoverTarget = -1.0;
     public float packetYaw = 0.0f;
+    private boolean hoverState = false;
 
     /* Control Mode */
     @EventHandler
@@ -61,9 +74,92 @@ public class ElytraFlight extends Module {
         }
     });
 
+    @EventHandler
+    private Listener<PlayerTravelEvent> playerTravelListener = new Listener<>(event -> {
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null) return;
+        boolean doHover;
+        if (!mc.player.isElytraFlying()) {
+            if (easyTakeOffControl.getValue() && !mc.player.onGround && mc.player.motionY < -0.04) {
+                Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
+//                mc.timer.tickLength = 200.0f;
+                event.cancel();
+                return;
+            }
+            return;
+        }
+
+        mc.timer.tickLength = 50.0f;
+        if (hoverTarget < 0.0) {
+            hoverTarget = mc.player.posY;
+        }
+
+        boolean moveForward = mc.gameSettings.keyBindForward.isKeyDown();
+        boolean moveBackward = mc.gameSettings.keyBindBack.isKeyDown();
+        boolean moveLeft = mc.gameSettings.keyBindLeft.isKeyDown();
+        boolean moveRight = mc.gameSettings.keyBindRight.isKeyDown();
+        boolean moveUp = mc.gameSettings.keyBindJump.isKeyDown();
+        boolean moveDown = mc.gameSettings.keyBindSneak.isKeyDown();
+        float moveForwardFactor = moveForward ? 1.0f : (float) (moveBackward ? -1 : 0);
+        float yawDeg = mc.player.rotationYaw;
+
+        if (moveLeft && (moveForward || moveBackward)) {
+            yawDeg -= 40.0f * moveForwardFactor;
+        } else if (moveRight && (moveForward || moveBackward)) {
+            yawDeg += 40.0f * moveForwardFactor;
+        } else if (moveLeft) {
+            yawDeg -= 90.0f;
+        } else if (moveRight) {
+            yawDeg += 90.0f;
+        }
+        if (moveBackward) yawDeg -= 180.0f;
+
+        packetYaw = yawDeg;
+        float yaw = (float) Math.toRadians(yawDeg);
+        /*float pitch = (float) Math.toRadians(ElytraFlight.mc.player.rotationPitch);*/
+        double d8 = Math.sqrt(mc.player.motionX * mc.player.motionX + mc.player.motionZ * mc.player.motionZ);
+        hoverState = hoverState ? mc.player.posY < hoverTarget + 0.1 : mc.player.posY < hoverTarget + 0.0;
+        boolean tmp = doHover = hoverState && hoverControl.getValue();
+        if (moveUp || moveForward || moveBackward || moveLeft || moveRight || MODULE_MANAGER.isModuleEnabled(AutoWalk.class)) {
+            if ((moveUp || doHover) && d8 > 1.0) {
+                if (mc.player.motionX == 0.0 && mc.player.motionZ == 0.0) {
+                    mc.player.motionY = downSpeedControl.getValue();
+                } else {
+                    double d6 = 1.0;
+                    double d10 = d8 * 0.2 * 0.04;
+                    mc.player.motionY += d10 * 3.2;
+                    mc.player.motionX -= (double) (-MathHelper.sin(yaw)) * d10 / d6;
+                    mc.player.motionZ -= (double) MathHelper.cos(yaw) * d10 / d6;
+                    mc.player.motionX *= 0.99f;
+                    mc.player.motionY *= 0.98f;
+                    mc.player.motionZ *= 0.99f;
+                }
+            } else {
+                mc.player.motionX = (double) (-MathHelper.sin(yaw)) * speedControl.getValue();
+                mc.player.motionY = -fallSpeedControl.getValue().doubleValue();
+                mc.player.motionZ = (double) MathHelper.cos(yaw) * speedControl.getValue();
+            }
+        } else { /* Stop moving if no inputs are pressed */
+            mc.player.motionX = 0.0;
+            mc.player.motionY = 0.0;
+            mc.player.motionZ = 0.0;
+        }
+        if (moveDown) {
+            mc.player.motionY = -downSpeedControl.getValue();
+        }
+        if (moveUp || moveDown) {
+            hoverTarget = mc.player.posY;
+        }
+        event.cancel();
+    });
+    /* End of Control Mode */
+
     @Override
     public void onUpdate() {
-        if (mc.player == null) return;
+        if (mc.player == null) {
+//            disable();
+            return;
+        }
+
         if (defaultSetting.getValue()) defaults();
 
         if (enabledMode != mode.getValue() && !hasDoneWarning) {
@@ -150,17 +246,17 @@ public class ElytraFlight extends Module {
 
     @Override
     protected void onDisable() {
-        if (!mode.getValue().equals(ElytraFlightMode.CONTROL)) {
-            mc.player.capabilities.isFlying = false;
-            mc.player.capabilities.setFlySpeed(0.05f);
-            if (mc.player.capabilities.isCreativeMode) return;
-            mc.player.capabilities.allowFlying = false;
-        }
+        mc.timer.tickLength = 50.0f;
+        mc.player.capabilities.isFlying = false;
+        mc.player.capabilities.setFlySpeed(0.05f);
+        if (mc.player.capabilities.isCreativeMode) return;
+        mc.player.capabilities.allowFlying = false;
     }
 
     @Override
     protected void onEnable() {
         enabledMode = mode.getValue();
+        hoverTarget = -1.0; /* For control mode */
     }
 
     private void defaults() {
