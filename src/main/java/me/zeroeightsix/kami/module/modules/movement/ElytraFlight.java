@@ -14,7 +14,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 /**
  * Created by 086 on 11/04/2018.
  * Updated by Itistheend on 28/12/19.
- * Updated by S-B99 on 06/03/20
+ * Updated by S-B99 on 15/04/20
  */
 @Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
 public class ElytraFlight extends Module {
@@ -146,8 +146,8 @@ public class ElytraFlight extends Module {
         upSpeedBoost.setValue(0.08f);
         downSpeedBoost.setValue(0.04f);
         defaultSetting.setValue(false);
-        sendChatMessage(getChatName() + " Set to defaults!");
-        sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
+        sendChatMessage(getChatName() + "Set to defaults!");
+        sendChatMessage(getChatName() + "Close and reopen the " + getName() + " settings menu to see changes");
     }
 
     private float getHighwaySpeed() {
