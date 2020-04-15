@@ -9,6 +9,7 @@ import net.minecraft.util.math.MathHelper;
 import java.util.Objects;
 
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * Created by 086 on 11/04/2018.
@@ -29,10 +30,20 @@ public class ElytraFlight extends Module {
     private Setting<Float> upSpeedBoost = register(Settings.floatBuilder("Up Speed B").withValue(0.08f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
     private Setting<Float> downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
 
+    private ElytraFlightMode enabledMode;
+    private boolean hasDoneWarning;
+
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
         if (defaultSetting.getValue()) defaults();
+
+        if (enabledMode != mode.getValue() && !hasDoneWarning) {
+            sendErrorMessage("&l&cWARNING:&r Changing the mode while you're flying is not recommended. If you weren't flying you can ignore this message.");
+            hasDoneWarning = true;
+        }
+
+        if (mode.getValue().equals(ElytraFlightMode.CONTROL)) return;
 
         takeOff();
         setFlySpeed();
@@ -111,10 +122,17 @@ public class ElytraFlight extends Module {
 
     @Override
     protected void onDisable() {
-        mc.player.capabilities.isFlying = false;
-        mc.player.capabilities.setFlySpeed(0.05f);
-        if (mc.player.capabilities.isCreativeMode) return;
-        mc.player.capabilities.allowFlying = false;
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL)) {
+            mc.player.capabilities.isFlying = false;
+            mc.player.capabilities.setFlySpeed(0.05f);
+            if (mc.player.capabilities.isCreativeMode) return;
+            mc.player.capabilities.allowFlying = false;
+        }
+    }
+
+    @Override
+    protected void onEnable() {
+        enabledMode = mode.getValue();
     }
 
     private void defaults() {
@@ -140,6 +158,6 @@ public class ElytraFlight extends Module {
         }
     }
 
-    private enum ElytraFlightMode { BOOST, FLY, HIGHWAY }
+    private enum ElytraFlightMode { BOOST, FLY, CONTROL, HIGHWAY }
     private enum TakeoffMode { CLIENT, PACKET }
 }
