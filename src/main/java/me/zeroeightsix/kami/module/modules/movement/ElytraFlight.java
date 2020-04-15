@@ -33,6 +33,34 @@ public class ElytraFlight extends Module {
     private ElytraFlightMode enabledMode;
     private boolean hasDoneWarning;
 
+    /* Control mode states */
+    private double hoverTarget = -1.0;
+    public float packetYaw = 0.0f;
+
+    /* Control Mode */
+    @EventHandler
+    private Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null) return;
+        if (event.getPacket() instanceof CPacketPlayer) {
+            if (!mc.player.isElytraFlying()) return;
+            CPacketPlayer packet = (CPacketPlayer) event.getPacket();
+            packet.pitch = 0.0f;
+            packet.yaw = packetYaw;
+        }
+        if (event.getPacket() instanceof CPacketEntityAction && ((CPacketEntityAction) event.getPacket()).getAction() == CPacketEntityAction.Action.START_FALL_FLYING) {
+            hoverTarget = mc.player.posY + 0.35;
+        }
+    });
+
+    @EventHandler
+    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null || !mc.player.isElytraFlying()) return;
+        if (event.getPacket() instanceof SPacketPlayerPosLook) {
+            SPacketPlayerPosLook packet = (SPacketPlayerPosLook) event.getPacket();
+            packet.pitch = ElytraFlight.mc.player.rotationPitch;
+        }
+    });
+
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
