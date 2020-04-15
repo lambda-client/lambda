@@ -81,7 +81,7 @@ public class ElytraFlight extends Module {
         if (!mc.player.isElytraFlying()) {
             if (easyTakeOffControl.getValue() && !mc.player.onGround && mc.player.motionY < -0.04) {
                 Objects.requireNonNull(mc.getConnection()).sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING));
-//                mc.timer.tickLength = 200.0f;
+                mc.timer.tickLength = 200.0f;
                 event.cancel();
                 return;
             }
@@ -89,10 +89,9 @@ public class ElytraFlight extends Module {
         }
 
         mc.timer.tickLength = 50.0f;
-        if (hoverTarget < 0.0) {
-            hoverTarget = mc.player.posY;
-        }
+        if (hoverTarget < 0.0) hoverTarget = mc.player.posY;
 
+        /* this is horrible but what other way to store these for later */
         boolean moveForward = mc.gameSettings.keyBindForward.isKeyDown();
         boolean moveBackward = mc.gameSettings.keyBindBack.isKeyDown();
         boolean moveLeft = mc.gameSettings.keyBindLeft.isKeyDown();
@@ -116,26 +115,25 @@ public class ElytraFlight extends Module {
         packetYaw = yawDeg;
         float yaw = (float) Math.toRadians(yawDeg);
         /*float pitch = (float) Math.toRadians(ElytraFlight.mc.player.rotationPitch);*/
-        double d8 = Math.sqrt(mc.player.motionX * mc.player.motionX + mc.player.motionZ * mc.player.motionZ);
+        double motionAmount = Math.sqrt(mc.player.motionX * mc.player.motionX + mc.player.motionZ * mc.player.motionZ);
         hoverState = hoverState ? mc.player.posY < hoverTarget + 0.1 : mc.player.posY < hoverTarget + 0.0;
-        boolean tmp = doHover = hoverState && hoverControl.getValue();
+        doHover = hoverState && hoverControl.getValue();
         if (moveUp || moveForward || moveBackward || moveLeft || moveRight || MODULE_MANAGER.isModuleEnabled(AutoWalk.class)) {
-            if ((moveUp || doHover) && d8 > 1.0) {
+            if ((moveUp || doHover) && motionAmount > 1.0) {
                 if (mc.player.motionX == 0.0 && mc.player.motionZ == 0.0) {
                     mc.player.motionY = downSpeedControl.getValue();
                 } else {
-                    double d6 = 1.0;
-                    double d10 = d8 * 0.2 * 0.04;
-                    mc.player.motionY += d10 * 3.2;
-                    mc.player.motionX -= (double) (-MathHelper.sin(yaw)) * d10 / d6;
-                    mc.player.motionZ -= (double) MathHelper.cos(yaw) * d10 / d6;
+                    double calcMotionDiff = motionAmount * 0.008;
+                    mc.player.motionY += calcMotionDiff * 3.2;
+                    mc.player.motionX -= (double) (-MathHelper.sin(yaw)) * calcMotionDiff / 1.0;
+                    mc.player.motionZ -= (double) MathHelper.cos(yaw) * calcMotionDiff / 1.0;
                     mc.player.motionX *= 0.99f;
                     mc.player.motionY *= 0.98f;
                     mc.player.motionZ *= 0.99f;
                 }
-            } else {
+            } else { /* runs when pressing wasd */
                 mc.player.motionX = (double) (-MathHelper.sin(yaw)) * speedControl.getValue();
-                mc.player.motionY = -fallSpeedControl.getValue().doubleValue();
+                mc.player.motionY = -fallSpeedControl.getValue();
                 mc.player.motionZ = (double) MathHelper.cos(yaw) * speedControl.getValue();
             }
         } else { /* Stop moving if no inputs are pressed */
@@ -155,10 +153,7 @@ public class ElytraFlight extends Module {
 
     @Override
     public void onUpdate() {
-        if (mc.player == null) {
-//            disable();
-            return;
-        }
+        if (mc.player == null) return;
 
         if (defaultSetting.getValue()) defaults();
 
