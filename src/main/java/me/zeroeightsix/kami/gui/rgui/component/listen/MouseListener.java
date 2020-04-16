@@ -6,17 +6,17 @@ import me.zeroeightsix.kami.gui.rgui.component.Component;
  * Created by 086 on 26/06/2017.
  */
 public interface MouseListener {
-    public void onMouseDown(MouseButtonEvent event);
+    void onMouseDown(MouseButtonEvent event);
 
-    public void onMouseRelease(MouseButtonEvent event);
+    void onMouseRelease(MouseButtonEvent event);
 
-    public void onMouseDrag(MouseButtonEvent event);
+    void onMouseDrag(MouseButtonEvent event);
 
-    public void onMouseMove(MouseMoveEvent event);
+    void onMouseMove(MouseMoveEvent event);
 
-    public void onScroll(MouseScrollEvent event);
+    void onScroll(MouseScrollEvent event);
 
-    public static class MouseMoveEvent {
+    class MouseMoveEvent {
         boolean cancelled = false;
         int x;
         int y;
@@ -48,6 +48,10 @@ public interface MouseListener {
             return y;
         }
 
+        public void setY(int y) {
+            this.y = y;
+        }
+
         public int getX() {
             return x;
         }
@@ -56,16 +60,12 @@ public interface MouseListener {
             this.x = x;
         }
 
-        public void setY(int y) {
-            this.y = y;
-        }
-
         public boolean isCancelled() {
             return cancelled;
         }
     }
 
-    public static class MouseButtonEvent {
+    class MouseButtonEvent {
         int x;
         int y;
         int button;
@@ -84,28 +84,28 @@ public interface MouseListener {
             return component;
         }
 
-        public void setButton(int button) {
-            this.button = button;
-        }
-
         public int getButton() {
             return button;
         }
 
-        public void setX(int x) {
-            this.x = x;
+        public void setButton(int button) {
+            this.button = button;
         }
 
         public int getX() {
             return x;
         }
 
-        public void setY(int y) {
-            this.y = y;
+        public void setX(int x) {
+            this.x = x;
         }
 
         public int getY() {
             return y;
+        }
+
+        public void setY(int y) {
+            this.y = y;
         }
 
         public void cancel() {
@@ -117,7 +117,7 @@ public interface MouseListener {
         }
     }
 
-    public static class MouseScrollEvent {
+    class MouseScrollEvent {
         int x;
         int y;
         boolean up;
@@ -143,20 +143,20 @@ public interface MouseListener {
             this.up = up;
         }
 
-        public void setX(int x) {
-            this.x = x;
-        }
-
         public int getX() {
             return x;
         }
 
-        public void setY(int y) {
-            this.y = y;
+        public void setX(int x) {
+            this.x = x;
         }
 
         public int getY() {
             return y;
+        }
+
+        public void setY(int y) {
+            this.y = y;
         }
 
         public void cancel() {

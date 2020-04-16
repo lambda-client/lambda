@@ -11,7 +11,7 @@ import java.lang.reflect.ParameterizedType;
  */
 public abstract class AbstractComponentUI<T extends Component> implements ComponentUI<T> {
 
-    private Class<T> persistentClass;
+    private final Class<T> persistentClass;
 
     public AbstractComponentUI() {
         this.persistentClass = (Class<T>) ((ParameterizedType) getClass()

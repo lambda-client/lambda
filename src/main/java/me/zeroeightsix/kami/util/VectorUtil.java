@@ -28,9 +28,9 @@ public class VectorUtil {
     /**
      * Gets vectors between two given vectors (startVec and destinationVec) every (distance between the given vectors) / steps
      *
-     * @param startVec Beginning vector
+     * @param startVec       Beginning vector
      * @param destinationVec Ending vector
-     * @param steps distance between given vectors
+     * @param steps          distance between given vectors
      * @return all vectors between startVec and destinationVec divided by steps
      */
     public static ArrayList<Vec3d> extendVec(Vec3d startVec, Vec3d destinationVec, int steps) {
@@ -49,9 +49,9 @@ public class VectorUtil {
     /**
      * Moves a vector towards a destination based on distance
      *
-     * @param startVec Starting vector
+     * @param startVec       Starting vector
      * @param destinationVec returned vector
-     * @param distance distance to move startVec by
+     * @param distance       distance to move startVec by
      * @return vector based on startVec that is moved towards destinationVec by distance
      */
     public static Vec3d advanceVec(Vec3d startVec, Vec3d destinationVec, double distance) {
@@ -105,7 +105,9 @@ public class VectorUtil {
 
         for (int x = minX; x < maxX; x++) {
             for (int y = minY; y < maxY; y++) {
-                for (int z = minZ; z < maxZ; z++) { returnList.add(new BlockPos(x, y, z)); }
+                for (int z = minZ; z < maxZ; z++) {
+                    returnList.add(new BlockPos(x, y, z));
+                }
             }
         }
 

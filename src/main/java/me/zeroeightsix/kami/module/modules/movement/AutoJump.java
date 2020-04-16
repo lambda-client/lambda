@@ -9,6 +9,7 @@ import me.zeroeightsix.kami.setting.Settings;
  */
 @Module.Info(name = "AutoJump", category = Module.Category.MOVEMENT, description = "Automatically jumps if possible")
 public class AutoJump extends Module {
+    private static long startTime = 0;
     private Setting<Integer> delay = register(Settings.integerBuilder("Tick Delay").withValue(10).build());
 
     @Override
@@ -24,7 +25,6 @@ public class AutoJump extends Module {
         }
     }
 
-    private static long startTime = 0;
     private boolean timeout() {
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + ((delay.getValue() / 20) * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms

@@ -21,18 +21,16 @@ import net.minecraft.util.math.Vec3d;
 public class NoFall extends Module {
 
     private Setting<FallMode> fallMode = register(Settings.e("Mode", FallMode.PACKET));
-    private Setting<Boolean> pickup = register(Settings.booleanBuilder("Pickup").withValue(true).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET)).build());
-    private Setting<Integer> distance = register(Settings.integerBuilder("Distance").withValue(3).withMinimum(1).withMaximum(10).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET)).build());
-    private Setting<Integer> pickupDelay = register(Settings.integerBuilder("Pickup Delay").withValue(300).withMinimum(100).withMaximum(1000).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET) && pickup.getValue()).build());
-
-    private long last = 0;
-
     @EventHandler
     public Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if ((fallMode.getValue().equals(FallMode.PACKET)) && event.getPacket() instanceof CPacketPlayer) {
             ((CPacketPlayer) event.getPacket()).onGround = true;
         }
     });
+    private Setting<Boolean> pickup = register(Settings.booleanBuilder("Pickup").withValue(true).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET)).build());
+    private Setting<Integer> distance = register(Settings.integerBuilder("Distance").withValue(3).withMinimum(1).withMaximum(10).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET)).build());
+    private Setting<Integer> pickupDelay = register(Settings.integerBuilder("Pickup Delay").withValue(300).withMinimum(100).withMaximum(1000).withVisibility(v -> fallMode.getValue().equals(FallMode.BUCKET) && pickup.getValue()).build());
+    private long last = 0;
 
     @Override
     public void onUpdate() {
@@ -57,7 +55,10 @@ public class NoFall extends Module {
             }
             if (pickup.getValue()) {
                 new Thread(() -> {
-                    try { Thread.sleep(pickupDelay.getValue()); } catch (InterruptedException ignored) { }
+                    try {
+                        Thread.sleep(pickupDelay.getValue());
+                    } catch (InterruptedException ignored) {
+                    }
                     mc.player.rotationPitch = 90;
                     mc.rightClickMouse();
                 }).start();

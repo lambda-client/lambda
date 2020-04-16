@@ -41,6 +41,18 @@ public class SettingsPanel extends OrganisedContainer {
         return module;
     }
 
+    public void setModule(Module module) {
+        this.module = module;
+        setMinimumWidth((int) (getParent().getWidth() * .9f));
+        prepare();
+
+        setAffectLayout(false);
+        for (Component component : children) {
+            component.setWidth(getWidth() - 10);
+            component.setX(5);
+        }
+    }
+
     private void prepare() {
         getChildren().clear();
         if (module == null) {
@@ -141,18 +153,6 @@ public class SettingsPanel extends OrganisedContainer {
         } else {
             setVisible(true);
             return;
-        }
-    }
-
-    public void setModule(Module module) {
-        this.module = module;
-        setMinimumWidth((int) (getParent().getWidth() * .9f));
-        prepare();
-
-        setAffectLayout(false);
-        for (Component component : children) {
-            component.setWidth(getWidth() - 10);
-            component.setX(5);
         }
     }
 }

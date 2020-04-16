@@ -20,10 +20,18 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.*;
  */
 @Module.Info(name = "Spammer", description = "Spams text from a file on a set delay into the chat", category = Module.Category.CHAT)
 public class Spammer extends Module {
-    private Setting<Integer> timeoutTime = register(Settings.integerBuilder().withName("Timeout (s)").withMinimum(1).withMaximum(240).withValue(10).build());
-
+    private static long startTime = 0;
     List<String> tempLines = new ArrayList<>();
     String[] spammer;
+    private Setting<Integer> timeoutTime = register(Settings.integerBuilder().withName("Timeout (s)").withMinimum(1).withMaximum(240).withValue(10).build());
+
+    public static String getRandom(String[] array) {
+        int rand = new Random().nextInt(array.length);
+        while (array[rand].isEmpty() || array[rand].equals(" ")) {
+            rand = new Random().nextInt(array.length); // big meme to try to avoid sending empty messages
+        }
+        return array[rand];
+    }
 
     public void onEnable() {
         BufferedReader bufferedReader;
@@ -49,20 +57,11 @@ public class Spammer extends Module {
         sendMsg(getRandom(spammer));
     }
 
-    private static long startTime = 0;
     private void sendMsg(String message) {
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + (timeoutTime.getValue() * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
             sendServerMessage(message);
         }
-    }
-
-    public static String getRandom(String[] array) {
-        int rand = new Random().nextInt(array.length);
-        while (array[rand].isEmpty() || array[rand].equals(" ")) {
-            rand = new Random().nextInt(array.length); // big meme to try to avoid sending empty messages
-        }
-        return array[rand];
     }
 }

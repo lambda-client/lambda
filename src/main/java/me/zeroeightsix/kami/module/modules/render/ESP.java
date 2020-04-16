@@ -29,10 +29,6 @@ public class ESP extends Module {
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
     private Setting<Boolean> renderInvis = register(Settings.b("Invisible", false));
 
-    public enum ESPMode {
-        RECTANGLE, GLOW
-    }
-
     @Override
     public void onWorldRender(RenderEvent event) {
 
@@ -137,5 +133,9 @@ public class ESP extends Module {
             }
             mc.player.setGlowing(false);
         }
+    }
+
+    public enum ESPMode {
+        RECTANGLE, GLOW
     }
 }

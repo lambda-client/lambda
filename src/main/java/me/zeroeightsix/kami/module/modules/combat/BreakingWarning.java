@@ -20,7 +20,7 @@ import static me.zeroeightsix.kami.gui.kami.DisplayGuiScreen.getScale;
 /**
  * @author Antonio32A
  * Updated by S-B99 on 31/03/20
- *
+ * <p>
  * Antonio32A created the pastDistance method, used by ForgeHax here:
  * https://github.com/fr1kin/ForgeHax/blob/2011740/src/main/java/com/matt/forgehax/mods/CoordsFinder.java#L126
  */
@@ -35,7 +35,7 @@ public class BreakingWarning extends Module {
     private int delay;
 
     @EventHandler
-    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
+    private final Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
         if (event.getPacket() instanceof SPacketBlockBreakAnim) {
             SPacketBlockBreakAnim packet = (SPacketBlockBreakAnim) event.getPacket();
 
@@ -51,7 +51,8 @@ public class BreakingWarning extends Module {
             if (obsidianOnly.getValue() && !block.equals(Blocks.OBSIDIAN)) return;
 
             if (pickaxeOnly.getValue()) {
-                if (breaker.itemStackMainHand.isEmpty() || !(breaker.itemStackMainHand.getItem() instanceof ItemPickaxe)) return;
+                if (breaker.itemStackMainHand.isEmpty() || !(breaker.itemStackMainHand.getItem() instanceof ItemPickaxe))
+                    return;
             }
 
             if (pastDistance(mc.player, pos, minRange.getValue())) {

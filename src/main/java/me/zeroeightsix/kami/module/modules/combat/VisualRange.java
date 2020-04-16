@@ -25,7 +25,7 @@ public class VisualRange extends Module {
     private Setting<Boolean> uwuAura = register(Settings.b("UwU Aura", false));
 
     private List<String> knownPlayers;
-    
+
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
@@ -48,7 +48,7 @@ public class VisualRange extends Module {
                     } else {
                         sendNotification(ChatFormatting.RED.toString() + playerName + ChatFormatting.RESET.toString() + " entered the Battlefield!");
                     }
-                    if (uwuAura.getValue()) sendServerMessage("/w "+ playerName + " hi uwu");
+                    if (uwuAura.getValue()) sendServerMessage("/w " + playerName + " hi uwu");
 
                     return;
                 }
@@ -66,7 +66,7 @@ public class VisualRange extends Module {
                         } else {
                             sendNotification(ChatFormatting.RED.toString() + playerName + ChatFormatting.RESET.toString() + " left the Battlefield!");
                         }
-                        if (uwuAura.getValue()) sendServerMessage(("/w "+ playerName + " bye uwu"));
+                        if (uwuAura.getValue()) sendServerMessage(("/w " + playerName + " bye uwu"));
                     }
 
                     return;

@@ -10,29 +10,14 @@ import java.util.StringTokenizer;
  */
 public class SettingsRegister {
 
-    public static final SettingsRegister ROOT = new SettingsRegister();
+    public static SettingsRegister ROOT = new SettingsRegister();
 
     public HashMap<String, SettingsRegister> registerHashMap = new HashMap<>();
     public HashMap<String, Setting> settingHashMap = new HashMap<>();
 
-    public SettingsRegister subregister(String name) {
-        if (registerHashMap.containsKey(name)) return registerHashMap.get(name);
-        SettingsRegister register = new SettingsRegister();
-        registerHashMap.put(name, register);
-        return register;
-    }
-
-    private void put(String name, Setting setting) {
-        settingHashMap.put(name, setting);
-    }
-
     public static void register(String name, Setting setting) {
         Pair<String, SettingsRegister> pair = dig(name);
         pair.getValue().put(pair.getKey(), setting);
-    }
-
-    public Setting getSetting(String group) {
-        return settingHashMap.get(group);
     }
 
     public static Setting get(String group) {
@@ -54,6 +39,21 @@ public class SettingsRegister {
             }
         }
         return new Pair<>(previousToken == null ? "" : previousToken, current);
+    }
+
+    public SettingsRegister subregister(String name) {
+        if (registerHashMap.containsKey(name)) return registerHashMap.get(name);
+        SettingsRegister register = new SettingsRegister();
+        registerHashMap.put(name, register);
+        return register;
+    }
+
+    private void put(String name, Setting setting) {
+        settingHashMap.put(name, setting);
+    }
+
+    public Setting getSetting(String group) {
+        return settingHashMap.get(group);
     }
 
 }

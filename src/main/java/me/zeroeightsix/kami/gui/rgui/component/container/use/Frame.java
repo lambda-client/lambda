@@ -115,54 +115,12 @@ public class Frame extends OrganisedContainer {
         addMouseListener(new GayMouseListener());
     }
 
-    // what is this naming??
-    public class GayMouseListener implements MouseListener {
-        @Override
-        public void onMouseDown(MouseButtonEvent event) {
-            dx = event.getX() + getOriginOffsetX();
-            dy = event.getY() + getOriginOffsetY();
-            if (dy <= getOriginOffsetY() && event.getButton() == 0 && dy > 0)
-                doDrag = true;
-            else
-                doDrag = false;
-
-            if (isMinimized && event.getY() > getOriginOffsetY())
-                event.cancel();
-        }
-
-        @Override
-        public void onMouseRelease(MouseButtonEvent event) {
-            doDrag = false;
-            startDrag = false;
-        }
-
-        @Override
-        public void onMouseDrag(MouseButtonEvent event) {
-            if (!doDrag) return;
-            startDrag = true;
-        }
-
-        @Override
-        public void onMouseMove(MouseMoveEvent event) {
-
-        }
-
-        @Override
-        public void onScroll(MouseScrollEvent event) {
-
-        }
-    }
-
-    public void setCloseable(boolean closeable) {
-        isCloseable = closeable;
+    public boolean isMinimizeable() {
+        return isMinimizeable;
     }
 
     public void setMinimizeable(boolean minimizeable) {
         isMinimizeable = minimizeable;
-    }
-
-    public boolean isMinimizeable() {
-        return isMinimizeable;
     }
 
     public boolean isMinimized() {
@@ -190,18 +148,24 @@ public class Frame extends OrganisedContainer {
         isMinimized = minimized;
     }
 
-    public boolean isCloseable() { return isCloseable; }
+    public boolean isCloseable() {
+        return isCloseable;
+    }
+
+    public void setCloseable(boolean closeable) {
+        isCloseable = closeable;
+    }
 
     public boolean isPinnable() {
         return isPinneable;
     }
 
-    public boolean isPinned() {
-        return isPinned;
-    }
-
     public void setPinnable(boolean pinneable) {
         isPinneable = pinneable;
+    }
+
+    public boolean isPinned() {
+        return isPinned;
     }
 
     public void setPinned(boolean pinned) {
@@ -235,17 +199,52 @@ public class Frame extends OrganisedContainer {
                 return x;
             }
 
-            public int getY() {
-                return y;
-            }
-
             public void setX(int x) {
                 this.x = x;
+            }
+
+            public int getY() {
+                return y;
             }
 
             public void setY(int y) {
                 this.y = y;
             }
+        }
+    }
+
+    // what is this naming??
+    public class GayMouseListener implements MouseListener {
+        @Override
+        public void onMouseDown(MouseButtonEvent event) {
+            dx = event.getX() + getOriginOffsetX();
+            dy = event.getY() + getOriginOffsetY();
+            doDrag = dy <= getOriginOffsetY() && event.getButton() == 0 && dy > 0;
+
+            if (isMinimized && event.getY() > getOriginOffsetY())
+                event.cancel();
+        }
+
+        @Override
+        public void onMouseRelease(MouseButtonEvent event) {
+            doDrag = false;
+            startDrag = false;
+        }
+
+        @Override
+        public void onMouseDrag(MouseButtonEvent event) {
+            if (!doDrag) return;
+            startDrag = true;
+        }
+
+        @Override
+        public void onMouseMove(MouseMoveEvent event) {
+
+        }
+
+        @Override
+        public void onScroll(MouseScrollEvent event) {
+
         }
     }
 }

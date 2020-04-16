@@ -25,6 +25,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
  */
 @Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
 public class ElytraFlight extends Module {
+    public float packetYaw = 0.0f;
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
     private Setting<Boolean> easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff H").withValue(true).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
@@ -42,18 +43,15 @@ public class ElytraFlight extends Module {
     private Setting<Float> upSpeedBoost = register(Settings.floatBuilder("Up Speed B").withValue(0.08f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
     private Setting<Float> downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
     private Setting<Double> downSpeedControl = register(Settings.doubleBuilder("Down Speed C").withMaximum(10.0).withMinimum(0.0).withValue(2.0).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
-
     private ElytraFlightMode enabledMode;
     private boolean hasDoneWarning;
-
     /* Control mode states */
     private double hoverTarget = -1.0;
-    public float packetYaw = 0.0f;
     private boolean hoverState = false;
 
     /* Control Mode */
     @EventHandler
-    private Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
+    private final Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null) return;
         if (event.getPacket() instanceof CPacketPlayer) {
             if (!mc.player.isElytraFlying()) return;
@@ -67,8 +65,9 @@ public class ElytraFlight extends Module {
     });
 
     @EventHandler
-    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
-        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null || !mc.player.isElytraFlying()) return;
+    private final Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null || !mc.player.isElytraFlying())
+            return;
         if (event.getPacket() instanceof SPacketPlayerPosLook) {
             SPacketPlayerPosLook packet = (SPacketPlayerPosLook) event.getPacket();
             packet.pitch = ElytraFlight.mc.player.rotationPitch;
@@ -76,7 +75,7 @@ public class ElytraFlight extends Module {
     });
 
     @EventHandler
-    private Listener<PlayerTravelEvent> playerTravelListener = new Listener<>(event -> {
+    private final Listener<PlayerTravelEvent> playerTravelListener = new Listener<>(event -> {
         if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null) return;
         boolean doHover;
         if (!mc.player.isElytraFlying()) {
@@ -182,20 +181,18 @@ public class ElytraFlight extends Module {
 
             if (mc.gameSettings.keyBindJump.isKeyDown())
                 mc.player.motionY += upSpeedBoost.getValue();
-            else
-                if (mc.gameSettings.keyBindSneak.isKeyDown())
-                    mc.player.motionY -= downSpeedBoost.getValue();
+            else if (mc.gameSettings.keyBindSneak.isKeyDown())
+                mc.player.motionY -= downSpeedBoost.getValue();
 
             if (mc.gameSettings.keyBindForward.isKeyDown()) {
                 float yaw = (float) Math.toRadians(mc.player.rotationYaw);
                 mc.player.motionX -= MathHelper.sin(yaw) * 0.05F;
                 mc.player.motionZ += MathHelper.cos(yaw) * 0.05F;
-            } else
-                if (mc.gameSettings.keyBindBack.isKeyDown()) {
-                    float yaw = (float) Math.toRadians(mc.player.rotationYaw);
-                    mc.player.motionX += MathHelper.sin(yaw) * 0.05F;
-                    mc.player.motionZ -= MathHelper.cos(yaw) * 0.05F;
-                }
+            } else if (mc.gameSettings.keyBindBack.isKeyDown()) {
+                float yaw = (float) Math.toRadians(mc.player.rotationYaw);
+                mc.player.motionX += MathHelper.sin(yaw) * 0.05F;
+                mc.player.motionZ -= MathHelper.cos(yaw) * 0.05F;
+            }
         } else {
             mc.player.capabilities.setFlySpeed(.915f);
             mc.player.capabilities.isFlying = true;
@@ -283,6 +280,7 @@ public class ElytraFlight extends Module {
         }
     }
 
-    private enum ElytraFlightMode { BOOST, FLY, CONTROL, HIGHWAY }
-    private enum TakeoffMode { CLIENT, PACKET }
+    private enum ElytraFlightMode {BOOST, FLY, CONTROL, HIGHWAY}
+
+    private enum TakeoffMode {CLIENT, PACKET}
 }

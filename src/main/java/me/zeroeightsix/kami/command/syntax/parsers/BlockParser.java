@@ -10,7 +10,7 @@ import java.util.TreeMap;
 
 public class BlockParser extends AbstractParser {
 
-    private static HashMap<String, Block> blockNames = new HashMap<>();
+    private static final HashMap<String, Block> blockNames = new HashMap<>();
 
     public BlockParser() {
         if (!blockNames.isEmpty()) return;

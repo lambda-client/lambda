@@ -28,9 +28,34 @@ public abstract class GUI extends AbstractContainer {
 
     int mx = 0;
     int my = 0;
+    long lastMS = System.currentTimeMillis();
 
     public GUI(Theme theme) {
         super(theme);
+    }
+
+    public static int[] calculateRealPosition(Component c) {
+        int realX = c.getX(), realY = c.getY();
+        if (c instanceof Container) {
+            realX += ((Container) c).getOriginOffsetX();
+            realY += ((Container) c).getOriginOffsetY();
+        }
+
+        Component parent = c.getParent();
+        while (parent != null) {
+            realX += parent.getX();
+            realY += parent.getY();
+            if (parent instanceof Container) {
+                realX += ((Container) parent).getOriginOffsetX();
+                realY += ((Container) parent).getOriginOffsetY();
+            }
+            parent = parent.getParent();
+        }
+
+        return new int[]{
+                realX,
+                realY
+        };
     }
 
     public abstract void initializeGUI();
@@ -333,8 +358,6 @@ public abstract class GUI extends AbstractContainer {
         }
     }
 
-    long lastMS = System.currentTimeMillis();
-
     public void update() {
         if (System.currentTimeMillis() - lastMS > 1000 / 20) {
             callTick(this);
@@ -348,29 +371,5 @@ public abstract class GUI extends AbstractContainer {
 
     public Component getFocus() {
         return focus;
-    }
-
-    public static int[] calculateRealPosition(Component c) {
-        int realX = c.getX(), realY = c.getY();
-        if (c instanceof Container) {
-            realX += ((Container) c).getOriginOffsetX();
-            realY += ((Container) c).getOriginOffsetY();
-        }
-
-        Component parent = c.getParent();
-        while (parent != null) {
-            realX += parent.getX();
-            realY += parent.getY();
-            if (parent instanceof Container) {
-                realX += ((Container) parent).getOriginOffsetX();
-                realY += ((Container) parent).getOriginOffsetY();
-            }
-            parent = parent.getParent();
-        }
-
-        return new int[]{
-                realX,
-                realY
-        };
     }
 }

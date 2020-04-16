@@ -10,9 +10,8 @@ import me.zeroeightsix.kami.setting.Settings;
 @Module.Info(name = "ExtraTab", description = "Expands the player tab menu", category = Module.Category.RENDER)
 public class ExtraTab extends Module {
 
-    public Setting<Integer> tabSize = register(Settings.integerBuilder("Players").withMinimum(1).withValue(80).build());
-
     public static ExtraTab INSTANCE;
+    public Setting<Integer> tabSize = register(Settings.integerBuilder("Players").withMinimum(1).withValue(80).build());
 
     public ExtraTab() {
         ExtraTab.INSTANCE = this;

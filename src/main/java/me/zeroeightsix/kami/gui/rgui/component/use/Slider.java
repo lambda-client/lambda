@@ -59,14 +59,6 @@ public class Slider extends AbstractComponent {
         this(value, minimum, maximum, getDefaultStep(minimum, maximum), text, false);
     }
 
-    private double calculateValue(double x) {
-        double d1 = x / getWidth();
-        double d2 = (maximum - minimum);
-        double s = d1 * d2 + minimum;
-
-        return MathHelper.clamp(Math.floor((Math.round(s / step) * step) * 100) / 100, minimum, maximum); // round to 2 decimals & clamp min and max
-    }
-
     public static double getDefaultStep(double min, double max) {
         double s = gcd(min, max);
         if (s == max) {
@@ -77,6 +69,21 @@ public class Slider extends AbstractComponent {
         }
         if (s == 0) s = max;
         return s;
+    }
+
+    public static double gcd(double a, double b) {
+        a = Math.floor(a);
+        b = Math.floor(b);
+        if (a == 0 || b == 0) return a + b; // base case
+        return gcd(b, a % b);
+    }
+
+    private double calculateValue(double x) {
+        double d1 = x / getWidth();
+        double d2 = (maximum - minimum);
+        double s = d1 * d2 + minimum;
+
+        return MathHelper.clamp(Math.floor((Math.round(s / step) * step) * 100) / 100, minimum, maximum); // round to 2 decimals & clamp min and max
     }
 
     public String getText() {
@@ -91,19 +98,19 @@ public class Slider extends AbstractComponent {
         return value;
     }
 
+    public void setValue(double value) {
+        SliderPoof.SliderPoofInfo info = new SliderPoof.SliderPoofInfo(this.value, value);
+        callPoof(SliderPoof.class, info);
+        double newValue = info.getNewValue();
+        this.value = integer ? (int) newValue : newValue;
+    }
+
     public double getMaximum() {
         return maximum;
     }
 
     public double getMinimum() {
         return minimum;
-    }
-
-    public void setValue(double value) {
-        SliderPoof.SliderPoofInfo info = new SliderPoof.SliderPoofInfo(this.value, value);
-        callPoof(SliderPoof.class, info);
-        double newValue = info.getNewValue();
-        this.value = integer ? (int) newValue : newValue;
     }
 
     public static abstract class SliderPoof<T extends Component, S extends SliderPoof.SliderPoofInfo> extends Poof<T, S> {
@@ -128,13 +135,6 @@ public class Slider extends AbstractComponent {
                 this.newValue = newValue;
             }
         }
-    }
-
-    public static double gcd(double a, double b) {
-        a = Math.floor(a);
-        b = Math.floor(b);
-        if (a == 0 || b == 0) return a + b; // base case
-        return gcd(b, a % b);
     }
 
 }

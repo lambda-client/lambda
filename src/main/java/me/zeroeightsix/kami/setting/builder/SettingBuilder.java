@@ -20,6 +20,13 @@ public abstract class SettingBuilder<T> {
     protected List<Predicate<T>> predicateList = new ArrayList<>();
     private Predicate<T> visibilityPredicate;
 
+    public static <T> Setting<T> register(Setting<T> setting, String group) {
+        String name = setting.getName();
+        if (name == null || name.isEmpty()) throw new RuntimeException("Can't register nameless setting");
+        SettingsRegister.register(group + "." + name, setting);
+        return setting;
+    }
+
     public SettingBuilder<T> withValue(T value) {
         this.initialValue = value;
         return this;
@@ -60,15 +67,8 @@ public abstract class SettingBuilder<T> {
 
     public abstract Setting<T> build();
 
-    public final Setting<T> buildAndRegister(String group) {
+    public Setting<T> buildAndRegister(String group) {
         return register(build(), group);
-    }
-
-    public static <T> Setting<T> register(Setting<T> setting, String group) {
-        String name = setting.getName();
-        if (name == null || name.isEmpty()) throw new RuntimeException("Can't register nameless setting");
-        SettingsRegister.register(group + "." + name, setting);
-        return setting;
     }
 
 }

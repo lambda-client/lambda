@@ -18,37 +18,33 @@ import java.util.ArrayList;
  */
 public abstract class AbstractComponent implements Component {
 
+    protected int priority = 0;
     int x;
     int y;
     int width;
     int height;
-
     int minWidth = Integer.MIN_VALUE;
     int minHeight = Integer.MIN_VALUE;
     int maxWidth = Integer.MAX_VALUE;
     int maxHeight = Integer.MAX_VALUE;
-
-    protected int priority = 0;
-    private Setting<Boolean> visible = Settings.b("Visible", true);
     float opacity = 1f;
-    private boolean focus = false;
     ComponentUI ui;
     Theme theme;
     Container parent;
-
     boolean hover = false;
     boolean press = false;
     boolean drag = false;
-
     boolean affectlayout = true;
-
     ArrayList<MouseListener> mouseListeners = new ArrayList<>();
     ArrayList<RenderListener> renderListeners = new ArrayList<>();
     ArrayList<KeyListener> keyListeners = new ArrayList<>();
     ArrayList<UpdateListener> updateListeners = new ArrayList<>();
     ArrayList<TickListener> tickListeners = new ArrayList<>();
-
     ArrayList<IPoof> poofs = new ArrayList<>();
+    boolean workingy = false;
+    boolean workingx = false;
+    private Setting<Boolean> visible = Settings.b("Visible", true);
+    private boolean focus = false;
 
     public AbstractComponent() {
         addMouseListener(new MouseListener() {
@@ -107,51 +103,19 @@ public abstract class AbstractComponent implements Component {
     }
 
     @Override
-    public void setFocused(boolean focus) {
-        this.focus = focus;
+    public boolean isFocused() {
+        return focus;
     }
 
     @Override
-    public boolean isFocused() {
-        return focus;
+    public void setFocused(boolean focus) {
+        this.focus = focus;
     }
 
     @Override
     public int getX() {
         return x;
     }
-
-    @Override
-    public int getY() {
-        return y;
-    }
-
-    @Override
-    public int getWidth() {
-        return width;
-    }
-
-    @Override
-    public int getHeight() {
-        return height;
-    }
-
-    boolean workingy = false;
-
-    public void setY(int y) {
-        final int oldX = getX();
-        final int oldY = getY();
-        this.y = y;
-        if (!workingy) {
-            workingy = true;
-            getUpdateListeners().forEach(listener -> listener.updateLocation(this, oldX, oldY)); // First call components own updatelisteners
-            if (getParent() != null)
-                getParent().getUpdateListeners().forEach(listener -> listener.updateLocation(this, oldX, oldY)); // And then notify the parent
-            workingy = false;
-        }
-    }
-
-    boolean workingx = false;
 
     public void setX(int x) {
         final int oldX = getX();
@@ -167,6 +131,29 @@ public abstract class AbstractComponent implements Component {
     }
 
     @Override
+    public int getY() {
+        return y;
+    }
+
+    public void setY(int y) {
+        final int oldX = getX();
+        final int oldY = getY();
+        this.y = y;
+        if (!workingy) {
+            workingy = true;
+            getUpdateListeners().forEach(listener -> listener.updateLocation(this, oldX, oldY)); // First call components own updatelisteners
+            if (getParent() != null)
+                getParent().getUpdateListeners().forEach(listener -> listener.updateLocation(this, oldX, oldY)); // And then notify the parent
+            workingy = false;
+        }
+    }
+
+    @Override
+    public int getWidth() {
+        return width;
+    }
+
+    @Override
     public void setWidth(int width) {
         width = Math.max(getMinimumWidth(), Math.min(width, getMaximumWidth()));
 
@@ -176,6 +163,11 @@ public abstract class AbstractComponent implements Component {
         getUpdateListeners().forEach(listener -> listener.updateSize(this, oldWidth, oldHeight)); // First call components own updatelisteners
         if (getParent() != null)
             getParent().getUpdateListeners().forEach(listener -> listener.updateSize(this, oldWidth, oldHeight)); // And then notify the parent
+    }
+
+    @Override
+    public int getHeight() {
+        return height;
     }
 
     @Override
@@ -306,7 +298,7 @@ public abstract class AbstractComponent implements Component {
 
                 boolean liesin = false;
                 if (component instanceof Container)
-                    liesin = liesIn((Container) component);
+                    liesin = liesIn(component);
                 if (liesin) return true;
             }
             return false;

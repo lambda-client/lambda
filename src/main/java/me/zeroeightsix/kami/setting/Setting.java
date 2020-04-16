@@ -11,20 +11,15 @@ import java.util.function.Predicate;
  */
 public abstract class Setting<T> implements ISettingUnknown, Convertable<T> {
 
+    private final Class valueType;
     String name;
-
     T value;
-
     /**
      * Returns false if the value is "out of bounds"
      */
-    private Predicate<T> restriction;
-
-    private Predicate<T> visibilityPredicate;
-
-    private BiConsumer<T, T> consumer;
-
-    private final Class valueType;
+    private final Predicate<T> restriction;
+    private final Predicate<T> visibilityPredicate;
+    private final BiConsumer<T, T> consumer;
 
     public Setting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate) {
         this.value = value;

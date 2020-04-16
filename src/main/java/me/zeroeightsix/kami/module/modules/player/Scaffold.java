@@ -25,20 +25,31 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
  * Created by 086 on 20/01/19
  * Updated by Polymer on 16/01/20
  * Updated by S-B99 on 02/03/20
+ *
  * @see me.zeroeightsix.kami.mixin.client.MixinEntity
  */
 @Module.Info(name = "Scaffold", category = Module.Category.PLAYER, description = "Places blocks under you")
 public class Scaffold extends Module {
 
+    private static Scaffold INSTANCE;
     private Setting<Boolean> placeBlocks = register(Settings.b("Place Blocks", true));
     private Setting<Mode> modeSetting = register(Settings.enumBuilder(Mode.class).withName("Mode").withValue(Mode.LEGIT).build());
     private Setting<Boolean> randomDelay = register(Settings.booleanBuilder("Random Delay").withValue(false).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT)).build());
     private Setting<Integer> delayRange = register(Settings.integerBuilder("Delay Range").withMinimum(0).withValue(6).withMaximum(10).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT) && randomDelay.getValue()).build());
     private Setting<Integer> ticks = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2).withVisibility(v -> !modeSetting.getValue().equals(Mode.LEGIT)).build());
-
     private boolean shouldSlow = false;
-
-    private static Scaffold INSTANCE;
+    @EventHandler
+    private final Listener<InputUpdateEvent> eventListener = new Listener<>(event -> {
+        if (modeSetting.getValue().equals(Mode.LEGIT) && shouldSlow) {
+            if (randomDelay.getValue()) {
+                event.getMovementInput().moveStrafe *= 0.2f + getRandomInRange();
+                event.getMovementInput().moveForward *= 0.2f + getRandomInRange();
+            } else {
+                event.getMovementInput().moveStrafe *= 0.2f;
+                event.getMovementInput().moveForward *= 0.2f;
+            }
+        }
+    });
 
     public Scaffold() {
         INSTANCE = this;
@@ -47,24 +58,6 @@ public class Scaffold extends Module {
     public static boolean shouldScaffold() {
         return INSTANCE.isEnabled();
     }
-
-    private enum Mode {
-        NEITHER, LEGIT
-    }
-
-    @EventHandler
-    private Listener<InputUpdateEvent> eventListener = new Listener<>(event -> {
-        if (modeSetting.getValue().equals(Mode.LEGIT) && shouldSlow) {
-            if (randomDelay.getValue()) {
-                event.getMovementInput().moveStrafe *= 0.2f + getRandomInRange();
-                event.getMovementInput().moveForward *= 0.2f + getRandomInRange();
-            }
-            else {
-                event.getMovementInput().moveStrafe *= 0.2f;
-                event.getMovementInput().moveForward *= 0.2f;
-            }
-        }
-    });
 
     @Override
     public void onUpdate() {
@@ -135,6 +128,10 @@ public class Scaffold extends Module {
         }
         /* reset slot back to the original one */
         Wrapper.getPlayer().inventory.currentItem = oldSlot;
+    }
+
+    private enum Mode {
+        NEITHER, LEGIT
     }
 }
 

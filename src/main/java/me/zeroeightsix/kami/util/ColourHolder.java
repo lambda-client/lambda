@@ -28,6 +28,16 @@ public class ColourHolder {
         this.a = a;
     }
 
+    public static ColourHolder fromHex(int hex) {
+        ColourHolder n = new ColourHolder(0, 0, 0);
+        n.becomeHex(hex);
+        return n;
+    }
+
+    public static int toHex(int r, int g, int b) {
+        return (0xff << 24) | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+    }
+
     public ColourHolder brighter() {
         return new ColourHolder(Math.min(r + 10, 255), Math.min(g + 10, 255), Math.min(b + 10, 255), getA());
     }
@@ -57,16 +67,6 @@ public class ColourHolder {
         setA(255);
     }
 
-    public static ColourHolder fromHex(int hex) {
-        ColourHolder n = new ColourHolder(0, 0, 0);
-        n.becomeHex(hex);
-        return n;
-    }
-
-    public static int toHex(int r, int g, int b) {
-        return (0xff << 24) | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-    }
-
     public int toHex() {
         return toHex(r, g, b);
     }
@@ -75,16 +75,22 @@ public class ColourHolder {
         return b;
     }
 
+    public ColourHolder setB(int b) {
+        this.b = b;
+        return this;
+    }
+
     public int getG() {
         return g;
     }
 
-    public int getR() {
-        return r;
+    public ColourHolder setG(int g) {
+        this.g = g;
+        return this;
     }
 
-    public int getA() {
-        return a;
+    public int getR() {
+        return r;
     }
 
     public ColourHolder setR(int r) {
@@ -92,14 +98,8 @@ public class ColourHolder {
         return this;
     }
 
-    public ColourHolder setB(int b) {
-        this.b = b;
-        return this;
-    }
-
-    public ColourHolder setG(int g) {
-        this.g = g;
-        return this;
+    public int getA() {
+        return a;
     }
 
     public ColourHolder setA(int a) {

@@ -13,9 +13,9 @@ import org.spongepowered.asm.mixin.Shadow;
 public class MixinRenderGlobal {
 
     @Shadow
-    Minecraft mc;
-    @Shadow
     public ChunkRenderContainer renderContainer;
+    @Shadow
+    Minecraft mc;
 
 //    @Inject(method = "renderBlockLayer(Lnet/minecraft/util/BlockRenderLayer;)V", at = @At("HEAD"), cancellable = true)
 //    public void renderBlockLayer(BlockRenderLayer blockLayerIn, CallbackInfo callbackInfo) {

@@ -27,7 +27,7 @@ public class AutoMend extends Module {
     private int initHotbarSlot = -1;
 
     @EventHandler
-    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
+    private final Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
         if (mc.player != null && (mc.player.getHeldItemMainhand().getItem() == Items.EXPERIENCE_BOTTLE)) {
             mc.rightClickDelayTimer = 0;
         }

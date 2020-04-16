@@ -8,7 +8,7 @@ import net.minecraft.entity.Entity;
  */
 public class EntityEvent extends KamiEvent {
 
-    private Entity entity;
+    private final Entity entity;
 
     public EntityEvent(Entity entity) {
         super();
@@ -33,20 +33,20 @@ public class EntityEvent extends KamiEvent {
             return x;
         }
 
-        public double getY() {
-            return y;
-        }
-
-        public double getZ() {
-            return z;
-        }
-
         public void setX(double x) {
             this.x = x;
         }
 
+        public double getY() {
+            return y;
+        }
+
         public void setY(double y) {
             this.y = y;
+        }
+
+        public double getZ() {
+            return z;
         }
 
         public void setZ(double z) {

@@ -92,7 +92,7 @@ public class Pathfind extends Module {
         if ((points.size() <= 1) && to != null) {
             boolean b = createPath(to);
             boolean flag = points.size() <= 4;
-            if ((b && flag) || flag) {    // The only points present are the starting and end point (or <=2 points in between). We've arrived!
+            if (flag) {    // The only points present are the starting and end point (or <=2 points in between). We've arrived!
                 // Might also return true if we've hit a dead end
                 points.clear();
                 to = null;

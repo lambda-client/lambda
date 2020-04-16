@@ -32,6 +32,25 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
  */
 @Module.Info(name = "DiscordNotifs", category = Module.Category.CHAT, description = "Sends your chat to a set Discord channel", alwaysListening = true)
 public class DiscordNotifs extends Module {
+    private static ServerData cServer;
+    /* Getters for messages */
+    private static long startTime = 0;
+    public Setting<String> url = register(Settings.s("URL", "unchanged"));
+    public Setting<String> pingID = register(Settings.s("Ping ID", "unchanged"));
+    public Setting<String> avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "assets/raw/assets/assets/icons/kami.png"));
+    @EventHandler
+    public Listener<GuiScreenEvent.Closed> serverConnectedEvent = new Listener<>(event -> {
+        if (isEnabled() && event.getScreen() instanceof GuiConnecting) {
+            cServer = mc.currentServerData;
+            EVENT_BUS.post(new ServerConnectedEvent());
+        }
+    });
+    @EventHandler
+    public Listener<GuiScreenEvent.Displayed> serverDisconnectedEvent = new Listener<>(event -> {
+        if (isEnabled() && event.getScreen() instanceof GuiDisconnected && (cServer != null || mc.currentServerData != null)) {
+            EVENT_BUS.post(new ServerDisconnectedEvent());
+        }
+    });
     private Setting<Boolean> timeout = register(Settings.b("Timeout", true));
     private Setting<Integer> timeoutTime = register(Settings.integerBuilder().withName("Seconds").withMinimum(0).withMaximum(120).withValue(10).withVisibility(v -> timeout.getValue()).build());
     private Setting<Boolean> time = register(Settings.b("Timestamp", true));
@@ -42,12 +61,6 @@ public class DiscordNotifs extends Module {
     private Setting<Boolean> restart = register(Settings.booleanBuilder("Restart Msgs").withValue(true).withVisibility(v -> !all.getValue()).build());
     private Setting<Boolean> direct = register(Settings.booleanBuilder("Received DMs").withValue(true).withVisibility(v -> !all.getValue()).build());
     private Setting<Boolean> directSent = register(Settings.booleanBuilder("Send DMs").withValue(true).withVisibility(v -> !all.getValue()).build());
-    public Setting<String> url = register(Settings.s("URL", "unchanged"));
-    public Setting<String> pingID = register(Settings.s("Ping ID", "unchanged"));
-    public Setting<String> avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "assets/raw/assets/assets/icons/kami.png"));
-
-    private static ServerData cServer;
-
     /* Listeners to send the messages */
     @EventHandler
     public Listener<PacketEvent.Receive> listener0 = new Listener<>(event -> {
@@ -60,14 +73,12 @@ public class DiscordNotifs extends Module {
             sendMessage(getPingID(message) + getMessageType(direct.getValue(), directSent.getValue(), message, getServer()) + getTime() + message, avatar.getValue());
         }
     });
-
     @EventHandler
     public Listener<ServerConnectedEvent> listener1 = new Listener<>(event -> {
         if (isDisabled()) return;
         if (!disconnect.getValue()) return;
         sendMessage(getPingID("KamiBlueMessageType1") + getTime() + getMessageType(direct.getValue(), directSent.getValue(), "KamiBlueMessageType1", getServer()), avatar.getValue());
     });
-
     @EventHandler
     public Listener<ServerDisconnectedEvent> listener2 = new Listener<>(event -> {
         if (isDisabled()) return;
@@ -75,11 +86,10 @@ public class DiscordNotifs extends Module {
         sendMessage(getPingID("KamiBlueMessageType2") + getTime() + getMessageType(direct.getValue(), directSent.getValue(), "KamiBlueMessageType2", getServer()), avatar.getValue());
     });
 
-    /* Getters for messages */
-    private static long startTime = 0;
     private boolean timeout(String message) {
         if (!timeout.getValue()) return true;
-        else if (isRestart(restart.getValue(), message) || isDirect(direct.getValue(), message) || isDirectOther(directSent.getValue(), message)) return true;
+        else if (isRestart(restart.getValue(), message) || isDirect(direct.getValue(), message) || isDirectOther(directSent.getValue(), message))
+            return true;
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + (timeoutTime.getValue() * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
@@ -90,8 +100,10 @@ public class DiscordNotifs extends Module {
 
     /* Text formatting and misc methods */
     private String getPingID(String message) {
-        if (isRestart(restart.getValue(), message) || isDirect(direct.getValue(), message) || isDirectOther(directSent.getValue(), message) || isImportantQueue(importantPings.getValue(), message)) return formatPingID();
-        else if ((message.equals("KamiBlueMessageType1")) || (message.equals("KamiBlueMessageType2"))) return formatPingID();
+        if (isRestart(restart.getValue(), message) || isDirect(direct.getValue(), message) || isDirectOther(directSent.getValue(), message) || isImportantQueue(importantPings.getValue(), message))
+            return formatPingID();
+        else if ((message.equals("KamiBlueMessageType1")) || (message.equals("KamiBlueMessageType2")))
+            return formatPingID();
         else return "";
     }
 
@@ -123,25 +135,9 @@ public class DiscordNotifs extends Module {
         if (url.getValue().equals("unchanged")) {
             sendErrorMessage(getChatName() + "You must first set a webhook url with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
             disable();
-        }
-        else if (pingID.getValue().equals("unchanged") && importantPings.getValue()) {
+        } else if (pingID.getValue().equals("unchanged") && importantPings.getValue()) {
             sendErrorMessage(getChatName() + "For Pings to work, you must set a Discord ID with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
             disable();
         }
     }
-
-    @EventHandler
-    public Listener<GuiScreenEvent.Closed> serverConnectedEvent = new Listener<>(event -> {
-        if (isEnabled() && event.getScreen() instanceof GuiConnecting) {
-            cServer = mc.currentServerData;
-            EVENT_BUS.post(new ServerConnectedEvent());
-        }
-    });
-
-    @EventHandler
-    public Listener<GuiScreenEvent.Displayed> serverDisconnectedEvent = new Listener<>(event -> {
-        if (isEnabled() && event.getScreen() instanceof GuiDisconnected && (cServer != null || mc.currentServerData != null)) {
-            EVENT_BUS.post(new ServerDisconnectedEvent());
-        }
-    });
 }

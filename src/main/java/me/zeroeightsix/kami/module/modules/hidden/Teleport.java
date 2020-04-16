@@ -13,10 +13,10 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 @Module.Info(name = "Teleport", description = "Library for teleport command", category = Module.Category.HIDDEN)
 public class Teleport extends Module {
 
-    private long lastTp;
-    private Vec3d lastPos;
     public static Vec3d finalPos;
     public static double blocksPerTeleport;
+    private long lastTp;
+    private Vec3d lastPos;
 
     @Override
     public void onUpdate() {

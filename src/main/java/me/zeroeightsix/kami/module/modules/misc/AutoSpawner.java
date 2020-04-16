@@ -37,6 +37,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 @Module.Info(name = "AutoSpawner", category = Module.Category.MISC, description = "Automatically spawns Withers, Iron Golems and Snowmen")
 public class AutoSpawner extends Module {
 
+    private static boolean isSneaking;
     private Setting<UseMode> useMode = register(Settings.e("Use Mode", UseMode.SPAM));
     private Setting<Boolean> party = register(Settings.b("Party", false));
     private Setting<Boolean> partyWithers = register(Settings.booleanBuilder("Withers").withValue(false).withVisibility(v -> party.getValue()).build());
@@ -45,9 +46,6 @@ public class AutoSpawner extends Module {
     private Setting<Integer> delay = register(Settings.integerBuilder("Delay").withMinimum(12).withValue(20).withMaximum(100).build());
     private Setting<Boolean> rotate = register(Settings.b("Rotate", true));
     private Setting<Boolean> debug = register(Settings.b("Debug", false));
-
-    private static boolean isSneaking;
-
     private BlockPos placeTarget;
     private boolean rotationPlaceableX;
     private boolean rotationPlaceableZ;
@@ -102,7 +100,10 @@ public class AutoSpawner extends Module {
 
     @Override
     protected void onEnable() {
-        if (mc.player == null) { disable(); return; }
+        if (mc.player == null) {
+            disable();
+            return;
+        }
 
         buildStage = 1;
         delayStep = 1;

@@ -13,9 +13,6 @@ import java.util.Random;
 @Module.Info(name = "SkinFlicker", description = "Toggle your skin layers rapidly for a cool skin effect", category = Module.Category.MISC)
 public class SkinFlicker extends Module {
 
-    private Setting<FlickerMode> mode = register(Settings.e("Mode", FlickerMode.HORIZONTAL));
-    private Setting<Integer> slowness = register(Settings.integerBuilder().withName("Slowness").withValue(2).withMinimum(1).build());
-
     private final static EnumPlayerModelParts[] PARTS_HORIZONTAL = new EnumPlayerModelParts[]{
             EnumPlayerModelParts.LEFT_SLEEVE,
             EnumPlayerModelParts.JACKET,
@@ -24,7 +21,6 @@ public class SkinFlicker extends Module {
             EnumPlayerModelParts.RIGHT_PANTS_LEG,
             EnumPlayerModelParts.RIGHT_SLEEVE
     };
-
     private final static EnumPlayerModelParts[] PARTS_VERTICAL = new EnumPlayerModelParts[]{
             EnumPlayerModelParts.HAT,
             EnumPlayerModelParts.JACKET,
@@ -33,9 +29,10 @@ public class SkinFlicker extends Module {
             EnumPlayerModelParts.LEFT_PANTS_LEG,
             EnumPlayerModelParts.RIGHT_PANTS_LEG,
     };
-
-    private Random r = new Random();
-    private int len = EnumPlayerModelParts.values().length;
+    private Setting<FlickerMode> mode = register(Settings.e("Mode", FlickerMode.HORIZONTAL));
+    private Setting<Integer> slowness = register(Settings.integerBuilder().withName("Slowness").withValue(2).withMinimum(1).build());
+    private final Random r = new Random();
+    private final int len = EnumPlayerModelParts.values().length;
 
     @Override
     public void onUpdate() {
@@ -56,7 +53,7 @@ public class SkinFlicker extends Module {
         }
     }
 
-    public static enum FlickerMode {
+    public enum FlickerMode {
         HORIZONTAL, VERTICAL, RANDOM
     }
 

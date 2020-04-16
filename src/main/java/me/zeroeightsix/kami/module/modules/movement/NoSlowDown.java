@@ -12,6 +12,7 @@ import net.minecraftforge.client.event.InputUpdateEvent;
 /**
  * Created by 086 on 15/12/2017.
  * Updated by S-B99 on 31/03/20
+ *
  * @see me.zeroeightsix.kami.mixin.client.MixinBlockSoulSand
  * @see net.minecraft.client.entity.EntityPlayerSP#onLivingUpdate()
  */
@@ -31,7 +32,7 @@ public class NoSlowDown extends Module {
      * We'll abuse this fact, and multiply moveStrafe and moveForward by 5 to nullify the *0.2f hardcoded by Mojang.
      */
     @EventHandler
-    private Listener<InputUpdateEvent> eventListener = new Listener<>(event -> {
+    private final Listener<InputUpdateEvent> eventListener = new Listener<>(event -> {
         if (passItemCheck(mc.player.getActiveItemStack().getItem()) && !mc.player.isRiding()) {
             event.getMovementInput().moveStrafe *= 5;
             event.getMovementInput().moveForward *= 5;
@@ -45,7 +46,9 @@ public class NoSlowDown extends Module {
     }
 
     @Override
-    public void onDisable() { Blocks.SLIME_BLOCK.slipperiness = 0.8f; }
+    public void onDisable() {
+        Blocks.SLIME_BLOCK.slipperiness = 0.8f;
+    }
 
     private boolean passItemCheck(Item item) {
         if (!mc.player.isHandActive()) return false;

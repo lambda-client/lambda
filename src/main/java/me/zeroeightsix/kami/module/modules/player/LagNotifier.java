@@ -14,12 +14,14 @@ import static me.zeroeightsix.kami.util.InfoCalculator.round;
 
 /**
  * @author S-B99
- * Thanks Brady and cooker and leij for helping me not be completely retarded 
+ * Thanks Brady and cooker and leij for helping me not be completely retarded
  */
 @Module.Info(name = "LagNotifier", description = "Displays a warning when the server is lagging", category = Module.Category.PLAYER)
 public class LagNotifier extends Module {
     private Setting<Double> timeout = register(Settings.doubleBuilder().withName("Timeout").withValue(1.0).withMinimum(0.0).withMaximum(10.0).build());
     private long serverLastUpdated;
+    @EventHandler
+    private final Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> serverLastUpdated = System.currentTimeMillis());
 
     @Override
     public void onRender() {
@@ -31,9 +33,6 @@ public class LagNotifier extends Module {
         /* 217 is the offset to make it go high, bigger = higher, with 0 being center */
         renderer.drawStringWithShadow(mc.displayWidth / divider / 2 - renderer.getStringWidth(text) / 2, mc.displayHeight / divider / 2 - 217, 255, 85, 85, text);
     }
-
-    @EventHandler
-    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> serverLastUpdated = System.currentTimeMillis());
 
     private double timeDifference() {
         return round((System.currentTimeMillis() - serverLastUpdated) / 1000d, 1);

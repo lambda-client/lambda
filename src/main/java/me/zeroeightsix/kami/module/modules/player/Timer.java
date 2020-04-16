@@ -24,8 +24,7 @@ public class Timer extends Module {
     public void onUpdate() {
         if (!slow.getValue()) {
             mc.timer.tickLength = 50.0f / tickNormal.getValue();
-        }
-        else {
+        } else {
             mc.timer.tickLength = 50.0f / (tickSlow.getValue() / 10.0f);
         }
     }

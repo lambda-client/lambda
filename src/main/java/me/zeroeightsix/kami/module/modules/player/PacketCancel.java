@@ -20,21 +20,21 @@ public class PacketCancel extends Module {
     private Setting<Boolean> packetUseEntity = register(Settings.booleanBuilder("CPacketUseEntity").withValue(true).withVisibility(v -> !all.getValue()));
     private Setting<Boolean> packetVehicleMove = register(Settings.booleanBuilder("CPacketVehicleMove").withValue(true).withVisibility(v -> !all.getValue()));
     private int numPackets;
-    
+
     @EventHandler
     private final Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if (
-            (all.getValue())
-            ||
-            (packetInput.getValue() && event.getPacket() instanceof CPacketInput)
-            ||
-            (packetPlayer.getValue() && event.getPacket() instanceof CPacketPlayer)
-            ||
-            (packetEntityAction.getValue() && event.getPacket() instanceof CPacketEntityAction)
-            ||
-            (packetUseEntity.getValue() && event.getPacket() instanceof CPacketUseEntity)
-            ||
-            (packetVehicleMove.getValue() && event.getPacket() instanceof CPacketVehicleMove)
+                (all.getValue())
+                        ||
+                        (packetInput.getValue() && event.getPacket() instanceof CPacketInput)
+                        ||
+                        (packetPlayer.getValue() && event.getPacket() instanceof CPacketPlayer)
+                        ||
+                        (packetEntityAction.getValue() && event.getPacket() instanceof CPacketEntityAction)
+                        ||
+                        (packetUseEntity.getValue() && event.getPacket() instanceof CPacketUseEntity)
+                        ||
+                        (packetVehicleMove.getValue() && event.getPacket() instanceof CPacketVehicleMove)
         ) {
             event.cancel();
             numPackets++;

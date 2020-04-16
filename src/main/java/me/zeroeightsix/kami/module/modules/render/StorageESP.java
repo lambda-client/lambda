@@ -83,7 +83,7 @@ public class StorageESP extends Module {
             }
             if ((tileEntity instanceof TileEntityChest && chest.getValue()) || (tileEntity instanceof TileEntityDispenser && dispenser.getValue()) || (tileEntity instanceof TileEntityShulkerBox && shulker.getValue()) || (tileEntity instanceof TileEntityEnderChest && echest.getValue()) || (tileEntity instanceof TileEntityFurnace && furnace.getValue()) || (tileEntity instanceof TileEntityHopper && hopper.getValue()))
                 if (color != -1)
-                a.add(new Triplet<>(pos, color, side)); //GeometryTessellator.drawCuboid(event.getBuffer(), pos, GeometryMasks.Line.ALL, color);
+                    a.add(new Triplet<>(pos, color, side)); //GeometryTessellator.drawCuboid(event.getBuffer(), pos, GeometryMasks.Line.ALL, color);
         }
 
         for (Entity entity : Wrapper.getWorld().loadedEntityList) {

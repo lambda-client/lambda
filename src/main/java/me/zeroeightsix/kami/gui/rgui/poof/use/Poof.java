@@ -12,8 +12,8 @@ import java.lang.reflect.ParameterizedType;
  */
 public abstract class Poof<T extends Component, S extends PoofInfo> implements IPoof<T, S> {
 
-    private Class<T> componentclass;
-    private Class<S> infoclass;
+    private final Class<T> componentclass;
+    private final Class<S> infoclass;
 
     public Poof() {
         this.componentclass = (Class<T>) ((ParameterizedType) getClass()

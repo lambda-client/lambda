@@ -18,18 +18,20 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
  */
 @Module.Info(name = "AutoReply", description = "Automatically replies to messages", category = Module.Category.CHAT)
 public class AutoReply extends Module {
+    private static long startTime = 0;
     public Setting<Boolean> customMessage = register(Settings.b("Custom Message", false));
-    public Setting<String> message = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "autoreply&r to modify this").withConsumer((old, value) -> {}).withVisibility(v -> customMessage.getValue()).build());
+    public Setting<String> message = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "autoreply&r to modify this").withConsumer((old, value) -> {
+    }).withVisibility(v -> customMessage.getValue()).build());
     public Setting<Boolean> customListener = register(Settings.b("Custom Listener", false));
-    public Setting<String> listener = register(Settings.stringBuilder("Custom Listener Name").withValue("unchanged").withConsumer((old, value) -> {}).withVisibility(v -> customListener.getValue()).build());
+    public Setting<String> listener = register(Settings.stringBuilder("Custom Listener Name").withValue("unchanged").withConsumer((old, value) -> {
+    }).withVisibility(v -> customListener.getValue()).build());
     public Setting<Boolean> customReplyCommand = register(Settings.b("Custom Reply Command", false));
-    public Setting<String> replyCommand = register(Settings.stringBuilder("Custom Reply Command").withValue("unchanged").withConsumer((old, value) -> {}).withVisibility(v -> customReplyCommand.getValue()).build());
-
-    private String listenerDefault = "whispers:";
-    private String replyCommandDefault = "r";
-
+    public Setting<String> replyCommand = register(Settings.stringBuilder("Custom Reply Command").withValue("unchanged").withConsumer((old, value) -> {
+    }).withVisibility(v -> customReplyCommand.getValue()).build());
     @EventHandler
     public Listener<PacketEvent.Receive> receiveListener;
+    private String listenerDefault = "whispers:";
+    private String replyCommandDefault = "r";
 
     public AutoReply() {
         receiveListener = new Listener<>(event -> {
@@ -43,7 +45,6 @@ public class AutoReply extends Module {
         });
     }
 
-    private static long startTime = 0;
     @Override
     public void onUpdate() {
         if (customListener.getValue()) listenerDefault = listener.getValue();

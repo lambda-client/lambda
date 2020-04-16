@@ -12,8 +12,8 @@ import java.util.function.Predicate;
  */
 public class EnumSetting<T extends Enum> extends Setting<T> {
 
-    private EnumConverter converter;
     public final Class<? extends Enum> clazz;
+    private final EnumConverter converter;
 
     public EnumSetting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate, Class<? extends Enum> clazz) {
         super(value, restriction, consumer, name, visibilityPredicate);

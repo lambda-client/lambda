@@ -57,8 +57,7 @@ public abstract class AbstractContainer extends AbstractComponent implements Con
 
     @Override
     public Container removeChild(Component component) {
-        if (children.contains(component))
-            children.remove(component);
+        children.remove(component);
         return this;
     }
 
@@ -150,13 +149,13 @@ public abstract class AbstractContainer extends AbstractComponent implements Con
         return originoffsetX;
     }
 
+    public void setOriginOffsetX(int originoffsetX) {
+        this.originoffsetX = originoffsetX;
+    }
+
     @Override
     public int getOriginOffsetY() {
         return originoffsetY;
-    }
-
-    public void setOriginOffsetX(int originoffsetX) {
-        this.originoffsetX = originoffsetX;
     }
 
     public void setOriginOffsetY(int originoffsetY) {

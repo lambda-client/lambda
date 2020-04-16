@@ -33,6 +33,39 @@ public class FriendCommand extends Command {
         setDescription("Add someone as your friend!");
     }
 
+    private static String requestIDs(String data) {
+        try {
+            String query = "https://api.mojang.com/profiles/minecraft";
+
+            URL url = new URL(query);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(5000);
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setRequestMethod("POST");
+
+            OutputStream os = conn.getOutputStream();
+            os.write(data.getBytes(StandardCharsets.UTF_8));
+            os.close();
+
+            // read the response
+            InputStream in = new BufferedInputStream(conn.getInputStream());
+            String res = convertStreamToString(in);
+            in.close();
+            conn.disconnect();
+
+            return res;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String convertStreamToString(InputStream is) {
+        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "/";
+    }
+
     @Override
     public void call(String[] args) {
         if (args[0] == null) {
@@ -109,38 +142,5 @@ public class FriendCommand extends Command {
             return null;
         }
         return new Friends.Friend(profile.getGameProfile().getName(), profile.getGameProfile().getId());
-    }
-
-    private static String requestIDs(String data) {
-        try {
-            String query = "https://api.mojang.com/profiles/minecraft";
-
-            URL url = new URL(query);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setConnectTimeout(5000);
-            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-            conn.setRequestMethod("POST");
-
-            OutputStream os = conn.getOutputStream();
-            os.write(data.getBytes(StandardCharsets.UTF_8));
-            os.close();
-
-            // read the response
-            InputStream in = new BufferedInputStream(conn.getInputStream());
-            String res = convertStreamToString(in);
-            in.close();
-            conn.disconnect();
-
-            return res;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static String convertStreamToString(InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "/";
     }
 }

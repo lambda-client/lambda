@@ -62,9 +62,27 @@ public class AntiSpam extends Module {
     private Setting<ShowBlocked> showBlocked = register(Settings.enumBuilder(ShowBlocked.class).withName("Show Blocked").withValue(ShowBlocked.LOG_FILE).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
 
     private ConcurrentHashMap<String, Long> messageHistory;
-    private enum Page { ONE, TWO }
-    private enum ShowBlocked { NONE, LOG_FILE, CHAT }
-
+    private final Map<Setting<Boolean>, String[]> settingMap = new HashMap<Setting<Boolean>, String[]>() {{
+        put(wordsLongerThen, FilterPatterns.LONG_WORD);
+        put(greenText, FilterPatterns.GREEN_TEXT);
+        put(specialCharBegin, FilterPatterns.SPECIAL_BEGINNING);
+        put(specialCharEnding, FilterPatterns.SPECIAL_ENDING);
+        put(specialCharBegin, FilterPatterns.SPECIAL_BEGINNING);
+        put(ownsMeAndAll, FilterPatterns.OWNS_ME_AND_ALL);
+        put(iJustThanksTo, FilterPatterns.I_JUST_THANKS_TO);
+        put(numberSuffix, FilterPatterns.NUMBER_SUFFIX);
+        put(numberPrefix, FilterPatterns.NUMBER_PREFIX);
+        put(discordLinks, FilterPatterns.DISCORD);
+        put(webLinks, FilterPatterns.WEB_LINK);
+        put(ips, FilterPatterns.IP_ADDR);
+        put(ipsAgr, FilterPatterns.IP_ADDR_AGR);
+        put(announcers, FilterPatterns.ANNOUNCER);
+        put(spammers, FilterPatterns.SPAMMER);
+        put(insulters, FilterPatterns.INSULTER);
+        put(greeters, FilterPatterns.GREETER);
+        put(hypixelShills, FilterPatterns.HYPIXEL_SHILLS);
+        put(tradeChat, FilterPatterns.TRADE_CHAT);
+    }};
     @EventHandler
     public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
         if (mc.player == null || isDisabled()) return;
@@ -88,10 +106,14 @@ public class AntiSpam extends Module {
     });
 
     @Override
-    public void onEnable() { messageHistory = new ConcurrentHashMap<>(); }
+    public void onEnable() {
+        messageHistory = new ConcurrentHashMap<>();
+    }
 
     @Override
-    public void onDisable() { messageHistory = null; }
+    public void onDisable() {
+        messageHistory = null;
+    }
 
     private boolean isSpam(String message) {
         ChatTimestamp chatTimestamp = MODULE_MANAGER.getModuleT(ChatTimestamp.class);
@@ -110,12 +132,12 @@ public class AntiSpam extends Module {
         }
     }
 
-
-
-    private String removeUsername(String username) { return username.replaceAll("<[^>]*> ", ""); }
+    private String removeUsername(String username) {
+        return username.replaceAll("<[^>]*> ", "");
+    }
 
     private boolean detectSpam(String message) {
-        
+
         for (Map.Entry<Setting<Boolean>, String[]> entry : settingMap.entrySet()) {
             if (entry.getKey().getValue() && findPatterns(entry.getValue(), message, true)) {
                 sendResult(entry.getKey().getName(), message);
@@ -127,12 +149,15 @@ public class AntiSpam extends Module {
             if (messageHistory == null) messageHistory = new ConcurrentHashMap<>();
             boolean isDuplicate = false;
 
-            if (messageHistory.containsKey(message) && (System.currentTimeMillis() - messageHistory.get(message)) / 1000 < duplicatesTimeout.getValue()) isDuplicate = true;
+            if (messageHistory.containsKey(message) && (System.currentTimeMillis() - messageHistory.get(message)) / 1000 < duplicatesTimeout.getValue())
+                isDuplicate = true;
 
             messageHistory.put(message, System.currentTimeMillis());
             if (isDuplicate) {
-                if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + "Duplicate: " + message);
-                else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + "Duplicate: " + message);
+                if (showBlocked.getValue().equals(ShowBlocked.CHAT))
+                    sendChatMessage(getChatName() + "Duplicate: " + message);
+                else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE))
+                    KamiMod.log.info(getChatName() + "Duplicate: " + message);
             }
         }
 
@@ -151,27 +176,20 @@ public class AntiSpam extends Module {
         return false;
     }
 
-    private Map<Setting<Boolean>, String[]> settingMap = new HashMap<Setting<Boolean>, String[]>(){{
-        put(wordsLongerThen, FilterPatterns.LONG_WORD);
-        put(greenText, FilterPatterns.GREEN_TEXT);
-        put(specialCharBegin, FilterPatterns.SPECIAL_BEGINNING);
-        put(specialCharEnding, FilterPatterns.SPECIAL_ENDING);
-        put(specialCharBegin, FilterPatterns.SPECIAL_BEGINNING);
-        put(ownsMeAndAll, FilterPatterns.OWNS_ME_AND_ALL);
-        put(iJustThanksTo, FilterPatterns.I_JUST_THANKS_TO);
-        put(numberSuffix, FilterPatterns.NUMBER_SUFFIX);
-        put(numberPrefix, FilterPatterns.NUMBER_PREFIX);
-        put(discordLinks, FilterPatterns.DISCORD);
-        put(webLinks, FilterPatterns.WEB_LINK);
-        put(ips, FilterPatterns.IP_ADDR);
-        put(ipsAgr, FilterPatterns.IP_ADDR_AGR);
-        put(announcers, FilterPatterns.ANNOUNCER);
-        put(spammers, FilterPatterns.SPAMMER);
-        put(insulters, FilterPatterns.INSULTER);
-        put(greeters, FilterPatterns.GREETER);
-        put(hypixelShills, FilterPatterns.HYPIXEL_SHILLS);
-        put(tradeChat, FilterPatterns.TRADE_CHAT);
-    }};
+    private void sendResult(String name, String message) {
+        if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + name + ": " + message);
+        else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE))
+            KamiMod.log.info(getChatName() + name + ": " + message);
+    }
+
+    private enum Page {ONE, TWO}
+
+    private enum ShowBlocked {NONE, LOG_FILE, CHAT}
+
+//    private static Integer getCharacters() {
+//        AntiSpam antiSpam = ((AntiSpam) ModuleManager.getModuleByName("AntiSpam"));
+//        return antiSpam.characters.getValue();
+//    }
 
     private static class FilterPatterns {
         private static final String[] ANNOUNCER = {
@@ -366,15 +384,5 @@ public class AntiSpam extends Module {
         private static final String[] SPECIAL_ENDING = {
                 "[/@#^()\\[\\]{}<>|\\-+=\\\\]",
         };
-    }
-
-//    private static Integer getCharacters() {
-//        AntiSpam antiSpam = ((AntiSpam) ModuleManager.getModuleByName("AntiSpam"));
-//        return antiSpam.characters.getValue();
-//    }
-
-    private void sendResult(String name, String message) {
-        if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + name + ": " + message);
-        else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + name + ": " + message);
     }
 }

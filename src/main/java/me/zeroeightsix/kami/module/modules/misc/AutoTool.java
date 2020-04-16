@@ -26,29 +26,10 @@ public class AutoTool extends Module {
     private Setting<Aura.HitMode> preferTool = register(Settings.e("Prefer", Aura.HitMode.NONE));
 
     @EventHandler
-    private Listener<PlayerInteractEvent.LeftClickBlock> leftClickListener = new Listener<>(event -> equipBestTool(mc.world.getBlockState(event.getPos())));
+    private final Listener<PlayerInteractEvent.LeftClickBlock> leftClickListener = new Listener<>(event -> equipBestTool(mc.world.getBlockState(event.getPos())));
 
     @EventHandler
-    private Listener<AttackEntityEvent> attackListener = new Listener<>(event -> equipBestWeapon(preferTool.getValue()));
-
-    private void equipBestTool(IBlockState blockState) {
-        int bestSlot = -1;
-        double max = 0;
-        for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.inventory.getStackInSlot(i);
-            if (stack.isEmpty) continue;
-            float speed = stack.getDestroySpeed(blockState);
-            int eff;
-            if (speed > 1) {
-                speed += ((eff = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack)) > 0 ? (Math.pow(eff, 2) + 1) : 0);
-                if (speed > max) {
-                    max = speed;
-                    bestSlot = i;
-                }
-            }
-        }
-        if (bestSlot != -1) equip(bestSlot);
-    }
+    private final Listener<AttackEntityEvent> attackListener = new Listener<>(event -> equipBestWeapon(preferTool.getValue()));
 
     public static void equipBestWeapon(Aura.HitMode hitMode) {
         int bestSlot = -1;
@@ -85,5 +66,24 @@ public class AutoTool extends Module {
     private static void equip(int slot) {
         mc.player.inventory.currentItem = slot;
         mc.playerController.syncCurrentPlayItem();
+    }
+
+    private void equipBestTool(IBlockState blockState) {
+        int bestSlot = -1;
+        double max = 0;
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
+            if (stack.isEmpty) continue;
+            float speed = stack.getDestroySpeed(blockState);
+            int eff;
+            if (speed > 1) {
+                speed += ((eff = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack)) > 0 ? (Math.pow(eff, 2) + 1) : 0);
+                if (speed > max) {
+                    max = speed;
+                    bestSlot = i;
+                }
+            }
+        }
+        if (bestSlot != -1) equip(bestSlot);
     }
 }
