@@ -1,10 +1,11 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.kami.RenderHelper;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
+import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.Container;
 import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
@@ -44,10 +45,13 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
         if (component.isHovered()) {
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1; // hovered text color
             if (component.hasDescription() && !isSettingsOpen()) {
+                Component componentAt = KamiMod.getInstance().guiManager.getComponentAt(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
+                if (componentAt.getHeight() != 11) return; // PREVENT DRAWING WHEN OUTSIDE THE CONTAINER // 11 is height of the regular module
+
                 glDisable(GL_SCISSOR_TEST); // let it draw outside of the container
                 glDepthRange(0, 0.01); // set render priority to the top
 
-                int tooltipX = 14;
+                int tooltipX = 14; // padding
                 int tooltipWidth = KamiGUI.fontRenderer.getStringWidth(component.getDescription() + 2);
 
                 boolean tooBig = Wrapper.getMinecraft().displayWidth < (Mouse.getX() + (tooltipWidth * 2 + (component.getWidth() * 2)));
