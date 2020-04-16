@@ -11,11 +11,13 @@ import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
+import me.zeroeightsix.kami.module.modules.client.Tooltips;
 import me.zeroeightsix.kami.util.Wrapper;
 import org.lwjgl.input.Mouse;
 
 import java.util.List;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
@@ -44,7 +46,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 GuiC.buttonHoveredT.color.getRGB();
         if (component.isHovered()) {
             c = (c & GuiC.buttonHoveredN.color.getRGB()) << 1; // hovered text color
-            if (component.hasDescription() && !isSettingsOpen()) {
+            if (component.hasDescription() && !isSettingsOpen() && MODULE_MANAGER.isModuleEnabled(Tooltips.class)) {
                 Component componentAt = KamiMod.getInstance().guiManager.getComponentAt(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);
                 if (componentAt.getHeight() != 11) return; // PREVENT DRAWING WHEN OUTSIDE THE CONTAINER // 11 is height of the regular module
 

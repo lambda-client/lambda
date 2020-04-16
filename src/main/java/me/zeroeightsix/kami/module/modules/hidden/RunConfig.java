@@ -3,10 +3,7 @@ package me.zeroeightsix.kami.module.modules.hidden;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.capes.Capes;
 import me.zeroeightsix.kami.module.modules.chat.CustomChat;
-import me.zeroeightsix.kami.module.modules.client.ActiveModules;
-import me.zeroeightsix.kami.module.modules.client.CommandConfig;
-import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
-import me.zeroeightsix.kami.module.modules.client.InventoryViewer;
+import me.zeroeightsix.kami.module.modules.client.*;
 import me.zeroeightsix.kami.module.modules.misc.DiscordSettings;
 import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
@@ -25,6 +22,7 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunFixGui = register(Settings.b("FixGui", false));
     private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
     private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
+    private Setting<Boolean> hasrunTooltips = register(Settings.b("Tooltips", false));
 
     public void onEnable() {
         MODULE_MANAGER.getModule(ActiveModules.class).enable();
@@ -52,6 +50,11 @@ public class RunConfig extends Module {
             MODULE_MANAGER.getModule(CustomChat.class).enable();
             hasRunCustomChat.setValue(true);
         }
+        if (!hasrunTooltips.getValue()) {
+            MODULE_MANAGER.getModule(Tooltips.class).enable();
+            hasrunTooltips.setValue(true);
+        }
+
         disable();
     }
 }
