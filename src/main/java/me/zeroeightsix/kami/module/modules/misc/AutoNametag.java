@@ -25,7 +25,6 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 public class AutoNametag extends Module {
     private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.WITHER));
     private Setting<Float> range = register(Settings.floatBuilder("Range").withMinimum(2.0f).withValue(3.5f).withMaximum(10.0f).build());
-    private Setting<Boolean> autoSlot = register(Settings.b("Auto Slot", true));
     private Setting<Boolean> debug = register(Settings.b("Debug", false));
 
     private String currentName = "";
@@ -61,11 +60,10 @@ public class AutoNametag extends Module {
                     }
             }
         }
-        if (autoSlot.getValue()) mc.player.inventory.currentItem = originalSlot;
+        mc.player.inventory.currentItem = originalSlot;
     }
 
     private void selectNameTags() {
-        if (!autoSlot.getValue()) return;
         int tagSlot = -1;
         for (int i = 0; i < 9; i++) {
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
