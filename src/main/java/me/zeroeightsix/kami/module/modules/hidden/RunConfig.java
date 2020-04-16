@@ -22,7 +22,7 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunFixGui = register(Settings.b("FixGui", false));
     private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
     private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
-    private Setting<Boolean> hasrunTooltips = register(Settings.b("Tooltips", false));
+    private Setting<Boolean> hasRunTooltips = register(Settings.b("Tooltips", false));
 
     public void onEnable() {
         MODULE_MANAGER.getModule(ActiveModules.class).enable();
@@ -50,9 +50,9 @@ public class RunConfig extends Module {
             MODULE_MANAGER.getModule(CustomChat.class).enable();
             hasRunCustomChat.setValue(true);
         }
-        if (!hasrunTooltips.getValue()) {
+        if (!hasRunTooltips.getValue()) {
             MODULE_MANAGER.getModule(Tooltips.class).enable();
-            hasrunTooltips.setValue(true);
+            hasRunTooltips.setValue(true);
         }
 
         disable();
