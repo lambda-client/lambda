@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.gui.kami.theme.kami;
 
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.kami.RenderHelper;
 import me.zeroeightsix.kami.gui.kami.component.SettingsPanel;
@@ -9,6 +10,8 @@ import me.zeroeightsix.kami.gui.rgui.component.use.CheckButton;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
+import me.zeroeightsix.kami.util.Wrapper;
+import org.lwjgl.input.Mouse;
 
 import java.util.List;
 
@@ -44,11 +47,20 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
                 glDisable(GL_SCISSOR_TEST); // let it draw outside of the container
                 glDepthRange(0, 0.01); // set render priority to the top
 
-                RenderHelper.drawTooltip(component.getWidth() + 14, 0,
-                        KamiGUI.fontRenderer.getStringWidth(component.getDescription() + 2), KamiGUI.fontRenderer.getFontHeight() + 6,
+                int tooltipX = 14;
+                int tooltipWidth = KamiGUI.fontRenderer.getStringWidth(component.getDescription() + 2);
+
+                boolean tooBig = Wrapper.getMinecraft().displayWidth < (Mouse.getX() + (tooltipWidth * 2 + (component.getWidth() * 2)));
+
+                if (tooBig) {
+                    tooltipX = -tooltipX - tooltipWidth - component.getWidth();
+                }
+
+                RenderHelper.drawTooltip(component.getWidth() + tooltipX, 0,
+                        tooltipWidth, KamiGUI.fontRenderer.getFontHeight() + 6,
                         1.5f, 0.17F, 0.17F, 0.18F, 0.9F,
                         toF(GuiC.windowOutline.color.getRed()), toF(GuiC.windowOutline.color.getGreen()), toF(GuiC.windowOutline.color.getBlue()));
-                RenderHelper.drawText(component.getWidth() + 17, KamiGUI.fontRenderer.getFontHeight() / 2, rgbToInt(255, 255, 255), component.getDescription());
+                RenderHelper.drawText(component.getWidth() + tooltipX + 3, KamiGUI.fontRenderer.getFontHeight() / 2, rgbToInt(255, 255, 255), component.getDescription());
 
                 glEnable(GL_SCISSOR_TEST); // stop drawing outside of the container
                 glDepthRange(0, 1.0); // set the render priority back to normal
