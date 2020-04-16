@@ -18,20 +18,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author 0x2E | PretendingToCode
- *
+ * <p>
  * TODO: Fix delay timer because that shit broken
  */
 @Module.Info(name = "BlockData", category = Module.Category.MISC, description = "Right click blocks to display their data")
 public class BlockData extends Module {
     private int delay = 0;
-
-    @Override
-    public void onUpdate() {
-        if (delay > 0) {
-            delay--;
-        }
-    }
-
     @EventHandler
     public Listener<InputEvent.MouseInputEvent> mouseListener = new Listener<>(event -> {
         if (Mouse.getEventButton() == 1 && delay == 0) {
@@ -50,4 +42,11 @@ public class BlockData extends Module {
             }
         }
     });
+
+    @Override
+    public void onUpdate() {
+        if (delay > 0) {
+            delay--;
+        }
+    }
 }

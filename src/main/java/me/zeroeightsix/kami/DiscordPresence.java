@@ -15,12 +15,18 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
  * Updated (slightly) by Dewy on 3rd April 2020
  */
 public class DiscordPresence {
+    private static final club.minnced.discord.rpc.DiscordRPC rpc;
     public static DiscordRichPresence presence;
     private static boolean connected;
-    private static final club.minnced.discord.rpc.DiscordRPC rpc;
     private static String details;
     private static String state;
     private static DiscordRPC discordRPC;
+
+    static {
+        rpc = club.minnced.discord.rpc.DiscordRPC.INSTANCE;
+        DiscordPresence.presence = new DiscordRichPresence();
+        DiscordPresence.connected = false;
+    }
 
     public static void start() {
         KamiMod.log.info("Starting Discord RPC");
@@ -58,12 +64,17 @@ public class DiscordPresence {
                 DiscordPresence.presence.details = details;
                 DiscordPresence.presence.state = state;
                 DiscordPresence.rpc.Discord_UpdatePresence(DiscordPresence.presence);
+            } catch (Exception e2) {
+                e2.printStackTrace();
             }
-            catch (Exception e2) { e2.printStackTrace(); }
-            try { Thread.sleep(4000L); }
-            catch (InterruptedException e3) { e3.printStackTrace(); }
+            try {
+                Thread.sleep(4000L);
+            } catch (InterruptedException e3) {
+                e3.printStackTrace();
+            }
         }
     }
+
     private static void setRpcFromSettings() {
         discordRPC = MODULE_MANAGER.getModuleT(DiscordRPC.class);
         details = discordRPC.getLine(discordRPC.line1Setting.getValue()) + " " + discordRPC.getLine(discordRPC.line3Setting.getValue());
@@ -73,12 +84,6 @@ public class DiscordPresence {
         DiscordPresence.presence.largeImageKey = "kami";
         DiscordPresence.presence.largeImageText = "blue.bella.wtf";
         DiscordPresence.rpc.Discord_UpdatePresence(DiscordPresence.presence);
-    }
-
-    static {
-        rpc = club.minnced.discord.rpc.DiscordRPC.INSTANCE;
-        DiscordPresence.presence = new DiscordRichPresence();
-        DiscordPresence.connected = false;
     }
 
     public static void setCustomIcons() {

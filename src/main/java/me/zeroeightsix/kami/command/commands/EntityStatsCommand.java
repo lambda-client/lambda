@@ -22,6 +22,14 @@ public class EntityStatsCommand extends Command {
         setDescription("Print the statistics of the entity you're currently riding");
     }
 
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
     @Override
     public void call(String[] args) {
 
@@ -34,9 +42,9 @@ public class EntityStatsCommand extends Command {
             String ownerId = horse.getOwnerUniqueId() == null ? "Not tamed." : horse.getOwnerUniqueId().toString();
 
             String builder = "&6Entity Statistics:" + "\n&cMax Health: " + maxHealth +
-                      "\n&cSpeed: " + speed +
-                      "\n&cJump: " + jump +
-                      "\n&cOwner: " + EntityUtil.getNameFromUUID(ownerId).replace("\"", "");
+                    "\n&cSpeed: " + speed +
+                    "\n&cJump: " + jump +
+                    "\n&cOwner: " + EntityUtil.getNameFromUUID(ownerId).replace("\"", "");
             sendChatMessage(builder);
         } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
             EntityLivingBase entity = (EntityLivingBase) mc.player.getRidingEntity();
@@ -44,13 +52,5 @@ public class EntityStatsCommand extends Command {
         } else {
             sendChatMessage("&4&lError: &cNot riding a compatible entity.");
         }
-    }
-
-    public static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
     }
 }

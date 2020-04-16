@@ -25,22 +25,30 @@ import java.util.List;
  */
 public class Module {
 
+    protected static final Minecraft mc = Minecraft.getMinecraft();
     private final String originalName = getAnnotation().name();
     private final Category category = getAnnotation().category();
     private final String description = getAnnotation().description();
-    private final Setting<String> name = register(Settings.s("Name", originalName));
+    public boolean alwaysListening;
+    public List<Setting> settingList = new ArrayList<>();
+    private Setting<String> name = register(Settings.s("Name", originalName));
     private Setting<Bind> bind = register(Settings.custom("Bind", Bind.none(), new BindConverter()).build());
     private Setting<Boolean> enabled = register(Settings.booleanBuilder("Enabled").withVisibility(aBoolean -> false).withValue(false).build());
     private Setting<ShowOnArray> showOnArray = register(Settings.e("Visible", getAnnotation().showOnArray()));
 
-    public boolean alwaysListening;
-    protected static final Minecraft mc = Minecraft.getMinecraft();
-
-    public List<Setting> settingList = new ArrayList<>();
-
     public Module() {
         alwaysListening = getAnnotation().alwaysListening();
         registerAll(bind, enabled, showOnArray);
+    }
+
+    /* If you change a setting with ;set or eg a defaults button the GUI doesn't update, so call this */
+    public static void closeSettings() {
+        List<SettingsPanel> panels = ContainerHelper.getAllChildren(SettingsPanel.class, KamiMod.getInstance().getGuiManager());
+        for (SettingsPanel settingsPanel : panels) {
+            if (settingsPanel.isVisible()) {
+                settingsPanel.setModule(null);
+            }
+        }
     }
 
     private Info getAnnotation() {
@@ -50,22 +58,21 @@ public class Module {
         throw new IllegalStateException("No Annotation on class " + this.getClass().getCanonicalName() + "!");
     }
 
-    public void onUpdate() {}
+    public void onUpdate() {
+    }
 
-    public void onRender() {}
+    public void onRender() {
+    }
 
-    public void onWorldRender(RenderEvent event) {}
-
-    public Bind getBind() {
-        return bind.getValue();
+    public void onWorldRender(RenderEvent event) {
     }
 
 //    public boolean showOnArray() {
 //        return showOnArray.getValue();
 //    }
 
-    public enum ShowOnArray {
-        ON, OFF
+    public Bind getBind() {
+        return bind.getValue();
     }
 
     public ShowOnArray getShowOnArray() {
@@ -76,12 +83,116 @@ public class Module {
         return bind.getValue().toString();
     }
 
+    public String getOriginalName() {
+        return originalName;
+    }
+
+    public String getName() {
+        return name.getValue();
+    }
+
     public void setName(String name) {
         this.name.setValue(name);
     }
 
-    public String getOriginalName() {
-        return originalName;
+    public String getChatName() {
+        return "[" + name.getValue() + "] ";
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public boolean isEnabled() {
+        return enabled.getValue();
+    }
+
+    public void setEnabled(boolean enabled) {
+        boolean prev = this.enabled.getValue();
+        if (prev != enabled)
+            if (enabled)
+                enable();
+            else
+                disable();
+    }
+
+    public boolean isOnArray() {
+        return showOnArray.getValue().equals(ShowOnArray.ON);
+    }
+
+    public boolean isProduction() {
+        return !category.equals(Category.EXPERIMENTAL) && !category.equals(Category.HIDDEN);
+    }
+
+    protected void onEnable() {
+    }
+
+    protected void onDisable() {
+    }
+
+    public void toggle() {
+        setEnabled(!isEnabled());
+    }
+
+    public void enable() {
+        enabled.setValue(true);
+        onEnable();
+        if (!alwaysListening)
+            KamiMod.EVENT_BUS.subscribe(this);
+    }
+
+    public void disable() {
+        enabled.setValue(false);
+        onDisable();
+        if (!alwaysListening)
+            KamiMod.EVENT_BUS.unsubscribe(this);
+    }
+
+    public boolean isDisabled() {
+        return !isEnabled();
+    }
+
+    public String getHudInfo() {
+        return null;
+    }
+
+    protected final void setAlwaysListening(boolean alwaysListening) {
+        this.alwaysListening = alwaysListening;
+        if (alwaysListening) KamiMod.EVENT_BUS.subscribe(this);
+        if (!alwaysListening && isDisabled()) KamiMod.EVENT_BUS.unsubscribe(this);
+    }
+
+    /**
+     * Cleanup method in case this module wants to do something when the client closes down
+     */
+    public void destroy() {
+    }
+
+    protected void registerAll(Setting... settings) {
+        for (Setting setting : settings) {
+            register(setting);
+        }
+    }
+
+    protected <T> Setting<T> register(Setting<T> setting) {
+        if (settingList == null) settingList = new ArrayList<>();
+        settingList.add(setting);
+        return SettingBuilder.register(setting, "modules." + originalName);
+    }
+
+    protected <T> Setting<T> register(SettingBuilder<T> builder) {
+        if (settingList == null) settingList = new ArrayList<>();
+        Setting<T> setting = builder.buildAndRegister("modules." + name);
+        settingList.add(setting);
+        return setting;
+    }
+
+    public enum ShowOnArray {
+        ON, OFF
     }
 
     /**
@@ -110,6 +221,7 @@ public class Module {
         public boolean isHidden() {
             return hidden;
         }
+
         public String getName() {
             return name;
         }
@@ -118,108 +230,15 @@ public class Module {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Info {
         String name();
+
         String description();
+
         Module.Category category();
+
         boolean alwaysListening() default false;
+
         ShowOnArray showOnArray() default ShowOnArray.ON;
     }
-
-    public String getName() {
-        return name.getValue();
-    }
-
-    public String getChatName() {
-        return "[" + name.getValue() + "] ";
-    }
-
-    public String getDescription() { return description; }
-
-    public Category getCategory() { return category; }
-
-    public boolean isEnabled() { return enabled.getValue(); }
-
-    public boolean isOnArray() { return showOnArray.getValue().equals(ShowOnArray.ON); }
-
-    public boolean isProduction() { return !category.equals(Category.EXPERIMENTAL) && !category.equals(Category.HIDDEN); }
-
-    protected void onEnable() {}
-
-    protected void onDisable() {}
-
-    public void toggle() { setEnabled(!isEnabled()); }
-
-    public void enable() {
-        enabled.setValue(true);
-        onEnable();
-        if (!alwaysListening)
-            KamiMod.EVENT_BUS.subscribe(this);
-    }
-
-    public void disable() {
-        enabled.setValue(false);
-        onDisable();
-        if (!alwaysListening)
-            KamiMod.EVENT_BUS.unsubscribe(this);
-    }
-
-    public boolean isDisabled() {
-        return !isEnabled();
-    }
-
-    public void setEnabled(boolean enabled) {
-        boolean prev = this.enabled.getValue();
-        if (prev != enabled)
-            if (enabled)
-                enable();
-            else
-                disable();
-    }
-
-    public String getHudInfo() {
-        return null;
-    }
-
-    protected final void setAlwaysListening(boolean alwaysListening) {
-        this.alwaysListening = alwaysListening;
-        if (alwaysListening) KamiMod.EVENT_BUS.subscribe(this);
-        if (!alwaysListening && isDisabled()) KamiMod.EVENT_BUS.unsubscribe(this);
-    }
-
-    /**
-     * Cleanup method in case this module wants to do something when the client closes down
-     */
-    public void destroy() {
-    }
-
-    /* If you change a setting with ;set or eg a defaults button the GUI doesn't update, so call this */
-    public static void closeSettings() {
-        List<SettingsPanel> panels = ContainerHelper.getAllChildren(SettingsPanel.class, KamiMod.getInstance().getGuiManager());
-        for (SettingsPanel settingsPanel : panels) {
-            if (settingsPanel.isVisible()) {
-                settingsPanel.setModule(null);
-            }
-        }
-    }
-
-    protected void registerAll(Setting... settings) {
-        for (Setting setting : settings) {
-            register(setting);
-        }
-    }
-
-    protected <T> Setting<T> register(Setting<T> setting) {
-        if (settingList == null) settingList = new ArrayList<>();
-        settingList.add(setting);
-        return SettingBuilder.register(setting, "modules." + originalName);
-    }
-
-    protected <T> Setting<T> register(SettingBuilder<T> builder) {
-        if (settingList == null) settingList = new ArrayList<>();
-        Setting<T> setting = builder.buildAndRegister("modules." + name);
-        settingList.add(setting);
-        return setting;
-    }
-
 
     private class BindConverter extends Converter<Bind, JsonElement> {
         @Override

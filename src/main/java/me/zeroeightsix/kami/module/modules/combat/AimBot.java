@@ -52,9 +52,9 @@ public class AimBot extends Module {
             mc.playerController.syncCurrentPlayItem();
         }
 
-        for(Entity entity : mc.world.loadedEntityList) {
+        for (Entity entity : mc.world.loadedEntityList) {
 
-            if(entity instanceof EntityLivingBase) {
+            if (entity instanceof EntityLivingBase) {
                 EntityLivingBase potentialTarget = (EntityLivingBase) entity;
 
                 if (!(potentialTarget instanceof EntityPlayerSP) && mc.player.getDistance(potentialTarget) <= range.getValue() && !(potentialTarget.getHealth() <= 0)) {

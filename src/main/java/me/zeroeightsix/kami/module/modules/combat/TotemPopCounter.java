@@ -38,10 +38,37 @@ public class TotemPopCounter extends Module {
     private Setting<Boolean> thanksTo = register(Settings.b("Thanks to", false));
     private Setting<ColourTextFormatting.ColourCode> colourCode = register(Settings.e("Color Name", ColourTextFormatting.ColourCode.DARK_PURPLE));
     private Setting<ColourTextFormatting.ColourCode> colourCode1 = register(Settings.e("Color Number", ColourTextFormatting.ColourCode.LIGHT_PURPLE));
-
-    private enum Announce { CLIENT, EVERYONE }
     private HashMap<String, Integer> playerList = new HashMap();
+    @EventHandler
+    public Listener<EntityUseTotemEvent> listListener = new Listener<>(event -> {
+        if (playerList == null) playerList = new HashMap<>();
+
+        if (playerList.get(event.getEntity().getName()) == null) {
+            playerList.put(event.getEntity().getName(), 1);
+            sendMessage(formatName(event.getEntity().getName()) + " popped " + formatNumber(1) + " totem" + ending());
+        } else if (!(playerList.get(event.getEntity().getName()) == null)) {
+            int popCounter = playerList.get(event.getEntity().getName());
+            popCounter += 1;
+            playerList.put(event.getEntity().getName(), popCounter);
+            sendMessage(formatName(event.getEntity().getName()) + " popped " + formatNumber(popCounter) + " totems" + ending());
+        }
+    });
     private boolean isDead = false;
+    @EventHandler
+    public Listener<PacketEvent.Receive> popListener = new Listener<>(event -> {
+        if (mc.player == null) return;
+
+        if (event.getPacket() instanceof SPacketEntityStatus) {
+            SPacketEntityStatus packet = (SPacketEntityStatus) event.getPacket();
+            if (packet.getOpCode() == 35) {
+                Entity entity = packet.getEntity(mc.world);
+                if (friendCheck(entity.getName()) || selfCheck(entity.getName())) {
+                    EVENT_BUS.post(new EntityUseTotemEvent(entity));
+                }
+            }
+        }
+
+    });
 
     @Override
     public void onUpdate() {
@@ -58,33 +85,16 @@ public class TotemPopCounter extends Module {
         for (EntityPlayer player : mc.world.playerEntities) {
             if (
                     resetDeaths.getValue()
-                    && 0 >= player.getHealth()
-                    && friendCheck(player.getName())
-                    && selfCheck(player.getName())
-                    && playerList.containsKey(player.getName())) {
+                            && 0 >= player.getHealth()
+                            && friendCheck(player.getName())
+                            && selfCheck(player.getName())
+                            && playerList.containsKey(player.getName())) {
                 /* To note: if they died after popping 1 totem it's going to say totems, but I cba to fix it */
                 sendMessage(formatName(player.getName()) + " died after popping " + formatNumber(playerList.get(player.getName())) + " totems" + ending());
                 playerList.remove(player.getName(), playerList.get(player.getName()));
             }
         }
     }
-
-    @EventHandler
-    public Listener<EntityUseTotemEvent> listListener = new Listener<>(event -> {
-        if (playerList == null) playerList = new HashMap<>();
-
-        if (playerList.get(event.getEntity().getName()) == null) {
-            playerList.put(event.getEntity().getName(), 1);
-            sendMessage(formatName(event.getEntity().getName()) + " popped " + formatNumber(1) + " totem" + ending());
-        }
-
-        else if (!(playerList.get(event.getEntity().getName()) == null)) {
-            int popCounter = playerList.get(event.getEntity().getName());
-            popCounter += 1;
-            playerList.put(event.getEntity().getName(), popCounter);
-            sendMessage(formatName(event.getEntity().getName()) + " popped " + formatNumber(popCounter) + " totems" + ending());
-        }
-    });
 
     private boolean friendCheck(String name) {
         if (isDead) return false;
@@ -98,11 +108,7 @@ public class TotemPopCounter extends Module {
         if (isDead) return false;
         if (countSelf.getValue() && name.equalsIgnoreCase(mc.player.getName())) {
             return true;
-        }
-        else if (!countSelf.getValue() && name.equalsIgnoreCase(mc.player.getName())) {
-            return false;
-        }
-        return true;
+        } else return countSelf.getValue() || !name.equalsIgnoreCase(mc.player.getName());
     }
 
     private boolean isSelf(String name) {
@@ -120,7 +126,10 @@ public class TotemPopCounter extends Module {
         String extraText = "";
         if (isFriend(name) && !isPublic()) extraText = "Your friend, ";
         else if (isFriend(name) && isPublic()) extraText = "My friend, ";
-        if (isSelf(name)) { extraText = ""; name = "I"; }
+        if (isSelf(name)) {
+            extraText = "";
+            name = "I";
+        }
 
         if (announceSetting.getValue().equals(Announce.EVERYONE)) {
             return extraText + name;
@@ -131,15 +140,13 @@ public class TotemPopCounter extends Module {
     private String grammar(String name) {
         if (isSelf(name)) {
             return "my";
-        }
-        else return "their";
+        } else return "their";
     }
 
     private String ending() {
         if (thanksTo.getValue()) {
             return " thanks to " + KamiMod.MODNAME + "!";
-        }
-        else return "!";
+        } else return "!";
     }
 
     private boolean isPublic() {
@@ -163,23 +170,9 @@ public class TotemPopCounter extends Module {
         }
     }
 
-    @EventHandler
-    public Listener<PacketEvent.Receive> popListener = new Listener<>(event -> {
-        if (mc.player == null) return;
-
-        if (event.getPacket() instanceof SPacketEntityStatus) {
-            SPacketEntityStatus packet = (SPacketEntityStatus) event.getPacket();
-            if (packet.getOpCode() == 35) {
-                Entity entity = packet.getEntity(mc.world);
-                if (friendCheck(entity.getName()) || selfCheck(entity.getName())) {
-                    EVENT_BUS.post(new EntityUseTotemEvent(entity));
-                }
-            }
-        }
-
-    });
-
     private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {
         return toTextMap.get(colourCode);
     }
+
+    private enum Announce {CLIENT, EVERYONE}
 }

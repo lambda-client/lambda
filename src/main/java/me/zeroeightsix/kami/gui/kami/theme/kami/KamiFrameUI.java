@@ -28,9 +28,9 @@ import static org.lwjgl.opengl.GL11.*;
  */
 public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
 
+    private static final RootFontRenderer ff = new RootLargeFontRenderer();
     ColourHolder frameColour = KamiGUI.primaryColour.setA(100);
     ColourHolder outlineColour = frameColour.darker();
-
     Component yLineComponent = null;
     Component xLineComponent = null;
     Component centerXComponent = null;
@@ -38,8 +38,6 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
     boolean centerX = false;
     boolean centerY = false;
     int xLineOffset = 0;
-
-    private static final RootFontRenderer ff = new RootLargeFontRenderer();
 
     @Override
     public void renderComponent(Frame component, FontRenderer fontRenderer) {

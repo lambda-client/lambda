@@ -30,6 +30,11 @@ public class Label extends AlignedComponent {
         return text;
     }
 
+    public void setText(String text) {
+        this.text = text;
+        getTheme().getUIForComponent(this).handleSizeComponent(this);
+    }
+
     public String[] getLines() {
         String[] lines;
         if (isMultiline()) {
@@ -38,11 +43,6 @@ public class Label extends AlignedComponent {
             lines = new String[]{getText()};
         }
         return lines;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-        getTheme().getUIForComponent(this).handleSizeComponent(this);
     }
 
     public void addText(String add) {
@@ -70,6 +70,10 @@ public class Label extends AlignedComponent {
         return shadow;
     }
 
+    public void setShadow(boolean shadow) {
+        this.shadow = shadow;
+    }
+
     public FontRenderer getFontRenderer() {
         return fontRenderer;
     }
@@ -83,9 +87,5 @@ public class Label extends AlignedComponent {
         super.setTheme(theme);
         setFontRenderer(theme.getFontRenderer());
         getTheme().getUIForComponent(this).handleSizeComponent(this);
-    }
-
-    public void setShadow(boolean shadow) {
-        this.shadow = shadow;
     }
 }

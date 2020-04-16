@@ -18,13 +18,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinGuiChat {
 
     @Shadow
-    protected GuiTextField inputField;
-
-    @Shadow
     public String historyBuffer;
-
     @Shadow
     public int sentHistoryCursor;
+    @Shadow
+    protected GuiTextField inputField;
 
     @Shadow
     public abstract void initGui();

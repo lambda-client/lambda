@@ -24,8 +24,6 @@ public class ElytraReplace extends Module {
 
     private int elytraCount;
 
-    private enum InventoryMode { ON, OFF }
-
     @Override
     public void onUpdate() {
 
@@ -142,4 +140,6 @@ public class ElytraReplace extends Module {
             return true;
         } else return !elytraFlightCheck.getValue();
     }
+
+    private enum InventoryMode {ON, OFF}
 }

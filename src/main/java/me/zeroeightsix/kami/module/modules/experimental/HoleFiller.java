@@ -39,28 +39,49 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * Created by polymer on 12/03/20
  */
 
-@Module.Info(name = "HoleFiller", category = Module.Category.EXPERIMENTAL, description="Fills holes around the player to make people easier to crystal.")
+@Module.Info(name = "HoleFiller", category = Module.Category.EXPERIMENTAL, description = "Fills holes around the player to make people easier to crystal.")
 public class HoleFiller extends Module {
+    static boolean isSpoofingAngles;
+    static float yaw;
+    static float pitch;
+    private final BlockPos[] surroundOffset = {
+            new BlockPos(0, -1, 0), // down
+            new BlockPos(0, 0, -1), // north
+            new BlockPos(1, 0, 0), // east
+            new BlockPos(0, 0, 1), // south
+            new BlockPos(-1, 0, 0) // west
+    };
+    public List<BlockPos> blockPosList;
+    public boolean isHole;
+    List<Entity> entities = new ArrayList<>();
     private Setting<Double> distance = register(Settings.d("Range", 4.0));
     private Setting<Boolean> render = register(Settings.b("Render Filled Blocks", false));
     private Setting<Boolean> holeCheck = register(Settings.b("Only Fill in Hole", true));
     private Setting<Boolean> ignoreWalls = register(Settings.b("Ignore Walls", false));
+    @EventHandler
+    private final Listener<PacketEvent.Send> cPacketListener = new Listener<>(event -> {
+        Packet packet = event.getPacket();
+        if (packet instanceof CPacketPlayer) {
+            if (isSpoofingAngles) {
+                ((CPacketPlayer) packet).yaw = yaw;
+                ((CPacketPlayer) packet).pitch = pitch;
+            }
+        }
+    });
 
-    public List<BlockPos> blockPosList;
-    List<Entity> entities = new ArrayList<>();
+    private static void setYawAndPitch(float yaw1, float pitch1) {
+        yaw = yaw1;
+        pitch = pitch1;
+        isSpoofingAngles = true;
+    }
 
-    public boolean isHole;
-    static boolean isSpoofingAngles;
-    static float yaw;
-    static float pitch;
-
-    private final BlockPos[] surroundOffset = {
-        new BlockPos(0, -1, 0), // down
-        new BlockPos(0, 0, -1), // north
-        new BlockPos(1, 0, 0), // east
-        new BlockPos(0, 0, 1), // south
-        new BlockPos(-1, 0, 0) // west
-    };
+    private static void resetRotation() {
+        if (isSpoofingAngles) {
+            yaw = mc.player.rotationYaw;
+            pitch = mc.player.rotationPitch;
+            isSpoofingAngles = false;
+        }
+    }
 
     private int findObiInHotbar() {
         int slot = -1;
@@ -83,11 +104,11 @@ public class HoleFiller extends Module {
         if (mc.player == null || mc.world == null) return;
 
         Vec3d[] holeOffset = {
-            mc.player.getPositionVector().add(1, 0, 0),
-            mc.player.getPositionVector().add(-1, 0, 0),
-            mc.player.getPositionVector().add(0, 0, 1),
-            mc.player.getPositionVector().add(0, 0, -1),
-            mc.player.getPositionVector().add(0, -1, 0)
+                mc.player.getPositionVector().add(1, 0, 0),
+                mc.player.getPositionVector().add(-1, 0, 0),
+                mc.player.getPositionVector().add(0, 0, 1),
+                mc.player.getPositionVector().add(0, 0, -1),
+                mc.player.getPositionVector().add(0, -1, 0)
         };
 
 
@@ -100,14 +121,14 @@ public class HoleFiller extends Module {
             for (BlockPos pos : maybe) {
                 if (ignoreWalls.getValue()) {
                     blockPosList.add(pos);
-                } else if (mc.world.rayTraceBlocks(new Vec3d(mc.player.getPosition().x, mc.player.getPosition().y + p.getEyeHeight(), mc.player.getPosition().z), new Vec3d(pos.x, pos.y + (double)p.getEyeHeight(), pos.z), false, true, false) != null) {
+                } else if (mc.world.rayTraceBlocks(new Vec3d(mc.player.getPosition().x, mc.player.getPosition().y + p.getEyeHeight(), mc.player.getPosition().z), new Vec3d(pos.x, pos.y + (double) p.getEyeHeight(), pos.z), false, true, false) != null) {
                     blockPosList.add(pos);
                 }
             }
         }
 
         if (blockPosList == null) return;
-        for (BlockPos p: blockPosList) {
+        for (BlockPos p : blockPosList) {
             if (p == null) return;
 
             isHole = true;
@@ -130,8 +151,8 @@ public class HoleFiller extends Module {
 
             int h = 0;
             if (holeCheck.getValue()) {
-                for (Vec3d o: holeOffset) {
-                    BlockPos q = new BlockPos (o.x, o.y, o.z);
+                for (Vec3d o : holeOffset) {
+                    BlockPos q = new BlockPos(o.x, o.y, o.z);
                     Block b = mc.world.getBlockState(q).getBlock();
                     if (b == Blocks.OBSIDIAN || b == Blocks.BEDROCK) {
                         h++;
@@ -167,32 +188,9 @@ public class HoleFiller extends Module {
             }
         }
     }
+
     private void lookAtPacket(double px, double py, double pz, EntityPlayer me) {
         double[] v = calculateLookAt(px, py, pz, me);
-        setYawAndPitch((float) v[0], (float) v[1]+1f);
+        setYawAndPitch((float) v[0], (float) v[1] + 1f);
     }
-    private static void setYawAndPitch(float yaw1, float pitch1) {
-        yaw = yaw1;
-        pitch = pitch1;
-        isSpoofingAngles = true;
-    }
-
-    private static void resetRotation() {
-        if (isSpoofingAngles) {
-            yaw = mc.player.rotationYaw;
-            pitch = mc.player.rotationPitch;
-            isSpoofingAngles = false;
-        }
-    }
-
-    @EventHandler
-    private Listener<PacketEvent.Send> cPacketListener = new Listener<>(event -> {
-        Packet packet = event.getPacket();
-        if (packet instanceof CPacketPlayer) {
-            if (isSpoofingAngles) {
-                ((CPacketPlayer) packet).yaw = (float) yaw;
-                ((CPacketPlayer) packet).pitch = (float) pitch;
-            }
-        }
-    });
 }

@@ -13,7 +13,7 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 @Module.Info(name = "Criticals", category = Module.Category.COMBAT, description = "Always do critical attacks")
 public class Criticals extends Module {
     @EventHandler
-    private Listener<AttackEntityEvent> attackEntityEventListener = new Listener<>(event -> {
+    private final Listener<AttackEntityEvent> attackEntityEventListener = new Listener<>(event -> {
         if (!mc.player.isInWater() && !mc.player.isInLava()) {
             if (mc.player.onGround) { /* lol Minecraft checks for criticals if you're not on a block so just say you're not */
                 mc.player.connection.sendPacket(new CPacketPlayer.Position(mc.player.posX, mc.player.posY + 0.1f, mc.player.posZ, false));

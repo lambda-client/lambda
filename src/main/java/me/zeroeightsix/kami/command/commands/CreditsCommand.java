@@ -47,36 +47,36 @@ public class CreditsCommand extends Command {
 
                 // Bots
                 27856297 // dependabot
-                );
+        );
         String message =
-        "\nName (Github if not same as name)" +
-                "\n&l&9Author:" +
-                "\n086 (zeroeightysix)" +
-                "\n&l&9Contributors:" +
-                "\nBella (S-B99)" +
-                "\nhub (blockparole)" +
-                "\nSasha (EmotionalLove)" +
-                "\nQther (d1gress / Vonr)" +
-                "\ncats (Cuhnt)" +
-                "\nJack (jacksonellsworth03)" +
-                "\nTheBritishMidget (TBM)" +
-                "\nHamburger (Hamburger2k)" +
-                "\n0x2E (PretendingToCode)" +
-                "\nBattery Settings (Bluskript)" +
-                "\nAn-En (AnotherEntity)" +
-                "\nArisa (Arisa-Snowbell)" +
-                "\nJamie (jamie27)" +
-                "\nWaizy (WaizyNet)" +
-                "\nIt is the end (Itistheend)" +
-                "\nbabbaj" +
-                "\nCrystallinqq" +
-                "\nleijurv" +
-                "\nElementars";
+                "\nName (Github if not same as name)" +
+                        "\n&l&9Author:" +
+                        "\n086 (zeroeightysix)" +
+                        "\n&l&9Contributors:" +
+                        "\nBella (S-B99)" +
+                        "\nhub (blockparole)" +
+                        "\nSasha (EmotionalLove)" +
+                        "\nQther (d1gress / Vonr)" +
+                        "\ncats (Cuhnt)" +
+                        "\nJack (jacksonellsworth03)" +
+                        "\nTheBritishMidget (TBM)" +
+                        "\nHamburger (Hamburger2k)" +
+                        "\n0x2E (PretendingToCode)" +
+                        "\nBattery Settings (Bluskript)" +
+                        "\nAn-En (AnotherEntity)" +
+                        "\nArisa (Arisa-Snowbell)" +
+                        "\nJamie (jamie27)" +
+                        "\nWaizy (WaizyNet)" +
+                        "\nIt is the end (Itistheend)" +
+                        "\nbabbaj" +
+                        "\nCrystallinqq" +
+                        "\nleijurv" +
+                        "\nElementars";
 
-                for (WebUtils.GithubUser u : WebUtils.getContributors(exceptions)) {
-                    message = message.concat("\n" + u.login);
-                }
+        for (WebUtils.GithubUser u : WebUtils.getContributors(exceptions)) {
+            message = message.concat("\n" + u.login);
+        }
 
-                sendChatMessage(message);
+        sendChatMessage(message);
     }
 }

@@ -51,7 +51,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     public void onDisplayGUIChest(IInventory chestInventory, CallbackInfo ci) {
         if (MODULE_MANAGER.isModuleEnabled(BeaconSelector.class)) {
             if (chestInventory instanceof IInteractionObject) {
-                if ("minecraft:beacon".equals(((IInteractionObject)chestInventory).getGuiID())) {
+                if ("minecraft:beacon".equals(((IInteractionObject) chestInventory).getGuiID())) {
                     Minecraft.getMinecraft().displayGuiScreen(new BeaconGui(this.inventory, chestInventory));
                     ci.cancel();
                 }

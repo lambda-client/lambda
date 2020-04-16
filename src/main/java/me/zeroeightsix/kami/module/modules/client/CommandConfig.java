@@ -14,7 +14,10 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 public class CommandConfig extends Module {
     public Setting<Boolean> aliasInfo = register(Settings.b("Alias Info", true));
     public Setting<Boolean> prefixChat = register(Settings.b("PrefixChat", true));
-    public void onDisable() { sendDisableMessage(this.getClass()); }
+
+    public void onDisable() {
+        sendDisableMessage(this.getClass());
+    }
 
     private void sendDisableMessage(Class clazz) {
         sendErrorMessage("Error: The " + MODULE_MANAGER.getModule(clazz).getName() + " module is only for configuring command options, disabling it doesn't do anything.");

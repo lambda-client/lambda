@@ -12,7 +12,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 public class ValueParser extends AbstractParser {
 
-    private int moduleIndex;
+    private final int moduleIndex;
 
     public ValueParser(int moduleIndex) {
         this.moduleIndex = moduleIndex;

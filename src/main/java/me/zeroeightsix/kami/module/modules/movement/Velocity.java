@@ -13,6 +13,7 @@ import net.minecraft.network.play.server.SPacketExplosion;
 
 /**
  * Created by 086 on 16/11/2017.
+ *
  * @see me.zeroeightsix.kami.mixin.client.MixinBlockLiquid
  */
 @Module.Info(name = "Velocity", description = "Modify knockback impact", category = Module.Category.MOVEMENT)
@@ -23,7 +24,7 @@ public class Velocity extends Module {
     private Setting<Float> vertical = register(Settings.f("Vertical", 0));
 
     @EventHandler
-    private Listener<PacketEvent.Receive> packetEventListener = new Listener<>(event -> {
+    private final Listener<PacketEvent.Receive> packetEventListener = new Listener<>(event -> {
         if (event.getEra() == KamiEvent.Era.PRE) {
             if (event.getPacket() instanceof SPacketEntityVelocity) {
                 SPacketEntityVelocity velocity = (SPacketEntityVelocity) event.getPacket();
@@ -44,7 +45,7 @@ public class Velocity extends Module {
     });
 
     @EventHandler
-    private Listener<EntityEvent.EntityCollision> entityCollisionListener = new Listener<>(event -> {
+    private final Listener<EntityEvent.EntityCollision> entityCollisionListener = new Listener<>(event -> {
         if (event.getEntity() == mc.player) {
             if ((horizontal.getValue() == 0 && vertical.getValue() == 0) || noPush.getValue()) {
                 event.cancel();

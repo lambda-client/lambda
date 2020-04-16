@@ -51,12 +51,12 @@ public class CheckButton extends Button {
         });
     }
 
-    public void setToggled(boolean toggled) {
-        this.toggled = toggled;
-    }
-
     public boolean isToggled() {
         return toggled;
+    }
+
+    public void setToggled(boolean toggled) {
+        this.toggled = toggled;
     }
 
     public static abstract class CheckButtonPoof<T extends CheckButton, S extends CheckButtonPoof.CheckButtonPoofInfo> extends Poof<T, S> {
@@ -69,12 +69,12 @@ public class CheckButton extends Button {
                 this.action = action;
             }
 
-            public enum CheckButtonPoofInfoAction {
-                TOGGLE, ENABLE, DISABLE
-            }
-
             public CheckButtonPoofInfoAction getAction() {
                 return action;
+            }
+
+            public enum CheckButtonPoofInfoAction {
+                TOGGLE, ENABLE, DISABLE
             }
         }
     }

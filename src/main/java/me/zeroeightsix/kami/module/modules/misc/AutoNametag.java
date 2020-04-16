@@ -95,5 +95,5 @@ public class AutoNametag extends Module {
         }
     }
 
-    private enum Mode { WITHER, ANY }
+    private enum Mode {WITHER, ANY}
 }

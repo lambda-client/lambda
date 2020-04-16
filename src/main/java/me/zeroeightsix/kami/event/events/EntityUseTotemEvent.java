@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.event.KamiEvent;
 import net.minecraft.entity.Entity;
 
 public class EntityUseTotemEvent extends KamiEvent {
-    private Entity entity;
+    private final Entity entity;
 
     public EntityUseTotemEvent(Entity entity) {
         super();

@@ -66,7 +66,11 @@ public class AutoQMain extends Module {
         mc.playerController.connection.sendPacket(new CPacketChatMessage("/queue main"));
     }
 
-    private void sendMessage(String message) { if (showWarns.getValue()) sendWarningMessage(getChatName() + message); }
+    private void sendMessage(String message) {
+        if (showWarns.getValue()) sendWarningMessage(getChatName() + message);
+    }
 
-    public void onDisable() { delayTime = 0; }
+    public void onDisable() {
+        delayTime = 0;
+    }
 }

@@ -16,19 +16,17 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
  */
 @Module.Info(name = "DiscordRPC", category = Module.Category.MISC, description = "Discord Rich Presence")
 public class DiscordRPC extends Module {
-    private Setting<Boolean> coordsConfirm = register(Settings.b("Coords Confirm", false));
+    private static long startTime = 0;
     public Setting<LineInfo> line1Setting = register(Settings.e("Line 1 Left", LineInfo.VERSION)); // details left
     public Setting<LineInfo> line3Setting = register(Settings.e("Line 1 Right", LineInfo.USERNAME)); // details right
     public Setting<LineInfo> line2Setting = register(Settings.e("Line 2 Left", LineInfo.SERVER_IP)); // state left
     public Setting<LineInfo> line4Setting = register(Settings.e("Line 2 Right", LineInfo.HEALTH)); // state right
-
-    public enum LineInfo {
-        VERSION, WORLD, DIMENSION, USERNAME, HEALTH, SERVER_IP, COORDS, NONE
-    }
+    private Setting<Boolean> coordsConfirm = register(Settings.b("Coords Confirm", false));
 
     public String getLine(LineInfo line) {
         switch (line) {
-            case VERSION: return KamiMod.MODVERSMALL;
+            case VERSION:
+                return KamiMod.MODVERSMALL;
             case WORLD:
                 if (mc.isIntegratedServerRunning()) return "Singleplayer";
                 else if (mc.getCurrentServerData() != null) return "Multiplayer";
@@ -46,9 +44,11 @@ public class DiscordRPC extends Module {
                 else if (mc.isIntegratedServerRunning()) return "Offline";
                 else return "Main Menu";
             case COORDS:
-                if (mc.player != null && coordsConfirm.getValue()) return "(" + (int) mc.player.posX + " " + (int) mc.player.posY + " " + (int) mc.player.posZ + ")";
+                if (mc.player != null && coordsConfirm.getValue())
+                    return "(" + (int) mc.player.posX + " " + (int) mc.player.posY + " " + (int) mc.player.posZ + ")";
                 else return "No coords";
-            default: return "";
+            default:
+                return "";
         }
     }
 
@@ -57,7 +57,6 @@ public class DiscordRPC extends Module {
         DiscordPresence.start();
     }
 
-    private static long startTime = 0;
     @Override
     public void onUpdate() {
         if (startTime == 0) startTime = System.currentTimeMillis();
@@ -74,5 +73,9 @@ public class DiscordRPC extends Module {
     @Override
     protected void onDisable() {
         DiscordPresence.end();
+    }
+
+    public enum LineInfo {
+        VERSION, WORLD, DIMENSION, USERNAME, HEALTH, SERVER_IP, COORDS, NONE
     }
 }

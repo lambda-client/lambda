@@ -16,12 +16,13 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 /**
  * Created by 086 on 4/02/2018.
  * Updated by S-B99 on 14/04/20
- *
+ * <p>
  * Skylight Updates taken from https://github.com/fr1kin/ForgeHax/blob/1a4f98d/src/main/java/com/matt/forgehax/mods/NoSkylightUpdates.java
  */
 @Module.Info(name = "NoRender", category = Module.Category.RENDER, description = "Ignore entity spawn packets")
 public class NoRender extends Module {
 
+    public Setting<Boolean> beacon = register(Settings.b("Beacon Beams", false));
     private Setting<Boolean> mob = register(Settings.b("Mob", false));
     private Setting<Boolean> sand = register(Settings.b("Sand", false));
     private Setting<Boolean> gentity = register(Settings.b("GEntity", false));
@@ -29,10 +30,12 @@ public class NoRender extends Module {
     private Setting<Boolean> xp = register(Settings.b("XP", false));
     private Setting<Boolean> paint = register(Settings.b("Paintings", false));
     private Setting<Boolean> fire = register(Settings.b("Fire", true));
+    @EventHandler
+    public Listener<RenderBlockOverlayEvent> blockOverlayEventListener = new Listener<>(event -> {
+        if (fire.getValue() && event.getOverlayType() == RenderBlockOverlayEvent.OverlayType.FIRE)
+            event.setCanceled(true);
+    });
     private Setting<Boolean> explosion = register(Settings.b("Explosions", true));
-    public Setting<Boolean> beacon = register(Settings.b("Beacon Beams", false));
-    private Setting<Boolean> skylight = register(Settings.b("Skylight Updates", false));
-
     @EventHandler
     public Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
         Packet packet = event.getPacket();
@@ -45,12 +48,7 @@ public class NoRender extends Module {
                 (packet instanceof SPacketSpawnPainting && paint.getValue()))
             event.cancel();
     });
-
-    @EventHandler
-    public Listener<RenderBlockOverlayEvent> blockOverlayEventListener = new Listener<>(event -> {
-        if (fire.getValue() && event.getOverlayType() == RenderBlockOverlayEvent.OverlayType.FIRE)
-            event.setCanceled(true);
-    });
+    private Setting<Boolean> skylight = register(Settings.b("Skylight Updates", false));
 
     @SubscribeEvent
     public void onLightingUpdate(WorldCheckLightForEvent event) {

@@ -34,6 +34,10 @@ public class BookCrash extends Module {
     private Setting<Integer> pagesSettings = register(Settings.i("Pages", 50));
     private Setting<Boolean> autoToggle = register(Settings.b("AutoToggle", true));
 
+    private static String repeat(int count, String with) {
+        return new String(new char[count]).replace("\0", with);
+    }
+
     @Override
     public void onUpdate() {
         if (Minecraft.getMinecraft().getCurrentServerData() == null || Minecraft.getMinecraft().getCurrentServerData().serverIP.isEmpty()) {
@@ -93,10 +97,6 @@ public class BookCrash extends Module {
 
     private enum FillMode {
         ASCII, FFFF, RANDOM, OLD
-    }
-
-    private static String repeat(int count, String with) {
-        return new String(new char[count]).replace("\0", with);
     }
 
 }

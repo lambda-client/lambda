@@ -29,6 +29,17 @@ public final class Uniform {
     }
 
     /**
+     * Creates a uniform variable from the shader object id and the uniform's name
+     *
+     * @param shaderID    Shader object ID
+     * @param uniformName Uniform Name
+     * @return The UniformVariable representation
+     */
+    public static Uniform get(int shaderID, String uniformName) {
+        return new Uniform(uniformName, glGetUniformLocationARB(shaderID, uniformName));
+    }
+
+    /**
      * Sets the value of this Uniform as an Int
      *
      * @param value New value
@@ -85,16 +96,5 @@ public final class Uniform {
      */
     public final int getLocation() {
         return this.location;
-    }
-
-    /**
-     * Creates a uniform variable from the shader object id and the uniform's name
-     *
-     * @param shaderID    Shader object ID
-     * @param uniformName Uniform Name
-     * @return The UniformVariable representation
-     */
-    public static Uniform get(int shaderID, String uniformName) {
-        return new Uniform(uniformName, glGetUniformLocationARB(shaderID, uniformName));
     }
 }

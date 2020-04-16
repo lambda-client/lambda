@@ -14,7 +14,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 public class CommandManager {
 
-    private ArrayList<Command> commands;
+    private final ArrayList<Command> commands;
 
     public CommandManager() {
         commands = new ArrayList<>();
@@ -32,6 +32,21 @@ public class CommandManager {
             }
         }
         KamiMod.log.info("Commands initialised");
+    }
+
+    private static String[] removeElement(String[] input, int indexToDelete) {
+        List result = new LinkedList();
+
+        for (int i = 0; i < input.length; i++) {
+            if (i != indexToDelete) result.add(input[i]);
+        }
+
+        return (String[]) result.toArray(input);
+    }
+
+    private static String strip(String str, String key) {
+        if (str.startsWith(key) && str.endsWith(key)) return str.substring(key.length(), str.length() - key.length());
+        return str;
     }
 
     public void callCommand(String command) {
@@ -57,22 +72,6 @@ public class CommandManager {
         }
 
         sendChatMessage("&7Unknown command. try '&f" + Command.getCommandPrefix() + "cmds&7' for a list of commands.");
-    }
-
-    private static String[] removeElement(String[] input, int indexToDelete) {
-        List result = new LinkedList();
-
-        for (int i = 0; i < input.length; i++) {
-            if (i != indexToDelete) result.add(input[i]);
-        }
-
-        return (String[]) result.toArray(input);
-    }
-
-
-    private static String strip(String str, String key) {
-        if (str.startsWith(key) && str.endsWith(key)) return str.substring(key.length(), str.length() - key.length());
-        return str;
     }
 
     public ArrayList<Command> getCommands() {

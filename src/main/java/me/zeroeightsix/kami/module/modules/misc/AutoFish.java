@@ -26,15 +26,34 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  */
 @Module.Info(name = "AutoFish", category = Module.Category.MISC, description = "Automatically catch fish", alwaysListening = true)
 public class AutoFish extends Module {
-    private boolean recastHide = false;
     private static ServerData cServer;
+    @EventHandler
+    public Listener<GuiScreenEvent.Closed> serverConnectedEvent = new Listener<>(event -> {
+        if (isEnabled() && event.getScreen() instanceof GuiConnecting) {
+            cServer = mc.currentServerData;
+            EVENT_BUS.post(new ServerConnectedEvent());
+        }
+    });
+    @EventHandler
+    public Listener<GuiScreenEvent.Displayed> serverDisconnectedEvent = new Listener<>(event -> {
+        if (isEnabled() && event.getScreen() instanceof GuiDisconnected && (cServer != null || mc.currentServerData != null)) {
+            EVENT_BUS.post(new ServerDisconnectedEvent());
+        }
+    });
     Random random;
-
+    private final boolean recastHide = false;
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
     private Setting<Integer> baseDelay = register(Settings.integerBuilder("Throw Delay").withValue(450).withMinimum(50).withMaximum(1000).build());
     private Setting<Integer> extraDelay = register(Settings.integerBuilder("Catch Delay").withValue(300).withMinimum(0).withMaximum(1000).build());
     private Setting<Integer> variation = register(Settings.integerBuilder("Variation").withValue(50).withMinimum(0).withMaximum(1000).build());
     private Setting<Boolean> recast = register(Settings.booleanBuilder("Recast").withValue(false).withVisibility(v -> recastHide).build());
+    @EventHandler
+    public Listener<ServerDisconnectedEvent> disconnectedEventListener = new Listener<>(event -> {
+        if (isDisabled()) return;
+        recast.setValue(true);
+    });
+    @EventHandler
+    private final Listener<PacketEvent.Receive> receiveListener = new Listener<>(this::invoke);
 
     public void onUpdate() {
         if (defaultSetting.getValue()) defaults();
@@ -43,15 +62,6 @@ public class AutoFish extends Module {
             recast.setValue(false);
         }
     }
-
-    @EventHandler
-    public Listener<ServerDisconnectedEvent> disconnectedEventListener = new Listener<>(event -> {
-        if (isDisabled()) return;
-        recast.setValue(true);
-    });
-
-    @EventHandler
-    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(this::invoke);
 
     private void invoke(PacketEvent.Receive e) {
         if (isEnabled() && e.getPacket() instanceof SPacketSoundEffect) {
@@ -82,21 +92,6 @@ public class AutoFish extends Module {
             }
         }
     }
-
-    @EventHandler
-    public Listener<GuiScreenEvent.Closed> serverConnectedEvent = new Listener<>(event -> {
-        if (isEnabled() && event.getScreen() instanceof GuiConnecting) {
-            cServer = mc.currentServerData;
-            EVENT_BUS.post(new ServerConnectedEvent());
-        }
-    });
-
-    @EventHandler
-    public Listener<GuiScreenEvent.Displayed> serverDisconnectedEvent = new Listener<>(event -> {
-        if (isEnabled() && event.getScreen() instanceof GuiDisconnected && (cServer != null || mc.currentServerData != null)) {
-            EVENT_BUS.post(new ServerDisconnectedEvent());
-        }
-    });
 
     private boolean kindaEquals(int kara, int ni) {
         return ni == kara || ni == kara - 1 || ni == kara + 1;

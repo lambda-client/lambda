@@ -8,7 +8,7 @@ import java.util.Collections;
 
 public class EnumParser extends AbstractParser {
 
-    private String[] modes;
+    private final String[] modes;
 
     public EnumParser(String[] modes) {
         this.modes = modes;
