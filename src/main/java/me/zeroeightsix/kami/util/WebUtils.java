@@ -60,40 +60,40 @@ public class WebUtils {
     }
 
     public static java.util.List<GithubUser> getContributors(java.util.List<Integer> exceptions) {
-        // log attempt
-        KamiMod.log.info("Attempting to get contributors from github api...");
+            // log attempt
+            KamiMod.log.info("Attempting to get contributors from github api...");
 
-        //initialize list
-        java.util.List<GithubUser> contributorsAsList = new LinkedList<>(Collections.emptyList());
+            //initialize list
+            java.util.List<GithubUser> contributorsAsList = new LinkedList<>(Collections.emptyList());
 
-        new Thread(() -> {
-            try {
-                // connect to https://api.github.com/repos/kami-blue/client/contributors
-                HttpsURLConnection connection = (HttpsURLConnection) new URL("https://api.github.com/repos/kami-blue/client/contributors").openConnection();
-                connection.connect();
+            new Thread(() -> {
+                try {
+                    // connect to https://api.github.com/repos/kami-blue/client/contributors
+                    HttpsURLConnection connection = (HttpsURLConnection) new URL("https://api.github.com/repos/kami-blue/client/contributors").openConnection();
+                    connection.connect();
 
-                // then parse it
-                GithubUser[] contributors = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), GithubUser[].class);
+                    // then parse it
+                    GithubUser[] contributors = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), GithubUser[].class);
 
-                // disconnect from api
-                connection.disconnect();
+                    // disconnect from api
+                    connection.disconnect();
 
-                // add contributors to the list
-                for (GithubUser githubUser : contributors) {
-                    contributorsAsList.add(githubUser);
-                    for (int exception : exceptions) {
-                        if (githubUser.id == exception) {
-                            contributorsAsList.remove(githubUser);
+                    // add contributors to the list
+                    for (GithubUser githubUser : contributors) {
+                        contributorsAsList.add(githubUser);
+                        for (int exception : exceptions) {
+                            if (githubUser.id == exception) {
+                                contributorsAsList.remove(githubUser);
+                            }
                         }
                     }
-                }
 
-            } catch (Throwable t) {
-                // throw error
-                KamiMod.log.error("Attempt to get contributors from github api failed.\nError:\n\n" + t.toString());
-                MessageSendHelper.sendErrorMessage("Attempt to get contributors from github api failed.\nError:\n\n" + t.toString());
-            }
-        }).start();
+                } catch (Throwable t) {
+                    // throw error
+                    KamiMod.log.error("Attempt to get contributors from github api failed.\nError:\n\n" + t.toString());
+                    MessageSendHelper.sendErrorMessage("Attempt to get contributors from github api failed.\nError:\n\n" + t.toString());
+                }
+            }).start();
 
         return contributorsAsList;
     }

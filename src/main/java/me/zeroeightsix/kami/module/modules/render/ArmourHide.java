@@ -10,14 +10,16 @@ import net.minecraft.inventory.EntityEquipmentSlot;
  */
 @Module.Info(name = "ArmourHide", category = Module.Category.RENDER, description = "Hides the armour on selected entities", showOnArray = Module.ShowOnArray.OFF)
 public class ArmourHide extends Module {
-    public static ArmourHide INSTANCE;
     public Setting<Boolean> player = register(Settings.b("Players", false));
     public Setting<Boolean> armourstand = register(Settings.b("Armour Stands", true));
     public Setting<Boolean> mobs = register(Settings.b("Mobs", true));
+
     public Setting<Boolean> helmet = register(Settings.b("Helmet", false));
     public Setting<Boolean> chestplate = register(Settings.b("Chestplate", false));
     public Setting<Boolean> leggins = register(Settings.b("Leggings", false));
     public Setting<Boolean> boots = register(Settings.b("Boots", false));
+
+    public static ArmourHide INSTANCE;
 
     public ArmourHide() {
         ArmourHide.INSTANCE = this;
@@ -30,6 +32,10 @@ public class ArmourHide extends Module {
             return true;
         } else if (slotIn == EntityEquipmentSlot.LEGS && ArmourHide.INSTANCE.leggins.getValue()) {
             return true;
-        } else return slotIn == EntityEquipmentSlot.FEET && ArmourHide.INSTANCE.boots.getValue();
+        } else if (slotIn == EntityEquipmentSlot.FEET && ArmourHide.INSTANCE.boots.getValue()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

@@ -38,21 +38,6 @@ public class InventoryViewer extends Module {
     private boolean isTop = false;
     private boolean isBottom = false;
 
-    private static void preItemRender() {
-        GlStateManager.pushMatrix();
-        GlStateManager.enableDepth();
-        GlStateManager.depthMask(true);
-        // Yes, this is meant to be paired with disableStandardItemLighting - 20kdc
-        RenderHelper.enableGUIStandardItemLighting();
-    }
-
-    private static void postItemRender() {
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.depthMask(false);
-        GlStateManager.disableDepth();
-        GlStateManager.popMatrix();
-    }
-
     private int invMoveHorizontal() {
         if (!docking.getValue() || mcTexture.getValue()) return 0;
         if (isLeft) return 45;
@@ -93,6 +78,10 @@ public class InventoryViewer extends Module {
         }
     }
 
+    private enum ViewSize {
+        LARGE, MEDIUM, SMALL
+    }
+
     private void boxRender(final int x, final int y) {
         // SET UNRELIABLE DEFAULTS (Don't restore these) {
         GlStateManager.enableAlpha();
@@ -127,10 +116,6 @@ public class InventoryViewer extends Module {
         }
     }
 
-    // These methods should apply and clean up in pairs.
-    // That means that if a pre* has to disableAlpha, the post* function should enableAlpha.
-    //  - 20kdc
-
     private void itemRender(final NonNullList<ItemStack> items, final int x, final int y) {
         GlStateManager.clear(GL11.GL_DEPTH_BUFFER_BIT);
         for (int size = items.size(), item = 9; item < size; ++item) {
@@ -143,11 +128,24 @@ public class InventoryViewer extends Module {
         }
     }
 
-    public void onDisable() {
-        sendDisableMessage(this.getClass());
+    // These methods should apply and clean up in pairs.
+    // That means that if a pre* has to disableAlpha, the post* function should enableAlpha.
+    //  - 20kdc
+
+    private static void preItemRender() {
+        GlStateManager.pushMatrix();
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        // Yes, this is meant to be paired with disableStandardItemLighting - 20kdc
+        RenderHelper.enableGUIStandardItemLighting();
     }
 
-    private enum ViewSize {
-        LARGE, MEDIUM, SMALL
+    private static void postItemRender() {
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableDepth();
+        GlStateManager.popMatrix();
     }
+
+    public void onDisable() { sendDisableMessage(this.getClass()); }
 }

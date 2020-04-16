@@ -35,7 +35,6 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 @Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian to take less damage")
 public class Surround extends Module {
 
-    private final Vec3d[] surroundTargets = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D), new Vec3d(1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, 1.0D), new Vec3d(-1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, -1.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
     public Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));
     private Setting<Boolean> spoofRotations = register(Settings.b("Spoof Rotations", true));
     private Setting<Boolean> spoofHotbar = register(Settings.b("Spoof Hotbar", false));
@@ -43,43 +42,21 @@ public class Surround extends Module {
     private Setting<DebugMsgs> debugMsgs = register(Settings.e("Debug Messages", DebugMsgs.IMPORTANT));
     private Setting<AutoCenter> autoCenter = register(Settings.e("Auto Center", AutoCenter.TP));
     private Setting<Boolean> placeAnimation = register(Settings.b("Place Animation", false));
+
+    private final Vec3d[] surroundTargets = new Vec3d[]{new Vec3d(0.0D, 0.0D, 0.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D), new Vec3d(1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, 1.0D), new Vec3d(-1.0D, 0.0D, 0.0D), new Vec3d(0.0D, 0.0D, -1.0D), new Vec3d(1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, 1.0D), new Vec3d(-1.0D, 1.0D, 0.0D), new Vec3d(0.0D, 1.0D, -1.0D)};
+
     private Vec3d playerPos;
     private BlockPos basePos;
     private int offsetStep = 0;
     private int playerHotbarSlot = -1;
     private int lastHotbarSlot = -1;
 
-    private static boolean canBeClicked(BlockPos pos) {
-        return getBlock(pos).canCollideCheck(getState(pos), false);
+    private enum DebugMsgs {
+        NONE, IMPORTANT, ALL
     }
 
-    public static Block getBlock(BlockPos pos) {
-        return getState(pos).getBlock();
-    }
-
-    private static IBlockState getState(BlockPos pos) {
-        return mc.world.getBlockState(pos);
-    }
-
-    private static void faceVectorPacketInstant(Vec3d vec) {
-        float[] rotations = getLegitRotations(vec);
-        mc.player.connection.sendPacket(new Rotation(rotations[0], rotations[1], mc.player.onGround));
-    }
-
-    private static float[] getLegitRotations(Vec3d vec) {
-        Vec3d eyesPos = getEyesPos();
-        double diffX = vec.x - eyesPos.x;
-        double diffY = vec.y - eyesPos.y;
-        double diffZ = vec.z - eyesPos.z;
-        double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
-        float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
-        float pitch = (float) (-Math.toDegrees(Math.atan2(diffY, diffXZ)));
-        return new float[]{mc.player.rotationYaw + MathHelper.wrapDegrees(yaw - mc.player.rotationYaw), mc.player.rotationPitch + MathHelper.wrapDegrees(pitch - mc.player.rotationPitch)};
-    }
-    /* End of Autocenter */
-
-    private static Vec3d getEyesPos() {
-        return new Vec3d(mc.player.posX, mc.player.posY + (double) mc.player.getEyeHeight(), mc.player.posZ);
+    private enum AutoCenter {
+        OFF, TP
     }
 
     public void onUpdate() {
@@ -117,16 +94,17 @@ public class Surround extends Module {
     private void centerPlayer(double x, double y, double z) {
         if (debugMsgs.getValue().equals(DebugMsgs.ALL) && playerPos != null) {
             sendChatMessage(getChatName() + " Player position is " + playerPos.toString());
-        } else if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
+        }
+        else if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
             sendChatMessage(getChatName() + " Player position is null");
         }
         mc.player.connection.sendPacket(new CPacketPlayer.Position(x, y, z, true));
         mc.player.setPosition(x, y, z);
     }
-
     double getDst(Vec3d vec) {
         return playerPos.distanceTo(vec);
     }
+    /* End of Autocenter */
 
     public void onEnable() {
         if (mc.player == null) return;
@@ -147,18 +125,15 @@ public class Surround extends Module {
                 x = centerPos.getX() + 0.5;
                 z = centerPos.getZ() + 0.5;
                 centerPlayer(x, y, z);
-            }
-            if (getDst(plusMinus) < getDst(plusPlus) && getDst(plusMinus) < getDst(minusMinus) && getDst(plusMinus) < getDst(minusPlus)) {
+            } if (getDst(plusMinus) < getDst(plusPlus) && getDst(plusMinus) < getDst(minusMinus) && getDst(plusMinus) < getDst(minusPlus)) {
                 x = centerPos.getX() + 0.5;
                 z = centerPos.getZ() - 0.5;
                 centerPlayer(x, y, z);
-            }
-            if (getDst(minusMinus) < getDst(plusPlus) && getDst(minusMinus) < getDst(plusMinus) && getDst(minusMinus) < getDst(minusPlus)) {
+            } if (getDst(minusMinus) < getDst(plusPlus) && getDst(minusMinus) < getDst(plusMinus) && getDst(minusMinus) < getDst(minusPlus)) {
                 x = centerPos.getX() - 0.5;
                 z = centerPos.getZ() - 0.5;
                 centerPlayer(x, y, z);
-            }
-            if (getDst(minusPlus) < getDst(plusPlus) && getDst(minusPlus) < getDst(plusMinus) && getDst(minusPlus) < getDst(minusMinus)) {
+            } if (getDst(minusPlus) < getDst(plusPlus) && getDst(minusPlus) < getDst(plusMinus) && getDst(minusPlus) < getDst(minusMinus)) {
                 x = centerPos.getX() - 0.5;
                 z = centerPos.getZ() + 0.5;
                 centerPlayer(x, y, z);
@@ -222,8 +197,7 @@ public class Surround extends Module {
         } else if (!BlockInteractionHelper.checkForNeighbours(blockPos) && debugMsgs.getValue().equals(DebugMsgs.ALL)) {
             sendChatMessage(getChatName() + " !checkForNeighbours(blockPos), disabling! ");
         } else {
-            if (placeAnimation.getValue())
-                mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
+            if (placeAnimation.getValue()) mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
             placeBlockExecute(blockPos);
         }
         if (MODULE_MANAGER.isModuleEnabled(NoBreakAnimation.class)) {
@@ -314,11 +288,35 @@ public class Surround extends Module {
         }
     }
 
-    private enum DebugMsgs {
-        NONE, IMPORTANT, ALL
+    private static boolean canBeClicked(BlockPos pos) {
+        return getBlock(pos).canCollideCheck(getState(pos), false);
     }
 
-    private enum AutoCenter {
-        OFF, TP
+    public static Block getBlock(BlockPos pos) {
+        return getState(pos).getBlock();
+    }
+
+    private static IBlockState getState(BlockPos pos) {
+        return mc.world.getBlockState(pos);
+    }
+
+    private static void faceVectorPacketInstant(Vec3d vec) {
+        float[] rotations = getLegitRotations(vec);
+        mc.player.connection.sendPacket(new Rotation(rotations[0], rotations[1], mc.player.onGround));
+    }
+
+    private static float[] getLegitRotations(Vec3d vec) {
+        Vec3d eyesPos = getEyesPos();
+        double diffX = vec.x - eyesPos.x;
+        double diffY = vec.y - eyesPos.y;
+        double diffZ = vec.z - eyesPos.z;
+        double diffXZ = Math.sqrt(diffX * diffX + diffZ * diffZ);
+        float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0F;
+        float pitch = (float) (-Math.toDegrees(Math.atan2(diffY, diffXZ)));
+        return new float[]{mc.player.rotationYaw + MathHelper.wrapDegrees(yaw - mc.player.rotationYaw), mc.player.rotationPitch + MathHelper.wrapDegrees(pitch - mc.player.rotationPitch)};
+    }
+
+    private static Vec3d getEyesPos() {
+        return new Vec3d(mc.player.posX, mc.player.posY + (double) mc.player.getEyeHeight(), mc.player.posZ);
     }
 }

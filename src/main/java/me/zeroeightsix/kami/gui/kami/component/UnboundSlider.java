@@ -9,9 +9,10 @@ import me.zeroeightsix.kami.gui.rgui.component.use.Slider;
  */
 public class UnboundSlider extends AbstractComponent {
 
-    public int sensitivity = 5;
     double value;
     String text;
+    public int sensitivity = 5;
+
     int originX;
     double originValue;
 
@@ -63,16 +64,16 @@ public class UnboundSlider extends AbstractComponent {
         this.min = min;
     }
 
-    public double getValue() {
-        return value;
-    }
-
     public void setValue(double value) {
         if (min != Double.MIN_VALUE) value = Math.max(value, min);
         if (max != Double.MAX_VALUE) value = Math.min(value, max);
         Slider.SliderPoof.SliderPoofInfo info = new Slider.SliderPoof.SliderPoofInfo(this.value, value);
         callPoof(Slider.SliderPoof.class, info);
         this.value = integer ? Math.floor(info.getNewValue()) : info.getNewValue();
+    }
+
+    public double getValue() {
+        return value;
     }
 
     public String getText() {

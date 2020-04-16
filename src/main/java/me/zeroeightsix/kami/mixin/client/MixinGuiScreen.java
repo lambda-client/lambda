@@ -26,8 +26,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 @Mixin(GuiScreen.class)
 public class MixinGuiScreen {
 
-    @Shadow
-    public Minecraft mc;
+    @Shadow public Minecraft mc;
     RenderItem itemRender = Minecraft.getMinecraft().getRenderItem();
     FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
 
@@ -41,7 +40,7 @@ public class MixinGuiScreen {
                     // We'll take over!
                     info.cancel();
 
-                    NonNullList<ItemStack> nonnulllist = NonNullList.withSize(27, ItemStack.EMPTY);
+                    NonNullList<ItemStack> nonnulllist = NonNullList.<ItemStack>withSize(27, ItemStack.EMPTY);
                     ItemStackHelper.loadAllItems(blockEntityTag, nonnulllist);
 
                     GlStateManager.enableBlend();
@@ -101,9 +100,9 @@ public class MixinGuiScreen {
      * see https://github.com/kami-blue/client/pull/293 for discussion
      * authors words:
      * Also @S-B99 you should be more careful with merging commits, especially from people who are new to coding. Stuff like this is obviously stolen, and can get your repository DMCA'd.
-     * <p>
+     *
      * as shown be the rest of his discussion, he was fine with it
-     * I even aknowledged when it was added, after cookies approval, that it was pasted from backdoored.
+     * I even aknowledged when it was added, after cookies approval, that it was pasted from backdoored. 
      */
     @Inject(method = "Lnet/minecraft/client/gui/GuiScreen;drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {

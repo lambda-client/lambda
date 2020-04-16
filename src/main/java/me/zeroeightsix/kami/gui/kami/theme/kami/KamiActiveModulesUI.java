@@ -25,7 +25,6 @@ import static org.lwjgl.opengl.GL11.glDisable;
  */
 public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kami.gui.kami.component.ActiveModules> {
     ActiveModules activeMods;
-
     @Override
     public void renderComponent(me.zeroeightsix.kami.gui.kami.component.ActiveModules component, FontRenderer f) {
         GL11.glDisable(GL11.GL_CULL_FACE);
@@ -61,7 +60,7 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
                 break;
         }
 
-        for (int i = 0; i < mods.size(); i++) {
+        for (int i = 0 ; i < mods.size() ; i++) {
             Module module = mods.get(i);
             int rgb;
 

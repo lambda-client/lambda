@@ -16,7 +16,7 @@ import net.minecraft.network.play.client.CPacketAnimation;
 public class NoSwing extends Module {
 
     @EventHandler
-    private final Listener<PacketEvent.Send> listener = new Listener<>(event -> {
+    private Listener<PacketEvent.Send> listener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketAnimation) {
             event.cancel();
         }

@@ -49,25 +49,6 @@ public class TrajectoryCalculator {
         return ThrowingType.NONE;
     }
 
-    public static double[] interpolate(Entity entity) {
-        double posX = interpolate(entity.posX, entity.lastTickPosX) - Wrapper.getMinecraft().renderManager.renderPosX;
-        double posY = interpolate(entity.posY, entity.lastTickPosY) - Wrapper.getMinecraft().renderManager.renderPosY;
-        double posZ = interpolate(entity.posZ, entity.lastTickPosZ) - Wrapper.getMinecraft().renderManager.renderPosZ;
-        return new double[]{posX, posY, posZ};
-    }
-
-    public static double interpolate(double now, double then) {
-        return then + (now - then) * Wrapper.getMinecraft().getRenderPartialTicks();
-    }
-
-    public static Vec3d mult(Vec3d factor, float multiplier) {
-        return new Vec3d(factor.x * multiplier, factor.y * multiplier, factor.z * multiplier);
-    }
-
-    public static Vec3d div(Vec3d factor, float divisor) {
-        return new Vec3d(factor.x / divisor, factor.y / divisor, factor.z / divisor);
-    }
-
     public enum ThrowingType {
         NONE, BOW, EXPERIENCE, POTION, NORMAL
     }
@@ -78,15 +59,15 @@ public class TrajectoryCalculator {
      * of them is {@link net.minecraft.entity.projectile.EntityThrowable}
      */
     public static final class FlightPath {
+        private EntityLivingBase shooter;
         public Vec3d position;
-        private final EntityLivingBase shooter;
         private Vec3d motion;
         private float yaw;
         private float pitch;
         private AxisAlignedBB boundingBox;
         private boolean collided;
         private RayTraceResult target;
-        private final ThrowingType throwingType;
+        private ThrowingType throwingType;
 
         public FlightPath(EntityLivingBase entityLivingBase, ThrowingType throwingType) {
             this.shooter = entityLivingBase;
@@ -168,6 +149,7 @@ public class TrajectoryCalculator {
             double currentDistance = 0.0d;
             // Get all possible collision entities disregarding the local thePlayer
             List<Entity> collisionEntities = this.shooter.world.getEntitiesWithinAABBExcludingEntity(this.shooter, this.boundingBox.expand(this.motion.x, this.motion.y, this.motion.z).expand(1.0D, 1.0D, 1.0D));
+            ;
 
             // Loop through every loaded entity in the world
             for (Entity entity : collisionEntities) {
@@ -320,5 +302,24 @@ public class TrajectoryCalculator {
         public RayTraceResult getCollidingTarget() {
             return target;
         }
+    }
+
+    public static double[] interpolate(Entity entity) {
+        double posX = interpolate(entity.posX, entity.lastTickPosX) - Wrapper.getMinecraft().renderManager.renderPosX;
+        double posY = interpolate(entity.posY, entity.lastTickPosY) - Wrapper.getMinecraft().renderManager.renderPosY;
+        double posZ = interpolate(entity.posZ, entity.lastTickPosZ) - Wrapper.getMinecraft().renderManager.renderPosZ;
+        return new double[]{posX, posY, posZ};
+    }
+
+    public static double interpolate(double now, double then) {
+        return then + (now - then) * Wrapper.getMinecraft().getRenderPartialTicks();
+    }
+
+    public static Vec3d mult(Vec3d factor, float multiplier) {
+        return new Vec3d(factor.x * multiplier, factor.y * multiplier, factor.z * multiplier);
+    }
+
+    public static Vec3d div(Vec3d factor, float divisor) {
+        return new Vec3d(factor.x / divisor, factor.y / divisor, factor.z / divisor);
     }
 }

@@ -32,7 +32,7 @@ public class AutoReplyCommand extends Command {
             if (s == null)
                 continue;
             if (s.startsWith("=")) {
-                String sT = s.replace("=", "");
+                String sT = s.replace("=" ,"");
                 autoReply.listener.setValue(sT);
                 sendChatMessage("Set the AutoReply listener to <" + sT + ">");
                 if (!autoReply.customListener.getValue()) {
@@ -40,7 +40,7 @@ public class AutoReplyCommand extends Command {
                     sendWarningMessage("The command will still work, but will not visibly do anything.");
                 }
             } else if (s.startsWith("-")) {
-                String sT = s.replace("-", "");
+                String sT = s.replace("-" ,"");
                 autoReply.replyCommand.setValue(sT);
                 sendChatMessage("Set the AutoReply reply command to <" + sT + ">");
                 if (!autoReply.customReplyCommand.getValue()) {

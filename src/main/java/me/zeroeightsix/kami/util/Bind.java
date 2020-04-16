@@ -20,6 +20,51 @@ public class Bind {
         this.key = key;
     }
 
+    public int getKey() {
+        return key;
+    }
+
+    public boolean isCtrl() {
+        return ctrl;
+    }
+
+    public boolean isAlt() {
+        return alt;
+    }
+
+    public boolean isShift() {
+        return shift;
+    }
+
+    public boolean isEmpty() {
+        return !ctrl && !shift && !alt && key < 0;
+    }
+
+    public void setAlt(boolean alt) {
+        this.alt = alt;
+    }
+
+    public void setCtrl(boolean ctrl) {
+        this.ctrl = ctrl;
+    }
+
+    public void setKey(int key) {
+        this.key = key;
+    }
+
+    public void setShift(boolean shift) {
+        this.shift = shift;
+    }
+
+    @Override
+    public String toString() {
+        return isEmpty() ? "None" : (isCtrl() ? "Ctrl+" : "") + (isAlt() ? "Alt+" : "") + (isShift() ? "Shift+" : "") + (key < 0 ? "None" : capitalise(Keyboard.getKeyName(key)));
+    }
+
+    public boolean isDown(int eventKey) {
+        return !isEmpty() && (!BindCommand.modifiersEnabled.getValue() || (isShift() == isShiftDown()) && (isCtrl() == isCtrlDown()) && (isAlt() == isAltDown())) && eventKey == getKey();
+    }
+
     public static boolean isShiftDown() {
         return Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
     }
@@ -32,58 +77,13 @@ public class Bind {
         return Keyboard.isKeyDown(Keyboard.KEY_LMENU) || Keyboard.isKeyDown(Keyboard.KEY_RMENU);
     }
 
-    public static Bind none() {
-        return new Bind(false, false, false, -1);
-    }
-
-    public int getKey() {
-        return key;
-    }
-
-    public void setKey(int key) {
-        this.key = key;
-    }
-
-    public boolean isCtrl() {
-        return ctrl;
-    }
-
-    public void setCtrl(boolean ctrl) {
-        this.ctrl = ctrl;
-    }
-
-    public boolean isAlt() {
-        return alt;
-    }
-
-    public void setAlt(boolean alt) {
-        this.alt = alt;
-    }
-
-    public boolean isShift() {
-        return shift;
-    }
-
-    public void setShift(boolean shift) {
-        this.shift = shift;
-    }
-
-    public boolean isEmpty() {
-        return !ctrl && !shift && !alt && key < 0;
-    }
-
-    @Override
-    public String toString() {
-        return isEmpty() ? "None" : (isCtrl() ? "Ctrl+" : "") + (isAlt() ? "Alt+" : "") + (isShift() ? "Shift+" : "") + (key < 0 ? "None" : capitalise(Keyboard.getKeyName(key)));
-    }
-
-    public boolean isDown(int eventKey) {
-        return !isEmpty() && (!BindCommand.modifiersEnabled.getValue() || (isShift() == isShiftDown()) && (isCtrl() == isCtrlDown()) && (isAlt() == isAltDown())) && eventKey == getKey();
-    }
-
     public String capitalise(String str) {
         if (str.isEmpty()) return "";
         return Character.toUpperCase(str.charAt(0)) + (str.length() != 1 ? str.substring(1).toLowerCase() : "");
+    }
+
+    public static Bind none() {
+        return new Bind(false, false, false, -1);
     }
 
 }

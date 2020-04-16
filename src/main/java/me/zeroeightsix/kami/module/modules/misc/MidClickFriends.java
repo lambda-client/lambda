@@ -21,6 +21,14 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 @Module.Info(name = "MidClickFriends", category = Module.Category.MISC, description = "Middle click players to friend or unfriend them", showOnArray = Module.ShowOnArray.OFF)
 public class MidClickFriends extends Module {
     private int delay = 0;
+
+    @Override
+    public void onUpdate() {
+        if (delay > 0) {
+            delay--;
+        }
+    }
+
     @EventHandler
     public Listener<InputEvent.MouseInputEvent> mouseListener = new Listener<>(event -> {
         if (delay == 0) {
@@ -39,13 +47,6 @@ public class MidClickFriends extends Module {
             }
         }
     });
-
-    @Override
-    public void onUpdate() {
-        if (delay > 0) {
-            delay--;
-        }
-    }
 
     private void remove(String name) {
         delay = 20;

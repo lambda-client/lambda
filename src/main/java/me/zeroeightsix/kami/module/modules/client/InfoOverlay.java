@@ -29,8 +29,6 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendDisableMessage;
 public class InfoOverlay extends Module {
     /* This is so horrible but there's no other way */
     private Setting<Page> page = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());
-    public Setting<ColourTextFormatting.ColourCode> firstColour = register(Settings.enumBuilder(ColourTextFormatting.ColourCode.class).withName("First Colour").withValue(ColourTextFormatting.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
-    public Setting<ColourTextFormatting.ColourCode> secondColour = register(Settings.enumBuilder(ColourTextFormatting.ColourCode.class).withName("Second Colour").withValue(ColourTextFormatting.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
     /* Page One */
     private Setting<Boolean> version = register(Settings.booleanBuilder("Version").withValue(true).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> username = register(Settings.booleanBuilder("Username").withValue(true).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
@@ -52,17 +50,11 @@ public class InfoOverlay extends Module {
     public Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
     public Setting<TimeUtil.TimeUnit> timeUnitSetting = register(Settings.enumBuilder(TimeUtil.TimeUnit.class).withName("Time Unit").withValue(TimeUtil.TimeUnit.H12).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
     public Setting<Boolean> doLocale = register(Settings.booleanBuilder("Time Show AMPM").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
+    public Setting<ColourTextFormatting.ColourCode> firstColour = register(Settings.enumBuilder(ColourTextFormatting.ColourCode.class).withName("First Colour").withValue(ColourTextFormatting.ColourCode.WHITE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
+    public Setting<ColourTextFormatting.ColourCode> secondColour = register(Settings.enumBuilder(ColourTextFormatting.ColourCode.class).withName("Second Colour").withValue(ColourTextFormatting.ColourCode.BLUE).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
 
     public static String getStringColour(TextFormatting c) {
         return c.toString();
-    }
-
-    public static int getItems(Item i) {
-        return mc.player.inventory.mainInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum() + mc.player.inventory.offHandInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
-    }
-
-    public static int getArmor(Item i) {
-        return mc.player.inventory.armorInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
     }
 
     private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {
@@ -73,69 +65,59 @@ public class InfoOverlay extends Module {
         ArrayList<String> infoContents = new ArrayList<>();
         if (version.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + KamiMod.KAMI_KANJI + getStringColour(setToText(secondColour.getValue())) + " " + KamiMod.MODVERSMALL);
-        }
-        if (username.getValue()) {
+        } if (username.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + "Welcome" + getStringColour(setToText(secondColour.getValue())) + " " + mc.getSession().getUsername() + "!");
-        }
-        if (time.getValue()) {
+        } if (time.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + TimeUtil.getFinalTime(setToText(secondColour.getValue()), setToText(firstColour.getValue()), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()));
-        }
-        if (tps.getValue()) {
+        } if (tps.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.tps() + getStringColour(setToText(secondColour.getValue())) + " tps");
-        }
-        if (fps.getValue()) {
+        } if (fps.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + Minecraft.debugFPS + getStringColour(setToText(secondColour.getValue())) + " fps");
-        }
-        if (speed.getValue()) {
+        } if (speed.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.speed(useUnitKmH(), mc) + getStringColour(setToText(secondColour.getValue())) + " " + unitType(speedUnit.getValue()));
-        }
-        if (timerSpeed.getValue()) {
+        } if (timerSpeed.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + TimerSpeed.returnGui() + getStringColour(setToText(secondColour.getValue())) + "t");
-        }
-        if (ping.getValue()) {
+        } if (ping.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.ping(mc) + getStringColour(setToText(secondColour.getValue())) + " ms");
-        }
-        if (durability.getValue()) {
+        } if (durability.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.dura(mc) + getStringColour(setToText(secondColour.getValue())) + " dura");
-        }
-        if (memory.getValue()) {
+        } if (memory.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.memory() + getStringColour(setToText(secondColour.getValue())) + "mB free");
-        }
-        if (totems.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.TOTEM_OF_UNDYING) + getStringColour(setToText(secondColour.getValue())) + " Totems");
-        }
-        if (endCrystals.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.END_CRYSTAL) + getStringColour(setToText(secondColour.getValue())) + " Crystals");
-        }
-        if (expBottles.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.EXPERIENCE_BOTTLE) + getStringColour(setToText(secondColour.getValue())) + " EXP Bottles");
-        }
-        if (godApples.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.GOLDEN_APPLE) + getStringColour(setToText(secondColour.getValue())) + " God Apples");
+        } if (totems.getValue()) {
+        	infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.TOTEM_OF_UNDYING) + getStringColour(setToText(secondColour.getValue())) + " Totems");
+        } if (endCrystals.getValue()) {
+        	infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.END_CRYSTAL) + getStringColour(setToText(secondColour.getValue())) + " Crystals");
+        } if (expBottles.getValue()) {
+        	infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.EXPERIENCE_BOTTLE) + getStringColour(setToText(secondColour.getValue())) + " EXP Bottles");
+        } if (godApples.getValue()) {
+        	infoContents.add(getStringColour(setToText(firstColour.getValue())) + getItems(Items.GOLDEN_APPLE) + getStringColour(setToText(secondColour.getValue())) + " God Apples");
         }
         return infoContents;
     }
 
-    public void onDisable() {
-        sendDisableMessage(this.getClass());
-    }
+    public void onDisable() { sendDisableMessage(this.getClass()); }
+
+    private enum SpeedUnit { MPS, KMH }
+
+    private enum Page { ONE, TWO, THREE }
 
     public boolean useUnitKmH() {
         return speedUnit.getValue().equals(SpeedUnit.KMH);
     }
 
-    private String unitType(SpeedUnit s) {
-        switch (s) {
-            case MPS:
-                return "m/s";
-            case KMH:
-                return "km/h";
-            default:
-                return "Invalid unit type (mps or kmh)";
-        }
+    public static int getItems(Item i) {
+        return mc.player.inventory.mainInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum() + mc.player.inventory.offHandInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
     }
 
-    private enum SpeedUnit {MPS, KMH}
+    public static int getArmor(Item i) {
+        return mc.player.inventory.armorInventory.stream().filter(itemStack -> itemStack.getItem() == i).mapToInt(ItemStack::getCount).sum();
+    }
 
-    private enum Page {ONE, TWO, THREE}
+    private String unitType(SpeedUnit s) {
+        switch (s) {
+            case MPS: return "m/s";
+            case KMH: return "km/h";
+            default: return "Invalid unit type (mps or kmh)";
+        }
+    }
 }

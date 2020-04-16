@@ -2,12 +2,13 @@ package me.zeroeightsix.kami.command.syntax;
 
 public class SyntaxChunk {
 
-    public static final SyntaxChunk[] EMPTY = new SyntaxChunk[]{};
     private boolean headless = false;
-    private final String head; // Null if headless
-    private final String type;
-    private final boolean necessary;
+    private String head; // Null if headless
+    private String type;
+    private boolean necessary;
     private SyntaxParser parser;
+
+    public static final SyntaxChunk[] EMPTY = new SyntaxChunk[]{};
 
     public SyntaxChunk(String head, String type, boolean necessary) {
         this.head = head;

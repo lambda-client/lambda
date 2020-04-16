@@ -9,7 +9,7 @@ import java.util.List;
 public class ChunkBuilder {
 
     private static final SyntaxChunk[] EXAMPLE = SyntaxChunk.EMPTY;
-    private final List<SyntaxChunk> chunks = new ArrayList<>();
+    private List<SyntaxChunk> chunks = new ArrayList<>();
 
     public ChunkBuilder append(SyntaxChunk syntaxChunk) {
         chunks.add(syntaxChunk);

@@ -26,6 +26,19 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 public class Jesus extends Module {
 
     private static final AxisAlignedBB WATER_WALK_AA = new AxisAlignedBB(0.D, 0.D, 0.D, 1.D, 0.99D, 1.D);
+
+    @Override
+    public void onUpdate() {
+        if (!MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
+            if (EntityUtil.isInWater(mc.player) && !mc.player.isSneaking()) {
+                mc.player.motionY = 0.1;
+                if (mc.player.getRidingEntity() != null && !(mc.player.getRidingEntity() instanceof EntityBoat)) {
+                    mc.player.getRidingEntity().motionY = 0.3;
+                }
+            }
+        }
+    }
+
     @EventHandler
     Listener<AddCollisionBoxToListEvent> addCollisionBoxToListEventListener = new Listener<>((event) -> {
         if (mc.player != null
@@ -42,6 +55,7 @@ public class Jesus extends Module {
             event.cancel();
         }
     });
+
     @EventHandler
     Listener<PacketEvent.Send> packetEventSendListener = new Listener<>(event -> {
         if (event.getEra() == KamiEvent.Era.PRE) {
@@ -73,18 +87,6 @@ public class Jesus extends Module {
 
     private static boolean isAboveBlock(Entity entity, BlockPos pos) {
         return entity.posY >= pos.getY();
-    }
-
-    @Override
-    public void onUpdate() {
-        if (!MODULE_MANAGER.isModuleEnabled(Freecam.class)) {
-            if (EntityUtil.isInWater(mc.player) && !mc.player.isSneaking()) {
-                mc.player.motionY = 0.1;
-                if (mc.player.getRidingEntity() != null && !(mc.player.getRidingEntity() instanceof EntityBoat)) {
-                    mc.player.getRidingEntity().motionY = 0.3;
-                }
-            }
-        }
     }
 
 }

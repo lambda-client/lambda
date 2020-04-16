@@ -18,9 +18,11 @@ import static org.lwjgl.opengl.GL11.*;
  */
 public class KamiEnumButtonUI extends AbstractComponentUI<EnumButton> {
 
+    RootSmallFontRenderer smallFontRenderer = new RootSmallFontRenderer();
+
     protected Color idleColour = new Color(163, 163, 163);
     protected Color downColour = new Color(255, 255, 255);
-    RootSmallFontRenderer smallFontRenderer = new RootSmallFontRenderer();
+
     EnumButton modeComponent;
     long lastMS = System.currentTimeMillis();
 

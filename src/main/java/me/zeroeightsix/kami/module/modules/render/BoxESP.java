@@ -36,7 +36,7 @@ public class BoxESP extends Module {
     @Override
     public void onWorldRender(RenderEvent event) {
         List<Entity> entities = mc.world.loadedEntityList.stream().filter(this::getEntity).collect(Collectors.toList());
-        for (Entity e : entities) {
+        for (Entity e: entities) {
             KamiTessellator.prepare(GL11.GL_QUADS);
             int colour = rgbToInt(red.getValue(), green.getValue(), blue.getValue(), alpha.getValue());
             KamiTessellator.drawBoxSmall((float) e.getPositionVector().x - 0.25f, (float) e.getPositionVector().y, (float) e.getPositionVector().z - 0.25f, colour, GeometryMasks.Quad.ALL);

@@ -16,18 +16,20 @@ import net.minecraft.client.multiplayer.ServerData;
 @Module.Info(name = "AutoReconnect", description = "Automatically reconnects after being disconnected", category = Module.Category.MISC, alwaysListening = true, showOnArray = Module.ShowOnArray.OFF)
 public class AutoReconnect extends Module {
 
+    private Setting<Integer> seconds = register(Settings.integerBuilder("Seconds").withValue(5).withMinimum(0).build());
     private static ServerData cServer;
+
     @EventHandler
     public Listener<GuiScreenEvent.Closed> closedListener = new Listener<>(event -> {
         if (event.getScreen() instanceof GuiConnecting)
             cServer = mc.currentServerData;
     });
+
     @EventHandler
     public Listener<GuiScreenEvent.Displayed> displayedListener = new Listener<>(event -> {
         if (isEnabled() && event.getScreen() instanceof GuiDisconnected && (cServer != null || mc.currentServerData != null))
             event.setScreen(new KamiGuiDisconnected((GuiDisconnected) event.getScreen()));
     });
-    private Setting<Integer> seconds = register(Settings.integerBuilder("Seconds").withValue(5).withMinimum(0).build());
 
     private class KamiGuiDisconnected extends GuiDisconnected {
 

@@ -15,6 +15,11 @@ public class RichPresence {
     public static RichPresence INSTANCE;
     public CustomUser[] customUsers;
 
+    public static class CustomUser {
+        public String uuid;
+        public String type;
+    }
+
     public RichPresence() {
         INSTANCE = this;
         try {
@@ -26,10 +31,5 @@ public class RichPresence {
             KamiMod.log.error("Failed to load donators");
             e.printStackTrace();
         }
-    }
-
-    public static class CustomUser {
-        public String uuid;
-        public String type;
     }
 }

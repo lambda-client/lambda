@@ -6,15 +6,7 @@ package me.zeroeightsix.kami.gui.rgui.component;
 public class AlignedComponent extends AbstractComponent {
     Alignment alignment;
 
-    public Alignment getAlignment() {
-        return alignment;
-    }
-
-    public void setAlignment(Alignment alignment) {
-        this.alignment = alignment;
-    }
-
-    public enum Alignment {
+    public static enum Alignment {
         LEFT(0), CENTER(1), RIGHT(2);
 
         int index;
@@ -26,5 +18,13 @@ public class AlignedComponent extends AbstractComponent {
         public int getIndex() {
             return index;
         }
+    }
+
+    public Alignment getAlignment() {
+        return alignment;
+    }
+
+    public void setAlignment(Alignment alignment) {
+        this.alignment = alignment;
     }
 }

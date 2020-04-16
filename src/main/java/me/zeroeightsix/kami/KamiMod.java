@@ -73,18 +73,24 @@ public class KamiMod {
     public static final String MCVER = "1.12.2";
 
     public static final String APP_ID = "638403216278683661";
+
+    private static final String UPDATE_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/updateChecker.json";
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/capes.json";
     public static final String GITHUB_LINK = "https://github.com/kami-blue/";
     public static final String WEBSITE_LINK = "https://blue.bella.wtf";
+
     public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb";
     public static final char colour = '\u00A7';
     public static final char separator = '\u23d0';
+
+    private static final String KAMI_CONFIG_NAME_DEFAULT = "KAMIBlueConfig.json";
+
     public static final Logger log = LogManager.getLogger("KAMI Blue");
+
     public static final EventBus EVENT_BUS = new EventManager();
     public static final ModuleManager MODULE_MANAGER = new ModuleManager();
-    private static final String UPDATE_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/updateChecker.json";
-    private static final String KAMI_CONFIG_NAME_DEFAULT = "KAMIBlueConfig.json";
+
     public static String latest; // latest version (null if no internet or exception occurred)
     public static boolean isLatest;
     public static boolean hasAskedToUpdate = false;
@@ -105,6 +111,54 @@ public class KamiMod {
             return jsonObject;
         }
     }).buildAndRegister("");
+
+    @Mod.EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+        updateCheck();
+    }
+
+    @Mod.EventHandler
+    public void postInit(FMLPostInitializationEvent event) {
+        setCustomIcons();
+        Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVERSMALL);
+    }
+
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        log.info("\n\nInitializing " + MODNAME + " " + MODVER);
+
+        MODULE_MANAGER.register();
+
+        MODULE_MANAGER.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
+        MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
+        LagCompensator.INSTANCE = new LagCompensator();
+
+        Wrapper.init();
+
+        guiManager = new KamiGUI();
+        guiManager.initializeGUI();
+
+        commandManager = new CommandManager();
+
+        Friends.initFriends();
+        SettingsRegister.register("commandPrefix", Command.commandPrefix);
+        loadConfiguration();
+        log.info("Settings loaded");
+
+        // custom names aren't known at compile-time
+        //MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
+
+        new RichPresence();
+        log.info("Rich Presence Users init!\n");
+
+        // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
+        MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
+
+        // load modules that are on by default // autoenable
+        MODULE_MANAGER.getModule(RunConfig.class).enable();
+
+        log.info(MODNAME + " Mod initialized!\n");
+    }
 
     public static String getConfigName() {
         Path config = Paths.get("KAMIBlueLastConfig.txt");
@@ -201,54 +255,6 @@ public class KamiMod {
 
     public static KamiMod getInstance() {
         return INSTANCE;
-    }
-
-    @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-        updateCheck();
-    }
-
-    @Mod.EventHandler
-    public void postInit(FMLPostInitializationEvent event) {
-        setCustomIcons();
-        Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVERSMALL);
-    }
-
-    @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
-        log.info("\n\nInitializing " + MODNAME + " " + MODVER);
-
-        MODULE_MANAGER.register();
-
-        MODULE_MANAGER.getModules().stream().filter(module -> module.alwaysListening).forEach(EVENT_BUS::subscribe);
-        MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
-        LagCompensator.INSTANCE = new LagCompensator();
-
-        Wrapper.init();
-
-        guiManager = new KamiGUI();
-        guiManager.initializeGUI();
-
-        commandManager = new CommandManager();
-
-        Friends.initFriends();
-        SettingsRegister.register("commandPrefix", Command.commandPrefix);
-        loadConfiguration();
-        log.info("Settings loaded");
-
-        // custom names aren't known at compile-time
-        //MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
-
-        new RichPresence();
-        log.info("Rich Presence Users init!\n");
-
-        // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
-        MODULE_MANAGER.getModules().stream().filter(Module::isEnabled).forEach(Module::enable);
-
-        // load modules that are on by default // autoenable
-        MODULE_MANAGER.getModule(RunConfig.class).enable();
-
-        log.info(MODNAME + " Mod initialized!\n");
     }
 
     public KamiGUI getGuiManager() {

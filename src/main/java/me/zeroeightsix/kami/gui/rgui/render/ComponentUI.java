@@ -9,24 +9,24 @@ import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
  */
 public interface ComponentUI<T extends Component> {
 
-    void renderComponent(T component, FontRenderer fontRenderer);
+    public void renderComponent(T component, FontRenderer fontRenderer);
 
-    void handleMouseDown(T component, int x, int y, int button);
+    public void handleMouseDown(T component, int x, int y, int button);
 
-    void handleMouseRelease(T component, int x, int y, int button);
+    public void handleMouseRelease(T component, int x, int y, int button);
 
-    void handleMouseDrag(T component, int x, int y, int button);
+    public void handleMouseDrag(T component, int x, int y, int button);
 
-    void handleScroll(T component, int x, int y, int amount, boolean up);
+    public void handleScroll(T component, int x, int y, int amount, boolean up);
 
-    void handleKeyDown(T component, int key);
+    public void handleKeyDown(T component, int key);
 
-    void handleKeyUp(T component, int key);
+    public void handleKeyUp(T component, int key);
 
-    void handleAddComponent(T component, Container container);
+    public void handleAddComponent(T component, Container container);
 
-    void handleSizeComponent(T component);
+    public void handleSizeComponent(T component);
 
-    Class<? extends Component> getHandledClass();
+    public Class<? extends Component> getHandledClass();
 
 }

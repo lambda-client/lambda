@@ -173,10 +173,6 @@ public class Scrollpane extends OrganisedContainer {
         return doScrollY;
     }
 
-    public int getScrolledX() {
-        return scrolledX;
-    }
-
     public void setScrolledX(int scrolledX) {
         int a = getScrolledX();
         this.scrolledX = scrolledX;
@@ -185,16 +181,20 @@ public class Scrollpane extends OrganisedContainer {
             component.setX(component.getX() - dif);
     }
 
-    public int getScrolledY() {
-        return scrolledY;
-    }
-
     public void setScrolledY(int scrolledY) {
         int a = getScrolledY();
         this.scrolledY = scrolledY;
         int dif = getScrolledY() - a;
         for (Component component : getChildren())
             component.setY(component.getY() - dif);
+    }
+
+    public int getScrolledX() {
+        return scrolledX;
+    }
+
+    public int getScrolledY() {
+        return scrolledY;
     }
 
     public int getMaxScrollX() {

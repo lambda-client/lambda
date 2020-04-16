@@ -14,11 +14,12 @@ public class Sprint extends Module {
     @Override
     public void onUpdate() {
         if (mc.player == null) return;
-        if (MODULE_MANAGER.getModule(ElytraFlight.class).isEnabled() && (mc.player.isElytraFlying() || mc.player.capabilities.isFlying))
-            return;
+        if (MODULE_MANAGER.getModule(ElytraFlight.class).isEnabled() && (mc.player.isElytraFlying() || mc.player.capabilities.isFlying)) return;
         try {
-            mc.player.setSprinting(!mc.player.collidedHorizontally && mc.player.moveForward > 0);
-        } catch (Exception ignored) {
-        }
+            if (!mc.player.collidedHorizontally && mc.player.moveForward > 0)
+                mc.player.setSprinting(true);
+            else
+                mc.player.setSprinting(false);
+        } catch (Exception ignored) { }
     }
 }

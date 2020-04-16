@@ -18,14 +18,15 @@ import net.minecraft.world.GameType;
 @Module.Info(name = "ArmourHUD", category = Module.Category.RENDER, showOnArray = Module.ShowOnArray.OFF, description = "Displays your armour and it's durability on screen")
 public class ArmourHUD extends Module {
 
-    private static final RenderItem itemRender = Minecraft.getMinecraft().getRenderItem();
+    private static RenderItem itemRender = Minecraft.getMinecraft().getRenderItem();
 
     private Setting<Boolean> damage = register(Settings.b("Damage", false));
 
     private NonNullList<ItemStack> getArmour() {
         if (mc.playerController.getCurrentGameType().equals(GameType.CREATIVE) || mc.playerController.getCurrentGameType().equals(GameType.SPECTATOR)) {
             return NonNullList.withSize(4, ItemStack.EMPTY);
-        } else {
+        }
+        else {
             return mc.player.inventory.armorInventory;
         }
     }
@@ -64,7 +65,7 @@ public class ArmourHUD extends Module {
                 mc.fontRenderer.drawStringWithShadow(dmg + "", x + 8 - mc.fontRenderer.getStringWidth(dmg + "") / 2, y - 11, ColourHolder.toHex((int) (red * 255), (int) (green * 255), 0));
             }
         }
-        GlStateManager.enableDepth();
-        GlStateManager.disableLighting();
+    GlStateManager.enableDepth();
+    GlStateManager.disableLighting();
     }
 }

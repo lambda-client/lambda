@@ -27,139 +27,138 @@ import static me.zeroeightsix.kami.module.modules.client.InfoOverlay.getItems;
  */
 @Module.Info(name = "OffhandGap", category = Module.Category.COMBAT, description = "Holds a God apple when right clicking your sword!")
 public class OffhandGap extends Module {
-    int gaps = -1;
-    boolean autoTotemWasEnabled = false;
-    boolean cancelled = false;
-    boolean isGuiOpened = false;
-    @EventHandler
-    public Listener<GuiScreenEvent.Displayed> listener = new Listener<>(event -> isGuiOpened = event.getScreen() != null);
-    Item usedItem;
-    CrystalAura crystalAura;
-    private Setting<Double> disableHealth = register(Settings.doubleBuilder("Disable Health").withMinimum(0.0).withValue(4.0).withMaximum(20.0).build());
-    private Setting<Boolean> eatWhileAttacking = register(Settings.b("Eat While Attacking", false));
-    private Setting<Boolean> swordOrAxeOnly = register(Settings.b("Sword or Axe Only", true));
-    private Setting<Boolean> preferBlocks = register(Settings.booleanBuilder("Prefer Placing Blocks").withValue(false).withVisibility(v -> !swordOrAxeOnly.getValue()).build());
-    private Setting<Boolean> crystalCheck = register(Settings.b("Crystal Check", false));
-    @EventHandler
-    private final Listener<PacketEvent.Send> sendListener = new Listener<>(e -> {
-        if (e.getPacket() instanceof CPacketPlayerTryUseItem) {
-            if (cancelled) {
-                disableGaps();
-                return;
-            }
-            if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
-                if (MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
-                    autoTotemWasEnabled = true;
-                    MODULE_MANAGER.getModule(AutoTotem.class).disable();
-                }
-                if (!eatWhileAttacking.getValue()) { /* Save item for later when using preventDesync */
-                    usedItem = mc.player.getHeldItemMainhand().getItem();
-                }
-                enableGaps(gaps);
-            }
-        }
-        try {
-            /* If you stop holding right click move totem back */
-            if (!mc.gameSettings.keyBindUseItem.isKeyDown() && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE)
-                disableGaps();
-                /* In case you didn't stop right clicking but you switched items by scrolling or something */
-            else if ((usedItem != mc.player.getHeldItemMainhand().getItem()) && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
-                if (!eatWhileAttacking.getValue()) {
-                    usedItem = mc.player.getHeldItemMainhand().getItem();
-                    disableGaps();
-                }
-            }
-            /* Force disable if under health limit */
-            else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
-                disableGaps();
-            }
-            /* Disable if there are crystals in the range of CrystalAura */
-            crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
-            if (crystalCheck.getValue() && crystalAura.isEnabled()) {
-                EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
-                        .filter(entity -> entity instanceof EntityEnderCrystal)
-                        .map(entity -> (EntityEnderCrystal) entity)
-                        .min(Comparator.comparing(c -> mc.player.getDistance(c)))
-                        .orElse(null);
-                if (Objects.requireNonNull(crystal).getPosition().distanceSq(mc.player.getPosition().x, mc.player.getPosition().y, mc.player.getPosition().z) <= crystalAura.range.getValue()) {
-                    disableGaps();
-                }
-            }
-        } catch (NullPointerException ignored) {
-        }
-    });
+	private Setting<Double> disableHealth = register(Settings.doubleBuilder("Disable Health").withMinimum(0.0).withValue(4.0).withMaximum(20.0).build());
+	private Setting<Boolean> eatWhileAttacking = register(Settings.b("Eat While Attacking", false));
+	private Setting<Boolean> swordOrAxeOnly = register(Settings.b("Sword or Axe Only", true));
+	private Setting<Boolean> preferBlocks = register(Settings.booleanBuilder("Prefer Placing Blocks").withValue(false).withVisibility(v -> !swordOrAxeOnly.getValue()).build());
+	private Setting<Boolean> crystalCheck = register(Settings.b("Crystal Check", false));
 
-    @Override
-    public void onUpdate() {
-        if (mc.player == null) return;
+	int gaps = -1;
+	boolean autoTotemWasEnabled = false;
+	boolean cancelled = false;
+	boolean isGuiOpened = false;
+	Item usedItem;
+	CrystalAura crystalAura;
 
-        /* If your health doesn't meet the cutoff then set it to true */
-        cancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
-        if (cancelled) {
-            disableGaps();
-            return;
-        }
+	@EventHandler
+	private Listener<PacketEvent.Send> sendListener = new Listener<>(e ->{
+		if (e.getPacket() instanceof CPacketPlayerTryUseItem) {
+			if (cancelled) {
+				disableGaps();
+				return;
+			}
+			if (mc.player.getHeldItemMainhand().getItem() instanceof ItemSword || mc.player.getHeldItemMainhand().getItem() instanceof ItemAxe || passItemCheck()) {
+				if (MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
+					autoTotemWasEnabled = true;
+					MODULE_MANAGER.getModule(AutoTotem.class).disable();
+				}
+				if (!eatWhileAttacking.getValue()) { /* Save item for later when using preventDesync */
+					usedItem = mc.player.getHeldItemMainhand().getItem();
+				}
+				enableGaps(gaps);
+			}
+		}
+		try {
+			/* If you stop holding right click move totem back */
+			if (!mc.gameSettings.keyBindUseItem.isKeyDown() && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) disableGaps();
+				/* In case you didn't stop right clicking but you switched items by scrolling or something */
+			else if ((usedItem != mc.player.getHeldItemMainhand().getItem()) && mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
+				if (!eatWhileAttacking.getValue()) {
+					usedItem = mc.player.getHeldItemMainhand().getItem();
+					disableGaps();
+				}
+			}
+			/* Force disable if under health limit */
+			else if (mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue()) {
+				disableGaps();
+			}
+			/* Disable if there are crystals in the range of CrystalAura */
+			crystalAura = MODULE_MANAGER.getModuleT(CrystalAura.class);
+			if (crystalCheck.getValue() && crystalAura.isEnabled()) {
+				EntityEnderCrystal crystal = mc.world.loadedEntityList.stream()
+		                .filter(entity -> entity instanceof EntityEnderCrystal)
+		                .map(entity -> (EntityEnderCrystal) entity)
+		                .min(Comparator.comparing(c -> mc.player.getDistance(c)))
+		                .orElse(null);
+				if (Objects.requireNonNull(crystal).getPosition().distanceSq(mc.player.getPosition().x, mc.player.getPosition().y, mc.player.getPosition().z) <= crystalAura.range.getValue()) {
+					disableGaps();
+				}
+			}
+		} catch (NullPointerException ignored) { }
+	});
 
-        if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
-            for (int i = 0; i < 45; i++) {
-                if (mc.player.inventory.getStackInSlot(i).getItem() == Items.GOLDEN_APPLE) {
-                    gaps = i;
-                    break;
-                }
-            }
-        }
-    }
+	@Override
+	public void onUpdate() {
+		if (mc.player == null) return;
 
-    /* If weaponCheck is disabled, check if they're not holding an item you'd want to use normally */
-    private boolean passItemCheck() {
-        if (swordOrAxeOnly.getValue()) return false;
-        else {
-            Item item = mc.player.getHeldItemMainhand().getItem();
-            if (item instanceof ItemBow) return false;
-            if (item instanceof ItemSnowball) return false;
-            if (item instanceof ItemEgg) return false;
-            if (item instanceof ItemPotion) return false;
-            if (item instanceof ItemEnderEye) return false;
-            if (item instanceof ItemEnderPearl) return false;
-            if (item instanceof ItemFood) return false;
-            if (item instanceof ItemShield) return false;
-            if (item instanceof ItemFlintAndSteel) return false;
-            if (item instanceof ItemFishingRod) return false;
-            if (item instanceof ItemArmor) return false;
-            if (item instanceof ItemExpBottle) return false;
-            return !preferBlocks.getValue() || !(item instanceof ItemBlock);
-        }
-    }
+		/* If your health doesn't meet the cutoff then set it to true */
+		cancelled = mc.player.getHealth() + mc.player.getAbsorptionAmount() <= disableHealth.getValue();
+		if (cancelled) { disableGaps(); return; }
 
-    private void disableGaps() {
-        if (autoTotemWasEnabled != MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
-            moveGapsWaitForNoGui();
-            MODULE_MANAGER.getModule(AutoTotem.class).enable();
-            autoTotemWasEnabled = false;
-        }
-    }
+		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
+			for (int i = 0; i < 45; i++) {
+				if (mc.player.inventory.getStackInSlot(i).getItem() == Items.GOLDEN_APPLE) {
+					gaps = i;
+					break;
+				}
+			}
+		}
+	}
 
-    private void enableGaps(int slot) {
-        if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
-            mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
-            mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
-        }
-    }
+	/* If weaponCheck is disabled, check if they're not holding an item you'd want to use normally */
+	private boolean passItemCheck() {
+		if (swordOrAxeOnly.getValue()) return false;
+		else {
+			Item item = mc.player.getHeldItemMainhand().getItem();
+			if (item instanceof ItemBow) return false;
+			if (item instanceof ItemSnowball) return false;
+			if (item instanceof ItemEgg) return false;
+			if (item instanceof ItemPotion) return false;
+			if (item instanceof ItemEnderEye) return false;
+			if (item instanceof ItemEnderPearl) return false;
+			if (item instanceof ItemFood) return false;
+			if (item instanceof ItemShield) return false;
+			if (item instanceof ItemFlintAndSteel) return false;
+			if (item instanceof ItemFishingRod) return false;
+			if (item instanceof ItemArmor) return false;
+			if (item instanceof ItemExpBottle) return false;
+			if (preferBlocks.getValue() && item instanceof ItemBlock) return false;
+		}
+		return true;
+	}
 
-    private void moveGapsToInventory(int slot) {
-        if (mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
-            mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
-            mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
-        }
-    }
+	private void disableGaps() {
+		if (autoTotemWasEnabled != MODULE_MANAGER.isModuleEnabled(AutoTotem.class)) {
+			moveGapsWaitForNoGui();
+			MODULE_MANAGER.getModule(AutoTotem.class).enable();
+			autoTotemWasEnabled = false;
+		}
+	}
 
-    private void moveGapsWaitForNoGui() {
-        if (isGuiOpened) return;
-        moveGapsToInventory(gaps);
-    }
+	private void enableGaps(int slot) {
+		if (mc.player.getHeldItemOffhand().getItem() != Items.GOLDEN_APPLE) {
+			mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
+			mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
+		}
+	}
 
-    @Override
-    public String getHudInfo() {
-        return String.valueOf(getItems(Items.GOLDEN_APPLE));
-    }
+	private void moveGapsToInventory(int slot) {
+		if (mc.player.getHeldItemOffhand().getItem() == Items.GOLDEN_APPLE) {
+			mc.playerController.windowClick(0, 45, 0, ClickType.PICKUP, mc.player);
+			mc.playerController.windowClick(0, slot < 9 ? slot + 36 : slot, 0, ClickType.PICKUP, mc.player);
+		}
+	}
+
+	private void moveGapsWaitForNoGui() {
+		if (isGuiOpened) return;
+		moveGapsToInventory(gaps);
+	}
+
+	@EventHandler
+	public Listener<GuiScreenEvent.Displayed> listener = new Listener<>(event -> isGuiOpened = event.getScreen() != null);
+
+	@Override
+	public String getHudInfo() {
+		return String.valueOf(getItems(Items.GOLDEN_APPLE));
+	}
 }

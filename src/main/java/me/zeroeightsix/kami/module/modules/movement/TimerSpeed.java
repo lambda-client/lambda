@@ -12,8 +12,8 @@ import me.zeroeightsix.kami.util.InfoCalculator;
  */
 @Module.Info(name = "TimerSpeed", description = "Automatically change your timer to go fast", category = Category.MOVEMENT)
 public class TimerSpeed extends Module {
-    private static float curSpeed = 0.0f;
     private float tickDelay = 0.0f;
+    private static float curSpeed = 0.0f;
     private Setting<Float> minimumSpeed = register(Settings.floatBuilder("Minimum Speed").withMinimum(0.1F).withMaximum(10.0F).withValue(4.0F).build());
     private Setting<Float> maxSpeed = register(Settings.floatBuilder("Max Speed").withMinimum(0.1F).withMaximum(10.0F).withValue(7.0F).build());
     private Setting<Float> attemptSpeed = register(Settings.floatBuilder("Attempt Speed").withMinimum(1.0F).withMaximum(10.0F).withValue(4.2F).build());
@@ -36,7 +36,6 @@ public class TimerSpeed extends Module {
         }
         ++tickDelay;
     }
-
     public void onDisable() {
         mc.timer.tickLength = 50.0F;
     }

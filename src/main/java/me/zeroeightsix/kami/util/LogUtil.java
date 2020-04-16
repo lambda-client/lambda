@@ -15,7 +15,7 @@ public class LogUtil {
         Minecraft mc = Minecraft.getMinecraft();
         int[] currentCoords = {(int) mc.player.posX, (int) mc.player.posY, (int) mc.player.posZ};
         if (chunk == true) {
-            int[] chunkCoords = {currentCoords[0] / 16, currentCoords[1] / 16, currentCoords[2] / 16};
+            int[] chunkCoords = {currentCoords[0]/16, currentCoords[1]/16, currentCoords[2]/16};
             return chunkCoords;
         } else {
             return currentCoords;

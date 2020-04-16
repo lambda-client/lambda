@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;

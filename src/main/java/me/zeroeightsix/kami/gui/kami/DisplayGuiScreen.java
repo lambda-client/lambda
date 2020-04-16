@@ -24,10 +24,12 @@ import static org.lwjgl.opengl.GL11.glEnable;
  */
 public class DisplayGuiScreen extends GuiScreen {
 
+    KamiGUI gui;
+    public final GuiScreen lastScreen;
+
     public static int mouseX;
     public static int mouseY;
-    public final GuiScreen lastScreen;
-    KamiGUI gui;
+
     Framebuffer framebuffer;
 
     public DisplayGuiScreen(GuiScreen lastScreen) {
@@ -45,18 +47,6 @@ public class DisplayGuiScreen extends GuiScreen {
         }
 
         framebuffer = new Framebuffer(Wrapper.getMinecraft().displayWidth, Wrapper.getMinecraft().displayHeight, false);
-    }
-
-    public static int getScale() {
-        int scaleFactor = 0;
-        int scale = Wrapper.getMinecraft().gameSettings.guiScale;
-        if (scale == 0)
-            scale = 1000;
-        while (scaleFactor < scale && Wrapper.getMinecraft().displayWidth / (scaleFactor + 1) >= 320 && Wrapper.getMinecraft().displayHeight / (scaleFactor + 1) >= 240)
-            scaleFactor++;
-        if (scaleFactor == 0)
-            scaleFactor = 1;
-        return scaleFactor;
     }
 
     @Override
@@ -112,6 +102,18 @@ public class DisplayGuiScreen extends GuiScreen {
             gui.handleKeyDown(keyCode);
             gui.handleKeyUp(keyCode);
         }
+    }
+
+    public static int getScale() {
+        int scaleFactor = 0;
+        int scale = Wrapper.getMinecraft().gameSettings.guiScale;
+        if (scale == 0)
+            scale = 1000;
+        while (scaleFactor < scale && Wrapper.getMinecraft().displayWidth / (scaleFactor + 1) >= 320 && Wrapper.getMinecraft().displayHeight / (scaleFactor + 1) >= 240)
+            scaleFactor++;
+        if (scaleFactor == 0)
+            scaleFactor = 1;
+        return scaleFactor;
     }
 
     private void calculateMouse() {

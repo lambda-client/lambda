@@ -4,8 +4,8 @@ import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 
 public class DependantParser extends AbstractParser {
 
-    private final int dependantIndex;
-    private final Dependency dependancy;
+    private int dependantIndex;
+    private Dependency dependancy;
 
     public DependantParser(int dependantIndex, Dependency dependancy) {
         this.dependantIndex = dependantIndex;

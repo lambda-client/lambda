@@ -14,96 +14,96 @@ import java.util.ArrayList;
  */
 public interface Component {
     // Getters for location and size
-    int getX(); // Relative to its parent.
+    public int getX(); // Relative to its parent.
+
+    public int getY();
+
+    public int getWidth();
+
+    public int getHeight();
 
     // Setters for location and size
-    void setX(int x);
+    public void setX(int x);
 
-    int getY();
+    public void setY(int y);
 
-    void setY(int y);
+    public void setWidth(int width);
 
-    int getWidth();
+    public void setHeight(int height);
 
-    void setWidth(int width);
+    public Component setMinimumWidth(int width);
 
-    int getHeight();
+    public Component setMaximumWidth(int width);
 
-    void setHeight(int height);
+    public Component setMinimumHeight(int height);
 
-    int getMinimumWidth();
+    public Component setMaximumHeight(int height);
 
-    Component setMinimumWidth(int width);
+    public int getMinimumWidth();
 
-    int getMaximumWidth();
+    public int getMaximumWidth();
 
-    Component setMaximumWidth(int width);
+    public int getMinimumHeight();
 
-    int getMinimumHeight();
+    public int getMaximumHeight();
 
-    Component setMinimumHeight(int height);
+    public float getOpacity();
 
-    int getMaximumHeight();
+    public void setOpacity(float opacity);
 
-    Component setMaximumHeight(int height);
+    public boolean doAffectLayout();
 
-    float getOpacity();
+    public void setAffectLayout(boolean flag);
 
-    void setOpacity(float opacity);
+    public Container getParent();
 
-    boolean doAffectLayout();
+    public void setParent(Container parent);
 
-    void setAffectLayout(boolean flag);
+    public boolean liesIn(Component container);
 
-    Container getParent();
+    public boolean isVisible();
 
-    void setParent(Container parent);
+    public void setVisible(boolean visible);
 
-    boolean liesIn(Component container);
+    public void setFocused(boolean focus);
 
-    boolean isVisible();
+    public boolean isFocused();
 
-    void setVisible(boolean visible);
+    public ComponentUI getUI();
 
-    boolean isFocused();
+    public Theme getTheme();
 
-    void setFocused(boolean focus);
+    public void setTheme(Theme theme);
 
-    ComponentUI getUI();
+    public boolean isHovered();
 
-    Theme getTheme();
+    public boolean isPressed();
 
-    void setTheme(Theme theme);
+    public ArrayList<MouseListener> getMouseListeners();
 
-    boolean isHovered();
+    public void addMouseListener(MouseListener listener);
 
-    boolean isPressed();
+    public ArrayList<RenderListener> getRenderListeners();
 
-    ArrayList<MouseListener> getMouseListeners();
+    public void addRenderListener(RenderListener listener);
 
-    void addMouseListener(MouseListener listener);
+    public ArrayList<KeyListener> getKeyListeners();
 
-    ArrayList<RenderListener> getRenderListeners();
+    public void addKeyListener(KeyListener listener);
 
-    void addRenderListener(RenderListener listener);
+    public ArrayList<UpdateListener> getUpdateListeners();
 
-    ArrayList<KeyListener> getKeyListeners();
+    public void addUpdateListener(UpdateListener listener);
 
-    void addKeyListener(KeyListener listener);
+    public ArrayList<TickListener> getTickListeners();
 
-    ArrayList<UpdateListener> getUpdateListeners();
+    public void addTickListener(TickListener listener);
 
-    void addUpdateListener(UpdateListener listener);
+    public void addPoof(IPoof poof);
 
-    ArrayList<TickListener> getTickListeners();
+    public void callPoof(Class<? extends IPoof> target, PoofInfo info);
 
-    void addTickListener(TickListener listener);
+    public int getPriority(); // The higher, the more prioritized.
 
-    void addPoof(IPoof poof);
-
-    void callPoof(Class<? extends IPoof> target, PoofInfo info);
-
-    int getPriority(); // The higher, the more prioritized.
-
-    void kill();
+    public void kill();
 }

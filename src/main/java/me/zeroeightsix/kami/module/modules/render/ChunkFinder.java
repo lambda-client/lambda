@@ -28,8 +28,6 @@ import static org.lwjgl.opengl.GL11.*;
  */
 @Module.Info(name = "ChunkFinder", description = "Highlights newly generated chunks", category = Module.Category.RENDER)
 public class ChunkFinder extends Module {
-    static ArrayList<Chunk> chunks = new ArrayList<>();
-    private static boolean dirty = true;
     private Setting<Integer> yOffset = register(Settings.i("Y Offset", 0));
     private Setting<Boolean> relative = register(Settings.b("Relative", true));
     private Setting<Boolean> saveNewChunks = register(Settings.b("Save New Chunks", false));
@@ -37,21 +35,14 @@ public class ChunkFinder extends Module {
     private Setting<Boolean> saveInRegionFolder = register(Settings.booleanBuilder("In Region").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("Save Normal Coords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> closeFile = register(Settings.booleanBuilder("Close File").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
+
     private LastSetting lastSetting = new LastSetting();
     private PrintWriter logWriter;
-    @EventHandler
-    public Listener<ChunkEvent> listener = new Listener<>(event -> {
-        if (!event.getPacket().isFullChunk()) {
-            chunks.add(event.getChunk());
-            dirty = true;
-            if (saveNewChunks.getValue()) {
-                saveNewChunk(event.getChunk());
-            }
-        }
-    });
-    private final int list = GL11.glGenLists(1);
-    @EventHandler
-    private final Listener<net.minecraftforge.event.world.ChunkEvent.Unload> unloadListener = new Listener<>(event -> dirty = chunks.remove(event.getChunk()));
+
+    static ArrayList<Chunk> chunks = new ArrayList<>();
+
+    private static boolean dirty = true;
+    private int list = GL11.glGenLists(1);
 
     @Override
     public void onWorldRender(RenderEvent event) {
@@ -117,6 +108,17 @@ public class ChunkFinder extends Module {
         chunks.clear();
     }
 
+    @EventHandler
+    public Listener<ChunkEvent> listener = new Listener<>(event -> {
+        if (!event.getPacket().isFullChunk()) {
+            chunks.add(event.getChunk());
+            dirty = true;
+            if (saveNewChunks.getValue()) {
+                saveNewChunk(event.getChunk());
+            }
+        }
+    });
+
     // needs to be synchronized so no data gets lost
     public void saveNewChunk(Chunk chunk) {
         saveNewChunk(testAndGetLogWriter(), getNewChunkInfo(chunk));
@@ -137,6 +139,7 @@ public class ChunkFinder extends Module {
         }
         return logWriter;
     }
+
 
     private void logWriterClose() {
         if (logWriter != null) {
@@ -274,8 +277,10 @@ public class ChunkFinder extends Module {
 
         String[] sp = ip.split("_");
         String ending = sp[sp.length - 1];
-        // if it is numeric it means it might be a port...
-        return !isInteger(ending);
+        if (!isInteger(ending)) { // if it is numeric it means it might be a port...
+            return true;
+        }
+        return false;
     }
 
     private boolean isInteger(String s) {
@@ -290,6 +295,10 @@ public class ChunkFinder extends Module {
     private void saveNewChunk(PrintWriter log, String data) {
         log.println(data);
     }
+
+
+    @EventHandler
+    private Listener<net.minecraftforge.event.world.ChunkEvent.Unload> unloadListener = new Listener<>(event -> dirty = chunks.remove(event.getChunk()));
 
     @Override
     public void destroy() {
@@ -331,8 +340,10 @@ public class ChunkFinder extends Module {
             if (dimension != mc.player.dimension) {
                 return true;
             }
-            // strings need equals + this way because could be null
-            return !mc.getCurrentServerData().serverIP.equals(ip);
+            if (!mc.getCurrentServerData().serverIP.equals(ip)) { // strings need equals + this way because could be null
+                return true;
+            }
+            return false;
         }
 
         private void update() {

@@ -18,6 +18,17 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 @Module.Info(name = "FormatChat", description = "Add colour and linebreak support to upstream chat packets", category = Module.Category.CHAT)
 public class FormatChat extends Module {
 
+    @Override
+    public void onEnable() {
+        if (Minecraft.getMinecraft().getCurrentServerData() == null) {
+            sendWarningMessage(getChatName() + " &6&lWarning: &r&6This does not work in singleplayer");
+            disable();
+        }
+        else {
+            sendWarningMessage(getChatName() + " &6&lWarning: &r&6This will kick you on most servers!");
+        }
+    }
+
     @EventHandler
     public Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketChatMessage) {
@@ -31,14 +42,4 @@ public class FormatChat extends Module {
             }
         }
     });
-
-    @Override
-    public void onEnable() {
-        if (Minecraft.getMinecraft().getCurrentServerData() == null) {
-            sendWarningMessage(getChatName() + " &6&lWarning: &r&6This does not work in singleplayer");
-            disable();
-        } else {
-            sendWarningMessage(getChatName() + " &6&lWarning: &r&6This will kick you on most servers!");
-        }
-    }
 }

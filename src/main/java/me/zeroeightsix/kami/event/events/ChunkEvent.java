@@ -8,8 +8,8 @@ import net.minecraft.world.chunk.Chunk;
  * @author 086
  */
 public class ChunkEvent extends KamiEvent {
-    private final Chunk chunk;
-    private final SPacketChunkData packet;
+    private Chunk chunk;
+    private SPacketChunkData packet;
 
     public ChunkEvent(Chunk chunk, SPacketChunkData packet) {
         this.chunk = chunk;

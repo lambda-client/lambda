@@ -26,13 +26,16 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 @Module.Info(name = "ChatEncryption", description = "Encrypts and decrypts chat messages (Delimiter %)", category = Module.Category.CHAT, showOnArray = Module.ShowOnArray.OFF)
 public class ChatEncryption extends Module {
 
-    private static final char[] ORIGIN_CHARS = new char[]{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '-', '_', '/', ';', '=', '?', '+', '\u00B5', '\u00A3', '*', '^', '\u00F9', '$', '!', '{', '}', '\'', '"', '|', '&'};
-    private final Pattern CHAT_PATTERN = Pattern.compile("<.*?> ");
     private Setting<EncryptionMode> mode = register(Settings.e("Mode", EncryptionMode.SHUFFLE));
     private Setting<Integer> key = register(Settings.i("Key", 6));
     private Setting<Boolean> delim = register(Settings.b("Delimiter", true));
+
+    private final Pattern CHAT_PATTERN = Pattern.compile("<.*?> ");
+
+    private static final char[] ORIGIN_CHARS = new char[]{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '-', '_', '/', ';', '=', '?', '+', '\u00B5', '\u00A3', '*', '^', '\u00F9', '$', '!', '{', '}', '\'', '"', '|', '&'};
+
     @EventHandler
-    private final Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
+    private Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketChatMessage) {
             String s = ((CPacketChatMessage) event.getPacket()).getMessage();
             if (delim.getValue()) {
@@ -61,7 +64,7 @@ public class ChatEncryption extends Module {
     });
 
     @EventHandler
-    private final Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
+    private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
         if (event.getPacket() instanceof SPacketChat) {
             String s = ((SPacketChat) event.getPacket()).getChatComponent().getUnformattedText();
 
@@ -90,10 +93,6 @@ public class ChatEncryption extends Module {
             ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString(KamiMod.colour + "b" + username + KamiMod.colour + "r: " + builder.toString());
         }
     });
-
-    private static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
-        return map.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-    }
 
     private Map<Character, Character> generateShuffleMap(int seed) {
         Random r = new Random(seed);
@@ -130,6 +129,10 @@ public class ChatEncryption extends Module {
             else
                 builder.append(c);
         });
+    }
+
+    private static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
+        return map.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     }
 
     private enum EncryptionMode {

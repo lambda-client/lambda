@@ -31,20 +31,6 @@ public class Freecam extends Module {
 
     private boolean isRidingEntity;
     private Entity ridingEntity;
-    @EventHandler
-    private final Listener<PlayerMoveEvent> moveListener = new Listener<>(event -> mc.player.noClip = true);
-    @EventHandler
-    private final Listener<PlayerSPPushOutOfBlocksEvent> pushListener = new Listener<>(event -> event.setCanceled(true));
-    @EventHandler
-    private final Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
-        if (event.getPacket() instanceof CPacketPlayer || event.getPacket() instanceof CPacketInput) {
-            event.cancel();
-        }
-        if (packetCancel.getValue() && (event.getPacket() instanceof CPacketUseEntity || event.getPacket() instanceof CPacketVehicleMove)) {
-            event.cancel();
-        }
-
-    });
 
     @Override
     protected void onEnable() {
@@ -109,5 +95,22 @@ public class Freecam extends Module {
         mc.player.onGround = false;
         mc.player.fallDistance = 0;
     }
+
+    @EventHandler
+    private Listener<PlayerMoveEvent> moveListener = new Listener<>(event -> mc.player.noClip = true);
+
+    @EventHandler
+    private Listener<PlayerSPPushOutOfBlocksEvent> pushListener = new Listener<>(event -> event.setCanceled(true));
+
+    @EventHandler
+    private Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
+        if (event.getPacket() instanceof CPacketPlayer || event.getPacket() instanceof CPacketInput) {
+            event.cancel();
+        }
+        if (packetCancel.getValue() && (event.getPacket() instanceof CPacketUseEntity || event.getPacket() instanceof CPacketVehicleMove)) {
+            event.cancel();
+        }
+
+    });
 
 }

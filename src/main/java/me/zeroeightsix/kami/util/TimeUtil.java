@@ -21,14 +21,19 @@ public class TimeUtil {
         return format.format(date);
     }
 
+    public enum TimeType {
+        HHMM, HHMMSS, HH
+    }
+
+    public enum TimeUnit {
+        H24, H12
+    }
+
     private static String formatTimeString(TimeType timeType) {
         switch (timeType) {
-            case HHMM:
-                return ":mm";
-            case HHMMSS:
-                return ":mm:ss";
-            default:
-                return "";
+            case HHMM: return ":mm";
+            case HHMMSS: return ":mm:ss";
+            default: return "";
         }
     }
 
@@ -36,11 +41,9 @@ public class TimeUtil {
         SimpleDateFormat formatter;
         switch (timeUnit) {
             case H12:
-                formatter = new SimpleDateFormat("hh" + formatTimeString(timeType), Locale.UK);
-                break;
+                formatter = new SimpleDateFormat("hh" + formatTimeString(timeType), Locale.UK); break;
             case H24:
-                formatter = new SimpleDateFormat("HH" + formatTimeString(timeType), Locale.UK);
-                break;
+                formatter = new SimpleDateFormat("HH" + formatTimeString(timeType), Locale.UK); break;
             default:
                 throw new IllegalStateException("Unexpected value: " + timeUnit);
         }
@@ -71,13 +74,5 @@ public class TimeUtil {
             }
         }
         return time(dateFormatter(timeUnit, timeType)) + locale;
-    }
-
-    public enum TimeType {
-        HHMM, HHMMSS, HH
-    }
-
-    public enum TimeUnit {
-        H24, H12
     }
 }

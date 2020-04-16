@@ -25,7 +25,7 @@ public class MixinVisGraph {
         // This part prevents the "block-level culling". OptiFine does this for you but vanilla doesn't.
         // We have to implement this here or else OptiFine causes trouble.
         if (MODULE_MANAGER.isModuleEnabled(Freecam.class))
-            callbackInfo.setReturnValue(EnumSet.allOf(EnumFacing.class));
+            callbackInfo.setReturnValue(EnumSet.<EnumFacing>allOf(EnumFacing.class));
     }
 
 }

@@ -10,14 +10,12 @@ import java.util.List;
 
 public class CFontRenderer extends CFont {
 
-    private final int[] colorCode = new int[32];
-    private final String colorcodeIdentifiers = "0123456789abcdefklmnor";
     protected CharData[] boldChars = new CharData[256];
     protected CharData[] italicChars = new CharData[256];
     protected CharData[] boldItalicChars = new CharData[256];
-    protected DynamicTexture texBold;
-    protected DynamicTexture texItalic;
-    protected DynamicTexture texItalicBold;
+
+    private final int[] colorCode = new int[32];
+    private final String colorcodeIdentifiers = "0123456789abcdefklmnor";
 
     public CFontRenderer(Font font, boolean antiAlias, boolean fractionalMetrics) {
         super(font, antiAlias, fractionalMetrics);
@@ -215,6 +213,10 @@ public class CFontRenderer extends CFont {
         setupBoldItalicIDs();
     }
 
+    protected DynamicTexture texBold;
+    protected DynamicTexture texItalic;
+    protected DynamicTexture texItalicBold;
+
     private void setupBoldItalicIDs() {
         texBold = setupTexture(this.font.deriveFont(1), this.antiAlias, this.fractionalMetrics, this.boldChars);
         texItalic = setupTexture(this.font.deriveFont(2), this.antiAlias, this.fractionalMetrics, this.italicChars);
@@ -282,7 +284,7 @@ public class CFontRenderer extends CFont {
                 currentWord = currentWord + c;
             } else {
                 finalWords.add(currentWord);
-                currentWord = "\u00A7" + lastColorCode + c;
+                currentWord = "\u00A7" + lastColorCode + String.valueOf(c);
             }
         }
 

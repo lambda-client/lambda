@@ -11,13 +11,14 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * Created by 086 on 25/01/2018.
  */
 public class PathCommand extends Command {
-    int x = Integer.MIN_VALUE;
-    int y = Integer.MIN_VALUE;
-    int z = Integer.MIN_VALUE;
     public PathCommand() {
         super("path", new ChunkBuilder().append("x").append("y").append("z").build());
         setDescription("Pathfinding for AutoWalk");
     }
+
+    int x = Integer.MIN_VALUE;
+    int y = Integer.MIN_VALUE;
+    int z = Integer.MIN_VALUE;
 
     @Override
     public void call(String[] args) {

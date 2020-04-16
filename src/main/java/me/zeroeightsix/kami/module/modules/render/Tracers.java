@@ -25,7 +25,6 @@ import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 @Module.Info(name = "Tracers", description = "Draws lines to other living entities", category = Module.Category.RENDER)
 public class Tracers extends Module {
 
-    HueCycler cycler = new HueCycler(3600);
     private Setting<Boolean> players = register(Settings.b("Players", true));
     private Setting<Boolean> friends = register(Settings.b("Friends", true));
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
@@ -38,58 +37,7 @@ public class Tracers extends Module {
     private Setting<Integer> g = register(Settings.integerBuilder("Green").withMinimum(0).withValue(144).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
     private Setting<Integer> b = register(Settings.integerBuilder("Blue").withMinimum(0).withValue(255).withMaximum(255).withVisibility(v -> customColours.getValue()).build());
 
-    public static double interpolate(double now, double then) {
-        return then + (now - then) * mc.getRenderPartialTicks();
-    }
-
-    public static double[] interpolate(Entity entity) {
-        double posX = interpolate(entity.posX, entity.lastTickPosX) - mc.getRenderManager().renderPosX;
-        double posY = interpolate(entity.posY, entity.lastTickPosY) - mc.getRenderManager().renderPosY;
-        double posZ = interpolate(entity.posZ, entity.lastTickPosZ) - mc.getRenderManager().renderPosZ;
-        return new double[]{posX, posY, posZ};
-    }
-
-    public static void drawLineToEntity(Entity e, float red, float green, float blue, float opacity) {
-        double[] xyz = interpolate(e);
-        drawLine(xyz[0], xyz[1], xyz[2], e.height, red, green, blue, opacity);
-    }
-
-    public static void drawLine(double posx, double posy, double posz, double up, float red, float green, float blue, float opacity) {
-        Vec3d eyes = new Vec3d(0, 0, 1)
-                .rotatePitch(-(float) Math
-                        .toRadians(Minecraft.getMinecraft().player.rotationPitch))
-                .rotateYaw(-(float) Math
-                        .toRadians(Minecraft.getMinecraft().player.rotationYaw));
-
-        drawLineFromPosToPos(eyes.x, eyes.y + mc.player.getEyeHeight(), eyes.z, posx, posy, posz, up, red, green, blue, opacity);
-    }
-
-    public static void drawLineFromPosToPos(double posx, double posy, double posz, double posx2, double posy2, double posz2, double up, float red, float green, float blue, float opacity) {
-        GL11.glBlendFunc(770, 771);
-        GL11.glLineWidth(1.5f);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthMask(false);
-        GL11.glColor4f(red, green, blue, opacity);
-        GlStateManager.disableLighting();
-        GL11.glLoadIdentity();
-        mc.entityRenderer.orientCamera(mc.getRenderPartialTicks());
-
-        GL11.glBegin(GL11.GL_LINES);
-        {
-            GL11.glVertex3d(posx, posy, posz);
-            GL11.glVertex3d(posx2, posy2, posz2);
-            GL11.glVertex3d(posx2, posy2, posz2);
-            GL11.glVertex3d(posx2, posy2 + up, posz2);
-        }
-
-        GL11.glEnd();
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthMask(true);
-        GL11.glColor3d(1d, 1d, 1d);
-        GlStateManager.enableLighting();
-    }
+    HueCycler cycler = new HueCycler(3600);
 
     @Override
     public void onWorldRender(RenderEvent event) {
@@ -182,5 +130,58 @@ public class Tracers extends Module {
             else
                 return ColourUtils.Colors.RED;
         }
+    }
+
+    public static double interpolate(double now, double then) {
+        return then + (now - then) * mc.getRenderPartialTicks();
+    }
+
+    public static double[] interpolate(Entity entity) {
+        double posX = interpolate(entity.posX, entity.lastTickPosX) - mc.getRenderManager().renderPosX;
+        double posY = interpolate(entity.posY, entity.lastTickPosY) - mc.getRenderManager().renderPosY;
+        double posZ = interpolate(entity.posZ, entity.lastTickPosZ) - mc.getRenderManager().renderPosZ;
+        return new double[]{posX, posY, posZ};
+    }
+
+    public static void drawLineToEntity(Entity e, float red, float green, float blue, float opacity) {
+        double[] xyz = interpolate(e);
+        drawLine(xyz[0], xyz[1], xyz[2], e.height, red, green, blue, opacity);
+    }
+
+    public static void drawLine(double posx, double posy, double posz, double up, float red, float green, float blue, float opacity) {
+        Vec3d eyes = new Vec3d(0, 0, 1)
+                .rotatePitch(-(float) Math
+                        .toRadians(Minecraft.getMinecraft().player.rotationPitch))
+                .rotateYaw(-(float) Math
+                        .toRadians(Minecraft.getMinecraft().player.rotationYaw));
+
+        drawLineFromPosToPos(eyes.x, eyes.y + mc.player.getEyeHeight(), eyes.z, posx, posy, posz, up, red, green, blue, opacity);
+    }
+
+    public static void drawLineFromPosToPos(double posx, double posy, double posz, double posx2, double posy2, double posz2, double up, float red, float green, float blue, float opacity) {
+        GL11.glBlendFunc(770, 771);
+        GL11.glLineWidth(1.5f);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthMask(false);
+        GL11.glColor4f(red, green, blue, opacity);
+        GlStateManager.disableLighting();
+        GL11.glLoadIdentity();
+        mc.entityRenderer.orientCamera(mc.getRenderPartialTicks());
+
+        GL11.glBegin(GL11.GL_LINES);
+        {
+            GL11.glVertex3d(posx, posy, posz);
+            GL11.glVertex3d(posx2, posy2, posz2);
+            GL11.glVertex3d(posx2, posy2, posz2);
+            GL11.glVertex3d(posx2, posy2 + up, posz2);
+        }
+
+        GL11.glEnd();
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthMask(true);
+        GL11.glColor3d(1d, 1d, 1d);
+        GlStateManager.enableLighting();
     }
 }

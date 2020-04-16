@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.network.play.server.SPacketChat;
 
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;

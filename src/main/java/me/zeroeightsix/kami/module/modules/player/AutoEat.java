@@ -28,7 +28,7 @@ public class AutoEat extends Module {
     private boolean isValid(ItemStack stack, int food) {
         return (
                 (passItemCheck(stack.getItem()) && stack.getItem() instanceof ItemFood && (foodLevel.getValue() - food) >= ((ItemFood) stack.getItem()).getHealAmount(stack)) ||
-                        (passItemCheck(stack.getItem()) && stack.getItem() instanceof ItemFood && (healthLevel.getValue() - (mc.player.getHealth() + mc.player.getAbsorptionAmount()) > 0f))
+                (passItemCheck(stack.getItem()) && stack.getItem() instanceof ItemFood && (healthLevel.getValue() - (mc.player.getHealth() + mc.player.getAbsorptionAmount()) > 0f))
         );
     }
 
@@ -36,9 +36,10 @@ public class AutoEat extends Module {
         if (item == Items.ROTTEN_FLESH) return false;
         if (item == Items.SPIDER_EYE) return false;
         if (item == Items.POISONOUS_POTATO) return false;
-        return item != Items.FISH || new ItemStack(Items.FISH).getItemDamage() != 3;
-    }
-
+        if (item == Items.FISH && new ItemStack(Items.FISH).getItemDamage() == 3) return false;
+		return true;
+	}
+    
     @Override
     public void onUpdate() {
         if (mc.player == null) return;

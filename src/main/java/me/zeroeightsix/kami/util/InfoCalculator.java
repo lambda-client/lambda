@@ -10,25 +10,21 @@ import java.text.DecimalFormat;
  * @author S-B99
  * Created by S-B99 on 18/01/20
  * Updated by S-B99 on 06/02/20
- * <p>
+ *
  * Speed:
  * @author S-B99
  * Created by S-B99 on 18/01/20
  * Credit to Seppuku for the following calculation I made more efficient and got inspiration from
  * final String bps = "BPS: " + df.format((MathHelper.sqrt(deltaX * deltaX + deltaZ * deltaZ) / tickRate));
- * <p>
+ *
  * Durability:
  * @author TBM
  * Created by TBM on 8/12/19
- * <p>
+ *
  * TPS:
  * @author 086
  */
 public class InfoCalculator {
-
-    // Speed {
-    private static final DecimalFormat formatter = new DecimalFormat("#.#");
-    // }
 
     // Ping {
     public static int ping(Minecraft mc) {
@@ -44,6 +40,10 @@ public class InfoCalculator {
             return -1;
         }
     }
+    // }
+
+    // Speed {
+    private static DecimalFormat formatter = new DecimalFormat("#.#");
 
     public static String speed(boolean useUnitKmH, Minecraft mc) {
         float currentTps = mc.timer.tickLength / 1000.0f;
@@ -54,12 +54,9 @@ public class InfoCalculator {
 
     private static double coordsDiff(char s, Minecraft mc) {
         switch (s) {
-            case 'x':
-                return mc.player.posX - mc.player.prevPosX;
-            case 'z':
-                return mc.player.posZ - mc.player.prevPosZ;
-            default:
-                return 0.0;
+            case 'x': return mc.player.posX - mc.player.prevPosX;
+            case 'z': return mc.player.posZ - mc.player.prevPosZ;
+            default: return 0.0;
         }
     }
     // }
@@ -91,15 +88,11 @@ public class InfoCalculator {
     // }
 
     // Is Even {
-    public static boolean isNumberEven(int i) {
-        return (i & 1) == 0;
-    }
+    public static boolean isNumberEven(int i) { return (i & 1) == 0; }
     // }
 
     // Reverse Number {
-    public static int reverseNumber(int num, int min, int max) {
-        return (max + min) - num;
-    }
+    public static int reverseNumber(int num, int min, int max) { return (max + min) - num; }
     // }
 
     // Cardinal to Axis {
@@ -130,7 +123,7 @@ public class InfoCalculator {
             case 1:
                 return "End";
             default:
-                return "No Dimension";
+                return  "No Dimension";
         }
     }
 }

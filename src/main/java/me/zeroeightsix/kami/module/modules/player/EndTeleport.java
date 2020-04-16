@@ -21,15 +21,6 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 @Module.Info(name = "EndTeleport", category = Module.Category.PLAYER, description = "Allows for teleportation when going through end portals")
 public class EndTeleport extends Module {
     private Setting<Boolean> confirmed = register(Settings.b("Confirm", true));
-    @EventHandler
-    public Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
-        if (event.getPacket() instanceof SPacketRespawn) {
-            if (((SPacketRespawn) event.getPacket()).getDimensionID() == 1 && confirmed.getValue()) {
-                Objects.requireNonNull(Wrapper.getMinecraft().getConnection()).handleDisconnect(new SPacketDisconnect(new TextComponentString("Attempting teleportation exploit")));
-                disable();
-            }
-        }
-    });
 
     @Override
     public void onEnable() {
@@ -40,4 +31,14 @@ public class EndTeleport extends Module {
             sendWarningMessage(getChatName() + "This module will kick you from the server! It is part of the exploit and cannot be avoided");
         }
     }
+
+    @EventHandler
+    public Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
+        if (event.getPacket() instanceof SPacketRespawn) {
+            if (((SPacketRespawn) event.getPacket()).getDimensionID() == 1 && confirmed.getValue()) {
+                Objects.requireNonNull(Wrapper.getMinecraft().getConnection()).handleDisconnect(new SPacketDisconnect(new TextComponentString("Attempting teleportation exploit")));
+                disable();
+            }
+        }
+    });
 }

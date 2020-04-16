@@ -53,6 +53,14 @@ public class InputField extends AbstractComponent {
 
     FontRenderer fontRenderer = null;
 
+    public FontRenderer getFontRenderer() {
+        return fontRenderer == null ? getTheme().getFontRenderer() : fontRenderer;
+    }
+
+    public void setFontRenderer(FontRenderer fontRenderer) {
+        this.fontRenderer = fontRenderer;
+    }
+
     public InputField(String text) {
         currentState.text = text;
 
@@ -364,14 +372,6 @@ public class InputField extends AbstractComponent {
         this("");
     }
 
-    public FontRenderer getFontRenderer() {
-        return fontRenderer == null ? getTheme().getFontRenderer() : fontRenderer;
-    }
-
-    public void setFontRenderer(FontRenderer fontRenderer) {
-        this.fontRenderer = fontRenderer;
-    }
-
     public InputState getCurrentState() {
         return currentState;
     }
@@ -462,9 +462,6 @@ public class InputField extends AbstractComponent {
         return echoChar != 0;
     }
 
-    public abstract static class InputFieldTextPoof<T extends InputField, S extends PoofInfo> extends Poof<T, S> {
-    }
-
     public class InputState {
         String text;
         int cursorRow;
@@ -524,5 +521,8 @@ public class InputField extends AbstractComponent {
         public void setSelectionEnd(int selectionEnd) {
             this.selectionEnd = selectionEnd;
         }
+    }
+
+    public abstract static class InputFieldTextPoof<T extends InputField, S extends PoofInfo> extends Poof<T, S> {
     }
 }

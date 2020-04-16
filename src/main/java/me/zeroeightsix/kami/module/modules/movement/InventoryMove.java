@@ -13,8 +13,8 @@ import org.lwjgl.input.Keyboard;
  */
 @Module.Info(name = "InventoryMove", description = "Allows you to walk around with GUIs opened", category = Module.Category.MOVEMENT)
 public class InventoryMove extends Module {
-    public Setting<Boolean> sneak = register(Settings.b("Sneak", false));
     private Setting<Integer> speed = register(Settings.i("Look speed", 10));
+    public Setting<Boolean> sneak = register(Settings.b("Sneak", false));
 
     public void onUpdate() {
         if (mc.player == null || mc.currentScreen == null || mc.currentScreen instanceof GuiChat) return;

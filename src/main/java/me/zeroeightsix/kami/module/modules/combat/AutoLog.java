@@ -21,11 +21,12 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 @Module.Info(name = "AutoLog", description = "Automatically log when in danger or on low health", category = Module.Category.COMBAT)
 public class AutoLog extends Module {
 
-    long lastLog = System.currentTimeMillis();
     private Setting<Integer> health = register(Settings.integerBuilder("Health").withRange(0, 36).withValue(6).build());
     private boolean shouldLog = false;
+    long lastLog = System.currentTimeMillis();
+
     @EventHandler
-    private final Listener<LivingDamageEvent> livingDamageEventListener = new Listener<>(event -> {
+    private Listener<LivingDamageEvent> livingDamageEventListener = new Listener<>(event -> {
         if (mc.player == null) return;
         if (event.getEntity() == mc.player) {
             if (mc.player.getHealth() - event.getAmount() < health.getValue()) {
@@ -35,7 +36,7 @@ public class AutoLog extends Module {
     });
 
     @EventHandler
-    private final Listener<EntityJoinWorldEvent> entityJoinWorldEventListener = new Listener<>(event -> {
+    private Listener<EntityJoinWorldEvent> entityJoinWorldEventListener = new Listener<>(event -> {
         if (mc.player == null) return;
         if (event.getEntity() instanceof EntityEnderCrystal) {
             if (mc.player.getHealth() - CrystalAura.calculateDamage((EntityEnderCrystal) event.getEntity(), mc.player) < health.getValue()) {

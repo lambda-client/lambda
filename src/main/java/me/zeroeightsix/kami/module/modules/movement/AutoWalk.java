@@ -21,7 +21,7 @@ public class AutoWalk extends Module {
     private Setting<AutoWalkMode> mode = register(Settings.e("Mode", AutoWalkMode.FORWARD));
 
     @EventHandler
-    private final Listener<InputUpdateEvent> inputUpdateEventListener = new Listener<>(event -> {
+    private Listener<InputUpdateEvent> inputUpdateEventListener = new Listener<>(event -> {
         switch (mode.getValue()) {
             case FORWARD:
                 event.getMovementInput().moveForward = 1;

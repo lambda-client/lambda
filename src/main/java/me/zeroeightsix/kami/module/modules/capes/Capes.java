@@ -30,9 +30,11 @@ import java.util.Map;
 @Module.Info(name = "Capes", category = Module.Category.CLIENT, description = "Controls the display of KAMI Blue capes", showOnArray = Module.ShowOnArray.OFF)
 public class Capes extends Module {
 
-    public static Capes INSTANCE;
     // This allows controlling if other capes (Mojang, OptiFine) should override the KAMI Blue cape.
     public Setting<Boolean> overrideOtherCapes = register(Settings.b("Override Other Capes", true));
+
+    public static Capes INSTANCE;
+
     // This starts out null, and then is replaced from another thread if the Capes module is enabled.
     // It maps the UUIDs to CachedCape instances.
     // When it arrives here it must no longer be modified.
@@ -42,36 +44,6 @@ public class Capes extends Module {
 
     public Capes() {
         INSTANCE = this;
-    }
-
-    public static ResourceLocation getCapeResource(AbstractClientPlayer player) {
-        CachedCape result = INSTANCE.allCapes.get(player.getUniqueID().toString());
-        if (result == null)
-            return null;
-        result.request();
-        return result.location;
-    }
-
-    private static BufferedImage parseCape(BufferedImage img) {
-        int imageWidth = 64;
-        int imageHeight = 32;
-
-        int srcWidth = img.getWidth();
-        int srcHeight = img.getHeight();
-        while (imageWidth < srcWidth || imageHeight < srcHeight) {
-            imageWidth *= 2;
-            imageHeight *= 2;
-        }
-        BufferedImage imgNew = new BufferedImage(imageWidth, imageHeight, 2);
-        Graphics g = imgNew.getGraphics();
-        g.drawImage(img, 0, 0, null);
-        g.dispose();
-
-        return imgNew;
-    }
-
-    private static String formatUUID(String uuid) {
-        return uuid.replaceAll("-", "");
     }
 
     @Override
@@ -111,6 +83,42 @@ public class Capes extends Module {
         }
     }
 
+    public static ResourceLocation getCapeResource(AbstractClientPlayer player) {
+        CachedCape result = INSTANCE.allCapes.get(player.getUniqueID().toString());
+        if (result == null)
+            return null;
+        result.request();
+        return result.location;
+    }
+
+    private static BufferedImage parseCape(BufferedImage img)  {
+        int imageWidth = 64;
+        int imageHeight = 32;
+
+        int srcWidth = img.getWidth();
+        int srcHeight = img.getHeight();
+        while (imageWidth < srcWidth || imageHeight < srcHeight) {
+            imageWidth *= 2;
+            imageHeight *= 2;
+        }
+        BufferedImage imgNew = new BufferedImage(imageWidth, imageHeight, 2);
+        Graphics g = imgNew.getGraphics();
+        g.drawImage(img, 0, 0, null);
+        g.dispose();
+
+        return imgNew;
+    }
+
+    private static String formatUUID(String uuid) {
+        return uuid.replaceAll("-", "");
+    }
+
+    // This is the raw Gson structure as seen in the assets
+    public class CapeUser {
+        public String uuid;
+        public String url;
+    }
+
     // This is the shared cape instance.
     private static class CachedCape {
         public final ResourceLocation location;
@@ -134,8 +142,7 @@ public class Capes extends Module {
                 }
 
                 @Override
-                public void skinAvailable() {
-                }
+                public void skinAvailable() {}
             };
 
             TextureManager textureManager = Wrapper.getMinecraft().getTextureManager();
@@ -143,11 +150,5 @@ public class Capes extends Module {
             ThreadDownloadImageData textureCape = new ThreadDownloadImageData(null, url, null, iib);
             textureManager.loadTexture(location, textureCape);
         }
-    }
-
-    // This is the raw Gson structure as seen in the assets
-    public class CapeUser {
-        public String uuid;
-        public String url;
     }
 }

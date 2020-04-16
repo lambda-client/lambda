@@ -18,23 +18,14 @@ import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
  */
 @Module.Info(name = "FancyChat", category = Module.Category.CHAT, description = "Makes messages you send fancy", showOnArray = Module.ShowOnArray.OFF)
 public class FancyChat extends Module {
-    private static final Random random = new Random();
     private Setting<Boolean> uwu = register(Settings.b("uwu", true));
     private Setting<Boolean> leet = register(Settings.b("1337", false));
     private Setting<Boolean> mock = register(Settings.b("mOcK", false));
     private Setting<Boolean> green = register(Settings.b(">", false));
     private Setting<Boolean> randomSetting = register(Settings.booleanBuilder("Random Case").withValue(true).withVisibility(v -> mock.getValue()).build());
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
-    @EventHandler
-    public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
-        if (event.getPacket() instanceof CPacketChatMessage) {
-            String s = ((CPacketChatMessage) event.getPacket()).getMessage();
-            if (!commands.getValue() && isCommand(s)) return;
-            s = getText(s);
-            if (s.length() >= 256) s = s.substring(0, 256);
-            ((CPacketChatMessage) event.getPacket()).message = s;
-        }
-    });
+
+    private static Random random = new Random();
 
     private String getText(String s) {
         if (uwu.getValue()) s = uwuConverter(s);
@@ -47,6 +38,17 @@ public class FancyChat extends Module {
     private String greenConverter(String input) {
         return "> " + input;
     }
+
+    @EventHandler
+    public Listener<PacketEvent.Send> listener = new Listener<>(event -> {
+        if (event.getPacket() instanceof CPacketChatMessage) {
+            String s = ((CPacketChatMessage) event.getPacket()).getMessage();
+            if (!commands.getValue() && isCommand(s)) return;
+            s = getText(s);
+            if (s.length() >= 256) s = s.substring(0, 256);
+            ((CPacketChatMessage) event.getPacket()).message = s;
+        }
+    });
 
     @Override
     public String getHudInfo() {
@@ -75,7 +77,7 @@ public class FancyChat extends Module {
 
     private String leetConverter(String input) {
         StringBuilder message = new StringBuilder();
-        for (int i = 0; i < input.length(); i++) {
+        for (int i = 0 ; i < input.length() ; i++) {
             String inputChar = input.charAt(i) + "";
             inputChar = inputChar.toLowerCase();
             inputChar = leetSwitch(inputChar);
@@ -86,7 +88,7 @@ public class FancyChat extends Module {
 
     private String mockingConverter(String input) {
         StringBuilder message = new StringBuilder();
-        for (int i = 0; i < input.length(); i++) {
+        for (int i = 0 ; i < input.length() ; i++) {
             String inputChar = input.charAt(i) + "";
 
             int rand = 0;
@@ -126,8 +128,7 @@ public class FancyChat extends Module {
                 return "$";
             case "t":
                 return "7";
-            default:
-                return i;
+            default: return i;
         }
     }
 }

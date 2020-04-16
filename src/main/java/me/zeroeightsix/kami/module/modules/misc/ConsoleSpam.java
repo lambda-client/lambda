@@ -19,6 +19,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 @Module.Info(name = "ConsoleSpam", description = "Spams Spigot consoles by sending invalid UpdateSign packets", category = Module.Category.MISC)
 public class ConsoleSpam extends Module {
 
+    @Override
+    public void onEnable() {
+        sendChatMessage(getChatName() + " Every time you right click a sign, a warning will appear in console.");
+        sendChatMessage(getChatName() + " Use an autoclicker to automate this process.");
+    }
+
     @EventHandler
     public Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketPlayerTryUseItemOnBlock) {
@@ -27,10 +33,4 @@ public class ConsoleSpam extends Module {
             Wrapper.getPlayer().connection.sendPacket(new CPacketUpdateSign(location, new TileEntitySign().signText));
         }
     });
-
-    @Override
-    public void onEnable() {
-        sendChatMessage(getChatName() + " Every time you right click a sign, a warning will appear in console.");
-        sendChatMessage(getChatName() + " Use an autoclicker to automate this process.");
-    }
 }

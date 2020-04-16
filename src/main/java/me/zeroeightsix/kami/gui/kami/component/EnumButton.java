@@ -32,6 +32,10 @@ public class EnumButton extends Button {
         });
     }
 
+    public void setModes(String[] modes) {
+        this.modes = modes;
+    }
+
     protected void increaseIndex(int amount) {
         int old = index;
         int newI = index + amount;
@@ -49,20 +53,16 @@ public class EnumButton extends Button {
         return index;
     }
 
-    public void setIndex(int index) {
-        this.index = index;
-    }
-
     public String[] getModes() {
         return modes;
     }
 
-    public void setModes(String[] modes) {
-        this.modes = modes;
-    }
-
     public String getIndexMode() {
         return modes[index];
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
     }
 
     public static abstract class EnumbuttonIndexPoof<T extends Button, S extends EnumbuttonIndexPoof.EnumbuttonInfo> extends Poof<T, S> {

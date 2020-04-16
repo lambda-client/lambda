@@ -10,23 +10,22 @@ import net.minecraft.util.math.BlockPos;
 
 /**
  * Created by S-B99 on 23/10/2019
- *
  * @author S-B99
  * Updated by S-B99 on 03/12/19
  * Updated by d1gress/Qther on 4/12/19
- * <p>
+ * 
  * Bowspam code from https://github.com/seppukudevelopment/seppuku/blob/5586365/src/main/java/me/rigamortis/seppuku/impl/module/combat/FastBowModule.java
  */
 @Module.Info(category = Module.Category.COMBAT, description = "Use items faster", name = "FastUse")
 public class Fastuse extends Module {
 
-    private static long time = 0;
     private Setting<Integer> delay = register(Settings.integerBuilder("Delay").withMinimum(0).withMaximum(20).withValue(0).build());
     private Setting<Boolean> all = register(Settings.b("All", false));
     private Setting<Boolean> bow = register(Settings.booleanBuilder().withName("Bow").withValue(true).withVisibility(v -> !all.getValue()).build());
     private Setting<Boolean> expBottles = register(Settings.booleanBuilder().withName("Exp Bottles").withValue(true).withVisibility(v -> !all.getValue()).build());
     private Setting<Boolean> endCrystals = register(Settings.booleanBuilder().withName("End Crystals").withValue(true).withVisibility(v -> !all.getValue()).build());
     private Setting<Boolean> fireworks = register(Settings.booleanBuilder().withName("Fireworks").withValue(false).withVisibility(v -> !all.getValue()).build());
+    private static long time = 0;
 
     @Override
     public void onDisable() {
@@ -61,6 +60,7 @@ public class Fastuse extends Module {
         if (all.getValue()) return true;
         if (expBottles.getValue() && item instanceof ItemExpBottle) return true;
         if (endCrystals.getValue() && item instanceof ItemEndCrystal) return true;
-        return fireworks.getValue() && item instanceof ItemFirework;
+        if (fireworks.getValue() && item instanceof ItemFirework) return true;
+        return false;
     }
 }

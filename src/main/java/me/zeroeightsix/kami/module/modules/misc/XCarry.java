@@ -12,7 +12,7 @@ import net.minecraft.network.play.client.CPacketCloseWindow;
 @Module.Info(name = "XCarry", category = Module.Category.PLAYER, description = "Store items in crafting slots", showOnArray = Module.ShowOnArray.OFF)
 public class XCarry extends Module {
     @EventHandler
-    private final Listener<PacketEvent.Send> l = new Listener<>(event -> {
+    private Listener<PacketEvent.Send> l = new Listener<>(event -> {
         if (event.getPacket() instanceof CPacketCloseWindow) {
             event.cancel();
         }

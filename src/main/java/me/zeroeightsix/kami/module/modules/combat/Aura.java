@@ -38,6 +38,9 @@ public class Aura extends Module {
 
     private int waitCounter;
 
+    public enum HitMode { SWORD, AXE, NONE }
+    private enum WaitMode { DELAY, SPAM }
+
     @Override
     public void onUpdate() {
         if (mc.player == null || mc.player.isDead) return;
@@ -127,8 +130,4 @@ public class Aura extends Module {
     private boolean canEntityFeetBeSeen(Entity entityIn) {
         return mc.world.rayTraceBlocks(new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), new Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null;
     }
-
-    public enum HitMode {SWORD, AXE, NONE}
-
-    private enum WaitMode {DELAY, SPAM}
 }

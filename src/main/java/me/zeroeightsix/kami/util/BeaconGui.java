@@ -21,13 +21,14 @@ import java.io.IOException;
  * @author TBM
  */
 public class BeaconGui extends GuiBeacon {
-    public static final Potion[][] EFFECTS_LIST = new Potion[][]{{MobEffects.SPEED, MobEffects.HASTE}, {MobEffects.RESISTANCE, MobEffects.JUMP_BOOST}, {MobEffects.STRENGTH}};
     private static final ResourceLocation BEACON_GUI_TEXTURES = new ResourceLocation("textures/gui/container/beacon.png");
-    boolean doRenderButtons;
+    public static final Potion[][] EFFECTS_LIST = new Potion[][] {{MobEffects.SPEED, MobEffects.HASTE}, {MobEffects.RESISTANCE, MobEffects.JUMP_BOOST}, {MobEffects.STRENGTH}};
 
     public BeaconGui(InventoryPlayer playerInventory, IInventory tileBeaconIn) {
         super(playerInventory, tileBeaconIn);
     }
+
+    boolean doRenderButtons;
 
     @Override
     public void initGui() {
@@ -61,7 +62,7 @@ public class BeaconGui extends GuiBeacon {
         super.actionPerformed(button);
 
         if (button instanceof BeaconGui.PowerButtonCustom) {
-            BeaconGui.PowerButtonCustom guibeacon$powerbutton = (BeaconGui.PowerButtonCustom) button;
+            BeaconGui.PowerButtonCustom guibeacon$powerbutton = (BeaconGui.PowerButtonCustom)button;
 
             if (guibeacon$powerbutton.isSelected()) return;
 
@@ -76,6 +77,27 @@ public class BeaconGui extends GuiBeacon {
             this.updateScreen();
         }
 
+    }
+
+    class PowerButtonCustom extends BeaconGui.Button {
+        private final Potion effect;
+        private final int tier;
+
+        public PowerButtonCustom(int buttonId, int x, int y, Potion effectIn, int tierIn) {
+            super(buttonId, x, y, GuiContainer.INVENTORY_BACKGROUND, effectIn.getStatusIconIndex() % 8 * 18, 198 + effectIn.getStatusIconIndex() / 8 * 18);
+            this.effect = effectIn;
+            this.tier = tierIn;
+        }
+
+        public void drawButtonForegroundLayer(int mouseX, int mouseY) {
+            String s = I18n.format(this.effect.getName());
+
+            if (this.tier >= 3 && this.effect != MobEffects.REGENERATION) {
+                s = s + " II";
+            }
+
+            BeaconGui.this.drawHoveringText(s, mouseX, mouseY);
+        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -104,9 +126,11 @@ public class BeaconGui extends GuiBeacon {
 
                 if (!this.enabled) {
                     j += this.width * 2;
-                } else if (this.selected) {
+                }
+                else if (this.selected) {
                     j += this.width * 1;
-                } else if (this.hovered) {
+                }
+                else if (this.hovered) {
                     j += this.width * 3;
                 }
 
@@ -120,33 +144,14 @@ public class BeaconGui extends GuiBeacon {
             }
         }
 
-        public boolean isSelected() {
+        public boolean isSelected()
+        {
             return this.selected;
         }
 
-        public void setSelected(boolean selectedIn) {
+        public void setSelected(boolean selectedIn)
+        {
             this.selected = selectedIn;
-        }
-    }
-
-    class PowerButtonCustom extends BeaconGui.Button {
-        private final Potion effect;
-        private final int tier;
-
-        public PowerButtonCustom(int buttonId, int x, int y, Potion effectIn, int tierIn) {
-            super(buttonId, x, y, GuiContainer.INVENTORY_BACKGROUND, effectIn.getStatusIconIndex() % 8 * 18, 198 + effectIn.getStatusIconIndex() / 8 * 18);
-            this.effect = effectIn;
-            this.tier = tierIn;
-        }
-
-        public void drawButtonForegroundLayer(int mouseX, int mouseY) {
-            String s = I18n.format(this.effect.getName());
-
-            if (this.tier >= 3 && this.effect != MobEffects.REGENERATION) {
-                s = s + " II";
-            }
-
-            BeaconGui.this.drawHoveringText(s, mouseX, mouseY);
         }
     }
 }

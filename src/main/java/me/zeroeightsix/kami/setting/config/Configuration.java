@@ -28,7 +28,7 @@ public class Configuration {
         for (Map.Entry<String, Setting> entry : register.settingHashMap.entrySet()) {
             Setting setting = entry.getValue();
             if (!(setting instanceof Convertable)) continue;
-            object.add(entry.getKey(), (JsonElement) setting.converter().convert(setting.getValue()));
+            object.add(entry.getKey(), (JsonElement) ((Convertable) setting).converter().convert(setting.getValue()));
         }
         return object;
     }
@@ -73,7 +73,7 @@ public class Configuration {
             } else {
                 Setting setting = register.getSetting(key);
                 if (setting == null) continue;
-                setting.setValue(setting.converter().reverse().convert(element));
+                setting.setValue(((Convertable) setting).converter().reverse().convert(element));
             }
         }
     }
