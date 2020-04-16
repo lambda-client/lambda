@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.chat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -18,6 +17,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 9/04/2018.
@@ -54,7 +55,7 @@ public class ChatEncryption extends Module {
             }
             s = builder.toString();
             if (s.length() > 256) {
-                Command.sendChatMessage("Encrypted message length was too long, couldn't send!");
+                sendChatMessage("Encrypted message length was too long, couldn't send!");
                 event.cancel();
                 return;
             }

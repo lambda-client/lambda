@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.chat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -19,6 +18,7 @@ import java.util.stream.Collectors;
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author hub
@@ -131,7 +131,7 @@ public class AntiSpam extends Module {
 
             messageHistory.put(message, System.currentTimeMillis());
             if (isDuplicate) {
-                if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(getChatName() + "Duplicate: " + message);
+                if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + "Duplicate: " + message);
                 else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + "Duplicate: " + message);
             }
         }
@@ -356,6 +356,7 @@ public class AntiSpam extends Module {
 
         private static final String[] I_JUST_THANKS_TO = {
                 "i just.*thanks to",
+                "i just.*using",
         };
 
         private static final String[] SPECIAL_BEGINNING = {
@@ -373,7 +374,7 @@ public class AntiSpam extends Module {
 //    }
 
     private void sendResult(String name, String message) {
-        if (showBlocked.getValue().equals(ShowBlocked.CHAT)) Command.sendChatMessage(getChatName() + name + ": " + message);
+        if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + name + ": " + message);
         else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + name + ": " + message);
     }
 }

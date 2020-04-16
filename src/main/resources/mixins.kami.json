@@ -13,6 +13,7 @@
     "MixinEntity",
     "MixinEntityLlama",
     "MixinEntityPig",
+    "MixinEntityPlayer",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinFrustum",
@@ -31,6 +32,7 @@
     "MixinRenderLiving",
     "MixinRenderPlayer",
     "MixinStateImplementation",
+    "MixinTileEntityBeacon",
     "MixinVisGraph"
   ]
 }

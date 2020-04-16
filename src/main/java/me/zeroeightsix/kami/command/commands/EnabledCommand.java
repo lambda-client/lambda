@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author S-B99
@@ -44,7 +45,7 @@ public class EnabledCommand extends Command {
         });
 
         enabled.set(StringUtils.chop(StringUtils.chop(String.valueOf(enabled)))); // this looks horrible but I don't know how else to do it sorry
-        Command.sendChatMessage("Enabled modules: " + f + "\n" + TextFormatting.GRAY + enabled);
+        sendChatMessage("Enabled modules: " + f + "\n" + TextFormatting.GRAY + enabled);
     }
 
 }

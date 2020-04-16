@@ -1,10 +1,18 @@
 package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
+import me.zeroeightsix.kami.util.WebUtils;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by S-B99 on 01/12/2019.
+ * Revamped by d1gress/Qther on 13 April 2020
  */
+
 public class CreditsCommand extends Command {
 
     public CreditsCommand() {
@@ -14,43 +22,61 @@ public class CreditsCommand extends Command {
 
     @Override
     public void call(String[] args) {
-        Command.sendChatMessage("\n" +
-                "Name (Github if not same as name)\n" +
-                "&l&9Author:\n" +
-                "086 (zeroeightysix)\n" +
-                "&l&9Contributors:\n" +
-                "Bella (S-B99)\n" +
-                "hub (blockparole)\n" +
-                "Sasha (EmotionalLove)\n" +
-                "Qther (d1gress / Vonr)\n" +
-                "HHSGPA\n" +
-                "20kdc\n" +
-                "IronException\n" +
-                "cats (Cuhnt)\n" +
-                "Katatje\n" +
-                "Deauthorized\n" +
-                "snowmii\n" +
-                "kdb424\n" +
-                "Jack (jacksonellsworth03)\n" +
-                "cookiedragon234\n" +
-                "0x2E (PretendingToCode)\n" +
-                "babbaj\n" +
-                "ZeroMemes\n" +
-                "TheBritishMidget (TBM)\n" +
-                "Hamburger (Hamburger2k)\n" +
-                "Darki\n" +
-                "Crystallinqq\n" +
-                "Elementars\n" +
-                "fsck\n" +
-                "Jamie (jamie27)\n" +
-                "Waizy\n" +
-                "It is the end\n" +
-                "fluffcq\n" +
-                "leijurv\n" +
-                "polymer\n" +
-                "Battery Settings (Bluskript)\n" +
-                "An-En (AnotherEntity)\n" +
-                "Arisa (Arisa-Snowbell)\n" +
-                "UrM0ther");
+        List<Integer> exceptions = Arrays.asList(
+                17222512, // s-b99 / dominika
+                27009727, // zeroeightysix
+                48992448, // blockparole
+                19880089, // EmotionalLove
+                55198830, 24369412, // d1gress and Vonr
+                51212427, // Cuhnt
+                11698651, // jacksonellworth03
+                44139104, // TheBritishMidget
+                59456376, // Hamburger2k
+                41800112, // PretendingToCode
+                52386117, // Bluskript
+                26636167, // AnotherEntity
+                22961592, // ArisaSnowbell
+                13212688, // jamie27
+                50775247, // DarkiBoi
+                12820770, // Babbaj
+                11377481, // Crystallinqq
+                3837873, // leijurv
+                49104462, // Elementars
+                56689414, // WaizyNet
+                58238984, // Itistheend
+
+                // Bots
+                27856297 // dependabot
+                );
+        String message =
+        "\nName (Github if not same as name)" +
+                "\n&l&9Author:" +
+                "\n086 (zeroeightysix)" +
+                "\n&l&9Contributors:" +
+                "\nBella (S-B99)" +
+                "\nhub (blockparole)" +
+                "\nSasha (EmotionalLove)" +
+                "\nQther (d1gress / Vonr)" +
+                "\ncats (Cuhnt)" +
+                "\nJack (jacksonellsworth03)" +
+                "\nTheBritishMidget (TBM)" +
+                "\nHamburger (Hamburger2k)" +
+                "\n0x2E (PretendingToCode)" +
+                "\nBattery Settings (Bluskript)" +
+                "\nAn-En (AnotherEntity)" +
+                "\nArisa (Arisa-Snowbell)" +
+                "\nJamie (jamie27)" +
+                "\nWaizy (WaizyNet)" +
+                "\nIt is the end (Itistheend)" +
+                "\nbabbaj" +
+                "\nCrystallinqq" +
+                "\nleijurv" +
+                "\nElementars";
+
+                for (WebUtils.GithubUser u : WebUtils.getContributors(exceptions)) {
+                    message = message.concat("\n" + u.login);
+                }
+
+                sendChatMessage(message);
     }
 }

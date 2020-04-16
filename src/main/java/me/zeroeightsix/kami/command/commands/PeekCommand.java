@@ -7,6 +7,8 @@ import net.minecraft.item.ItemShulkerBox;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityShulkerBox;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * @author 086
  */
@@ -30,7 +32,7 @@ public class PeekCommand extends Command {
             entityBox.readFromNBT(is.getTagCompound().getCompoundTag("BlockEntityTag"));
             sb = entityBox;
         } else {
-            Command.sendChatMessage("You aren't carrying a shulker box.");
+            sendChatMessage("You aren't carrying a shulker box.");
         }
     }
 }

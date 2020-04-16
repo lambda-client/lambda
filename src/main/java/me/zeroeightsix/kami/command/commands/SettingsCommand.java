@@ -11,6 +11,8 @@ import me.zeroeightsix.kami.setting.impl.EnumSetting;
 import java.util.List;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendStringChatMessage;
 
 /**
  * Created by 086 on 11/12/2017.
@@ -26,7 +28,7 @@ public class SettingsCommand extends Command {
     @Override
     public void call(String[] args) {
         if (args[0] == null) {
-            Command.sendChatMessage("Please specify a module to display the settings of.");
+            sendChatMessage("Please specify a module to display the settings of.");
             return;
         }
 
@@ -46,10 +48,9 @@ public class SettingsCommand extends Command {
                     result[i] = result[i].substring(0, result[i].length() - 2) + ")";
                 }
             }
-            Command.sendStringChatMessage(result);
+            sendStringChatMessage(result);
         } catch (ModuleManager.ModuleNotFoundException x) {
-            Command.sendChatMessage("Couldn't find a module &b" + args[0] + "!");
-            return;
+            sendChatMessage("Couldn't find a module &b" + args[0] + "!");
         }
     }
 }

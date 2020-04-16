@@ -13,8 +13,8 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
-import static me.zeroeightsix.kami.command.Command.sendDisableMessage;
 import static me.zeroeightsix.kami.util.GuiFrameUtil.getFrameByName;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendDisableMessage;
 
 /**
  * Updated by S-B99 on 21/02/20

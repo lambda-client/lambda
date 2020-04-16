@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation;
@@ -25,6 +24,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author hub
@@ -65,7 +65,7 @@ public class Surround extends Module {
                 basePos = (new BlockPos(mc.player.getPositionVector())).down();
                 playerHotbarSlot = mc.player.inventory.currentItem;
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(getChatName() + " Starting Loop, current Player Slot: " + playerHotbarSlot);
+                    sendChatMessage(getChatName() + " Starting Loop, current Player Slot: " + playerHotbarSlot);
                 }
 
                 if (!spoofHotbar.getValue()) {
@@ -75,7 +75,7 @@ public class Surround extends Module {
 
             for (int i = 0; i < (int) Math.floor(blockPerTick.getValue()); ++i) {
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(getChatName() + " Loop iteration: " + offsetStep);
+                    sendChatMessage(getChatName() + " Loop iteration: " + offsetStep);
                 }
 
                 if (offsetStep >= surroundTargets.length) {
@@ -93,10 +93,10 @@ public class Surround extends Module {
     /* Autocenter */
     private void centerPlayer(double x, double y, double z) {
         if (debugMsgs.getValue().equals(DebugMsgs.ALL) && playerPos != null) {
-            Command.sendChatMessage(getChatName() + " Player position is " + playerPos.toString());
+            sendChatMessage(getChatName() + " Player position is " + playerPos.toString());
         }
         else if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(getChatName() + " Player position is null");
+            sendChatMessage(getChatName() + " Player position is null");
         }
         mc.player.connection.sendPacket(new CPacketPlayer.Position(x, y, z, true));
         mc.player.setPosition(x, y, z);
@@ -144,14 +144,14 @@ public class Surround extends Module {
         playerHotbarSlot = mc.player.inventory.currentItem;
         lastHotbarSlot = -1;
         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(getChatName() + " Saving initial Slot  = " + playerHotbarSlot);
+            sendChatMessage(getChatName() + " Saving initial Slot  = " + playerHotbarSlot);
         }
     }
 
     public void onDisable() {
         if (mc.player != null) {
             if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                Command.sendChatMessage(getChatName() + " Disabling");
+                sendChatMessage(getChatName() + " Disabling");
             }
 
             if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
@@ -169,11 +169,11 @@ public class Surround extends Module {
     private void endLoop() {
         offsetStep = 0;
         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(getChatName() + " Ending Loop");
+            sendChatMessage(getChatName() + " Ending Loop");
         }
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
             if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                Command.sendChatMessage(getChatName() + " Setting Slot back to  = " + playerHotbarSlot);
+                sendChatMessage(getChatName() + " Setting Slot back to  = " + playerHotbarSlot);
             }
 
             if (spoofHotbar.getValue()) {
@@ -192,10 +192,10 @@ public class Surround extends Module {
     private void placeBlock(BlockPos blockPos) {
         if (!mc.world.getBlockState(blockPos).getMaterial().isReplaceable()) {
             if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                Command.sendChatMessage(getChatName() + " Block is already placed, skipping");
+                sendChatMessage(getChatName() + " Block is already placed, skipping");
             }
         } else if (!BlockInteractionHelper.checkForNeighbours(blockPos) && debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-            Command.sendChatMessage(getChatName() + " !checkForNeighbours(blockPos), disabling! ");
+            sendChatMessage(getChatName() + " !checkForNeighbours(blockPos), disabling! ");
         } else {
             if (placeAnimation.getValue()) mc.player.connection.sendPacket(new CPacketAnimation(mc.player.getActiveHand()));
             placeBlockExecute(blockPos);
@@ -229,7 +229,7 @@ public class Surround extends Module {
             EnumFacing side2 = side.getOpposite();
             if (!canBeClicked(neighbor)) {
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(getChatName() + " No neighbor to click at!");
+                    sendChatMessage(getChatName() + " No neighbor to click at!");
                 }
             } else {
                 Vec3d hitVec = (new Vec3d(neighbor)).add(0.5D, 0.5D, 0.5D).add((new Vec3d(side2.getDirectionVec())).scale(0.5D));
@@ -241,7 +241,7 @@ public class Surround extends Module {
                     Block blockBelow = mc.world.getBlockState(neighbor).getBlock();
                     if (BlockInteractionHelper.blackList.contains(blockBelow) || BlockInteractionHelper.shulkerList.contains(blockBelow)) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
-                            Command.sendChatMessage(getChatName() + " Sneak enabled!");
+                            sendChatMessage(getChatName() + " Sneak enabled!");
                         }
                         needSneak = true;
                     }
@@ -252,7 +252,7 @@ public class Surround extends Module {
                     int obiSlot = findObiInHotbar();
                     if (obiSlot == -1) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
-                            Command.sendChatMessage(getChatName() + " No obsidian in hotbar, disabling!");
+                            sendChatMessage(getChatName() + " No obsidian in hotbar, disabling!");
                         }
                         disable();
                         return;
@@ -260,7 +260,7 @@ public class Surround extends Module {
 
                     if (lastHotbarSlot != obiSlot) {
                         if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                            Command.sendChatMessage(getChatName() + " Setting Slot to obsidian at  = " + obiSlot);
+                            sendChatMessage(getChatName() + " Setting Slot to obsidian at  = " + obiSlot);
                         }
                         if (spoofHotbar.getValue()) {
                             mc.player.connection.sendPacket(new CPacketHeldItemChange(obiSlot));
@@ -274,7 +274,7 @@ public class Surround extends Module {
                     mc.player.connection.sendPacket(new CPacketAnimation(EnumHand.MAIN_HAND));
                     if (needSneak) {
                         if (debugMsgs.getValue().equals(DebugMsgs.IMPORTANT)) {
-                            Command.sendChatMessage(getChatName() + " Sneak disabled!");
+                            sendChatMessage(getChatName() + " Sneak disabled!");
                         }
                         mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.STOP_SNEAKING));
                     }
@@ -282,7 +282,7 @@ public class Surround extends Module {
                 }
 
                 if (debugMsgs.getValue().equals(DebugMsgs.ALL)) {
-                    Command.sendChatMessage(getChatName() + " Distance > 4.25 blocks!");
+                    sendChatMessage(getChatName() + " Distance > 4.25 blocks!");
                 }
             }
         }

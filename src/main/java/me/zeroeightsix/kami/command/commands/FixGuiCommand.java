@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.modules.hidden.FixGui;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author S-B99
@@ -20,11 +21,11 @@ public class FixGuiCommand extends Command {
         FixGui fixGui = MODULE_MANAGER.getModuleT(FixGui.class);
         if (fixGui.isEnabled()) {
             fixGui.disable();
-            Command.sendChatMessage("[" + getLabel() + "] Disabled");
+            sendChatMessage("[" + getLabel() + "] Disabled");
         }
         else {
             fixGui.enable();
-            Command.sendChatMessage("[" + getLabel() + "] Enabled");
+            sendChatMessage("[" + getLabel() + "] Enabled");
         }
     }
 }

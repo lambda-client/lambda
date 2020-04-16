@@ -2,9 +2,9 @@ package me.zeroeightsix.kami.command.syntax;
 
 public class SyntaxChunk {
 
-    boolean headless = false;
-    String head; // Null if headless
-    String type;
+    private boolean headless = false;
+    private String head; // Null if headless
+    private String type;
     private boolean necessary;
     private SyntaxParser parser;
 

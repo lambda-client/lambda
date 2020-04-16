@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
 import me.zeroeightsix.kami.setting.Setting;
@@ -9,14 +8,11 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.boss.EntityWither;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemNameTag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.util.EnumFacing;
@@ -24,16 +20,19 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.GameType;
 
 import java.util.List;
 import java.util.Random;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created 26 November 2019 by hub
  * Updated 27 November 2019 by hub
+ * Updated by S-B99 on 16/04/20
  */
 @Module.Info(name = "AutoSpawner", category = Module.Category.MISC, description = "Automatically spawns Withers, Iron Golems and Snowmen")
 public class AutoSpawner extends Module {
@@ -43,7 +42,7 @@ public class AutoSpawner extends Module {
     private Setting<Boolean> partyWithers = register(Settings.booleanBuilder("Withers").withValue(false).withVisibility(v -> party.getValue()).build());
     private Setting<EntityMode> entityMode = register(Settings.enumBuilder(EntityMode.class).withName("Entity Mode").withValue(EntityMode.SNOW).withVisibility(v -> !party.getValue()).build());
     private Setting<Float> placeRange = register(Settings.floatBuilder("Place Range").withMinimum(2.0f).withValue(3.5f).withMaximum(10.0f).build());
-    private Setting<Integer> delay = register(Settings.integerBuilder("Delay").withMinimum(12).withValue(20).withMaximum(100).withVisibility(v -> useMode.getValue().equals(UseMode.SPAM)).build());
+    private Setting<Integer> delay = register(Settings.integerBuilder("Delay").withMinimum(12).withValue(20).withMaximum(100).build());
     private Setting<Boolean> rotate = register(Settings.b("Rotate", true));
     private Setting<Boolean> debug = register(Settings.b("Debug", false));
 
@@ -109,6 +108,10 @@ public class AutoSpawner extends Module {
         delayStep = 1;
     }
 
+    private boolean isCreativeAndMoreThenOne(int stack) {
+        return mc.player.inventory.getStackInSlot(stack).stackSize >= 1 && mc.playerController.currentGameType.equals(GameType.CREATIVE);
+    }
+
     private boolean checkBlocksInHotbar() {
         headSlot = -1;
         bodySlot = -1;
@@ -123,7 +126,7 @@ public class AutoSpawner extends Module {
             if (entityMode.getValue().equals(EntityMode.WITHER)) {
 
                 if (stack.getItem() == Items.SKULL && stack.getItemDamage() == 1) {
-                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 3) {
+                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 3 || isCreativeAndMoreThenOne(i)) {
                         headSlot = i;
                     }
                     continue;
@@ -133,7 +136,7 @@ public class AutoSpawner extends Module {
 
                 Block block = ((ItemBlock) stack.getItem()).getBlock();
                 if (block instanceof BlockSoulSand) {
-                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 4) {
+                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 4 || isCreativeAndMoreThenOne(i)) {
                         bodySlot = i;
                     }
                 }
@@ -151,7 +154,7 @@ public class AutoSpawner extends Module {
                 }
 
                 if (block == Blocks.IRON_BLOCK) {
-                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 4) {
+                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 4 || isCreativeAndMoreThenOne(i)) {
                         bodySlot = i;
                     }
                 }
@@ -169,7 +172,7 @@ public class AutoSpawner extends Module {
                 }
 
                 if (block == Blocks.SNOW) {
-                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 2) {
+                    if (mc.player.inventory.getStackInSlot(i).stackSize >= 2 || isCreativeAndMoreThenOne(i)) {
                         bodySlot = i;
                     }
                 }
@@ -350,7 +353,7 @@ public class AutoSpawner extends Module {
             if (!checkBlocksInHotbar()) {
                 if (!party.getValue()) {
                     if (debug.getValue()) {
-                        Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
+                        sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
                     }
                     disable();
                 }
@@ -373,7 +376,7 @@ public class AutoSpawner extends Module {
             if (noPositionInArea) {
                 if (useMode.getValue().equals(UseMode.SINGLE)) {
                     if (debug.getValue()) {
-                        Command.sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Position not valid, disabling.");
+                        sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Position not valid, disabling.");
                     }
                     disable();
                 }

@@ -9,7 +9,8 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketChatMessage;
 
-import static me.zeroeightsix.kami.KamiMod.*;
+import static me.zeroeightsix.kami.KamiMod.separator;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * Created by 086 on 8/04/2018.
@@ -70,7 +71,7 @@ public class CustomChat extends Module {
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
             if (textMode.getValue().equals(TextMode.CUSTOM) && customText.getValue().equalsIgnoreCase("unchanged") && mc.player != null) {
-                Command.sendWarningMessage(getChatName() + " Warning: In order to use the custom " + getName() + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it");
+                sendWarningMessage(getChatName() + " Warning: In order to use the custom " + getName() + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it");
             }
             startTime = System.currentTimeMillis();
         }

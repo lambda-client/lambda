@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 public class RenameModuleCommand extends Command {
 
@@ -35,8 +36,6 @@ public class RenameModuleCommand extends Command {
             module.setName(name);
         } catch (ModuleManager.ModuleNotFoundException x) {
             sendChatMessage("Unknown module '" + args[0] + "'!");
-            return;
         }
     }
-
 }

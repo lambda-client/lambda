@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -14,6 +13,8 @@ import net.minecraftforge.fml.common.gameevent.InputEvent;
 import org.lwjgl.input.Mouse;
 
 import java.util.Objects;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author 0x2E | PretendingToCode
@@ -44,7 +45,7 @@ public class BlockData extends Module {
                     NBTTagCompound tag = new NBTTagCompound();
                     Objects.requireNonNull(t).writeToNBT(tag);
 
-                    Command.sendChatMessage(getChatName() + "&6Block Tags:\n" + tag + "");
+                    sendChatMessage(getChatName() + "&6Block Tags:\n" + tag + "");
                 }
             }
         }

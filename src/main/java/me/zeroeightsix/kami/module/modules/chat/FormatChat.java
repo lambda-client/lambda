@@ -3,12 +3,13 @@ package me.zeroeightsix.kami.module.modules.chat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.play.client.CPacketChatMessage;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * Created on 16 December by 0x2E | PretendingToCode
@@ -20,11 +21,11 @@ public class FormatChat extends Module {
     @Override
     public void onEnable() {
         if (Minecraft.getMinecraft().getCurrentServerData() == null) {
-            Command.sendWarningMessage(getChatName() + " &6&lWarning: &r&6This does not work in singleplayer");
+            sendWarningMessage(getChatName() + " &6&lWarning: &r&6This does not work in singleplayer");
             disable();
         }
         else {
-            Command.sendWarningMessage(getChatName() + " &6&lWarning: &r&6This will kick you on most servers!");
+            sendWarningMessage(getChatName() + " &6&lWarning: &r&6This will kick you on most servers!");
         }
     }
 

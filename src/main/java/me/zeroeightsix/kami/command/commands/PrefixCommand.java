@@ -3,6 +3,8 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * Created by 086 on 10/10/2018.
  */
@@ -16,17 +18,17 @@ public class PrefixCommand extends Command {
     @Override
     public void call(String[] args) {
         if (args.length <= 0) {
-            Command.sendChatMessage("Please specify a new prefix!");
+            sendChatMessage("Please specify a new prefix!");
             return;
         }
 
         if (args[0] != null) {
             Command.commandPrefix.setValue(args[0]);
-            Command.sendChatMessage("Prefix set to &b" + Command.commandPrefix.getValue());
+            sendChatMessage("Prefix set to &b" + Command.commandPrefix.getValue());
         } else if (args[0].equals("\\")) {
-            Command.sendChatMessage("Error: \"\\\" is not a supported prefix");
+            sendChatMessage("Error: \"\\\" is not a supported prefix");
         } else {
-            Command.sendChatMessage("Please specify a new prefix!");
+            sendChatMessage("Please specify a new prefix!");
         }
     }
 

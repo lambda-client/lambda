@@ -32,6 +32,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 11/11/2017.
@@ -129,10 +130,10 @@ public class ForgeEventProcessor {
                 if (event.getMessage().length() > 1)
                     KamiMod.getInstance().commandManager.callCommand(event.getMessage().substring(Command.getCommandPrefix().length() - 1));
                 else
-                    Command.sendChatMessage("Please enter a command.");
+                    sendChatMessage("Please enter a command.");
             } catch (Exception e) {
                 e.printStackTrace();
-                Command.sendChatMessage("Error occured while running command! (" + e.getMessage() + ")");
+                sendChatMessage("Error occured while running command! (" + e.getMessage() + ")");
             }
             event.setMessage("");
         }

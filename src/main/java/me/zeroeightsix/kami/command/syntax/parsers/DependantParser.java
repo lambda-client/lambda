@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 
 public class DependantParser extends AbstractParser {
 
-    int dependantIndex;
+    private int dependantIndex;
     private Dependency dependancy;
 
     public DependantParser(int dependantIndex, Dependency dependancy) {
@@ -28,7 +28,7 @@ public class DependantParser extends AbstractParser {
     }
 
     public static class Dependency {
-        String[][] map = new String[][]{};
+        String[][] map;
         String escape;
 
         public Dependency(String[][] map, String escape) {

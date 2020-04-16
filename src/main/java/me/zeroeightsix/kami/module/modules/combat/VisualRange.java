@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -11,6 +10,9 @@ import net.minecraft.entity.player.EntityPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;
 
 /**
  * Created on 26 October 2019 by hub
@@ -46,7 +48,7 @@ public class VisualRange extends Module {
                     } else {
                         sendNotification(ChatFormatting.RED.toString() + playerName + ChatFormatting.RESET.toString() + " entered the Battlefield!");
                     }
-                    if (uwuAura.getValue()) Command.sendServerMessage("/w "+ playerName + " hi uwu");
+                    if (uwuAura.getValue()) sendServerMessage("/w "+ playerName + " hi uwu");
 
                     return;
                 }
@@ -64,7 +66,7 @@ public class VisualRange extends Module {
                         } else {
                             sendNotification(ChatFormatting.RED.toString() + playerName + ChatFormatting.RESET.toString() + " left the Battlefield!");
                         }
-                        if (uwuAura.getValue()) Command.sendServerMessage(("/w "+ playerName + " bye uwu"));
+                        if (uwuAura.getValue()) sendServerMessage(("/w "+ playerName + " bye uwu"));
                     }
 
                     return;
@@ -75,7 +77,7 @@ public class VisualRange extends Module {
     }
 
     private void sendNotification(String s) {
-        Command.sendChatMessage(s);
+        sendChatMessage(s);
     }
 
     @Override

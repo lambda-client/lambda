@@ -2,11 +2,12 @@ package me.zeroeightsix.kami.module.modules.player;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import net.minecraft.item.ItemWrittenBook;
 import net.minecraft.network.play.client.CPacketClickWindow;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * @author IronException
@@ -25,7 +26,7 @@ public class AntiBookKick extends Module {
         if (!(packet.getClickedItem().getItem() instanceof ItemWrittenBook)) return;
 
         event.cancel();
-        Command.sendWarningMessage(getChatName()
+        sendWarningMessage(getChatName()
                 + "Don't click the book \""
                 + packet.getClickedItem().getDisplayName()
                 + "\", shift click it instead!");

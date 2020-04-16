@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author Finz0
@@ -25,9 +26,10 @@ public abstract class MixinMovementInputFromOptions extends MovementInput {
     @Redirect(method = "updatePlayerMoveState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isKeyDown()Z"))
     public boolean isKeyPressed(KeyBinding keyBinding) {
         if (Minecraft.getMinecraft().player != null
-                && MODULE_MANAGER.isModuleEnabled(InventoryMove.class)
                 && Minecraft.getMinecraft().currentScreen != null
-                && !(Minecraft.getMinecraft().currentScreen instanceof GuiChat)) {
+                && !(Minecraft.getMinecraft().currentScreen instanceof GuiChat)
+                && MODULE_MANAGER.isModuleEnabled(InventoryMove.class)
+                && (MODULE_MANAGER.getModuleT(InventoryMove.class).sneak.getValue() || !((Minecraft.getMinecraft().gameSettings.keyBindSneak.getKeyCode() == keyBinding.getKeyCode()) && !MODULE_MANAGER.getModuleT(InventoryMove.class).sneak.getValue()))) {
             return Keyboard.isKeyDown(keyBinding.getKeyCode());
         }
         return keyBinding.isKeyDown();

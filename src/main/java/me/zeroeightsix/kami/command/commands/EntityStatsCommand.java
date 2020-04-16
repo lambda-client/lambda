@@ -8,6 +8,8 @@ import net.minecraft.entity.passive.AbstractHorse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * Created by d1gress/Qther on 25/11/2017, updated on 16/12/2019
  * Updated by EmotionalLove on 16/12/2019
@@ -31,18 +33,16 @@ public class EntityStatsCommand extends Command {
             double jump = round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 4);
             String ownerId = horse.getOwnerUniqueId() == null ? "Not tamed." : horse.getOwnerUniqueId().toString();
 
-            StringBuilder builder = new StringBuilder("&6Entity Statistics:");
-            builder.append("\n&cMax Health: ").append(maxHealth);
-            builder.append("\n&cSpeed: ").append(speed);
-            builder.append("\n&cJump: ").append(jump);
-            builder.append("\n&cOwner: ").append(EntityUtil.getNameFromUUID(ownerId).replace("\"", ""));
-
-            Command.sendChatMessage(builder.toString());
+            String builder = "&6Entity Statistics:" + "\n&cMax Health: " + maxHealth +
+                      "\n&cSpeed: " + speed +
+                      "\n&cJump: " + jump +
+                      "\n&cOwner: " + EntityUtil.getNameFromUUID(ownerId).replace("\"", "");
+            sendChatMessage(builder);
         } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
             EntityLivingBase entity = (EntityLivingBase) mc.player.getRidingEntity();
-            Command.sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");
+            sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");
         } else {
-            Command.sendChatMessage("&4&lError: &cNot riding a compatible entity.");
+            sendChatMessage("&4&lError: &cNot riding a compatible entity.");
         }
     }
 

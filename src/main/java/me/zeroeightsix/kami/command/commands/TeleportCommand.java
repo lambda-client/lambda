@@ -10,6 +10,8 @@ import net.minecraft.util.math.Vec3d;
 import java.text.DecimalFormat;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * Robeart is cool and made potentia
@@ -18,8 +20,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 public class TeleportCommand extends Command {
 
-    Minecraft mc = Minecraft.getMinecraft();
-    DecimalFormat df = new DecimalFormat("#.###");
+    private DecimalFormat df = new DecimalFormat("#.###");
 
     public TeleportCommand() {
         super("teleport", new ChunkBuilder()
@@ -34,13 +35,13 @@ public class TeleportCommand extends Command {
     @Override
     public void call(String[] args) {
         if (args[0].equalsIgnoreCase("stop")) {
-            Command.sendChatMessage("Teleport Cancelled!");
+            sendChatMessage("Teleport Cancelled!");
             MODULE_MANAGER.getModule(Teleport.class).disable();
             return;
         }
 
         if (args.length >= 4 && args[3] != null) {
-            Teleport.blocksPerTeleport = Double.valueOf(args[3]);
+            Teleport.blocksPerTeleport = Double.parseDouble(args[3]);
         } else {
             Teleport.blocksPerTeleport = 10000.0d;
         }
@@ -52,9 +53,9 @@ public class TeleportCommand extends Command {
                 final double z = args[2].equals("~") ? mc.player.posZ : args[2].charAt(0) == '~' ? Double.parseDouble(args[2].substring(1)) + mc.player.posZ : Double.parseDouble(args[2]);
                 Teleport.finalPos = new Vec3d(x, y, z);
                 MODULE_MANAGER.getModule(Teleport.class).enable();
-                Command.sendChatMessage("\n&aTeleporting to \n&cX: &b" + df.format(x) + "&a, \n&cY: &b" + df.format(y) + "&a, \n&cZ: &b" + df.format(z) + "\n&aat &b" + df.format(Teleport.blocksPerTeleport) + "&c blocks per teleport.");
+                sendChatMessage("\n&aTeleporting to \n&cX: &b" + df.format(x) + "&a, \n&cY: &b" + df.format(y) + "&a, \n&cZ: &b" + df.format(z) + "\n&aat &b" + df.format(Teleport.blocksPerTeleport) + "&c blocks per teleport.");
             } catch (NullPointerException e) {
-                Command.sendErrorMessage("Null Pointer Exception Caught!");
+                sendErrorMessage("Null Pointer Exception Caught!");
             }
 
         }

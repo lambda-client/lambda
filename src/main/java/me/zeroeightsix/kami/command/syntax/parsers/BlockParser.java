@@ -34,31 +34,12 @@ public class BlockParser extends AbstractParser {
 
             if (possibilities.isEmpty()) return "";
 
-            TreeMap<String, Block> p = new TreeMap<String, Block>(possibilities);
+            TreeMap<String, Block> p = new TreeMap<>(possibilities);
 
             Map.Entry<String, Block> e = p.firstEntry();
             return e.getKey().substring(chunkValue.length());
         } catch (Exception e) {
             return "";
         }
-    }
-
-    public static Block getBlockFromName(String name) {
-        if (!blockNames.containsKey(name)) return null;
-        return blockNames.get(name);
-    }
-
-    public static Object getKeyFromValue(Map hm, Object value) {
-        for (Object o : hm.keySet()) {
-            if (hm.get(o).equals(value)) {
-                return o;
-            }
-        }
-        return null;
-    }
-
-    public static String getNameFromBlock(Block b) {
-        if (!blockNames.containsValue(b)) return null;
-        return (String) getKeyFromValue(blockNames, b);
     }
 }

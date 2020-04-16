@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.render;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -12,6 +11,8 @@ import net.minecraft.entity.passive.EntityTameable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * I see you also watch FitMC :eyes:
@@ -67,7 +68,7 @@ public class MobOwner extends Module {
             for (Map.Entry<String, String> entries : cachedUUIDs.entrySet()) {
                 if (entries.getKey().equalsIgnoreCase(invalidText)) {
                     cachedUUIDs.clear();
-                    if (debug.getValue()) Command.sendChatMessage(getChatName() + "Reset cached UUIDs list!");
+                    if (debug.getValue()) sendChatMessage(getChatName() + "Reset cached UUIDs list!");
                     return;
                 }
             }
@@ -82,7 +83,7 @@ public class MobOwner extends Module {
             startTime1 = System.currentTimeMillis();
             if (apiRequests >= 2) {
                 apiRequests = 0;
-                if (debug.getValue()) Command.sendChatMessage(getChatName() + "Reset API requests counter!");
+                if (debug.getValue()) sendChatMessage(getChatName() + "Reset API requests counter!");
             }
         }
     }

@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.combat;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
@@ -42,6 +41,7 @@ import static me.zeroeightsix.kami.module.modules.client.InfoOverlay.getItems;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourConverter.toF;
 import static me.zeroeightsix.kami.util.EntityUtil.calculateLookAt;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * Created by 086 on 28/12/2017.
@@ -129,8 +129,8 @@ public class CrystalAura extends Module {
             statusMessages.setValue(false);
 
             defaultSetting.setValue(false);
-            Command.sendChatMessage(getChatName() + " Set to defaults!");
-            Command.sendChatMessage(getChatName() + " Close and reopen the " + getName() + " settings menu to see changes");
+            sendChatMessage(getChatName() + "Set to defaults!");
+            closeSettings();
         }
 
         if (mc.player == null) {
@@ -589,7 +589,7 @@ public class CrystalAura extends Module {
 
     private void sendMessage(String message) {
         if (statusMessages.getValue()) {
-            Command.sendChatMessage(getChatName() + message);
+            sendChatMessage(getChatName() + message);
         }
     }
 }

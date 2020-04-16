@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.misc;
 
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -14,6 +13,9 @@ import net.minecraft.item.ItemNameTag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
+
 /**
  * @author S-B99
  * Created by S-B99 on this commit: 83387d6c2243c2a70dc864c9fbef96a77b9a9735
@@ -23,13 +25,13 @@ import net.minecraft.util.EnumHand;
 public class AutoNametag extends Module {
     private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.WITHER));
     private Setting<Float> range = register(Settings.floatBuilder("Range").withMinimum(2.0f).withValue(3.5f).withMaximum(10.0f).build());
-    private Setting<Boolean> autoSlot = register(Settings.b("Auto Slot", true));
     private Setting<Boolean> debug = register(Settings.b("Debug", false));
 
     private String currentName = "";
 
     public void onUpdate() {
         useNameTag();
+        findNameTags();
     }
 
     private void useNameTag() {
@@ -41,7 +43,7 @@ public class AutoNametag extends Module {
                         final EntityWither wither = (EntityWither) w;
                         if (mc.player.getDistance(wither) <= range.getValue()) {
                             if (debug.getValue())
-                                Command.sendChatMessage("Found unnamed Wither");
+                                sendChatMessage("Found unnamed Wither");
                             selectNameTags();
                             mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);
                         }
@@ -51,18 +53,17 @@ public class AutoNametag extends Module {
                     if (w instanceof EntityMob || w instanceof EntityAnimal && !w.getDisplayName().getUnformattedText().equals(currentName)) {
                         if (mc.player.getDistance(w) <= range.getValue()) {
                             if (debug.getValue())
-                                Command.sendChatMessage("Found unnamed " + w.getDisplayName().getUnformattedText());
+                                sendChatMessage("Found unnamed " + w.getDisplayName().getUnformattedText());
                             selectNameTags();
                             mc.playerController.interactWithEntity(mc.player, w, EnumHand.MAIN_HAND);
                         }
                     }
             }
         }
-        if (autoSlot.getValue()) mc.player.inventory.currentItem = originalSlot;
+        mc.player.inventory.currentItem = originalSlot;
     }
 
     private void selectNameTags() {
-        if (!autoSlot.getValue()) return;
         int tagSlot = -1;
         for (int i = 0; i < 9; i++) {
             ItemStack stack = mc.player.inventory.getStackInSlot(i);
@@ -75,12 +76,23 @@ public class AutoNametag extends Module {
         }
 
         if (tagSlot == -1) {
-            if (debug.getValue()) Command.sendErrorMessage(getChatName() + "Error: No nametags in hotbar");
+            if (debug.getValue()) sendErrorMessage(getChatName() + "Error: No nametags in hotbar");
             disable();
             return;
         }
 
         mc.player.inventory.currentItem = tagSlot;
+    }
+
+    private void findNameTags() {
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.player.inventory.getStackInSlot(i);
+            if (stack == ItemStack.EMPTY || stack.getItem() instanceof ItemBlock) continue;
+            Item tag = stack.getItem();
+            if (tag instanceof ItemNameTag) {
+                currentName = stack.getDisplayName();
+            }
+        }
     }
 
     private enum Mode { WITHER, ANY }

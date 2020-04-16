@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.movement;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -10,12 +9,13 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.network.play.client.CPacketPlayer;
 
-import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static net.minecraft.network.play.client.CPacketEntityAction.Action.START_SPRINTING;
 import static net.minecraft.network.play.client.CPacketEntityAction.Action.STOP_SPRINTING;
 
 /**
  * Created by 086 on 8/04/2018.
+ * Code tweaked by coderynx & OverFloyd.
+ * 
  * Movement taken from Seppuku
  * https://github.com/seppukudevelopment/seppuku/blob/005e2da/src/main/java/me/rigamortis/seppuku/impl/module/player/NoHungerModule.java
  */
@@ -25,16 +25,15 @@ public class AntiHunger extends Module {
 
     @EventHandler
     public Listener<PacketEvent.Send> packetListener = new Listener<>(event -> {
-        if (MODULE_MANAGER.getModule(ElytraFlight.class).isEnabled() && cancelMovementState.getValue()) {
-            Command.sendChatMessage(getChatName() + "ElytraFlight is not compatible with the 'Cancel Movement State' option, disabling");
-            disable();
-        }
-        if (event.getPacket() instanceof CPacketEntityAction) {
-            final CPacketEntityAction packet = (CPacketEntityAction) event.getPacket();
-            if (cancelMovementState.getValue() && (packet.getAction() == START_SPRINTING || packet.getAction() == STOP_SPRINTING)) {
+        if (mc.player == null || mc.player.isElytraFlying()) return;
+
+        if (cancelMovementState.getValue() && event.getPacket() instanceof CPacketEntityAction) {
+            CPacketEntityAction packet = (CPacketEntityAction) event.getPacket();
+            if (packet.getAction() == START_SPRINTING || packet.getAction() == STOP_SPRINTING) {
                 event.cancel();
             }
         }
+
         if (event.getPacket() instanceof CPacketPlayer) {
             ((CPacketPlayer) event.getPacket()).onGround = mc.player.fallDistance > 0 || mc.playerController.isHittingBlock;
         }

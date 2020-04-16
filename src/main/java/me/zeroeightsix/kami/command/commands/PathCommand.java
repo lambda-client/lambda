@@ -5,6 +5,8 @@ import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.module.modules.render.Pathfind;
 import net.minecraft.pathfinding.PathPoint;
 
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+
 /**
  * Created by 086 on 25/01/2018.
  */
@@ -25,15 +27,15 @@ public class PathCommand extends Command {
                 PathPoint end = new PathPoint(x, y, z);
                 Pathfind.createPath(end);
                 if (!Pathfind.points.isEmpty())
-                    Command.sendChatMessage("Path created!");
+                    sendChatMessage("Path created!");
                 return;
             } else {
-                Command.sendChatMessage("No location to retry pathfinding to.");
+                sendChatMessage("No location to retry pathfinding to.");
                 return;
             }
         }
         if (args.length <= 3) {
-            Command.sendChatMessage("&cMissing arguments: x, y, z");
+            sendChatMessage("&cMissing arguments: x, y, z");
             return;
         }
         try {
@@ -44,10 +46,9 @@ public class PathCommand extends Command {
             PathPoint end = new PathPoint(x, y, z);
             Pathfind.createPath(end);
             if (!Pathfind.points.isEmpty())
-                Command.sendChatMessage("Path created!");
+                sendChatMessage("Path created!");
         } catch (NumberFormatException e) {
-            Command.sendChatMessage("Error: input must be numerical");
-            return;
+            sendChatMessage("Error: input must be numerical");
         }
     }
 }
