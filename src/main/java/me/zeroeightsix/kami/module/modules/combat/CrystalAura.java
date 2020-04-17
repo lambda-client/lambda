@@ -456,10 +456,10 @@ public class CrystalAura extends Module {
             damage = damage * (1.0F - f / 25.0F);
 
             if (entity.isPotionActive(Objects.requireNonNull(Potion.getPotionById(11)))) {
-                damage = damage - (damage / 4);
+                damage = damage - (damage / 5);
             }
 
-            damage = Math.max(damage - ep.getAbsorptionAmount(), 0.0F);
+            damage = Math.max(damage, 0.0F);
             return damage;
         }
         damage = CombatRules.getDamageAfterAbsorb(damage, (float) entity.getTotalArmorValue(), (float) entity.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS).getAttributeValue());
