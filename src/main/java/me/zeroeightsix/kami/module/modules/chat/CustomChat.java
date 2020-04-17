@@ -16,7 +16,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
  * Created by 086 on 8/04/2018.
  * Updated by S-B99 on 12/03/20
  */
-@Module.Info(name = "CustomChat", category = Module.Category.CHAT, description = "Add a custom suffix to the end of your message!", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "CustomChat",
+        category = Module.Category.CHAT,
+        description = "Add a custom suffix to the end of your message!",
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class CustomChat extends Module {
     public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ON_TOP));
     private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));

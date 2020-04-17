@@ -18,7 +18,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.*;
  * @author S-B99
  * Created by S-B99 on 10/04/20
  */
-@Module.Info(name = "Spammer", description = "Spams text from a file on a set delay into the chat", category = Module.Category.CHAT)
+@Module.Info(
+        name = "Spammer",
+        description = "Spams text from a file on a set delay into the chat",
+        category = Module.Category.CHAT
+)
 public class Spammer extends Module {
     private Setting<Integer> timeoutTime = register(Settings.integerBuilder().withName("Timeout (s)").withMinimum(1).withMaximum(240).withValue(10).build());
 

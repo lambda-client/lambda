@@ -30,7 +30,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
  * Created by S-B99 on 26/03/20
  * Updated by S-B99 on 28/03/20
  */
-@Module.Info(name = "DiscordNotifs", category = Module.Category.CHAT, description = "Sends your chat to a set Discord channel", alwaysListening = true)
+@Module.Info(
+        name = "DiscordNotifs",
+        category = Module.Category.CHAT,
+        description = "Sends your chat to a set Discord channel",
+        alwaysListening = true
+)
 public class DiscordNotifs extends Module {
     private Setting<Boolean> timeout = register(Settings.b("Timeout", true));
     private Setting<Integer> timeoutTime = register(Settings.integerBuilder().withName("Seconds").withMinimum(0).withMaximum(120).withValue(10).withVisibility(v -> timeout.getValue()).build());

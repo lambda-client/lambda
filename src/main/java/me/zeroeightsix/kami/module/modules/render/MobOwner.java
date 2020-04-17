@@ -21,7 +21,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  *
  * UUID to username method and caching methods added by S-B99
  */
-@Module.Info(name = "MobOwner", description = "Displays the owner of tamed mobs", category = Module.Category.RENDER)
+@Module.Info(
+        name = "MobOwner",
+        description = "Displays the owner of tamed mobs",
+        category = Module.Category.RENDER
+)
 public class MobOwner extends Module {
 
     private Setting<Integer> requestTime = register(Settings.integerBuilder("Cache Reset").withMinimum(10).withValue(20).build());

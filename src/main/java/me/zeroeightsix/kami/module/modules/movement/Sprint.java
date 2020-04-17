@@ -8,7 +8,12 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
  * Created by 086 on 23/08/2017.
  * Updated by S-B99 on 06/03/20
  */
-@Module.Info(name = "Sprint", description = "Automatically makes the player sprint", category = Module.Category.MOVEMENT, showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "Sprint",
+        description = "Automatically makes the player sprint",
+        category = Module.Category.MOVEMENT,
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class Sprint extends Module {
 
     @Override

@@ -16,7 +16,10 @@ import net.minecraft.util.math.BlockPos;
  * 
  * Bowspam code from https://github.com/seppukudevelopment/seppuku/blob/5586365/src/main/java/me/rigamortis/seppuku/impl/module/combat/FastBowModule.java
  */
-@Module.Info(category = Module.Category.COMBAT, description = "Use items faster", name = "FastUse")
+@Module.Info(
+        category = Module.Category.COMBAT,
+        description = "Use items faster", name = "FastUse"
+)
 public class Fastuse extends Module {
 
     private Setting<Integer> delay = register(Settings.integerBuilder("Delay").withMinimum(0).withMaximum(20).withValue(0).build());

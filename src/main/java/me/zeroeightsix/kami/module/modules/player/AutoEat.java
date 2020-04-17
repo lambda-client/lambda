@@ -17,7 +17,11 @@ import net.minecraft.util.FoodStats;
  * Updated by S-B99 on 20/03/20
  * Updated by An-En on 24/03/20
  */
-@Module.Info(name = "AutoEat", description = "Automatically eat when hungry", category = Module.Category.PLAYER)
+@Module.Info(
+        name = "AutoEat",
+        description = "Automatically eat when hungry",
+        category = Module.Category.PLAYER
+)
 public class AutoEat extends Module {
     private Setting<Integer> foodLevel = register(Settings.integerBuilder("Below Hunger").withValue(15).withMinimum(1).withMaximum(20).build());
     private Setting<Integer> healthLevel = register(Settings.integerBuilder("Below Health").withValue(8).withMinimum(1).withMaximum(20).build());

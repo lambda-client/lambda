@@ -19,7 +19,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
  * Updated by polymer 10 March 2020
  * Updated by S-B99 on 12/04/20
  */
-@Module.Info(name = "AutoEZ", category = Module.Category.COMBAT, description = "Sends an insult in chat after killing someone")
+@Module.Info(
+        name = "AutoEZ",
+        category = Module.Category.COMBAT,
+        description = "Sends an insult in chat after killing someone"
+)
 public class AutoEZ extends Module {
 	public Setting<Mode> mode = register(Settings.e("Mode", Mode.ONTOP));
 	public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("unchanged").withConsumer((old, value) -> {}).build());

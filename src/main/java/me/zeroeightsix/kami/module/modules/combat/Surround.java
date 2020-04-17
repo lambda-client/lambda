@@ -32,7 +32,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * Updated by Polymer on 09/01/20
  * Updated by S-B99 on 28/01/20
  */
-@Module.Info(name = "Surround", category = Module.Category.COMBAT, description = "Surrounds you with obsidian to take less damage")
+@Module.Info(
+        name = "Surround",
+        category = Module.Category.COMBAT,
+        description = "Surrounds you with obsidian to take less damage"
+)
 public class Surround extends Module {
 
     public Setting<Boolean> autoDisable = register(Settings.b("Disable on place", true));

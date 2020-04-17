@@ -16,7 +16,12 @@ import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
  * @author S-B99
  * Updated by S-B99 on 12/03/20
  */
-@Module.Info(name = "FancyChat", category = Module.Category.CHAT, description = "Makes messages you send fancy", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "FancyChat",
+        category = Module.Category.CHAT,
+        description = "Makes messages you send fancy",
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class FancyChat extends Module {
     private Setting<Boolean> uwu = register(Settings.b("uwu", true));
     private Setting<Boolean> leet = register(Settings.b("1337", false));

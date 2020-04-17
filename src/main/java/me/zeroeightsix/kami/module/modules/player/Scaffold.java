@@ -27,7 +27,11 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
  * Updated by S-B99 on 02/03/20
  * @see me.zeroeightsix.kami.mixin.client.MixinEntity
  */
-@Module.Info(name = "Scaffold", category = Module.Category.PLAYER, description = "Places blocks under you")
+@Module.Info(
+        name = "Scaffold",
+        category = Module.Category.PLAYER,
+        description = "Places blocks under you"
+)
 public class Scaffold extends Module {
 
     private Setting<Boolean> placeBlocks = register(Settings.b("Place Blocks", true));

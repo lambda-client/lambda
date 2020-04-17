@@ -13,7 +13,11 @@ import net.minecraft.util.EnumHand;
  * Created by S-B99 on 05/04/20
  * Updated by S-B99 on 07/04/20
  */
-@Module.Info(name = "AutoRemount", description = "Automatically remounts your horse", category = Module.Category.MOVEMENT)
+@Module.Info(
+        name = "AutoRemount",
+        description = "Automatically remounts your horse",
+        category = Module.Category.MOVEMENT
+)
 public class AutoRemount extends Module {
     private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.HORSE));
     private Setting<Float> range = register(Settings.floatBuilder("Range").withMinimum(1.0f).withValue(1.5f).withMaximum(10.0f).build());

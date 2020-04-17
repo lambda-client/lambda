@@ -23,7 +23,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 /**
  * Created by 086 on 9/04/2018.
  */
-@Module.Info(name = "ChatEncryption", description = "Encrypts and decrypts chat messages (Delimiter %)", category = Module.Category.CHAT, showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "ChatEncryption",
+        description = "Encrypts and decrypts chat messages (Delimiter %)",
+        category = Module.Category.CHAT,
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class ChatEncryption extends Module {
 
     private Setting<EncryptionMode> mode = register(Settings.e("Mode", EncryptionMode.SHUFFLE));

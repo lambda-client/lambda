@@ -50,7 +50,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * Updated by qther on 27/03/20
  * Updated by S-B99 on 27/03/20
  */
-@Module.Info(name = "CrystalAura", category = Module.Category.COMBAT, description = "Places End Crystals to kill enemies")
+@Module.Info(
+        name = "CrystalAura",
+        category = Module.Category.COMBAT,
+        description = "Places End Crystals to kill enemies"
+)
 public class CrystalAura extends Module {
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
     private Setting<Page> p = register(Settings.enumBuilder(Page.class).withName("Page").withValue(Page.ONE).build());

@@ -16,7 +16,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
  * Updated 21 November 2019 by hub
  * Updated by S-B99 on 07/04/20
  */
-@Module.Info(name = "AutoMend", category = Module.Category.COMBAT, description = "Automatically mends armour")
+@Module.Info(
+        name = "AutoMend",
+        category = Module.Category.COMBAT,
+        description = "Automatically mends armour"
+)
 public class AutoMend extends Module {
 
     private Setting<Boolean> autoThrow = register(Settings.b("Auto Throw", true));

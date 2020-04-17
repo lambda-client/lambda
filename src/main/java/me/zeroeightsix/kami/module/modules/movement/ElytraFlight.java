@@ -23,7 +23,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
  * Updated by Itistheend on 28/12/19.
  * Updated by S-B99 on 15/04/20
  */
-@Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
+@Module.Info(
+        name = "ElytraFlight",
+        description = "Modifies elytras to fly at custom velocities and fall speeds",
+        category = Module.Category.MOVEMENT
+)
 public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));

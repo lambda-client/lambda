@@ -20,7 +20,11 @@ import static org.lwjgl.opengl.GL11.*;
  * Updated by d1gress/Qther on 27/11/2019.
  * Kurisu Makise is cute
  */
-@Module.Info(name = "ESP", category = Module.Category.RENDER, description = "Highlights entities")
+@Module.Info(
+        name = "ESP",
+        category = Module.Category.RENDER,
+        description = "Highlights entities"
+)
 public class ESP extends Module {
 
     private Setting<ESPMode> mode = register(Settings.e("Mode", ESPMode.RECTANGLE));

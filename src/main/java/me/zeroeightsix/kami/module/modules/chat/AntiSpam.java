@@ -28,7 +28,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * Updated 19 February 2020 by aUniqueUser
  * Updated by S-B99 on 13/03/20
  */
-@Module.Info(name = "AntiSpam", category = Module.Category.CHAT, description = "Removes spam and advertising from the chat", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "AntiSpam",
+        category = Module.Category.CHAT,
+        description = "Removes spam and advertising from the chat",
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class AntiSpam extends Module {
 
     private Setting<Page> p = register(Settings.e("Page", Page.ONE));

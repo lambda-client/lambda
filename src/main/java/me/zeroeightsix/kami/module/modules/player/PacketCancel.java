@@ -11,7 +11,11 @@ import net.minecraft.network.play.client.*;
 /**
  * @author S-B99
  */
-@Module.Info(name = "PacketCancel", description = "Cancels specific packets used for various actions", category = Module.Category.PLAYER)
+@Module.Info(
+        name = "PacketCancel",
+        description = "Cancels specific packets used for various actions",
+        category = Module.Category.PLAYER
+)
 public class PacketCancel extends Module {
     private Setting<Boolean> all = register(Settings.b("All", false));
     private Setting<Boolean> packetInput = register(Settings.booleanBuilder("CPacketInput").withValue(true).withVisibility(v -> !all.getValue()));

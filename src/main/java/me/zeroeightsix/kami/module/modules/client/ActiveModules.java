@@ -21,7 +21,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendDisableMessage;
  * Created by S-B99 on 20/03/20
  * Updated by S-B99 on 04/04/20
  */
-@Module.Info(name = "ActiveModules", category = Module.Category.CLIENT, description = "Configures ActiveModules colours and modes", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "ActiveModules",
+        category = Module.Category.CLIENT,
+        description = "Configures ActiveModules colours and modes",
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class ActiveModules extends Module {
     private Setting<Boolean> forgeHax = register(Settings.b("ForgeHax", false));
     public Setting<Mode> mode = register(Settings.e("Mode", Mode.RAINBOW));
