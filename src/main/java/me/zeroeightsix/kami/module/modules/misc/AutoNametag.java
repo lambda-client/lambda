@@ -41,20 +41,15 @@ public class AutoNametag extends Module {
         for (Entity w : mc.world.getLoadedEntityList()) {
             switch (modeSetting.getValue()) {
                 case WITHER:
-//                    sendChatMessage("a");
-                    if (w instanceof EntityMob) {
-//                        sendChatMessage("mob");
-                        final EntityWither wither = (EntityWither) w;
-//                        sendChatMessage("wither");
-                        if (mc.player.getDistance(wither) <= range.getValue()) {
-//                            sendChatMessage("a");
+                    if (w instanceof EntityWither && !w.getDisplayName().getUnformattedText().equals(currentName)) {
+                        if (mc.player.getDistance(w) <= range.getValue()) {
                             if (debug.getValue())
                                 sendChatMessage("Found unnamed " + w.getDisplayName().getUnformattedText());
                             selectNameTags();
-                            mc.playerController.interactWithEntity(mc.player, wither, EnumHand.MAIN_HAND);
+                            mc.playerController.interactWithEntity(mc.player, w, EnumHand.MAIN_HAND);
                         }
                     }
-                    return;
+                    break;
                 case ANY:
                     if ((w instanceof EntityMob || w instanceof EntityAnimal) && !w.getDisplayName().getUnformattedText().equals(currentName)) {
                         if (mc.player.getDistance(w) <= range.getValue()) {
@@ -64,6 +59,7 @@ public class AutoNametag extends Module {
                             mc.playerController.interactWithEntity(mc.player, w, EnumHand.MAIN_HAND);
                         }
                     }
+                    break;
             }
         }
         mc.player.inventory.currentItem = originalSlot;
