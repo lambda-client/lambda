@@ -9,7 +9,7 @@ import java.util.List;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
- * Created by S-B99 on 01/12/2019.
+ * Created by dominikaaaa on 01/12/2019.
  * Revamped by d1gress/Qther on 13 April 2020
  */
 
@@ -23,7 +23,7 @@ public class CreditsCommand extends Command {
     @Override
     public void call(String[] args) {
         List<Integer> exceptions = Arrays.asList(
-                17222512, // s-b99 / dominika
+                17222512, // dominikaaaa / dominika
                 27009727, // zeroeightysix
                 48992448, // blockparole
                 19880089, // EmotionalLove
@@ -46,7 +46,7 @@ public class CreditsCommand extends Command {
                 "\n&l&9Author:" +
                 "\n086 (zeroeightysix)" +
                 "\n&l&9Contributors:" +
-                "\nBella (S-B99)" +
+                "\nDominika (dominikaaaa)" +
                 "\nhub (blockparole)" +
                 "\nSasha (EmotionalLove)" +
                 "\nQther (d1gress / Vonr)" +
