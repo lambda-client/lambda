@@ -75,7 +75,7 @@ public class Search extends Module {
     private void calc() {
         a = new ArrayList<>();
         int[] pcoords = getCurrentCoord(false);
-        int renderdist = 32;
+        int renderdist = 64;
         BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, 0, pcoords[2] - renderdist);
         BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, 255, pcoords[2] + renderdist);
         Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
@@ -98,9 +98,11 @@ public class Search extends Module {
         espBlocks.clear();
         for (String s : v.split(",")) {
             String s2 = s.trim();
-            Block block = Block.getBlockFromName(s2);
-            if (block != null)
-                espBlocks.add(block);
+            if (s2.equals("minecraft:air")) {
+                Block block = Block.getBlockFromName(s2);
+                if (block != null)
+                    espBlocks.add(block);
+            }
         }
         hasMadeBlockArray = true;
     }
