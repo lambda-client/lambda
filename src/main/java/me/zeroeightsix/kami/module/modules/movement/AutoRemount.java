@@ -20,7 +20,7 @@ import net.minecraft.util.EnumHand;
 )
 public class AutoRemount extends Module {
     private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.HORSE));
-    private Setting<Float> range = register(Settings.floatBuilder("Range").withMinimum(1.0f).withValue(1.5f).withMaximum(10.0f).build());
+    private Setting<Float> range = register(Settings.floatBuilder("Range").withMinimum(1.0f).withValue(2.0f).withMaximum(10.0f).build());
 
     private enum Mode { HORSE, DONKEY }
 
@@ -35,6 +35,7 @@ public class AutoRemount extends Module {
                         }
                     }
                 }
+                break;
             case DONKEY:
                 for (Entity e : mc.world.getLoadedEntityList()) {
                     if (e instanceof EntityDonkey && !(mc.player.isRidingHorse())) {
@@ -44,6 +45,7 @@ public class AutoRemount extends Module {
                         }
                     }
                 }
+                break;
         }
 
     }
