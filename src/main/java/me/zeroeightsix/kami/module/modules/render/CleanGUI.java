@@ -5,8 +5,8 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
 /**
- * @author S-B99
- * Updated by S-B99 on 27/12/19
+ * @author dominikaaaa
+ * Updated by dominikaaaa on 27/12/19
  */
 @Module.Info(
         name = "CleanGUI",

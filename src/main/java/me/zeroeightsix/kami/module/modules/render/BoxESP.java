@@ -20,7 +20,7 @@ import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 
 /**
  * @author polymer
- * Updated by S-B99 on 30/03/20
+ * Updated by dominikaaaa on 30/03/20
  */
 @Module.Info(
         name = "BoxESP",

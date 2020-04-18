@@ -19,7 +19,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 /**
  * Created by 086 on 2/10/2018.
- * Updated by S-B99 on 06/04/20
+ * Updated by dominikaaaa on 06/04/20
  */
 @Module.Info(
         name = "AutoTool",

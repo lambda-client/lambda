@@ -9,7 +9,7 @@ import net.minecraft.network.play.client.CPacketAnimation;
 /**
  * Created 13 August 2019 by hub
  * Updated 14 November 2019 by hub
- * Updated by S-B99 on 14/12/19
+ * Updated by dominikaaaa on 14/12/19
  */
 
 @Module.Info(

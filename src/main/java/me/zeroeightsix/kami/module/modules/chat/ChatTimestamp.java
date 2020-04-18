@@ -15,8 +15,8 @@ import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
 /**
- * @author S-B99
- * Updated by S-B99 on 25/03/20
+ * @author dominikaaaa
+ * Updated by dominikaaaa on 25/03/20
  */
 @Module.Info(
         name = "ChatTimestamp",

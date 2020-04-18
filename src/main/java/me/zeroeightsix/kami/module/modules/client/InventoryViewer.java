@@ -17,9 +17,9 @@ import static me.zeroeightsix.kami.util.GuiFrameUtil.getFrameByName;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendDisableMessage;
 
 /**
- * Updated by S-B99 on 21/02/20
+ * Updated by dominikaaaa on 21/02/20
  * Slight updates by 20kdc, 19/02/20
- * Everything except somethingRender() methods was written by S-B99
+ * Everything except somethingRender() methods was written by dominikaaaa
  */
 @Module.Info(
         name = "InventoryViewer",

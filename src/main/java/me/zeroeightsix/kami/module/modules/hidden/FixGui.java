@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.module.Module;
 import static me.zeroeightsix.kami.util.GuiFrameUtil.fixFrames;
 
 /**
- * @author S-B99
+ * @author dominikaaaa
  * @see me.zeroeightsix.kami.command.commands.FixGuiCommand
  */
 @Module.Info(

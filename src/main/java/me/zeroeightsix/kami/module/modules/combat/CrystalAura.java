@@ -48,7 +48,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * Updated 3 December 2019 by hub
  * Updated 8 March 2020 by polymer
  * Updated by qther on 27/03/20
- * Updated by S-B99 on 27/03/20
+ * Updated by dominikaaaa on 27/03/20
  */
 @Module.Info(
         name = "CrystalAura",

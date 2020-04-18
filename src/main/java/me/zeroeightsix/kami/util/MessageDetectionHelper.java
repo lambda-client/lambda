@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
  * A helper to detect certain messages and return a boolean or message
  *
  * @see me.zeroeightsix.kami.module.modules.chat.DiscordNotifs
- * @author S-B99
+ * @author dominikaaaa
  */
 public class MessageDetectionHelper {
     public static String getMessageType(boolean direct, boolean directSent, String message, String server) {

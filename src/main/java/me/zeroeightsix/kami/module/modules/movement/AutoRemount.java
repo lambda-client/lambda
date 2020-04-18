@@ -9,9 +9,9 @@ import net.minecraft.entity.passive.EntityHorse;
 import net.minecraft.util.EnumHand;
 
 /**
- * @author S-B99
- * Created by S-B99 on 05/04/20
- * Updated by S-B99 on 07/04/20
+ * @author dominikaaaa
+ * Created by dominikaaaa on 05/04/20
+ * Updated by dominikaaaa on 07/04/20
  */
 @Module.Info(
         name = "AutoRemount",

@@ -7,8 +7,8 @@ import net.minecraft.client.gui.GuiChat;
 import org.lwjgl.input.Keyboard;
 
 /**
- * @author S-B99
- * Created by S-B99 on 06/04/20
+ * @author dominikaaaa
+ * Created by dominikaaaa on 06/04/20
  * @see me.zeroeightsix.kami.mixin.client.MixinMovementInputFromOptions
  */
 @Module.Info(

@@ -14,7 +14,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;
 
 /*
  * By Katatje 8 Dec 2019
- * Updated by S-B99 on 12/04/20
+ * Updated by dominikaaaa on 12/04/20
  */
 @Module.Info(
         name = "AutoTPA",

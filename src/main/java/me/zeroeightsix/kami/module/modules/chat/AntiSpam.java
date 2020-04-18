@@ -22,11 +22,11 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
  * @author hub
- * @author S-B99
+ * @author dominikaaaa
  * Created 19 November 2019 by hub
  * Updated 12 January 2020 by hub
  * Updated 19 February 2020 by aUniqueUser
- * Updated by S-B99 on 13/03/20
+ * Updated by dominikaaaa on 13/03/20
  */
 @Module.Info(
         name = "AntiSpam",

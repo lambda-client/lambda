@@ -23,7 +23,7 @@ import java.util.Map;
 
 /**
  * @author Crystallinqq
- * Updated by S-B99 on 20/12/19
+ * Updated by dominikaaaa on 20/12/19
  * Updated by 20kdc on 17/02/20 - changed implementation method, made a module again, made async
  * Updated by 20kdc on 21/02/20 - unbroke things, sorry!
  */

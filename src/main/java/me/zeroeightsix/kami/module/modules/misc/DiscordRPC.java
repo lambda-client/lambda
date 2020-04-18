@@ -10,8 +10,8 @@ import static me.zeroeightsix.kami.util.InfoCalculator.playerDimension;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
- * @author S-B99
- * Updated by S-B99 on 13/01/20
+ * @author dominikaaaa
+ * Updated by dominikaaaa on 13/01/20
  * Updated (slightly) by Dewy on 3rd April 2020
  */
 @Module.Info(

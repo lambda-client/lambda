@@ -15,7 +15,7 @@ import net.minecraft.util.math.Vec3d;
 
 /**
  * Created by 086 on 19/11/2017.
- * Updated by S-B99 on 05/03/20
+ * Updated by dominikaaaa on 05/03/20
  */
 @Module.Info(
         category = Module.Category.PLAYER,

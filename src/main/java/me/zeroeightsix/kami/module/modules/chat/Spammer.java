@@ -15,8 +15,8 @@ import java.util.Random;
 import static me.zeroeightsix.kami.util.MessageSendHelper.*;
 
 /**
- * @author S-B99
- * Created by S-B99 on 10/04/20
+ * @author dominikaaaa
+ * Created by dominikaaaa on 10/04/20
  */
 @Module.Info(
         name = "Spammer",

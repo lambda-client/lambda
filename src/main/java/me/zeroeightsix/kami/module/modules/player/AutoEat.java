@@ -14,7 +14,7 @@ import net.minecraft.util.FoodStats;
 /**
  * Created by 086 on 8/04/2018.
  * Updated by polymer on 09/03/20
- * Updated by S-B99 on 20/03/20
+ * Updated by dominikaaaa on 20/03/20
  * Updated by An-En on 24/03/20
  */
 @Module.Info(

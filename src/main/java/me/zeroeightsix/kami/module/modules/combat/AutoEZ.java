@@ -17,7 +17,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
  * @author polymer
  * @author cookiedragon234
  * Updated by polymer 10 March 2020
- * Updated by S-B99 on 12/04/20
+ * Updated by dominikaaaa on 12/04/20
  */
 @Module.Info(
         name = "AutoEZ",

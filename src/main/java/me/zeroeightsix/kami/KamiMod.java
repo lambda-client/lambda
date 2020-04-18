@@ -54,7 +54,7 @@ import static me.zeroeightsix.kami.DiscordPresence.setCustomIcons;
 
 /**
  * Created by 086 on 7/11/2017.
- * Updated by S-B99 on 25/03/19
+ * Updated by dominikaaaa on 25/03/19
  * Updated by Dewy on 09/04/2020
  */
 @Mod(

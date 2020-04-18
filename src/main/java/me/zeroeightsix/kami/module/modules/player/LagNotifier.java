@@ -13,7 +13,7 @@ import static me.zeroeightsix.kami.gui.kami.DisplayGuiScreen.getScale;
 import static me.zeroeightsix.kami.util.InfoCalculator.round;
 
 /**
- * @author S-B99
+ * @author dominikaaaa
  * Thanks Brady and cooker and leij for helping me not be completely retarded 
  */
 @Module.Info(

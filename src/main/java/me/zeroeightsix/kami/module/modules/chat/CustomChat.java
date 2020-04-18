@@ -14,7 +14,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * Created by 086 on 8/04/2018.
- * Updated by S-B99 on 12/03/20
+ * Updated by dominikaaaa on 12/03/20
  */
 @Module.Info(
         name = "CustomChat",

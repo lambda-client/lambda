@@ -14,7 +14,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * @author Diamarald
- * Updated by S-B99 on 03/03/20
+ * Updated by dominikaaaa on 03/03/20
  */
 @Module.Info(
         name = "AutoReply",

@@ -22,7 +22,7 @@ import static me.zeroeightsix.kami.module.modules.combat.CrystalAura.getPlayerPo
 
 /**
  * Created 16 November 2019 by hub
- * Updated by S-B99 on 15/12/19
+ * Updated by dominikaaaa on 15/12/19
  */
 @Module.Info(
         name = "HoleESP",

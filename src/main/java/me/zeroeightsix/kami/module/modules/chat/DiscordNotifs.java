@@ -26,9 +26,9 @@ import static me.zeroeightsix.kami.util.MessageDetectionHelper.*;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
- * @author S-B99
- * Created by S-B99 on 26/03/20
- * Updated by S-B99 on 28/03/20
+ * @author dominikaaaa
+ * Created by dominikaaaa on 26/03/20
+ * Updated by dominikaaaa on 28/03/20
  */
 @Module.Info(
         name = "DiscordNotifs",

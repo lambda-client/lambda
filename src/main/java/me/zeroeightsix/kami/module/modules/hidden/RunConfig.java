@@ -12,7 +12,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 /**
- * @author S-B99
+ * @author dominikaaaa
  * Horribly designed class for uh, running things only once.
  */
 @Module.Info(

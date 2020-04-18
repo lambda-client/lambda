@@ -8,7 +8,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
- * @author S-B99
+ * @author dominikaaaa
  */
 @Module.Info(
         name = "CommandConfig",

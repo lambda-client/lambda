@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.util.InfoCalculator;
 
 /**
  * @author TBM
- * Updated by S-B99 on 28/01/20
+ * Updated by dominikaaaa on 28/01/20
  */
 @Module.Info(
         name = "TimerSpeed",

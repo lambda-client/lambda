@@ -32,7 +32,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 /**
  * Created 26 November 2019 by hub
  * Updated 27 November 2019 by hub
- * Updated by S-B99 on 16/04/20
+ * Updated by dominikaaaa on 16/04/20
  */
 @Module.Info(
         name = "AutoSpawner",

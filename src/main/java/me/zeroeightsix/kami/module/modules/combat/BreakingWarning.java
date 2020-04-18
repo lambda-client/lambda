@@ -19,7 +19,7 @@ import static me.zeroeightsix.kami.gui.kami.DisplayGuiScreen.getScale;
 
 /**
  * @author Antonio32A
- * Updated by S-B99 on 31/03/20
+ * Updated by dominikaaaa on 31/03/20
  *
  * Antonio32A created the pastDistance method, used by ForgeHax here:
  * https://github.com/fr1kin/ForgeHax/blob/2011740/src/main/java/com/matt/forgehax/mods/CoordsFinder.java#L126

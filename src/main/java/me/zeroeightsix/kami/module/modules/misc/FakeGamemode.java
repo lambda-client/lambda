@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.world.GameType;
 
 /**
- * Created by @S-B99 on 20/11/19
+ * Created by @dominikaaaa on 20/11/19
  * Yes, this is 100% original code. Go away
  */
 @Module.Info(

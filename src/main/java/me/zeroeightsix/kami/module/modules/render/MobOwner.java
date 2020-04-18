@@ -19,7 +19,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * @author cookiedragon234
  * Taken from Backdoored 1.8.2 source
  *
- * UUID to username method and caching methods added by S-B99
+ * UUID to username method and caching methods added by dominikaaaa
  */
 @Module.Info(
         name = "MobOwner",
@@ -37,7 +37,7 @@ public class MobOwner extends Module {
     private String invalidText = "Offline or invalid UUID!";
 
     /**
-     * @author S-B99
+     * @author dominikaaaa
      */
     private String getUsername(String uuid) {
         for (Map.Entry<String, String> entries : cachedUUIDs.entrySet()) {

@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.network.play.client.*;
 
 /**
- * @author S-B99
+ * @author dominikaaaa
  */
 @Module.Info(
         name = "PacketCancel",

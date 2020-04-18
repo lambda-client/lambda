@@ -7,7 +7,7 @@ import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 
 /**
- * @author S-B99
+ * @author dominikaaaa
  * Thanks cookie uwu
  */
 @Module.Info(

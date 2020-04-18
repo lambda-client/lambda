@@ -24,7 +24,7 @@ import java.util.Set;
 
 /**
  * Created by 20kdc on 15/02/2020.
- * Updated by S-B99 on 17/02/20
+ * Updated by dominikaaaa on 17/02/20
  * Note for anybody using this in a development environment: THIS DOES NOT WORK. It will lag and the texture will break
  */
 @Module.Info(

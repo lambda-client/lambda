@@ -13,8 +13,8 @@ import java.util.Random;
 import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
 
 /**
- * @author S-B99
- * Updated by S-B99 on 12/03/20
+ * @author dominikaaaa
+ * Updated by dominikaaaa on 12/03/20
  */
 @Module.Info(
         name = "FancyChat",

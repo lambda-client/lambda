@@ -17,9 +17,9 @@ import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendDisableMessage;
 
 /**
- * @author S-B99
- * Created by S-B99 on 20/03/20
- * Updated by S-B99 on 04/04/20
+ * @author dominikaaaa
+ * Created by dominikaaaa on 20/03/20
+ * Updated by dominikaaaa on 04/04/20
  */
 @Module.Info(
         name = "ActiveModules",
