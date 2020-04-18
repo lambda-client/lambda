@@ -19,6 +19,7 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
 /**
  * @author hub
@@ -26,7 +27,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
  * Created 19 November 2019 by hub
  * Updated 12 January 2020 by hub
  * Updated 19 February 2020 by aUniqueUser
- * Updated by dominikaaaa on 13/03/20
+ * Updated by dominikaaaa on 18/04/20
  */
 @Module.Info(
         name = "AntiSpam",
@@ -89,7 +90,15 @@ public class AntiSpam extends Module {
                 .collect(Collectors.toList())
                 .forEach(entry -> messageHistory.remove(entry.getKey()));
 
-        if (isSpam(sPacketChat.getChatComponent().getUnformattedText())) event.cancel();
+        String message = sPacketChat.getChatComponent().getUnformattedText();
+
+        if (!isSpam(message)) {
+            if (MODULE_MANAGER.isModuleEnabled(ChatTimestamp.class)) {
+                message = MODULE_MANAGER.getModuleT(ChatTimestamp.class).getFormattedTime(message);
+            }
+            sendRawChatMessage(message);
+        }
+        event.cancel();
     });
 
     @Override
@@ -99,10 +108,6 @@ public class AntiSpam extends Module {
     public void onDisable() { messageHistory = null; }
 
     private boolean isSpam(String message) {
-        ChatTimestamp chatTimestamp = MODULE_MANAGER.getModuleT(ChatTimestamp.class);
-        if (chatTimestamp.isEnabled()) {
-            message = message.substring(chatTimestamp.returnFormatted().length() + 1);
-        }
         /* Quick bandaid fix for mc.player being null when the module is being registered, so don't register it with the map */
         final String[] OWN_MESSAGE = {
                 "^<" + mc.player.getName() + "> ",

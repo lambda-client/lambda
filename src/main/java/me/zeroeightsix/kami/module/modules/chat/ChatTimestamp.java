@@ -11,12 +11,13 @@ import me.zeroeightsix.kami.util.TimeUtil;
 import net.minecraft.network.play.server.SPacketChat;
 import net.minecraft.util.text.TextFormatting;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
 /**
  * @author dominikaaaa
- * Updated by dominikaaaa on 25/03/20
+ * Updated by dominikaaaa on 18/04/20
  */
 @Module.Info(
         name = "ChatTimestamp",
@@ -33,23 +34,17 @@ public class ChatTimestamp extends Module {
 
     @EventHandler
     public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
-        if (mc.player == null || isDisabled()) return;
+        if (mc.player == null || MODULE_MANAGER.isModuleEnabled(AntiSpam.class)) return;
 
         if (!(event.getPacket() instanceof SPacketChat)) return;
         SPacketChat sPacketChat = (SPacketChat) event.getPacket();
 
-        if (addTime(sPacketChat.getChatComponent().getFormattedText())) {
-            event.cancel();
-        }
+        sendRawChatMessage(getFormattedTime(sPacketChat.getChatComponent().getFormattedText()));
+        event.cancel();
     });
 
-    private boolean addTime(String message) {
-        sendRawChatMessage("<" + TimeUtil.getFinalTime(setToText(secondColour.getValue()), setToText(firstColour.getValue()), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET + "> " + message);
-        return true;
-    }
-
-    public String returnFormatted() {
-        return "<" + TimeUtil.getFinalTime(timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + "> ";
+    public String getFormattedTime(String message) {
+        return "<" + TimeUtil.getFinalTime(setToText(secondColour.getValue()), setToText(firstColour.getValue()), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET + "> " + message;
     }
 
     private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {
