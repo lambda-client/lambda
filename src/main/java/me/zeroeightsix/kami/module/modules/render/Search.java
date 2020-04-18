@@ -21,6 +21,7 @@ import java.util.Set;
 
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
 import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 @Module.Info(name = "Search", description = "Highlights blocks in the world", category = Module.Category.RENDER)
 public class Search extends Module {
@@ -49,44 +50,48 @@ public class Search extends Module {
         if (!hasMadeBlockArray) {
             refreshESPBlocksSet(espBlockNames.getValue());
         }
-        if (mc.player != null) {
-            timeout();
-        }
+        if (mc.player == null) return;
+        if (shouldRun()) new Thread(this::calc).start();
     }
 
     public void onEnable() {
         refreshESPBlocksSet(espBlockNames.getValue());
     }
 
-    private static long startTime = 0;
-    ArrayList<Search.Triplet<BlockPos, Integer, Integer>> a;
+    private long startTime = 0;
+    private ArrayList<Search.Triplet<BlockPos, Integer, Integer>> a;
     boolean doneList = false;
 
-    private void timeout() {
+    private boolean shouldRun() {
         if (startTime == 0)
             startTime = System.currentTimeMillis();
         if (startTime + 500 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
-            a = new ArrayList<>();
-            int[] pcoords = getCurrentCoord(false);
-            int renderdist = 32;
-            BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, 0, pcoords[2] - renderdist);
-            BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, 255, pcoords[2] + renderdist);
-            Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
-            for (BlockPos blockPos : blocks) {
-                int side = GeometryMasks.Quad.ALL;
-                Block block = mc.world.getBlockState(blockPos).getBlock();
-                for (Block b : espBlocks) {
-                    if (b == block) {
-                        int c = block.blockMapColor.colorValue;
-                        int[] cia = {c>>16,c>>8&255,c&255};
-                        int blockColor = toRGBA(cia[0], cia[1], cia[2], 100);
-                        a.add(new Search.Triplet<>(blockPos, blockColor, side));
-                    }
+            return true;
+        }
+        return false;
+    }
+
+    private void calc() {
+        a = new ArrayList<>();
+        int[] pcoords = getCurrentCoord(false);
+        int renderdist = 32;
+        BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, 0, pcoords[2] - renderdist);
+        BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, 255, pcoords[2] + renderdist);
+        Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
+        for (BlockPos blockPos : blocks) {
+            int side = GeometryMasks.Quad.ALL;
+            Block block = mc.world.getBlockState(blockPos).getBlock();
+            for (Block b : espBlocks) {
+                if (b == block) {
+                    int c = block.blockMapColor.colorValue;
+                    int[] cia = {c>>16,c>>8&255,c&255};
+                    int blockColor = toRGBA(cia[0], cia[1], cia[2], 100);
+                    a.add(new Search.Triplet<>(blockPos, blockColor, side));
                 }
             }
-            doneList = true;
         }
+        doneList = true;
     }
 
     private void refreshESPBlocksSet(String v) {
