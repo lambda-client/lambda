@@ -17,7 +17,7 @@ public class KamiGuiAntiDisconnect extends GuiScreen {
         super.initGui();
 
         this.buttonList.add(new GuiButton(0, this.width / 2 - 100, 200, "Back to Game"));
-        this.buttonList.add(new GuiButton(1, this.width / 2 - 100, 230, String.format(KamiMod.colour + "4Press me %s time(s) to disconnect.", disconnectCount)));
+        this.buttonList.add(new GuiButton(1, this.width / 2 - 100, 230, String.format(KamiMod.colour + "cPress me %s time(s) to disconnect.", disconnectCount)));
     }
 
     @Override
