@@ -40,7 +40,7 @@ public class AntiHunger extends Module {
 
         if (event.getPacket() instanceof CPacketPlayer) {
             // Trick the game to think that tha player is flying even if he is on ground. Also check if the player is flying with the Elytra.
-            ((CPacketPlayer) event.getPacket()).onGround = (mc.player.fallDistance > 0 || mc.playerController.isHittingBlock) && mc.player.isElytraFlying();
+            ((CPacketPlayer) event.getPacket()).onGround = (mc.player.fallDistance <= 0 || mc.playerController.isHittingBlock) && mc.player.isElytraFlying();
         }
     });
 
