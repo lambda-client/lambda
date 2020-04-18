@@ -32,6 +32,10 @@ public class KamiGuiAntiDisconnect extends GuiScreen {
                 if (disconnectCount > 1) {
                     disconnectCount--;
 
+                    buttonList.remove(1);
+                    buttonList.add(new GuiButton(1, this.width / 2 - 100, 230, String.format(KamiMod.colour + "cPress me %s time(s) to disconnect.", disconnectCount)));
+
+
                     break;
                 }
 
