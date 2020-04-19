@@ -44,7 +44,7 @@ public class AimBot extends Module {
         }
 
         if (useBow.getValue()) {
-            int bowSlot = -1;
+            int bowSlot = 0;
 
             for (int i = 0; i < 9; i++) {
                 ItemStack potentialBow = mc.player.inventory.getStackInSlot(i);
