@@ -27,7 +27,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
  * Created 19 November 2019 by hub
  * Updated 12 January 2020 by hub
  * Updated 19 February 2020 by aUniqueUser
- * Updated by dominikaaaa on 18/04/20
+ * Updated by dominikaaaa on 19/04/20
  */
 @Module.Info(
         name = "AntiSpam",
@@ -45,7 +45,6 @@ public class AntiSpam extends Module {
     private Setting<Boolean> insulters = register(Settings.booleanBuilder("Insulters").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> greeters = register(Settings.booleanBuilder("Greeters").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> ips = register(Settings.booleanBuilder("Server Ips").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
-    private Setting<Boolean> wordsLongerThen = register(Settings.booleanBuilder("11+ long words").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> specialCharEnding = register(Settings.booleanBuilder("Special Ending").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> specialCharBegin = register(Settings.booleanBuilder("Special Begin").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> iJustThanksTo = register(Settings.booleanBuilder("I just...thanks to").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
@@ -57,9 +56,6 @@ public class AntiSpam extends Module {
     private Setting<Boolean> greenText = register(Settings.booleanBuilder("Green Text").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> numberSuffix = register(Settings.booleanBuilder("Number Ending").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> numberPrefix = register(Settings.booleanBuilder("Number Begin").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> tradeChat = register(Settings.booleanBuilder("Trade Chat").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> hypixelShills = register(Settings.booleanBuilder("Hypixel Shills").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> ipsAgr = register(Settings.booleanBuilder("Ips Aggressive").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> duplicates = register(Settings.booleanBuilder("Duplicates").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Integer> duplicatesTimeout = register(Settings.integerBuilder("Duplicates Timeout").withMinimum(1).withValue(30).withMaximum(600).withVisibility(v -> duplicates.getValue() && p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> webLinks = register(Settings.booleanBuilder("Web Links").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
@@ -129,7 +125,7 @@ public class AntiSpam extends Module {
     private boolean detectSpam(String message) {
 
         for (Map.Entry<Setting<Boolean>, String[]> entry : settingMap.entrySet()) {
-            if (entry.getKey().getValue() && findPatterns(entry.getValue(), message, true)) {
+            if (entry.getKey().getValue() && findPatterns(entry.getValue(), message)) {
                 sendResult(entry.getKey().getName(), message);
                 return true;
             }
@@ -158,10 +154,8 @@ public class AntiSpam extends Module {
         return Pattern.compile(ownFilter, Pattern.CASE_INSENSITIVE).matcher(message).find();
     }
 
-    private boolean findPatterns(String[] patterns, String string, boolean removeUsername) {
-        if (removeUsername) {
-            string = string.replaceAll("<[^>]*> ", ""); // remove username first
-        }
+    private boolean findPatterns(String[] patterns, String string) {
+        string = string.replaceAll("<[^>]*> ", ""); // remove username first
         for (String pattern : patterns) {
             if (Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).matcher(string).find()) {
                 return true;
@@ -171,7 +165,6 @@ public class AntiSpam extends Module {
     }
 
     private Map<Setting<Boolean>, String[]> settingMap = new HashMap<Setting<Boolean>, String[]>() {{
-        put(wordsLongerThen, FilterPatterns.LONG_WORD);
         put(greenText, FilterPatterns.GREEN_TEXT);
         put(specialCharBegin, FilterPatterns.SPECIAL_BEGINNING);
         put(specialCharEnding, FilterPatterns.SPECIAL_ENDING);
@@ -183,13 +176,10 @@ public class AntiSpam extends Module {
         put(discordLinks, FilterPatterns.DISCORD);
         put(webLinks, FilterPatterns.WEB_LINK);
         put(ips, FilterPatterns.IP_ADDR);
-        put(ipsAgr, FilterPatterns.IP_ADDR_AGR);
         put(announcers, FilterPatterns.ANNOUNCER);
         put(spammers, FilterPatterns.SPAMMER);
         put(insulters, FilterPatterns.INSULTER);
         put(greeters, FilterPatterns.GREETER);
-        put(hypixelShills, FilterPatterns.HYPIXEL_SHILLS);
-        put(tradeChat, FilterPatterns.TRADE_CHAT);
     }};
 
     private static class FilterPatterns {
@@ -316,13 +306,6 @@ public class AntiSpam extends Module {
                 ".+ left the game",
         };
 
-        private static final String[] HYPIXEL_SHILLS = {
-                "/p join",
-                "/party join",
-                "road to",
-                "private games"
-        };
-
         private static final String[] DISCORD = {
                 "discord.gg",
                 "discordapp.com",
@@ -342,11 +325,6 @@ public class AntiSpam extends Module {
                 "^>.+$",
         };
 
-        private static final String[] TRADE_CHAT = {
-                "buy",
-                "sell",
-        };
-
         private static final String[] WEB_LINK = {
                 "http:\\/\\/",
                 "https:\\/\\/",
@@ -358,15 +336,6 @@ public class AntiSpam extends Module {
                 "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}",
                 "^(?:http(?:s)?:\\/\\/)?(?:[^\\.]+\\.)?.*\\..*\\..*$",
                 ".*\\..*\\:\\d{1,5}$",
-        };
-
-        private static final String[] IP_ADDR_AGR = {
-                ".*\\..*$",
-        };
-
-        private static final String[] LONG_WORD = {
-//                "\\b\\w{" + getCharacters() + ",256}\\b",
-                "\\b\\w{11,256}\\b",
         };
 
         private static final String[] OWNS_ME_AND_ALL = {
@@ -386,11 +355,6 @@ public class AntiSpam extends Module {
                 "[/@#^()\\[\\]{}<>|\\-+=\\\\]",
         };
     }
-
-//    private static Integer getCharacters() {
-//        AntiSpam antiSpam = ((AntiSpam) ModuleManager.getModuleByName("AntiSpam"));
-//        return antiSpam.characters.getValue();
-//    }
 
     private void sendResult(String name, String message) {
         if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + name + ": " + message);
