@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.misc;
+package me.zeroeightsix.kami.module.modules.player;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -12,7 +12,7 @@ import me.zeroeightsix.kami.setting.Settings;
 @Module.Info(
           name = "HungerOverlay",
           description = "Displays a helpful overlay over your hunger bar.",
-          category = Module.Category.MISC
+          category = Module.Category.PLAYER
 )
 public class HungerOverlay extends Module {
     public Setting<Boolean> saturationOverlay = register(Settings.booleanBuilder("Saturation Overlay").withValue(true));
