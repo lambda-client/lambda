@@ -23,7 +23,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
         showOnArray = Module.ShowOnArray.OFF
 )
 public class CustomChat extends Module {
-    public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.ON_TOP));
+    public Setting<TextMode> textMode = register(Settings.e("Message", TextMode.JAPANESE));
     private Setting<DecoMode> decoMode = register(Settings.e("Separator", DecoMode.NONE));
     private Setting<Boolean> commands = register(Settings.b("Commands", false));
     public Setting<String> customText = register(Settings.stringBuilder("Custom Text").withValue("unchanged").withConsumer((old, value) -> {}).build());

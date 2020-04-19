@@ -27,7 +27,8 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 @Module.Info(
         name = "ChatFilter",
         description = "Filters custom words or phrases from the chat",
-        category = Module.Category.CHAT
+        category = Module.Category.CHAT,
+        showOnArray = Module.ShowOnArray.OFF
 )
 public class ChatFilter extends Module {
     private Setting<Boolean> filterOwn = register(Settings.b("Filter Own", false));

@@ -34,6 +34,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
         name = "DiscordNotifs",
         category = Module.Category.CHAT,
         description = "Sends your chat to a set Discord channel",
+        showOnArray = Module.ShowOnArray.OFF,
         alwaysListening = true
 )
 public class DiscordNotifs extends Module {

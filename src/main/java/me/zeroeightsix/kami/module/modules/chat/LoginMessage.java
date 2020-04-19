@@ -14,9 +14,10 @@ import java.io.FileReader;
 import java.io.IOException;
 
 @Module.Info(
-          name = "LoginMessage",
-          description = "Sends a given message to public chat on login.",
-          category = Module.Category.CHAT
+        name = "LoginMessage",
+        description = "Sends a given message to public chat on login.",
+        category = Module.Category.CHAT,
+        showOnArray = Module.ShowOnArray.OFF
 )
 public class LoginMessage extends Module {
     private String loginMessage;
