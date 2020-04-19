@@ -29,7 +29,6 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
     private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
     private Setting<Boolean> hasRunTooltips = register(Settings.b("Tooltips", false));
-    private Setting<Boolean> hasRunHungerOverlay = register(Settings.b("HungerOverlay", false));
 
     public void onEnable() {
         MODULE_MANAGER.getModule(ActiveModules.class).enable();
@@ -61,11 +60,6 @@ public class RunConfig extends Module {
             MODULE_MANAGER.getModule(Tooltips.class).enable();
             hasRunTooltips.setValue(true);
         }
-        if (!hasRunHungerOverlay.getValue()) {
-            MODULE_MANAGER.getModule(HungerOverlay.class).enable();
-            hasRunHungerOverlay.setValue(true);
-        }
-
         disable();
     }
 }
