@@ -19,7 +19,6 @@ public class MixinLoaderForge implements IFMLLoadingPlugin {
         log.info("KAMI mixins initialized");
         MixinBootstrap.init();
         Mixins.addConfiguration("mixins.kami.json");
-        Mixins.addConfiguration("mixins.baritone.json");
         MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
         log.info(MixinEnvironment.getDefaultEnvironment().getObfuscationContext());
     }
