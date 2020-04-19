@@ -204,4 +204,8 @@ public class ForgeEventProcessor {
         KamiMod.EVENT_BUS.post(event);
     }
 
+    @SubscribeEvent
+    public void onClientChat(ClientChatReceivedEvent event) {
+        KamiMod.EVENT_BUS.post(event);
+    }
 }

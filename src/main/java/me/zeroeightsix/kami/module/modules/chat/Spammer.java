@@ -35,6 +35,7 @@ public class Spammer extends Module {
             sendChatMessage(getChatName() + "Trying to find '&7spammer.txt&f'");
             bufferedReader = new BufferedReader(new FileReader("spammer.txt"));
             String line;
+            tempLines.clear();
             while ((line = bufferedReader.readLine()) != null) {
                 tempLines.add(line);
             }

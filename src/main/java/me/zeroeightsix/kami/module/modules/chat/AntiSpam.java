@@ -3,11 +3,11 @@ package me.zeroeightsix.kami.module.modules.chat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.event.events.PacketEvent;
+import me.zeroeightsix.kami.event.events.ChatReceivedEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import net.minecraft.network.play.server.SPacketChat;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
@@ -68,16 +67,8 @@ public class AntiSpam extends Module {
     private enum ShowBlocked { NONE, LOG_FILE, CHAT }
 
     @EventHandler
-    public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
-        if (mc.player == null || isDisabled()) return;
-        if (!(event.getPacket() instanceof SPacketChat)) return;
-
-        SPacketChat sPacketChat = (SPacketChat) event.getPacket();
-
-        // servers i test on did not send ChatType.CHAT for chat messages >:(
-        /*if (!sPacketChat.getType().equals(ChatType.CHAT)) {
-            return;
-        }*/
+    public Listener<ClientChatReceivedEvent> listener = new Listener<>(event -> {
+        if (mc.player == null) return;
 
         /* leijurv's sexy lambda to remove older entries in messageHistory */
         messageHistory.entrySet()
@@ -86,15 +77,9 @@ public class AntiSpam extends Module {
                 .collect(Collectors.toList())
                 .forEach(entry -> messageHistory.remove(entry.getKey()));
 
-        String message = sPacketChat.getChatComponent().getUnformattedText();
-
-        if (!isSpam(message)) {
-            if (MODULE_MANAGER.isModuleEnabled(ChatTimestamp.class)) {
-                message = MODULE_MANAGER.getModuleT(ChatTimestamp.class).getFormattedTime(message);
-            }
-            sendRawChatMessage(message);
+        if (isSpam(event.getMessage().getUnformattedText())) {
+            event.setCanceled(true);
         }
-        event.cancel();
     });
 
     @Override
