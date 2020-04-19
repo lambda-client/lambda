@@ -16,6 +16,7 @@ import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiShulkerBox;
 import net.minecraft.entity.passive.AbstractHorse;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.*;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -43,6 +44,12 @@ public class ForgeEventProcessor {
 
     private int displayWidth;
     private int displayHeight;
+
+    private float flashAlpha = 0f;
+    private byte alphaDir = 1;
+    protected int foodIconsOffset;
+
+    public static final ResourceLocation modIcons = new ResourceLocation(KamiMod.MODID, "textures/hungeroverlay.png");
 
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent event) {
@@ -72,6 +79,20 @@ public class ForgeEventProcessor {
 
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+
+        flashAlpha += alphaDir * 0.125F;
+
+        if (flashAlpha >= 1.5F) {
+            flashAlpha = 1F;
+            alphaDir = -1;
+        } else if (flashAlpha <= -0.5F) {
+            flashAlpha = 0F;
+            alphaDir = 1;
+        }
+
         if (Wrapper.getPlayer() == null) return;
         MODULE_MANAGER.onUpdate();
         KamiMod.getInstance().getGuiManager().callTick(KamiMod.getInstance().getGuiManager());
