@@ -50,6 +50,38 @@ public class RenderHelper {
         drawArc(x, y, radius, start, end, segments);
     }
 
+    public static void verticalLine(int x, int y, int height) {
+        glBegin(GL_LINE_LOOP);
+        {
+            glVertex2d(0, 0);
+            glVertex2d(0, height);
+        }
+    }
+
+    public static void horizontalLine(int x, int y, int width) {
+        glBegin(GL_LINE_LOOP);
+        {
+            glVertex2d(width, 0);
+            glVertex2d(0, 0);
+        }
+    }
+
+    public static void drawLine(int x, int y, int height, int width, float r, float g, float b, float lineWidth, boolean vertical) {
+        glPushMatrix();
+        glTranslatef(x, y, 0.0F);
+        GL11.glColor3f(r, g, b);
+        GL11.glLineWidth(lineWidth);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        if (vertical) {
+            horizontalLine(x, y, width);
+        } else {
+            verticalLine(x, y, height);
+        }
+        glEnd();
+        glPopMatrix();
+    }
+
     public static void drawOutlinedRoundedRectangle(int x, int y, int width, int height, float radius, float dR, float dG, float dB, float dA, float outlineWidth) {
         drawRoundedRectangle(x, y, width, height, radius);
         glColor4f(dR, dG, dB, dA);
