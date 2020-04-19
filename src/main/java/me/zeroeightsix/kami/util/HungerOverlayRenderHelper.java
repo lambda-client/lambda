@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.init.MobEffects;
 
-public class HungerOverlayHelper {
+public class HungerOverlayRenderHelper {
 
     public static void drawSaturationOverlay(float saturationGained, float saturationLevel, Minecraft mc, int left, int top, float alpha) {
         if (saturationLevel + saturationGained < 0) {
@@ -17,7 +17,7 @@ public class HungerOverlayHelper {
         int endBar = (int) Math.ceil(Math.min(20, saturationLevel + saturationGained) / 2f);
         int barsNeeded = endBar - startBar;
 
-        mc.getTextureManager().bindTexture(ForgeEventProcessor.modIcons);
+        mc.getTextureManager().bindTexture(ForgeEventProcessor.icons);
 
         RenderHelper.enableAlpha(alpha);
 
@@ -80,7 +80,7 @@ public class HungerOverlayHelper {
     }
 
     public static void drawExhaustionOverlay(float exhaustion, Minecraft mc, int left, int top, float alpha) {
-        mc.getTextureManager().bindTexture(ForgeEventProcessor.modIcons);
+        mc.getTextureManager().bindTexture(ForgeEventProcessor.icons);
 
         float maxExhaustion = HungerOverlayUtils.getMaxExhaustion(mc.player);
         float ratio = exhaustion / maxExhaustion;
