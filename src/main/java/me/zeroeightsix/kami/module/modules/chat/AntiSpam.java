@@ -113,9 +113,7 @@ public class AntiSpam extends Module {
 
     private boolean isSpam(String message) {
         /* Quick bandaid fix for mc.player being null when the module is being registered, so don't register it with the map */
-        final String[] OWN_MESSAGE = {
-                "^<" + mc.player.getName() + "> ",
-        };
+        final String OWN_MESSAGE = "^<" + mc.player.getName() + "> ";
         if ((!filterOwn.getValue() && isOwn(OWN_MESSAGE, message)) || isDirect(filterDMs.getValue(), message) || isDirectOther(filterDMs.getValue(), message)) {
             return false;
         } else {
@@ -156,8 +154,8 @@ public class AntiSpam extends Module {
         return false;
     }
 
-    private boolean isOwn(String[] ownFilter, String message) {
-        return Pattern.compile(ownFilter[0], Pattern.CASE_INSENSITIVE).matcher(message).find();
+    private boolean isOwn(String ownFilter, String message) {
+        return Pattern.compile(ownFilter, Pattern.CASE_INSENSITIVE).matcher(message).find();
     }
 
     private boolean findPatterns(String[] patterns, String string, boolean removeUsername) {
