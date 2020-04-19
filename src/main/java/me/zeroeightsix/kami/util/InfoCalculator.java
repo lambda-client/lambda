@@ -80,21 +80,6 @@ public class InfoCalculator {
     }
     // }
 
-    // Round {
-    public static double round(double value, int places) {
-        double scale = Math.pow(10, places);
-        return Math.round(value * scale) / scale;
-    }
-    // }
-
-    // Is Even {
-    public static boolean isNumberEven(int i) { return (i & 1) == 0; }
-    // }
-
-    // Reverse Number {
-    public static int reverseNumber(int num, int min, int max) { return (max + min) - num; }
-    // }
-
     // Cardinal to Axis {
     public static String cardinalToAxis(char cardinal) {
         switch (cardinal) {

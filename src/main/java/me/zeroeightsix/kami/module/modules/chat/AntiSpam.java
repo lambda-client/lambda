@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.chat;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.event.events.ChatReceivedEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
 /**
  * @author hub

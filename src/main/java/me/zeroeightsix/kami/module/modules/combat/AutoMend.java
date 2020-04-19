@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraft.init.Items;
 
-import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
+import static me.zeroeightsix.kami.util.MathsUtils.reverseNumber;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**

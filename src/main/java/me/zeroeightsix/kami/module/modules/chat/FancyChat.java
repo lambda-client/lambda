@@ -10,7 +10,7 @@ import net.minecraft.network.play.client.CPacketChatMessage;
 
 import java.util.Random;
 
-import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
+import static me.zeroeightsix.kami.util.MathsUtils.isNumberEven;
 
 /**
  * @author dominikaaaa

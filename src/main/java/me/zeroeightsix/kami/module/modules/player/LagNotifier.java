@@ -10,7 +10,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Wrapper;
 
 import static me.zeroeightsix.kami.gui.kami.DisplayGuiScreen.getScale;
-import static me.zeroeightsix.kami.util.InfoCalculator.round;
+import static me.zeroeightsix.kami.util.MathsUtils.round;
 
 /**
  * @author dominikaaaa

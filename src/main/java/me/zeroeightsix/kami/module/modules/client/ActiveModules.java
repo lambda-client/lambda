@@ -12,8 +12,8 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourTextFormatting.colourEnumMap;
 import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
-import static me.zeroeightsix.kami.util.InfoCalculator.isNumberEven;
-import static me.zeroeightsix.kami.util.InfoCalculator.reverseNumber;
+import static me.zeroeightsix.kami.util.MathsUtils.isNumberEven;
+import static me.zeroeightsix.kami.util.MathsUtils.reverseNumber;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendDisableMessage;
 
 /**
