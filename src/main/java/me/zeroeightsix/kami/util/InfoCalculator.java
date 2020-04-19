@@ -7,13 +7,13 @@ import net.minecraft.util.math.MathHelper;
 import java.text.DecimalFormat;
 
 /**
- * @author S-B99
- * Created by S-B99 on 18/01/20
- * Updated by S-B99 on 06/02/20
+ * @author dominikaaaa
+ * Created by dominikaaaa on 18/01/20
+ * Updated by dominikaaaa on 06/02/20
  *
  * Speed:
- * @author S-B99
- * Created by S-B99 on 18/01/20
+ * @author dominikaaaa
+ * Created by dominikaaaa on 18/01/20
  * Credit to Seppuku for the following calculation I made more efficient and got inspiration from
  * final String bps = "BPS: " + df.format((MathHelper.sqrt(deltaX * deltaX + deltaZ * deltaZ) / tickRate));
  *

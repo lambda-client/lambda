@@ -11,14 +11,20 @@ import me.zeroeightsix.kami.util.TimeUtil;
 import net.minecraft.network.play.server.SPacketChat;
 import net.minecraft.util.text.TextFormatting;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
 /**
- * @author S-B99
- * Updated by S-B99 on 25/03/20
+ * @author dominikaaaa
+ * Updated by dominikaaaa on 18/04/20
  */
-@Module.Info(name = "ChatTimestamp", category = Module.Category.CHAT, description = "Shows the time a message was sent beside the message", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "ChatTimestamp",
+        category = Module.Category.CHAT,
+        description = "Shows the time a message was sent beside the message",
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class ChatTimestamp extends Module {
     private Setting<ColourTextFormatting.ColourCode> firstColour = register(Settings.e("First Colour", ColourTextFormatting.ColourCode.GRAY));
     private Setting<ColourTextFormatting.ColourCode> secondColour = register(Settings.e("Second Colour", ColourTextFormatting.ColourCode.WHITE));
@@ -28,23 +34,17 @@ public class ChatTimestamp extends Module {
 
     @EventHandler
     public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
-        if (mc.player == null || isDisabled()) return;
+        if (mc.player == null || MODULE_MANAGER.isModuleEnabled(AntiSpam.class)) return;
 
         if (!(event.getPacket() instanceof SPacketChat)) return;
         SPacketChat sPacketChat = (SPacketChat) event.getPacket();
 
-        if (addTime(sPacketChat.getChatComponent().getFormattedText())) {
-            event.cancel();
-        }
+        sendRawChatMessage(getFormattedTime(sPacketChat.getChatComponent().getFormattedText()));
+        event.cancel();
     });
 
-    private boolean addTime(String message) {
-        sendRawChatMessage("<" + TimeUtil.getFinalTime(setToText(secondColour.getValue()), setToText(firstColour.getValue()), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET + "> " + message);
-        return true;
-    }
-
-    public String returnFormatted() {
-        return "<" + TimeUtil.getFinalTime(timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + "> ";
+    public String getFormattedTime(String message) {
+        return "<" + TimeUtil.getFinalTime(setToText(secondColour.getValue()), setToText(firstColour.getValue()), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()) + TextFormatting.RESET + "> " + message;
     }
 
     private TextFormatting setToText(ColourTextFormatting.ColourCode colourCode) {

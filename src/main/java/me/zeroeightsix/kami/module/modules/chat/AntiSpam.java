@@ -19,16 +19,22 @@ import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirectOther;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
 /**
  * @author hub
- * @author S-B99
+ * @author dominikaaaa
  * Created 19 November 2019 by hub
  * Updated 12 January 2020 by hub
  * Updated 19 February 2020 by aUniqueUser
- * Updated by S-B99 on 13/03/20
+ * Updated by dominikaaaa on 18/04/20
  */
-@Module.Info(name = "AntiSpam", category = Module.Category.CHAT, description = "Removes spam and advertising from the chat", showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "AntiSpam",
+        category = Module.Category.CHAT,
+        description = "Removes spam and advertising from the chat",
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class AntiSpam extends Module {
 
     private Setting<Page> p = register(Settings.e("Page", Page.ONE));
@@ -84,26 +90,31 @@ public class AntiSpam extends Module {
                 .collect(Collectors.toList())
                 .forEach(entry -> messageHistory.remove(entry.getKey()));
 
-        if (isSpam(sPacketChat.getChatComponent().getUnformattedText())) event.cancel();
+        String message = sPacketChat.getChatComponent().getUnformattedText();
+
+        if (!isSpam(message)) {
+            if (MODULE_MANAGER.isModuleEnabled(ChatTimestamp.class)) {
+                message = MODULE_MANAGER.getModuleT(ChatTimestamp.class).getFormattedTime(message);
+            }
+            sendRawChatMessage(message);
+        }
+        event.cancel();
     });
 
     @Override
-    public void onEnable() { messageHistory = new ConcurrentHashMap<>(); }
+    public void onEnable() {
+        messageHistory = new ConcurrentHashMap<>();
+    }
 
     @Override
-    public void onDisable() { messageHistory = null; }
+    public void onDisable() {
+        messageHistory = null;
+    }
 
     private boolean isSpam(String message) {
-        ChatTimestamp chatTimestamp = MODULE_MANAGER.getModuleT(ChatTimestamp.class);
-        if (chatTimestamp.isEnabled()) {
-            message = message.substring(chatTimestamp.returnFormatted().length() + 1);
-        }
         /* Quick bandaid fix for mc.player being null when the module is being registered, so don't register it with the map */
-        final String[] OWN_MESSAGE = {
-                "^<" + mc.player.getName() + "> ",
-                "^To .+: ",
-        };
-        if ((!filterOwn.getValue() && findPatterns(OWN_MESSAGE, message, false)) || isDirect(filterDMs.getValue(), message) || isDirectOther(filterDMs.getValue(), message)) {
+        final String OWN_MESSAGE = "^<" + mc.player.getName() + "> ";
+        if ((!filterOwn.getValue() && isOwn(OWN_MESSAGE, message)) || isDirect(filterDMs.getValue(), message) || isDirectOther(filterDMs.getValue(), message)) {
             return false;
         } else {
             return detectSpam(removeUsername(message));
@@ -111,11 +122,12 @@ public class AntiSpam extends Module {
     }
 
 
-
-    private String removeUsername(String username) { return username.replaceAll("<[^>]*> ", ""); }
+    private String removeUsername(String username) {
+        return username.replaceAll("<[^>]*> ", "");
+    }
 
     private boolean detectSpam(String message) {
-        
+
         for (Map.Entry<Setting<Boolean>, String[]> entry : settingMap.entrySet()) {
             if (entry.getKey().getValue() && findPatterns(entry.getValue(), message, true)) {
                 sendResult(entry.getKey().getName(), message);
@@ -127,16 +139,23 @@ public class AntiSpam extends Module {
             if (messageHistory == null) messageHistory = new ConcurrentHashMap<>();
             boolean isDuplicate = false;
 
-            if (messageHistory.containsKey(message) && (System.currentTimeMillis() - messageHistory.get(message)) / 1000 < duplicatesTimeout.getValue()) isDuplicate = true;
+            if (messageHistory.containsKey(message) && (System.currentTimeMillis() - messageHistory.get(message)) / 1000 < duplicatesTimeout.getValue())
+                isDuplicate = true;
 
             messageHistory.put(message, System.currentTimeMillis());
             if (isDuplicate) {
-                if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + "Duplicate: " + message);
-                else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + "Duplicate: " + message);
+                if (showBlocked.getValue().equals(ShowBlocked.CHAT))
+                    sendChatMessage(getChatName() + "Duplicate: " + message);
+                else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE))
+                    KamiMod.log.info(getChatName() + "Duplicate: " + message);
             }
         }
 
         return false;
+    }
+
+    private boolean isOwn(String ownFilter, String message) {
+        return Pattern.compile(ownFilter, Pattern.CASE_INSENSITIVE).matcher(message).find();
     }
 
     private boolean findPatterns(String[] patterns, String string, boolean removeUsername) {
@@ -151,7 +170,7 @@ public class AntiSpam extends Module {
         return false;
     }
 
-    private Map<Setting<Boolean>, String[]> settingMap = new HashMap<Setting<Boolean>, String[]>(){{
+    private Map<Setting<Boolean>, String[]> settingMap = new HashMap<Setting<Boolean>, String[]>() {{
         put(wordsLongerThen, FilterPatterns.LONG_WORD);
         put(greenText, FilterPatterns.GREEN_TEXT);
         put(specialCharBegin, FilterPatterns.SPECIAL_BEGINNING);
@@ -375,6 +394,7 @@ public class AntiSpam extends Module {
 
     private void sendResult(String name, String message) {
         if (showBlocked.getValue().equals(ShowBlocked.CHAT)) sendChatMessage(getChatName() + name + ": " + message);
-        else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE)) KamiMod.log.info(getChatName() + name + ": " + message);
+        else if (showBlocked.getValue().equals(ShowBlocked.LOG_FILE))
+            KamiMod.log.info(getChatName() + name + ": " + message);
     }
 }

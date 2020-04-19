@@ -13,10 +13,14 @@ import static me.zeroeightsix.kami.gui.kami.DisplayGuiScreen.getScale;
 import static me.zeroeightsix.kami.util.InfoCalculator.round;
 
 /**
- * @author S-B99
+ * @author dominikaaaa
  * Thanks Brady and cooker and leij for helping me not be completely retarded 
  */
-@Module.Info(name = "LagNotifier", description = "Displays a warning when the server is lagging", category = Module.Category.PLAYER)
+@Module.Info(
+        name = "LagNotifier",
+        description = "Displays a warning when the server is lagging",
+        category = Module.Category.PLAYER
+)
 public class LagNotifier extends Module {
     private Setting<Double> timeout = register(Settings.doubleBuilder().withName("Timeout").withValue(1.0).withMinimum(0.0).withMaximum(10.0).build());
     private long serverLastUpdated;

@@ -20,7 +20,11 @@ import static me.zeroeightsix.kami.util.MathsUtils.normalizeAngle;
 /**
  * Created by Dewy on the 16th of April, 2020
  */
-@Module.Info(name = "AimBot", description = "Automatically aims at entities for you.", category = Module.Category.COMBAT)
+@Module.Info(
+        name = "AimBot",
+        description = "Automatically aims at entities for you.",
+        category = Module.Category.COMBAT
+)
 public class AimBot extends Module {
 
     private Setting<Integer> range = register(Settings.integerBuilder("Range").withMinimum(4).withMaximum(24).withValue(16));

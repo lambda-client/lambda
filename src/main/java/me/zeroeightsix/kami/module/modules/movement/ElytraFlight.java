@@ -21,16 +21,20 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 /**
  * Created by 086 on 11/04/2018.
  * Updated by Itistheend on 28/12/19.
- * Updated by S-B99 on 15/04/20
+ * Updated by dominikaaaa on 15/04/20
  */
-@Module.Info(name = "ElytraFlight", description = "Modifies elytras to fly at custom velocities and fall speeds", category = Module.Category.MOVEMENT)
+@Module.Info(
+        name = "ElytraFlight",
+        description = "Modifies elytras to fly at custom velocities and fall speeds",
+        category = Module.Category.MOVEMENT
+)
 public class ElytraFlight extends Module {
     private Setting<ElytraFlightMode> mode = register(Settings.e("Mode", ElytraFlightMode.HIGHWAY));
     private Setting<Boolean> defaultSetting = register(Settings.b("Defaults", false));
     private Setting<Boolean> easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff H").withValue(true).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Boolean> hoverControl = register(Settings.booleanBuilder("Hover").withValue(true).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
     private Setting<Boolean> easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
-    private Setting<Boolean> timerControl = register(Settings.booleanBuilder("Takeoff Timer").withValue(false).withVisibility(v -> easyTakeOffControl.getValue() && mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
+    private Setting<Boolean> timerControl = register(Settings.booleanBuilder("Takeoff Timer").withValue(true).withVisibility(v -> easyTakeOffControl.getValue() && mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
     private Setting<TakeoffMode> takeOffMode = register(Settings.enumBuilder(TakeoffMode.class).withName("Takeoff Mode").withValue(TakeoffMode.PACKET).withVisibility(v -> easyTakeOff.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Boolean> overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
     private Setting<Float> speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility(v -> !overrideMaxSpeed.getValue() && mode.getValue().equals(ElytraFlightMode.HIGHWAY)).build());
