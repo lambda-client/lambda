@@ -50,12 +50,16 @@ public class MobOwner extends Module {
             }
         }
         try {
-            if (apiRequests > 10) {
-                return "Too many API requests";
+            try {
+                if (apiRequests > 10) {
+                    return "Too many API requests";
+                }
+                cachedUUIDs.put(uuid, Objects.requireNonNull(EntityUtil.getNameFromUUID(uuid)).replace("\"", ""));
+                apiRequests++;
+            } catch (IllegalStateException illegal) { /* this means the json parsing failed meaning the UUID is invalid */
+                cachedUUIDs.put(uuid, invalidText);
             }
-            cachedUUIDs.put(uuid, Objects.requireNonNull(EntityUtil.getNameFromUUID(uuid)).replace("\"", ""));
-            apiRequests++;
-        } catch (IllegalStateException illegal) { /* this means the json parsing failed meaning the UUID is invalid or you're offline */
+        } catch (NullPointerException e) { /* this means the json parsing failed meaning you're offline */
             cachedUUIDs.put(uuid, invalidText);
         }
         /* Run this again to reduce the amount of requests made to the Mojang API */
