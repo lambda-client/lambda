@@ -56,6 +56,10 @@ repositories {
         name = "jitpack.io"
         url = "https://jitpack.io"
     }
+    maven {
+        name = 'impact'
+        url = 'https://impactdevelopment.github.io/maven/'
+    }
     mavenCentral()
     jcenter()
 }
@@ -77,6 +81,7 @@ dependencies {
     compile 'club.minnced:java-discord-rpc:2.0.2'
     compile 'com.github.MrPowerGamerBR:TemmieWebhook:-SNAPSHOT'
     compile 'com.github.kevinsawicki:http-request:http-request-6.0'
+    compile 'com.github.cabaletta:baritone:v1.2.13'
 }
 
 processResources {
@@ -112,6 +117,7 @@ shadowJar {
         include(dependency('org.javassist:javassist'))
         include(dependency('com.github.MrPowerGamerBR:TemmieWebhook'))
         include(dependency('com.github.kevinsawicki:http-request'))
+        include(dependency(group: 'cabaletta', name: 'baritone-api', version: '1.2.13'))
     }
     exclude 'dummyThing' // can someone explain why this is here
     classifier = 'release'
@@ -132,7 +138,7 @@ reobf {
 jar {
     manifest {
         attributes(
-                'MixinConfigs': 'mixins.kami.json',
+                'MixinConfigs': 'mixins.kami.json', 'mixins.baritone.json',
                 'tweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
                 'TweakOrder': 0,
                 'FMLCorePluginContainsFMLMod': 'true',
