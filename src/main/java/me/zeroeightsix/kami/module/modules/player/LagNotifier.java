@@ -35,7 +35,7 @@ public class LagNotifier extends Module {
         if (mc.currentScreen != null && !(mc.currentScreen instanceof GuiChat)) return;
         if (!(timeout.getValue() * 1000L <= System.currentTimeMillis() - serverLastUpdated)) return;
         if (shouldPing()) {
-            if (isDown("google.com", 80, 1000)) {
+            if (isDown("1.1.1.1", 80, 1000)) {
                 text = "Your internet is offline! ";
             } else {
                 text = "Server Not Responding! ";
