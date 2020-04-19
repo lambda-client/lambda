@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.module.modules.capes.Capes;
 import me.zeroeightsix.kami.module.modules.chat.CustomChat;
 import me.zeroeightsix.kami.module.modules.client.*;
 import me.zeroeightsix.kami.module.modules.misc.DiscordRPC;
+import me.zeroeightsix.kami.module.modules.player.HungerOverlay;
 import me.zeroeightsix.kami.module.modules.render.TabFriends;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -28,6 +29,7 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
     private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
     private Setting<Boolean> hasRunTooltips = register(Settings.b("Tooltips", false));
+    private Setting<Boolean> hasRunHungerOverlay = register(Settings.b("HungerOverlay", false));
 
     public void onEnable() {
         MODULE_MANAGER.getModule(ActiveModules.class).enable();
@@ -58,6 +60,10 @@ public class RunConfig extends Module {
         if (!hasRunTooltips.getValue()) {
             MODULE_MANAGER.getModule(Tooltips.class).enable();
             hasRunTooltips.setValue(true);
+        }
+        if (!hasRunHungerOverlay.getValue()) {
+            MODULE_MANAGER.getModule(HungerOverlay.class).enable();
+            hasRunHungerOverlay.setValue(true);
         }
 
         disable();

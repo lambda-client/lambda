@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
-import me.zeroeightsix.kami.module.modules.misc.HungerOverlay;
+import me.zeroeightsix.kami.module.modules.player.HungerOverlay;
 import me.zeroeightsix.kami.module.modules.render.BossStack;
 import me.zeroeightsix.kami.util.HungerOverlayRenderHelper;
 import me.zeroeightsix.kami.util.HungerOverlayUtils;
