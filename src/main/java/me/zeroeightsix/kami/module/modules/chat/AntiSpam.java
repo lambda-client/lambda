@@ -54,7 +54,7 @@ public class AntiSpam extends Module {
     /* Page Two */
     private Setting<Boolean> ownsMeAndAll = register(Settings.booleanBuilder("Owns Me And All").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> greenText = register(Settings.booleanBuilder("Green Text").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> numberSuffix = register(Settings.booleanBuilder("Number Ending").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> numberSuffix = register(Settings.booleanBuilder("Number Ending").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> numberPrefix = register(Settings.booleanBuilder("Number Begin").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> duplicates = register(Settings.booleanBuilder("Duplicates").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Integer> duplicatesTimeout = register(Settings.integerBuilder("Duplicates Timeout").withMinimum(1).withValue(30).withMaximum(600).withVisibility(v -> duplicates.getValue() && p.getValue().equals(Page.TWO)).build());
@@ -352,7 +352,7 @@ public class AntiSpam extends Module {
         };
 
         private static final String[] SPECIAL_ENDING = {
-                "[/@#^()\\[\\]{}<>|\\-+=\\\\]",
+                "[/@#^()\\[\\]{}<>|\\-+=\\\\]$",
         };
     }
 
