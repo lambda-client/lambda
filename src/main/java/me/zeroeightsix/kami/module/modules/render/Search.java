@@ -22,23 +22,44 @@ import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
 
 @Module.Info(name = "Search", description = "Highlights blocks in the world", category = Module.Category.RENDER)
 public class Search extends Module {
-    private static final String DEFAULT_BLOCK_ESP_CONFIG = "minecraft:portal,minecraft:end_portal_frame,minecraft:bed,";
-    private Setting<String> espBlockNames = register(Settings.stringBuilder("blocks").withValue(DEFAULT_BLOCK_ESP_CONFIG).withConsumer((old, value) -> refreshESPBlocksSet(value)).build());
-    private Setting<String> espBlockNamesAdd = register(Settings.stringBuilder("add").withValue("").withConsumer((old, value) -> addBlockToSearch(value)).build());
-    private Setting<String> espBlockNamesDel = register(Settings.stringBuilder("del").withValue("").withConsumer((old, value) -> removeBlockFromSearch(value)).build());
-
-    public void addBlockToSearch(String block) {
-        espBlockNames.setValue(espBlockNames.getValue() + block + ",");
-        refreshESPBlocksSet(espBlockNames.getValue());
-    }
-
-    public void removeBlockFromSearch(String block) {
-        espBlockNames.setValue(espBlockNames.getValue().replace(block + ",", ""));
-        refreshESPBlocksSet(espBlockNames.getValue());
-    }
-
     Minecraft mc = Minecraft.getMinecraft();
     private Set<Block> espBlocks;
+    private static final String DEFAULT_BLOCK_ESP_CONFIG = "minecraft:portal, minecraft:end_portal_frame, minecraft:bed";
+    private Setting<String> espBlockNames = register(Settings.stringBuilder("HiddenBlocks").withValue(DEFAULT_BLOCK_ESP_CONFIG).withConsumer((old, value) -> refreshESPBlocksSet(value)).build());
+
+    public String extGet() {
+        return extGetInternal(null);
+    }
+    // Add entry by arbitrary user-provided string
+    public void extAdd(String s) {
+        espBlockNames.setValue(extGetInternal(null) + ", " + s);
+    }
+    // Remove entry by arbitrary user-provided string
+    public void extRemove(String s) {
+        espBlockNames.setValue(extGetInternal(Block.getBlockFromName(s)));
+    }
+    // Clears the list.
+    public void extClear() {
+        espBlockNames.setValue("");
+    }
+    // Resets the list to default
+    public void extDefaults() { extClear(); extAdd(DEFAULT_BLOCK_ESP_CONFIG); }
+    // Set the list to 1 value
+    public void extSet(String s) { extClear(); extAdd(s); }
+
+    private String extGetInternal(Block filter) {
+        StringBuilder sb = new StringBuilder();
+        boolean notFirst = false;
+        for (Block b : espBlocks) {
+            if (b == filter)
+                continue;
+            if (notFirst)
+                sb.append(", ");
+            notFirst = true;
+            sb.append(Block.REGISTRY.getNameForObject(b));
+        }
+        return sb.toString();
+    }
 
     @Override
     public void onUpdate() {
