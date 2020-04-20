@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.EntityUtil;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.shader.ShaderUniform;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -19,6 +20,7 @@ import static org.lwjgl.opengl.GL11.*;
  * Created by 086 on 14/12/2017.
  * Updated by d1gress/Qther on 27/11/2019.
  * Kurisu Makise is cute
+ * Updated by dominikaaaa on 19/04/20
  */
 @Module.Info(
         name = "ESP",
@@ -26,8 +28,8 @@ import static org.lwjgl.opengl.GL11.*;
         description = "Highlights entities"
 )
 public class ESP extends Module {
-
     private Setting<ESPMode> mode = register(Settings.e("Mode", ESPMode.RECTANGLE));
+    private Setting<Integer> radiusValue = register(Settings.integerBuilder("Width").withMinimum(1).withMaximum(100).withValue(25).withVisibility(v -> mode.getValue().equals(ESPMode.GLOW)));
     private Setting<Boolean> players = register(Settings.b("Players", true));
     private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
@@ -113,8 +115,14 @@ public class ESP extends Module {
 
     @Override
     public void onUpdate() {
+        if (isDisabled()) return; // make sure to reset the shader stuff properly, so don't change radius while disabling
         if (mode.getValue().equals(ESPMode.GLOW)) {
             removeGlow = true;
+            mc.renderGlobal.entityOutlineShader.listShaders.forEach(shader -> {
+                ShaderUniform radius = shader.getShaderManager().getShaderUniform("Radius");
+                if (radius != null)
+                    radius.set(radiusValue.getValue() / 50f);
+            });
             for (Entity e : mc.world.loadedEntityList) {
                 if (e == null || e.isDead) return;
                 if (e instanceof EntityPlayer && players.getValue() && !e.isGlowing()) {
@@ -150,5 +158,10 @@ public class ESP extends Module {
             }
             mc.player.setGlowing(false);
         }
+        mc.renderGlobal.entityOutlineShader.listShaders.forEach(shader -> {
+            ShaderUniform radius = shader.getShaderManager().getShaderUniform("Radius");
+            if (radius != null)
+                radius.set(2f); // default radius
+        });
     }
 }
