@@ -19,6 +19,7 @@ public class AntiOverlay extends Module {
     private Setting<Boolean> fire = register(Settings.booleanBuilder("Fire").withValue(true));
     private Setting<Boolean> water = register(Settings.booleanBuilder("Water").withValue(true));
     private Setting<Boolean> blocks = register(Settings.booleanBuilder("Blocks").withValue(true));
+    public Setting<Boolean> portals = register(Settings.booleanBuilder("Portals").withValue(true));
 
     @EventHandler
     public Listener<RenderBlockOverlayEvent> renderBlockOverlayEventListener = new Listener<>(event -> {

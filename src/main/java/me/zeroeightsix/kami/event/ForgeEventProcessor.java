@@ -8,6 +8,7 @@ import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
+import me.zeroeightsix.kami.module.modules.render.AntiOverlay;
 import me.zeroeightsix.kami.module.modules.render.HungerOverlay;
 import me.zeroeightsix.kami.module.modules.render.BossStack;
 import me.zeroeightsix.kami.util.HungerOverlayRenderHelper;
@@ -102,6 +103,8 @@ public class ForgeEventProcessor {
                 alphaDir = 1;
             }
         }
+
+        GuiIngameForge.renderPortal = !MODULE_MANAGER.getModuleT(AntiOverlay.class).isEnabled() || !MODULE_MANAGER.getModuleT(AntiOverlay.class).portals.getValue();
 
         if (Wrapper.getPlayer() == null) return;
         MODULE_MANAGER.onUpdate();
