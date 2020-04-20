@@ -17,24 +17,23 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static java.lang.Math.abs;
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
 import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
 
 @Module.Info(name = "Search", description = "Highlights blocks in the world", category = Module.Category.RENDER)
 public class Search extends Module {
-    private static final String DEFAULT_BLOCK_ESP_CONFIG = "minecraft:portal,minecraft:end_portal_frame,minecraft:bed";
+    private static final String DEFAULT_BLOCK_ESP_CONFIG = "minecraft:portal,minecraft:end_portal_frame,minecraft:bed,";
     private Setting<String> espBlockNames = register(Settings.stringBuilder("blocks").withValue(DEFAULT_BLOCK_ESP_CONFIG).withConsumer((old, value) -> refreshESPBlocksSet(value)).build());
     private Setting<String> espBlockNamesAdd = register(Settings.stringBuilder("add").withValue("").withConsumer((old, value) -> addBlockToSearch(value)).build());
     private Setting<String> espBlockNamesDel = register(Settings.stringBuilder("del").withValue("").withConsumer((old, value) -> removeBlockFromSearch(value)).build());
 
     public void addBlockToSearch(String block) {
-        espBlockNames.setValue(espBlockNames.getValue() + "," + espBlockNamesAdd.getValue());
+        espBlockNames.setValue(espBlockNames.getValue() + block + ",");
         refreshESPBlocksSet(espBlockNames.getValue());
     }
 
     public void removeBlockFromSearch(String block) {
-        espBlockNames.setValue(espBlockNames.getValue().replace(espBlockNamesDel.getValue() + ",", ""));
+        espBlockNames.setValue(espBlockNames.getValue().replace(block + ",", ""));
         refreshESPBlocksSet(espBlockNames.getValue());
     }
 
@@ -133,7 +132,7 @@ public class Search extends Module {
         }
     }
 
-    public class Triplet<T, U, V> {
+    public static class Triplet<T, U, V> {
 
         private final T first;
         private final U second;
