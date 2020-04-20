@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.render;
 
 import me.zeroeightsix.kami.event.events.RenderEvent;
-import me.zeroeightsix.kami.gui.kami.RenderHelper;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -21,7 +20,6 @@ import java.util.Set;
 import static java.lang.Math.abs;
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
 import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 @Module.Info(name = "Search", description = "Highlights blocks in the world", category = Module.Category.RENDER)
 public class Search extends Module {
@@ -63,19 +61,18 @@ public class Search extends Module {
             if (!s2.equals("minecraft:air")) {
                 Block block = Block.getBlockFromName(s2);
                 if (block != null)
-                    sendChatMessage(s2);
                     espBlocks.add(block);
             }
         }
     }
 
     private long startTime = 0;
-    private ArrayList<Triplet<BlockPos, Integer, Integer>> a;
+    private ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> a;
 
     private boolean shouldRun() {
         if (startTime == 0)
             startTime = System.currentTimeMillis();
-        if (startTime + 500 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
+        if (startTime + 200 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
             return true;
         }
@@ -83,17 +80,16 @@ public class Search extends Module {
     }
 
     private void makeChunks() {
+        doneList = false;
         int[] pcoords = getCurrentCoord(false);
-        a = new ArrayList<>();
         int renderdist = 64;
         BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, 0, pcoords[2] - renderdist);
         BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, 255, pcoords[2] + renderdist);
-        /*BlockPos[][] smallChunks = splitChunk(pos1, pos2);
+        BlockPos[][] smallChunks = splitChunk(pos1, pos2);
         ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> foundBlocks = new ArrayList<>();
-        for (BlockPos[] chunk : smallChunks) {
-            new Thread(() -> foundBlocks.add(findBlocksInCoords(chunk[0], chunk[1]))).start();
-        }*/
-        /*new Thread(() -> */findBlocksInCoords(pos1, pos2);//).start();
+        foundBlocks.add(findBlocksInCoords(pos1, pos2));
+        a = foundBlocks;
+        doneList = true;
     }
 
     private BlockPos[][] splitChunk(BlockPos pos1, BlockPos pos2) {
@@ -136,7 +132,9 @@ public class Search extends Module {
         return chunks;
     }
 
-    private void findBlocksInCoords(BlockPos pos1, BlockPos pos2) {
+    boolean doneList = false;
+
+    private ArrayList<Triplet<BlockPos, Integer, Integer>> findBlocksInCoords(BlockPos pos1, BlockPos pos2) {
         Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
         ArrayList<Triplet<BlockPos, Integer, Integer>> foundBlocks = new ArrayList<>();
         for (BlockPos blockPos : blocks) {
@@ -151,16 +149,21 @@ public class Search extends Module {
                 }
             }
         }
-        a = foundBlocks;
+        return foundBlocks;
     }
 
+    ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> blocksToShow;
     @Override
     public void onWorldRender(RenderEvent event) {
-        if (a != null) {
+        if (doneList && a != null) {
+            blocksToShow = a;
+        }
+        if (blocksToShow != null) {
             GlStateManager.pushMatrix();
             KamiTessellator.prepare(GL11.GL_QUADS);
-            for (Triplet<BlockPos, Integer, Integer> pair : a) {
-                KamiTessellator.drawBox(pair.getFirst(), pair.getSecond(), pair.getThird());
+            for (ArrayList<Triplet<BlockPos, Integer, Integer>> blockList : blocksToShow) {
+                for (Triplet<BlockPos, Integer, Integer> pair : blockList)
+                    KamiTessellator.drawBox(pair.getFirst(), pair.getSecond(), pair.getThird());
             }
             KamiTessellator.release();
             GlStateManager.popMatrix();
