@@ -49,6 +49,7 @@ public class CreditsCommand extends Command {
                 "\nDominika (dominikaaaa)" +
                 "\nhub (blockparole)" +
                 "\nSasha (EmotionalLove)" +
+                "\nQther (d1gress / Vonr)" +
                 "\ncats (Cuhnt)" +
                 "\nJack (jacksonellsworth03)" +
                 "\nTheBritishMidget (TBM)" +
