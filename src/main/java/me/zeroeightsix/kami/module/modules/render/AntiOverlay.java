@@ -17,13 +17,13 @@ import net.minecraftforge.client.event.RenderBlockOverlayEvent;
           category = Module.Category.RENDER
 )
 public class AntiOverlay extends Module {
-    private Setting<Boolean> fire = register(Settings.booleanBuilder("Fire").withValue(true));
-    private Setting<Boolean> water = register(Settings.booleanBuilder("Water").withValue(true));
-    private Setting<Boolean> blocks = register(Settings.booleanBuilder("Blocks").withValue(true));
-    public Setting<Boolean> portals = register(Settings.booleanBuilder("Portals").withValue(true));
-    public Setting<Boolean> blindness = register(Settings.booleanBuilder("Blindness").withValue(true));
-    public Setting<Boolean> nausea = register(Settings.booleanBuilder("Nausea").withValue(true));
-    public Setting<Boolean> totems = register(Settings.booleanBuilder("Totems").withValue(true));
+    private Setting<Boolean> fire = register(Settings.booleanBuilder("Fire").withValue(true).build());
+    private Setting<Boolean> water = register(Settings.booleanBuilder("Water").withValue(true).build());
+    private Setting<Boolean> blocks = register(Settings.booleanBuilder("Blocks").withValue(true).build());
+    public Setting<Boolean> portals = register(Settings.booleanBuilder("Portals").withValue(true).build());
+    public Setting<Boolean> blindness = register(Settings.booleanBuilder("Blindness").withValue(true).build());
+    public Setting<Boolean> nausea = register(Settings.booleanBuilder("Nausea").withValue(true).build());
+    public Setting<Boolean> totems = register(Settings.booleanBuilder("Totems").withValue(true).build());
 
     @EventHandler
     public Listener<RenderBlockOverlayEvent> renderBlockOverlayEventListener = new Listener<>(event -> {
