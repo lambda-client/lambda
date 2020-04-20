@@ -26,6 +26,7 @@ public class CreditsCommand extends Command {
                 17222512, // dominikaaaa / dominika
                 27009727, // zeroeightysix
                 48992448, // blockparole
+                37771542, // iBuyMountainDew
                 19880089, // EmotionalLove
                 55198830, 24369412, // d1gress and Vonr
                 51212427, // Cuhnt
@@ -48,6 +49,7 @@ public class CreditsCommand extends Command {
                 "\n&l&9Contributors:" +
                 "\nDominika (dominikaaaa)" +
                 "\nhub (blockparole)" +
+                "\nDewy (iBuyMountainDew)" +
                 "\nSasha (EmotionalLove)" +
                 "\nQther (d1gress / Vonr)" +
                 "\ncats (Cuhnt)" +
