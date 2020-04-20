@@ -5,6 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import net.minecraft.potion.Potion;
 import net.minecraftforge.client.event.RenderBlockOverlayEvent;
 
 /**
@@ -20,6 +21,9 @@ public class AntiOverlay extends Module {
     private Setting<Boolean> water = register(Settings.booleanBuilder("Water").withValue(true));
     private Setting<Boolean> blocks = register(Settings.booleanBuilder("Blocks").withValue(true));
     public Setting<Boolean> portals = register(Settings.booleanBuilder("Portals").withValue(true));
+    public Setting<Boolean> blindness = register(Settings.booleanBuilder("Blindness").withValue(true));
+    public Setting<Boolean> nausea = register(Settings.booleanBuilder("Nausea").withValue(true));
+    public Setting<Boolean> totems = register(Settings.booleanBuilder("Totems").withValue(true));
 
     @EventHandler
     public Listener<RenderBlockOverlayEvent> renderBlockOverlayEventListener = new Listener<>(event -> {
@@ -52,4 +56,15 @@ public class AntiOverlay extends Module {
 
         event.setCanceled(shouldCancel);
     });
+
+    @Override
+    public void onUpdate() {
+        if (blindness.getValue()) {
+            mc.player.removeActivePotionEffect(Potion.getPotionFromResourceLocation("blindness"));
+        }
+
+        if (nausea.getValue()) {
+            mc.player.removeActivePotionEffect(Potion.getPotionFromResourceLocation("nausea"));
+        }
+    }
 }
