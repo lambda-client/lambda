@@ -30,7 +30,7 @@ public class CustomChat extends Module {
 
     private enum DecoMode { SEPARATOR, CLASSIC, NONE }
     public enum TextMode { NAME, ON_TOP, WEBSITE, JAPANESE, CUSTOM }
-    public static String[] cmdCheck = new String[]{"/", ",", ".", "-", ";", "?", "*", "^", "&", "%", Command.getCommandPrefix()};
+    public static String[] cmdCheck = new String[]{"/", ",", ".", "-", ";", "?", "*", "^", "&", "%", "#", "$", Command.getCommandPrefix(), ChatEncryption.delimiterValue.getValue()};
 
     private String getText(TextMode t) {
         switch (t) {

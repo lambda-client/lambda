@@ -18,14 +18,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static me.zeroeightsix.kami.command.Command.getCommandPrefix;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * Created by 086 on 9/04/2018.
+ * Updated by dominikaaaa on 20/04/20
  */
 @Module.Info(
         name = "ChatEncryption",
-        description = "Encrypts and decrypts chat messages (Delimiter %)",
+        description = "Encrypts and decrypts chat messages",
         category = Module.Category.CHAT,
         showOnArray = Module.ShowOnArray.OFF
 )
@@ -35,6 +38,7 @@ public class ChatEncryption extends Module {
     private Setting<EncryptionMode> mode = register(Settings.e("Mode", EncryptionMode.SHUFFLE));
     private Setting<Integer> key = register(Settings.i("Key", 6));
     private Setting<Boolean> delim = register(Settings.b("Delimiter", true));
+    public static Setting<String> delimiterValue = Settings.s("delimiterV", "unchanged");
 
     private final Pattern CHAT_PATTERN = Pattern.compile("<.*?> ");
 
@@ -45,7 +49,7 @@ public class ChatEncryption extends Module {
         if (event.getPacket() instanceof CPacketChatMessage) {
             String s = ((CPacketChatMessage) event.getPacket()).getMessage();
             if (delim.getValue()) {
-                if (!s.startsWith("%")) return;
+                if (getDelimiter() == null || !s.startsWith(getDelimiter())) return;
                 s = s.substring(1);
             }
             StringBuilder builder = new StringBuilder();
@@ -85,20 +89,21 @@ public class ChatEncryption extends Module {
             }
 
             StringBuilder builder = new StringBuilder();
+            String substring = s.substring(0, s.length() - 2);
             switch (mode.getValue()) {
                 case SHUFFLE:
                     if (!s.endsWith("\uD83D\uDE4D")) return;
-                    s = s.substring(0, s.length() - 2);
+                    s = substring;
                     builder.append(unshuffle(key.getValue(), s));
                     break;
                 case SHIFT:
                     if (!s.endsWith("\uD83D\uDE48")) return;
-                    s = s.substring(0, s.length() - 2);
+                    s = substring;
                     s.chars().forEachOrdered(value -> builder.append((char) (value + (ChatAllowedCharacters.isAllowedCharacter((char) value) ? -key.getValue() : 0))));
                     break;
             }
 
-            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString("<" + username + ">: " + KamiMod.colour + "lDECRYPT" + KamiMod.colour + "r: " + builder.toString());
+            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString("<" + username + ">: " + KamiMod.colour + "lDECRYPTED" + KamiMod.colour + "r: " + builder.toString());
         }
     });
 
@@ -149,5 +154,14 @@ public class ChatEncryption extends Module {
 
     private boolean isOwn(String message) {
         return Pattern.compile("^<" + mc.player.getName() + "> ", Pattern.CASE_INSENSITIVE).matcher(message).find();
+    }
+
+    private String getDelimiter() {
+        if (delimiterValue.getValue().equalsIgnoreCase("unchanged")) {
+            sendErrorMessage(getChatName() + "Please change the delimiter with &7" + getCommandPrefix() + "chatencryption&f, disabling");
+            disable();
+            return null;
+        }
+        return delimiterValue.getValue();
     }
 }

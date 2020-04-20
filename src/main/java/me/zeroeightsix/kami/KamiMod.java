@@ -18,6 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.module.modules.chat.ChatEncryption;
 import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -142,6 +143,7 @@ public class KamiMod {
 
         Friends.initFriends();
         SettingsRegister.register("commandPrefix", Command.commandPrefix);
+        SettingsRegister.register("delimiterV", ChatEncryption.delimiterValue);
         loadConfiguration();
         log.info("Settings loaded");
 
