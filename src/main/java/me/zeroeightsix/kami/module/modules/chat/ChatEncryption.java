@@ -31,6 +31,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 )
 public class ChatEncryption extends Module {
 
+    private Setting<Boolean> self = register(Settings.b("Decrypt own", true));
     private Setting<EncryptionMode> mode = register(Settings.e("Mode", EncryptionMode.SHUFFLE));
     private Setting<Integer> key = register(Settings.i("Key", 6));
     private Setting<Boolean> delim = register(Settings.b("Delimiter", true));
@@ -73,6 +74,8 @@ public class ChatEncryption extends Module {
         if (event.getPacket() instanceof SPacketChat) {
             String s = ((SPacketChat) event.getPacket()).getChatComponent().getUnformattedText();
 
+            if (!self.getValue() && isOwn(s)) return;
+
             Matcher matcher = CHAT_PATTERN.matcher(s);
             String username = "unnamed";
             if (matcher.find()) {
@@ -95,7 +98,7 @@ public class ChatEncryption extends Module {
                     break;
             }
 
-            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString(KamiMod.colour + "b" + username + KamiMod.colour + "r: " + builder.toString());
+            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString("<" + username + ">: " + KamiMod.colour + "lDECRYPT" + KamiMod.colour + "r: " + builder.toString());
         }
     });
 
@@ -144,4 +147,7 @@ public class ChatEncryption extends Module {
         SHUFFLE, SHIFT
     }
 
+    private boolean isOwn(String message) {
+        return Pattern.compile("^<" + mc.player.getName() + "> ", Pattern.CASE_INSENSITIVE).matcher(message).find();
+    }
 }
