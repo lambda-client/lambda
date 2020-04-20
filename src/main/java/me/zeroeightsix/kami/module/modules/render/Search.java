@@ -72,75 +72,37 @@ public class Search extends Module {
     private boolean shouldRun() {
         if (startTime == 0)
             startTime = System.currentTimeMillis();
-        if (startTime + 200 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
+        if (startTime + 500 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
             return true;
         }
         return false;
     }
 
+    boolean doneList = false;
+
     private void makeChunks() {
         doneList = false;
         int[] pcoords = getCurrentCoord(false);
-        int renderdist = 64;
+        int renderdist = mc.gameSettings.renderDistanceChunks * 16;
+        if (renderdist > 80) {
+            renderdist = 80;
+        }
         BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, 0, pcoords[2] - renderdist);
-        BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, 255, pcoords[2] + renderdist);
-        BlockPos[][] smallChunks = splitChunk(pos1, pos2);
+        BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, 256, pcoords[2] + renderdist);
         ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> foundBlocks = new ArrayList<>();
-        foundBlocks.add(findBlocksInCoords(pos1, pos2));
+        foundBlocks.add(findBlocksInCoords(pos1, pos2, espBlocks));
         a = foundBlocks;
         doneList = true;
     }
 
-    private BlockPos[][] splitChunk(BlockPos pos1, BlockPos pos2) {
-        int x1 = pos1.getX();
-        int z1 = pos1.getZ();
-        int y1 = pos1.getY();
-        int x2 = pos2.getX();
-        int z2 = pos2.getZ();
-        int y2 = pos2.getY();
-        int xDist = abs(x2 - x1);
-        int yDist = abs(y2 - y1);
-        int zDist = abs(z2 - z1);
-        int nOfChunksX = xDist/16;
-        int nOfChunksY = yDist/16;
-        int nOfChunksZ = zDist/16;
-        int nOfChunks = nOfChunksX * nOfChunksY * nOfChunksZ;
-        int startX = x1;
-        int startY = z1;
-        int startZ = y1;
-        int currentX = x1;
-        int currentY = z1;
-        int currentZ = y1;
-        BlockPos[][] chunks = new BlockPos[nOfChunks][2];
-        int curChunk = 0;
-        for (int p = 0; p < nOfChunksY; p++) {
-            for (int o = 0; o < nOfChunksZ; o++) {
-                for (int u = 0; u < nOfChunksX; u++) {
-                    chunks[curChunk] = new BlockPos[2];
-                    chunks[curChunk][0] = new BlockPos(currentX, currentY, currentZ);
-                    chunks[curChunk][1] = new BlockPos(currentX + 16, currentY + 16, currentZ + 16);
-                    currentX = currentX + 16;
-                    curChunk++;
-                }
-                currentX = startX;
-                currentZ = currentZ + 16;
-            }
-            currentY = startY;
-            currentY = currentY + 16;
-        }
-        return chunks;
-    }
-
-    boolean doneList = false;
-
-    private ArrayList<Triplet<BlockPos, Integer, Integer>> findBlocksInCoords(BlockPos pos1, BlockPos pos2) {
+    private ArrayList<Triplet<BlockPos, Integer, Integer>> findBlocksInCoords(BlockPos pos1, BlockPos pos2, Set<Block> blocksToFind) {
         Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
         ArrayList<Triplet<BlockPos, Integer, Integer>> foundBlocks = new ArrayList<>();
         for (BlockPos blockPos : blocks) {
             int side = GeometryMasks.Quad.ALL;
             Block block = mc.world.getBlockState(blockPos).getBlock();
-            for (Block b : espBlocks) {
+            for (Block b : blocksToFind) {
                 if (block == b) {
                     int c = block.blockMapColor.colorValue;
                     int[] cia = {c>>16,c>>8&255,c&255};
