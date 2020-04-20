@@ -20,6 +20,7 @@ public class SearchCommand extends Command {
     }
 
     private static final String ESP_BANNED_BLOCKS = "minecraft:air, minecraft:netherrack, minecraft:dirt, minecraft:water";
+    private static final String WARNING_BLOCKS = "minecraft:stone, minecraft:grass, minecraft:end_stone, minecraft:lava, minecraft:bedrock";
 
     @Override
     public void call(String[] args) {
@@ -36,9 +37,6 @@ public class SearchCommand extends Command {
             if (s == null)
                 continue;
             if (s.equalsIgnoreCase("help")) {
-                sendChatMessage("The " + search.getName() + " module has a list of blocks");
-                sendChatMessage("Normally, the " + search.getName() + " module highlights these blocks");
-                sendChatMessage("This command is a convenient way to quickly edit the list");
                 sendChatMessage("Available options: \n" +
                         "+block: Adds a block to the list\n" +
                         "-block: Removes a block from the list\n" +
@@ -46,6 +44,9 @@ public class SearchCommand extends Command {
                         "list: Prints the list of selected blocks\n" +
                         "defaults: Resets the list to the default list\n" +
                         "clear: Removes all blocks from the " + search.getName() + " block list");
+            } else if (s.equalsIgnoreCase("override")) {
+                search.overrideWarning.setValue(true);
+                sendWarningMessage(search.getChatName() + "Override for Intel Integrated GPUs enabled!");
             } else if (s.equalsIgnoreCase("clear")) {
                 search.extClear();
                 sendWarningMessage("Cleared the " + search.getName() + " block list");
@@ -60,16 +61,23 @@ public class SearchCommand extends Command {
                 sendChatMessage("Set the " + search.getName() + " block list to " + sT);
             } else if (s.startsWith("+") || s.startsWith("-")) {
                 String name = s.substring(1);
+                if (s.substring(1).startsWith("?")) name = s.substring(2);
                 Block b = Block.getBlockFromName(name);
                 if (b == null) {
                     sendChatMessage("&cInvalid block name <" + name + ">");
                 } else {
                     if (s.startsWith("+")) {
-                        if (!ESP_BANNED_BLOCKS.contains(name)) {
+                        if (ESP_BANNED_BLOCKS.contains(name) ) {
+                            sendChatMessage("You can't add <" + name + "> to the " + search.getName() + " block list");
+                        } else if (s.substring(1).startsWith("?")) {
+                            sendWarningMessage("Added <" + name + "> to the " + search.getName() + " block list");
+                            search.extAdd(name);
+                        } else if (WARNING_BLOCKS.contains(name)) {
+                            sendWarningMessage("Your world contains lots of " + name + ", it might cause extreme lag to add it. If you are sure you want to add it run &7"
+                                    + Command.getCommandPrefix() + "search +?" + name);
+                        } else {
                             sendChatMessage("Added <" + name + "> to the " + search.getName() + " block list");
                             search.extAdd(name);
-                        } else {
-                            sendChatMessage("You can't add <" + name + "> to the " + search.getName() + " block list");
                         }
                     } else {
                         sendChatMessage("Removed <" + name + "> from the " + search.getName() + " block list");
