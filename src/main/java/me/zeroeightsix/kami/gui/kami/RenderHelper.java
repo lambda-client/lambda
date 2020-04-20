@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.gui.kami;
 
+import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -48,38 +49,6 @@ public class RenderHelper {
 
     public static void drawCircle(float x, float y, float radius, int start, int end, int segments) {
         drawArc(x, y, radius, start, end, segments);
-    }
-
-    public static void verticalLine(int x, int y, int height) {
-        glBegin(GL_LINE_LOOP);
-        {
-            glVertex2d(0, 0);
-            glVertex2d(0, height);
-        }
-    }
-
-    public static void horizontalLine(int x, int y, int width) {
-        glBegin(GL_LINE_LOOP);
-        {
-            glVertex2d(width, 0);
-            glVertex2d(0, 0);
-        }
-    }
-
-    public static void drawLine(int x, int y, int height, int width, float r, float g, float b, float lineWidth, boolean vertical) {
-        glPushMatrix();
-        glTranslatef(x, y, 0.0F);
-        GL11.glColor3f(r, g, b);
-        GL11.glLineWidth(lineWidth);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        if (vertical) {
-            horizontalLine(x, y, width);
-        } else {
-            verticalLine(x, y, height);
-        }
-        glEnd();
-        glPopMatrix();
     }
 
     public static void drawOutlinedRoundedRectangle(int x, int y, int width, int height, float radius, float dR, float dG, float dB, float dA, float outlineWidth) {
@@ -188,5 +157,26 @@ public class RenderHelper {
         glEnable(GL_TEXTURE_2D);
         KamiGUI.fontRenderer.drawString(x, y, color, text);
         glDisable(GL_TEXTURE_2D);
+    }
+
+    public static void enableAlpha(float alpha) {
+        GlStateManager.enableBlend();
+
+        if (alpha == 1f) {
+            return;
+        }
+
+        GlStateManager.color(1.0F, 1.0F, 1.0F, alpha);
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    public static void disableAlpha(float alpha) {
+        GlStateManager.disableBlend();
+
+        if (alpha == 1f) {
+            return;
+        }
+
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 }

@@ -5,8 +5,8 @@ import java.util.regex.Pattern;
 /**
  * A helper to detect certain messages and return a boolean or message
  *
+ * @author dominikaaaa
  * @see me.zeroeightsix.kami.module.modules.chat.DiscordNotifs
- * @author S-B99
  */
 public class MessageDetectionHelper {
     public static String getMessageType(boolean direct, boolean directSent, String message, String server) {
@@ -43,7 +43,8 @@ public class MessageDetectionHelper {
 
     public static boolean shouldSend(boolean all, boolean restart, boolean direct, boolean directSent, boolean queue, boolean importantPings, String message) {
         if (all) return true;
-        else return isRestart(restart, message) || isDirect(direct, message) || isDirectOther(directSent, message) || isQueue(queue, message) || isImportantQueue(importantPings, message);
+        else
+            return isRestart(restart, message) || isDirect(direct, message) || isDirectOther(directSent, message) || isQueue(queue, message) || isImportantQueue(importantPings, message);
     }
 
 }

@@ -15,7 +15,12 @@ import java.util.function.Function;
 import java.io.FileWriter;
 import java.io.IOException;
 
-@Module.Info(name = "CoordsLog", description = "Automatically writes the coordinates of the player to a file with a user defined delay between logs.", category = Module.Category.HIDDEN, showOnArray = Module.ShowOnArray.OFF)
+@Module.Info(
+        name = "CoordsLog",
+        description = "Automatically writes the coordinates of the player to a file with a user defined delay between logs.",
+        category = Module.Category.HIDDEN,
+        showOnArray = Module.ShowOnArray.OFF
+)
 public class CoordsLog extends Module {
     private Setting<Double> delay = register(Settings.doubleBuilder("Time between logs").withMinimum(1.0).withValue(15.0).withMaximum(60.0).build());
     private Setting<Boolean> checkDuplicates = register(Settings.b("Don't log same coord 2 times in a row", true));

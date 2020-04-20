@@ -10,7 +10,7 @@ import static org.lwjgl.opengl.GL11.*;
 
 /**
  * Created by 086 on 9/07/2017.
- * Updated by S-B99 on 18/02/20
+ * Updated by dominikaaaa on 18/02/20
  */
 public class KamiTessellator extends Tessellator {
 

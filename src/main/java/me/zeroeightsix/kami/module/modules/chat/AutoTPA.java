@@ -14,9 +14,13 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;
 
 /*
  * By Katatje 8 Dec 2019
- * Updated by S-B99 on 12/04/20
+ * Updated by dominikaaaa on 12/04/20
  */
-@Module.Info(name = "AutoTPA", description = "Automatically decline or accept TPA requests", category = Module.Category.CHAT)
+@Module.Info(
+        name = "AutoTPA",
+        description = "Automatically decline or accept TPA requests",
+        category = Module.Category.CHAT
+)
 public class AutoTPA extends Module {
     private Setting<Boolean> friends = register(Settings.b("Always accept friends", true));
     private Setting<mode> mod = register(Settings.e("Response", mode.DENY));

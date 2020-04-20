@@ -14,9 +14,13 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
 /**
  * @author Diamarald
- * Updated by S-B99 on 03/03/20
+ * Updated by dominikaaaa on 03/03/20
  */
-@Module.Info(name = "AutoReply", description = "Automatically replies to messages", category = Module.Category.CHAT)
+@Module.Info(
+        name = "AutoReply",
+        description = "Automatically replies to messages",
+        category = Module.Category.CHAT
+)
 public class AutoReply extends Module {
     public Setting<Boolean> customMessage = register(Settings.b("Custom Message", false));
     public Setting<String> message = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "autoreply&r to modify this").withConsumer((old, value) -> {}).withVisibility(v -> customMessage.getValue()).build());
