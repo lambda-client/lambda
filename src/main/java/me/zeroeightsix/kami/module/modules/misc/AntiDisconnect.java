@@ -10,5 +10,5 @@ import me.zeroeightsix.kami.setting.Settings;
           category = Module.Category.MISC
 )
 public class AntiDisconnect extends Module {
-    public Setting<Integer> requiredButtonPresses = register(Settings.integerBuilder("Button Presses").withMinimum(1).withMaximum(20).withValue(3));
+    public Setting<Integer> requiredButtonPresses = register(Settings.integerBuilder("Button Presses").withMinimum(1).withMaximum(20).withValue(3).build());
 }
