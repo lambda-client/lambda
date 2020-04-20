@@ -103,7 +103,7 @@ public class ChatEncryption extends Module {
                     break;
             }
 
-            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString("<" + username + ">: " + KamiMod.colour + "lDECRYPTED" + KamiMod.colour + "r: " + builder.toString());
+            ((SPacketChat) event.getPacket()).chatComponent = new TextComponentString("<" + username + "> " + KamiMod.colour + "lDECRYPTED" + KamiMod.colour + "r: " + builder.toString());
         }
     });
 
