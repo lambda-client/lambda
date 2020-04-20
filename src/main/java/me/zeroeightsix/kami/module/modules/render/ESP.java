@@ -37,6 +37,8 @@ public class ESP extends Module {
         RECTANGLE, GLOW
     }
 
+    private boolean removeGlow = false;
+
     @Override
     public void onWorldRender(RenderEvent event) {
 
@@ -112,6 +114,7 @@ public class ESP extends Module {
     @Override
     public void onUpdate() {
         if (mode.getValue().equals(ESPMode.GLOW)) {
+            removeGlow = true;
             for (Entity e : mc.world.loadedEntityList) {
                 if (e == null || e.isDead) return;
                 if (e instanceof EntityPlayer && players.getValue() && !e.isGlowing()) {
@@ -130,6 +133,12 @@ public class ESP extends Module {
                     e.setGlowing(false);
                 }
             }
+        } else if (removeGlow && !mode.getValue().equals(ESPMode.GLOW)) {
+            for (Entity e : mc.world.loadedEntityList) {
+                e.setGlowing(false);
+            }
+            removeGlow = false;
+            mc.player.setGlowing(false);
         }
     }
 
