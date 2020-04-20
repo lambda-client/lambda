@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.render;
 
+import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -19,9 +20,21 @@ import java.util.Set;
 
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
 import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
-@Module.Info(name = "Search", description = "Highlights blocks in the world", category = Module.Category.RENDER)
+/**
+ * @author wnuke
+ * Updated by dominikaaaa on 20/04/20
+ */
+@Module.Info(
+        name = "Search",
+        description = "Highlights blocks in the world",
+        category = Module.Category.RENDER
+)
 public class Search extends Module {
+    private Setting<Integer> alpha = register(Settings.integerBuilder("Transparency").withMinimum(1).withMaximum(255).withValue(120).build());
+    public Setting<Boolean> overrideWarning = register(Settings.booleanBuilder("overrideWarning").withValue(false).withVisibility(v -> false));
     Minecraft mc = Minecraft.getMinecraft();
     private Set<Block> espBlocks;
     private static final String DEFAULT_BLOCK_ESP_CONFIG = "minecraft:portal, minecraft:end_portal_frame, minecraft:bed";
@@ -71,6 +84,12 @@ public class Search extends Module {
     }
 
     public void onEnable() {
+        if (!overrideWarning.getValue() && GlStateManager.glGetString(7936).contains("Intel")) {
+            sendErrorMessage(getChatName() + "Warning: Running Search with an Intel Integrated GPU is not supported, as it has a &lHUGE&r impact on performance.");
+            sendWarningMessage(getChatName() + "If you're sure you want to try, run the &7" + Command.getCommandPrefix() + "search override&f command");
+            disable();
+            return;
+        }
         refreshESPBlocksSet(espBlockNames.getValue());
     }
 
@@ -126,7 +145,7 @@ public class Search extends Module {
                 if (block == b) {
                     int c = block.blockMapColor.colorValue;
                     int[] cia = {c>>16,c>>8&255,c&255};
-                    int blockColor = toRGBA(cia[0], cia[1], cia[2], 100);
+                    int blockColor = toRGBA(cia[0], cia[1], cia[2], alpha.getValue());
                     foundBlocks.add(new Triplet<>(blockPos, blockColor, side));
                 }
             }
