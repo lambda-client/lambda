@@ -182,9 +182,9 @@ public class Search extends Module {
 
     private void reloadChunks() {
         int[] pcoords = getCurrentCoord(false);
-        int renderdist = mc.gameSettings.renderDistanceChunks * 16;
-        if (renderdist > 8 * 16) {
-            renderdist = 8 * 16;
+        int renderdist = mc.gameSettings.renderDistanceChunks;
+        if (renderdist > 8) {
+            renderdist = 8;
         }
         ChunkProviderClient providerClient = mc.world.getChunkProvider();
         for (int x = -renderdist; x < renderdist; x++) {
