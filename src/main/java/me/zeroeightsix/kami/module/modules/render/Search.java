@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.render;
 
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
-import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
@@ -12,6 +11,7 @@ import me.zeroeightsix.kami.util.GeometryMasks;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ChunkProviderClient;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
@@ -21,12 +21,12 @@ import net.minecraftforge.event.world.ChunkEvent;
 import org.lwjgl.opengl.GL11;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ThreadFactory;
+import java.util.stream.Collectors;
 
-import static me.zeroeightsix.kami.util.ColourUtils.changeAlpha;
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
 import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
@@ -94,7 +94,15 @@ public class Search extends Module {
         return sb.toString();
     }
 
-    Executor exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    Executor exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r);
+            t.setPriority(Thread.NORM_PRIORITY - 2); //LOW priority
+            return t;
+        }
+    });
+    Executor cachedExec = Executors.newCachedThreadPool();
 
     @Override
     public void onUpdate() {
@@ -102,9 +110,10 @@ public class Search extends Module {
             refreshESPBlocksSet(espBlockNames.getValue());
         }
         if (mc.player == null) return;
-        if (shouldRun()) makeChunks();
+        if (shouldRun() && isEnabled()) reloadChunks();
     }
 
+    @Override
     public void onEnable() {
         if (!overrideWarning.getValue() && GlStateManager.glGetString(7936).contains("Intel")) {
             sendErrorMessage(getChatName() + "Warning: Running Search with an Intel Integrated GPU is not supported, as it has a &lHUGE&r impact on performance.");
@@ -113,6 +122,12 @@ public class Search extends Module {
             return;
         }
         refreshESPBlocksSet(espBlockNames.getValue());
+        reloadChunks();
+    }
+
+    @Override
+    protected void onDisable() {
+        mainList.clear();
     }
 
     private void refreshESPBlocksSet(String v) {
@@ -125,94 +140,133 @@ public class Search extends Module {
                     espBlocks.add(block);
             }
         }
+        mainList.clear();
     }
 
 
     private long startTime = 0;
-    private final Map<BlockPos, Tuple<Integer, Integer>> a = new HashMap<>();
+    private final Map<ChunkPos, Map<BlockPos, Tuple<Integer, Integer>>> mainList = new ConcurrentHashMap<>();
 
     private boolean shouldRun() {
+        if (mc.world == null) return false;
         if (startTime == 0)
             startTime = System.currentTimeMillis();
-        if (startTime + 500 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
+        if (startTime + 1500 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
             return true;
         }
         return false;
     }
 
-
-    final AtomicBoolean doneList = new AtomicBoolean(false);
-    final AtomicInteger runningThreadCount = new AtomicInteger();
-
-    /*@EventHandler
-    public Listener<ChunkEvent.Load> listener = new Listener<>(event -> {
-            if(doneList.compareAndSet(true,false)){
+    @EventHandler
+    public Listener<ChunkEvent.Load> chunkLoadListener = new Listener<>(event -> {
+        if (isEnabled()) {
+            cachedExec.execute(() -> {
                 Chunk chunk = event.getChunk();
                 ChunkPos pos = chunk.getPos();
-                KamiMod.log.info("[ SEARCH ] loaded chunk: " + pos.x + "," + pos.z);
-                BlockPos pos1 = new BlockPos(pos.getXStart(), 0,pos.getZStart());
-                BlockPos pos2 = new BlockPos(pos.getXEnd(), 256,pos.getZEnd());
-                a.putAll(findBlocksInCoords(pos1, pos2, espBlocks));
-                doneList.compareAndSet(false,true);
-            }
+                Map<BlockPos, Tuple<Integer, Integer>> found = findBlocksInChunk(chunk, espBlocks);
+                if (!found.isEmpty()) {
+                    Map<BlockPos, Tuple<Integer, Integer>> actual = mainList.computeIfAbsent(pos, (p) -> new ConcurrentHashMap<>());
+                    actual.clear();
+                    actual.putAll(found);
+                }
+            });
+        }
+    });
+
+    @EventHandler
+    public Listener<ChunkEvent.Unload> chunkUnLoadListener = new Listener<>(event -> {
+        if (isEnabled())
+            mainList.remove(event.getChunk().getPos());
+    });
+
+    /*
+    @EventHandler
+    public Listener<BlockEvent> blocklistener = new Listener<>(event -> {
+        if (!event.isCanceled() && (
+                event instanceof BlockEvent.BreakEvent ||
+                        event instanceof BlockEvent.EntityPlaceEvent ||
+                        event instanceof BlockEvent.PortalSpawnEvent
+        )) {
+            cachedExec.execute(() -> {
+                KamiMod.log.info("[ SEARCH ] got event: " + event.getClass().getName());
+                if (event instanceof BlockEvent.MultiPlaceEvent) {
+                    ((BlockEvent.MultiPlaceEvent) event).getReplacedBlockSnapshots().forEach(bs -> {
+                        mainList.remove(bs.getPos());
+                        Block block = bs.getCurrentBlock().getBlock();
+                        if (espBlocks.contains(block)) {
+                            //mainList.put(bs.getPos(), getTuple(GeometryMasks.Quad.ALL, block));
+                        }
+                    });
+                } else {
+                    mainList.remove(event.getPos());
+                    Block block = event.getState().getBlock();
+                    if (espBlocks.contains(block)) {
+                        //mainList.put(event.getPos(), getTuple(GeometryMasks.Quad.ALL, block));
+                    }
+                }
+            });
+        }
     });*/
 
-    private void makeChunks() {
-        if(runningThreadCount.get() > 0) return;
-        int slices = Runtime.getRuntime().availableProcessors();
-        int y_gap = 256 / slices;
-        for (int i = 0; i < slices; i++) {
-            int finalI = i;
-            exec.execute(() ->
-                    _makeChunks(
-                            finalI * y_gap,
-                            ((finalI + 1) * y_gap) - 1)
-            );
-        }
-    }
-
-    private void _makeChunks(int bottom_y, int top_y) {
-        int thread;
-        if ((thread = runningThreadCount.getAndIncrement()) == 0) {
-            doneList.set(false);
-            a.clear();
-        }
-        KamiMod.log.debug("[SEARCH] thread " + (thread + 1));
+    private void reloadChunks() {
         int[] pcoords = getCurrentCoord(false);
         int renderdist = mc.gameSettings.renderDistanceChunks * 16;
-        if (renderdist > 80) {
-            renderdist = 80;
+        if (renderdist > 8 * 16) {
+            renderdist = 8 * 16;
         }
-        BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, bottom_y, pcoords[2] - renderdist);
-        BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, top_y, pcoords[2] + renderdist);
-        a.putAll(findBlocksInCoords(pos1, pos2, espBlocks));
-        if (runningThreadCount.decrementAndGet() == 0)
-            doneList.set(true);
+        ChunkProviderClient providerClient = mc.world.getChunkProvider();
+        for (int x = -renderdist; x < renderdist; x++) {
+            for (int z = -renderdist; z < renderdist; z++) {
+                Chunk chunk = providerClient.getLoadedChunk((pcoords[0] >> 4) + x, (pcoords[2] >> 4) + z);
+                if (chunk != null)
+                    exec.execute(() ->
+                            loadChunk(chunk)
+                    );
+            }
+        }
     }
 
-    private Map<BlockPos, Tuple<Integer, Integer>> findBlocksInCoords(BlockPos pos1, BlockPos pos2, Set<Block> blocksToFind) {
+    private void loadChunk(Chunk chunk) {
+        Map<BlockPos, Tuple<Integer, Integer>> found = findBlocksInChunk(chunk, espBlocks);
+        if (!found.isEmpty()) {
+            Map<BlockPos, Tuple<Integer, Integer>> actual = mainList.computeIfAbsent(chunk.getPos(), (p) -> new ConcurrentHashMap<>());
+            actual.clear();
+            actual.putAll(found);
+        }
+    }
+
+    private Map<BlockPos, Tuple<Integer, Integer>> findBlocksInChunk(Chunk chunk, Set<Block> blocksToFind) {
+        BlockPos pos1 = new BlockPos(chunk.getPos().getXStart(), 0, chunk.getPos().getZStart());
+        BlockPos pos2 = new BlockPos(chunk.getPos().getXEnd(), 256, chunk.getPos().getZEnd());
         Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
         Map<BlockPos, Tuple<Integer, Integer>> foundBlocks = new HashMap<>();
         for (BlockPos blockPos : blocks) {
             int side = GeometryMasks.Quad.ALL;
             Block block = mc.world.getBlockState(blockPos).getBlock();
             if (blocksToFind.contains(block)) {
-                int c = block.blockMapColor.colorValue;
-                int[] cia = {c >> 16, c >> 8 & 255, c & 255};
-                int blockColor = toRGBA(cia[0], cia[1], cia[2], alpha.getValue());
-                foundBlocks.put(blockPos, new Tuple<>(blockColor, side));
+                Tuple<Integer, Integer> tuple = getTuple(side, block);
+                foundBlocks.put(blockPos, tuple);
             }
         }
         return foundBlocks;
+    }
+
+    private Tuple<Integer, Integer> getTuple(int side, Block block) {
+        int c = block.blockMapColor.colorValue;
+        int[] cia = {c >> 16, c >> 8 & 255, c & 255};
+        int blockColor = toRGBA(cia[0], cia[1], cia[2], alpha.getValue());
+        return new Tuple<>(blockColor, side);
     }
 
     Map<BlockPos, Tuple<Integer, Integer>> blocksToShow;
 
     @Override
     public void onWorldRender(RenderEvent event) {
-        if (doneList.get() && a != null) {
-            blocksToShow = new HashMap<>(a);
+        if (mainList != null && shouldUpdate()) {
+            blocksToShow = mainList.values().stream()
+                    .flatMap((e) -> e.entrySet().stream())
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
         if (blocksToShow != null) {
             GlStateManager.pushMatrix();
@@ -224,6 +278,16 @@ public class Search extends Module {
             GlStateManager.popMatrix();
             GlStateManager.enableTexture2D();
         }
+    }
+
+    private long previousTime = 0;
+
+    private boolean shouldUpdate() {
+        if (previousTime + 100 <= System.currentTimeMillis()) {
+            previousTime = System.currentTimeMillis();
+            return true;
+        }
+        return false;
     }
 
     public static class Triplet<T, U, V> {
