@@ -1,5 +1,8 @@
 package me.zeroeightsix.kami.module.modules.render;
 
+import me.zero.alpine.listener.EventHandler;
+import me.zero.alpine.listener.Listener;
+import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
@@ -11,13 +14,18 @@ import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.event.world.ChunkEvent;
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static me.zeroeightsix.kami.util.ColourUtils.changeAlpha;
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
 import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
@@ -43,22 +51,33 @@ public class Search extends Module {
     public String extGet() {
         return extGetInternal(null);
     }
+
     // Add entry by arbitrary user-provided string
     public void extAdd(String s) {
         espBlockNames.setValue(extGetInternal(null) + ", " + s);
     }
+
     // Remove entry by arbitrary user-provided string
     public void extRemove(String s) {
         espBlockNames.setValue(extGetInternal(Block.getBlockFromName(s)));
     }
+
     // Clears the list.
     public void extClear() {
         espBlockNames.setValue("");
     }
+
     // Resets the list to default
-    public void extDefaults() { extClear(); extAdd(DEFAULT_BLOCK_ESP_CONFIG); }
+    public void extDefaults() {
+        extClear();
+        extAdd(DEFAULT_BLOCK_ESP_CONFIG);
+    }
+
     // Set the list to 1 value
-    public void extSet(String s) { extClear(); extAdd(s); }
+    public void extSet(String s) {
+        extClear();
+        extAdd(s);
+    }
 
     private String extGetInternal(Block filter) {
         StringBuilder sb = new StringBuilder();
@@ -74,13 +93,15 @@ public class Search extends Module {
         return sb.toString();
     }
 
+    Executor exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
     @Override
     public void onUpdate() {
         if (espBlocks == null) {
             refreshESPBlocksSet(espBlockNames.getValue());
         }
         if (mc.player == null) return;
-        if (shouldRun()) new Thread(this::makeChunks).start();
+        if (shouldRun()) makeChunks();
     }
 
     public void onEnable() {
@@ -105,6 +126,7 @@ public class Search extends Module {
         }
     }
 
+
     private long startTime = 0;
     private ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> a;
 
@@ -118,21 +140,54 @@ public class Search extends Module {
         return false;
     }
 
-    boolean doneList = false;
+
+    final AtomicBoolean doneList = new AtomicBoolean(false);
+    final AtomicInteger runningThreadCount = new AtomicInteger();
+
+    /*@EventHandler
+    public Listener<ChunkEvent.Load> listener = new Listener<>(event -> {
+            if(doneList.compareAndSet(true,false)){
+                Chunk chunk = event.getChunk();
+                ChunkPos pos = chunk.getPos();
+                KamiMod.log.info("[ SEARCH ] loaded chunk: " + pos.x + "," + pos.z);
+                BlockPos pos1 = new BlockPos(pos.getXStart(), 0,pos.getZStart());
+                BlockPos pos2 = new BlockPos(pos.getXEnd(), 256,pos.getZEnd());
+                a.putAll(findBlocksInCoords(pos1, pos2, espBlocks));
+                doneList.compareAndSet(false,true);
+            }
+    });*/
 
     private void makeChunks() {
-        doneList = false;
+        if(runningThreadCount.get() > 0) return;
+        int slices = Runtime.getRuntime().availableProcessors();
+        int y_gap = 256 / slices;
+        for (int i = 0; i < slices; i++) {
+            int finalI = i;
+            exec.execute(() ->
+                    _makeChunks(
+                            finalI * y_gap,
+                            ((finalI + 1) * y_gap) - 1)
+            );
+        }
+    }
+
+    private void _makeChunks(int bottom_y, int top_y) {
+        int thread;
+        if ((thread = runningThreadCount.getAndIncrement()) == 0) {
+            doneList.set(false);
+            a.clear();
+        }
+        KamiMod.log.debug("[SEARCH] thread " + (thread + 1));
         int[] pcoords = getCurrentCoord(false);
         int renderdist = mc.gameSettings.renderDistanceChunks * 16;
         if (renderdist > 80) {
             renderdist = 80;
         }
-        BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, 0, pcoords[2] - renderdist);
-        BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, 256, pcoords[2] + renderdist);
-        ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> foundBlocks = new ArrayList<>();
-        foundBlocks.add(findBlocksInCoords(pos1, pos2, espBlocks));
-        a = foundBlocks;
-        doneList = true;
+        BlockPos pos1 = new BlockPos(pcoords[0] - renderdist, bottom_y, pcoords[2] - renderdist);
+        BlockPos pos2 = new BlockPos(pcoords[0] + renderdist, top_y, pcoords[2] + renderdist);
+        a.putAll(findBlocksInCoords(pos1, pos2, espBlocks));
+        if (runningThreadCount.decrementAndGet() == 0)
+            doneList.set(true);
     }
 
     private ArrayList<Triplet<BlockPos, Integer, Integer>> findBlocksInCoords(BlockPos pos1, BlockPos pos2, Set<Block> blocksToFind) {
@@ -156,8 +211,8 @@ public class Search extends Module {
     ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> blocksToShow;
     @Override
     public void onWorldRender(RenderEvent event) {
-        if (doneList && a != null) {
-            blocksToShow = a;
+        if (doneList.get() && a != null) {
+            blocksToShow = new HashMap<>(a);
         }
         if (blocksToShow != null) {
             GlStateManager.pushMatrix();
