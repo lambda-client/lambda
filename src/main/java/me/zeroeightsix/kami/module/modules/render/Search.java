@@ -13,6 +13,7 @@ import me.zeroeightsix.kami.util.KamiTessellator;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
@@ -128,7 +129,7 @@ public class Search extends Module {
 
 
     private long startTime = 0;
-    private ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> a;
+    private final Map<BlockPos, Tuple<Integer, Integer>> a = new HashMap<>();
 
     private boolean shouldRun() {
         if (startTime == 0)
@@ -190,25 +191,24 @@ public class Search extends Module {
             doneList.set(true);
     }
 
-    private ArrayList<Triplet<BlockPos, Integer, Integer>> findBlocksInCoords(BlockPos pos1, BlockPos pos2, Set<Block> blocksToFind) {
+    private Map<BlockPos, Tuple<Integer, Integer>> findBlocksInCoords(BlockPos pos1, BlockPos pos2, Set<Block> blocksToFind) {
         Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
-        ArrayList<Triplet<BlockPos, Integer, Integer>> foundBlocks = new ArrayList<>();
+        Map<BlockPos, Tuple<Integer, Integer>> foundBlocks = new HashMap<>();
         for (BlockPos blockPos : blocks) {
             int side = GeometryMasks.Quad.ALL;
             Block block = mc.world.getBlockState(blockPos).getBlock();
-            for (Block b : blocksToFind) {
-                if (block == b) {
-                    int c = block.blockMapColor.colorValue;
-                    int[] cia = {c>>16,c>>8&255,c&255};
-                    int blockColor = toRGBA(cia[0], cia[1], cia[2], alpha.getValue());
-                    foundBlocks.add(new Triplet<>(blockPos, blockColor, side));
-                }
+            if (blocksToFind.contains(block)) {
+                int c = block.blockMapColor.colorValue;
+                int[] cia = {c >> 16, c >> 8 & 255, c & 255};
+                int blockColor = toRGBA(cia[0], cia[1], cia[2], alpha.getValue());
+                foundBlocks.put(blockPos, new Tuple<>(blockColor, side));
             }
         }
         return foundBlocks;
     }
 
-    ArrayList<ArrayList<Triplet<BlockPos, Integer, Integer>>> blocksToShow;
+    Map<BlockPos, Tuple<Integer, Integer>> blocksToShow;
+
     @Override
     public void onWorldRender(RenderEvent event) {
         if (doneList.get() && a != null) {
@@ -217,9 +217,8 @@ public class Search extends Module {
         if (blocksToShow != null) {
             GlStateManager.pushMatrix();
             KamiTessellator.prepare(GL11.GL_QUADS);
-            for (ArrayList<Triplet<BlockPos, Integer, Integer>> blockList : blocksToShow) {
-                for (Triplet<BlockPos, Integer, Integer> pair : blockList)
-                    KamiTessellator.drawBox(pair.getFirst(), pair.getSecond(), pair.getThird());
+            for (Map.Entry<BlockPos, Tuple<Integer, Integer>> entry : blocksToShow.entrySet()) {
+                KamiTessellator.drawBox(entry.getKey(), entry.getValue().getFirst(), entry.getValue().getSecond());
             }
             KamiTessellator.release();
             GlStateManager.popMatrix();
