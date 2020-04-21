@@ -1,10 +1,5 @@
 package me.zeroeightsix.kami.util;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.math.MathHelper;
-
-import java.text.DecimalFormat;
-
 /**
  * Created by Dewy on the 17th of April, 2020
  */

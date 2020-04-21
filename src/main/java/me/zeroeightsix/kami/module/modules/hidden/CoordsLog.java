@@ -1,19 +1,12 @@
 package me.zeroeightsix.kami.module.modules.hidden;
 
-import me.zeroeightsix.kami.util.LogUtil;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
-
-import net.minecraft.client.Minecraft;
+import me.zeroeightsix.kami.util.LogUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.function.Function;
-
-import java.io.FileWriter;
-import java.io.IOException;
 
 @Module.Info(
         name = "CoordsLog",

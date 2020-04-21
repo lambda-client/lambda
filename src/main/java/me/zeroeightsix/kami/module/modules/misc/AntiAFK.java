@@ -14,7 +14,6 @@ import java.util.Objects;
 import java.util.Random;
 
 import static me.zeroeightsix.kami.util.MathsUtils.reverseNumber;
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;
 
 /**

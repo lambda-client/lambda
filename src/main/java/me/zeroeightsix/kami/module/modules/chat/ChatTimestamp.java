@@ -12,7 +12,6 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 
 import static me.zeroeightsix.kami.util.ColourTextFormatting.toTextMap;
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
 /**
  * @author dominikaaaa

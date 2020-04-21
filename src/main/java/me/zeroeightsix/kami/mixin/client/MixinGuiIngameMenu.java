@@ -4,7 +4,6 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.gui.mc.KamiGuiAntiDisconnect;
 import me.zeroeightsix.kami.module.modules.misc.AntiDisconnect;
 import me.zeroeightsix.kami.util.Wrapper;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiIngameMenu;
 import org.spongepowered.asm.mixin.Mixin;
