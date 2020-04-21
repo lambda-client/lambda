@@ -245,14 +245,16 @@ public class Search extends Module {
         BlockPos pos2 = new BlockPos(chunk.getPos().getXEnd(), 256, chunk.getPos().getZEnd());
         Iterable<BlockPos> blocks = BlockPos.getAllInBox(pos1, pos2);
         Map<BlockPos, Tuple<Integer, Integer>> foundBlocks = new HashMap<>();
-        for (BlockPos blockPos : blocks) {
-            int side = GeometryMasks.Quad.ALL;
-            Block block = mc.world.getBlockState(blockPos).getBlock();
-            if (blocksToFind.contains(block)) {
-                Tuple<Integer, Integer> tuple = getTuple(side, block);
-                foundBlocks.put(blockPos, tuple);
+        try {
+            for (BlockPos blockPos : blocks) {
+                int side = GeometryMasks.Quad.ALL;
+                Block block = mc.world.getBlockState(blockPos).getBlock();
+                if (blocksToFind.contains(block)) {
+                    Tuple<Integer, Integer> tuple = getTuple(side, block);
+                    foundBlocks.put(blockPos, tuple);
+                }
             }
-        }
+        }catch (NullPointerException ignored){} //to fix ghost chunks get loaded and generating NullPointerExceptions
         return foundBlocks;
     }
 
