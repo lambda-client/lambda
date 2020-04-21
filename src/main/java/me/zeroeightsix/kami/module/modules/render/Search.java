@@ -24,7 +24,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
@@ -42,13 +41,13 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
         category = Module.Category.RENDER
 )
 public class Search extends Module {
-    private Setting<Integer> alpha = register(Settings.integerBuilder("Transparency").withMinimum(1).withMaximum(255).withValue(120).build());
-    private Setting<Integer> update = register(Settings.integerBuilder("Update Interval").withMinimum(100).withMaximum(3000).withValue(1500).build());
+    private final Setting<Integer> alpha = register(Settings.integerBuilder("Transparency").withMinimum(1).withMaximum(255).withValue(120).build());
+    private final Setting<Integer> update = register(Settings.integerBuilder("Update Interval").withMinimum(100).withMaximum(3000).withValue(1500).build());
     public Setting<Boolean> overrideWarning = register(Settings.booleanBuilder("overrideWarning").withValue(false).withVisibility(v -> false));
     Minecraft mc = Minecraft.getMinecraft();
     private Set<Block> espBlocks;
     private static final String DEFAULT_BLOCK_ESP_CONFIG = "minecraft:portal, minecraft:end_portal_frame, minecraft:bed";
-    private Setting<String> espBlockNames = register(Settings.stringBuilder("HiddenBlocks").withValue(DEFAULT_BLOCK_ESP_CONFIG).withConsumer((old, value) -> refreshESPBlocksSet(value)).build());
+    private final Setting<String> espBlockNames = register(Settings.stringBuilder("HiddenBlocks").withValue(DEFAULT_BLOCK_ESP_CONFIG).withConsumer((old, value) -> refreshESPBlocksSet(value)).build());
 
     public String extGet() {
         return extGetInternal(null);
@@ -95,14 +94,12 @@ public class Search extends Module {
         return sb.toString();
     }
 
-    Executor exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(r);
-            t.setPriority(Thread.NORM_PRIORITY - 2); //LOW priority
-            return t;
-        }
-    });
+    Executor exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
+            r -> {
+                Thread t = new Thread(r);
+                t.setPriority(Thread.NORM_PRIORITY - 2); //LOW priority
+                return t;
+            });
     Executor cachedExec = Executors.newCachedThreadPool();
 
     @Override
@@ -183,35 +180,6 @@ public class Search extends Module {
             mainList.remove(event.getChunk().getPos());
     });
 
-    /*
-    @EventHandler
-    public Listener<BlockEvent> blocklistener = new Listener<>(event -> {
-        if (!event.isCanceled() && (
-                event instanceof BlockEvent.BreakEvent ||
-                        event instanceof BlockEvent.EntityPlaceEvent ||
-                        event instanceof BlockEvent.PortalSpawnEvent
-        )) {
-            cachedExec.execute(() -> {
-                KamiMod.log.info("[ SEARCH ] got event: " + event.getClass().getName());
-                if (event instanceof BlockEvent.MultiPlaceEvent) {
-                    ((BlockEvent.MultiPlaceEvent) event).getReplacedBlockSnapshots().forEach(bs -> {
-                        mainList.remove(bs.getPos());
-                        Block block = bs.getCurrentBlock().getBlock();
-                        if (espBlocks.contains(block)) {
-                            //mainList.put(bs.getPos(), getTuple(GeometryMasks.Quad.ALL, block));
-                        }
-                    });
-                } else {
-                    mainList.remove(event.getPos());
-                    Block block = event.getState().getBlock();
-                    if (espBlocks.contains(block)) {
-                        //mainList.put(event.getPos(), getTuple(GeometryMasks.Quad.ALL, block));
-                    }
-                }
-            });
-        }
-    });*/
-
     private void reloadChunks() {
         int[] pcoords = getCurrentCoord(false);
         int renderdist = mc.gameSettings.renderDistanceChunks * 16;
@@ -233,7 +201,7 @@ public class Search extends Module {
     private void loadChunk(Chunk chunk) {
         Map<BlockPos, Tuple<Integer, Integer>> actual = mainList.get(chunk.getPos());
         Map<BlockPos, Tuple<Integer, Integer>> found = findBlocksInChunk(chunk, espBlocks);
-        if (!found.isEmpty() || actual!=null) {
+        if (!found.isEmpty() || actual != null) {
             actual = mainList.computeIfAbsent(chunk.getPos(), (p) -> new ConcurrentHashMap<>());
             actual.clear();
             actual.putAll(found);
@@ -254,7 +222,8 @@ public class Search extends Module {
                     foundBlocks.put(blockPos, tuple);
                 }
             }
-        }catch (NullPointerException ignored){} //to fix ghost chunks get loaded and generating NullPointerExceptions
+        } catch (NullPointerException ignored) {
+        } //to fix ghost chunks get loaded and generating NullPointerExceptions
         return foundBlocks;
     }
 
