@@ -18,11 +18,11 @@ public class MessageDetectionHelper {
     }
 
     public static boolean isDirect(boolean direct, String message) {
-        return direct && message.contains("whispers:");
+        return direct && Pattern.compile("^([0-9A-z_])+ whispers:.*").matcher(message).find();
     }
 
     public static boolean isDirectOther(boolean directSent, String message) {
-        return directSent && Pattern.compile("to [0-9A-Za-z_]+:", Pattern.CASE_INSENSITIVE).matcher(message).find();
+        return directSent && Pattern.compile("^to ([0-9A-z_])+:.*").matcher(message).find();
     }
 
     public static boolean isQueue(boolean queue, String message) {
