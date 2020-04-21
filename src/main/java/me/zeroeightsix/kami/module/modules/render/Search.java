@@ -43,6 +43,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 )
 public class Search extends Module {
     private Setting<Integer> alpha = register(Settings.integerBuilder("Transparency").withMinimum(1).withMaximum(255).withValue(120).build());
+    private Setting<Integer> update = register(Settings.integerBuilder("Update Interval").withMinimum(100).withMaximum(3000).withValue(1500).build());
     public Setting<Boolean> overrideWarning = register(Settings.booleanBuilder("overrideWarning").withValue(false).withVisibility(v -> false));
     Minecraft mc = Minecraft.getMinecraft();
     private Set<Block> espBlocks;
@@ -122,7 +123,8 @@ public class Search extends Module {
             return;
         }
         refreshESPBlocksSet(espBlockNames.getValue());
-        reloadChunks();
+        startTime = 0;
+        //reloadChunks();
     }
 
     @Override
@@ -141,6 +143,7 @@ public class Search extends Module {
             }
         }
         mainList.clear();
+        startTime = 0;
     }
 
 
@@ -151,7 +154,7 @@ public class Search extends Module {
         if (mc.world == null) return false;
         if (startTime == 0)
             startTime = System.currentTimeMillis();
-        if (startTime + 1500 <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
+        if (startTime + update.getValue() <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
             return true;
         }
@@ -228,9 +231,10 @@ public class Search extends Module {
     }
 
     private void loadChunk(Chunk chunk) {
+        Map<BlockPos, Tuple<Integer, Integer>> actual = mainList.get(chunk.getPos());
         Map<BlockPos, Tuple<Integer, Integer>> found = findBlocksInChunk(chunk, espBlocks);
-        if (!found.isEmpty()) {
-            Map<BlockPos, Tuple<Integer, Integer>> actual = mainList.computeIfAbsent(chunk.getPos(), (p) -> new ConcurrentHashMap<>());
+        if (!found.isEmpty() || actual!=null) {
+            actual = mainList.computeIfAbsent(chunk.getPos(), (p) -> new ConcurrentHashMap<>());
             actual.clear();
             actual.putAll(found);
         }
