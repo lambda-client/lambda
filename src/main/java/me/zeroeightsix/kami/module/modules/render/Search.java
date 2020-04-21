@@ -43,7 +43,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 public class Search extends Module {
     private final Setting<Integer> alpha = register(Settings.integerBuilder("Transparency").withMinimum(1).withMaximum(255).withValue(120).build());
     private final Setting<Integer> update = register(Settings.integerBuilder("Update Interval").withMinimum(100).withMaximum(3000).withValue(1500).build());
-    public Setting<Boolean> overrideWarning = register(Settings.booleanBuilder("overrideWarning").withValue(false).withVisibility(v -> false));
+    public Setting<Boolean> overrideWarning = register(Settings.booleanBuilder("overrideWarning").withValue(false).withVisibility(v -> false).build());
     Minecraft mc = Minecraft.getMinecraft();
     private Set<Block> espBlocks;
     private static final String DEFAULT_BLOCK_ESP_CONFIG = "minecraft:portal, minecraft:end_portal_frame, minecraft:bed";
