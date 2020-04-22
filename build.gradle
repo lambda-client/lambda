@@ -116,7 +116,7 @@ shadowJar {
         include(dependency('org.javassist:javassist'))
         include(dependency('com.github.MrPowerGamerBR:TemmieWebhook'))
         include(dependency('com.github.kevinsawicki:http-request'))
-        include(dependency('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72'))
+        include(dependency('org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version'))
     }
     exclude 'dummyThing' // can someone explain why this is here
     classifier = 'release'
