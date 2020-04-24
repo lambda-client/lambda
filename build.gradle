@@ -94,7 +94,13 @@ dependencies {
     compile 'com.github.MrPowerGamerBR:TemmieWebhook:-SNAPSHOT'
     compile 'com.github.kevinsawicki:http-request:http-request-6.0'
     compile group: "net.shadowfacts", name: "Forgelin", version: "1.8.4"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    compile group: "org.jetbrains.kotlin", name: "kotlin-stdlib", version: kotlin_version
+    compile group: "org.jetbrains.kotlin", name: "kotlin-stdlib-jdk7", version: kotlin_version
+    compile group: "org.jetbrains.kotlin", name: "kotlin-stdlib-jdk8", version: kotlin_version
+    compile group: "org.jetbrains.kotlin", name: "kotlin-reflect", version: kotlin_version
+    compile group: "org.jetbrains", name: "annotations", version: annotations_version
+    compile group: "org.jetbrains.kotlinx", name: "kotlinx-coroutines-core", version: coroutines_version
+    compile group: "org.jetbrains.kotlinx", name: "kotlinx-coroutines-jdk8", version: coroutines_version
 }
 
 processResources {
@@ -130,7 +136,14 @@ shadowJar {
         include(dependency('org.javassist:javassist'))
         include(dependency('com.github.MrPowerGamerBR:TemmieWebhook'))
         include(dependency('com.github.kevinsawicki:http-request'))
-        include(dependency('org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version'))
+        include(dependency("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"))
+        include(dependency("org.jetbrains.kotlin:kotlin-stdlib-jdk7:${kotlin_version}"))
+        include(dependency("org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"))
+        include(dependency("org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"))
+        include(dependency("org.jetbrains:annotations:${annotations_version}"))
+        include(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutines_version}"))
+        include(dependency("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${coroutines_version}"))
+        include(dependency('net.shadowfacts:Forgelin'))
     }
     exclude 'dummyThing' // can someone explain why this is here
     classifier = 'release'
