@@ -26,6 +26,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
  * Created by 086 on 20/01/19
  * Updated by Polymer on 16/01/20
  * Updated by dominikaaaa on 02/03/20
+ * Updated by Nucleus on 25/04/20
  * @see me.zeroeightsix.kami.mixin.client.MixinEntity
  */
 @Module.Info(
