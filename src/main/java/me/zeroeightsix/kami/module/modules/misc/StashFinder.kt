@@ -13,6 +13,9 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import kotlin.math.roundToInt
 
+/**
+ * @author Nucleus
+ */
 @Module.Info(
         name = "StashFinder",
         category = Module.Category.MISC,
