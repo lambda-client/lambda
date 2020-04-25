@@ -38,10 +38,10 @@ public class Scaffold extends Module {
 
     private Setting<Boolean> placeBlocks = register(Settings.b("Place Blocks", true));
     private Setting<Boolean> tower = register(Settings.b("Tower", false));
-    private Setting<Mode> modeSetting = register(Settings.enumBuilder(Mode.class).withName("Mode").withValue(Mode.LEGIT).build());
+    private Setting<Mode> modeSetting = register(Settings.e("Mode", Mode.NORMAL));
     private Setting<Boolean> randomDelay = register(Settings.booleanBuilder("Random Delay").withValue(false).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT)).build());
     private Setting<Integer> delayRange = register(Settings.integerBuilder("Delay Range").withMinimum(0).withValue(6).withMaximum(10).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT) && randomDelay.getValue()).build());
-    private Setting<Integer> ticks = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2).withVisibility(v -> !modeSetting.getValue().equals(Mode.LEGIT)).build());
+    private Setting<Integer> ticks = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2).withVisibility(v -> modeSetting.getValue().equals(Mode.NORMAL)).build());
 
     private boolean shouldSlow = false;
     private double towerStart = 0.0;
@@ -57,7 +57,7 @@ public class Scaffold extends Module {
     }
 
     private enum Mode {
-        NEITHER, LEGIT
+        NORMAL, LEGIT
     }
 
     @EventHandler
