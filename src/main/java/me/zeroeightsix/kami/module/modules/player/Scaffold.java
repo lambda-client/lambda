@@ -10,6 +10,7 @@ import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockFalling;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketEntityAction;
@@ -25,6 +26,7 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
  * Created by 086 on 20/01/19
  * Updated by Polymer on 16/01/20
  * Updated by dominikaaaa on 02/03/20
+ * Updated by Nucleus on 25/04/20
  * @see me.zeroeightsix.kami.mixin.client.MixinEntity
  */
 @Module.Info(
@@ -35,12 +37,14 @@ import static me.zeroeightsix.kami.util.BlockInteractionHelper.*;
 public class Scaffold extends Module {
 
     private Setting<Boolean> placeBlocks = register(Settings.b("Place Blocks", true));
+    private Setting<Boolean> tower = register(Settings.b("Tower", false));
     private Setting<Mode> modeSetting = register(Settings.enumBuilder(Mode.class).withName("Mode").withValue(Mode.LEGIT).build());
     private Setting<Boolean> randomDelay = register(Settings.booleanBuilder("Random Delay").withValue(false).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT)).build());
     private Setting<Integer> delayRange = register(Settings.integerBuilder("Delay Range").withMinimum(0).withValue(6).withMaximum(10).withVisibility(v -> modeSetting.getValue().equals(Mode.LEGIT) && randomDelay.getValue()).build());
     private Setting<Integer> ticks = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2).withVisibility(v -> !modeSetting.getValue().equals(Mode.LEGIT)).build());
 
     private boolean shouldSlow = false;
+    private double towerStart = 0.0;
 
     private static Scaffold INSTANCE;
 
@@ -74,6 +78,7 @@ public class Scaffold extends Module {
     public void onUpdate() {
         if (mc.player == null || MODULE_MANAGER.isModuleEnabled(Freecam.class)) return;
         shouldSlow = false;
+        boolean towering = mc.gameSettings.keyBindJump.isKeyDown() && tower.getValue();
 
         Vec3d vec3d = EntityUtil.getInterpolatedPos(mc.player, ticks.getValue());
         if (modeSetting.getValue().equals(Mode.LEGIT)) vec3d = EntityUtil.getInterpolatedPos(mc.player, 0);
@@ -84,10 +89,16 @@ public class Scaffold extends Module {
 
         /* when legitBridge is enabled */
         /* check if block behind player is air or other replaceable block and if it is, make the player crouch */
-        if (modeSetting.getValue().equals(Mode.LEGIT) && Wrapper.getWorld().getBlockState(legitPos.down()).getMaterial().isReplaceable() && mc.player.onGround) {
+        if (modeSetting.getValue().equals(Mode.LEGIT) && Wrapper.getWorld().getBlockState(legitPos.down()).getMaterial().isReplaceable() && mc.player.onGround && !towering) {
             shouldSlow = true;
             mc.player.movementInput.sneak = true;
             mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.START_SNEAKING));
+        }
+
+        if (towering) {
+            if (!(mc.player.posY > blockPos.y + 1.0f)) {
+                return;
+            }
         }
 
         /* check if block is already placed */
@@ -95,6 +106,7 @@ public class Scaffold extends Module {
             return;
         }
 
+        int oldSlot = mc.player.inventory.currentItem;
         setSlotToBlocks(belowBlockPos);
 
         /* check if we don't have a block adjacent to the blockPos */
@@ -102,8 +114,31 @@ public class Scaffold extends Module {
 
         /* place the block */
         if (placeBlocks.getValue()) placeBlockScaffold(blockPos);
-        mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.STOP_SNEAKING));
-        shouldSlow = false;
+
+        /* Reset the slot */
+        mc.player.inventory.currentItem = oldSlot;
+
+
+        if (towering) {
+            final double motion = 0.42d; // jump motion
+            if (mc.player.onGround) {
+                towerStart = mc.player.posY;
+                mc.player.motionY = motion;
+            }
+
+            if (mc.player.posY > towerStart + motion) {
+                mc.player.setPosition(mc.player.posX, (int)mc.player.posY, mc.player.posZ);
+                mc.player.motionY = motion;
+                towerStart = mc.player.posY;
+            }
+        } else {
+            towerStart = 0.0;
+        }
+
+        if (shouldSlow) {
+            mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.STOP_SNEAKING));
+            shouldSlow = false;
+        }
     }
 
     private float getRandomInRange() {
@@ -132,13 +167,9 @@ public class Scaffold extends Module {
             break;
         }
         /* check if any blocks were found, and if they were then set the slot */
-        int oldSlot = 1; /* make it 1, instead of -1 so you don't get kicked if it was -1 */
         if (newSlot != -1) {
-            oldSlot = Wrapper.getPlayer().inventory.currentItem;
             Wrapper.getPlayer().inventory.currentItem = newSlot;
         }
-        /* reset slot back to the original one */
-        Wrapper.getPlayer().inventory.currentItem = oldSlot;
     }
 }
 
