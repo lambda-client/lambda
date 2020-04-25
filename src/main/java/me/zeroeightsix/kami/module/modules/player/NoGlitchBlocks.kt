@@ -51,15 +51,13 @@ class NoGlitchBlocks : Module() {
             return
         }
         val pos = mc.player.position
-        for (dx in -range.value..range.value) {
-            for (dy in -range.value..range.value) for (dz in -range.value..range.value) {
-                val packet = CPacketPlayerDigging(
-                        CPacketPlayerDigging.Action.ABORT_DESTROY_BLOCK,
-                        BlockPos(pos.getX() + dx, pos.getY() + dy, pos.getZ() + dz),
-                        EnumFacing.UP /* with ABORT_DESTROY_BLOCK, this value is unused */
-                )
-                conn!!.sendPacket(packet)
-            }
+        for (dx in -range.value..range.value) for (dy in -range.value..range.value) for (dz in -range.value..range.value) {
+            val packet = CPacketPlayerDigging(
+                    CPacketPlayerDigging.Action.ABORT_DESTROY_BLOCK,
+                    BlockPos(pos.getX() + dx, pos.getY() + dy, pos.getZ() + dz),
+                    EnumFacing.UP /* with ABORT_DESTROY_BLOCK, this value is unused */
+            )
+            conn!!.sendPacket(packet)
         }
     }
 }
