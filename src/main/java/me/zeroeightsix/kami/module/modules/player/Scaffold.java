@@ -44,7 +44,6 @@ public class Scaffold extends Module {
     private Setting<Integer> ticks = register(Settings.integerBuilder("Ticks").withMinimum(0).withMaximum(60).withValue(2).withVisibility(v -> !modeSetting.getValue().equals(Mode.LEGIT)).build());
 
     private boolean shouldSlow = false;
-
     private double towerStart = 0.0;
 
     private static Scaffold INSTANCE;
@@ -96,7 +95,7 @@ public class Scaffold extends Module {
             mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.START_SNEAKING));
         }
 
-        if(towering) {
+        if (towering) {
             if (!(mc.player.posY > blockPos.y + 1.0f)) {
                 return;
             }
@@ -120,14 +119,14 @@ public class Scaffold extends Module {
         mc.player.inventory.currentItem = oldSlot;
 
 
-        if(towering) {
+        if (towering) {
             final double motion = 0.42d; // jump motion
-            if(mc.player.onGround) {
+            if (mc.player.onGround) {
                 towerStart = mc.player.posY;
                 mc.player.motionY = motion;
             }
 
-            if(mc.player.posY > towerStart + motion) {
+            if (mc.player.posY > towerStart + motion) {
                 mc.player.setPosition(mc.player.posX, (int)mc.player.posY, mc.player.posZ);
                 mc.player.motionY = motion;
                 towerStart = mc.player.posY;
@@ -136,7 +135,7 @@ public class Scaffold extends Module {
             towerStart = 0.0;
         }
 
-        if(shouldSlow) {
+        if (shouldSlow) {
             mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, Action.STOP_SNEAKING));
             shouldSlow = false;
         }
