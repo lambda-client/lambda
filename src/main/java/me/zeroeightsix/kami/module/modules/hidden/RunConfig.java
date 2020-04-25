@@ -26,7 +26,6 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunDiscordSettings = register(Settings.b("DiscordRPC", false));
     private Setting<Boolean> hasRunFixGui = register(Settings.b("FixGui", false));
     private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
-    private Setting<Boolean> hasRunCustomChat = register(Settings.b("CustomChat", false));
     private Setting<Boolean> hasRunTooltips = register(Settings.b("Tooltips", false));
 
     public void onEnable() {
@@ -50,10 +49,6 @@ public class RunConfig extends Module {
         if (!hasRunTabFriends.getValue()) {
             MODULE_MANAGER.getModule(TabFriends.class).enable();
             hasRunTabFriends.setValue(true);
-        }
-        if (!hasRunCustomChat.getValue()) {
-            MODULE_MANAGER.getModule(CustomChat.class).enable();
-            hasRunCustomChat.setValue(true);
         }
         if (!hasRunTooltips.getValue()) {
             MODULE_MANAGER.getModule(Tooltips.class).enable();
