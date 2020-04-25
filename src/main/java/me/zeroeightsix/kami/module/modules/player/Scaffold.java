@@ -106,6 +106,7 @@ public class Scaffold extends Module {
             return;
         }
 
+        int oldSlot = mc.player.inventory.currentItem;
         setSlotToBlocks(belowBlockPos);
 
         /* check if we don't have a block adjacent to the blockPos */
@@ -113,6 +114,9 @@ public class Scaffold extends Module {
 
         /* place the block */
         if (placeBlocks.getValue()) placeBlockScaffold(blockPos);
+
+        /* Reset the slot */
+        mc.player.inventory.currentItem = oldSlot;
 
 
         if(towering) {
@@ -125,7 +129,7 @@ public class Scaffold extends Module {
             if(mc.player.posY > towerStart + motion) {
                 mc.player.setPosition(mc.player.posX, (int)mc.player.posY, mc.player.posZ);
                 mc.player.motionY = motion;
-                jumpGround = mc.player.posY;
+                towerStart = mc.player.posY;
             }
         } else {
             towerStart = 0.0;
@@ -165,11 +169,8 @@ public class Scaffold extends Module {
         /* check if any blocks were found, and if they were then set the slot */
         int oldSlot = 1; /* make it 1, instead of -1 so you don't get kicked if it was -1 */
         if (newSlot != -1) {
-            oldSlot = Wrapper.getPlayer().inventory.currentItem;
             Wrapper.getPlayer().inventory.currentItem = newSlot;
         }
-        /* reset slot back to the original one */
-        Wrapper.getPlayer().inventory.currentItem = oldSlot;
     }
 }
 
