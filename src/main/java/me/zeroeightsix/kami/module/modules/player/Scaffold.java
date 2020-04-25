@@ -167,7 +167,6 @@ public class Scaffold extends Module {
             break;
         }
         /* check if any blocks were found, and if they were then set the slot */
-        int oldSlot = 1; /* make it 1, instead of -1 so you don't get kicked if it was -1 */
         if (newSlot != -1) {
             Wrapper.getPlayer().inventory.currentItem = newSlot;
         }
