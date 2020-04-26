@@ -25,7 +25,11 @@ import net.minecraftforge.client.event.InputUpdateEvent
  * Updated by Nucleus on 25/04/20
  * @see me.zeroeightsix.kami.mixin.client.MixinEntity
  */
-@Module.Info(name = "Scaffold", category = Module.Category.PLAYER, description = "Places blocks under you")
+@Module.Info(
+        name = "Scaffold",
+        category = Module.Category.PLAYER,
+        description = "Places blocks under you"
+)
 class Scaffold : Module() {
     private val placeBlocks = register(Settings.b("Place Blocks", true))
     private val tower = register(Settings.b("Tower", true))
