@@ -17,6 +17,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.client.event.InputUpdateEvent
+import kotlin.math.round
 
 /**
  * Created by 086 on 20/01/19
@@ -98,7 +99,7 @@ class Scaffold : Module() {
                 mc.player.motionY = motion
             }
             if (mc.player.posY > towerStart + motion) {
-                mc.player.setPosition(mc.player.posX, mc.player.posY.toInt() * 1.0, mc.player.posZ)
+                mc.player.setPosition(mc.player.posX, round(mc.player.posY), mc.player.posZ)
                 mc.player.motionY = motion
                 towerStart = mc.player.posY
             }
