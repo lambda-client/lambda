@@ -63,7 +63,7 @@ class Flight : Module() {
                 }
 
                 mc.player.motionY = 0.0
-                mc.player.connection.sendPacket(PositionRotation(mc.player.posX + mc.player.motionX, mc.player.posY + (if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown) 0.0622 else 0).toDouble() - (if (Minecraft.getMinecraft().gameSettings.keyBindSneak.isKeyDown) 0.0622 else 0).toDouble(), mc.player.posZ + mc.player.motionZ, mc.player.rotationYaw, mc.player.rotationPitch, false))
+                mc.player.connection.sendPacket(PositionRotation(mc.player.posX + mc.player.motionX, mc.player.posY + (if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown) 0.0622 else 0.0).toDouble() - (if (Minecraft.getMinecraft().gameSettings.keyBindSneak.isKeyDown) 0.0622 else 0.0).toDouble(), mc.player.posZ + mc.player.motionZ, mc.player.rotationYaw, mc.player.rotationPitch, false))
                 mc.player.connection.sendPacket(PositionRotation(mc.player.posX + mc.player.motionX, mc.player.posY - 42069, mc.player.posZ + mc.player.motionZ, mc.player.rotationYaw, mc.player.rotationPitch, true))
             }
         }

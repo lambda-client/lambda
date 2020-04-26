@@ -43,7 +43,7 @@ class EntitySpeed : Module() {
         }
         if (flight.value) {
             if (mc.gameSettings.keyBindJump.isKeyDown) entity.motionY = speed.value.toDouble()
-            else if (mc.gameSettings.keyBindForward.isKeyDown || mc.gameSettings.keyBindBack.isKeyDown) entity.motionY = (if (wobble.value) sin(mc.player.ticksExisted.toDouble()) else 0).toDouble()
+            else if (mc.gameSettings.keyBindForward.isKeyDown || mc.gameSettings.keyBindBack.isKeyDown) entity.motionY = (if (wobble.value) sin(mc.player.ticksExisted.toDouble()) else 0.0).toDouble()
         }
         moveForward(entity, speed.value * 3.8)
         if (entity is EntityHorse) {
