@@ -27,4 +27,6 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
     - name: Send webhook confirmation
+      env:
+        WEBHOOK: ${{ secrets.WEBHOOK }}
       run: ./scripts/hook.sh
