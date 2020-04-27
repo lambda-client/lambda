@@ -6,6 +6,9 @@ before_install:
 - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
 - chmod +x gradlew
 - "./gradlew setupDecompWorkspace"
+before_deploy:
+- export TAG_NAME="$(git log --format=%h -1)"
+- git tag $TRAVIS_TAG
 deploy:
   provider: releases
   api_key:
@@ -14,7 +17,7 @@ deploy:
   file_glob: true
   skip_cleanup: true
   on:
-    repo: kami-blue/client
-    tags: true
+    repo: kami-blue/nightly-releases
+    tags: false
 after_success:
 - "./scripts/hook.sh"
