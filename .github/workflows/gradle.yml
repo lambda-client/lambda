@@ -33,6 +33,7 @@ jobs:
     - name: Create a Release
       env: 
         COMMIT_TRIM: "$(git log --format=%h -1)"
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       uses: actions/create-release@v1
       with:
         tag_name: $COMMIT_TRIM
