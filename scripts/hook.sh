@@ -6,8 +6,8 @@ COMMIT_FULL="$(git log --format=%H -1)"
 COMMIT_MSG="$(git log --format=%s -1)"
 
 # Find the release file and rename it to kamiblue-version-commit-release.jar
-BUILD_DIR="$(readlink -f ./build/libs/)"
-JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
+BUILD_DIR=$HOME/kamiblue/build/libs/
+JAR_DIR="$(ls "$BUILD_DIR" | grep $COMMIT_TRIM-"release")"
 mv ${BUILD_DIR}/${JAR_DIR} ${BUILD_DIR}/kamiblue-${CUR_VER}-${COMMIT_TRIM}-release.jar
 JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
 # Upload the release file
@@ -15,7 +15,8 @@ JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
 
 # Upload the release
 cd ~/
-./github-release-linux-amd64 $COMMIT_TRIM $BUILD_DIR/$JAR_DIR --github-access-token $GITHUB_RELEASE_ACCESS_TOKEN --github-repository $GITHUB_RELEASE_REPOSITORY
+source ~/.profile
+./github-release-linux-amd64 $CUR_VER-$COMMIT_TRIM $BUILD_DIR/$JAR_DIR --github-access-token $GITHUB_RELEASE_ACCESS_TOKEN --github-repository $GITHUB_RELEASE_REPOSITORY
 
 # Send message with commit information
 curl -H "Content-Type: application/json" -X POST -d '{"embeds": [{"title": "","color": 10195199,"description": "**Changelog:** '"$COMMIT_MSG"'\n**Download:** ['${CURVER}-${COMMIT_TRIM}'](https://github.com/kami-blue/nightly-releases/releases/download/'${COMMIT_TRIM}'/'${JAR_DIR}'
