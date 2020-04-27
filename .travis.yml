@@ -3,7 +3,8 @@ jdk:
 - openjdk8
 before_install:
 - "./scripts/preHook.sh"
-- export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
+- export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH;
+  else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
 - chmod +x gradlew
 - "./gradlew setupDecompWorkspace"
 before_deploy:
@@ -12,7 +13,7 @@ before_deploy:
 deploy:
   provider: releases
   api_key:
-    secure: MIGJAoGBALeFvpaS4szqW9jo3uH3kaS2YJZSyghvokomKuiPIBr8mnO6BNm6C5sJDKX7ihhJdKUA/MpEFCiObj5ZPiXcV7gHlyVN2FCP5ucFLHtasa3j6nCH5lvdLxAwAbPKq8PPCq8rurmFWBLuuCWXR0VW2OG1+Oo4b9U1d5ywST7hpvOrAgMBAAE=
+    secure: jJXC04qyHdXUairFxPzgjnw2yaBAUTLXREVpWTNzVWiVTmqsj3MS/zZ2sH8TY9mTOYq8chJjLL6Xe0Cmhw5/WtYmg0c8ZDsDFLFqZ2UuDz2NToN5NtyDkfbfJX1SS47Pz2SRAT6yCBQ5NaSFM8Tn8htCHaVhICTacjttKBIkYeKvT5HTrX1PWP0Pcxk5kAXESl/WkNjY90hEvJ7dN4w7CvwFVzLmHv8jmOfmPcb9xAf6tsfWNBTzLClemMph0GK1lsUnb16V96pTYlU8iBGkl3nXcZqc+OZYDbw6DdN2CUF9VSxMV7bpHMK4vYRhDjs3Z+gSSBpXVoSX6HDdWfR4GxHngP9b9maD9qwZF36zys2rhxIXsQydJZ9s9ss741FsH16hJDohYWLxqFz9FErsA4M3AR69T8paIZzlS9iSQXOSZ3rUKDSl9gKash1fwl+kXRH0vCattyM6tmTXjstYyJXphqDsJtJLrXiPZ0nmp+VP95KwBetj3Wn7lhZfJvy1qnz72001HbaPrV+R6o8eHzYT2NhkCCOvpBSMWxLKHyC8R10Clxet/ubg0r+xtRgzBsNFGwcj7E2hSAGzLv4r+o+SUKsX6rRfOn1PMeg2OgTg2HafBOo90lh+z2XOAFxXtSeLZPhlWmZIGeqkoFrpX8ZX9w1coo2DosSW5uNpK0Y=
   file: build/libs/*-release.jar
   file_glob: true
   skip_cleanup: true
