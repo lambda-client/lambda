@@ -30,14 +30,18 @@ jobs:
       env:
         WEBHOOK: ${{ secrets.WEBHOOK }}
       run: ./scripts/hook.sh
+    - name: Get version
+       id: get_version
+       env: 
+         COMMIT_TRIM: "$(git log --format=%h -1)"
+          run: echo "::set-output name=version::$(echo $COMMIT_TRIM)"
     - name: Create a Release
       id: create_release
       env: 
-        COMMIT_TRIM: "$(git log --format=%h -1)"
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       uses: actions/create-release@v1
       with:
-        tag_name: ${{ COMMIT_TRIM }}
-        release_name: ${{ COMMIT_TRIM }}
+        tag_name: v${{ steps.get_version.outputs.version }}
+        release_name: v${{ steps.get_version.outputs.version }}
         draft: false
         prerelease: true
