@@ -41,7 +41,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       uses: actions/create-release@v1
       with:
-        tag_name: v${{ steps.get_version.outputs.version }}
-        release_name: v${{ steps.get_version.outputs.version }}
+        tag_name: ${{ steps.get_version.outputs.version }}
+        release_name: ${{ steps.get_version.outputs.version }}
         draft: false
         prerelease: true
