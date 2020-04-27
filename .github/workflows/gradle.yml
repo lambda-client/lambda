@@ -30,3 +30,12 @@ jobs:
       env:
         WEBHOOK: ${{ secrets.WEBHOOK }}
       run: ./scripts/hook.sh
+    - name: Create a Release
+      env: 
+        COMMIT_TRIM: "$(git log --format=%h -1)"
+      uses: actions/create-release@v1
+      with:
+        tag_name: $COMMIT_TRIM
+        release_name: $COMMIT_TRIM
+        draft: false
+        prerelease: true
