@@ -31,10 +31,10 @@ jobs:
         WEBHOOK: ${{ secrets.WEBHOOK }}
       run: ./scripts/hook.sh
     - name: Get version
-       id: get_version
-       env: 
-         COMMIT_TRIM: "$(git log --format=%h -1)"
-          run: echo "::set-output name=version::$(echo $COMMIT_TRIM)"
+      id: get_version
+      env: 
+        COMMIT_TRIM: "$(git log --format=%h -1)"
+      run: echo "::set-output name=version::$(echo $COMMIT_TRIM)"
     - name: Create a Release
       id: create_release
       env: 
