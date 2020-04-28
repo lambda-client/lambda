@@ -13,7 +13,7 @@ JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
 # Upload the release file
 #curl -F content=@"$BUILD_DIR/$JAR_DIR" "$WEBHOOK"
 
-CHANGELOG_FULL="$(git log --format=%s $COMMIT_TRIM...$COMMIT_LAST | sed ':a;N;$!ba;s/\n/\\n/g')"
+CHANGELOG_FULL="$(git log --format=%s $COMMIT_TRIM...$COMMIT_LAST | sed ':a;N;$!ba;s/\n/\\n- /g')"
 
 # Upload the release
 cd ~/
@@ -21,4 +21,4 @@ source ~/.profile
 ./github-release-linux-amd64 $CUR_VER-$COMMIT_TRIM $BUILD_DIR/$JAR_DIR --github-access-token $GITHUB_RELEASE_ACCESS_TOKEN --github-repository $GITHUB_RELEASE_REPOSITORY
 
 # Send message with commit information
-curl -H "Content-Type: application/json" -X POST -d '{"embeds": [{"title": "Download '$CUR_VER\-$COMMIT_TRIM'","color": 10195199,"description": "[**DOWNLOAD**](https://github.com/kami-blue/nightly-releases/releases/download/'$CUR_VER\-$COMMIT_TRIM'/'${JAR_DIR}')\n**Changelog:** \n'"$CHANGELOG_FULL"'\nCommit: ['${COMMIT_TRIM}'](https://github.com/kami-blue/client/commit/'${COMMIT_FULL}') "}]}' "$WEBHOOK"
+curl -H "Content-Type: application/json" -X POST -d '{"embeds": [{"title": "Download '$CUR_VER\-$COMMIT_TRIM'","color": 10195199,"description": "[**DOWNLOAD**](https://github.com/kami-blue/nightly-releases/releases/download/'$CUR_VER\-$COMMIT_TRIM'/'${JAR_DIR}')\n**Changelog:** \n'"$CHANGELOG_FULL"'\n\nCommit: ['${COMMIT_TRIM}'](https://github.com/kami-blue/client/commit/'${COMMIT_FULL}') "}]}' "$WEBHOOK"
