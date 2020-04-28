@@ -4,13 +4,3 @@ jdk:
 before_install:
 - chmod +x gradlew
 - "./gradlew setupDecompWorkspace"
-deploy:
-  provider: releases
-  api_key:
-    secure: MIGJAoGBALeFvpaS4szqW9jo3uH3kaS2YJZSyghvokomKuiPIBr8mnO6BNm6C5sJDKX7ihhJdKUA/MpEFCiObj5ZPiXcV7gHlyVN2FCP5ucFLHtasa3j6nCH5lvdLxAwAbPKq8PPCq8rurmFWBLuuCWXR0VW2OG1+Oo4b9U1d5ywST7hpvOrAgMBAAE=
-  file: build/libs/*-release.jar
-  file_glob: true
-  skip_cleanup: true
-  on:
-    repo: kami-blue/client
-    tags: true
