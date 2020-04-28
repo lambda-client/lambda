@@ -21,4 +21,4 @@ source ~/.profile
 ./github-release-linux-amd64 $CUR_VER-$COMMIT_TRIM $BUILD_DIR/$JAR_DIR --github-access-token $GITHUB_RELEASE_ACCESS_TOKEN --github-repository $GITHUB_RELEASE_REPOSITORY
 
 # Send message with commit information
-curl -H "Content-Type: application/json" -X POST -d '{"embeds": [{"title": "Download '$CUR_VER\-$COMMIT_TRIM'","color": 10195199,"description": "[**DOWNLOAD**](https://github.com/kami-blue/nightly-releases/releases/download/'$CUR_VER\-$COMMIT_TRIM'/'${JAR_DIR}')\n**Changelog:** \n'"$CHANGELOG_FULL"'\n\nCommit: ['${COMMIT_TRIM}'](https://github.com/kami-blue/client/commit/'${COMMIT_FULL}') "}]}' "$WEBHOOK"
+curl -H "Content-Type: application/json" -X POST -d '{"embeds": [{"title": "Download v'$CUR_VER\-$COMMIT_TRIM'","color": 10195199,"description": "[**DOWNLOAD**](https://github.com/kami-blue/nightly-releases/releases/download/'$CUR_VER\-$COMMIT_TRIM'/'${JAR_DIR}')\n**Changelog:** \n'"$CHANGELOG_FULL"'\n\nCommit: ['${COMMIT_TRIM}'](https://github.com/kami-blue/client/commit/'${COMMIT_FULL}') "}]}' "$WEBHOOK"
