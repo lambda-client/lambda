@@ -7,7 +7,7 @@ export COMMIT_LAST_FULL="$(git log --format=%H -1)"
 git fetch kamiblue master
 git fetch origin master
 git reset --hard kamiblue/master
-git push --force origin master
+git push --force origin HEAD:master
 
 export COMMIT_TRIM="$(git log --format=%h -1)"
 
