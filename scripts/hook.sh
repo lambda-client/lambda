@@ -18,3 +18,11 @@ source ~/.profile
 
 # Send message with commit information
 curl -H "Content-Type: application/json" -X POST -d '{"embeds": [{"title": "Download v'$CUR_VER\-$COMMIT_TRIM'","color": 10195199,"description": "[**DOWNLOAD**](https://github.com/kami-blue/nightly-releases/releases/download/'$CUR_VER\-$COMMIT_TRIM'/'${JAR_DIR}')\n\n**Changelog:** \n- '"$CHANGELOG_FULL"'\n\nDiff: ['$COMMIT_LAST'...'${COMMIT_TRIM}'](https://github.com/kami-blue/client/compare/'$COMMIT_LAST_FULL'...'$COMMIT_FULL') "}]}' "$WEBHOOK"
+
+cd ~/website/
+
+git pull
+sed -i "s|beta_jar_url:.*|beta_jar_url: https://github.com/kami-blue/nightly-releases/releases/download/'${CUR_VER}'-'${COMMIT_TRIM}'/'${JAR_DIR}'|g" docs/_config.yml
+sed -i "s|beta_ver:.*|beta_ver: v'${CUR_VER}'-'${COMMIT_TRIM}'|g" docs/_config.yml
+git commit -a -m "bump ver to '${CUR_VER}'-'${COMMIT_TRIM}'"
+git push origin master
