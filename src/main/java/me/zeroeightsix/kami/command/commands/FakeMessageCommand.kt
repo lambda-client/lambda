@@ -10,19 +10,15 @@ import me.zeroeightsix.kami.util.MessageSendHelper
 /**
  * @author dominikaaaa
  */
-class FakeMessageCommand : Command("fakemsg", ChunkBuilder().append("message").append("true|false").build()) {
+class FakeMessageCommand : Command("fakemsg", ChunkBuilder().append("message").build()) {
     override fun call(args: Array<String>) {
         when {
-            args[1] == "true" || args[1] == "" -> {
-                MessageSendHelper.sendRawChatMessage(getTime() + args[0].replace('&', KamiMod.colour))
-            }
-            args[1] == "false" -> {
-                MessageSendHelper.sendRawChatMessage(args[0].replace('&', KamiMod.colour))
-            }
-            else -> {
-                MessageSendHelper.sendErrorMessage(chatLabel + "The second argument, which allows other chat modules to affect the final message &lmust&r be &7true&f or &7false&f. Use \"double quotes\" around your words to make it 1 argument")
+            args[1] != null -> { /* This is null if there is a second argument. */
+                MessageSendHelper.sendErrorMessage(chatLabel + "You must send your entire message inside \"double quotes\". Use &7&&f to add colours.")
+                return
             }
         }
+        MessageSendHelper.sendRawChatMessage(getTime() + args[0].replace('&', KamiMod.colour))
     }
 
     private fun getTime(): String? {
