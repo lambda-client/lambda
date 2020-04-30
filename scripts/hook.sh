@@ -11,6 +11,10 @@ JAR_DIR="$(ls "$BUILD_DIR" | grep "release")"
 
 CHANGELOG_FULL="$(git log --format=%s $COMMIT_TRIM...$COMMIT_LAST | sed ':a;N;$!ba;s/\n/\\n- /g')"
 
+# delete the release in case it exists
+git tag -d $CUR_VER-$COMMIT_TRIM
+git push origin :refs/tags/$CUR_VER-$COMMIT_TRIM
+
 # Upload the release
 cd ~/
 source ~/.profile
