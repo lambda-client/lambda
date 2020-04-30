@@ -41,7 +41,7 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
         final int[] y = {2};
         activeMods = MODULE_MANAGER.getModuleT(ActiveModules.class);
 
-        if (component.getParent().getY() < 26 && Wrapper.getPlayer().getActivePotionEffects().size() > 0 && component.getParent().getOpacity() == 0)
+        if (activeMods.potion.getValue() && component.getParent().getY() < 26 && Wrapper.getPlayer().getActivePotionEffects().size() > 0 && component.getParent().getOpacity() == 0)
             y[0] = Math.max(component.getParent().getY(), 26 - component.getParent().getY());
 
         final float[] hue = {(System.currentTimeMillis() % (360 * activeMods.getRainbowSpeed())) / (360f * activeMods.getRainbowSpeed())};
