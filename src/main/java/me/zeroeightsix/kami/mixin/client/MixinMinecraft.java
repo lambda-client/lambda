@@ -100,6 +100,7 @@ public class MixinMinecraft {
             target = "Lnet/minecraft/client/Minecraft;displayCrashReport(Lnet/minecraft/crash/CrashReport;)V", shift = At.Shift.BEFORE))
     public void displayCrashReport(CallbackInfo _info) {
        save();
+       DiscordPresence.end();
     }
 
     @Inject(method = "shutdown", at = @At("HEAD"))
