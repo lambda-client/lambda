@@ -111,9 +111,21 @@ public class ActiveModules extends Module {
         else return rSpeed;
     }
 
-    public String fHax() {
-        if (forgeHax.getValue()) return ">";
-        else return "";
+    public String getAlignedText(String name, String hudInfo, boolean right) {
+        String aligned;
+        if (right) {
+            aligned = hudInfo + " " + name;
+        } else {
+            aligned = name + " " + hudInfo;
+        }
+
+        if (!forgeHax.getValue()) {
+            return aligned;
+        } else if (right) {
+            return aligned + "<";
+        } else {
+            return ">" + aligned;
+        }
     }
 
     public enum Mode { RAINBOW, CUSTOM, CATEGORY, INFO_OVERLAY }
