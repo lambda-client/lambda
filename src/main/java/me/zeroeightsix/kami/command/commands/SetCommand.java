@@ -73,7 +73,7 @@ public class SetCommand extends Command {
                 arg2 = arg2.toUpperCase();
             }
             setting.setValueFromString(arg2); /* PLEASE MAKE SURE TO USE PROPER NAMING WHEN USING ENUMS */ /* if you use improper lowercase letters it will *not* work with this command ~dominikaaaa */
-            sendChatMessage("Set &b" + setting.getName() + "&r to &3" + arg2 + "&r.");
+            sendChatMessage("Set &b" + setting.getName() + "&r to &3" + setting.getValueAsString() + "&r.");
             Module.closeSettings();
         } catch (Exception e) {
             e.printStackTrace();
