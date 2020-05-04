@@ -21,7 +21,7 @@ public class MacroManager {
     public static Map<String, List<String>> macros = new LinkedHashMap<>();
 
     /**
-     * Registers macros
+     * Reads macros from KAMIBlueMacros.json into the macros Map
      */
     public static void register() {
         KamiMod.log.info("Registering macros...");
@@ -30,7 +30,7 @@ public class MacroManager {
     }
 
     /**
-     * Saves macros
+     * Saves macros from the macros Map into KAMIBlueMacros.json
      */
     public static void saveMacros() {
         KamiMod.log.info("Saving macros...");
