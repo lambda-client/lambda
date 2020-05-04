@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ~/.profile
+
 CUR_VER="$(tail -c +2 ./scripts/curVer)"
 COMMIT_TRIM="$(git log --format=%h -1)"
 COMMIT_FULL="$(git log --format=%H -1)"
@@ -18,7 +20,6 @@ sleep 2
 
 # Upload the release
 cd ~/
-source ~/.profile
 ./github-release-linux-amd64 $CUR_VER-$COMMIT_TRIM $BUILD_DIR/$JAR_DIR --commit master --tag $CUR_VER-$COMMIT_TRIM --github-repository $GITHUB_RELEASE_REPOSITORY --github-access-token $GITHUB_RELEASE_ACCESS_TOKEN
 sleep 5
 
