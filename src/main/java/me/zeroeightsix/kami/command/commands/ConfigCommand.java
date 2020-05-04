@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.DependantParser;
 import me.zeroeightsix.kami.command.syntax.parsers.EnumParser;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
+import me.zeroeightsix.kami.module.MacroManager;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -42,6 +43,7 @@ public class ConfigCommand extends Command {
             case "save":
                 try {
                     KamiMod.saveConfigurationUnsafe();
+                    MacroManager.saveMacros();
                     sendChatMessage("Saved configuration!");
                 } catch (IOException e) {
                     e.printStackTrace();
