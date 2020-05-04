@@ -145,13 +145,12 @@ public class KamiMod {
         commandManager = new CommandManager();
 
         Friends.initFriends();
+
+        /* Custom static Settings, which can't register normally if they're static */
         SettingsRegister.register("commandPrefix", Command.commandPrefix);
         SettingsRegister.register("delimiterV", ChatEncryption.delimiterValue);
         loadConfiguration();
         log.info("Settings loaded");
-
-        // custom names aren't known at compile-time
-        //MODULE_MANAGER.updateLookup(); // generate the lookup table after settings are loaded to make custom module names work
 
         new RichPresence();
         log.info("Rich Presence Users init!\n");
