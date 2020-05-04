@@ -13,8 +13,7 @@ import net.minecraft.network.play.client.CPacketUseEntity;
 @Module.Info(
         name = "MountBypass",
         category = Module.Category.MISC,
-        description = "Might allow you to mount chested animals on servers that block it",
-        alwaysListening = false
+        description = "Might allow you to mount chested animals on servers that block it"
 )
 public class MountBypass extends Module
 {
@@ -23,7 +22,7 @@ public class MountBypass extends Module
     {
         if (event.getPacket() instanceof CPacketUseEntity)
         {
-            CPacketUseEntity packet = (CPacketUseEntity)event.getPacket();
+            CPacketUseEntity packet = (CPacketUseEntity) event.getPacket();
 
             if (packet.getEntityFromWorld(mc.world) instanceof AbstractChestHorse)
             {
