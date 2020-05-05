@@ -9,6 +9,7 @@ import me.zeroeightsix.kami.util.Wrapper
 
 /**
  * @author dominikaaaa
+ * Created by dominikaaaa on 04/05/20
  */
 class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("clear|message/command").build(), "m") {
     override fun call(args: Array<out String?>) {
@@ -34,11 +35,10 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
                 return
             }
             args[1] == null -> { /* message */
-                if (Macro.getMacrosForKey(key) == null) {
+                if (Macro.getMacrosForKey(key) == null || Macro.getMacrosForKey(key)?.equals("")!! || Macro.getMacrosForKey(key)?.toTypedArray()?.equals("")!!) {
                     sendChatMessage("'&7$rKey&f' has no macros")
                     return
                 }
-                // TODO: empty check doesn't work idk
                 sendChatMessage("'&7$rKey&f' has the following macros: ")
                 sendStringChatMessage(Macro.getMacrosForKey(key)?.toTypedArray(), false)
                 return
