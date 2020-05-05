@@ -109,15 +109,7 @@ public class DisplayGuiScreen extends GuiScreen {
             gui.handleKeyUp(keyCode);
         }
     }
-
-    @Override
-    public boolean doesGuiPauseGame() {
-        if (MODULE_MANAGER.getModule(InventoryMove.class).isEnabled())
-            return false;
-
-        return super.doesGuiPauseGame();
-    }
-
+    
     public static int getScale() {
         int scaleFactor = 0;
         int scale = Wrapper.getMinecraft().gameSettings.guiScale;
