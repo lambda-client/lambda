@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.module.modules.ClickGUI;
+import me.zeroeightsix.kami.module.modules.movement.InventoryMove;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -107,6 +108,14 @@ public class DisplayGuiScreen extends GuiScreen {
             gui.handleKeyDown(keyCode);
             gui.handleKeyUp(keyCode);
         }
+    }
+
+    @Override
+    public boolean doesGuiPauseGame() {
+        if (MODULE_MANAGER.getModule(InventoryMove.class).isEnabled())
+            return false;
+
+        return super.doesGuiPauseGame();
     }
 
     public static int getScale() {
