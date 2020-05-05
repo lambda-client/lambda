@@ -13,5 +13,5 @@ public class Macros {
      * Map of all the macros.
      * KeyCode, Actions
      */
-    public static Map<String, List<String>> macros = new LinkedHashMap<>();
+    public static Map<Integer, List<String>> macros = new LinkedHashMap<>();
 }

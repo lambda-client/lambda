@@ -36,7 +36,7 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
                 }
                 sendChatMessage("You have the following macros: ")
                 for ((key1, value) in Macros.macros) {
-                    sendRawChatMessage(Wrapper.getKeyName(key1.toInt()) + ": $value")
+                    sendRawChatMessage(Wrapper.getKeyName(key1) + ": $value")
                 }
                 return
             }
@@ -50,7 +50,7 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
                 return
             }
             args[1] == "clear" -> {
-                Macro.removeMacro(key.toString())
+                Macro.removeMacro(key)
                 MacroManager.saveMacros()
                 MacroManager.registerMacros()
                 sendChatMessage("Cleared macros for '&7$rKey&f'")
@@ -61,7 +61,7 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
                 return
             }
             else -> {
-                Macro.addMacroToKey(key.toString(), macro)
+                Macro.addMacroToKey(key, macro)
                 MacroManager.saveMacros()
                 sendChatMessage("Added macro '&7$macro&f' for key '&7$rKey&f'")
             }

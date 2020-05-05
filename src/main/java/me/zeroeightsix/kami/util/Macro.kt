@@ -29,30 +29,30 @@ object Macro {
 
     fun readFileToMemory() {
         try {
-            Macros.macros = gson.fromJson(FileReader(file), object : TypeToken<HashMap<String?, List<String?>?>?>() {}.type)
+            Macros.macros = gson.fromJson(FileReader(file), object : TypeToken<HashMap<Int?, List<String?>?>?>() {}.type)
         } catch (e: FileNotFoundException) {
             KamiMod.log.warn("Could not find file $configName, clearing the macros list")
             Macros.macros.clear()
         }
     }
 
-    fun getMacrosForKey(keyCode: Int): List<String?>? {
+    fun getMacrosForKey(keycode: Int): List<String?>? {
         for ((key, value) in Macros.macros) {
-            if (keyCode == key.toInt()) {
+            if (keycode == key.toInt()) {
                 return value
             }
         }
         return null
     }
 
-    fun addMacroToKey(keyCode: String?, macro: String?) {
+    fun addMacroToKey(keycode: Int?, macro: String?) {
         if (macro == null) return  // prevent trying to add a null macro
-        Macros.macros.getOrPut(keyCode, ::mutableListOf).add(macro)
+        Macros.macros.getOrPut(keycode, ::mutableListOf).add(macro)
     }
 
-    fun removeMacro(keyCode: String) {
+    fun removeMacro(keycode: Int) {
         for (entry in Macros.macros.entries) {
-            if (entry.key == keyCode) {
+            if (entry.key == keycode) {
                 entry.setValue(null)
             }
         }
