@@ -18,13 +18,12 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
         val key = Wrapper.getKey(rKey)
 
         if (key == 0 && !rKey.equals("list", true)) {
-            sendErrorMessage("Unknown key '&7$rKey&f'!")
+            sendErrorMessage("Unknown key '&7$rKey&f'! Left alt is &7lmenu&f and left Control is &7lctrl&f. You cannot bind the &7meta&f key.")
             return
         }
 
         when {
-            args[0] == null -> { /* key */
-                sendWarningMessage("$chatLabel You must include the key you want to bind it to. Left alt is &7lmenu&f and left Control is &7lctrl&f. You cannot bind the &7meta&f key.")
+            args[0] == null -> { /* key, error message is caught by the command handler but you don't want to continue the rest */
                 return
             }
             args[0] == "list" -> {
