@@ -6,8 +6,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static me.zeroeightsix.kami.util.Macro.readFileToMemory;
-import static me.zeroeightsix.kami.util.Macro.writeMemoryToFile;
+import static me.zeroeightsix.kami.command.Command.getCommandPrefix;
+import static me.zeroeightsix.kami.util.Macro.*;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendKamiCommand;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendServerMessage;
 
 /**
  * @author dominikaaaa
@@ -36,5 +38,22 @@ public class MacroManager {
         KamiMod.log.info("Saving macros...");
         writeMemoryToFile();
         KamiMod.log.info("Macros saved");
+    }
+
+    /**
+     * Sends the message or command, depending on which one it is
+     * @param keyCode int keycode of the key the was pressed
+     */
+    public static void sendMacro(int keyCode) {
+        List<String> macrosForThisKey = getMacrosForKey(keyCode);
+        if (macrosForThisKey == null) return;
+
+        for (String currentMacro : macrosForThisKey) {
+            if (currentMacro.startsWith(getCommandPrefix())) {
+                sendKamiCommand(currentMacro, false);
+            } else {
+                sendServerMessage(currentMacro);
+            }
+        }
     }
 }
