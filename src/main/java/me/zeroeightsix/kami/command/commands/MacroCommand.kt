@@ -2,8 +2,8 @@ package me.zeroeightsix.kami.command.commands
 
 import me.zeroeightsix.kami.command.Command
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder
-import me.zeroeightsix.kami.module.MacroManager
-import me.zeroeightsix.kami.util.Macro.*
+import me.zeroeightsix.kami.module.Macros
+import me.zeroeightsix.kami.util.Macro
 import me.zeroeightsix.kami.util.MessageSendHelper.*
 import me.zeroeightsix.kami.util.Wrapper
 
@@ -28,23 +28,23 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
             }
             args[0] == "list" -> {
                 sendChatMessage("You have the following macros: ")
-                for ((key1, value) in MacroManager.macros) {
+                for ((key1, value) in Macros.macros) {
                     sendChatMessage(Wrapper.getKeyName(key1.toInt()) + ": $value")
                 }
                 return
             }
             args[1] == null -> { /* message */
-                if (getMacrosForKey(key) == null) {
+                if (Macro.getMacrosForKey(key) == null) {
                     sendChatMessage("'&7$rKey&f' has no macros")
                     return
                 }
                 // TODO: empty check doesn't work idk
                 sendChatMessage("'&7$rKey&f' has the following macros: ")
-                sendStringChatMessage(getMacrosForKey(key).toTypedArray(), false)
+                sendStringChatMessage(Macro.getMacrosForKey(key)?.toTypedArray(), false)
                 return
             }
             args[1] == "clear" -> {
-                removeMacro(key.toString())
+                Macro.removeMacro(key.toString())
                 sendChatMessage("Cleared macros for '&7$rKey&f'")
                 return
             }
@@ -53,7 +53,7 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
                 return
             }
             else -> {
-                addMacroToKey(key.toString(), macro)
+                Macro.addMacroToKey(key.toString(), macro)
                 sendChatMessage("Added macro '&7$macro&f' for key '&7$rKey&f'")
             }
         }

@@ -147,7 +147,7 @@ public class KamiMod {
 
         Friends.initFriends();
 
-        MacroManager.register();
+        MacroManager.INSTANCE.registerMacros();
 
         /* Custom static Settings, which can't register normally if they're static */
         SettingsRegister.register("commandPrefix", Command.commandPrefix);

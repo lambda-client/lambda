@@ -236,7 +236,7 @@ public class ForgeEventProcessor {
             Minecraft.getMinecraft().displayGuiScreen(new GuiChat(Command.getCommandPrefix()));
         } else {
             MODULE_MANAGER.onBind(Keyboard.getEventKey());
-            MacroManager.sendMacro(Keyboard.getEventKey());
+            MacroManager.INSTANCE.sendMacro(Keyboard.getEventKey());
         }
     }
 

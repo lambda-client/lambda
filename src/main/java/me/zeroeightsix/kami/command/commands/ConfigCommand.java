@@ -39,13 +39,13 @@ public class ConfigCommand extends Command {
 
         switch (args[0].toLowerCase()) {
             case "reload":
-                Macro.readFileToMemory();
+                Macro.INSTANCE.readFileToMemory();
                 reload();
                 break;
             case "save":
                 try {
                     KamiMod.saveConfigurationUnsafe();
-                    MacroManager.saveMacros();
+                    MacroManager.INSTANCE.saveMacros();
                     sendChatMessage("Saved configuration and macros!");
                 } catch (IOException e) {
                     e.printStackTrace();

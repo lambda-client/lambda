@@ -111,7 +111,7 @@ public class MixinMinecraft {
     private void save() {
         System.out.println("Shutting down: saving KAMI configuration");
         KamiMod.saveConfiguration();
-        MacroManager.saveMacros();
+        MacroManager.INSTANCE.saveMacros();
         System.out.println("Configuration saved.");
     }
 
