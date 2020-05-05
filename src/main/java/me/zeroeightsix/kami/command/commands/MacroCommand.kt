@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.command.commands
 
 import me.zeroeightsix.kami.command.Command
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder
+import me.zeroeightsix.kami.module.MacroManager
 import me.zeroeightsix.kami.module.Macros
 import me.zeroeightsix.kami.util.Macro
 import me.zeroeightsix.kami.util.MessageSendHelper.*
@@ -35,21 +36,23 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
                 }
                 sendChatMessage("You have the following macros: ")
                 for ((key1, value) in Macros.macros) {
-                    sendChatMessage(Wrapper.getKeyName(key1.toInt()) + ": $value")
+                    sendRawChatMessage(Wrapper.getKeyName(key1.toInt()) + ": $value")
                 }
                 return
             }
             args[1] == null -> { /* message */
-                if (keyList == null || keyList.isEmpty() || keyList.toTypedArray().isEmpty()) {
+                if (keyList == null || keyList.isEmpty()) {
                     sendChatMessage("'&7$rKey&f' has no macros")
                     return
                 }
                 sendChatMessage("'&7$rKey&f' has the following macros: ")
-                sendStringChatMessage(keyList.toTypedArray(), false)
+                Macro.sendMacrosToChat(keyList.toTypedArray())
                 return
             }
             args[1] == "clear" -> {
                 Macro.removeMacro(key.toString())
+                MacroManager.saveMacros()
+                MacroManager.registerMacros()
                 sendChatMessage("Cleared macros for '&7$rKey&f'")
                 return
             }
@@ -59,6 +62,7 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
             }
             else -> {
                 Macro.addMacroToKey(key.toString(), macro)
+                MacroManager.saveMacros()
                 sendChatMessage("Added macro '&7$macro&f' for key '&7$rKey&f'")
             }
         }

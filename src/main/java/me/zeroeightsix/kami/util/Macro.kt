@@ -57,4 +57,8 @@ object Macro {
             }
         }
     }
+
+    fun sendMacrosToChat(messages: Array<String?>) {
+        for (s in messages) MessageSendHelper.sendRawChatMessage("[$s]")
+    }
 }
