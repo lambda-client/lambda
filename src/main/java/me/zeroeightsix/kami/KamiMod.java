@@ -16,6 +16,7 @@ import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
+import me.zeroeightsix.kami.module.MacroManager;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.chat.ChatEncryption;
@@ -145,6 +146,8 @@ public class KamiMod {
         commandManager = new CommandManager();
 
         Friends.initFriends();
+
+        MacroManager.INSTANCE.registerMacros();
 
         /* Custom static Settings, which can't register normally if they're static */
         SettingsRegister.register("commandPrefix", Command.commandPrefix);
