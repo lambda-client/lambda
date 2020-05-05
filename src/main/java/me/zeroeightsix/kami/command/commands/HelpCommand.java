@@ -54,7 +54,7 @@ public class HelpCommand extends Command {
                     commandPrefix + "bind <module> <key>&7 to bind mods",
                     commandPrefix + "prefix <prefix>&r to change the command prefix.",
                     commandPrefix + "help &7<bind|subjects:[subject]>&r for more help."
-            }, true);
+            });
         } else {
             String subject = args[0];
             if (subject.equals("subjects")) {
@@ -75,7 +75,7 @@ public class HelpCommand extends Command {
                     sendChatMessage("No help found for &b" + args[0]);
                     return;
                 }
-                sendStringChatMessage(subject1.info, true);
+                sendStringChatMessage(subject1.info);
             }
         }
     }

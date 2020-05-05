@@ -49,7 +49,7 @@ public class SetCommand extends Command {
             else {
                 sendStringChatMessage(new String[]{
                         "Please specify a setting! Choose one of the following:", settings
-                }, true);
+                });
             }
             return;
         }

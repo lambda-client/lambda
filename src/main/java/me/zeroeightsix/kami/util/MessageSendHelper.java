@@ -42,10 +42,8 @@ public class MessageSendHelper {
     }
 
 
-    public static void sendStringChatMessage(String[] messages, boolean extraSpace) {
-        if (extraSpace) {
-            sendChatMessage("");
-        }
+    public static void sendStringChatMessage(String[] messages) {
+        sendChatMessage("");
         for (String s : messages) sendRawChatMessage(s);
     }
 
