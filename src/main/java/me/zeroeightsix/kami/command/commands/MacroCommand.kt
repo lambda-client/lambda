@@ -22,11 +22,17 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
             return
         }
 
+        val keyList: List<String?>? = Macro.getMacrosForKey(key)
+
         when {
             args[0] == null -> { /* key, error message is caught by the command handler but you don't want to continue the rest */
                 return
             }
             args[0] == "list" -> {
+                if (Macros.macros.isEmpty()) {
+                    sendChatMessage("You have no macros")
+                    return
+                }
                 sendChatMessage("You have the following macros: ")
                 for ((key1, value) in Macros.macros) {
                     sendChatMessage(Wrapper.getKeyName(key1.toInt()) + ": $value")
@@ -34,12 +40,12 @@ class MacroCommand : Command("macro", ChunkBuilder().append("key|list").append("
                 return
             }
             args[1] == null -> { /* message */
-                if (Macro.getMacrosForKey(key) == null || Macro.getMacrosForKey(key)?.equals("")!! || Macro.getMacrosForKey(key)?.toTypedArray()?.equals("")!!) {
+                if (keyList == null || keyList.isEmpty() || keyList.toTypedArray().isEmpty()) {
                     sendChatMessage("'&7$rKey&f' has no macros")
                     return
                 }
                 sendChatMessage("'&7$rKey&f' has the following macros: ")
-                sendStringChatMessage(Macro.getMacrosForKey(key)?.toTypedArray(), false)
+                sendStringChatMessage(keyList.toTypedArray(), false)
                 return
             }
             args[1] == "clear" -> {
