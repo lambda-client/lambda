@@ -49,8 +49,8 @@ public class MacroManager {
         if (macrosForThisKey == null) return;
 
         for (String currentMacro : macrosForThisKey) {
-            if (currentMacro.startsWith(getCommandPrefix())) {
-                sendKamiCommand(currentMacro, false);
+            if (currentMacro.startsWith(getCommandPrefix())) { // this is done instead of just sending a chat packet so it doesn't add to the chat history
+                sendKamiCommand(currentMacro, false); // ie, the false here
             } else {
                 sendServerMessage(currentMacro);
             }
