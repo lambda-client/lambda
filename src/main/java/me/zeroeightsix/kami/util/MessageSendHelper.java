@@ -29,8 +29,10 @@ public class MessageSendHelper {
         sendRawChatMessage("&7[" + colour + KamiMod.KAMI_KANJI + "&7] &r" + message);
     }
 
-    public static void sendStringChatMessage(String[] messages) {
-        sendChatMessage("");
+    public static void sendStringChatMessage(String[] messages, boolean extraSpace) {
+        if (extraSpace) {
+            sendChatMessage("");
+        }
         for (String s : messages) sendRawChatMessage(s);
     }
 
