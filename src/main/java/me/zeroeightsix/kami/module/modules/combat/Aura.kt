@@ -22,8 +22,8 @@ import net.minecraft.util.math.Vec3d
 @Module.Info(name = "Aura", category = Module.Category.COMBAT, description = "Hits entities around you")
 class Aura : Module() {
     private val delayMode = register(Settings.e<WaitMode>("Mode", WaitMode.DELAY))
-    private val autoSpamDelay = register(Settings.booleanBuilder("Auto Spam Delay").withValue(true).withVisibility { v: Boolean? -> delayMode.value == WaitMode.SPAM }.build())
-    private val waitTick = register(Settings.doubleBuilder("Spam Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).withVisibility { v: Double? -> !autoSpamDelay.value && delayMode.value == WaitMode.SPAM }.build())
+    private val autoSpamDelay = register(Settings.booleanBuilder("Auto Spam Delay").withValue(true).withVisibility { delayMode.value == WaitMode.SPAM }.build())
+    private val waitTick = register(Settings.doubleBuilder("Spam Delay").withMinimum(0.1).withValue(2.0).withMaximum(20.0).withVisibility { !autoSpamDelay.value && delayMode.value == WaitMode.SPAM }.build())
     private val eat = register(Settings.b("While Eating", true))
     private val multi = register(Settings.b("Multi", true))
     private val attackPlayers = register(Settings.b("Players", true))

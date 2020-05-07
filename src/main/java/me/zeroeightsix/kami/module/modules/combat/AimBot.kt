@@ -28,11 +28,11 @@ class AimBot : Module() {
     private val useBow = register(Settings.booleanBuilder("Use Bow").withValue(true))
     private val ignoreWalls = register(Settings.booleanBuilder("Ignore Walls").withValue(true))
     private val targetPlayers = register(Settings.booleanBuilder("Target Players").withValue(true))
-    private val targetFriends = register(Settings.booleanBuilder("Friends").withValue(false).withVisibility { v: Boolean? -> targetPlayers.value == true })
-    private val targetSleeping = register(Settings.booleanBuilder("Sleeping").withValue(false).withVisibility { v: Boolean? -> targetPlayers.value == true })
+    private val targetFriends = register(Settings.booleanBuilder("Friends").withValue(false).withVisibility { targetPlayers.value == true })
+    private val targetSleeping = register(Settings.booleanBuilder("Sleeping").withValue(false).withVisibility { targetPlayers.value == true })
     private val targetMobs = register(Settings.booleanBuilder("Target Mobs").withValue(false))
-    private val targetHostileMobs = register(Settings.booleanBuilder("Hostile").withValue(true).withVisibility { v: Boolean? -> targetMobs.value == true })
-    private val targetPassiveMobs = register(Settings.booleanBuilder("Passive").withValue(false).withVisibility { v: Boolean? -> targetMobs.value == true })
+    private val targetHostileMobs = register(Settings.booleanBuilder("Hostile").withValue(true).withVisibility { targetMobs.value == true })
+    private val targetPassiveMobs = register(Settings.booleanBuilder("Passive").withValue(false).withVisibility { targetMobs.value == true })
 
     override fun onUpdate() {
         if (KamiMod.MODULE_MANAGER.getModuleT(Aura::class.java).isEnabled) {
