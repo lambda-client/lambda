@@ -19,6 +19,8 @@ public class MessageSendHelper {
         CommandConfig commandConfig = MODULE_MANAGER.getModuleT(CommandConfig.class);
         if (commandConfig.logLevel.getValue().equals(CommandConfig.LogLevel.ALL)) {
             sendRawChatMessage("&7[&9" + KamiMod.KAMI_KANJI + "&7] &r" + message);
+        } else {
+            KamiMod.log.info("&7[&9" + KamiMod.KAMI_KANJI + "&7] &r" + message);
         }
     }
 
@@ -26,6 +28,8 @@ public class MessageSendHelper {
         CommandConfig commandConfig = MODULE_MANAGER.getModuleT(CommandConfig.class);
         if (commandConfig.logLevel.getValue().equals(CommandConfig.LogLevel.ALL) || commandConfig.logLevel.getValue().equals(CommandConfig.LogLevel.WARN)) {
             sendRawChatMessage("&7[&6" + KamiMod.KAMI_KANJI + "&7] &r" + message);
+        } else {
+            KamiMod.log.warn("&7[&6" + KamiMod.KAMI_KANJI + "&7] &r" + message);
         }
     }
 
@@ -33,6 +37,8 @@ public class MessageSendHelper {
         CommandConfig commandConfig = MODULE_MANAGER.getModuleT(CommandConfig.class);
         if (commandConfig.logLevel.getValue().equals(CommandConfig.LogLevel.ALL) || commandConfig.logLevel.getValue().equals(CommandConfig.LogLevel.WARN) || commandConfig.logLevel.getValue().equals(CommandConfig.LogLevel.ERROR)) {
             sendRawChatMessage("&7[&4" + KamiMod.KAMI_KANJI + "&7] &r" + message);
+        } else {
+            KamiMod.log.error("&7[&4\" + KamiMod.KAMI_KANJI + \"&7] &r" + message);
         }
     }
 
