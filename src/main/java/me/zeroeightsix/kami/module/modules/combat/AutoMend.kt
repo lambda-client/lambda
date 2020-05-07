@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.util.MessageSendHelper
 import net.minecraft.init.Items
 import net.minecraft.util.EnumHand
 
-
 /**
  * Created 17 October 2019 by hub
  * Updated 21 November 2019 by hub
