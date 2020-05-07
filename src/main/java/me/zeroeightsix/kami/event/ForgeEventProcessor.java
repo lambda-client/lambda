@@ -274,7 +274,7 @@ public class ForgeEventProcessor {
         KamiMod.EVENT_BUS.post(event);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(receiveCanceled = true)
     public void onEventMouse(InputEvent.MouseInputEvent event) {
         KamiMod.EVENT_BUS.post(event);
     }
