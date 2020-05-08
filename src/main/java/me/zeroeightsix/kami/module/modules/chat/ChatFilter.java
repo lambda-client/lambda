@@ -77,8 +77,11 @@ public class ChatFilter extends Module {
             String line;
             tempLines.clear();
             while ((line = bufferedReader.readLine()) != null) {
-                while (customMatch("[ ]$", line) || customMatch("^[ ]", line)) { /* remove trailing spaces */
+                while (customMatch("[ ]$", line)) { /* remove trailing spaces */
                     line = line.substring(0, line.length() - 1);
+                }
+                while (customMatch("^[ ]", line)) {
+                    line = line.substring(1); /* remove beginning spaces */
                 }
                 tempLines.add(line);
             }
