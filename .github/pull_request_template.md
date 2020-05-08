@@ -1,7 +1,6 @@
 ---
-name: Pull request
-about: Feature or change for this repo
-labels: review-pending
+name: Quick description of the pull
+about: What feature or change was made
 ---
 
 **Describe the pull**
