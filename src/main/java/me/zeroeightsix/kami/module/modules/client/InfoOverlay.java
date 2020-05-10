@@ -51,7 +51,7 @@ public class InfoOverlay extends Module {
     private Setting<Boolean> godApples = register(Settings.booleanBuilder("God Apples").withValue(false).withVisibility(v -> page.getValue().equals(Page.TWO)).build());
     /* Page Three */
     private Setting<Boolean> speed = register(Settings.booleanBuilder("Speed").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
-    private Setting<Integer> speedPrecision = register(Settings.integerBuilder("S Decimals").withValue(2).withMinimum(0).withMaximum(10).withVisibility(v -> speed.getValue() && page.getValue().equals(Page.THREE)).build());
+    private Setting<Integer> decimalPlaces = register(Settings.integerBuilder("Decimal Places").withValue(2).withMinimum(0).withMaximum(10).withVisibility(v -> speed.getValue() && page.getValue().equals(Page.THREE)).build());
     private Setting<SpeedUnit> speedUnit = register(Settings.enumBuilder(SpeedUnit.class).withName("Speed Unit").withValue(SpeedUnit.KMH).withVisibility(v -> page.getValue().equals(Page.THREE) && speed.getValue()).build());
     private Setting<Boolean> time = register(Settings.booleanBuilder("Time").withValue(true).withVisibility(v -> page.getValue().equals(Page.THREE)).build());
     public Setting<TimeUtil.TimeType> timeTypeSetting = register(Settings.enumBuilder(TimeUtil.TimeType.class).withName("Time Format").withValue(TimeUtil.TimeType.HHMMSS).withVisibility(v -> page.getValue().equals(Page.THREE) && time.getValue()).build());
@@ -77,11 +77,11 @@ public class InfoOverlay extends Module {
         } if (time.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + TimeUtil.getFinalTime(setToText(secondColour.getValue()), setToText(firstColour.getValue()), timeUnitSetting.getValue(), timeTypeSetting.getValue(), doLocale.getValue()));
         } if (tps.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.tps() + getStringColour(setToText(secondColour.getValue())) + " tps");
+            infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.tps(decimalPlaces.getValue()) + getStringColour(setToText(secondColour.getValue())) + " tps");
         } if (fps.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + Minecraft.debugFPS + getStringColour(setToText(secondColour.getValue())) + " fps");
         } if (speed.getValue()) {
-            infoContents.add(getStringColour(setToText(firstColour.getValue())) + speed(useUnitKmH(), mc, speedPrecision.getValue()) + getStringColour(setToText(secondColour.getValue())) + " " + unitType(speedUnit.getValue()));
+            infoContents.add(getStringColour(setToText(firstColour.getValue())) + speed(useUnitKmH(), mc, decimalPlaces.getValue()) + getStringColour(setToText(secondColour.getValue())) + " " + unitType(speedUnit.getValue()));
         } if (timerSpeed.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + TimerSpeed.returnGui() + getStringColour(setToText(secondColour.getValue())) + "t");
         } if (ping.getValue()) {

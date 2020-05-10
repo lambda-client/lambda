@@ -75,8 +75,8 @@ public class InfoCalculator {
     // }
 
     // Ticks Per Second {
-    public static String tps() {
-        return "" + Math.round(LagCompensator.INSTANCE.getTickRate());
+    public static double tps(int places) {
+        return MathsUtils.round(LagCompensator.INSTANCE.getTickRate(), places);
     }
     // }
 

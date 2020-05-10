@@ -66,7 +66,8 @@ public class CrystalAura extends Module {
     private Setting<Boolean> explode = register(Settings.booleanBuilder("Explode").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> checkAbsorption = register(Settings.booleanBuilder("Check Absorption").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     public  Setting<Double> range = register(Settings.doubleBuilder("Range").withMinimum(1.0).withValue(4.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
-    private Setting<Double> delay = register(Settings.doubleBuilder("Hit Delay").withMinimum(0.0).withValue(5.0).withMaximum(10.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> autoDelay = register(Settings.booleanBuilder("Auto Delay").withValue(false).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
+    private Setting<Double> delay = register(Settings.doubleBuilder("Hit Delay").withMinimum(0.0).withValue(5.0).withMaximum(10.0).withVisibility(v -> !autoDelay.getValue() && p.getValue().equals(Page.ONE)).build());
     private Setting<Integer> hitAttempts = register(Settings.integerBuilder("Hit Attempts").withValue(-1).withMinimum(-1).withMaximum(20).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Double> minDmg = register(Settings.doubleBuilder("Minimum Damage").withMinimum(0.0).withValue(0.0).withMaximum(32.0).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> sneakEnable = register(Settings.booleanBuilder("Sneak Surround").withValue(true).withVisibility(v -> p.getValue().equals(Page.ONE)).build());
@@ -165,7 +166,7 @@ public class CrystalAura extends Module {
 
         if (explode.getValue() && crystal != null && mc.player.getDistance(crystal) <= range.getValue() && passSwordCheck()) {
             // Added delay to stop ncp from flagging "hitting too fast"
-            if (((System.nanoTime() / 1000000f) - systemTime) >= 25*delay.getValue()) {
+            if (((System.nanoTime() / 1000000f) - systemTime) >= 25 * getDelay()) {
                 if (antiWeakness.getValue() && mc.player.isPotionActive(MobEffects.WEAKNESS)) {
                     if (!isAttacking) {
                         // save initial player hand
@@ -595,5 +596,13 @@ public class CrystalAura extends Module {
         if (statusMessages.getValue()) {
             sendChatMessage(getChatName() + message);
         }
+    }
+
+    private double getDelay() {
+        if (!autoDelay.getValue()) {
+            return delay.getValue();
+        }
+        int ping = InfoCalculator.ping(mc);
+        return 2 * ping * (InfoCalculator.tps(2) / 20) + (ping / 10.0);
     }
 }
