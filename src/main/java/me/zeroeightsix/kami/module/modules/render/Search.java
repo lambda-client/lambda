@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.Coordinate;
 import me.zeroeightsix.kami.util.GeometryMasks;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import net.minecraft.block.Block;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
-import static me.zeroeightsix.kami.util.LogUtil.getCurrentCoord;
+import static me.zeroeightsix.kami.util.CoordUtil.getCurrentCoord;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
@@ -183,7 +184,7 @@ public class Search extends Module {
     });
 
     private void reloadChunks() {
-        int[] pcoords = getCurrentCoord(false);
+        Coordinate pcoords = getCurrentCoord();
         int renderdist = mc.gameSettings.renderDistanceChunks;
         if (renderdist > 8) {
             renderdist = 8;
@@ -191,7 +192,7 @@ public class Search extends Module {
         ChunkProviderClient providerClient = mc.world.getChunkProvider();
         for (int x = -renderdist; x < renderdist; x++) {
             for (int z = -renderdist; z < renderdist; z++) {
-                Chunk chunk = providerClient.getLoadedChunk((pcoords[0] >> 4) + x, (pcoords[2] >> 4) + z);
+                Chunk chunk = providerClient.getLoadedChunk((pcoords.x >> 4) + x, (pcoords.z >> 4) + z);
                 if (chunk != null)
                     exec.execute(() ->
                             loadChunk(chunk)

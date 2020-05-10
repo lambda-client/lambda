@@ -1,8 +1,11 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import kotlin.math.roundToInt
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.LogUtil
+import me.zeroeightsix.kami.util.CoordUtil
+import me.zeroeightsix.kami.util.CoordUtil.coordsLogFilename
+import me.zeroeightsix.kami.util.Coordinate
 import me.zeroeightsix.kami.util.MessageSendHelper
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.SoundEvents
@@ -11,7 +14,6 @@ import net.minecraft.tileentity.TileEntityChest
 import net.minecraft.tileentity.TileEntityShulkerBox
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
-import kotlin.math.roundToInt
 
 /**
  * @author Nucleus
@@ -49,6 +51,11 @@ class StashFinder : Module() {
             val y = tileEntities.map { it.pos.y }.average().roundToInt()
             val z = tileEntities.map { it.pos.z }.average().roundToInt()
             return intArrayOf(x, y, z)
+        }
+
+        fun getBlockPos(): Coordinate {
+            val xyz = this.getPosition()
+            return Coordinate(xyz[0], xyz[1], xyz[2])
         }
 
         override fun toString(): String {
@@ -90,7 +97,7 @@ class StashFinder : Module() {
             chunkStats.hot = false
 
             // mfw int array instead of Vec3i
-            LogUtil.writeCoords(chunkStats.getPosition(), chunkStats.toString())
+            CoordUtil.writeCoords(chunkStats.getBlockPos(), chunkStats.toString(), coordsLogFilename)
 
             if (playSound.value) {
                 mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
