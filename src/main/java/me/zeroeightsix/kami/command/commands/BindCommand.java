@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
+import me.zeroeightsix.kami.command.syntax.parsers.EnumParser;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
@@ -23,7 +24,7 @@ public class BindCommand extends Command {
     public BindCommand() {
         super("bind", new ChunkBuilder()
                 .append("[module]|modifiers", true, new ModuleParser())
-                .append("[key]|[on|off]", true)
+                .append("state", true, new EnumParser(new String[]{"key", "on", "off"}))
                 .build()
         );
         setDescription("Binds a module to a key, or allows you to change modifier options");

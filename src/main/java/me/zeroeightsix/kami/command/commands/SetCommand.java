@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
+import me.zeroeightsix.kami.command.syntax.parsers.EnumParser;
 import me.zeroeightsix.kami.command.syntax.parsers.ModuleParser;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.ISettingUnknown;
@@ -24,7 +25,7 @@ public class SetCommand extends Command {
         super("set", new ChunkBuilder()
                 .append("module", true, new ModuleParser())
                 .append("setting", true)
-                .append("value|toggle", true)
+                .append("set", true, new EnumParser(new String[]{"value", "toggle"}))
                 .build());
         setDescription("Change the setting of a certain module");
     }
