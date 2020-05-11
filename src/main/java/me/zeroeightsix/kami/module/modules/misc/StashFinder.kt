@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.misc
 
-import kotlin.math.roundToInt
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.CoordUtil
@@ -9,13 +8,10 @@ import me.zeroeightsix.kami.util.Coordinate
 import me.zeroeightsix.kami.util.MessageSendHelper
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.SoundEvents
-import net.minecraft.tileentity.TileEntity
-import net.minecraft.tileentity.TileEntityChest
-import net.minecraft.tileentity.TileEntityShulkerBox
-import net.minecraft.tileentity.TileEntityDropper
-import net.minecraft.tileentity.TileEntityDispenser
+import net.minecraft.tileentity.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
+import kotlin.math.roundToInt
 
 /**
  * @author Nucleus
@@ -26,20 +22,20 @@ import net.minecraft.util.math.ChunkPos
         description = "Logs storage units in render distance."
 )
 class StashFinder : Module() {
-    private val logChests = register(Settings.b("Chests"))
-    private val chestDensity = register(Settings.integerBuilder("Min Chests").withMinimum(1).withMaximum(20).withValue(5).build())
-
-    private val logShulkers = register(Settings.b("Shulkers"))
-    private val shulkerDensity = register(Settings.integerBuilder("Min Shulkers").withMinimum(1).withMaximum(20).withValue(1).build())
-
-    private val logDroppers = register(Settings.b("Droppers", false))
-    private val dropperDensity = register(Settings.integerBuilder("Min Droppers").withMinimum(1).withMaximum(20).withValue(5).build())
-
-    private val logDispensers = register(Settings.b("Dispensers", false))
-    private val dispenserDensity = register(Settings.integerBuilder("Min Dispensers").withMinimum(1).withMaximum(20).withValue(5).build())
-
     private val logToChat = register(Settings.b("Log To Chat"))
     private val playSound = register(Settings.b("Play Sound"))
+
+    private val logChests = register(Settings.b("Chests"))
+    private val chestDensity = register(Settings.integerBuilder("Min Chests").withMinimum(1).withMaximum(20).withValue(5).withVisibility { logChests.value }.build())
+
+    private val logShulkers = register(Settings.b("Shulkers"))
+    private val shulkerDensity = register(Settings.integerBuilder("Min Shulkers").withMinimum(1).withMaximum(20).withValue(1).withVisibility { logShulkers.value }.build())
+
+    private val logDroppers = register(Settings.b("Droppers", false))
+    private val dropperDensity = register(Settings.integerBuilder("Min Droppers").withMinimum(1).withMaximum(20).withValue(5).withVisibility { logDroppers.value }.build())
+
+    private val logDispensers = register(Settings.b("Dispensers", false))
+    private val dispenserDensity = register(Settings.integerBuilder("Min Dispensers").withMinimum(1).withMaximum(20).withValue(5).withVisibility { logDispensers.value }.build())
 
     private data class ChunkStats(var chests: Int = 0, var shulkers: Int = 0, var droppers: Int = 0, var dispensers: Int = 0, var hot: Boolean = false) {
         val tileEntities = mutableListOf<TileEntity>()
