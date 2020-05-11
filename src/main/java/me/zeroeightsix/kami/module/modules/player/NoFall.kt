@@ -36,7 +36,7 @@ class NoFall : Module() {
     })
 
     override fun onUpdate() {
-        if (fallMode.value == FallMode.BUCKET && mc.player.fallDistance >= distance.value && !EntityUtil.isAboveWater(mc.player) && System.currentTimeMillis() - last > 100) {
+        if (fallMode.value == FallMode.BUCKET && mc.player.dimension != -1 && !mc.player.capabilities.isCreativeMode && mc.player.fallDistance >= distance.value && !EntityUtil.isAboveWater(mc.player) && System.currentTimeMillis() - last > 100) {
             val posVec = mc.player.positionVector
             val result = mc.world.rayTraceBlocks(posVec, posVec.add(0.0, -5.33, 0.0), true, true, false)
             if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
