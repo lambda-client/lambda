@@ -23,7 +23,7 @@ import java.util.*
  */
 @Module.Info(
         name = "StorageESP",
-        description = "Draws nice little lines around storage items",
+        description = "Draws an ESP on top of storage units",
         category = Module.Category.RENDER
 )
 class StorageESP : Module() {
