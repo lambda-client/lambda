@@ -28,16 +28,17 @@ class AutoTPA : Module() {
     var receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
         if (event.packet is SPacketChat && MessageDetectionHelper.isTPA(true, (event.packet as SPacketChat).getChatComponent().unformattedText)) {
             /* I tested that getting the first word is compatible with chat timestamp, and it as, as this is Receive and chat timestamp is after Receive */
-            val firstWord = (event.packet as SPacketChat).getChatComponent().unformattedText.split("\\s+").toTypedArray()[0]
-
-            if (friends.value && Friends.isFriend(firstWord)) {
-                MessageSendHelper.sendServerMessage("/tpaccept")
-                return@EventHook
-            }
+            val name = (event.packet as SPacketChat).getChatComponent().unformattedText.split(" ").toTypedArray()[0]
 
             when (mode.value) {
-                Mode.ACCEPT -> MessageSendHelper.sendServerMessage("/tpaccept")
-                Mode.DENY -> MessageSendHelper.sendServerMessage("/tpdeny")
+                Mode.ACCEPT -> MessageSendHelper.sendServerMessage("/tpaccept $name")
+                Mode.DENY -> {
+                    if (friends.value && Friends.isFriend(name)) {
+                        MessageSendHelper.sendServerMessage("/tpaccept $name")
+                    } else {
+                        MessageSendHelper.sendServerMessage("/tpdeny $name")
+                    }
+                }
             }
         }
     })
