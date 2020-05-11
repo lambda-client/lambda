@@ -16,7 +16,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.*;
  */
 public class SearchCommand extends Command {
     public SearchCommand() {
-        super("search", new ChunkBuilder().append("command", true, new EnumParser(new String[]{"help", "+", "-", "=", "list", "defaults", "clear"})).build());
+        super("search", new ChunkBuilder().append("command", true, new EnumParser(new String[]{"help", "+block", "-block", "=block", "list", "defaults", "clear"})).build());
         setDescription("Allows you to add or remove blocks from the &fSearch &7module");
     }
 
