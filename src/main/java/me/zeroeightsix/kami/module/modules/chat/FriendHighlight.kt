@@ -36,9 +36,9 @@ class FriendHighlight : Module() {
     @EventHandler
     var listener = Listener(EventHook { event: ClientChatReceivedEvent ->
         if (mc.player == null || noFriendsCheck()) return@EventHook
-        val converted = arrayOf("")
-        Friends.friends.value.forEach(Consumer { friend: Friend -> converted[0] = event.message.formattedText.replace("(?i)" + friend.username.toRegex(), colour() + bold() + friend.username + TextFormatting.RESET.toString()) })
-        val message = TextComponentString(converted[0])
+        var converted = event.message.formattedText
+        Friends.friends.value.forEach(Consumer { friend: Friend -> converted = converted.replace(friend.username.toRegex(), colour() + bold() + friend.username + TextFormatting.RESET.toString()) })
+        val message = TextComponentString(converted)
         event.message = message
     })
 
