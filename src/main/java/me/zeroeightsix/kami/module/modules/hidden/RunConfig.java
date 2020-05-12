@@ -24,7 +24,6 @@ public class RunConfig extends Module {
     private Setting<Boolean> hasRunCapes = register(Settings.b("Capes", false));
     private Setting<Boolean> hasRunDiscordSettings = register(Settings.b("DiscordRPC", false));
     private Setting<Boolean> hasRunFixGui = register(Settings.b("FixGui", false));
-    private Setting<Boolean> hasRunTabFriends = register(Settings.b("TabFriends", false));
     private Setting<Boolean> hasRunTooltips = register(Settings.b("Tooltips", false));
 
     public void onEnable() {
@@ -44,10 +43,6 @@ public class RunConfig extends Module {
         if (!hasRunFixGui.getValue()) {
             MODULE_MANAGER.getModule(FixGui.class).enable();
             hasRunFixGui.setValue(true);
-        }
-        if (!hasRunTabFriends.getValue()) {
-            MODULE_MANAGER.getModule(TabFriends.class).enable();
-            hasRunTabFriends.setValue(true);
         }
         if (!hasRunTooltips.getValue()) {
             MODULE_MANAGER.getModule(Tooltips.class).enable();
