@@ -24,7 +24,7 @@ import org.lwjgl.input.Mouse
         description = "Right click entities to perform actions on them"
 )
 class EntityTools : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.DELETE))
+    private val mode = register(Settings.e<Mode>("Mode", Mode.INFO))
     private var delay = 0
 
     private enum class Mode {
