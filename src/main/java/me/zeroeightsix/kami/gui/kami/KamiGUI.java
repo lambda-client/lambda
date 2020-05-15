@@ -256,13 +256,10 @@ public class KamiGUI extends GUI {
         frame.setMinimizeable(true);
         frame.setPinnable(true);
         frame.setPinned(true);
+        frame.setMinimumWidth(162);
+        frame.setMinimumHeight(54);
         Label inventory = new Label("");
         inventory.setShadow(false);
-        inventory.addTickListener(() -> { // 1 == 2 px in game
-            inventory.setWidth(151);
-            inventory.setHeight(40);
-            inventory.setOpacity(0.1f); // why does this not do anything
-        });
         frame.addChild(inventory);
         inventory.setFontRenderer(fontRenderer);
         frames.add(frame);
@@ -274,13 +271,13 @@ public class KamiGUI extends GUI {
         frame.setCloseable(false);
         frame.setPinnable(false);
         frame.setMinimizeable(true);
+        frame.setMinimumWidth(60);
+        frame.setMinimumHeight(10);
         Label friends = new Label("");
         friends.setShadow(true);
-
         Frame finalFrame = frame;
         friends.addTickListener(() -> {
             friends.setText("");
-            friends.setWidth(50);
             if (!finalFrame.isMinimized()) {
                 Friends.friends.getValue().forEach(friend -> friends.addLine(friend.getUsername()));
             }
@@ -365,6 +362,7 @@ public class KamiGUI extends GUI {
         frame = new Frame(getTheme(), new Stretcherlayout(1), "Entities");
         Label entityLabel = new Label("");
         frame.setCloseable(false);
+        frame.setMinimumWidth(60);
         Frame finalFrame1 = frame;
         entityLabel.addTickListener(new TickListener() {
             Minecraft mc = Wrapper.getMinecraft();
@@ -391,15 +389,12 @@ public class KamiGUI extends GUI {
                             ));
 
                     entityLabel.setText("");
-                    finalFrame1.setWidth(50);
                     entityCounts.entrySet().stream()
                             .sorted(Map.Entry.comparingByValue())
                             .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
                             .forEach(entityLabel::addLine);
 
                     //entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
-                } else {
-                    finalFrame1.setWidth(50);
                 }
             }
         });
