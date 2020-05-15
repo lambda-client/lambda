@@ -27,6 +27,9 @@ class PacketCancel : Module() {
 
     @EventHandler
     private val sendListener = Listener(EventHook { event: PacketEvent.Send ->
+        if (mc.player == null) {
+            return@EventHook
+        }
         if (all.value
                 ||
                 packetInput.value && event.packet is CPacketInput
