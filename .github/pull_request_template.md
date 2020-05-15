@@ -1,8 +1,3 @@
----
-name: Quick description of the pull
-about: What feature or change was made
----
-
 **Describe the pull**
 A clear and concise description of what the pull is for.
 
