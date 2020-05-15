@@ -38,6 +38,7 @@ class Aura : Module() {
     private val prefer = register(Settings.e<HitMode>("Prefer", HitMode.SWORD))
     private val autoTool = register(Settings.b("Auto Weapon", true))
     private val sync = register(Settings.b("TPS Sync", false))
+    private val disableOnDeath = register(Settings.b("Disable On Death", false))
     private var waitCounter = 0
 
     enum class HitMode {
@@ -49,7 +50,10 @@ class Aura : Module() {
     }
 
     override fun onUpdate() {
-        if (mc.player == null || mc.player.isDead) return
+        if (mc.player == null || mc.player.isDead) {
+            if (disableOnDeath.value) disable()
+            return
+        }
 
         val autoWaitTick = 20.0f - LagCompensator.INSTANCE.tickRate
         val canAttack = mc.player.getCooledAttackStrength(if (sync.value) -autoWaitTick else 0.0f) >= 1
