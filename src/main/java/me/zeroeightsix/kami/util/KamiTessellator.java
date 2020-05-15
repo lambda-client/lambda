@@ -9,7 +9,12 @@ import net.minecraft.util.math.BlockPos;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
- * Created by 086 on 9/07/2017.
+ * THE FOLLOWING CODE IS LICENSED UNDER MIT, AS PER the fr1kin/forgehax license
+ * You can view the original code here: 
+ * 
+ * https://github.com/fr1kin/ForgeHax/blob/master/src/main/java/com/matt/forgehax/util/tesselation/GeometryTessellator.java
+ * 
+ * Some is created by 086 on 9/07/2017.
  * Updated by dominikaaaa on 18/02/20
  */
 public class KamiTessellator extends Tessellator {
