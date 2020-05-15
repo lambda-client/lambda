@@ -280,10 +280,9 @@ public class KamiGUI extends GUI {
         Frame finalFrame = frame;
         friends.addTickListener(() -> {
             friends.setText("");
+            friends.setWidth(50);
             if (!finalFrame.isMinimized()) {
                 Friends.friends.getValue().forEach(friend -> friends.addLine(friend.getUsername()));
-            } else {
-                friends.setWidth(50);
             }
         });
 
