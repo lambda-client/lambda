@@ -6,7 +6,8 @@ import me.zeroeightsix.kami.setting.Settings;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.InputStreamReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,7 @@ public class Spammer extends Module {
         BufferedReader bufferedReader;
         try {
             sendChatMessage(getChatName() + "Trying to find '&7spammer.txt&f'");
-            bufferedReader = new BufferedReader(new FileReader("spammer.txt"));
+            bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("spammer.txt"), "UTF-8"));
             String line;
             tempLines.clear();
             while ((line = bufferedReader.readLine()) != null) {
