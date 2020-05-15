@@ -1,4 +1,3 @@
-[![Download](https://img.shields.io/badge/download-50k%2B-brightgreen?style=flat-square)](https://blue.bella.wtf/download)
 [![Build Status features-master](https://img.shields.io/travis/com/kami-blue/client/master?logo=gradle&label=build&style=flat-square)](https://travis-ci.com/kami-blue/client)
 [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white&style=flat-square)](https://discord.gg/KfpqwZB)
 [![HitCount](http://hits.dwyl.com/kami-blue/client.svg)](http://hits.dwyl.com/kami-blue/client)
