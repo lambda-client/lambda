@@ -19,12 +19,14 @@ import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Objects;
 
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.*;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
  * @author 086 and IronException
+ * Rendering bugs fixed by dominikaaaa on 16/05/20
  */
 @Module.Info(
         name = "ChunkFinder",
@@ -55,11 +57,11 @@ public class ChunkFinder extends Module {
 
             glPushMatrix();
             glEnable(GL_LINE_SMOOTH);
-            glDisable(GL_DEPTH_TEST);
-            glDisable(GL_TEXTURE_2D);
-            glDepthMask(false);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glEnable(GL_BLEND);
+//            glDisable(GL_DEPTH_TEST); // makes KamiTessellator.drawBox opacity too transparent
+//            glDisable(GL_TEXTURE_2D); // breaks KamiTessellator.drawBox colors
+//            glDepthMask(false); // makes KamiTessellator.drawBox opacity too transparent
+//            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // breaks KamiTessellator.drawBox opacity
+//            glEnable(GL_BLEND); // makes KamiTessellator.drawBox opacity too opaque
             glLineWidth(1.0F);
             for (Chunk chunk : chunks) {
                 double posX = chunk.x * 16;
@@ -76,10 +78,10 @@ public class ChunkFinder extends Module {
                 glVertex3d(posX, posY, posZ);
                 glEnd();
             }
-            glDisable(GL_BLEND);
-            glDepthMask(true);
-            glEnable(GL_TEXTURE_2D);
-            glEnable(GL_DEPTH_TEST);
+//            glDisable(GL_BLEND); // makes KamiTessellator.drawBox opacity too opaque
+//            glDepthMask(true); // makes KamiTessellator.drawBox opacity too transparent
+//            glEnable(GL_TEXTURE_2D); // breaks KamiTessellator.drawBox colors
+//            glEnable(GL_DEPTH_TEST); // makes KamiTessellator.drawBox opacity too transparent
             glDisable(GL_LINE_SMOOTH);
             glPopMatrix();
             glColor4f(1, 1, 1, 1);
@@ -101,20 +103,21 @@ public class ChunkFinder extends Module {
         if (!closeFile.getValue())
             return;
         closeFile.setValue(false);
-        sendChatMessage("close file");
+        closeSettings();
         logWriterClose();
+        sendChatMessage(getChatName() + "Saved file!");
     }
 
     @Override
     protected void onDisable() {
-        sendChatMessage("onDisable");
         logWriterClose();
         chunks.clear();
+        sendChatMessage(getChatName() + "Saved and cleared chunks!");
     }
 
     @EventHandler
     public Listener<ChunkEvent> listener = new Listener<>(event -> {
-        if (!event.getPacket().isFullChunk()) {
+        if (event.getPacket().isFullChunk()) {
             chunks.add(event.getChunk());
             dirty = true;
             if (saveNewChunks.getValue()) {
@@ -165,8 +168,8 @@ public class ChunkFinder extends Module {
             logWriter.println(head);
         } catch (Exception e) {
             e.printStackTrace();
-            KamiMod.log.error("some exception happened when trying to start the logging -> " + e.getMessage());
-            sendChatMessage("onLogStart: " + e.getMessage());
+            KamiMod.log.error(getChatName() + "some exception happened when trying to start the logging -> " + e.getMessage());
+            sendErrorMessage(getChatName() + "onLogStart: " + e.getMessage());
         }
     }
 
@@ -179,15 +182,15 @@ public class ChunkFinder extends Module {
         // If there is an integrated server running (Aka Singleplayer) then do magic to find the world save file
         if (mc.isSingleplayer()) {
             try {
-                file = mc.getIntegratedServer().getWorld(dimension).getChunkSaveLocation();
+                file = Objects.requireNonNull(mc.getIntegratedServer()).getWorld(dimension).getChunkSaveLocation();
             } catch (Exception e) {
                 e.printStackTrace();
                 KamiMod.log.error("some exception happened when getting canonicalFile -> " + e.getMessage());
-                sendChatMessage("onGetPath: " + e.getMessage());
+                sendErrorMessage(getChatName() + "onGetPath: " + e.getMessage());
             }
 
             // Gets the "depth" of this directory relative the the game's run directory, 2 is the location of the world
-            if (file.toPath().relativize(mc.gameDir.toPath()).getNameCount() != 2) {
+            if (Objects.requireNonNull(file).toPath().relativize(mc.gameDir.toPath()).getNameCount() != 2) {
                 // subdirectory of the main save directory for this world
 
                 file = file.getParentFile();
@@ -222,7 +225,7 @@ public class ChunkFinder extends Module {
         } catch (IOException e) {
             e.printStackTrace();
             KamiMod.log.error("some exception happened when trying to make the file -> " + e.getMessage());
-            sendChatMessage("onCreateFile: " + e.getMessage());
+            sendErrorMessage(getChatName() + "onCreateFile: " + e.getMessage());
         }
         return rV;
     }
@@ -232,7 +235,7 @@ public class ChunkFinder extends Module {
         String folderName;
         switch (saveOption.getValue()) {
             case LITE_LOADER_WDL: // make folder structure like liteLoader
-                folderName = mc.getCurrentServerData().serverName;
+                folderName = Objects.requireNonNull(mc.getCurrentServerData()).serverName;
 
                 rV = new File(rV, "saves");
                 rV = new File(rV, folderName);
@@ -246,12 +249,12 @@ public class ChunkFinder extends Module {
 
                 // extra because name might be different
                 if (!rV.exists()) {
-                    sendChatMessage("nhack wdl directory doesnt exist: " + folderName);
-                    sendChatMessage("creating the directory now. It is recommended to update the ip");
+                    sendWarningMessage(getChatName() + "nhack wdl directory doesnt exist: " + folderName);
+                    sendWarningMessage(getChatName() + "creating the directory now. It is recommended to update the ip");
                 }
                 break;
             default: // make folder structure in .minecraft
-                folderName = mc.getCurrentServerData().serverName + "-" + mc.getCurrentServerData().serverIP;
+                folderName = Objects.requireNonNull(mc.getCurrentServerData()).serverName + "-" + mc.getCurrentServerData().serverIP;
                 if (SystemUtils.IS_OS_WINDOWS) {
                     folderName = folderName.replace(":", "_");
                 }
@@ -264,7 +267,7 @@ public class ChunkFinder extends Module {
     }
 
     private String getNHackInetName() {
-        String folderName = mc.getCurrentServerData().serverIP;
+        String folderName = Objects.requireNonNull(mc.getCurrentServerData()).serverIP;
         if (SystemUtils.IS_OS_WINDOWS) {
             folderName = folderName.replace(":", "_");
         }
@@ -281,10 +284,8 @@ public class ChunkFinder extends Module {
 
         String[] sp = ip.split("_");
         String ending = sp[sp.length - 1];
-        if (!isInteger(ending)) { // if it is numeric it means it might be a port...
-            return true;
-        }
-        return false;
+        // if it is numeric it means it might be a port...
+        return !isInteger(ending);
     }
 
     private boolean isInteger(String s) {
@@ -344,7 +345,7 @@ public class ChunkFinder extends Module {
             if (dimension != mc.player.dimension) {
                 return true;
             }
-            if (!mc.getCurrentServerData().serverIP.equals(ip)) { // strings need equals + this way because could be null
+            if (!Objects.requireNonNull(mc.getCurrentServerData()).serverIP.equals(ip)) { // strings need equals + this way because could be null
                 return true;
             }
             return false;
@@ -355,7 +356,7 @@ public class ChunkFinder extends Module {
             lastInRegion = saveInRegionFolder.getValue();
             lastSaveNormal = alsoSaveNormalCoords.getValue();
             dimension = mc.player.dimension;
-            ip = mc.getCurrentServerData().serverIP;
+            ip = Objects.requireNonNull(mc.getCurrentServerData()).serverIP;
         }
     }
 }
