@@ -4,12 +4,14 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
+import javax.management.monitor.StringMonitor;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -25,10 +27,13 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.*;
         category = Module.Category.CHAT
 )
 public class Spammer extends Module {
+    private Setting<Mode> modeSetting = register(Settings.e("Order", Mode.RANDOM_ORDER));
     private Setting<Integer> timeoutTime = register(Settings.integerBuilder().withName("Timeout (s)").withMinimum(1).withMaximum(240).withValue(10).build());
 
-    List<String> tempLines = new ArrayList<>();
-    String[] spammer;
+    private List<String> tempLines = new ArrayList<>();
+    private String[] spammer;
+    private static int currentLine = 0;
+    private enum Mode { IN_ORDER, RANDOM_ORDER }
 
     public void onEnable() {
         BufferedReader bufferedReader;
@@ -55,19 +60,35 @@ public class Spammer extends Module {
     }
 
     public void onUpdate() {
-        sendMsg(getRandom(spammer));
+        sendMsg();
     }
 
     private static long startTime = 0;
-    private void sendMsg(String message) {
+    private void sendMsg() {
+        String message = "";
         if (startTime == 0) startTime = System.currentTimeMillis();
+
         if (startTime + (timeoutTime.getValue() * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
             startTime = System.currentTimeMillis();
+            switch (modeSetting.getValue()) {
+                case IN_ORDER:
+                    message = getOrdered(spammer);
+                    break;
+                case RANDOM_ORDER:
+                    message = getRandom(spammer);
+                    break;
+            }
             sendServerMessage(message);
         }
     }
 
-    public static String getRandom(String[] array) {
+    private static String getOrdered(String[] array) {
+        currentLine++;
+        if (currentLine > array.length - 1) currentLine = 0;
+        return array[currentLine];
+    }
+
+    private static String getRandom(String[] array) {
         int rand = new Random().nextInt(array.length);
         while (array[rand].isEmpty() || array[rand].equals(" ")) {
             rand = new Random().nextInt(array.length); // big meme to try to avoid sending empty messages
