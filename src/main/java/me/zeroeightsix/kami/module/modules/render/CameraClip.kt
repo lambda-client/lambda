@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.misc
+package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.module.Module
 
@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.module.Module
  */
 @Module.Info(
         name = "CameraClip",
-        category = Module.Category.MISC,
+        category = Module.Category.RENDER,
         description = "Allows your 3rd person camera to pass through blocks",
         showOnArray = Module.ShowOnArray.OFF
 )
