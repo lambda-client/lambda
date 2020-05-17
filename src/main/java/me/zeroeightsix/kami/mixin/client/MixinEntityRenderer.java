@@ -1,13 +1,9 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import com.google.common.base.Predicate;
-import me.zeroeightsix.kami.module.modules.misc.CameraClip;
 import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.module.modules.player.NoEntityTrace;
-import me.zeroeightsix.kami.module.modules.render.AntiFog;
-import me.zeroeightsix.kami.module.modules.render.AntiOverlay;
-import me.zeroeightsix.kami.module.modules.render.Brightness;
-import me.zeroeightsix.kami.module.modules.render.NoHurtCam;
+import me.zeroeightsix.kami.module.modules.render.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;

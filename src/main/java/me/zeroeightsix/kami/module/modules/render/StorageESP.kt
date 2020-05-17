@@ -27,6 +27,7 @@ import java.util.*
         category = Module.Category.RENDER
 )
 class StorageESP : Module() {
+    private val alpha = register(Settings.integerBuilder("Alpha").withRange(1, 255).withValue(100).build())
     private val chest = register(Settings.b("Chest", true))
     private val dispenser = register(Settings.b("Dispenser", true))
     private val shulker = register(Settings.b("Shulker", true))
@@ -67,7 +68,7 @@ class StorageESP : Module() {
             if (entity is EntityItemFrame && frame.value || entity is EntityMinecartChest && cart.value) if (color != -1) a.add(Triplet(if (entity is EntityItemFrame) pos.add(0, -1, 0) else pos, color, GeometryMasks.Quad.ALL)) //GeometryTessellator.drawCuboid(event.getBuffer(), entity instanceof EntityItemFrame ? pos.add(0, -1, 0) : pos, GeometryMasks.Line.ALL, color);
         }
         KamiTessellator.prepare(GL11.GL_QUADS)
-        for (pair in a) KamiTessellator.drawBox(pair.first, changeAlpha(pair.second, 100), pair.third)
+        for (pair in a) KamiTessellator.drawBox(pair.first, changeAlpha(pair.second, alpha.value), pair.third)
         KamiTessellator.release()
         GlStateManager.popMatrix()
         GlStateManager.enableTexture2D()
