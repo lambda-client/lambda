@@ -21,6 +21,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Enchantments;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.text.TextFormatting;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
@@ -48,9 +49,6 @@ public class Nametags extends Module {
     private Setting<Float> scale = register(Settings.floatBuilder("Scale").withMinimum(.5f).withMaximum(10f).withValue(2.5f).build());
     private Setting<Boolean> health = register(Settings.b("Health", true));
     private Setting<Boolean> armor = register(Settings.b("Armor", true));
-
-    RenderItem itemRenderer = mc.getRenderItem();
-    static final Minecraft mc = Minecraft.getMinecraft();
 
     @Override
     public void onWorldRender(RenderEvent event) {
@@ -95,7 +93,7 @@ public class Nametags extends Module {
         FontRenderer fontRendererIn = mc.fontRenderer;
         GlStateManager.scale(-0.025F, -0.025F, 0.025F);
 
-        String str = entityIn.getName() + (health.getValue() ? " " + KamiMod.colour + "a" + Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0)) : "");
+        String str = entityIn.getName() + (health.getValue() ? " " + getHealthColoured(entityIn, Math.round(((EntityLivingBase) entityIn).getHealth() + (entityIn instanceof EntityPlayer ? ((EntityPlayer) entityIn).getAbsorptionAmount() : 0))) : "");
         int i = fontRendererIn.getStringWidth(str) / 2;
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
@@ -133,6 +131,7 @@ public class Nametags extends Module {
         GlStateManager.enableDepth();
         GlStateManager.popMatrix();
     }
+
     public void renderArmor(EntityPlayer player, int x, int y) {
         InventoryPlayer items = player.inventory;
         ItemStack inHand = player.getHeldItemMainhand();
@@ -172,6 +171,19 @@ public class Nametags extends Module {
         GlStateManager.enableDepth();
     }
 
+    private String getHealthColoured(Entity entity, int health) {
+        float max = ((EntityLivingBase) entity).getMaxHealth();
+        int result = Math.round((health / max) * 100);
+        if (result > 75) {
+            return TextFormatting.GREEN + "" + health;
+        } else if (result > 50) {
+            return TextFormatting.YELLOW + "" + health;
+        } else if (result > 25) {
+            return TextFormatting.RED + "" + health;
+        } else {
+            return TextFormatting.DARK_RED + "" + health;
+        }
+    }
 
     public void renderItem(ItemStack stack, int x, int y) {
         FontRenderer fontRenderer = mc.fontRenderer;
