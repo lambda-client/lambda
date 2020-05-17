@@ -42,6 +42,7 @@ public class InfoOverlay extends Module {
     private Setting<Boolean> fps = register(Settings.booleanBuilder("FPS").withValue(true).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> ping = register(Settings.booleanBuilder("Ping").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> durability = register(Settings.booleanBuilder("Item Damage").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
+    private Setting<Boolean> biome = register(Settings.booleanBuilder("Biome").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> memory = register(Settings.booleanBuilder("RAM Used").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     private Setting<Boolean> timerSpeed = register(Settings.booleanBuilder("Timer Speed").withValue(false).withVisibility(v -> page.getValue().equals(Page.ONE)).build());
     /* Page Two */
@@ -88,6 +89,8 @@ public class InfoOverlay extends Module {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.ping(mc) + getStringColour(setToText(secondColour.getValue())) + " ms");
         } if (durability.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.dura(mc) + getStringColour(setToText(secondColour.getValue())) + " dura");
+        } if (biome.getValue()) {
+            infoContents.add(getStringColour(setToText(firstColour.getValue())) + mc.world.getBiome(mc.player.getPosition()).getBiomeName() + getStringColour(setToText(secondColour.getValue())) + " biome");
         } if (memory.getValue()) {
             infoContents.add(getStringColour(setToText(firstColour.getValue())) + InfoCalculator.memory() + getStringColour(setToText(secondColour.getValue())) + "mB free");
         } if (totems.getValue()) {
