@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.experimental;
+package me.zeroeightsix.kami.module.modules.misc;
 
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -11,7 +11,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 @Module.Info(
         name = "CoordsLog",
         description = "Automatically writes the coordinates of the player to a file with a user defined delay between logs.",
-        category = Module.Category.EXPERIMENTAL,
+        category = Module.Category.MISC,
         showOnArray = Module.ShowOnArray.ON
 )
 public class CoordsLog extends Module {
