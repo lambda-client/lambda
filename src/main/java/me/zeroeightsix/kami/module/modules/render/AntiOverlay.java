@@ -12,9 +12,9 @@ import net.minecraftforge.client.event.RenderBlockOverlayEvent;
  * Created by Dewy on the 20th April, 2020
  */
 @Module.Info(
-          name = "AntiOverlay",
-          description = "Prevents rendering of fire, water and block texture overlays.",
-          category = Module.Category.RENDER
+        name = "AntiOverlay",
+        description = "Prevents rendering of fire, water and block texture overlays.",
+        category = Module.Category.RENDER
 )
 public class AntiOverlay extends Module {
     private Setting<Boolean> fire = register(Settings.booleanBuilder("Fire").withValue(true).build());

@@ -1,4 +1,4 @@
-package me.zeroeightsix.kami.module.modules.misc
+package me.zeroeightsix.kami.module.modules.player
 
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook

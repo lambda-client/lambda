@@ -10,7 +10,8 @@ import me.zeroeightsix.kami.module.Module
 @Module.Info(
         name = "Sprint",
         description = "Automatically makes the player sprint",
-        category = Module.Category.MOVEMENT, showOnArray = Module.ShowOnArray.OFF
+        category = Module.Category.MOVEMENT,
+        showOnArray = Module.ShowOnArray.OFF
 )
 class Sprint : Module() {
     override fun onUpdate() {
