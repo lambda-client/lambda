@@ -1,7 +1,12 @@
 package me.zeroeightsix.kami.module.modules.player
 
+import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.modules.client.Baritone
+import me.zeroeightsix.kami.module.modules.combat.Aura
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils.pause
+import me.zeroeightsix.kami.util.BaritoneUtils.unpause
 import net.minecraft.client.settings.KeyBinding
 import net.minecraft.init.Items
 import net.minecraft.item.Item
@@ -14,6 +19,7 @@ import net.minecraft.util.EnumHand
  * Updated by polymer on 09/03/20
  * Updated by dominikaaaa on 20/03/20
  * Updated by An-En on 24/03/20
+ * Updated by Dewy on the 17th of May, 2020
  */
 @Module.Info(
         name = "AutoEat",
@@ -25,7 +31,7 @@ class AutoEat : Module() {
     private val healthLevel = register(Settings.integerBuilder("Below Health").withValue(8).withMinimum(1).withMaximum(20).build())
 
     private var lastSlot = -1
-    private var eating = false
+    var eating = false
 
     private fun isValid(stack: ItemStack, food: Int): Boolean {
         return passItemCheck(stack.getItem()) && stack.getItem() is ItemFood && foodLevel.value - food >= (stack.getItem() as ItemFood).getHealAmount(stack) ||
@@ -40,7 +46,7 @@ class AutoEat : Module() {
     }
 
     override fun onUpdate() {
-        if (mc.player == null) return
+        if (mc.player == null || (MODULE_MANAGER.isModuleEnabled(Aura::class.java) && MODULE_MANAGER.getModuleT(Aura::class.java).isAttacking)) return
 
         if (eating && !mc.player.isHandActive) {
             if (lastSlot != -1) {
@@ -48,6 +54,11 @@ class AutoEat : Module() {
                 lastSlot = -1
             }
             eating = false
+
+            if (MODULE_MANAGER.getModuleT(Baritone::class.java).pauseDuringAutoEat.value)
+            {
+                unpause()
+            }
 
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, false)
             return
@@ -61,6 +72,11 @@ class AutoEat : Module() {
             mc.player.activeHand = EnumHand.OFF_HAND
             eating = true
 
+            if (MODULE_MANAGER.getModuleT(Baritone::class.java).pauseDuringAutoEat.value)
+            {
+                pause()
+            }
+
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, true)
             mc.playerController.processRightClick(mc.player, mc.world, EnumHand.OFF_HAND)
         } else {
@@ -69,6 +85,11 @@ class AutoEat : Module() {
                     lastSlot = mc.player.inventory.currentItem
                     mc.player.inventory.currentItem = i
                     eating = true
+
+                    if (MODULE_MANAGER.getModuleT(Baritone::class.java).pauseDuringAutoEat.value)
+                    {
+                        pause()
+                    }
 
                     KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, true)
                     mc.playerController.processRightClick(mc.player, mc.world, EnumHand.MAIN_HAND)
