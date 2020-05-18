@@ -58,7 +58,7 @@ public class ElytraFlight extends Module {
     /* Control Mode */
     @EventHandler
     private Listener<PacketEvent.Send> sendListener = new Listener<>(event -> {
-        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null) return;
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null || mc.player.isSpectator()) return;
         if (event.getPacket() instanceof CPacketPlayer) {
             if (!mc.player.isElytraFlying()) return;
             CPacketPlayer packet = (CPacketPlayer) event.getPacket();
@@ -72,7 +72,7 @@ public class ElytraFlight extends Module {
 
     @EventHandler
     private Listener<PacketEvent.Receive> receiveListener = new Listener<>(event -> {
-        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null || !mc.player.isElytraFlying()) return;
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null || !mc.player.isElytraFlying() || mc.player.isSpectator()) return;
         if (event.getPacket() instanceof SPacketPlayerPosLook) {
             SPacketPlayerPosLook packet = (SPacketPlayerPosLook) event.getPacket();
             packet.pitch = ElytraFlight.mc.player.rotationPitch;
@@ -81,7 +81,7 @@ public class ElytraFlight extends Module {
 
     @EventHandler
     private Listener<PlayerTravelEvent> playerTravelListener = new Listener<>(event -> {
-        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null) return;
+        if (!mode.getValue().equals(ElytraFlightMode.CONTROL) || mc.player == null || mc.player.isSpectator()) return;
         boolean doHover;
         if (!mc.player.isElytraFlying()) {
             if (easyTakeOffControl.getValue() && !mc.player.onGround && mc.player.motionY < -0.04) {
@@ -161,6 +161,8 @@ public class ElytraFlight extends Module {
 
         if (defaultSetting.getValue()) defaults();
 
+        if (mc.player.isSpectator()) return;
+        
         if (enabledMode != mode.getValue() && !hasDoneWarning) {
             sendErrorMessage("&l&cWARNING:&r Changing the mode while you're flying is not recommended. If you weren't flying you can ignore this message.");
             hasDoneWarning = true;
