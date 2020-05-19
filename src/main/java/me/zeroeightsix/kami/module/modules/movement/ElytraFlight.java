@@ -47,6 +47,14 @@ public class ElytraFlight extends Module {
     private Setting<Float> downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.BOOST)).build());
     private Setting<Double> downSpeedControl = register(Settings.doubleBuilder("Down Speed C").withMaximum(10.0).withMinimum(0.0).withValue(2.0).withVisibility(v -> mode.getValue().equals(ElytraFlightMode.CONTROL)).build());
 
+    public ElytraFlight() {
+        super();
+
+        defaultSetting.settingListener = setting -> {
+            if (defaultSetting.getValue()) defaults();
+        };
+    }
+
     private ElytraFlightMode enabledMode;
     private boolean hasDoneWarning;
 
@@ -157,12 +165,8 @@ public class ElytraFlight extends Module {
 
     @Override
     public void onUpdate() {
-        if (mc.player == null) return;
+        if (mc.player == null || mc.player.isSpectator()) return;
 
-        if (defaultSetting.getValue()) defaults();
-
-        if (mc.player.isSpectator()) return;
-        
         if (enabledMode != mode.getValue() && !hasDoneWarning) {
             sendErrorMessage("&l&cWARNING:&r Changing the mode while you're flying is not recommended. If you weren't flying you can ignore this message.");
             hasDoneWarning = true;

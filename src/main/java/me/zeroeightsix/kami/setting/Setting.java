@@ -26,6 +26,12 @@ public abstract class Setting<T> implements ISettingUnknown, Convertable<T> {
 
     private final Class valueType;
 
+    public SettingListeners settingListener;
+
+    public interface SettingListeners {
+        public void onSettingChange(final Setting setting);
+    }
+
     public Setting(T value, Predicate<T> restriction, BiConsumer<T, T> consumer, String name, Predicate<T> visibilityPredicate) {
         this.value = value;
         this.valueType = value.getClass();
@@ -59,6 +65,8 @@ public abstract class Setting<T> implements ISettingUnknown, Convertable<T> {
             return false;
         this.value = value;
         consumer.accept(old, value);
+        if (settingListener != null)
+            settingListener.onSettingChange(this);
         return true;
     }
 
