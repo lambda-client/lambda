@@ -22,6 +22,8 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
  * Created by 086 on 11/04/2018.
  * Updated by Itistheend on 28/12/19.
  * Updated by dominikaaaa on 15/04/20
+ *
+ * Most of Control mode was written by an anonymous donator who didn't wish to be named.
  */
 @Module.Info(
         name = "ElytraFlight",
