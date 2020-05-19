@@ -34,7 +34,7 @@ public class TemporaryPauseProcess implements IBaritoneProcess
     {
         return (KamiMod.MODULE_MANAGER.isModuleEnabled(AutoEat.class)
                 && KamiMod.MODULE_MANAGER.getModuleT(AutoEat.class).getEating()
-                && KamiMod.MODULE_MANAGER.getModuleT(Baritone.class).getPauseDuringAutoEat().getValue())
+                && KamiMod.MODULE_MANAGER.getModuleT(AutoEat.class).getPauseBaritone().getValue())
                 ||
                 (KamiMod.MODULE_MANAGER.isModuleEnabled(LagNotifier.class)
                 && KamiMod.MODULE_MANAGER.getModuleT(LagNotifier.class).isLagging()

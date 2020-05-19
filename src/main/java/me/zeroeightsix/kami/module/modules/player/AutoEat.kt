@@ -30,6 +30,8 @@ class AutoEat : Module() {
     private val foodLevel = register(Settings.integerBuilder("Below Hunger").withValue(15).withMinimum(1).withMaximum(20).build())
     private val healthLevel = register(Settings.integerBuilder("Below Health").withValue(8).withMinimum(1).withMaximum(20).build())
 
+    var pauseBaritone = register(Settings.b("Pause Baritone", true))
+
     private var lastSlot = -1
     var eating = false
 
@@ -55,7 +57,7 @@ class AutoEat : Module() {
             }
             eating = false
 
-            if (MODULE_MANAGER.getModuleT(Baritone::class.java).pauseDuringAutoEat.value)
+            if (pauseBaritone.value)
             {
                 unpause()
             }
@@ -72,7 +74,7 @@ class AutoEat : Module() {
             mc.player.activeHand = EnumHand.OFF_HAND
             eating = true
 
-            if (MODULE_MANAGER.getModuleT(Baritone::class.java).pauseDuringAutoEat.value)
+            if (pauseBaritone.value)
             {
                 pause()
             }
@@ -86,7 +88,7 @@ class AutoEat : Module() {
                     mc.player.inventory.currentItem = i
                     eating = true
 
-                    if (MODULE_MANAGER.getModuleT(Baritone::class.java).pauseDuringAutoEat.value)
+                    if (pauseBaritone.value)
                     {
                         pause()
                     }
