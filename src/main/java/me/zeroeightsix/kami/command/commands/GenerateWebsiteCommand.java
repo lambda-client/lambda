@@ -85,17 +85,6 @@ public class GenerateWebsiteCommand extends Command {
 
         });
 
-        KamiMod.log.info("\n## Commands (" + KamiMod.getInstance().getCommandManager().getCommands().size() + ")\n");
-
-        KamiMod.getInstance().getCommandManager().getCommands().stream().sorted(Comparator.comparing(Command::getLabel)).forEach(command -> {
-            KamiMod.log.info("<details>");
-            KamiMod.log.info("    <summary>" + command.getLabel() + "</summary>");
-            KamiMod.log.info("    <p><ul>");
-            KamiMod.log.info("        <li>" + command.getDescription() + "<p><i>Aliases: " + command.getAliases() + "</i></p></li>");
-            KamiMod.log.info("    </ul></p>");
-            KamiMod.log.info("</details>");
-        });
-
         sendChatMessage(getLabel().substring(0, 1).toUpperCase() + getLabel().substring(1) + ": Generated website to log file!");
     }
 }
