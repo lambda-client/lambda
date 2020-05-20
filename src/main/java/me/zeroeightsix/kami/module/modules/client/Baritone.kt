@@ -1,12 +1,14 @@
 package me.zeroeightsix.kami.module.modules.client
 
 import baritone.api.BaritoneAPI
+import me.zero.alpine.listener.EventHandler
+import me.zero.alpine.listener.EventHook
+import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.event.events.LocalPlayerUpdateEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting.SettingListeners
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MessageSendHelper
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 
 /**
  * Created by Dewy on the 21st of April, 2020
@@ -45,8 +47,8 @@ class Baritone : Module() {
         renderGoal.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().renderGoal.value = renderGoal.value } }
     }
 
-    @SubscribeEvent // this is done because on first init the settings won't change if null
-    fun onLocalPlayerUpdate(event: LocalPlayerUpdateEvent?) {
+    @EventHandler // this is done because on first init the settings won't change if null
+    var localPlayerUpdateEvent = Listener(EventHook { event: LocalPlayerUpdateEvent? ->
         if (!hasRun.value) { // you can use a setting for this and only run it once because then it'll be updated in game, we're only worried about default settings
             BaritoneAPI.getSettings().allowBreak.value = allowBreak.value
             BaritoneAPI.getSettings().allowSprint.value = allowSprint.value
@@ -61,7 +63,7 @@ class Baritone : Module() {
             BaritoneAPI.getSettings().renderGoal.value = renderGoal.value
             hasRun.value = true
         }
-    }
+    })
 
     public override fun onDisable() {
         MessageSendHelper.sendErrorMessage("Error: The Baritone module is for configuring Baritone integration, not toggling it.")

@@ -72,7 +72,7 @@ public class ForgeEventProcessor {
     public void onUpdate(LivingEvent.LivingUpdateEvent event) {
         if (getWorld() != null && event.getEntity().getEntityWorld().isRemote && event.getEntityLiving().equals(getPlayer())) {
             Event localPlayerUpdateEvent = new LocalPlayerUpdateEvent(event.getEntityLiving());
-            MinecraftForge.EVENT_BUS.post(localPlayerUpdateEvent);
+            KamiMod.EVENT_BUS.post(localPlayerUpdateEvent);
             event.setCanceled(localPlayerUpdateEvent.isCanceled());
         }
 
