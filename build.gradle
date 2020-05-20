@@ -93,7 +93,8 @@ dependencies {
     compile 'club.minnced:java-discord-rpc:2.0.2'
     compile 'com.github.MrPowerGamerBR:TemmieWebhook:-SNAPSHOT'
     compile 'com.github.kevinsawicki:http-request:http-request-6.0'
-    compile 'com.github.cabaletta:baritone:-SNAPSHOT'
+    compile 'com.github.cabaletta:baritone:1.2.14'
+    compile 'cabaletta:baritone-api:1.2'
     compile group: "net.shadowfacts", name: "Forgelin", version: "1.8.4"
     compile group: "org.jetbrains.kotlin", name: "kotlin-stdlib", version: kotlin_version
     compile group: "org.jetbrains.kotlin", name: "kotlin-stdlib-jdk7", version: kotlin_version
@@ -137,7 +138,7 @@ shadowJar {
         include(dependency('org.javassist:javassist'))
         include(dependency('com.github.MrPowerGamerBR:TemmieWebhook'))
         include(dependency('com.github.kevinsawicki:http-request'))
-        include(dependency('com.github.cabaletta:baritone'))
+        include(dependency('cabaletta:baritone-api'))
         include(dependency("org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"))
         include(dependency("org.jetbrains.kotlin:kotlin-stdlib-jdk7:${kotlin_version}"))
         include(dependency("org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"))
@@ -163,10 +164,11 @@ reobf {
     }
 }
 
+// Don't put baritone mixin here please c:
 jar {
     manifest {
         attributes(
-                'MixinConfigs': 'mixins.kami.json', 'mixins.baritone.json',
+                'MixinConfigs': 'mixins.kami.json',
                 'tweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
                 'TweakOrder': 0,
                 'FMLCorePluginContainsFMLMod': 'true',
