@@ -2,13 +2,13 @@ package me.zeroeightsix.kami.command.commands
 
 import me.zeroeightsix.kami.command.Command
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder
-import me.zeroeightsix.kami.command.syntax.parsers.BaritoneParser
+import me.zeroeightsix.kami.command.syntax.parsers.EnumParser
 import me.zeroeightsix.kami.util.MessageSendHelper
 
 /**
  * @author dominikaaaa
  */
-class BaritoneCommand : Command("baritone", ChunkBuilder().append("command", true, BaritoneParser()).build(), "b") {
+class BaritoneCommand : Command("baritone", ChunkBuilder().append("command", true, EnumParser(arrayOf("goto", "mine", "tunnel", "farm", "explore", "click", "build", "cancel", "help"))).build(), "b") {
     override fun call(args: Array<out String>?) {
         val newArgs = arrayOfNulls<String>(args!!.size - 1) // returns Array<String?>
 
