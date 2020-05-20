@@ -21,14 +21,14 @@ public class MixinLoaderForge implements IFMLLoadingPlugin {
     private static boolean isObfuscatedEnvironment = false;
 
     public MixinLoaderForge() {
-        log.info("KAMI & baritone mixins initializing...");
+        log.info("KAMI Blue and Baritone mixins initializing...");
+
+        MixinBootstrap.init();
 
         Mixins.addConfigurations("mixins.kami.json", "mixins.baritone.json");
         MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
 
-        MixinBootstrap.init();
-
-        log.info("KAMI & baritone mixins initialised.");
+        log.info("KAMI Blue and Baritone mixins initialised.");
 
         log.info(MixinEnvironment.getDefaultEnvironment().getObfuscationContext());
     }
