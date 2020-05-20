@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.commands.PeekCommand;
 import me.zeroeightsix.kami.event.events.DisplaySizeChangedEvent;
+import me.zeroeightsix.kami.event.events.LocalPlayerUpdateEvent;
 import me.zeroeightsix.kami.gui.UIRenderer;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
@@ -30,6 +31,7 @@ import net.minecraft.util.FoodStats;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.GuiIngameForge;
 import net.minecraftforge.client.event.*;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
@@ -37,6 +39,7 @@ import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
@@ -46,6 +49,8 @@ import org.lwjgl.opengl.GL11;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.Wrapper.getPlayer;
+import static me.zeroeightsix.kami.util.Wrapper.getWorld;
 
 /**
  * Created by 086 on 11/11/2017.
@@ -65,8 +70,13 @@ public class ForgeEventProcessor {
 
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent event) {
+        if (getWorld() != null && event.getEntity().getEntityWorld().isRemote && event.getEntityLiving().equals(getPlayer())) {
+            Event localPlayerUpdateEvent = new LocalPlayerUpdateEvent(event.getEntityLiving());
+            MinecraftForge.EVENT_BUS.post(localPlayerUpdateEvent);
+            event.setCanceled(localPlayerUpdateEvent.isCanceled());
+        }
+
         if (event.isCanceled()) return;
-//        KamiMod.EVENT_BUS.post(new UpdateEvent());
 
         if (Minecraft.getMinecraft().displayWidth != displayWidth || Minecraft.getMinecraft().displayHeight != displayHeight) {
             KamiMod.EVENT_BUS.post(new DisplaySizeChangedEvent());
