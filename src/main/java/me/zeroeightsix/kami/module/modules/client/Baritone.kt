@@ -23,7 +23,7 @@ class Baritone : Module() {
     private var allowBreak = register(Settings.b("Allow Break", true))
     private var allowSprint = register(Settings.b("Allow Sprint", true))
     private var allowPlace = register(Settings.b("Allow Place", true))
-    private var allowInventory = register(Settings.b("Allow Inventory", true))
+    private var allowInventory = register(Settings.b("Allow Inventory", false))
     private var freeLook = register(Settings.b("Free Look", true))
     private var allowDownwardTunneling = register(Settings.b("Downward Tunneling", true))
     private var allowParkour = register(Settings.b("Allow Parkour", true))
