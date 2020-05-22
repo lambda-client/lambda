@@ -11,6 +11,7 @@
     "MixinC00Handshake",
     "MixinChunkCache",
     "MixinEntity",
+    "MixinEntityLivingBase",
     "MixinEntityLlama",
     "MixinEntityPig",
     "MixinEntityPlayer",
