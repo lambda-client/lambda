@@ -3,10 +3,12 @@ package me.zeroeightsix.kami.module.modules.movement
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
-import me.zeroeightsix.kami.KamiMod
+import me.zero.alpine.type.EventState
 import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
+import me.zeroeightsix.kami.event.events.MotionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
+import me.zeroeightsix.kami.event.events.TravelEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting.SettingListeners
 import me.zeroeightsix.kami.setting.Settings
@@ -39,9 +41,7 @@ class ElytraFlight : Module() {
     private val easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val timerControl = register(Settings.booleanBuilder("Takeoff Timer").withValue(true).withVisibility { easyTakeOffControl.value && mode.value == ElytraFlightMode.CONTROL }.build())
     private val takeOffMode = register(Settings.enumBuilder(TakeoffMode::class.java).withName("Takeoff Mode").withValue(TakeoffMode.PACKET).withVisibility { easyTakeOff.value && mode.value == ElytraFlightMode.HIGHWAY }.build())
-    private val overrideMaxSpeed = register(Settings.booleanBuilder("Over Max Speed").withValue(false).withVisibility { mode.value == ElytraFlightMode.HIGHWAY }.build())
-    private val speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility { !overrideMaxSpeed.value && mode.value == ElytraFlightMode.HIGHWAY }.build())
-    private val speedHighwayOverride = register(Settings.floatBuilder("Speed H O").withValue(1.8f).withVisibility { overrideMaxSpeed.value && mode.value == ElytraFlightMode.HIGHWAY }.build())
+    private val speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility { mode.value == ElytraFlightMode.HIGHWAY }.build())
     private val speedControl = register(Settings.floatBuilder("Speed C").withValue(1.8f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val fallSpeedHighway = register(Settings.floatBuilder("Fall Speed H").withValue(0.000100000002f).withVisibility { mode.value == ElytraFlightMode.HIGHWAY }.build())
     private val fallSpeedControl = register(Settings.floatBuilder("Fall Speed C").withValue(0.000100000002f).withMaximum(0.3f).withMinimum(0.0f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
@@ -62,50 +62,50 @@ class ElytraFlight : Module() {
     private var spoofedPitch = -45.0f
 
     /* Control Mode */
-//    @EventHandler
-//    private val onTravelPre = Listener(EventHook { event: TravelEvent? ->
-//        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//
-//        changedPitch = false
-//        mc.player.capabilities.allowFlying = true
-//        mc.player.capabilities.isFlying = true
-//
-//        originalPitch = mc.player.rotationPitch
-//
-//        mc.player.rotationPitch = spoofedPitch
-//        changedPitch = true
-//    })
-//
-//    @EventHandler
-//    private val onTravelPost = Listener(EventHook { event: TravelEvent? ->
-//        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//
-//        mc.player.capabilities.allowFlying = false
-//        mc.player.capabilities.isFlying = false
-//        if (changedPitch) {
-//            mc.player.rotationPitch = originalPitch
-//            changedPitch = false
-//        }
-//    })
-//
-//    @EventHandler
-//    private val onMotionPre = Listener(EventHook { event: MotionEvent? ->
-//        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//
-//        changedPitch = false
-//        originalPitch = mc.player.rotationPitch
-//        mc.player.rotationPitch = spoofedPitch
-//        changedPitch = true
-//    })
-//
-//    @EventHandler
-//    private val onMotionPost = Listener(EventHook { event: MotionEvent? ->
-//        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//        if (changedPitch) {
-//            mc.player.rotationPitch = originalPitch
-//            changedPitch = false
-//        }
-//    })
+    @EventHandler
+    private val onTravelPre = Listener(EventHook { event: TravelEvent? ->
+        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+
+        changedPitch = false
+        mc.player.capabilities.allowFlying = true
+        mc.player.capabilities.isFlying = true
+
+        originalPitch = mc.player.rotationPitch
+
+        mc.player.rotationPitch = spoofedPitch
+        changedPitch = true
+    })
+
+    @EventHandler
+    private val onTravelPost = Listener(EventHook { event: TravelEvent? ->
+        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+
+        mc.player.capabilities.allowFlying = false
+        mc.player.capabilities.isFlying = false
+        if (changedPitch) {
+            mc.player.rotationPitch = originalPitch
+            changedPitch = false
+        }
+    })
+
+    @EventHandler
+    private val onMotionPre = Listener(EventHook { event: MotionEvent? ->
+        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+
+        changedPitch = false
+        originalPitch = mc.player.rotationPitch
+        mc.player.rotationPitch = spoofedPitch
+        changedPitch = true
+    })
+
+    @EventHandler
+    private val onMotionPost = Listener(EventHook { event: MotionEvent? ->
+        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+        if (changedPitch) {
+            mc.player.rotationPitch = originalPitch
+            changedPitch = false
+        }
+    })
 
     @EventHandler
     private val sendListener = Listener(EventHook { event: PacketEvent.Send ->
@@ -178,7 +178,7 @@ class ElytraFlight : Module() {
         hoverState = if (hoverState) mc.player.posY < hoverTarget + 0.1 else mc.player.posY < hoverTarget + 0.0
         val doHover: Boolean = hoverState && hoverControl.value
 
-        if (moveUp || moveForward || moveBackward || moveLeft || moveRight || KamiMod.MODULE_MANAGER.isModuleEnabled(AutoWalk::class.java)) {
+        if (moveUp || moveForward || moveBackward || moveLeft || moveRight) {
             if ((moveUp || doHover) && motionAmount > 1.0) {
                 if (mc.player.motionX == 0.0 && mc.player.motionZ == 0.0) {
                     mc.player.motionY = downSpeedControl.value
@@ -229,8 +229,10 @@ class ElytraFlight : Module() {
         /* required on some servers in order to land */
         if (mc.player.onGround) mc.player.capabilities.allowFlying = false
 
-        if (!mc.player.isElytraFlying) return
+        if (mc.player.isElytraFlying) flyBoostFlyHighway()
+    }
 
+    private fun flyBoostFlyHighway() {
         if (mode.value == ElytraFlightMode.BOOST) {
             if (mc.player.isInWater) {
                 mc.connection!!.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING))
@@ -263,7 +265,7 @@ class ElytraFlight : Module() {
                 mc.player.isSprinting = false
                 mc.player.setVelocity(0.0, 0.0, 0.0)
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.value, mc.player.posZ)
-                mc.player.capabilities.flySpeed = highwaySpeed
+                mc.player.capabilities.flySpeed = speedHighway.value
             } else {
                 mc.player.setVelocity(0.0, 0.0, 0.0)
                 mc.player.capabilities.flySpeed = .915f
@@ -311,9 +313,7 @@ class ElytraFlight : Module() {
             easyTakeOffControl.value = false
             timerControl.value = false
             takeOffMode.value = TakeoffMode.PACKET
-            overrideMaxSpeed.value = false
             speedHighway.value = 1.8f
-            speedHighwayOverride.value = 1.8f
             speedControl.value = 1.8f
             fallSpeedHighway.value = 0.000100000002f
             fallSpeedControl.value = 0.000100000002f
@@ -326,13 +326,6 @@ class ElytraFlight : Module() {
             closeSettings()
         }
     }
-
-    private val highwaySpeed: Float
-        get() = if (overrideMaxSpeed.value) {
-            speedHighwayOverride.value
-        } else {
-            speedHighway.value
-        }
 
     private enum class ElytraFlightMode {
         BOOST, FLY, CONTROL, HIGHWAY
