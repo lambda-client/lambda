@@ -15,7 +15,6 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
-import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.math.MathHelper
 import kotlin.math.sqrt
 
@@ -114,7 +113,7 @@ class ElytraFlight : Module() {
         if (event.packet is CPacketPlayer) {
             if (!mc.player.isElytraFlying) return@EventHook
             val packet = event.packet as CPacketPlayer
-            packet.pitch = 0.0f
+//            packet.pitch = 0.0f
             packet.yaw = packetYaw
         }
 
@@ -123,14 +122,14 @@ class ElytraFlight : Module() {
         }
     })
 
-    @EventHandler
-    private val receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
-        if (isBoosting || mode.value != ElytraFlightMode.CONTROL || mc.player == null || !mc.player.isElytraFlying || mc.player.isSpectator) return@EventHook
-        if (event.packet is SPacketPlayerPosLook) {
-            val packet = event.packet as SPacketPlayerPosLook
-            packet.pitch = mc.player.rotationPitch
-        }
-    })
+//    @EventHandler
+//    private val receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
+//        if (isBoosting || mode.value != ElytraFlightMode.CONTROL || mc.player == null || !mc.player.isElytraFlying || mc.player.isSpectator) return@EventHook
+//        if (event.packet is SPacketPlayerPosLook) {
+//            val packet = event.packet as SPacketPlayerPosLook
+//            packet.pitch = mc.player.rotationPitch
+//        }
+//    })
 
     @EventHandler
     private val playerTravelListener = Listener(EventHook { event: PlayerTravelEvent ->
@@ -155,7 +154,7 @@ class ElytraFlight : Module() {
         val moveBackward = mc.gameSettings.keyBindBack.isKeyDown
         val moveLeft = mc.gameSettings.keyBindLeft.isKeyDown
         val moveRight = mc.gameSettings.keyBindRight.isKeyDown
-        val moveUp = mc.gameSettings.keyBindJump.isKeyDown
+        val moveUp = if (!lookBoost.value) mc.gameSettings.keyBindJump.isKeyDown else false
         val moveDown = mc.gameSettings.keyBindSneak.isKeyDown
         val moveForwardFactor = if (moveForward) 1.0f else (if (moveBackward) -1 else 0).toFloat()
         var yawDeg = mc.player.rotationYaw
@@ -212,8 +211,8 @@ class ElytraFlight : Module() {
         }
         event.cancel()
     })
-
     /* End of Control Mode */
+
     override fun onUpdate() {
         if (mc.player == null || mc.player.isSpectator) return
 
