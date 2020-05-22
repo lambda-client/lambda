@@ -38,7 +38,6 @@ public class CreditsCommand extends Command {
                 26636167, // AnotherEntity
                 22961592, // ArisaSnowbell
                 58238984, // Itistheend
-                32800833, // Ropro2002
 
                 // Bots
                 27856297 // dependabot
@@ -63,8 +62,7 @@ public class CreditsCommand extends Command {
                 "\nArisa (Arisa-Snowbell)" +
                 "\nJamie (jamie27)" +
                 "\nWaizy (WaizyNet)" +
-                "\nIt is the end (Itistheend)" +
-                "\nRobeart (Ropro2002/Potentia-Public)";
+                "\nIt is the end (Itistheend)";
 
                 for (WebUtils.GithubUser u : WebUtils.getContributors(exceptions)) {
                     message = message.concat("\n" + u.login);
