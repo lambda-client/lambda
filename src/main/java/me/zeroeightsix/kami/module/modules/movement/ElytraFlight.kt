@@ -3,12 +3,10 @@ package me.zeroeightsix.kami.module.modules.movement
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
-import me.zero.alpine.type.EventState
 import me.zeroeightsix.kami.KamiMod
-import me.zeroeightsix.kami.event.events.MotionEvent
+import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
-import me.zeroeightsix.kami.event.events.TravelEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting.SettingListeners
 import me.zeroeightsix.kami.setting.Settings
@@ -153,7 +151,7 @@ class ElytraFlight : Module() {
         if (hoverTarget < 0.0) hoverTarget = mc.player.posY
 
         /* this is horrible but what other way to store these for later */
-        val moveForward = mc.gameSettings.keyBindForward.isKeyDown
+        val moveForward = mc.gameSettings.keyBindForward.isKeyDown || (MODULE_MANAGER.isModuleEnabled(AutoWalk::class.java) && MODULE_MANAGER.getModuleT(AutoWalk::class.java).mode.value == AutoWalk.AutoWalkMode.FORWARD)
         val moveBackward = mc.gameSettings.keyBindBack.isKeyDown
         val moveLeft = mc.gameSettings.keyBindLeft.isKeyDown
         val moveRight = mc.gameSettings.keyBindRight.isKeyDown

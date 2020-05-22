@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MathsUtils
 import me.zeroeightsix.kami.util.MathsUtils.Cardinal
+import me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage
 import net.minecraftforge.client.event.InputUpdateEvent
 
 /**
@@ -53,7 +54,16 @@ class AutoWalk : Module() {
     public override fun onEnable() {
         if (mode.value != AutoWalkMode.BARITONE) return
 
-        if (mc.player == null) { disable(); return }
+        if (mc.player == null) {
+            disable()
+            return
+        }
+
+        if (mc.player.isElytraFlying) {
+            sendErrorMessage(chatName + "Baritone mode isn't currently compatible with Elytra flying! Choose a different mode if you want to use AutoWalk while Elytra flying")
+            disable()
+            return
+        }
 
         when (MathsUtils.getPlayerCardinal(mc)!!) {
             Cardinal.POS_Z -> BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(mc.player.posX.toInt(), mc.player.posZ.toInt() + border))
