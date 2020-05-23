@@ -53,7 +53,7 @@ public class PacketLogger extends Module {
 
             writer.close();
         } catch (IOException e) {
-            KamiMod.log.error(getChatName() + "Error saving!");
+            KamiMod.log.error(getChatName() + " Error saving!");
             e.printStackTrace();
         }
     }

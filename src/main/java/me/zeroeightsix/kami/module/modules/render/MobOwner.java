@@ -80,7 +80,7 @@ public class MobOwner extends Module {
             for (Map.Entry<String, String> entries : cachedUUIDs.entrySet()) {
                 if (entries.getKey().equalsIgnoreCase(invalidText)) {
                     cachedUUIDs.clear();
-                    if (debug.getValue()) sendChatMessage(getChatName() + "Reset cached UUIDs list!");
+                    if (debug.getValue()) sendChatMessage(getChatName() + " Reset cached UUIDs list!");
                     return;
                 }
             }
@@ -95,7 +95,7 @@ public class MobOwner extends Module {
             startTime1 = System.currentTimeMillis();
             if (apiRequests >= 2) {
                 apiRequests = 0;
-                if (debug.getValue()) sendChatMessage(getChatName() + "Reset API requests counter!");
+                if (debug.getValue()) sendChatMessage(getChatName() + " Reset API requests counter!");
             }
         }
     }

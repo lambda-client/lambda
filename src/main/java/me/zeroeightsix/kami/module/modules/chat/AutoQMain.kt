@@ -67,7 +67,7 @@ class AutoQMain : Module() {
     }
 
     private fun sendMessage(message: String) {
-        if (showWarns.value) MessageSendHelper.sendWarningMessage(chatName + message)
+        if (showWarns.value) MessageSendHelper.sendWarningMessage("$chatName $message")
     }
 
     public override fun onToggle() {

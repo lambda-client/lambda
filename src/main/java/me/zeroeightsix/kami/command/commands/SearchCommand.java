@@ -47,7 +47,7 @@ public class SearchCommand extends Command {
                         "  clear: Removes all blocks from the " + search.getName() + " block list");
             } else if (s.equalsIgnoreCase("override")) {
                 search.overrideWarning.setValue(true);
-                sendWarningMessage(search.getChatName() + "Override for Intel Integrated GPUs enabled!");
+                sendWarningMessage(search.getChatName() + " Override for Intel Integrated GPUs enabled!");
             } else if (s.equalsIgnoreCase("clear")) {
                 search.extClear();
                 sendWarningMessage("Cleared the " + search.getName() + " block list");

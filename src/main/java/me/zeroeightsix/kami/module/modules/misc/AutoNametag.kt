@@ -59,7 +59,7 @@ class AutoNametag : Module() {
 
     private fun selectNameTags() {
         if (currentSlot == -1 || !isNametag(currentSlot)) {
-            MessageSendHelper.sendErrorMessage(chatName + "Error: No nametags in hotbar")
+            MessageSendHelper.sendErrorMessage("$chatName Error: No nametags in hotbar")
             disable()
             return
         }

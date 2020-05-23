@@ -64,10 +64,6 @@ public class Module {
         return bind.getValue();
     }
 
-//    public boolean showOnArray() {
-//        return showOnArray.getValue();
-//    }
-
     public enum ShowOnArray {
         ON, OFF
     }
@@ -133,7 +129,7 @@ public class Module {
     }
 
     public String getChatName() {
-        return "[" + name.getValue() + "] ";
+        return "[" + name.getValue() + "]";
     }
 
     public String getDescription() { return description; }

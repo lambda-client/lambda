@@ -158,7 +158,7 @@ public class ChatEncryption extends Module {
 
     private String getDelimiter() {
         if (delimiterValue.getValue().equalsIgnoreCase("unchanged")) {
-            sendErrorMessage(getChatName() + "Please change the delimiter with &7" + getCommandPrefix() + "chatencryption&f, disabling");
+            sendErrorMessage(getChatName() + " Please change the delimiter with &7" + getCommandPrefix() + "chatencryption&f, disabling");
             disable();
             return null;
         }

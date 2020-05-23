@@ -68,7 +68,7 @@ public class ChatFilter extends Module {
     public void onEnable() {
         BufferedReader bufferedReader;
         try {
-            sendChatMessage(getChatName() + "Trying to find '&7chat_filter.txt&f'");
+            sendChatMessage(getChatName() + " Trying to find '&7chat_filter.txt&f'");
             bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("chat_filter.txt"), "UTF-8"));
             String line;
             chatFilter.clear();
@@ -84,17 +84,17 @@ public class ChatFilter extends Module {
             }
             bufferedReader.close();
         } catch (FileNotFoundException exception) {
-            sendErrorMessage(getChatName() + "Couldn't find a file called '&7chat_filter.txt&f' inside your '&7.minecraft&f' folder, disabling");
+            sendErrorMessage(getChatName() + " Couldn't find a file called '&7chat_filter.txt&f' inside your '&7.minecraft&f' folder, disabling");
             disable();
         } catch (IOException exception) {
             sendErrorMessage(exception.toString());
         }
         if (isDisabled()) return;
 
-        sendChatMessage(getChatName() + "Found '&7chat_filter.txt&f'!");
+        sendChatMessage(getChatName() + " Found '&7chat_filter.txt&f'!");
 
         if (!hasRunInfo.getValue()) {
-            sendChatMessage(getChatName() + "Tip: this supports &lregex&r if you know how to use those. This also uses &lword boundaries&r meaning it will match whole words, not part of a word. Eg if your filter has 'hell' then 'hello' will not be filtered.");
+            sendChatMessage(getChatName() + " Tip: this supports &lregex&r if you know how to use those. This also uses &lword boundaries&r meaning it will match whole words, not part of a word. Eg if your filter has 'hell' then 'hello' will not be filtered.");
             hasRunInfo.setValue(true);
         }
     }

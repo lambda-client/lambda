@@ -148,7 +148,7 @@ class AutoFeetPlace : Module() {
         if (missingObiDisable && disableNone.value) {
             missingObiDisable = false
             if (infoMessage.value) {
-                MessageSendHelper.sendChatMessage(chatName + " " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!")
+                MessageSendHelper.sendChatMessage("$chatName " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!")
             }
             disable()
         }

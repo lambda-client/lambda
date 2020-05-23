@@ -4,14 +4,12 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 
-import javax.management.monitor.StringMonitor;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -38,7 +36,7 @@ public class Spammer extends Module {
     public void onEnable() {
         BufferedReader bufferedReader;
         try {
-            sendChatMessage(getChatName() + "Trying to find '&7spammer.txt&f'");
+            sendChatMessage(getChatName() + " Trying to find '&7spammer.txt&f'");
             bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("spammer.txt"), "UTF-8"));
             String line;
             tempLines.clear();
@@ -48,14 +46,14 @@ public class Spammer extends Module {
             bufferedReader.close();
             spammer = tempLines.toArray(new String[]{});
         } catch (FileNotFoundException exception) {
-            sendErrorMessage(getChatName() + "Couldn't find a file called '&7spammer.txt&f' inside your '&7.minecraft&f' folder, disabling");
+            sendErrorMessage(getChatName() + " Couldn't find a file called '&7spammer.txt&f' inside your '&7.minecraft&f' folder, disabling");
             disable();
             return;
         } catch (IOException exception) {
             sendErrorMessage(exception.toString());
             return;
         }
-        sendChatMessage(getChatName() + "Found '&7spammer.txt&f'!");
+        sendChatMessage(getChatName() + " Found '&7spammer.txt&f'!");
 
     }
 

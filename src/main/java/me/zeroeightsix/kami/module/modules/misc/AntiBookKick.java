@@ -32,7 +32,7 @@ public class AntiBookKick extends Module {
 
         event.cancel();
         sendWarningMessage(getChatName()
-                + "Don't click the book \""
+                + " Don't click the book \""
                 + packet.getClickedItem().getDisplayName()
                 + "\", shift click it instead!");
 

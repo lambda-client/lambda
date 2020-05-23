@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.util.GeometryMasks;
 import me.zeroeightsix.kami.util.KamiTessellator;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockPortal;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ChunkProviderClient;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.Tuple;
@@ -117,8 +116,8 @@ public class Search extends Module {
     @Override
     public void onEnable() {
         if (!overrideWarning.getValue() && GlStateManager.glGetString(GL11.GL_VENDOR).contains("Intel")) {
-            sendErrorMessage(getChatName() + "Warning: Running Search with an Intel Integrated GPU is not recommended, as it has a &llarge&r impact on performance.");
-            sendWarningMessage(getChatName() + "If you're sure you want to try, run the &7" + Command.getCommandPrefix() + "search override&f command");
+            sendErrorMessage(getChatName() + " Warning: Running Search with an Intel Integrated GPU is not recommended, as it has a &llarge&r impact on performance.");
+            sendWarningMessage(getChatName() + " If you're sure you want to try, run the &7" + Command.getCommandPrefix() + "search override&f command");
             disable();
             return;
         }

@@ -8,11 +8,7 @@ import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.util.MessageSendHelper
 import net.minecraft.network.play.server.SPacketChat
-import java.io.BufferedReader
-import java.io.FileNotFoundException
-import java.io.InputStreamReader;
-import java.io.FileInputStream;
-import java.io.IOException
+import java.io.*
 
 @Module.Info(
         name = "LoginMessage",
@@ -28,14 +24,14 @@ class LoginMessage : Module() {
         val reader: BufferedReader
 
         try {
-            MessageSendHelper.sendChatMessage(chatName + "Finding login message from loginmsg.txt...")
+            MessageSendHelper.sendChatMessage("$chatName Finding login message from loginmsg.txt...")
             reader = BufferedReader(InputStreamReader(FileInputStream("loginmsg.txt"), "UTF-8"))
 
             loginMessage = reader.readLine()
 
             reader.close()
         } catch (e: FileNotFoundException) {
-            MessageSendHelper.sendErrorMessage(chatName + "The file '&7loginmsg.txt&f' was not found in your .minecraft folder. Create it and add a message to enable this module.")
+            MessageSendHelper.sendErrorMessage("$chatName The file '&7loginmsg.txt&f' was not found in your .minecraft folder. Create it and add a message to enable this module.")
 
             disable()
         } catch (e: IOException) {

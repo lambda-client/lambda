@@ -127,11 +127,11 @@ public class DiscordNotifs extends Module {
     public void onUpdate() {
         if (isDisabled()) return;
         if (url.getValue().equals("unchanged")) {
-            sendErrorMessage(getChatName() + "You must first set a webhook url with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
+            sendErrorMessage(getChatName() + " You must first set a webhook url with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
             disable();
         }
         else if (pingID.getValue().equals("unchanged") && importantPings.getValue()) {
-            sendErrorMessage(getChatName() + "For Pings to work, you must set a Discord ID with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
+            sendErrorMessage(getChatName() + " For Pings to work, you must set a Discord ID with the '&7" + Command.getCommandPrefix() + "discordnotifs&r' command");
             disable();
         }
     }

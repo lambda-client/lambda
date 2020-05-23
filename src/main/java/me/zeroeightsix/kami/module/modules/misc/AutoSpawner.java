@@ -357,7 +357,7 @@ public class AutoSpawner extends Module {
             if (!checkBlocksInHotbar()) {
                 if (!party.getValue()) {
                     if (debug.getValue()) {
-                        sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
+                        sendChatMessage(getChatName() + " " + ChatFormatting.RED.toString() + "Blocks missing for: " + ChatFormatting.RESET.toString() + entityMode.getValue().toString() + ChatFormatting.RED.toString() + ", disabling.");
                     }
                     disable();
                 }
@@ -380,7 +380,7 @@ public class AutoSpawner extends Module {
             if (noPositionInArea) {
                 if (useMode.getValue().equals(UseMode.SINGLE)) {
                     if (debug.getValue()) {
-                        sendChatMessage(getChatName() + ChatFormatting.RED.toString() + "Position not valid, disabling.");
+                        sendChatMessage(getChatName() + " " + ChatFormatting.RED.toString() + "Position not valid, disabling.");
                     }
                     disable();
                 }

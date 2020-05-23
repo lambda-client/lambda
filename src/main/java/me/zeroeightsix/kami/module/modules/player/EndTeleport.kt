@@ -25,10 +25,10 @@ class EndTeleport : Module() {
     private val confirmed = register(Settings.b("Confirm", true))
     public override fun onEnable() {
         if (Wrapper.getMinecraft().getCurrentServerData() == null) {
-            MessageSendHelper.sendWarningMessage(chatName + "This module does not work in singleplayer")
+            MessageSendHelper.sendWarningMessage("$chatName This module does not work in singleplayer")
             disable()
         } else if (!confirmed.value) {
-            MessageSendHelper.sendWarningMessage(chatName + "This module will kick you from the server! It is part of the exploit and cannot be avoided")
+            MessageSendHelper.sendWarningMessage("$chatName This module will kick you from the server! It is part of the exploit and cannot be avoided")
         }
     }
 

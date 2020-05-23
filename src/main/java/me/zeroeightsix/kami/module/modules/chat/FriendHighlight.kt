@@ -27,7 +27,7 @@ class FriendHighlight : Module() {
 
     public override fun onEnable() {
         if (Friends.friends.value.size > 100) {
-            MessageSendHelper.sendErrorMessage(chatName + "Your friends list is bigger then 100, disabling as it would cause too much of a performance impact.")
+            MessageSendHelper.sendErrorMessage("$chatName Your friends list is bigger then 100, disabling as it would cause too much of a performance impact.")
             disable()
         }
         noFriendsCheck()
@@ -44,7 +44,7 @@ class FriendHighlight : Module() {
 
     private fun noFriendsCheck(): Boolean {
         if (Friends.friends.value.size == 0) {
-            MessageSendHelper.sendErrorMessage(chatName + "You don't have any friends added, silly! Go add some friends before using the module")
+            MessageSendHelper.sendErrorMessage("$chatName You don't have any friends added, silly! Go add some friends before using the module")
             disable()
             return true
         }

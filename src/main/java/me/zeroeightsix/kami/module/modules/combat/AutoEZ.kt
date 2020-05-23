@@ -89,7 +89,7 @@ class AutoEZ : Module() {
         if (startTime == 0L) startTime = System.currentTimeMillis()
         if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
             if (mode.value == Mode.CUSTOM && customText.value.equals("unchanged", ignoreCase = true) && mc.player != null) {
-                MessageSendHelper.sendWarningMessage(chatName + " Warning: In order to use the custom " + name + ", please run the &7" + Command.getCommandPrefix() + "autoez&r command to change it, with '&7\$NAME&f' being the username of the killed player")
+                MessageSendHelper.sendWarningMessage("$chatName Warning: In order to use the custom " + name + ", please run the &7" + Command.getCommandPrefix() + "autoez&r command to change it, with '&7\$NAME&f' being the username of the killed player")
             }
             startTime = System.currentTimeMillis()
         }

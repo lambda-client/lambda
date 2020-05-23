@@ -293,7 +293,7 @@ class ElytraFlight : Module() {
         }
         if (mc.player.isElytraFlying) {
             easyTakeOff.value = false
-            sendChatMessage(chatName + "Disabled takeoff!")
+            sendChatMessage("$chatName Disabled takeoff!")
         }
     }
 
@@ -326,7 +326,7 @@ class ElytraFlight : Module() {
             downSpeedBoost.value = 0.04f
             downSpeedControl.value = 2.0
             defaultSetting.value = false
-            sendChatMessage(chatName + "Set to defaults!")
+            sendChatMessage("$chatName Set to defaults!")
             closeSettings()
         }
     }

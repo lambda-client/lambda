@@ -88,7 +88,7 @@ class Surround : Module() {
     /* AutoCenter */
     private fun centerPlayer(x: Double, y: Double, z: Double) {
         if (debugMsgs.value == DebugMsgs.ALL && playerPos != null) {
-            MessageSendHelper.sendChatMessage(chatName + " Player position is " + playerPos.toString())
+            MessageSendHelper.sendChatMessage("$chatName Player position is " + playerPos.toString())
         } else if (debugMsgs.value == DebugMsgs.ALL) {
             MessageSendHelper.sendChatMessage("$chatName Player position is null")
         }

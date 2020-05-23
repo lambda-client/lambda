@@ -20,8 +20,8 @@ import net.minecraft.tileentity.TileEntitySign
 )
 class ConsoleSpam : Module() {
     public override fun onEnable() {
-        MessageSendHelper.sendChatMessage(chatName + "Every time you right click a sign, a warning will appear in console.")
-        MessageSendHelper.sendChatMessage(chatName + "Use an autoclicker to automate this process.")
+        MessageSendHelper.sendChatMessage("$chatName Every time you right click a sign, a warning will appear in console.")
+        MessageSendHelper.sendChatMessage("$chatName Use an autoclicker to automate this process.")
     }
 
     @EventHandler

@@ -105,14 +105,14 @@ public class ChunkFinder extends Module {
         closeFile.setValue(false);
         closeSettings();
         logWriterClose();
-        sendChatMessage(getChatName() + "Saved file!");
+        sendChatMessage(getChatName() + " Saved file!");
     }
 
     @Override
     protected void onDisable() {
         logWriterClose();
         chunks.clear();
-        sendChatMessage(getChatName() + "Saved and cleared chunks!");
+        sendChatMessage(getChatName() + " Saved and cleared chunks!");
     }
 
     @EventHandler
@@ -168,8 +168,8 @@ public class ChunkFinder extends Module {
             logWriter.println(head);
         } catch (Exception e) {
             e.printStackTrace();
-            KamiMod.log.error(getChatName() + "some exception happened when trying to start the logging -> " + e.getMessage());
-            sendErrorMessage(getChatName() + "onLogStart: " + e.getMessage());
+            KamiMod.log.error(getChatName() + " some exception happened when trying to start the logging -> " + e.getMessage());
+            sendErrorMessage(getChatName() + " onLogStart: " + e.getMessage());
         }
     }
 
@@ -186,7 +186,7 @@ public class ChunkFinder extends Module {
             } catch (Exception e) {
                 e.printStackTrace();
                 KamiMod.log.error("some exception happened when getting canonicalFile -> " + e.getMessage());
-                sendErrorMessage(getChatName() + "onGetPath: " + e.getMessage());
+                sendErrorMessage(getChatName() + " onGetPath: " + e.getMessage());
             }
 
             // Gets the "depth" of this directory relative the the game's run directory, 2 is the location of the world
@@ -225,7 +225,7 @@ public class ChunkFinder extends Module {
         } catch (IOException e) {
             e.printStackTrace();
             KamiMod.log.error("some exception happened when trying to make the file -> " + e.getMessage());
-            sendErrorMessage(getChatName() + "onCreateFile: " + e.getMessage());
+            sendErrorMessage(getChatName() + " onCreateFile: " + e.getMessage());
         }
         return rV;
     }
@@ -249,8 +249,8 @@ public class ChunkFinder extends Module {
 
                 // extra because name might be different
                 if (!rV.exists()) {
-                    sendWarningMessage(getChatName() + "nhack wdl directory doesnt exist: " + folderName);
-                    sendWarningMessage(getChatName() + "creating the directory now. It is recommended to update the ip");
+                    sendWarningMessage(getChatName() + " nhack wdl directory doesnt exist: " + folderName);
+                    sendWarningMessage(getChatName() + " creating the directory now. It is recommended to update the ip");
                 }
                 break;
             default: // make folder structure in .minecraft

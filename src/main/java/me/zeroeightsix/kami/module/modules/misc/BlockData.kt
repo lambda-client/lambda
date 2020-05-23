@@ -43,7 +43,7 @@ class BlockData : Module() {
                     val tag = NBTTagCompound()
 
                     Objects.requireNonNull(t)!!.writeToNBT(tag)
-                    MessageSendHelper.sendChatMessage("""$chatName&6Block Tags:$tag""".trimIndent())
+                    MessageSendHelper.sendChatMessage("""$chatName &6Block Tags:$tag""".trimIndent())
                 }
             }
         }

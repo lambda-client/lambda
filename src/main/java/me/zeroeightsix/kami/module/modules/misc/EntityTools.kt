@@ -47,7 +47,7 @@ class EntityTools : Module() {
                 if (mode.value == Mode.INFO) {
                     val tag = NBTTagCompound()
                     mc.objectMouseOver.entityHit.writeToNBT(tag)
-                    MessageSendHelper.sendChatMessage("""$chatName&6Entity Tags:$tag""".trimIndent())
+                    MessageSendHelper.sendChatMessage("""$chatName &6Entity Tags:$tag""".trimIndent())
                 }
             }
         }

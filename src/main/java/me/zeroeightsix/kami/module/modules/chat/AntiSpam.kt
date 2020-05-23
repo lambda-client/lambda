@@ -119,8 +119,8 @@ class AntiSpam : Module() {
             messageHistory!![message] = System.currentTimeMillis()
 
             if (isDuplicate) {
-                if (showBlocked.value == ShowBlocked.CHAT || showBlocked.value == ShowBlocked.BOTH) MessageSendHelper.sendChatMessage(chatName + "Duplicate: " + message)
-                if (showBlocked.value == ShowBlocked.LOG_FILE || showBlocked.value == ShowBlocked.BOTH) KamiMod.log.info(chatName + "Duplicate: " + message)
+                if (showBlocked.value == ShowBlocked.CHAT || showBlocked.value == ShowBlocked.BOTH) MessageSendHelper.sendChatMessage("$chatName Duplicate: $message")
+                if (showBlocked.value == ShowBlocked.LOG_FILE || showBlocked.value == ShowBlocked.BOTH) KamiMod.log.info("$chatName Duplicate: $message")
             }
         }
         return false
@@ -299,7 +299,7 @@ class AntiSpam : Module() {
     }
 
     private fun sendResult(name: String, message: String) {
-        if (showBlocked.value == ShowBlocked.CHAT || showBlocked.value == ShowBlocked.BOTH) MessageSendHelper.sendChatMessage("$chatName$name: $message")
-        if (showBlocked.value == ShowBlocked.LOG_FILE || showBlocked.value == ShowBlocked.BOTH) KamiMod.log.info("$chatName$name: $message")
+        if (showBlocked.value == ShowBlocked.CHAT || showBlocked.value == ShowBlocked.BOTH) MessageSendHelper.sendChatMessage("$chatName $name: $message")
+        if (showBlocked.value == ShowBlocked.LOG_FILE || showBlocked.value == ShowBlocked.BOTH) KamiMod.log.info("$chatName $name: $message")
     }
 }

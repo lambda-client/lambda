@@ -79,7 +79,7 @@ class CustomChat : Module() {
         if (startTime == 0L) startTime = System.currentTimeMillis()
         if (startTime + 5000 <= System.currentTimeMillis()) { // 5 seconds in milliseconds
             if (textMode.value == TextMode.CUSTOM && customText.value.equals("unchanged", ignoreCase = true) && mc.player != null) {
-                MessageSendHelper.sendWarningMessage(chatName + " Warning: In order to use the custom " + name + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it")
+                MessageSendHelper.sendWarningMessage("$chatName Warning: In order to use the custom " + name + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it")
             }
             startTime = System.currentTimeMillis()
         }

@@ -104,40 +104,15 @@ public class CrystalAura extends Module {
     private static List<EntityEnderCrystal> ignoredCrystals = new ArrayList<>();
     private static int hitTries = 0;
 
+    public CrystalAura() {
+        super();
+
+        defaultSetting.settingListener = setting -> {
+            if (defaultSetting.getValue()) defaults();
+        };
+    }
+
     public void onUpdate() {
-        if (defaultSetting.getValue()) {
-            explodeBehavior.setValue(ExplodeBehavior.ALWAYS);
-            placeBehavior.setValue(PlaceBehavior.TRADITIONAL);
-            autoSwitch.setValue(true);
-            place.setValue(false);
-            explode.setValue(false);
-            checkAbsorption.setValue(true);
-            range.setValue(4.0);
-            delay.setValue(5.0);
-            hitAttempts.setValue(-1);
-            minDmg.setValue(0.0);
-            sneakEnable.setValue(true);
-            placePriority.setValue(false);
-
-            antiWeakness.setValue(false);
-            noToolExplode.setValue(true);
-            players.setValue(true);
-            mobs.setValue(false);
-            animals.setValue(false);
-            tracer.setValue(true);
-            customColours.setValue(true);
-            aBlock.setValue(44);
-            aTracer.setValue(200);
-            r.setValue(155);
-            g.setValue(144);
-            b.setValue(255);
-            statusMessages.setValue(false);
-
-            defaultSetting.setValue(false);
-            sendChatMessage(getChatName() + "Set to defaults!");
-            closeSettings();
-        }
-
         if (mc.player == null) {
             resetHitAttempts();
             return;
@@ -594,7 +569,7 @@ public class CrystalAura extends Module {
 
     private void sendMessage(String message) {
         if (statusMessages.getValue()) {
-            sendChatMessage(getChatName() + message);
+            sendChatMessage(getChatName() + " " + message);
         }
     }
 
@@ -604,5 +579,38 @@ public class CrystalAura extends Module {
         }
         int ping = InfoCalculator.ping(mc);
         return 2 * ping * (InfoCalculator.tps(2) / 20) + (ping / 10.0);
+    }
+
+    private void defaults() {
+        explodeBehavior.setValue(ExplodeBehavior.ALWAYS);
+        placeBehavior.setValue(PlaceBehavior.TRADITIONAL);
+        autoSwitch.setValue(true);
+        place.setValue(false);
+        explode.setValue(false);
+        checkAbsorption.setValue(true);
+        range.setValue(4.0);
+        delay.setValue(5.0);
+        hitAttempts.setValue(-1);
+        minDmg.setValue(0.0);
+        sneakEnable.setValue(true);
+        placePriority.setValue(false);
+
+        antiWeakness.setValue(false);
+        noToolExplode.setValue(true);
+        players.setValue(true);
+        mobs.setValue(false);
+        animals.setValue(false);
+        tracer.setValue(true);
+        customColours.setValue(true);
+        aBlock.setValue(44);
+        aTracer.setValue(200);
+        r.setValue(155);
+        g.setValue(144);
+        b.setValue(255);
+        statusMessages.setValue(false);
+
+        defaultSetting.setValue(false);
+        sendChatMessage(getChatName() + " Set to defaults!");
+        closeSettings();
     }
 }
