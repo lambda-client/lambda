@@ -1,5 +1,7 @@
 package me.zeroeightsix.kami.mixin.client;
 
+import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.event.events.PlayerUpdateMoveEvent;
 import me.zeroeightsix.kami.module.modules.movement.InventoryMove;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiChat;
@@ -9,28 +11,22 @@ import net.minecraft.util.MovementInputFromOptions;
 import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 
 /**
- * @author Finz0
- * Used with LGPLv3 license permission
- * https://github.com/dominikaaaa/osiris/blob/master/src/main/java/me/finz0/osiris/mixin/mixins/MixinMovementInputFromOptions.java
- *
+ * @author ionar2
+ * Used with explicit permission and MIT license permission
+ * https://github.com/ionar2/salhack/blob/fa9e383/src/main/java/me/ionar/salhack/mixin/client/MixinMovementInputFromOptions.java
  * @see InventoryMove
  */
-@Mixin(value = MovementInputFromOptions.class, priority = Integer.MAX_VALUE)
+@Mixin(MovementInputFromOptions.class)
 public abstract class MixinMovementInputFromOptions extends MovementInput {
-    @Redirect(method = "updatePlayerMoveState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/KeyBinding;isKeyDown()Z"))
-    public boolean isKeyPressed(KeyBinding keyBinding) {
-        if (Minecraft.getMinecraft().player != null
-                && Minecraft.getMinecraft().currentScreen != null
-                && !(Minecraft.getMinecraft().currentScreen instanceof GuiChat)
-                && MODULE_MANAGER.isModuleEnabled(InventoryMove.class)
-                && (MODULE_MANAGER.getModuleT(InventoryMove.class).sneak.getValue() || !((Minecraft.getMinecraft().gameSettings.keyBindSneak.getKeyCode() == keyBinding.getKeyCode()) && !MODULE_MANAGER.getModuleT(InventoryMove.class).sneak.getValue()))) {
-            return Keyboard.isKeyDown(keyBinding.getKeyCode());
-        }
-        return keyBinding.isKeyDown();
+    @Inject(method = "updatePlayerMoveState", at = @At("RETURN"))
+    public void updatePlayerMoveStateReturn(CallbackInfo callback) {
+        KamiMod.EVENT_BUS.post(new PlayerUpdateMoveEvent());
     }
 }
