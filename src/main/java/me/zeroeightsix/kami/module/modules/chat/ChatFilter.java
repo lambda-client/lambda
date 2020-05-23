@@ -7,13 +7,8 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 
 import static me.zeroeightsix.kami.util.MessageDetectionHelper.isDirect;
@@ -23,8 +18,8 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * @author dominikaaaa
- * Updated by domikaaaa on 19/04/20
  * Updated by suretic on 13/05/20
+ * Updated by domikaaaa on 23/05/20
  */
 @Module.Info(
         name = "ChatFilter",
@@ -37,8 +32,7 @@ public class ChatFilter extends Module {
     private Setting<Boolean> filterDMs = register(Settings.b("Filter DMs", false));
     private Setting<Boolean> hasRunInfo = register(Settings.booleanBuilder("Info").withValue(false).withVisibility(v -> false).build());
 
-    private static List<String> tempLines = new ArrayList<>();
-    private static String[] chatFilter;
+    private static ArrayList<Pattern> chatFilter = new ArrayList<>();
 
     @EventHandler
     public Listener<ClientChatReceivedEvent> listener = new Listener<>(event -> {
@@ -58,9 +52,9 @@ public class ChatFilter extends Module {
         }
     }
 
-    private boolean isMatched(String[] patterns, String message) {
-        for (String pattern : patterns) {
-            if (Pattern.compile("\\b" + pattern + "\\b", Pattern.CASE_INSENSITIVE).matcher(message).find()) {
+    private boolean isMatched(ArrayList<Pattern> patterns, String message) {
+        for (Pattern pattern : patterns) {
+            if (pattern.matcher(message).find()) {
                 return true;
             }
         }
@@ -77,7 +71,7 @@ public class ChatFilter extends Module {
             sendChatMessage(getChatName() + "Trying to find '&7chat_filter.txt&f'");
             bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("chat_filter.txt"), "UTF-8"));
             String line;
-            tempLines.clear();
+            chatFilter.clear();
             while ((line = bufferedReader.readLine()) != null) {
                 while (customMatch("[ ]$", line)) { /* remove trailing spaces */
                     line = line.substring(0, line.length() - 1);
@@ -85,10 +79,10 @@ public class ChatFilter extends Module {
                 while (customMatch("^[ ]", line)) {
                     line = line.substring(1); /* remove beginning spaces */
                 }
-                tempLines.add(line);
+                if (line.length() <= 0) return;
+                chatFilter.add(Pattern.compile("\\b" + line + "\\b", Pattern.CASE_INSENSITIVE));
             }
             bufferedReader.close();
-            chatFilter = tempLines.toArray(new String[]{});
         } catch (FileNotFoundException exception) {
             sendErrorMessage(getChatName() + "Couldn't find a file called '&7chat_filter.txt&f' inside your '&7.minecraft&f' folder, disabling");
             disable();
