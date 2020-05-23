@@ -220,7 +220,6 @@ class ElytraFlight : Module() {
             return
         }
 
-        sendChatMessage("this wasn't supposed to happen")
         takeOff()
         setFlySpeed()
 
