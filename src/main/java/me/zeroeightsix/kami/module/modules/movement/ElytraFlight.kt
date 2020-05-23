@@ -3,18 +3,16 @@ package me.zeroeightsix.kami.module.modules.movement
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
-import me.zero.alpine.type.EventState
 import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
-import me.zeroeightsix.kami.event.events.MotionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
-import me.zeroeightsix.kami.event.events.TravelEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting.SettingListeners
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.math.MathHelper
 import kotlin.math.sqrt
 
@@ -61,50 +59,50 @@ class ElytraFlight : Module() {
     private var spoofedPitch = -45.0f
 
     /* Control Mode */
-    @EventHandler
-    private val onTravelPre = Listener(EventHook { event: TravelEvent? ->
-        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-
-        changedPitch = false
-        mc.player.capabilities.allowFlying = true
-        mc.player.capabilities.isFlying = true
-
-        originalPitch = mc.player.rotationPitch
-
-        mc.player.rotationPitch = spoofedPitch
-        changedPitch = true
-    })
-
-    @EventHandler
-    private val onTravelPost = Listener(EventHook { event: TravelEvent? ->
-        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-
-        mc.player.capabilities.allowFlying = false
-        mc.player.capabilities.isFlying = false
-        if (changedPitch) {
-            mc.player.rotationPitch = originalPitch
-            changedPitch = false
-        }
-    })
-
-    @EventHandler
-    private val onMotionPre = Listener(EventHook { event: MotionEvent? ->
-        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-
-        changedPitch = false
-        originalPitch = mc.player.rotationPitch
-        mc.player.rotationPitch = spoofedPitch
-        changedPitch = true
-    })
-
-    @EventHandler
-    private val onMotionPost = Listener(EventHook { event: MotionEvent? ->
-        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-        if (changedPitch) {
-            mc.player.rotationPitch = originalPitch
-            changedPitch = false
-        }
-    })
+//    @EventHandler
+//    private val onTravelPre = Listener(EventHook { event: TravelEvent? ->
+//        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+//
+//        changedPitch = false
+//        mc.player.capabilities.allowFlying = true
+//        mc.player.capabilities.isFlying = true
+//
+//        originalPitch = mc.player.rotationPitch
+//
+//        mc.player.rotationPitch = spoofedPitch
+//        changedPitch = true
+//    })
+//
+//    @EventHandler
+//    private val onTravelPost = Listener(EventHook { event: TravelEvent? ->
+//        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+//
+//        mc.player.capabilities.allowFlying = false
+//        mc.player.capabilities.isFlying = false
+//        if (changedPitch) {
+//            mc.player.rotationPitch = originalPitch
+//            changedPitch = false
+//        }
+//    })
+//
+//    @EventHandler
+//    private val onMotionPre = Listener(EventHook { event: MotionEvent? ->
+//        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+//
+//        changedPitch = false
+//        originalPitch = mc.player.rotationPitch
+//        mc.player.rotationPitch = spoofedPitch
+//        changedPitch = true
+//    })
+//
+//    @EventHandler
+//    private val onMotionPost = Listener(EventHook { event: MotionEvent? ->
+//        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
+//        if (changedPitch) {
+//            mc.player.rotationPitch = originalPitch
+//            changedPitch = false
+//        }
+//    })
 
     @EventHandler
     private val sendListener = Listener(EventHook { event: PacketEvent.Send ->
@@ -113,7 +111,7 @@ class ElytraFlight : Module() {
         if (event.packet is CPacketPlayer) {
             if (!mc.player.isElytraFlying) return@EventHook
             val packet = event.packet as CPacketPlayer
-//            packet.pitch = 0.0f
+            packet.pitch = 0.0f
             packet.yaw = packetYaw
         }
 
@@ -122,14 +120,14 @@ class ElytraFlight : Module() {
         }
     })
 
-//    @EventHandler
-//    private val receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
-//        if (isBoosting || mode.value != ElytraFlightMode.CONTROL || mc.player == null || !mc.player.isElytraFlying || mc.player.isSpectator) return@EventHook
-//        if (event.packet is SPacketPlayerPosLook) {
-//            val packet = event.packet as SPacketPlayerPosLook
-//            packet.pitch = mc.player.rotationPitch
-//        }
-//    })
+    @EventHandler
+    private val receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
+        if (isBoosting || mode.value != ElytraFlightMode.CONTROL || mc.player == null || !mc.player.isElytraFlying || mc.player.isSpectator) return@EventHook
+        if (event.packet is SPacketPlayerPosLook) {
+            val packet = event.packet as SPacketPlayerPosLook
+            packet.pitch = mc.player.rotationPitch
+        }
+    })
 
     @EventHandler
     private val playerTravelListener = Listener(EventHook { event: PlayerTravelEvent ->
@@ -149,13 +147,14 @@ class ElytraFlight : Module() {
 
         if (hoverTarget < 0.0) hoverTarget = mc.player.posY
 
-        /* this is horrible but what other way to store these for later */
-        val moveForward = mc.gameSettings.keyBindForward.isKeyDown || (MODULE_MANAGER.isModuleEnabled(AutoWalk::class.java) && MODULE_MANAGER.getModuleT(AutoWalk::class.java).mode.value == AutoWalk.AutoWalkMode.FORWARD)
-        val moveBackward = mc.gameSettings.keyBindBack.isKeyDown
-        val moveLeft = mc.gameSettings.keyBindLeft.isKeyDown
-        val moveRight = mc.gameSettings.keyBindRight.isKeyDown
-        val moveUp = if (!lookBoost.value) mc.gameSettings.keyBindJump.isKeyDown else false
-        val moveDown = mc.gameSettings.keyBindSneak.isKeyDown
+        /* this is horrible but what other way to store these for later */ /* update: this is now even more horrible but it works */
+        val inventoryMove = MODULE_MANAGER.getModuleT(InventoryMove::class.java)
+        val moveForward = mc.gameSettings.keyBindForward.isKeyDown || inventoryMove.isForward || (MODULE_MANAGER.isModuleEnabled(AutoWalk::class.java) && MODULE_MANAGER.getModuleT(AutoWalk::class.java).mode.value == AutoWalk.AutoWalkMode.FORWARD)
+        val moveBackward = mc.gameSettings.keyBindBack.isKeyDown || inventoryMove.isBackward
+        val moveLeft = mc.gameSettings.keyBindLeft.isKeyDown || inventoryMove.isLeft
+        val moveRight = mc.gameSettings.keyBindRight.isKeyDown || inventoryMove.isRight
+        val moveUp = if (!lookBoost.value) (mc.gameSettings.keyBindJump.isKeyDown || inventoryMove.isJump) else false
+        val moveDown = mc.gameSettings.keyBindSneak.isKeyDown || (inventoryMove.isSneak && inventoryMove.sneak.value)
         val moveForwardFactor = if (moveForward) 1.0f else (if (moveBackward) -1 else 0).toFloat()
         var yawDeg = mc.player.rotationYaw
 
