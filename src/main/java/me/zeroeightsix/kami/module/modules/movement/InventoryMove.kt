@@ -21,30 +21,15 @@ import org.lwjgl.input.Keyboard
 @Module.Info(
         name = "InventoryMove",
         description = "Allows you to walk around with GUIs opened",
-        category = Module.Category.MOVEMENT,
-        alwaysListening = true
+        category = Module.Category.MOVEMENT
 )
 class InventoryMove : Module() {
     private val speed = register(Settings.i("Look speed", 10))
     var sneak: Setting<Boolean> = register(Settings.b("Sneak", false))
-    var isForward = false
-    var isBackward = false
-    var isLeft = false
-    var isRight = false
-    var isJump = false
-    var isSneak = false
-
 
     @EventHandler
     private val sendListener = Listener(EventHook { event: PlayerUpdateMoveEvent ->
-        isForward = false
-        isBackward = false
-        isLeft = false
-        isRight = false
-        isJump = false
-        isSneak = false
-
-        if (isEnabled && mc.currentScreen != null && mc.currentScreen !is GuiChat) {
+        if (mc.currentScreen != null && mc.currentScreen !is GuiChat) {
             // pitch can not exceed 90 degrees nor -90 degrees, otherwise AAC servers will flag this and kick you.
             if (Keyboard.isKeyDown(Keyboard.KEY_LEFT)) {
                 mc.player.rotationYaw = mc.player.rotationYaw - speed.value
@@ -65,7 +50,6 @@ class InventoryMove : Module() {
             if (Keyboard.isKeyDown(mc.gameSettings.keyBindForward.keyCode)) {
                 ++mc.player.movementInput.moveForward
                 mc.player.movementInput.forwardKeyDown = true
-                isForward = true
             } else {
                 mc.player.movementInput.forwardKeyDown = false
             }
@@ -73,7 +57,6 @@ class InventoryMove : Module() {
             if (Keyboard.isKeyDown(mc.gameSettings.keyBindBack.keyCode)) {
                 --mc.player.movementInput.moveForward
                 mc.player.movementInput.backKeyDown = true
-                isBackward = true
             } else {
                 mc.player.movementInput.backKeyDown = false
             }
@@ -81,7 +64,6 @@ class InventoryMove : Module() {
             if (Keyboard.isKeyDown(mc.gameSettings.keyBindLeft.keyCode)) {
                 ++mc.player.movementInput.moveStrafe
                 mc.player.movementInput.leftKeyDown = true
-                isLeft = true
             } else {
                 mc.player.movementInput.leftKeyDown = false
             }
@@ -89,19 +71,16 @@ class InventoryMove : Module() {
             if (Keyboard.isKeyDown(mc.gameSettings.keyBindRight.keyCode)) {
                 --mc.player.movementInput.moveStrafe
                 mc.player.movementInput.rightKeyDown = true
-                isRight = true
             } else {
                 mc.player.movementInput.rightKeyDown = false
             }
 
             if (Keyboard.isKeyDown(mc.gameSettings.keyBindJump.keyCode)) {
                 mc.player.movementInput.jump = true
-                isJump = true
             }
 
-            if (sneak.value && Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.keyCode)) {
+            if (Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.keyCode) && sneak.value) {
                 mc.player.movementInput.sneak = true
-                isSneak = true
             }
         }
     })

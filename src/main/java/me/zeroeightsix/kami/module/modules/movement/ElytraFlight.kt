@@ -154,14 +154,13 @@ class ElytraFlight : Module() {
 
         if (hoverTarget < 0.0) hoverTarget = mc.player.posY
 
-        /* this is horrible but what other way to store these for later */ /* update: this is now even more horrible but it works */
         val inventoryMove = MODULE_MANAGER.getModuleT(InventoryMove::class.java)
-        val moveForward = mc.gameSettings.keyBindForward.isKeyDown || inventoryMove.isForward || (MODULE_MANAGER.isModuleEnabled(AutoWalk::class.java) && MODULE_MANAGER.getModuleT(AutoWalk::class.java).mode.value == AutoWalk.AutoWalkMode.FORWARD)
-        val moveBackward = mc.gameSettings.keyBindBack.isKeyDown || inventoryMove.isBackward
-        val moveLeft = mc.gameSettings.keyBindLeft.isKeyDown || inventoryMove.isLeft
-        val moveRight = mc.gameSettings.keyBindRight.isKeyDown || inventoryMove.isRight
-        val moveUp = if (!lookBoost.value) (mc.gameSettings.keyBindJump.isKeyDown || inventoryMove.isJump) else false
-        val moveDown = mc.gameSettings.keyBindSneak.isKeyDown || (inventoryMove.isSneak && inventoryMove.sneak.value)
+        val moveForward = mc.player.movementInput.moveForward > 0
+        val moveBackward = mc.player.movementInput.moveForward < 0
+        val moveLeft = mc.player.movementInput.moveStrafe > 0
+        val moveRight = mc.player.movementInput.moveStrafe < 0
+        val moveUp = if (!lookBoost.value) mc.player.movementInput.jump else false
+        val moveDown = if (inventoryMove.isEnabled && !inventoryMove.sneak.value && mc.currentScreen != null) false else mc.player.movementInput.sneak
         val moveForwardFactor = if (moveForward) 1.0f else (if (moveBackward) -1 else 0).toFloat()
         var yawDeg = mc.player.rotationYaw
 
