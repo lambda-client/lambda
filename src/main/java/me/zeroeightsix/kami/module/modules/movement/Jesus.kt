@@ -40,7 +40,7 @@ class Jesus : Module() {
     }
 
     @EventHandler
-    var addCollisionBoxToListEventListener = Listener(EventHook { event: AddCollisionBoxToListEvent ->
+    private val addCollisionBoxToListEventListener = Listener(EventHook { event: AddCollisionBoxToListEvent ->
         if (mc.player != null && event.block is BlockLiquid
                 && (EntityUtil.isDrivenByPlayer(event.entity) || event.entity === mc.player)
                 && event.entity !is EntityBoat
@@ -55,7 +55,7 @@ class Jesus : Module() {
     })
 
     @EventHandler
-    var packetEventSendListener = Listener(EventHook { event: PacketEvent.Send ->
+    private val packetEventSendListener = Listener(EventHook { event: PacketEvent.Send ->
         if (event.era == KamiEvent.Era.PRE) {
             if (event.packet is CPacketPlayer) {
                 if (EntityUtil.isAboveWater(mc.player, true) && !EntityUtil.isInWater(mc.player) && !isAboveLand(mc.player)) {

@@ -23,7 +23,7 @@ class Blink : Module() {
     private var packets: Queue<CPacketPlayer> = LinkedList()
 
     @EventHandler
-    var listener = Listener(EventHook { event: PacketEvent.Send ->
+    private val listener = Listener(EventHook { event: PacketEvent.Send ->
         if (isEnabled && event.packet is CPacketPlayer) {
             event.cancel()
             packets.add(event.packet as CPacketPlayer)

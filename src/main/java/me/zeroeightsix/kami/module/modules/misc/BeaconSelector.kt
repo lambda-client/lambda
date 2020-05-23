@@ -22,7 +22,7 @@ class BeaconSelector : Module() {
     private var doCancelPacket = true
 
     @EventHandler
-    var packetListener = Listener(EventHook { event: PacketEvent.Send ->
+    private val packetListener = Listener(EventHook { event: PacketEvent.Send ->
         if (event.packet is CPacketCustomPayload && (event.packet as CPacketCustomPayload).channelName == "MC|Beacon" && doCancelPacket) {
             doCancelPacket = false
             val data = (event.packet as CPacketCustomPayload).bufferData

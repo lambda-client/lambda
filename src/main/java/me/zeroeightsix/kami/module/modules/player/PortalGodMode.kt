@@ -17,7 +17,7 @@ import net.minecraft.network.play.client.CPacketConfirmTeleport
 )
 class PortalGodMode : Module() {
     @EventHandler
-    var listener = Listener(EventHook { event: PacketEvent.Send ->
+    private val listener = Listener(EventHook { event: PacketEvent.Send ->
         if (isEnabled && event.packet is CPacketConfirmTeleport) {
             event.cancel()
         }

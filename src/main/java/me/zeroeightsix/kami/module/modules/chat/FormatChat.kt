@@ -30,7 +30,7 @@ class FormatChat : Module() {
     }
 
     @EventHandler
-    var sendListener = Listener(EventHook { event: PacketEvent.Send ->
+    private val sendListener = Listener(EventHook { event: PacketEvent.Send ->
         if (event.packet is CPacketChatMessage) {
             var message = (event.packet as CPacketChatMessage).message
 

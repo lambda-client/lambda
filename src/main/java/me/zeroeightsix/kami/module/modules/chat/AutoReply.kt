@@ -30,7 +30,7 @@ class AutoReply : Module() {
     var message: Setting<String> = register(Settings.stringBuilder("Custom Text").withValue("Use &7" + Command.getCommandPrefix() + "autoreply&r to modify this").withConsumer { _: String?, _: String? -> }.withVisibility { customMessage.value }.build())
 
     @EventHandler
-    var receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
+    private val receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
         if (KamiMod.MODULE_MANAGER.isModuleEnabled(AntiAFK::class.java) && KamiMod.MODULE_MANAGER.getModuleT(AntiAFK::class.java).autoReply.value) return@EventHook
 
         if (event.packet is SPacketChat && MessageDetectionHelper.isDirect(true, (event.packet as SPacketChat).getChatComponent().unformattedText)) {

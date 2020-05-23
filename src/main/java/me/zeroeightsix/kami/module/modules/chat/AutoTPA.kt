@@ -25,7 +25,7 @@ class AutoTPA : Module() {
     private val mode = register(Settings.e<Mode>("Response", Mode.DENY))
 
     @EventHandler
-    var receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
+    private val receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
         if (event.packet is SPacketChat && MessageDetectionHelper.isTPA(true, (event.packet as SPacketChat).getChatComponent().unformattedText)) {
             /* I tested that getting the first word is compatible with chat timestamp, and it as, as this is Receive and chat timestamp is after Receive */
             val name = (event.packet as SPacketChat).getChatComponent().unformattedText.split(" ").toTypedArray()[0]

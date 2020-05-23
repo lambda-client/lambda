@@ -56,7 +56,7 @@ class AutoEZ : Module() {
     }
 
     @EventHandler
-    var livingDeathEventListener = Listener(EventHook { event: AttackEntityEvent ->
+    private val livingDeathEventListener = Listener(EventHook { event: AttackEntityEvent ->
         if (event.target is EntityPlayer) {
             focus = event.target as EntityPlayer
             if (event.entityPlayer.uniqueID === mc.player.uniqueID) {
@@ -70,7 +70,7 @@ class AutoEZ : Module() {
     })
 
     @EventHandler
-    var listener = Listener(EventHook { event: Displayed ->
+    private val listener = Listener(EventHook { event: Displayed ->
         if (event.screen !is GuiGameOver) return@EventHook
         if (mc.player.health > 0) {
             hasBeenCombat = 0

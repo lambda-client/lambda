@@ -57,7 +57,7 @@ class CustomChat : Module() {
     }
 
     @EventHandler
-    var listener = Listener(EventHook { event: PacketEvent.Send ->
+    private val listener = Listener(EventHook { event: PacketEvent.Send ->
         if (event.packet is CPacketChatMessage) {
             var s = (event.packet as CPacketChatMessage).getMessage()
             if (!commands.value && isCommand(s)) return@EventHook

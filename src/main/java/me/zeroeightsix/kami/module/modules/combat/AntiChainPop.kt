@@ -31,7 +31,7 @@ class AntiChainPop : Module() {
     private var totems = 0
 
     @EventHandler
-    var selfPopListener = Listener(EventHook { event: PacketEvent.Receive ->
+    private val selfPopListener = Listener(EventHook { event: PacketEvent.Receive ->
         if (mc.player == null || mode.value != Mode.PACKET) return@EventHook
 
         if (event.packet is SPacketEntityStatus) {

@@ -25,7 +25,7 @@ class ConsoleSpam : Module() {
     }
 
     @EventHandler
-    var sendListener = Listener(EventHook { event: PacketEvent.Send ->
+    private val sendListener = Listener(EventHook { event: PacketEvent.Send ->
         if (event.packet is CPacketPlayerTryUseItemOnBlock) {
             val location = (event.packet as CPacketPlayerTryUseItemOnBlock).pos
             mc.player.connection.sendPacket(CPacketUpdateSign(location, TileEntitySign().signText))

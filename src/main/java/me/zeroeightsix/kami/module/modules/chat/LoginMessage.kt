@@ -40,7 +40,7 @@ class LoginMessage : Module() {
     }
 
     @EventHandler
-    var packetReceived = Listener(EventHook { event: PacketEvent.Receive ->
+    private val packetReceived = Listener(EventHook { event: PacketEvent.Receive ->
         if (event.packet is SPacketChat && !sent) {
             mc.player.sendChatMessage(loginMessage)
 

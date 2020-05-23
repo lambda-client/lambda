@@ -17,7 +17,7 @@ import net.minecraft.client.gui.GuiGameOver
 )
 class AntiDeathScreen : Module() {
     @EventHandler
-    var listener = Listener(EventHook { event: Displayed ->
+    private val listener = Listener(EventHook { event: Displayed ->
         if (event.screen !is GuiGameOver) {
             return@EventHook
         }

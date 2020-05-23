@@ -35,7 +35,7 @@ class NoRender : Module() {
     var skylight: Setting<Boolean> = register(Settings.b("SkyLight Updates", true))
 
     @EventHandler
-    var receiveListener = Listener(EventHook { event: Receive ->
+    private val receiveListener = Listener(EventHook { event: Receive ->
         val packet = event.packet
         if (packet is SPacketSpawnMob && mob.value ||
                 packet is SPacketSpawnGlobalEntity && gEntity.value ||
@@ -47,5 +47,5 @@ class NoRender : Module() {
     })
 
     @EventHandler
-    var blockOverlayEventListener = Listener(EventHook { event: RenderBlockOverlayEvent -> if (fire.value && event.overlayType == RenderBlockOverlayEvent.OverlayType.FIRE) event.isCanceled = true })
+    private val blockOverlayEventListener = Listener(EventHook { event: RenderBlockOverlayEvent -> if (fire.value && event.overlayType == RenderBlockOverlayEvent.OverlayType.FIRE) event.isCanceled = true })
 }

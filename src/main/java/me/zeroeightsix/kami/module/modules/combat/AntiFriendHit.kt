@@ -19,7 +19,7 @@ import net.minecraft.client.entity.EntityOtherPlayerMP
 )
 class AntiFriendHit : Module() {
     @EventHandler
-    var listener = Listener(EventHook { event: ClientPlayerAttackEvent ->
+    private val listener = Listener(EventHook { event: ClientPlayerAttackEvent ->
         if (isDisabled) return@EventHook
         val e = mc.objectMouseOver.entityHit
         if (e is EntityOtherPlayerMP && Friends.isFriend(e.getName())) {

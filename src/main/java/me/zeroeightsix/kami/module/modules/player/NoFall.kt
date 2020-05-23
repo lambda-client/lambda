@@ -29,7 +29,7 @@ class NoFall : Module() {
     private var last: Long = 0
 
     @EventHandler
-    var sendListener = Listener(EventHook { event: PacketEvent.Send ->
+    private val sendListener = Listener(EventHook { event: PacketEvent.Send ->
         if (fallMode.value == FallMode.PACKET && event.packet is CPacketPlayer) {
             (event.packet as CPacketPlayer).onGround = true
         }

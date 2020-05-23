@@ -45,7 +45,7 @@ class AutoWalk : Module() {
     })
 
     @EventHandler
-    var kickListener = Listener(EventHook { event: ServerDisconnectedEvent? ->
+    private val kickListener = Listener(EventHook { event: ServerDisconnectedEvent? ->
         if (mode.value == AutoWalkMode.BARITONE && isEnabled) {
             disable()
         }

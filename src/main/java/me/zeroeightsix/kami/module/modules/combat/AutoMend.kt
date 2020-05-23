@@ -97,5 +97,5 @@ class AutoMend : Module() {
     }
 
     @EventHandler
-    var listener = Listener(EventHook { event: Displayed -> isGuiOpened = event.screen != null })
+    private val listener = Listener(EventHook { event: Displayed -> isGuiOpened = event.screen != null })
 }

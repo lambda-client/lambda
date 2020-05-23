@@ -68,7 +68,7 @@ class TotemPopCounter : Module() {
     }
 
     @EventHandler
-    var listListener = Listener(EventHook { event: EntityUseTotemEvent ->
+    private val listListener = Listener(EventHook { event: EntityUseTotemEvent ->
         if (playerList == null) playerList = HashMap()
         if (playerList!![event.entity.name] == null) {
             playerList!![event.entity.name] = 1
@@ -158,7 +158,7 @@ class TotemPopCounter : Module() {
     }
 
     @EventHandler
-    var popListener = Listener(EventHook { event: PacketEvent.Receive ->
+    private val popListener = Listener(EventHook { event: PacketEvent.Receive ->
         if (mc.player == null) return@EventHook
         if (event.packet is SPacketEntityStatus) {
             val packet = event.packet as SPacketEntityStatus

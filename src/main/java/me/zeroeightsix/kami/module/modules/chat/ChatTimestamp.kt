@@ -30,7 +30,7 @@ class ChatTimestamp : Module() {
     private val doLocale = register(Settings.booleanBuilder("Show AM/PM").withValue(true).withVisibility { timeUnitSetting.value == TimeUtil.TimeUnit.H12 }.build())
 
     @EventHandler
-    var listener = Listener(EventHook { event: ClientChatReceivedEvent ->
+    private val listener = Listener(EventHook { event: ClientChatReceivedEvent ->
         if (mc.player == null) return@EventHook
         val prefix = TextComponentString(
                 formattedTime
