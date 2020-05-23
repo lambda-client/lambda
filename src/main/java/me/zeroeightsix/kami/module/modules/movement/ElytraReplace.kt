@@ -2,11 +2,12 @@ package me.zeroeightsix.kami.module.modules.movement
 
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.client.InfoOverlay
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.MathsUtils
+import me.zeroeightsix.kami.util.MessageSendHelper
+import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.init.Items
+import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
 
 /**
@@ -19,34 +20,42 @@ import net.minecraft.inventory.ClickType
         category = Module.Category.MOVEMENT
 )
 class ElytraReplace : Module() {
-    private val threshold = register(Settings.integerBuilder("Broken %").withRange(1, 100).withValue(7).build())
     private val inventoryMode = register(Settings.b("Inventory", false))
+    private val autoChest = register(Settings.b("Auto Chest", false))
     private val elytraFlightCheck = register(Settings.b("ElytraFlight Check", true))
+    private val logToChat = register(Settings.booleanBuilder("Missing Warning").withValue(false).build())
+    private val playSound = register(Settings.booleanBuilder("Play Sound").withValue(false).withVisibility { logToChat.value }.build())
+    private val logThreshold = register(Settings.integerBuilder("Missing threshold").withRange(1, 10).withValue(2).withVisibility { logToChat.value }.build())
+    private val threshold = register(Settings.integerBuilder("Broken %").withRange(1, 100).withValue(7).build())
+
     private var currentlyMovingElytra = false
     private var currentlyMovingChestplate = false
     private var elytraCount = 0
+    private var chestplateCount = 0
 
     override fun onUpdate() {
-        if (!inventoryMode.value && mc.currentScreen is GuiContainer) {
-            return
-        }
+        if (mc.player == null || (!inventoryMode.value && mc.currentScreen is GuiContainer)) return
 
-        elytraCount = InfoOverlay.getItems(Items.ELYTRA) + InfoOverlay.getArmor(Items.ELYTRA)
-        val chestplateCount = InfoOverlay.getItems(Items.DIAMOND_CHESTPLATE) + InfoOverlay.getArmor(Items.DIAMOND_CHESTPLATE)
+        elytraCount = 0
+        for (i in 0..44) {
+            if (mc.player.inventory.getStackInSlot(i).getItem() === Items.ELYTRA && !isBroken(i)) {
+                elytraCount += 1
+            } else if (mc.player.inventory.getStackInSlot(i).getItem() === Items.DIAMOND_CHESTPLATE && !isBroken(i)) {
+                chestplateCount += 1
+            }
+        }
 
         if (currentlyMovingElytra) {
             mc.playerController.windowClick(0, 6, 0, ClickType.PICKUP, mc.player)
             currentlyMovingElytra = false
             return
-        }
-
-        if (currentlyMovingChestplate) {
+        } else if (currentlyMovingChestplate) {
             mc.playerController.windowClick(0, 6, 0, ClickType.PICKUP, mc.player)
             currentlyMovingChestplate = false
             return
         }
 
-        if (onGround()) {
+        if (mc.player.onGround && autoChest.value) {
             var slot = -420
 
             if (chestplateCount == 0) {
@@ -63,53 +72,55 @@ class ElytraReplace : Module() {
                 mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
                 currentlyMovingElytra = true
                 return
-            }
-
-            if (!(mc.player.inventory.armorInventory[2].getItem() === Items.DIAMOND_CHESTPLATE)) {
+            } else if (!(mc.player.inventory.armorInventory[2].getItem() === Items.DIAMOND_CHESTPLATE)) {
                 for (i in 0..44) {
                     if (mc.player.inventory.getStackInSlot(i).getItem() === Items.DIAMOND_CHESTPLATE) {
                         slot = i
                         break
                     }
                 }
+
                 mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
                 mc.playerController.windowClick(0, 6, 0, ClickType.PICKUP, mc.player)
                 mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
                 return
             }
-        }
-
-        if (!onGround() && passElytraFlightCheck()) {
+        } else if (passElytraFlightCheck()) {
             var slot = -420
 
+            if (logToChat.value && playSound.value && (elytraCount <= 2 || elytraCount <= logThreshold.value) && isBrokenElytra()) {
+                mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            }
+
             if (elytraCount == 0) {
+                if (logToChat.value && isBrokenElytra()) {
+                    MessageSendHelper.sendChatMessage("$chatName Your last elytra has reached your threshold. (logging will be turned off)")
+                    logToChat.value = false
+                }
                 return
             }
 
-            // if there's no elytra, or it's broken
-            if (mc.player.inventory.armorInventory[2].isEmpty() || isBrokenArmor(2)) {
+            // (if there's no elytra or the elytra is broken) || (no auto chest, only replace if it's broken)
+            if (passAutoChestCheck()) {
                 for (i in 0..44) {
                     if (mc.player.inventory.getStackInSlot(i).getItem() === Items.ELYTRA && !isBroken(i)) {
                         slot = i
+                        if (logToChat.value && elytraCount == 1) {
+                            MessageSendHelper.sendChatMessage("$chatName You just equipped your last elytra.")
+                        } else if (logToChat.value && elytraCount <= logThreshold.value) {
+                            MessageSendHelper.sendChatMessage("$chatName You have $elytraCount elytras left.")
+                        }
                         break
                     }
                 }
-                mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
-                currentlyMovingElytra = true
-                return
-            }
-
-            // if it's not an elytra, or it's a broken elytra
-            if (!(mc.player.inventory.armorInventory[2].getItem() === Items.ELYTRA) || (mc.player.inventory.armorInventory[2].getItem() === Items.ELYTRA && isBrokenArmor(2))) {
-                for (i in 0..44) {
-                    if (mc.player.inventory.getStackInSlot(i).getItem() === Items.ELYTRA && !isBroken(i)) {
-                        slot = i
-                        break
-                    }
+                if (mc.player.inventory.armorInventory[2].isEmpty()) {
+                    mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
+                    currentlyMovingElytra = true
+                } else {
+                    mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
+                    mc.playerController.windowClick(0, 6, 0, ClickType.PICKUP, mc.player)
+                    mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
                 }
-                mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
-                mc.playerController.windowClick(0, 6, 0, ClickType.PICKUP, mc.player)
-                mc.playerController.windowClick(0, if (slot < 9) slot + 36 else slot, 0, ClickType.PICKUP, mc.player)
             }
         }
     }
@@ -118,23 +129,19 @@ class ElytraReplace : Module() {
         return elytraCount.toString()
     }
 
-    private fun onGround(): Boolean {
-        return mc.player.onGround
-    }
-
     private fun isBroken(i : Int): Boolean { // (100 * damage / max damage) >= (100 - 70)
         return if (mc.player.inventory.getStackInSlot(i).maxDamage == 0) {
             false
         } else {
-            100 * mc.player.inventory.getStackInSlot(i).getItemDamage() / mc.player.inventory.getStackInSlot(i).maxDamage > MathsUtils.reverseNumber(threshold.value, 1, 100)
+            (100 * mc.player.inventory.getStackInSlot(i).getItemDamage() / mc.player.inventory.getStackInSlot(i).maxDamage) + threshold.value >= 100
         }
     }
 
-    private fun isBrokenArmor(i : Int): Boolean { // (100 * damage / max damage) >= (100 - 70)
-        return if (mc.player.inventory.armorInventory[i].maxDamage == 0) {
+    private fun isBrokenElytra(): Boolean { // (100 * damage / max damage) >= (100 - 70)
+        return if (mc.player.inventory.armorInventory[2].maxDamage == 0) {
             false
         } else {
-            100 * mc.player.inventory.armorInventory[i].getItemDamage() / mc.player.inventory.armorInventory[i].maxDamage > MathsUtils.reverseNumber(threshold.value, 1, 100)
+            (mc.player.inventory.armorInventory[2].getItem() === Items.ELYTRA) && (100 * mc.player.inventory.armorInventory[2].getItemDamage() / mc.player.inventory.armorInventory[2].maxDamage) + threshold.value >= 100
         }
     }
 
@@ -142,5 +149,13 @@ class ElytraReplace : Module() {
         return if (elytraFlightCheck.value && KamiMod.MODULE_MANAGER.isModuleEnabled(ElytraFlight::class.java)) {
             true
         } else !elytraFlightCheck.value
+    }
+
+    private fun passAutoChestCheck(): Boolean {
+        return if (autoChest.value) {
+            !(mc.player.inventory.armorInventory[2].getItem() === Items.ELYTRA) || isBrokenElytra()
+        } else {
+            isBrokenElytra()
+        }
     }
 }
