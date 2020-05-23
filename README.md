@@ -19,6 +19,8 @@ Please go to [https://blue.bella.wtf](https://blue.bella.wtf) for documentation 
 
 [ZeroMemes](https://github.com/ZeroMemes) for [Alpine](https://github.com/ZeroMemes/Alpine)
 
+[Raion Client](https://raionclient.com/) for `;teleport` and `;vanish` commands
+
 [ronmamo](https://github.com/ronmamo/) for [Reflections](https://github.com/ronmamo/reflections)
 
 The [Minecraft Forge team](https://github.com/MinecraftForge) for [forge](https://files.minecraftforge.net/)
