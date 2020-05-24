@@ -1,14 +1,11 @@
 package me.zeroeightsix.kami.mixin.client;
 
 import com.mojang.authlib.GameProfile;
-import me.zero.alpine.type.EventState;
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.event.events.MotionEvent;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.module.modules.chat.PortalChat;
 import me.zeroeightsix.kami.module.modules.misc.BeaconSelector;
 import me.zeroeightsix.kami.util.BeaconGui;
-import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -69,32 +66,4 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         KamiMod.EVENT_BUS.post(event);
         if (event.isCancelled()) info.cancel();
     }
-
-    /**
-     * @author Nucleus
-     * Used with full permission from Nucleus - dominikaaaa
-     * The (Object) this looks super weird, but it works because at runtime this is casted to EntityPlayerSP, as it's inherited
-     */
-    @Inject(method = "onUpdateWalkingPlayer()V", at = @At("HEAD"), cancellable = true)
-    private void onUpdateWalkingPlayer(CallbackInfo ci) {
-        if (Wrapper.getPlayer() == (Object) this) {
-            MotionEvent event = new MotionEvent(EventState.PRE);
-            KamiMod.EVENT_BUS.post(event);
-            if (event.isCancelled()) {
-                ci.cancel();
-            }
-        }
-    }
-
-    /**
-     * @author Nucleus
-     * Used with full permission from Nucleus - dominikaaaa
-     */
-    @Inject(method = "onUpdateWalkingPlayer()V", at = @At("RETURN"))
-    private void onUpdateWalkingPlayerReturn(CallbackInfo ci) {
-        if (Wrapper.getPlayer() == (Object) this) {
-            KamiMod.EVENT_BUS.post(new MotionEvent(EventState.POST));
-        }
-    }
-
 }
