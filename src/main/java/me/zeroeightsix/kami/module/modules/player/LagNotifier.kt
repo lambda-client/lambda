@@ -3,18 +3,17 @@ package me.zeroeightsix.kami.module.modules.player
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
-import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.PacketEvent.Receive
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.client.Baritone
+import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils.pause
+import me.zeroeightsix.kami.util.BaritoneUtils.unpause
 import me.zeroeightsix.kami.util.MathsUtils
 import me.zeroeightsix.kami.util.WebHelper
 import me.zeroeightsix.kami.util.Wrapper
 import net.minecraft.client.gui.GuiChat
-import baritone.api.BaritoneAPI
-import me.zeroeightsix.kami.util.BaritoneUtils
 
 /**
  * @author dominikaaaa
@@ -28,23 +27,20 @@ import me.zeroeightsix.kami.util.BaritoneUtils
         category = Module.Category.PLAYER
 )
 class LagNotifier : Module() {
-    var pauseDuringLag = register(Settings.b("Pause Baritone", false))
+    var pauseDuringLag: Setting<Boolean> = register(Settings.b("Pause Baritone", true))
     private val timeout = register(Settings.doubleBuilder().withName("Timeout").withValue(2.0).withMinimum(0.0).withMaximum(10.0).build())
 
     private var serverLastUpdated: Long = 0
+    var hasUnpaused = true
     var text = "Server Not Responding! "
-
-    var isLagging = false
 
     override fun onRender() {
         if (mc.currentScreen != null && mc.currentScreen !is GuiChat) return
         if (1000L *  timeout.value.toDouble() > System.currentTimeMillis() - serverLastUpdated) {
-            isLagging = false
-
-            if (pauseDuringLag.value) {
-                BaritoneUtils.unpause()
+            if (!hasUnpaused && pauseDuringLag.value) {
+                hasUnpaused = true
+                unpause()
             }
-
             return
         }
 
@@ -54,6 +50,10 @@ class LagNotifier : Module() {
             } else {
                 "Server Not Responding! "
             }
+            if (hasUnpaused) {
+                pause()
+                hasUnpaused = false
+            }
         }
         text = text.replace("! .*".toRegex(), "! " + timeDifference() + "s")
         val renderer = Wrapper.getFontRenderer()
@@ -61,13 +61,6 @@ class LagNotifier : Module() {
 
         /* 217 is the offset to make it go high, bigger = higher, with 0 being center */
         renderer.drawStringWithShadow(mc.displayWidth / divider / 2 - renderer.getStringWidth(text) / 2, mc.displayHeight / divider / 2 - 217, 255, 85, 85, text)
-
-        isLagging = true
-
-        if (pauseDuringLag.value)
-        {
-            BaritoneUtils.pause()
-        }
     }
 
     @EventHandler
