@@ -24,7 +24,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 public class DupeBookCommand extends Command {
 
     public DupeBookCommand() {
-        super("dupebook", new ChunkBuilder().append("name").build());
+        super("dupebook", new ChunkBuilder().append("name").build(), "bookbot");
         setDescription("Generates books used for chunk savestate dupe.");
     }
 
