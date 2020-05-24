@@ -20,6 +20,9 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * @author 0x2E | PretendingToCode
+ * @author EvilSourcerer
+ *
+ * The characterGenerator is from here: https://github.com/ImpactDevelopment/ImpactIssues/issues/1123#issuecomment-482721273
  */
 public class DupeBookCommand extends Command {
 
