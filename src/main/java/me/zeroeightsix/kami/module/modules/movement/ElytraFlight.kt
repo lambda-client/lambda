@@ -14,6 +14,8 @@ import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.Vec3d
+import kotlin.math.asin
 import kotlin.math.sqrt
 
 /**
@@ -46,7 +48,6 @@ class ElytraFlight : Module() {
 
     /* Control */
     private val lookBoost = register(Settings.booleanBuilder("Look Boost").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
-//    private val controlPitch = register(Settings.integerBuilder("Pitch").withRange(-90, 90).withValue(45).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val hoverControl = register(Settings.booleanBuilder("Hover").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val timerControl = register(Settings.booleanBuilder("Takeoff Timer").withValue(true).withVisibility { easyTakeOffControl.value && mode.value == ElytraFlightMode.CONTROL }.build())
@@ -60,57 +61,7 @@ class ElytraFlight : Module() {
     private var hoverState = false
     private var isBoosting = false
 
-    /* Control pitch spoofing */
-    private var changedPitch = false
-    private var originalPitch = 0.0f
-//    private var spoofedPitch = controlPitch.value
-
     /* Control Mode */
-//    @EventHandler
-//    private val onTravelPre = Listener(EventHook { event: TravelEvent? ->
-//        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//
-//        changedPitch = false
-//        mc.player.capabilities.allowFlying = true
-//        mc.player.capabilities.isFlying = true
-//
-//        originalPitch = mc.player.rotationPitch
-//
-//        mc.player.rotationPitch = controlPitch.value.toFloat()
-//        changedPitch = true
-//    })
-//
-//    @EventHandler
-//    private val onTravelPost = Listener(EventHook { event: TravelEvent? ->
-//        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//
-//        mc.player.capabilities.allowFlying = false
-//        mc.player.capabilities.isFlying = false
-//        if (changedPitch) {
-//            mc.player.rotationPitch = originalPitch
-//            changedPitch = false
-//        }
-//    })
-//
-//    @EventHandler
-//    private val onMotionPre = Listener(EventHook { event: MotionEvent? ->
-//        if (isBoosting || event?.eventState != EventState.PRE || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//
-//        changedPitch = false
-//        originalPitch = mc.player.rotationPitch
-//        mc.player.rotationPitch = controlPitch.value.toFloat()
-//        changedPitch = true
-//    })
-//
-//    @EventHandler
-//    private val onMotionPost = Listener(EventHook { event: MotionEvent? ->
-//        if (isBoosting || event?.eventState != EventState.POST || !mc.player.isElytraFlying || mode.value != ElytraFlightMode.CONTROL) return@EventHook
-//        if (changedPitch) {
-//            mc.player.rotationPitch = originalPitch
-//            changedPitch = false
-//        }
-//    })
-
     @EventHandler
     private val sendListener = Listener(EventHook { event: PacketEvent.Send ->
         if (isBoosting || mode.value != ElytraFlightMode.CONTROL || mc.player == null || mc.player.isSpectator) return@EventHook
@@ -118,7 +69,19 @@ class ElytraFlight : Module() {
         if (event.packet is CPacketPlayer) {
             if (!mc.player.isElytraFlying) return@EventHook
             val packet = event.packet as CPacketPlayer
-            packet.pitch = 0.0f //controlPitch.value.toFloat()
+            /*
+             * take the motion direction as a vector -> flyingdirection. normalize it to 1 length then you basically have this:
+             * https://de.wikipedia.org/wiki/Eulersche_Formel#/media/Datei:Euler%27s_formula.svg
+             * there you see that the angle sin(phi), ie, the red line going up
+             * that means sin^-1 ( the red line ) = angle phi (asin(flydirection.y))
+             * turn it back into degrees and then *-1 because Minecraft pitch is negative
+             * then subtract -6.5f
+             */
+            if (hoverState) {
+                packet.pitch = ((-Math.toDegrees(asin(Vec3d(mc.player.motionX, mc.player.motionY, mc.player.motionZ).normalize().y))).toFloat() - 6.5f)
+            } else {
+                packet.pitch = 0.0f
+            }
             packet.yaw = packetYaw
         }
 
