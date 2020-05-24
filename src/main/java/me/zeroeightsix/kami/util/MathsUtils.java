@@ -1,11 +1,16 @@
 package me.zeroeightsix.kami.util;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.math.BlockPos;
 
 /**
  * Created by Dewy on the 17th of April, 2020
  */
 public class MathsUtils {
+
+    public static BlockPos mcPlayerPosFloored(Minecraft mc) {
+        return new BlockPos(Math.floor(mc.player.posX), Math.floor(mc.player.posY), Math.floor(mc.player.posZ));
+    }
 
     public static double normalizeAngle(double angleIn) {
         angleIn = angleIn % 360.0D;

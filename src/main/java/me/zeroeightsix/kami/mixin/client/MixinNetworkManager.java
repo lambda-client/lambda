@@ -41,6 +41,16 @@ public class MixinNetworkManager {
         }
     }
 
+    @Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("RETURN"), cancellable = true)
+    private void afterSendPacket(Packet<?> packet, CallbackInfo callbackInfo) {
+        PacketEvent event = new PacketEvent.PostSend(packet);
+        KamiMod.EVENT_BUS.post(event);
+
+        if (event.isCancelled()) {
+            callbackInfo.cancel();
+        }
+    }
+
     @Inject(method = "exceptionCaught", at = @At("HEAD"), cancellable = true)
     private void exceptionCaught(ChannelHandlerContext p_exceptionCaught_1_, Throwable p_exceptionCaught_2_, CallbackInfo info) {
         if (MODULE_MANAGER.isModuleEnabled(NoPacketKick.class)) {

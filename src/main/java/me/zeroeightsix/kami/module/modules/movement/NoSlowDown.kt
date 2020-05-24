@@ -3,12 +3,19 @@ package me.zeroeightsix.kami.module.modules.movement
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
+import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.MathsUtils
 import net.minecraft.init.Blocks
 import net.minecraft.item.*
+import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraft.network.play.client.CPacketPlayerDigging
+import net.minecraft.network.play.client.CPacketPlayerDigging.Action
+import net.minecraft.util.EnumFacing
 import net.minecraftforge.client.event.InputUpdateEvent
+
 
 /**
  * Created by 086 on 15/12/2017.
@@ -23,6 +30,7 @@ import net.minecraftforge.client.event.InputUpdateEvent
         description = "Prevents being slowed down when using an item or going through cobwebs"
 )
 class NoSlowDown : Module() {
+    private val ncpStrict: Setting<Boolean> = register(Settings.b("NCP Strict", true))
     @JvmField
     var soulSand: Setting<Boolean> = register(Settings.b("Soul Sand", true))
     @JvmField
@@ -43,6 +51,18 @@ class NoSlowDown : Module() {
         if (passItemCheck(mc.player.activeItemStack.getItem()) && !mc.player.isRiding) {
             event.movementInput.moveStrafe *= 5f
             event.movementInput.moveForward *= 5f
+        }
+    })
+
+    /**
+     * @author ionar2
+     * Used with explicit permission and MIT license permission
+     * https://github.com/ionar2/salhack/blob/163f86e/src/main/java/me/ionar/salhack/module/movement/NoSlowModule.java#L175
+     */
+    @EventHandler
+    private val receivedEvent = Listener(EventHook { event: PacketEvent.PostSend ->
+        if (ncpStrict.value && event.packet is CPacketPlayer && passItemCheck(mc.player.activeItemStack.getItem()) && !mc.player.isRiding) {
+            mc.player.connection.sendPacket(CPacketPlayerDigging(Action.ABORT_DESTROY_BLOCK, MathsUtils.mcPlayerPosFloored(mc), EnumFacing.DOWN))
         }
     })
 

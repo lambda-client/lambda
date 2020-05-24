@@ -31,4 +31,10 @@ public class PacketEvent extends KamiEvent {
         }
     }
 
+    public static class PostSend extends PacketEvent {
+        public PostSend(Packet packet) {
+            super(packet);
+        }
+    }
+
 }
