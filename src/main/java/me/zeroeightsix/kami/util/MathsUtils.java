@@ -70,6 +70,22 @@ public class MathsUtils {
         }
     }
 
+    public static CardinalMain getPlayerMainCardinal(Minecraft mc) {
+        char cardinal = Character.toUpperCase(mc.player.getHorizontalFacing().toString().charAt(0));
+        switch (cardinal) {
+            case 'N':
+                return MathsUtils.CardinalMain.NEG_Z;
+            case 'S':
+                return MathsUtils.CardinalMain.POS_Z;
+            case 'E':
+                return MathsUtils.CardinalMain.POS_X;
+            case 'W':
+                return MathsUtils.CardinalMain.NEG_X;
+            default:
+                return null;
+        }
+    }
+
     public enum Cardinal {
         POS_Z("+Z"),
         NEG_X_POS_Z("-X / +Z"),
@@ -84,6 +100,19 @@ public class MathsUtils {
         public String cardinalName;
 
         Cardinal(String cardinalName) {
+            this.cardinalName = cardinalName;
+        }
+    }
+
+    public enum CardinalMain {
+        POS_Z("+Z"),
+        NEG_X("-X"),
+        NEG_Z("-Z"),
+        POS_X("+X");
+
+        public String cardinalName;
+
+        CardinalMain(String cardinalName) {
             this.cardinalName = cardinalName;
         }
     }

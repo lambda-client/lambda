@@ -20,10 +20,7 @@ import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
 import me.zeroeightsix.kami.module.modules.movement.AutoWalk;
-import me.zeroeightsix.kami.util.ColourHolder;
-import me.zeroeightsix.kami.util.Friends;
-import me.zeroeightsix.kami.util.Pair;
-import me.zeroeightsix.kami.util.Wrapper;
+import me.zeroeightsix.kami.util.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -42,7 +39,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
-import static me.zeroeightsix.kami.util.InfoCalculator.cardinalToAxis;
 
 /**
  * Created by 086 on 25/06/2017.
@@ -457,7 +453,6 @@ public class KamiGUI extends GUI {
                 int hposX = (int) (mc.player.posX * f);
                 int hposZ = (int) (mc.player.posZ * f);
 
-                String cardinal = cardinalToAxis(Character.toUpperCase(mc.player.getHorizontalFacing().toString().charAt(0)));
                 /* The 7 and f in the string formatter is the color */
                 String colouredSeparator = KamiMod.colour + "7 " + KamiMod.separator + KamiMod.colour + "r";
                 String ow = String.format("%sf%,d%s7, %sf%,d%s7, %sf%,d %s7",
@@ -484,7 +479,7 @@ public class KamiGUI extends GUI {
                 );
                 coordsLabel.setText("");
                 coordsLabel.addLine(ow);
-                coordsLabel.addLine(cardinal + colouredSeparator + nether);
+                coordsLabel.addLine(MathsUtils.getPlayerCardinal(mc).cardinalName + colouredSeparator + nether);
             }
         });
         frame.addChild(coordsLabel);

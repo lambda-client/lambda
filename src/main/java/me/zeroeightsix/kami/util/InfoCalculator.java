@@ -80,23 +80,6 @@ public class InfoCalculator {
     }
     // }
 
-    // Cardinal to Axis {
-    public static String cardinalToAxis(char cardinal) {
-        switch (cardinal) {
-            case 'N':
-                return "-Z";
-            case 'S':
-                return "+Z";
-            case 'E':
-                return "+X";
-            case 'W':
-                return "-X";
-            default:
-                return "invalid";
-        }
-    }
-    // }
-
     // Dimension {
     public static String playerDimension(Minecraft mc) {
         if (mc.player == null) return "No Dimension";
