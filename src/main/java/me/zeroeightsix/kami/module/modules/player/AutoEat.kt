@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.player
 
 import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.client.Baritone
 import me.zeroeightsix.kami.module.modules.combat.Aura
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils.pause
@@ -44,7 +43,8 @@ class AutoEat : Module() {
         if (item === Items.ROTTEN_FLESH) return false
         if (item === Items.SPIDER_EYE) return false
         if (item === Items.POISONOUS_POTATO) return false
-        return !(item === Items.FISH && ItemStack(Items.FISH).getItemDamage() == 3)
+        if (item === Items.FISH && ItemStack(Items.FISH).getItemDamage() == 3) return false
+        return true
     }
 
     override fun onUpdate() {
