@@ -24,7 +24,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 )
 public class AntiBookKick extends Module {
     @EventHandler
-    public Listener<PacketEvent.Receive> listener = new Listener<>(event -> {
+    public Listener<PacketEvent.PostSend> listener = new Listener<>(event -> {
         if (!(event.getPacket() instanceof CPacketClickWindow)) return;
         final CPacketClickWindow packet = (CPacketClickWindow) event.getPacket();
 
