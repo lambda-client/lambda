@@ -190,16 +190,16 @@ class ElytraFlight : Module() {
             return
         }
 
-        takeOff()
+        takeoffHighway()
         setFlySpeed()
 
         /* required on some servers in order to land */
         if (mc.player.onGround) mc.player.capabilities.allowFlying = false
 
-        if (mc.player.isElytraFlying) flyBoostFlyHighway()
+        if (mc.player.isElytraFlying) modeNonControl()
     }
 
-    private fun flyBoostFlyHighway() {
+    private fun modeNonControl() {
         if (mode.value == ElytraFlightMode.BOOST) {
             if (mc.player.isInWater) {
                 mc.connection!!.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING))
@@ -217,7 +217,7 @@ class ElytraFlight : Module() {
                 mc.player.motionX += MathHelper.sin(yaw) * 0.05f.toDouble()
                 mc.player.motionZ -= MathHelper.cos(yaw) * 0.05f.toDouble()
             }
-        } else {
+        } else if (mode.value == ElytraFlightMode.HIGHWAY || mode.value == ElytraFlightMode.FLY) {
             mc.player.capabilities.flySpeed = .915f
             mc.player.capabilities.isFlying = true
 
@@ -233,7 +233,7 @@ class ElytraFlight : Module() {
                 mc.player.setVelocity(0.0, 0.0, 0.0)
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.value, mc.player.posZ)
                 mc.player.capabilities.flySpeed = speedHighway.value
-            } else {
+            } else if (mode.value == ElytraFlightMode.BOOST || mode.value == ElytraFlightMode.FLY) {
                 mc.player.setVelocity(0.0, 0.0, 0.0)
                 mc.player.capabilities.flySpeed = .915f
                 mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeed.value, mc.player.posZ)
@@ -241,7 +241,7 @@ class ElytraFlight : Module() {
         }
     }
 
-    private fun takeOff() {
+    private fun takeoffHighway() {
         if (!(mode.value == ElytraFlightMode.HIGHWAY && easyTakeOff.value)) return
         if (!mc.player.isElytraFlying && !mc.player.onGround) {
             when (takeOffMode.value) {
@@ -250,8 +250,6 @@ class ElytraFlight : Module() {
                     mc.connection!!.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING))
                 }
                 TakeoffMode.PACKET -> mc.connection!!.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_FALL_FLYING))
-                else -> {
-                }
             }
         }
         if (mc.player.isElytraFlying) {
