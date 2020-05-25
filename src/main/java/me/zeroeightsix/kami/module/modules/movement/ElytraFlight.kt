@@ -47,6 +47,7 @@ class ElytraFlight : Module() {
     private val downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility { mode.value == ElytraFlightMode.BOOST }.build())
 
     /* Control */
+    private val mathPitch = register(Settings.booleanBuilder("Math Pitch").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val lookBoost = register(Settings.booleanBuilder("Look Boost").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val hoverControl = register(Settings.booleanBuilder("Hover").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
@@ -77,7 +78,7 @@ class ElytraFlight : Module() {
              * turn it back into degrees and then *-1 because Minecraft pitch is negative
              * then subtract -6.5f
              */
-            if (hoverState) {
+            if (hoverState && mathPitch.value) {
                 packet.pitch = ((-Math.toDegrees(asin(Vec3d(mc.player.motionX, mc.player.motionY, mc.player.motionZ).normalize().y))).toFloat() - 6.5f)
             } else {
                 packet.pitch = 0.0f
