@@ -3,12 +3,15 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.EnumParser;
+import me.zeroeightsix.kami.module.modules.movement.AutoWalk;
 import me.zeroeightsix.kami.util.Coordinate;
 import me.zeroeightsix.kami.util.CoordinateInfo;
+import me.zeroeightsix.kami.util.MessageSendHelper;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
+import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.CoordUtil.*;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
@@ -21,8 +24,8 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 public class CoordsCommand extends Command {
     public CoordsCommand() {
         super("coord", new ChunkBuilder()
-                .append("command", true, new EnumParser(new String[]{"add", "del", "list", "stashes", "help"}))
-                .append("name", false)
+                .append("command", true, new EnumParser(new String[]{"add", "del", "goto", "list", "stashes", "help"}))
+                .append("name|id", false)
                 .build(), "pos");
         setDescription("Log the current coordinates.");
     }
@@ -50,20 +53,36 @@ public class CoordsCommand extends Command {
                 case "del":
                     if (args[1] != null) {
                         if (removeCoord(args[1], coordsLogFilename)) {
-                            sendChatMessage("Removed coordinate with name " + args[1]);
+                            sendChatMessage("Removed coordinate with ID " + args[1]);
                         } else {
-                            sendChatMessage("No coordinate with name " + args[1]);
+                            sendChatMessage("No coordinate with ID " + args[1]);
                         }
                     } else {
-                        sendChatMessage("Please provide the name of a coordinate to remove.");
+                        sendChatMessage("Please provide the ID of a coordinate to remove.");
+                    }
+                    break;
+                case "goto":
+                    if (args[1] != null) {
+                        Coordinate current = getCoord(args[1], coordsLogFilename);
+                        if (current != null) {
+                            if (MODULE_MANAGER.isModuleEnabled(AutoWalk.class)) {
+                                MODULE_MANAGER.getModuleT(AutoWalk.class).disable();
+                            }
+                            MessageSendHelper.sendBaritoneCommand("goto", Integer.toString(current.x), Integer.toString(current.y), Integer.toString(current.z));
+                        } else {
+                            sendChatMessage("Couldn't find a coordinate with the ID " + args[1]);
+                        }
+                    } else {
+                        sendChatMessage("Please provide the ID of a coordinate to go to.");
                     }
                     break;
                 case "help":
-                    sendChatMessage("Coordinate logger help:");
-                    sendRawChatMessage("  list &7[searchterm]&f - lists logged coordinates, optionally searches and filters the results");
+                    sendChatMessage("Coordinate command help:");
+                    sendRawChatMessage("  list &7<search>&f - lists logged coordinates, optionally searches and filters the results");
                     sendRawChatMessage("  stashes - lists logged stashes");
-                    sendRawChatMessage("  add &7[name]&f - logs a coordinate with an optional name");
-                    sendRawChatMessage("  del <name> - removes a coordinate with the specified name");
+                    sendRawChatMessage("  add &7<name>&f - logs a coordinate with an optional name");
+                    sendRawChatMessage("  del &7<id>&f - removes a coordinate with the specified ID");
+                    sendRawChatMessage("  goto &7<id>&f - goes to a coordinate with the specified ID");
                     sendRawChatMessage("  help - displays this list");
                     break;
                 default:
@@ -103,28 +122,31 @@ public class CoordsCommand extends Command {
             });
         }
     }
-    private void searchCoords(String searchterm) {
+
+    private void searchCoords(String search) {
         boolean hasfound = false;
         boolean firstfind = true;
         ArrayList<CoordinateInfo> coords = readCoords(coordsLogFilename);
         for (CoordinateInfo coord : Objects.requireNonNull(coords)) {
-            if (coord.name.contains(searchterm)) {
+            if (coord.name.contains(search)) {
                 if (firstfind) {
-                    sendChatMessage("Result of search for &7" + searchterm + "&f: ");
+                    sendChatMessage("Result of search for &7" + search + "&f: ");
                     firstfind = false;
                 }
-                sendRawChatMessage(format(coord, searchterm));
+                sendRawChatMessage(format(coord, search));
                 hasfound = true;
             }
         }
         if (!hasfound) {
-            sendChatMessage("No results for " + searchterm);
+            sendChatMessage("No results for " + search);
         }
     }
-    private String format(CoordinateInfo coord, String searchterm) {
+
+    private String format(CoordinateInfo coord, String search) {
         String message = "   [" + coord.id + "] " + coord.name + " (" + coord.xyz.x + " " + coord.xyz.y + " " + coord.xyz.z + ")";
-        return message.replaceAll(searchterm, "&7" + searchterm + "&f");
+        return message.replaceAll(search, "&7" + search + "&f");
     }
+
     private void confirm(String name, Coordinate xyz) {
         sendChatMessage("Added coordinate " + xyz.x + " " + xyz.y + " " + xyz.z + " with name " + name + ".");
     }

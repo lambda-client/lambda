@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.util.MessageSendHelper
 /**
  * @author dominikaaaa
  */
-class BaritoneCommand : Command("baritone", ChunkBuilder().append("command", true, EnumParser(arrayOf("goto", "mine", "tunnel", "farm", "explore", "click", "build", "cancel", "help"))).build(), "b") {
+class BaritoneCommand : Command("baritone", ChunkBuilder().append("command", true, EnumParser(arrayOf("goto", "mine", "tunnel", "farm", "explore", "click", "build", "cancel", "pause", "resume", "help"))).build(), "b") {
     override fun call(args: Array<out String>?) {
         val newArgs = arrayOfNulls<String>(args!!.size - 1) // returns Array<String?>
 

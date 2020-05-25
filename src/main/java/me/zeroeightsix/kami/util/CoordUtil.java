@@ -45,12 +45,12 @@ public class CoordUtil {
         }
     }
 
-    public static boolean removeCoord(String name, String filename) {
+    public static boolean removeCoord(String id, String filename) {
         boolean removed = false;
         try {
             ArrayList<CoordinateInfo> coords = readCoords(filename);
             for (CoordinateInfo coord : coords) {
-                if (coord.getName().equals(name)) {
+                if (coord.getID().equals(id)) {
                     coords.remove(coord);
                     removed = true;
                     break;
@@ -64,6 +64,16 @@ public class CoordUtil {
             e.printStackTrace();
         }
         return removed;
+    }
+
+    public static Coordinate getCoord(String id, String filename) {
+        ArrayList<CoordinateInfo> coords = readCoords(filename);
+        for (CoordinateInfo coord : coords) {
+            if (coord.getID().equals(id)) {
+                return coord.xyz;
+            }
+        }
+        return null;
     }
 
     private static CoordinateInfo formatter(Coordinate xyz, String locationName) {

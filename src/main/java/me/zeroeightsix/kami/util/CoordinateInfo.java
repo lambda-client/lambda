@@ -23,14 +23,14 @@ public class CoordinateInfo {
         xyz = new Coordinate(x, y, z);
         name = nameSet;
         time = timeSet;
-        id = CoordUtil.readCoords(CoordUtil.coordsLogFilename).size();
+        id = CoordUtil.readCoords(CoordUtil.coordsLogFilename).get(CoordUtil.readCoords(CoordUtil.coordsLogFilename).size() - 1).id + 1;
     }
 
     public CoordinateInfo(Coordinate pos, String nameSet, String timeSet) {
         xyz = pos;
         name = nameSet;
         time = timeSet;
-        id = CoordUtil.readCoords(CoordUtil.coordsLogFilename).size();
+        id = CoordUtil.readCoords(CoordUtil.coordsLogFilename).get(CoordUtil.readCoords(CoordUtil.coordsLogFilename).size() - 1).id + 1;
     }
 
     public Coordinate getPos() {
@@ -47,5 +47,9 @@ public class CoordinateInfo {
 
     public String getDate() {
         return date;
+    }
+
+    public String getID() {
+        return Integer.toString(id);
     }
 }
