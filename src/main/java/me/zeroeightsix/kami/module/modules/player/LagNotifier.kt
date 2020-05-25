@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils.pause
 import me.zeroeightsix.kami.util.BaritoneUtils.unpause
 import me.zeroeightsix.kami.util.MathsUtils
+import me.zeroeightsix.kami.util.MessageSendHelper
 import me.zeroeightsix.kami.util.WebHelper
 import me.zeroeightsix.kami.util.Wrapper
 import net.minecraft.client.gui.GuiChat
@@ -39,6 +40,7 @@ class LagNotifier : Module() {
         if (1000L *  timeout.value.toDouble() > System.currentTimeMillis() - serverLastUpdated) {
             if (!hasUnpaused && pauseDuringLag.value) {
                 hasUnpaused = true
+                MessageSendHelper.sendBaritoneMessage("Unpaused!")
                 unpause()
             }
             return
@@ -50,7 +52,8 @@ class LagNotifier : Module() {
             } else {
                 "Server Not Responding! "
             }
-            if (hasUnpaused) {
+            if (hasUnpaused && pauseDuringLag.value) {
+                MessageSendHelper.sendBaritoneMessage("Paused due to lag!")
                 pause()
                 hasUnpaused = false
             }

@@ -61,6 +61,10 @@ public class MessageSendHelper {
         }
     }
 
+    public static void sendBaritoneMessage(String message) {
+        sendRawChatMessage(TextFormatting.DARK_PURPLE + "[" + TextFormatting.LIGHT_PURPLE + "Baritone" + TextFormatting.DARK_PURPLE + "] " + TextFormatting.RESET + message);
+    }
+
     public static void sendBaritoneCommand(String... args) {
         Settings.Setting<Boolean> chatControl = BaritoneAPI.getSettings().chatControl;
         boolean prevValue = chatControl.value;
@@ -70,7 +74,7 @@ public class MessageSendHelper {
         ChatEvent event = new ChatEvent(String.join(" ", args));
         BaritoneAPI.getProvider().getPrimaryBaritone().getGameEventHandler().onSendChatMessage(event);
         if (!event.isCancelled() && !args[0].equals("damn")) { // don't remove the 'damn', it's critical code that will break everything if you remove it
-            sendRawChatMessage(TextFormatting.DARK_PURPLE + "[" + TextFormatting.LIGHT_PURPLE + "Baritone" + TextFormatting.DARK_PURPLE + "] " + TextFormatting.RESET + "Invalid Command! Please view possible commands at https://github.com/cabaletta/baritone/blob/master/USAGE.md");
+            sendBaritoneMessage("Invalid Command! Please view possible commands at https://github.com/cabaletta/baritone/blob/master/USAGE.md");
         }
 
         chatControl.value = prevValue;
