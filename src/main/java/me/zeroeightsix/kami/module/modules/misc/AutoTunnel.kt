@@ -10,6 +10,9 @@ import me.zeroeightsix.kami.util.MathsUtils.CardinalMain
 import me.zeroeightsix.kami.util.MathsUtils.getPlayerMainCardinal
 import me.zeroeightsix.kami.util.MessageSendHelper
 
+/**
+ * @author dominikaaaa
+ */
 @Module.Info(
         name = "AutoTunnel",
         description = "Automatically tunnels forward, at a given size",
