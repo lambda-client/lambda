@@ -70,9 +70,9 @@ public class KamiMod {
 
     public static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.4-dev"; // this is changed to v1.x.x-commit for debugging during travis releases
-    public static final String MODVERSMALL = "v1.1.4-beta"; // shown to the user
-    public static final String MODVERBROAD = "v1.1.3"; // used for update checking
+    public static final String MODVER = "v1.1.4"; // this is changed to v1.x.x-commit for debugging during travis releases
+    public static final String MODVERSMALL = "v1.1.4"; // shown to the user
+    public static final String MODVERBROAD = "v1.1.4"; // used for update checking
 
     public static final String MCVER = "1.12.2";
 
