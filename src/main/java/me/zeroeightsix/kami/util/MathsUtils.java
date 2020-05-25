@@ -65,7 +65,6 @@ public class MathsUtils {
         } else if (isBetween(-67.6, -22.6, normalizeAngle(mc.player.rotationYaw))) {
             return Cardinal.POS_X_POS_Z;
         } else {
-            MessageSendHelper.sendErrorMessage("MathUtils: Error calculating angle! Please report this message to the developers\n" + "value: " + normalizeAngle(mc.player.rotationYaw));
             return Cardinal.ERROR;
         }
     }
