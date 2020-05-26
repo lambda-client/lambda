@@ -7,11 +7,8 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.misc.AutoReconnect
 import me.zeroeightsix.kami.setting.Settings
-import net.minecraft.client.Minecraft
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityCreeper
-import net.minecraft.network.play.server.SPacketDisconnect
-import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.event.entity.EntityJoinWorldEvent
 import net.minecraftforge.event.entity.living.LivingDamageEvent
 
@@ -53,11 +50,12 @@ class AutoLog : Module() {
     })
 
     override fun onUpdate() {
+        if (mc.player == null) return
         if (shouldLog) {
-            if (System.currentTimeMillis() - lastLog < 2000) return
+            if (System.currentTimeMillis() - lastLog < 10000) return
             shouldLog = false
             lastLog = System.currentTimeMillis()
-            Minecraft.getMinecraft().connection!!.handleDisconnect(SPacketDisconnect(TextComponentString("AutoLogged")))
+            mc.world.sendQuittingDisconnectingPacket()
         }
 
         if (!creeper.value) return
