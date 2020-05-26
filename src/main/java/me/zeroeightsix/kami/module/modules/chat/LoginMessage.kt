@@ -4,10 +4,10 @@ import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.KamiMod
-import me.zeroeightsix.kami.event.events.PacketEvent
+import me.zeroeightsix.kami.event.events.LocalPlayerUpdateEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.util.MessageSendHelper
-import net.minecraft.network.play.server.SPacketChat
+import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import java.io.*
 
 @Module.Info(
@@ -24,7 +24,7 @@ class LoginMessage : Module() {
         val reader: BufferedReader
 
         try {
-            MessageSendHelper.sendChatMessage("$chatName Finding login message from loginmsg.txt...")
+            MessageSendHelper.sendChatMessage("$chatName Trying to find '&7loginmsg.txt&f'")
             reader = BufferedReader(InputStreamReader(FileInputStream("loginmsg.txt"), "UTF-8"))
 
             loginMessage = reader.readLine()
@@ -32,19 +32,32 @@ class LoginMessage : Module() {
             reader.close()
         } catch (e: FileNotFoundException) {
             MessageSendHelper.sendErrorMessage("$chatName The file '&7loginmsg.txt&f' was not found in your .minecraft folder. Create it and add a message to enable this module.")
-
             disable()
+            return
         } catch (e: IOException) {
             KamiMod.log.error(e)
+            disable()
+            return
         }
+        MessageSendHelper.sendChatMessage("$chatName Found '&7loginmsg.txt&f'!")
+
     }
 
     @EventHandler
-    private val packetReceived = Listener(EventHook { event: PacketEvent.Receive ->
-        if (event.packet is SPacketChat && !sent) {
-            mc.player.sendChatMessage(loginMessage)
-
+    private val localPlayerUpdateEvent = Listener(EventHook { event: LocalPlayerUpdateEvent? ->
+        if (!sent) {
+            mc.player.sendChatMessage(loginMessage!!)
             sent = true
         }
+    })
+
+    @EventHandler
+    private val clientDisconnect = Listener(EventHook { event: FMLNetworkEvent.ClientDisconnectionFromServerEvent ->
+        sent = false
+    })
+
+    @EventHandler
+    private val serverDisconnect = Listener(EventHook { event: FMLNetworkEvent.ServerDisconnectionFromClientEvent ->
+        sent = false
     })
 }
