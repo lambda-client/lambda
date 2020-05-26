@@ -37,7 +37,7 @@ class AutoLog : Module() {
         if (mc.player == null) return@EventHook
         if (event.entity === mc.player) {
             if (mc.player.health - event.amount < health.value) {
-                log()
+                mc.addScheduledTask(this::log)
             }
         }
     })
@@ -47,22 +47,23 @@ class AutoLog : Module() {
         if (mc.player == null || !crystals.value) return@EventHook
         if (event.entity is EntityEnderCrystal) {
             if (mc.player.health - CrystalAura.calculateDamage(event.entity as EntityEnderCrystal, mc.player) < health.value) {
-                log()
+                mc.addScheduledTask(this::log)
             }
         }
     })
 
     override fun onUpdate() {
         if (shouldLog) {
-            shouldLog = false
             if (System.currentTimeMillis() - lastLog < 2000) return
+            shouldLog = false
+            lastLog = System.currentTimeMillis()
             Minecraft.getMinecraft().connection!!.handleDisconnect(SPacketDisconnect(TextComponentString("AutoLogged")))
         }
 
         if (!creeper.value) return
         for (entity in mc.world.loadedEntityList) {
             if (entity is EntityCreeper && entity.getDistance(mc.player) < distance.value) {
-                log()
+                mc.addScheduledTask(this::log)
             }
         }
     }
@@ -70,6 +71,5 @@ class AutoLog : Module() {
     private fun log() {
         KamiMod.MODULE_MANAGER.getModule(AutoReconnect::class.java).disable()
         shouldLog = true
-        lastLog = System.currentTimeMillis()
     }
 }
