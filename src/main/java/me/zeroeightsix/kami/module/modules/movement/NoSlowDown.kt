@@ -31,6 +31,7 @@ import net.minecraftforge.client.event.InputUpdateEvent
 )
 class NoSlowDown : Module() {
     private val ncpStrict: Setting<Boolean> = register(Settings.b("NCP Strict", true))
+    private val sneak: Setting<Boolean> = register(Settings.b("Sneak", true))
     @JvmField
     var soulSand: Setting<Boolean> = register(Settings.b("Soul Sand", true))
     @JvmField
@@ -48,7 +49,7 @@ class NoSlowDown : Module() {
      */
     @EventHandler
     private val eventListener = Listener(EventHook { event: InputUpdateEvent ->
-        if ((passItemCheck(mc.player.activeItemStack.getItem()) || mc.player.isSneaking) && !mc.player.isRiding) {
+        if ((passItemCheck(mc.player.activeItemStack.getItem()) || (mc.player.isSneaking && sneak.value)) && !mc.player.isRiding) {
             event.movementInput.moveStrafe *= 5f
             event.movementInput.moveForward *= 5f
         }
