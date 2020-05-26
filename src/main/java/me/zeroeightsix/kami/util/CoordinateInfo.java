@@ -23,14 +23,22 @@ public class CoordinateInfo {
         xyz = new Coordinate(x, y, z);
         name = nameSet;
         time = timeSet;
-        id = CoordUtil.readCoords(CoordUtil.coordsLogFilename).get(CoordUtil.readCoords(CoordUtil.coordsLogFilename).size() - 1).id + 1;
+        id = genID();
     }
 
     public CoordinateInfo(Coordinate pos, String nameSet, String timeSet) {
         xyz = pos;
         name = nameSet;
         time = timeSet;
-        id = CoordUtil.readCoords(CoordUtil.coordsLogFilename).get(CoordUtil.readCoords(CoordUtil.coordsLogFilename).size() - 1).id + 1;
+        id = genID();
+    }
+
+    private int genID() {
+        try {
+            return CoordUtil.readCoords(CoordUtil.coordsLogFilename).get(CoordUtil.readCoords(CoordUtil.coordsLogFilename).size() - 1).id + 1;
+        } catch (ArrayIndexOutOfBoundsException ignored) {
+            return 0; // if you haven't saved coords before, this will throw, because the size() is 0
+        }
     }
 
     public Coordinate getPos() {
