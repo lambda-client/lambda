@@ -49,7 +49,7 @@ class Baritone : Module() {
 
     @EventHandler // this is done because on first init the settings won't change if null
     var localPlayerUpdateEvent = Listener(EventHook { event: LocalPlayerUpdateEvent? ->
-        if (!hasRun.value) { // you can use a setting for this and only run it once because then it'll be updated in game, we're only worried about default settings
+        if (!hasRun.value && mc.player != null) { // you can use a setting for this and only run it once because then it'll be updated in game, we're only worried about default settings
             BaritoneAPI.getSettings().allowBreak.value = allowBreak.value
             BaritoneAPI.getSettings().allowSprint.value = allowSprint.value
             BaritoneAPI.getSettings().allowPlace.value = allowPlace.value
