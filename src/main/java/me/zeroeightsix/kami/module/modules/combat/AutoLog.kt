@@ -52,7 +52,7 @@ class AutoLog : Module() {
     override fun onUpdate() {
         if (mc.player == null) return
         if (shouldLog) {
-            if (System.currentTimeMillis() - lastLog < 10000) return
+            if (System.currentTimeMillis() - lastLog < 30000) return
             shouldLog = false
             lastLog = System.currentTimeMillis()
             mc.world.sendQuittingDisconnectingPacket()
