@@ -55,7 +55,7 @@ class LagNotifier : Module() {
             } else {
                 "Server Not Responding! "
             }
-            if (hasUnpaused && pauseDuringLag.value && BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.goal == null) {
+            if (hasUnpaused && pauseDuringLag.value && BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.goal != null) {
                 if (feedback.value) MessageSendHelper.sendBaritoneMessage("Paused due to lag!")
                 pause()
                 hasUnpaused = false
