@@ -17,7 +17,7 @@ import java.util.*
 /**
  * Created by 086 on 22/03/2018.
  * Updated by Qther on 05/03/20
- * Updated by dominikaaaa on 30/03/20
+ * Updated by dominikaaaa on 26/05/20
  */
 @Module.Info(
         name = "AutoFish",
