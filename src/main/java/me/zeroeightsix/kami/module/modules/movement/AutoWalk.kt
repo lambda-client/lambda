@@ -13,6 +13,7 @@ import me.zeroeightsix.kami.util.MathsUtils
 import me.zeroeightsix.kami.util.MathsUtils.Cardinal
 import me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage
 import net.minecraftforge.client.event.InputUpdateEvent
+import net.minecraftforge.fml.common.network.FMLNetworkEvent
 
 /**
  * Created by 086 on 16/12/2017.
@@ -92,6 +93,20 @@ class AutoWalk : Module() {
     }
 
     public override fun onDisable() {
+        disableBaritone()
+    }
+
+    @EventHandler
+    private val clientDisconnect = Listener(EventHook { event: FMLNetworkEvent.ClientDisconnectionFromServerEvent ->
+        disableBaritone()
+    })
+
+    @EventHandler
+    private val serverDisconnect = Listener(EventHook { event: FMLNetworkEvent.ServerDisconnectionFromClientEvent ->
+        disableBaritone()
+    })
+
+    private fun disableBaritone() {
         if (disableBaritone) {
             BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
         }

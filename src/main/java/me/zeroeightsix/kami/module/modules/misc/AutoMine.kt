@@ -1,11 +1,15 @@
 package me.zeroeightsix.kami.module.modules.misc
 
 import baritone.api.BaritoneAPI
+import me.zero.alpine.listener.EventHandler
+import me.zero.alpine.listener.EventHook
+import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.command.Command
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MessageSendHelper
+import net.minecraftforge.fml.common.network.FMLNetworkEvent
 
 /**
  * @author dominikaaaa
@@ -65,4 +69,14 @@ class AutoMine : Module() {
             BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
         }
     }
+
+    @EventHandler
+    private val clientDisconnect = Listener(EventHook { event: FMLNetworkEvent.ClientDisconnectionFromServerEvent ->
+        BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
+    })
+
+    @EventHandler
+    private val serverDisconnect = Listener(EventHook { event: FMLNetworkEvent.ServerDisconnectionFromClientEvent ->
+        BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
+    })
 }
