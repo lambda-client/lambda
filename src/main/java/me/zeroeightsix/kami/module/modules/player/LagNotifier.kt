@@ -48,7 +48,8 @@ class LagNotifier : Module() {
         }
 
         if (shouldPing()) {
-            text = if (WebHelper.isDown("1.1.1.1", 80, 1000)) {
+            WebHelper.run()
+            text = if (WebHelper.isInternetDown) {
                 "Your internet is offline! "
             } else {
                 "Server Not Responding! "
