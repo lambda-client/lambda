@@ -7,8 +7,10 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.misc.AutoReconnect
 import me.zeroeightsix.kami.setting.Settings
+import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityCreeper
+import net.minecraft.init.SoundEvents
 import net.minecraftforge.event.entity.EntityJoinWorldEvent
 import net.minecraftforge.event.entity.living.LivingDamageEvent
 
@@ -55,6 +57,7 @@ class AutoLog : Module() {
             if (System.currentTimeMillis() - lastLog < 30000) return
             shouldLog = false
             lastLog = System.currentTimeMillis()
+            mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             mc.world.sendQuittingDisconnectingPacket()
         }
 
