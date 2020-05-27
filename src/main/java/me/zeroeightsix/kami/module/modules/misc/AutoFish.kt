@@ -35,11 +35,22 @@ class AutoFish : Module() {
 
     var random: Random? = null
     private var recast = false
+    private var looking = arrayOf(0, 0) // pitch, yaw
 
     @EventHandler
     var localPlayerUpdateEventListener = Listener(EventHook { event: LocalPlayerUpdateEvent? ->
         if (mc.player != null && recast && recastOnReconnect.value && mc.player.heldItemMainhand.item is ItemFishingRod) {
-            mc.rightClickMouse()
+            mc.player.rotationPitch = looking[0].toFloat()
+            mc.player.rotationYaw = looking[1].toFloat()
+            Thread(Runnable {
+                try {
+                    Thread.sleep(500)
+                } catch (ignored: InterruptedException) { }
+
+                mc.rightClickMouse()
+                looking[0] = mc.player.rotationPitch.toInt()
+                looking[1] = mc.player.rotationYaw.toInt()
+            }).start()
             recast = false
         }
     })
@@ -76,6 +87,8 @@ class AutoFish : Module() {
                             Thread.sleep(extraDelay.value + random!!.ints(1, -variation.value, variation.value).findFirst().asInt.toLong())
                         } catch (ignored: InterruptedException) { }
 
+                        looking[0] = mc.player.rotationPitch.toInt()
+                        looking[1] = mc.player.rotationYaw.toInt()
                         mc.rightClickMouse()
                         random = Random()
 
@@ -85,6 +98,8 @@ class AutoFish : Module() {
                             e1.printStackTrace()
                         }
 
+                        looking[0] = mc.player.rotationPitch.toInt()
+                        looking[1] = mc.player.rotationYaw.toInt()
                         mc.rightClickMouse()
                     }).start()
                 }
