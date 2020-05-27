@@ -24,6 +24,6 @@ object WebHelper : Runnable {
     }
 
     override fun run() {
-        isInternetDown = isDown("1.1.1.1", 80, 900)
+        isInternetDown = isDown("1.1.1.1", 80, 100)
     }
 }
