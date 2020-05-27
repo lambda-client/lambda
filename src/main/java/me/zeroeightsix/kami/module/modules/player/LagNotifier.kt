@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.player
 
+import baritone.api.BaritoneAPI
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
@@ -54,7 +55,7 @@ class LagNotifier : Module() {
             } else {
                 "Server Not Responding! "
             }
-            if (hasUnpaused && pauseDuringLag.value) {
+            if (hasUnpaused && pauseDuringLag.value && BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.goal == null) {
                 if (feedback.value) MessageSendHelper.sendBaritoneMessage("Paused due to lag!")
                 pause()
                 hasUnpaused = false
