@@ -9,6 +9,7 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting.SettingListeners
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MessageSendHelper
+import net.minecraft.item.ItemFishingRod
 import net.minecraft.network.play.server.SPacketSoundEffect
 import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent.ServerDisconnectionFromClientEvent
@@ -37,7 +38,7 @@ class AutoFish : Module() {
 
     @EventHandler
     var localPlayerUpdateEventListener = Listener(EventHook { event: LocalPlayerUpdateEvent? ->
-        if (mc.player != null && recast && recastOnReconnect.value) {
+        if (mc.player != null && recast && recastOnReconnect.value && mc.player.heldItemMainhand.item is ItemFishingRod) {
             mc.rightClickMouse()
             recast = false
         }
