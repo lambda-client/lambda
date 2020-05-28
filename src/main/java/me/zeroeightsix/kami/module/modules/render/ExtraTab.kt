@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.setting.Settings
 
 /**
  * Created by 086 on 8/04/2018.
+ * Optimized by dominikaaaa on 28/05/20
  */
 @Module.Info(
         name = "ExtraTab",
@@ -14,7 +15,9 @@ import me.zeroeightsix.kami.setting.Settings
 )
 class ExtraTab : Module() {
     @JvmField
-    var tabSize: Setting<Int> = register(Settings.integerBuilder("Players").withMinimum(1).withValue(80).build())
+    var offload: Setting<Boolean> = register(Settings.b("Reduce Lag", true))
+    @JvmField
+    var tabSize: Setting<Int> = register(Settings.integerBuilder("Max Players").withMinimum(1).withValue(230).build())
 
     companion object {
         @JvmField
