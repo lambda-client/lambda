@@ -26,7 +26,7 @@ public class MixinGuiPlayerTabOverlay {
 
     @Redirect(method = "renderPlayerlist", at = @At(value = "INVOKE", target = "Ljava/util/List;subList(II)Ljava/util/List;", remap = false))
     public List subList(List list, int fromIndex, int toIndex) {
-        if (ExtraTab.INSTANCE.offload.getValue()) {
+        if (ExtraTab.INSTANCE.isEnabled() && ExtraTab.INSTANCE.offload.getValue()) {
             if (list1 == null) {
                 list1 = new AtomicReference<>(list.subList(fromIndex, Math.min(1, list.size())));
             }
@@ -34,7 +34,7 @@ public class MixinGuiPlayerTabOverlay {
             // only update every 2 seconds
             if (MathsUtils.isNumberEven(Calendar.getInstance().get(Calendar.SECOND))) {
                 new Thread(() -> {
-                    list1.set(list.subList(fromIndex, ExtraTab.INSTANCE.isEnabled() ? Math.min(ExtraTab.INSTANCE.tabSize.getValue(), list.size()) : toIndex));
+                    list1.set(list.subList(fromIndex, Math.min(ExtraTab.INSTANCE.tabSize.getValue(), list.size())));
                 }).start();
             }
             return list1.get();
