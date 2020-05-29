@@ -19,11 +19,12 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 public class TeleportCommand extends Command {
 
     private DecimalFormat df = new DecimalFormat("#.###");
-    private long lastTp;
-    private Vec3d lastPos;
+    public static long lastTp;
+    public static Vec3d lastPos;
     public static Vec3d finalPos;
     public static double blocksPerTeleport;
-    boolean disable = false;
+    public static boolean disable = false;
+    public static boolean feedback = true;
 
     public TeleportCommand() {
         super("teleport", new ChunkBuilder()
@@ -35,13 +36,20 @@ public class TeleportCommand extends Command {
         setDescription("Potentia teleport exploit");
     }
 
-    private void teleport(Minecraft mc) {
+    public static void teleport(Minecraft mc, Vec3d pos, boolean feedback) {
+        finalPos = pos;
+        disable = false;
+        TeleportCommand.feedback = feedback;
+        teleport(mc);
+    }
+
+    private static void teleport(Minecraft mc) {
         Vec3d tpDirectionVec = finalPos.subtract(mc.player.posX, mc.player.posY, mc.player.posZ).normalize();
 
         if (mc.world.isBlockLoaded(mc.player.getPosition())) {
             lastPos = new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ);
             if (finalPos.distanceTo(new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ)) < 0.3 || blocksPerTeleport == 0) {
-                sendChatMessage("Teleport Finished!");
+                if (feedback) sendChatMessage("Teleport Finished!");
                 disable = true;
                 return;
             } else {
@@ -74,10 +82,9 @@ public class TeleportCommand extends Command {
             return;
         }
 
+        blocksPerTeleport = 10000.0d;
         if (args.length >= 4 && args[3] != null) {
             blocksPerTeleport = Double.parseDouble(args[3]);
-        } else {
-            blocksPerTeleport = 10000.0d;
         }
 
         if (args.length >= 3) {
@@ -87,7 +94,8 @@ public class TeleportCommand extends Command {
                 final double z = args[2].equals("~") ? mc.player.posZ : args[2].charAt(0) == '~' ? Double.parseDouble(args[2].substring(1)) + mc.player.posZ : Double.parseDouble(args[2]);
                 finalPos = new Vec3d(x, y, z);
                 disable = false;
-                teleport(Wrapper.getMinecraft());
+                feedback = true;
+                teleport(mc);
                 sendChatMessage("\n&aTeleporting to \n&cX: &b" + df.format(x) + "&a, \n&cY: &b" + df.format(y) + "&a, \n&cZ: &b" + df.format(z) + "\n&aat &b" + df.format(blocksPerTeleport) + "&c blocks per teleport.");
             } catch (NullPointerException e) {
                 sendErrorMessage("Null Pointer Exception Caught!");
