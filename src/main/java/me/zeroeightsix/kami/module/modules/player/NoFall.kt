@@ -10,8 +10,9 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.EntityUtil
 import me.zeroeightsix.kami.util.MessageSendHelper
 import me.zeroeightsix.kami.util.VectorUtil
-import net.minecraft.block.Block
 import net.minecraft.init.Items
+import net.minecraft.item.ItemBlock
+import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.util.EnumFacing
@@ -78,12 +79,19 @@ class NoFall : Module() {
             } else if (mode.value == Mode.CATCH) {
                 when (catchMode.value) {
                     CatchMode.BLOCK -> {
-                        for (i in 0..8) if (mc.player.inventory.getStackInSlot(i).getItem() is Block) {
-                            mc.player.inventory.currentItem = i
+                        var slot = -1
+                        for (i in 0..8) {
+                            val stack = mc.player.inventory.getStackInSlot(i)
+                            if (stack != ItemStack.EMPTY && stack.getItem() is ItemBlock) {
+                                slot = i
+                            }
                         }
 
-                        if (mc.player.inventory.getCurrentItem().item !is Block) {
+                        if (slot == -1) {
                             MessageSendHelper.sendChatMessage("$chatName Missing blocks for Catch Mode Block!")
+                            return
+                        } else {
+                            mc.player.inventory.currentItem = slot
                         }
 
                         val posVec = mc.player.positionVector
