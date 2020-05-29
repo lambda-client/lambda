@@ -28,7 +28,7 @@ public class MixinGuiPlayerTabOverlay {
     public List subList(List list, int fromIndex, int toIndex) {
         if (ExtraTab.INSTANCE.isEnabled() && ExtraTab.INSTANCE.offload.getValue()) {
             if (list1 == null) {
-                list1 = new AtomicReference<>(list.subList(fromIndex, Math.min(1, list.size())));
+                list1 = new AtomicReference<>(list.subList(0, 0));
             }
 
             // only update every 2 seconds
