@@ -8,7 +8,6 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BlockInteractionHelper
 import me.zeroeightsix.kami.util.EntityUtil
-import me.zeroeightsix.kami.util.Wrapper
 import net.minecraft.block.Block
 import net.minecraft.block.BlockContainer
 import net.minecraft.block.BlockFalling
@@ -41,6 +40,7 @@ class Scaffold : Module() {
 
     private var shouldSlow = false
     private var towerStart = 0.0
+    private var holding = false
 
     private enum class Mode {
         NORMAL, LEGIT
@@ -62,36 +62,46 @@ class Scaffold : Module() {
     override fun onUpdate() {
         if (mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam::class.java)) return
         shouldSlow = false
+
         val towering = mc.gameSettings.keyBindJump.isKeyDown && tower.value
         var vec3d = EntityUtil.getInterpolatedPos(mc.player, ticks.value.toFloat())
+
         if (modeSetting.value == Mode.LEGIT) vec3d = EntityUtil.getInterpolatedPos(mc.player, 0f)
+
         val blockPos = BlockPos(vec3d).down()
         val belowBlockPos = blockPos.down()
         val legitPos = BlockPos(EntityUtil.getInterpolatedPos(mc.player, 2f))
 
         /* when legitBridge is enabled */
-        /* check if block behind player is air or other replaceable block and if it is, make the player crouch */if (modeSetting.value == Mode.LEGIT && Wrapper.getWorld().getBlockState(legitPos.down()).material.isReplaceable && mc.player.onGround && !towering) {
+        /* check if block behind player is air or other replaceable block and if it is, make the player crouch */
+        if (modeSetting.value == Mode.LEGIT && mc.world.getBlockState(legitPos.down()).material.isReplaceable && mc.player.onGround && !towering) {
             shouldSlow = true
             mc.player.movementInput.sneak = true
             mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
         }
+
         if (towering) {
             if (mc.player.posY <= blockPos.y + 1.0f) {
                 return
             }
         }
 
-        /* check if block is already placed */if (!Wrapper.getWorld().getBlockState(blockPos).material.isReplaceable) {
+        if (!mc.world.getBlockState(blockPos).material.isReplaceable) {
             return
         }
+
         val oldSlot = mc.player.inventory.currentItem
         setSlotToBlocks(belowBlockPos)
 
-        /* check if we don't have a block adjacent to the blockPos */if (!BlockInteractionHelper.checkForNeighbours(blockPos)) return
+        /* check if we don't have a block adjacent to the blockPos */
+        if (!BlockInteractionHelper.checkForNeighbours(blockPos)) return
 
-        /* place the block */if (placeBlocks.value) BlockInteractionHelper.placeBlockScaffold(blockPos)
+        /* place the block */
+        if (placeBlocks.value) BlockInteractionHelper.placeBlockScaffold(blockPos)
 
-        /* Reset the slot */mc.player.inventory.currentItem = oldSlot
+        /* Reset the slot */
+        if (!holding) mc.player.inventory.currentItem = oldSlot
+
         if (towering) {
             val motion = 0.42 // jump motion
             if (mc.player.onGround) {
@@ -106,6 +116,7 @@ class Scaffold : Module() {
         } else {
             towerStart = 0.0
         }
+
         if (shouldSlow) {
             mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING))
             shouldSlow = false
@@ -116,32 +127,51 @@ class Scaffold : Module() {
         get() = 0.11f + Math.random().toFloat() * (delayRange.value / 10.0f - 0.11f)
 
     private fun setSlotToBlocks(belowBlockPos: BlockPos) {
+        if (isBlock(mc.player.heldItemMainhand, belowBlockPos)) {
+            holding = true
+            return
+        }
+        holding = false
+
         /* search blocks in hotbar */
         var newSlot = -1
         for (i in 0..8) {
             /* filter out non-block items */
-            val stack = Wrapper.getPlayer().inventory.getStackInSlot(i)
-            if (stack == ItemStack.EMPTY || stack.getItem() !is ItemBlock) continue
-            val block = (stack.getItem() as ItemBlock).block
-            if (BlockInteractionHelper.blackList.contains(block) || block is BlockContainer) continue
+            val stack = mc.player.inventory.getStackInSlot(i)
 
-            /* filter out non-solid blocks */
-            if (!Block.getBlockFromItem(stack.getItem()).defaultState.isFullBlock) continue
-
-            /* don't use falling blocks if it'd fall */
-            if ((stack.getItem() as ItemBlock).block is BlockFalling) {
-                if (Wrapper.getWorld().getBlockState(belowBlockPos).material.isReplaceable) continue
+            if (isBlock(stack, belowBlockPos)) {
+                newSlot = i
+                break
             }
-            newSlot = i
-            break
         }
-        /* check if any blocks were found, and if they were then set the slot */if (newSlot != -1) {
-            Wrapper.getPlayer().inventory.currentItem = newSlot
+
+        /* check if any blocks were found, and if they were then set the slot */
+        if (newSlot != -1) {
+            mc.player.inventory.currentItem = newSlot
         }
+    }
+
+    private fun isBlock(stack: ItemStack, belowBlockPos: BlockPos): Boolean {
+        /* filter out non-block items */
+        if (stack == ItemStack.EMPTY || stack.getItem() !is ItemBlock) return false
+
+        val block = (stack.getItem() as ItemBlock).block
+        if (BlockInteractionHelper.blackList.contains(block) || block is BlockContainer) return false
+
+        /* filter out non-solid blocks */
+        if (!Block.getBlockFromItem(stack.getItem()).defaultState.isFullBlock) return false
+
+        /* don't use falling blocks if it'd fall */
+        if ((stack.getItem() as ItemBlock).block is BlockFalling) {
+            if (mc.world.getBlockState(belowBlockPos).material.isReplaceable) return false
+        }
+
+        return true
     }
 
     companion object {
         private lateinit var INSTANCE: Scaffold
+
         @JvmStatic
         fun shouldScaffold(): Boolean {
             return INSTANCE.isEnabled
