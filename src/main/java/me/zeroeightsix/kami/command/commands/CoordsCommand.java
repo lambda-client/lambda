@@ -26,7 +26,8 @@ public class CoordsCommand extends Command {
         super("coord", new ChunkBuilder()
                 .append("command", true, new EnumParser(new String[]{"add", "del", "goto", "list", "stashes", "help"}))
                 .append("name|id", false)
-                .build(), "pos");
+                .append("coords", false)
+                .build(), "x,y,z");
         setDescription("Log the current coordinates.");
     }
 
@@ -35,7 +36,13 @@ public class CoordsCommand extends Command {
             switch (args[0].toLowerCase()) {
                 case "add":
                     if (args[1] != null) {
-                        confirm(args[1], writePlayerCoords(args[1]));
+                        if (args[2] != null) {
+                            String[] split = args[2].split(",");
+                            Coordinate coordinate = new Coordinate(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+                            confirm(args[1], writeCustomCoords(coordinate, args[1]));
+                        } else {
+                            confirm(args[1], writePlayerCoords(args[1]));
+                        }
                     } else {
                         confirm("Unnamed", writePlayerCoords("Unnamed"));
                     }
