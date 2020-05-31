@@ -31,6 +31,6 @@ public class MixinEntity {
 
     @Redirect(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;isSneaking()Z"))
     public boolean isSneaking(Entity entity) {
-        return SafeWalk.shouldSafewalk() || Scaffold.shouldScaffold() || entity.isSneaking();
+        return SafeWalk.INSTANCE.shouldSafewalk() || Scaffold.shouldScaffold() || entity.isSneaking();
     }
 }
