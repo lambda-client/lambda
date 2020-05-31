@@ -6,6 +6,8 @@ import me.zeroeightsix.kami.event.events.GuiScreenEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
+import me.zeroeightsix.kami.util.CoordUtil;
+import me.zeroeightsix.kami.util.Coordinate;
 import net.minecraft.client.gui.GuiGameOver;
 
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
@@ -22,7 +24,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 public class AutoRespawn extends Module {
 
     private Setting<Boolean> respawn = register(Settings.b("Respawn", true));
-    private Setting<Boolean> deathCoords = register(Settings.b("DeathCoords", true));
+    private Setting<Boolean> deathCoords = register(Settings.b("Save Death Coords", true));
     private Setting<Boolean> antiGlitchScreen = register(Settings.b("Anti Glitch Screen", true));
 
     @EventHandler
@@ -33,6 +35,7 @@ public class AutoRespawn extends Module {
         }
 
         if (deathCoords.getValue() && mc.player.getHealth() <= 0) {
+            CoordUtil.writePlayerCoords("Death");
             sendChatMessage(String.format("You died at x %d y %d z %d", (int) mc.player.posX, (int) mc.player.posY, (int) mc.player.posZ));
         }
 
