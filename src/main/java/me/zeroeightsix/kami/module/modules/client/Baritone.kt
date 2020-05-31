@@ -6,6 +6,7 @@ import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.event.events.LocalPlayerUpdateEvent
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Setting.SettingListeners
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MessageSendHelper
@@ -23,7 +24,7 @@ class Baritone : Module() {
     private var allowBreak = register(Settings.b("Allow Break", true))
     private var allowSprint = register(Settings.b("Allow Sprint", true))
     private var allowPlace = register(Settings.b("Allow Place", true))
-    private var allowInventory = register(Settings.b("Allow Inventory", false))
+    var allowInventory: Setting<Boolean> = register(Settings.b("Allow Inventory", false))
     private var freeLook = register(Settings.b("Free Look", true))
     private var allowDownwardTunneling = register(Settings.b("Downward Tunneling", true))
     private var allowParkour = register(Settings.b("Allow Parkour", true))
