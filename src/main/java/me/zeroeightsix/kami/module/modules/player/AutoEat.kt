@@ -37,15 +37,18 @@ class AutoEat : Module() {
 
     private fun isValid(stack: ItemStack, food: Int): Boolean {
         return passItemCheck(stack) && stack.getItem() is ItemFood && foodLevel.value - food >= (stack.getItem() as ItemFood).getHealAmount(stack) ||
-               passItemCheck(stack) && stack.getItem() is ItemFood && healthLevel.value - (mc.player.health + mc.player.absorptionAmount) > 0f
+                passItemCheck(stack) && stack.getItem() is ItemFood && healthLevel.value - (mc.player.health + mc.player.absorptionAmount) > 0f
     }
 
     private fun passItemCheck(stack: ItemStack): Boolean {
         val item: Item = stack.getItem()
-        if (item === Items.ROTTEN_FLESH) return false
-        if (item === Items.SPIDER_EYE) return false
-        if (item === Items.POISONOUS_POTATO) return false
-        if (item === Items.FISH && (stack.metadata == 3 || stack.metadata == 2)) return false // Pufferfish, Clown fish
+        if (item === Items.ROTTEN_FLESH
+                || item === Items.SPIDER_EYE
+                || item === Items.POISONOUS_POTATO
+                || (item === Items.FISH && (stack.metadata == 3 || stack.metadata == 2)) // Pufferfish, Clown fish
+                || item === Items.CHORUS_FRUIT) {
+            return false
+        }
         return true
     }
 
@@ -59,8 +62,7 @@ class AutoEat : Module() {
             }
             eating = false
 
-            if (pauseBaritone.value)
-            {
+            if (pauseBaritone.value) {
                 unpause()
             }
 
@@ -76,8 +78,7 @@ class AutoEat : Module() {
             mc.player.activeHand = EnumHand.OFF_HAND
             eating = true
 
-            if (pauseBaritone.value)
-            {
+            if (pauseBaritone.value) {
                 pause()
             }
 
@@ -90,8 +91,7 @@ class AutoEat : Module() {
                     mc.player.inventory.currentItem = i
                     eating = true
 
-                    if (pauseBaritone.value)
-                    {
+                    if (pauseBaritone.value) {
                         pause()
                     }
 
