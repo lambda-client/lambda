@@ -33,9 +33,8 @@ public class CoordUtil {
     }
 
     public static Coordinate writeCustomCoords(Coordinate xyz, String locationName) {
-        Coordinate coords = getCurrentCoord();
         writeCoords(xyz, locationName, coordsLogFilename);
-        return coords;
+        return xyz;
     }
 
     public static void writeCoords(Coordinate xyz, String locationName, String filename) {

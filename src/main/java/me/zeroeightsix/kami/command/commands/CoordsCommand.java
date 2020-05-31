@@ -26,8 +26,8 @@ public class CoordsCommand extends Command {
         super("coord", new ChunkBuilder()
                 .append("command", true, new EnumParser(new String[]{"add", "del", "goto", "list", "stashes", "help"}))
                 .append("name|id", false)
-                .append("coords", false)
-                .build(), "x,y,z");
+                .append("custom coord", false)
+                .build(), "pos");
         setDescription("Log the current coordinates.");
     }
 
@@ -37,6 +37,10 @@ public class CoordsCommand extends Command {
                 case "add":
                     if (args[1] != null) {
                         if (args[2] != null) {
+                            if (!args[2].matches("[0-9-]+,[0-9-]+,[0-9-]+")) {
+                                sendChatMessage("You have to enter custom coordinates in the format of '&7x,y,z&f', for example '&7400,60,-100&f', but you can also leave it blank to use the current coordinates");
+                                return;
+                            }
                             String[] split = args[2].split(",");
                             Coordinate coordinate = new Coordinate(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
                             confirm(args[1], writeCustomCoords(coordinate, args[1]));
