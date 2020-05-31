@@ -21,7 +21,7 @@ class Zoom : Module() {
 
     private val fovChange = register(Settings.integerBuilder("FOV").withRange(1, 130).withValue(40).build())
     private val sens = register(Settings.b("Change Sensitivity", true))
-    private val sensChange = register(Settings.floatBuilder("Sensitivity").withMinimum(0.25f).withValue(1.3f).withMaximum(2f).withVisibility { sens.value }.build())
+    private val sensChange = register(Settings.floatBuilder("Sensitivity Multiplier").withMinimum(0.25f).withValue(1.3f).withMaximum(2f).withVisibility { sens.value }.build())
     private val smoothCamera = register(Settings.b("Cinematic Camera", false))
 
     init {
@@ -31,7 +31,7 @@ class Zoom : Module() {
         smoothCamera.settingListener = Setting.SettingListeners { if (isEnabled && mc.player != null) mc.gameSettings.smoothCamera = smoothCamera.value }
     }
 
-    public override fun onEnable() { // - fix zoom - stashfinder
+    public override fun onEnable() {
         if (mc.player == null) return
         fov = mc.gameSettings.fovSetting
         sensi = mc.gameSettings.mouseSensitivity

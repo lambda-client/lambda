@@ -53,7 +53,7 @@ public class TroubleshootCommand extends Command {
 
         enabled.set(StringUtils.chop(StringUtils.chop(String.valueOf(enabled)))); // this looks horrible but I don't know how else to do it sorry
         sendChatMessage("Enabled modules: " + f + "\n" + TextFormatting.GRAY + enabled);
-        if (args[1] == null) return;
+        if (args.length >= 2) return;
         sendChatMessage(ClientBrandRetriever.getClientModName() + " " + KamiMod.MODVER);
         sendChatMessage("CPU: " + OpenGlHelper.getCpu() + " GPU: " + GlStateManager.glGetString(GL11.GL_VENDOR));
         sendChatMessage("Please send a screenshot of the full output to the developer or moderator who's helping you!");
