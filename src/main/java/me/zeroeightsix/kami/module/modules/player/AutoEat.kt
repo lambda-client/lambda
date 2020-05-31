@@ -1,8 +1,11 @@
 package me.zeroeightsix.kami.module.modules.player
 
+import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.modules.client.Baritone
 import me.zeroeightsix.kami.module.modules.combat.Aura
+import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils.pause
 import me.zeroeightsix.kami.util.BaritoneUtils.unpause
@@ -30,7 +33,7 @@ class AutoEat : Module() {
     private val foodLevel = register(Settings.integerBuilder("Below Hunger").withValue(15).withMinimum(1).withMaximum(20).build())
     private val healthLevel = register(Settings.integerBuilder("Below Health").withValue(8).withMinimum(1).withMaximum(20).build())
 
-    var pauseBaritone = register(Settings.b("Pause Baritone", true))
+    var pauseBaritone: Setting<Boolean> = register(Settings.b("Pause Baritone", true))
 
     private var lastSlot = -1
     var eating = false
@@ -65,6 +68,7 @@ class AutoEat : Module() {
             if (pauseBaritone.value) {
                 unpause()
             }
+            BaritoneAPI.getSettings().allowInventory.value = false
 
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, false)
             return
@@ -81,6 +85,7 @@ class AutoEat : Module() {
             if (pauseBaritone.value) {
                 pause()
             }
+            BaritoneAPI.getSettings().allowInventory.value = MODULE_MANAGER.getModuleT(Baritone::class.java).allowInventory.value
 
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, true)
             mc.playerController.processRightClick(mc.player, mc.world, EnumHand.OFF_HAND)
