@@ -20,6 +20,7 @@ import kotlin.math.sqrt
  * Created by 086 on 11/04/2018.
  * Updated by Itistheend on 28/12/19.
  * Updated by dominikaaaa on 26/05/20
+ * Updated by pNoName on 28/05/20
  *
  * Some of Control mode was written by an anonymous donator who didn't wish to be named.
  */
@@ -183,7 +184,7 @@ class ElytraFlight : Module() {
         if (mc.player == null || mc.player.isSpectator) return
 
         if (mode.value == ElytraFlightMode.CONTROL) {
-            isBoosting = (mc.player.rotationPitch < -10) && lookBoost.value
+            isBoosting = (mc.player.rotationPitch < -10  && !(mc.player.motionX.toInt() == 0 && mc.player.motionZ.toInt() == 0)) && lookBoost.value
             return
         }
 
