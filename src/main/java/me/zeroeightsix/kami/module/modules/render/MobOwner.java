@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.EntityUtil;
+import me.zeroeightsix.kami.util.MathsUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.AbstractHorse;
 import net.minecraft.entity.passive.EntityTameable;
@@ -12,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static me.zeroeightsix.kami.command.commands.EntityStatsCommand.round;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 
 /**
@@ -102,22 +102,22 @@ public class MobOwner extends Module {
 
     private String getSpeed(AbstractHorse horse) {
         if (!speed.getValue()) return "";
-        return " S: " + round(43.17 * horse.getAIMoveSpeed(), 2);
+        return " S: " + MathsUtils.round(43.17 * horse.getAIMoveSpeed(), 2);
     }
 
     private String getJump(AbstractHorse horse) {
         if (!jump.getValue()) return "";
-        return " J: " + round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 2);
+        return " J: " + MathsUtils.round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 2);
     }
 
     private String getHealth(AbstractHorse horse) {
         if (!hp.getValue()) return "";
-        return " HP: " + round(horse.getHealth(), 2);
+        return " HP: " + MathsUtils.round(horse.getHealth(), 2);
     }
 
     private String getHealth(EntityTameable tameable) {
         if (!hp.getValue()) return "";
-        return " HP: " + round(tameable.getHealth(), 2);
+        return " HP: " + MathsUtils.round(tameable.getHealth(), 2);
     }
 
     public void onUpdate() {

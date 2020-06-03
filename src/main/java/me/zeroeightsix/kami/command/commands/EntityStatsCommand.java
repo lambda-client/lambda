@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.command.commands;
 
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.util.EntityUtil;
+import me.zeroeightsix.kami.util.MathsUtils;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.passive.AbstractHorse;
 
@@ -30,8 +31,8 @@ public class EntityStatsCommand extends Command {
         if (mc.player.getRidingEntity() != null && mc.player.getRidingEntity() instanceof AbstractHorse) {
             AbstractHorse horse = (AbstractHorse) mc.player.getRidingEntity();
             float maxHealth = horse.getMaxHealth();
-            double speed = round(43.17 * horse.getAIMoveSpeed(), 2);
-            double jump = round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 4);
+            double speed = MathsUtils.round(43.17 * horse.getAIMoveSpeed(), 2);
+            double jump = MathsUtils.round(-0.1817584952 * Math.pow(horse.getHorseJumpStrength(), 3) + 3.689713992 * Math.pow(horse.getHorseJumpStrength(), 2) + 2.128599134 * horse.getHorseJumpStrength() - 0.343930367, 4);
             String ownerId = horse.getOwnerUniqueId() == null ? "Not tamed." : horse.getOwnerUniqueId().toString();
 
             String builder = "&6Entity Statistics:" + "\n&cMax Health: " + maxHealth +
@@ -41,17 +42,9 @@ public class EntityStatsCommand extends Command {
             sendChatMessage(builder);
         } else if (mc.player.getRidingEntity() instanceof EntityLivingBase) {
             EntityLivingBase entity = (EntityLivingBase) mc.player.getRidingEntity();
-            sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");
+            sendChatMessage("&6Entity Stats:\n&cMax Health: &b" + entity.getMaxHealth() + " &2HP" + "\n&cSpeed: &b" + MathsUtils.round(43.17 * entity.getAIMoveSpeed(), 2) + " &2m/s");
         } else {
             sendErrorMessage("&4&lError: &cNot riding a compatible entity.");
         }
-    }
-
-    public static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
     }
 }
