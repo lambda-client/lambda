@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.mixin.client;
 import me.zeroeightsix.kami.module.modules.movement.Velocity;
 import me.zeroeightsix.kami.module.modules.player.LiquidInteract;
 import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
@@ -31,8 +30,11 @@ public class MixinBlockLiquid {
         }
     }
 
+    /**
+     * Taken from Minecraft code {@link BlockLiquid#canCollideCheck}
+     */
     @Inject(method = "canCollideCheck", at = @At("HEAD"), cancellable = true)
-    public void canCollideCheck(final IBlockState blockState, final boolean b, final CallbackInfoReturnable<Boolean> callbackInfoReturnable) {
-        callbackInfoReturnable.setReturnValue(MODULE_MANAGER.isModuleEnabled(LiquidInteract.class) || (b && (int) blockState.getValue((IProperty) BlockLiquid.LEVEL) == 0));
+    public void canCollideCheck(final IBlockState blockState, final boolean hitIfLiquid, final CallbackInfoReturnable<Boolean> callbackInfoReturnable) {
+        callbackInfoReturnable.setReturnValue((hitIfLiquid && blockState.getValue(BlockLiquid.LEVEL) == 0) || MODULE_MANAGER.isModuleEnabled(LiquidInteract.class));
     }
 }
