@@ -30,14 +30,14 @@ import kotlin.math.sqrt
         category = Module.Category.MOVEMENT
 )
 class ElytraFlight : Module() {
-    private val mode = register(Settings.e<ElytraFlightMode>("Mode", ElytraFlightMode.HIGHWAY))
+    private val mode = register(Settings.e<ElytraFlightMode>("Mode", ElytraFlightMode.CREATIVE))
     private val defaultSetting = register(Settings.b("Defaults", false))
 
     /* Highway */
-    private val easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff C/H").withValue(true).withVisibility { mode.value == ElytraFlightMode.HIGHWAY || mode.value == ElytraFlightMode.PACKET }.build())
-    private val takeOffMode = register(Settings.enumBuilder(TakeoffMode::class.java).withName("Takeoff Mode").withValue(TakeoffMode.PACKET).withVisibility { easyTakeOff.value && (mode.value == ElytraFlightMode.HIGHWAY || mode.value == ElytraFlightMode.PACKET) }.build())
-    private val speedHighway = register(Settings.floatBuilder("Speed H").withValue(1.8f).withMaximum(1.8f).withVisibility { mode.value == ElytraFlightMode.HIGHWAY }.build())
-    private val fallSpeedHighway = register(Settings.floatBuilder("Fall Speed H").withValue(0.000100000002f).withVisibility { mode.value == ElytraFlightMode.HIGHWAY }.build())
+    private val easyTakeOff = register(Settings.booleanBuilder("Easy Takeoff C/CR").withValue(true).withVisibility { mode.value == ElytraFlightMode.CREATIVE || mode.value == ElytraFlightMode.PACKET }.build())
+    private val takeOffMode = register(Settings.enumBuilder(TakeoffMode::class.java).withName("Takeoff Mode").withValue(TakeoffMode.PACKET).withVisibility { easyTakeOff.value && (mode.value == ElytraFlightMode.CREATIVE || mode.value == ElytraFlightMode.PACKET) }.build())
+    private val speedCreative = register(Settings.floatBuilder("Speed CR").withValue(1.8f).withMaximum(1.8f).withVisibility { mode.value == ElytraFlightMode.CREATIVE }.build())
+    private val fallSpeedCreative = register(Settings.floatBuilder("Fall Speed CR").withValue(0.000100000002f).withVisibility { mode.value == ElytraFlightMode.CREATIVE }.build())
 
     /* Fly or Boost */
     private val fallSpeed = register(Settings.floatBuilder("Fall Speed").withValue(-.003f).withVisibility { mode.value == ElytraFlightMode.BOOST || mode.value == ElytraFlightMode.FLY }.build())
@@ -45,20 +45,20 @@ class ElytraFlight : Module() {
     private val downSpeedBoost = register(Settings.floatBuilder("Down Speed B").withValue(0.04f).withVisibility { mode.value == ElytraFlightMode.BOOST }.build())
 
     /* Control */
-    private val upPitch = register(Settings.integerBuilder("Up Pitch").withRange(-90, 90).withValue(-10).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
-    private val forwardPitch = register(Settings.integerBuilder("Forward Pitch").withRange(-90, 90).withValue(0).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
-    private val lookBoost = register(Settings.booleanBuilder("Look Boost").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
+    private val spoofPitch = register(Settings.booleanBuilder("Spoof Pitch").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
+    private val upPitch = register(Settings.integerBuilder("Up Pitch").withRange(-90, 90).withValue(-10).withVisibility { spoofPitch.value && mode.value == ElytraFlightMode.CONTROL }.build())
+    private val forwardPitch = register(Settings.integerBuilder("Forward Pitch").withRange(-90, 90).withValue(0).withVisibility { spoofPitch.value && mode.value == ElytraFlightMode.CONTROL }.build())
+    private val lookBoost = register(Settings.booleanBuilder("Look Boost").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
+    private val autoBoost = register(Settings.booleanBuilder("Auto Boost").withValue(true).withVisibility { lookBoost.value && mode.value == ElytraFlightMode.CONTROL }.build())
     private val hoverControl = register(Settings.booleanBuilder("Hover").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val timerControl = register(Settings.booleanBuilder("Takeoff Timer").withValue(true).withVisibility { easyTakeOffControl.value && mode.value == ElytraFlightMode.CONTROL }.build())
     private val speedControl = register(Settings.floatBuilder("Speed C").withValue(1.8f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val fallSpeedControl = register(Settings.floatBuilder("Fall Speed C").withValue(0.000100000002f).withMaximum(0.3f).withMinimum(0.0f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
-    private val downSpeedControl = register(Settings.doubleBuilder("Down Speed C").withMaximum(10.0).withMinimum(0.0).withValue(2.0).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
+    private val downSpeedControl = register(Settings.doubleBuilder("Down Speed C").withMaximum(10.0).withMinimum(0.0).withValue(1.0).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
 
     /* Packet */
-    private val accelerationPacket = register(Settings.booleanBuilder("Acceleration").withValue(false).withVisibility { mode.value == ElytraFlightMode.PACKET }.build())
-    private val creativePacket = register(Settings.booleanBuilder("Creative").withValue(false).withVisibility { mode.value == ElytraFlightMode.PACKET }.build())
-    private val speedPacket = register(Settings.floatBuilder("Speed P").withValue(0.15f).withVisibility { mode.value == ElytraFlightMode.PACKET }.build())
+    private val speedPacket = register(Settings.floatBuilder("Speed P").withValue(1.3f).withVisibility { mode.value == ElytraFlightMode.PACKET }.build())
     private val fallSpeedPacket = register(Settings.floatBuilder("Fall Speed P").withValue(0.000100000002f).withVisibility { mode.value == ElytraFlightMode.PACKET }.build())
 
     /* Control mode states */
@@ -76,10 +76,13 @@ class ElytraFlight : Module() {
             if (!mc.player.isElytraFlying) return@EventHook
             val packet = event.packet as CPacketPlayer
             val moveUp = if (!lookBoost.value) mc.player.movementInput.jump else false
-            if (moveUp) {
-                packet.pitch = upPitch.value.toFloat()
-            } else {
-                packet.pitch = forwardPitch.value.toFloat()
+
+            if (spoofPitch.value) {
+                if (moveUp) {
+                    packet.pitch = upPitch.value.toFloat()
+                } else {
+                    packet.pitch = forwardPitch.value.toFloat()
+                }
             }
             packet.yaw = packetYaw
         }
@@ -184,7 +187,13 @@ class ElytraFlight : Module() {
         if (mc.player == null || mc.player.isSpectator) return
 
         if (mode.value == ElytraFlightMode.CONTROL) {
-            isBoosting = (mc.player.rotationPitch < -10  && !(mc.player.motionX.toInt() == 0 && mc.player.motionZ.toInt() == 0)) && lookBoost.value
+            val shouldAutoBoost = if (autoBoost.value) {
+                !(mc.player.motionX.toInt() == 0 && mc.player.motionZ.toInt() == 0)
+            } else {
+                true
+            }
+
+            isBoosting = (mc.player.rotationPitch < -10 && shouldAutoBoost) && lookBoost.value
             return
         }
 
@@ -217,7 +226,7 @@ class ElytraFlight : Module() {
                 mc.player.motionX += MathHelper.sin(yaw) * 0.05f.toDouble()
                 mc.player.motionZ -= MathHelper.cos(yaw) * 0.05f.toDouble()
             }
-        } else if (mode.value == ElytraFlightMode.HIGHWAY || mode.value == ElytraFlightMode.FLY) {
+        } else if (mode.value == ElytraFlightMode.CREATIVE || mode.value == ElytraFlightMode.FLY) {
             mc.player.capabilities.flySpeed = .915f
             mc.player.capabilities.isFlying = true
 
@@ -228,21 +237,17 @@ class ElytraFlight : Module() {
             mc.player.capabilities.isFlying = true
             mc.player.jumpMovementFactor = speedPacket.value
             mc.player.capabilities.flySpeed = speedPacket.value / 8f
-
-            if (creativePacket.value && mc.player.movementInput.moveForward == 0.0f && mc.player.movementInput.moveStrafe == 0.0f) {
-                mc.player.setVelocity(0.0, 0.0, 0.0)
-            }
             mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedPacket.value, mc.player.posZ)
         }
     }
 
     private fun setFlySpeed() {
         if (mc.player.capabilities.isFlying) {
-            if (mode.value == ElytraFlightMode.HIGHWAY) {
+            if (mode.value == ElytraFlightMode.CREATIVE) {
                 mc.player.isSprinting = false
                 mc.player.setVelocity(0.0, 0.0, 0.0)
-                mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedHighway.value, mc.player.posZ)
-                mc.player.capabilities.flySpeed = speedHighway.value
+                mc.player.setPosition(mc.player.posX, mc.player.posY - fallSpeedCreative.value, mc.player.posZ)
+                mc.player.capabilities.flySpeed = speedCreative.value
             } else if (mode.value == ElytraFlightMode.BOOST || mode.value == ElytraFlightMode.FLY) {
                 mc.player.setVelocity(0.0, 0.0, 0.0)
                 mc.player.capabilities.flySpeed = .915f
@@ -252,7 +257,7 @@ class ElytraFlight : Module() {
     }
 
     private fun takeoff() {
-        if (!((mode.value == ElytraFlightMode.HIGHWAY || mode.value == ElytraFlightMode.PACKET) && easyTakeOff.value)) return
+        if (!((mode.value == ElytraFlightMode.CREATIVE || mode.value == ElytraFlightMode.PACKET) && easyTakeOff.value)) return
         if (!mc.player.isElytraFlying && !mc.player.onGround) {
             when (takeOffMode.value) {
                 TakeoffMode.CLIENT -> {
@@ -284,18 +289,29 @@ class ElytraFlight : Module() {
     private fun defaults() {
         mc.player?.let {
             easyTakeOff.value = true
-            hoverControl.value = true
-            easyTakeOffControl.value = false
-            timerControl.value = false
             takeOffMode.value = TakeoffMode.PACKET
-            speedHighway.value = 1.8f
-            speedControl.value = 1.8f
-            fallSpeedHighway.value = 0.000100000002f
-            fallSpeedControl.value = 0.000100000002f
+            speedCreative.value = 1.8f
+            fallSpeedCreative.value = 0.000100000002f
+
             fallSpeed.value = -.003f
             upSpeedBoost.value = 0.08f
             downSpeedBoost.value = 0.04f
-            downSpeedControl.value = 2.0
+
+            spoofPitch.value = true
+            upPitch.value = -10
+            forwardPitch.value = 0
+            lookBoost.value = true
+            autoBoost.value = true
+            hoverControl.value = false
+            easyTakeOffControl.value = true
+            timerControl.value = true
+            speedControl.value = 1.8f
+            fallSpeedControl.value = 0.000100000002f
+            downSpeedControl.value = 1.0
+
+            speedPacket.value = 1.3f
+            fallSpeedPacket.value = 0.000100000002f
+
             defaultSetting.value = false
             sendChatMessage("$chatName Set to defaults!")
             closeSettings()
@@ -303,7 +319,7 @@ class ElytraFlight : Module() {
     }
 
     private enum class ElytraFlightMode {
-        BOOST, FLY, CONTROL, HIGHWAY, PACKET
+        BOOST, FLY, CONTROL, CREATIVE, PACKET
     }
 
     private enum class TakeoffMode {
