@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.util;
 
 import com.google.gson.JsonParser;
 import me.zeroeightsix.kami.KamiMod;
+import me.zeroeightsix.kami.command.commands.MacroCommand;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityAgeable;
@@ -22,12 +23,12 @@ import java.net.URL;
 
 public class EntityUtil {
 
-    public static boolean isPassive(Entity e) {
-        if (e instanceof EntityWolf && ((EntityWolf) e).isAngry()) return false;
-        if (e instanceof EntityAnimal || e instanceof EntityAgeable || e instanceof EntityTameable || e instanceof EntityAmbientCreature || e instanceof EntitySquid)
-            return true;
-        if (e instanceof EntityIronGolem && ((EntityIronGolem) e).getRevengeTarget() == null) return true;
-        return false;
+    public static boolean mobTypeSettings(Entity e,  Boolean mobs, Boolean passive, Boolean neutral, Boolean hostile) {
+        return mobs && ((passive && isPassiveMob(e)) || (neutral && isCurrentlyNeutral(e)) || (hostile && isMobAggressive(e)));
+    }
+
+    public static boolean isPassiveMob(Entity e) {// TODO: usages of this
+        return e instanceof EntityAnimal || e instanceof EntityAgeable || e instanceof EntityTameable || e instanceof EntityAmbientCreature || e instanceof EntitySquid;
     }
 
     public static boolean isLiving(Entity e) {
@@ -68,8 +69,17 @@ public class EntityUtil {
                     !Wrapper.getPlayer().equals(((EntityWolf) entity).getOwner());
         } else if (entity instanceof EntityEnderman) {
             return ((EntityEnderman) entity).isScreaming();
+        } else if (entity instanceof EntityIronGolem) {
+            return ((EntityIronGolem) entity).getRevengeTarget() == null;
         }
         return isHostileMob(entity);
+    }
+
+    /**
+     * If the mob is currently neutral but not aggressive
+     */
+    public static boolean isCurrentlyNeutral(Entity entity) {
+        return (isNeutralMob(entity) && !isMobAggressive(entity));
     }
 
     /**
@@ -78,18 +88,17 @@ public class EntityUtil {
     public static boolean isNeutralMob(Entity entity) {
         return entity instanceof EntityPigZombie ||
                 entity instanceof EntityWolf ||
-                entity instanceof EntityEnderman;
+                entity instanceof EntityEnderman ||
+                entity instanceof EntityIronGolem;
     }
 
     /**
-     * If the mob is friendly (not aggressive)
+     * If the mob is friendly
      */
     public static boolean isFriendlyMob(Entity entity) {
         return (entity.isCreatureType(EnumCreatureType.CREATURE, false) && !EntityUtil.isNeutralMob(entity)) ||
                 (entity.isCreatureType(EnumCreatureType.AMBIENT, false)) ||
-                entity instanceof EntityVillager ||
-                entity instanceof EntityIronGolem ||
-                (isNeutralMob(entity) && !EntityUtil.isMobAggressive(entity));
+                entity instanceof EntityVillager;
     }
 
     /**

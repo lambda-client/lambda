@@ -13,8 +13,6 @@ import org.lwjgl.opengl.GL11
 
 /**
  * Created by 086 on 11/12/2017.
- *
- *
  * Kurisu Makise is best girl
  */
 @Module.Info(
@@ -25,8 +23,10 @@ import org.lwjgl.opengl.GL11
 class Tracers : Module() {
     private val players = register(Settings.b("Players", true))
     private val friends = register(Settings.b("Friends", true))
-    private val animals = register(Settings.b("Animals", false))
     private val mobs = register(Settings.b("Mobs", false))
+    private val passive = register(Settings.booleanBuilder("Passive Mobs").withValue(false).withVisibility { mobs.value }.build())
+    private val neutral = register(Settings.booleanBuilder("Neutral Mobs").withValue(true).withVisibility { mobs.value }.build())
+    private val hostile = register(Settings.booleanBuilder("Hostile Mobs").withValue(true).withVisibility { mobs.value }.build())
     private val range = register(Settings.d("Range", 200.0))
     private val renderInvis = register(Settings.b("Invisible", false))
     private val customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).build())
@@ -46,7 +46,7 @@ class Tracers : Module() {
                     true
                 }
                 .filter { entity: Entity? -> !EntityUtil.isFakeLocalPlayer(entity) }
-                .filter { entity: Entity -> if (entity is EntityPlayer) players.value && mc.player !== entity else if (EntityUtil.isPassive(entity)) animals.value else mobs.value }
+                .filter { entity: Entity -> if (entity is EntityPlayer) players.value && mc.player !== entity else EntityUtil.mobTypeSettings(entity, mobs.value, passive.value, neutral.value, hostile.value) }
                 .filter { entity: Entity? -> mc.player.getDistance(entity) < range.value }
                 .forEach { entity: Entity ->
                     var colour = getColour(entity)
@@ -117,7 +117,7 @@ class Tracers : Module() {
         return if (entity is EntityPlayer) {
             if (Friends.isFriend(entity.getName())) ColourUtils.Colors.RAINBOW else ColourUtils.Colors.WHITE
         } else {
-            if (EntityUtil.isPassive(entity)) ColourUtils.Colors.GREEN else ColourUtils.Colors.RED
+            if (EntityUtil.isPassiveMob(entity)) ColourUtils.Colors.GREEN else if (EntityUtil.isCurrentlyNeutral(entity)) ColourUtils.Colors.BLUE else ColourUtils.Colors.RED
         }
     }
 

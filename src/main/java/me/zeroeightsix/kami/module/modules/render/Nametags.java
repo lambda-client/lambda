@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.render;
 
-import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
@@ -43,8 +42,10 @@ import static org.lwjgl.opengl.GL11.*;
 public class Nametags extends Module {
 
     private Setting<Boolean> players = register(Settings.b("Players", true));
-    private Setting<Boolean> animals = register(Settings.b("Animals", false));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
+    private Setting<Boolean> passive = register(Settings.booleanBuilder("Passive Mobs").withValue(false).withVisibility(v -> mobs.getValue()).build());
+    private Setting<Boolean> neutral = register(Settings.booleanBuilder("Neutral Mobs").withValue(true).withVisibility(v -> mobs.getValue()).build());
+    private Setting<Boolean> hostile = register(Settings.booleanBuilder("Hostile Mobs").withValue(true).withVisibility(v -> mobs.getValue()).build());
     private Setting<Double> range = register(Settings.d("Range", 200));
     private Setting<Float> scale = register(Settings.floatBuilder("Scale").withMinimum(.5f).withMaximum(10f).withValue(2.5f).build());
     private Setting<Boolean> health = register(Settings.b("Health", true));
@@ -60,7 +61,7 @@ public class Nametags extends Module {
         Minecraft.getMinecraft().world.loadedEntityList.stream()
                 .filter(EntityUtil::isLiving)
                 .filter(entity -> !EntityUtil.isFakeLocalPlayer(entity))
-                .filter(entity -> (entity instanceof EntityPlayer ? players.getValue() && mc.player != entity : (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue())))
+                .filter(entity -> (entity instanceof EntityPlayer ? players.getValue() && mc.player != entity : (EntityUtil.mobTypeSettings(entity, mobs.getValue(), passive.getValue(), neutral.getValue(), hostile.getValue()))))
                 .filter(entity -> mc.player.getDistance(entity) < range.getValue())
                 .sorted(Comparator.comparing(entity -> -mc.player.getDistance(entity)))
                 .forEach(this::drawNametag);

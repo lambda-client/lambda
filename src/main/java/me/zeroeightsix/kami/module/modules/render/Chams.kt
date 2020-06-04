@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.EntityUtil
+import me.zeroeightsix.kami.util.EntityUtil.mobTypeSettings
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
 
@@ -17,15 +17,18 @@ import net.minecraft.entity.player.EntityPlayer
 class Chams : Module() {
     companion object {
         private val players = Settings.b("Players", true)
-        private val animals = Settings.b("Animals", false)
-        private val mobs = Settings.b("Mobs", false)
+        private val passive = Settings.b("Passive Mobs", false)
+        private val neutral = Settings.b("Neutral Mobs", true)
+        private val hostile = Settings.b("Hostile Mobs", true)
+
         @JvmStatic
         fun renderChams(entity: Entity?): Boolean {
-            return if (entity is EntityPlayer) players.value else if (EntityUtil.isPassive(entity)) animals.value else mobs.value
+            return if (entity is EntityPlayer) players.value
+            else mobTypeSettings(entity, true, passive.value, neutral.value, hostile.value)
         }
     }
 
-    init {
-        registerAll(players, animals, mobs)
+    init { /* needed because the settings are static */
+        registerAll(players, passive, neutral, hostile)
     }
 }

@@ -35,7 +35,9 @@ class Aura : Module() {
     private val multi = register(Settings.b("Multi", true))
     private val attackPlayers = register(Settings.b("Players", true))
     private val attackMobs = register(Settings.b("Mobs", false))
-    private val attackAnimals = register(Settings.b("Animals", false))
+    private val passive = register(Settings.booleanBuilder("Passive Mobs").withValue(false).withVisibility { attackMobs.value }.build())
+    private val neutral = register(Settings.booleanBuilder("Neutral Mobs").withValue(false).withVisibility { attackMobs.value }.build())
+    private val hostile = register(Settings.booleanBuilder("Hostile Mobs").withValue(false).withVisibility { attackMobs.value }.build())
     private val hitRange = register(Settings.d("Hit Range", 5.5))
     private val ignoreWalls = register(Settings.b("Ignore Walls", true))
     private val sync = register(Settings.b("TPS Sync", false))
@@ -125,7 +127,7 @@ class Aura : Module() {
                 attack(target)
                 if (!multi.value) return
             } else {
-                if (if (EntityUtil.isPassive(target)) attackAnimals.value else EntityUtil.isMobAggressive(target) && attackMobs.value) {
+                if (EntityUtil.mobTypeSettings(target, attackMobs.value, passive.value, neutral.value, hostile.value)) {
                     if (autoTool.value) equipBestWeapon(prefer.value)
                     attack(target)
                     if (!multi.value) return

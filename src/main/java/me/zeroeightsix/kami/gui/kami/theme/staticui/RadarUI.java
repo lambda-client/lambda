@@ -5,10 +5,16 @@ import me.zeroeightsix.kami.gui.kami.component.Radar;
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.gui.rgui.render.font.FontRenderer;
 import me.zeroeightsix.kami.util.EntityUtil;
+import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.Wrapper;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.monster.EntityEnderman;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -46,20 +52,19 @@ public class RadarUI extends AbstractComponentUI<Radar> {
         GL11.glRotatef(Wrapper.getPlayer().rotationYaw + 180, 0, 0, -1);
 
         for (Entity e : Wrapper.getWorld().loadedEntityList) {
-            if (!(e instanceof EntityLiving))
-                continue;
+            if (e == null || e.isDead) continue;
             float red = 1f;
             float green = 1f;
             float blue = 1f;
 
-            if (EntityUtil.isPassive(e)) {
+            if (EntityUtil.isPassiveMob(e) || Friends.isFriend(e.getName())) { // green
                 red = 0;
                 blue = 0;
-            } else if (EntityUtil.isHostileMob(e)) {
+            } else if (EntityUtil.isCurrentlyNeutral(e)) { // blue
                 green = 0;
-                blue = 0;
-            } else {
                 red = 0;
+            } else { // red
+                blue = 0;
                 green = 0;
             }
 

@@ -3,15 +3,14 @@ package me.zeroeightsix.kami.module.modules.combat
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.EntityUtil
 import me.zeroeightsix.kami.util.Friends
 import me.zeroeightsix.kami.util.MathsUtils
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.passive.EntityAnimal
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.ItemBow
-import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.MathHelper
 import kotlin.math.atan2
 
@@ -29,10 +28,11 @@ class AimBot : Module() {
     private val ignoreWalls = register(Settings.booleanBuilder("Ignore Walls").withValue(true).build())
     private val targetPlayers = register(Settings.booleanBuilder("Target Players").withValue(true).build())
     private val targetFriends = register(Settings.booleanBuilder("Friends").withValue(false).withVisibility { targetPlayers.value == true }.build())
-    private val targetSleeping = register(Settings.booleanBuilder("Sleeping").withValue(false).withVisibility { targetPlayers.value == true }.build())
-    private val targetMobs = register(Settings.booleanBuilder("Target Mobs").withValue(false).build())
-    private val targetHostileMobs = register(Settings.booleanBuilder("Hostile").withValue(true).withVisibility { targetMobs.value == true }.build())
-    private val targetPassiveMobs = register(Settings.booleanBuilder("Passive").withValue(false).withVisibility { targetMobs.value == true }.build())
+    private val targetSleeping = register(Settings.booleanBuilder("Sleeping Players").withValue(false).withVisibility { targetPlayers.value == true }.build())
+    private val mobs = register(Settings.b("Mobs", false))
+    private val passive = register(Settings.booleanBuilder("Passive Mobs").withValue(false).withVisibility { mobs.value }.build())
+    private val neutral = register(Settings.booleanBuilder("Neutral Mobs").withValue(false).withVisibility { mobs.value }.build())
+    private val hostile = register(Settings.booleanBuilder("Hostile Mobs").withValue(false).withVisibility { mobs.value }.build())
 
     override fun onUpdate() {
         if (KamiMod.MODULE_MANAGER.getModuleT(Aura::class.java).isEnabled) {
@@ -59,14 +59,7 @@ class AimBot : Module() {
                         return
                     }
                 }
-                if (targetMobs.value) {
-                    if (targetHostileMobs.value && entity.soundCategory == SoundCategory.HOSTILE) {
-                        faceEntity(entity)
-                    }
-                    if (targetPassiveMobs.value && entity is EntityAnimal) {
-                        faceEntity(entity)
-                    }
-                }
+                if (EntityUtil.mobTypeSettings(entity, mobs.value, passive.value, neutral.value, hostile.value)) faceEntity(entity)
                 if (targetPlayers.value) {
                     if (entity.isPlayerSleeping && entity is EntityPlayer && targetSleeping.value) {
                         faceEntity(entity)

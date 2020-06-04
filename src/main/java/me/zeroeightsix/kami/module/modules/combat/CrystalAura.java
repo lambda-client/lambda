@@ -77,7 +77,9 @@ public class CrystalAura extends Module {
     private Setting<Boolean> noToolExplode = register(Settings.booleanBuilder("No Tool Explode").withValue(true).withVisibility(v -> !antiWeakness.getValue() && p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> players = register(Settings.booleanBuilder("Players").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> mobs = register(Settings.booleanBuilder("Mobs").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
-    private Setting<Boolean> animals = register(Settings.booleanBuilder("Animals").withValue(false).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> passive = register(Settings.booleanBuilder("Passive Mobs").withValue(false).withVisibility(v -> mobs.getValue() && p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> neutral = register(Settings.booleanBuilder("Neutral Mobs").withValue(false).withVisibility(v -> mobs.getValue() && p.getValue().equals(Page.TWO)).build());
+    private Setting<Boolean> hostile = register(Settings.booleanBuilder("Hostile Mobs").withValue(true).withVisibility(v -> mobs.getValue() && p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> tracer = register(Settings.booleanBuilder("Tracer").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Boolean> customColours = register(Settings.booleanBuilder("Custom Colours").withValue(true).withVisibility(v -> p.getValue().equals(Page.TWO)).build());
     private Setting<Integer> aBlock = register(Settings.integerBuilder("Block Transparency").withMinimum(0).withValue(44).withMaximum(255).withVisibility(v -> p.getValue().equals(Page.TWO) && customColours.getValue()).build());
@@ -237,7 +239,7 @@ public class CrystalAura extends Module {
         if (players.getValue()) {
             entities.addAll(mc.world.playerEntities.stream().filter(entityPlayer -> !Friends.isFriend(entityPlayer.getName())).collect(Collectors.toList()));
         }
-        entities.addAll(mc.world.loadedEntityList.stream().filter(entity -> EntityUtil.isLiving(entity) && (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue())).collect(Collectors.toList()));
+        entities.addAll(mc.world.loadedEntityList.stream().filter(entity -> EntityUtil.isLiving(entity) && (EntityUtil.mobTypeSettings(entity, mobs.getValue(), passive.getValue(), neutral.getValue(), hostile.getValue()))).collect(Collectors.toList()));
 
         BlockPos q = null;
         double damage = .5;
@@ -599,7 +601,6 @@ public class CrystalAura extends Module {
         noToolExplode.setValue(true);
         players.setValue(true);
         mobs.setValue(false);
-        animals.setValue(false);
         tracer.setValue(true);
         customColours.setValue(true);
         aBlock.setValue(44);

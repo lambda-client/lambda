@@ -28,7 +28,9 @@ public class EyeFinder extends Module {
 
     private Setting<Boolean> players = register(Settings.b("Players", true));
     private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
-    private Setting<Boolean> animals = register(Settings.b("Animals", false));
+    private Setting<Boolean> passive = register(Settings.booleanBuilder("Passive Mobs").withValue(false).withVisibility(v -> mobs.getValue()).build());
+    private Setting<Boolean> neutral = register(Settings.booleanBuilder("Neutral Mobs").withValue(false).withVisibility(v -> mobs.getValue()).build());
+    private Setting<Boolean> hostile = register(Settings.booleanBuilder("Hostile Mobs").withValue(true).withVisibility(v -> mobs.getValue()).build());
 
     @Override
     public void onWorldRender(RenderEvent event) {
@@ -37,7 +39,7 @@ public class EyeFinder extends Module {
                 .filter(entity -> mc.player != entity)
                 .map(entity -> (EntityLivingBase) entity)
                 .filter(entityLivingBase -> !entityLivingBase.isDead)
-                .filter(entity -> (players.getValue() && entity instanceof EntityPlayer) || (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue()))
+                .filter(entity -> (players.getValue() && entity instanceof EntityPlayer) || (EntityUtil.mobTypeSettings(entity, mobs.getValue(), passive.getValue(), neutral.getValue(), hostile.getValue())))
                 .forEach(this::drawLine);
     }
 

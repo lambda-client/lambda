@@ -31,8 +31,10 @@ public class ESP extends Module {
     private Setting<ESPMode> mode = register(Settings.e("Mode", ESPMode.RECTANGLE));
     private Setting<Integer> radiusValue = register(Settings.integerBuilder("Width").withMinimum(1).withMaximum(100).withValue(25).withVisibility(v -> mode.getValue().equals(ESPMode.GLOW)).build());
     private Setting<Boolean> players = register(Settings.b("Players", true));
-    private Setting<Boolean> animals = register(Settings.b("Animals", false));
-    private Setting<Boolean> mobs = register(Settings.b("Mobs", false));
+    private Setting<Boolean> mobs = register(Settings.b("Mobs", true));
+    private Setting<Boolean> passive = register(Settings.booleanBuilder("Passive Mobs").withValue(false).withVisibility(v -> mobs.getValue()).build());
+    private Setting<Boolean> neutral = register(Settings.booleanBuilder("Neutral Mobs").withValue(true).withVisibility(v -> mobs.getValue()).build());
+    private Setting<Boolean> hostile = register(Settings.booleanBuilder("Hostile Mobs").withValue(true).withVisibility(v -> mobs.getValue()).build());
     private Setting<Boolean> renderInvis = register(Settings.b("Invisible", false));
 
     public enum ESPMode {
@@ -62,7 +64,7 @@ public class ESP extends Module {
                         .filter(entity -> mc.player != entity)
                         .map(entity -> (EntityLivingBase) entity)
                         .filter(entityLivingBase -> !entityLivingBase.isDead)
-                        .filter(entity -> (players.getValue() && entity instanceof EntityPlayer) || (EntityUtil.isPassive(entity) ? animals.getValue() : mobs.getValue()))
+                        .filter(entity -> (players.getValue() && entity instanceof EntityPlayer) || (EntityUtil.mobTypeSettings(entity, mobs.getValue(), passive.getValue(), neutral.getValue(), hostile.getValue())))
                         .forEach(e -> {
                             GlStateManager.pushMatrix();
                             Vec3d pos = EntityUtil.getInterpolatedPos(e, event.getPartialTicks());
@@ -79,7 +81,7 @@ public class ESP extends Module {
                             GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
 
                             if (e instanceof EntityPlayer) glColor3f(1, 1, 1);
-                            else if (EntityUtil.isPassive(e)) glColor3f(0.11f, 0.9f, 0.11f);
+                            else if (EntityUtil.isPassiveMob(e)) glColor3f(0.11f, 0.9f, 0.11f);
                             else glColor3f(0.9f, .1f, .1f);
 
                             GlStateManager.disableTexture2D();
@@ -125,21 +127,12 @@ public class ESP extends Module {
             });
             for (Entity e : mc.world.loadedEntityList) {
                 if (e == null || e.isDead) return;
-                if (e instanceof EntityPlayer && players.getValue() && !e.isGlowing()) {
+                if (e instanceof EntityPlayer && players.getValue()) {
                     e.setGlowing(true);
-                } else if (e instanceof EntityPlayer && !players.getValue() && e.isGlowing()) {
+                } else if (e instanceof EntityPlayer && !players.getValue()) {
                     e.setGlowing(false);
                 }
-                if (EntityUtil.isHostileMob(e) && mobs.getValue() && !e.isGlowing()) {
-                    e.setGlowing(true);
-                } else if (EntityUtil.isHostileMob(e) && !mobs.getValue() && e.isGlowing()) {
-                    e.setGlowing(false);
-                }
-                if (EntityUtil.isPassive(e) && animals.getValue() && !e.isGlowing()) {
-                    e.setGlowing(true);
-                } else if (EntityUtil.isPassive(e) && !animals.getValue() && e.isGlowing()) {
-                    e.setGlowing(false);
-                }
+                e.setGlowing(EntityUtil.mobTypeSettings(e, mobs.getValue(), passive.getValue(), neutral.getValue(), hostile.getValue()));
             }
         } else if (removeGlow && !mode.getValue().equals(ESPMode.GLOW)) {
             for (Entity e : mc.world.loadedEntityList) {
