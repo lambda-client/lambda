@@ -5,6 +5,7 @@ import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.combat.Aura.HitMode
+import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
@@ -15,6 +16,7 @@ import net.minecraft.item.ItemSword
 import net.minecraft.item.ItemTool
 import net.minecraftforge.event.entity.player.AttackEntityEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
+import org.lwjgl.input.Mouse
 import kotlin.math.pow
 
 /**
@@ -27,13 +29,39 @@ import kotlin.math.pow
         category = Module.Category.MISC
 )
 class AutoTool : Module() {
-    private val preferTool = register(Settings.e<HitMode>("Prefer", HitMode.NONE))
+    private val switchBack = register(Settings.b("Switch Back", true))
+    private val timeout = register(Settings.integerBuilder("Timeout").withRange(1, 100).withValue(20).withVisibility { switchBack.value }.build())
+    private val preferTool = register(Settings.e<HitMode>("Prefer", HitMode.SWORD))
+
+    private var shouldMoveBack = false
+    private var lastSlot = 0
+    private var lastChange = 0L
+
+    init {
+        switchBack.settingListener = Setting.SettingListeners { if (!switchBack.value) shouldMoveBack = false }
+    }
 
     @EventHandler
-    private val leftClickListener = Listener(EventHook { event: LeftClickBlock -> equipBestTool(mc.world.getBlockState(event.pos)) })
+    private val leftClickListener = Listener(EventHook { event: LeftClickBlock -> if (shouldMoveBack || !switchBack.value) equipBestTool(mc.world.getBlockState(event.pos)) })
 
     @EventHandler
     private val attackListener = Listener(EventHook { event: AttackEntityEvent? -> equipBestWeapon(preferTool.value) })
+
+    override fun onUpdate() {
+        if (mc.currentScreen != null || !switchBack.value) return
+
+        val mouse = Mouse.isButtonDown(0)
+        if (mouse && !shouldMoveBack) {
+            lastChange = System.currentTimeMillis()
+            shouldMoveBack = true
+            lastSlot = mc.player.inventory.currentItem
+            mc.playerController.syncCurrentPlayItem()
+        } else if (!mouse && shouldMoveBack && (lastChange + timeout.value * 10 < System.currentTimeMillis())) {
+            shouldMoveBack = false
+            mc.player.inventory.currentItem = lastSlot
+            mc.playerController.syncCurrentPlayItem()
+        }
+    }
 
     private fun equipBestTool(blockState: IBlockState) {
         var bestSlot = -1
