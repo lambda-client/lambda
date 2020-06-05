@@ -5,6 +5,7 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.module.modules.render.PlayerModel;
 import me.zeroeightsix.kami.module.modules.render.Tracers;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -271,6 +272,8 @@ public class CrystalAura extends Module {
                     damage = d;
                     q = blockPos;
                     renderEnt = entity;
+                    PlayerModel.lastAttacked = System.currentTimeMillis();
+                    mc.player.setLastAttackedEntity(entity);
                 }
             }
         }
@@ -293,6 +296,8 @@ public class CrystalAura extends Module {
                         q = blockPos;
                         damage = d;
                         renderEnt = entity;
+                        PlayerModel.lastAttacked = System.currentTimeMillis();
+                        mc.player.setLastAttackedEntity(entity);
                     }
                 }
             }
