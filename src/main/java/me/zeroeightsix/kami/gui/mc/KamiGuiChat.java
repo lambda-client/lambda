@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.command.syntax.SyntaxChunk;
 import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors.GuiC;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.util.text.ITextComponent;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
@@ -20,6 +21,7 @@ public class KamiGuiChat extends GuiChat {
 
     private String startString;
     private String currentFillinLine;
+    private String chatLine = "";
     private int cursor;
 
     public KamiGuiChat(String startString, String historybuffer, int sentHistoryCursor) {
@@ -36,7 +38,7 @@ public class KamiGuiChat extends GuiChat {
         super.keyTyped(typedChar, keyCode);
         cursor = this.sentHistoryCursor;
 
-        String chatLine = this.inputField.getText();
+        chatLine = this.inputField.getText();
 
         if (Command.getCommandPrefix() != null && !chatLine.startsWith(Command.getCommandPrefix())) {
             GuiChat newGUI = new GuiChat(chatLine) {
@@ -99,6 +101,11 @@ public class KamiGuiChat extends GuiChat {
         if (alphaCommand.getSyntaxChunks() == null || alphaCommand.getSyntaxChunks().length == 0)
             return;
 
+        if (Keyboard.isKeyDown(Keyboard.KEY_TAB)) {
+            this.inputField.setText(chatLine + currentFillinLine);
+            currentFillinLine = "";
+        }
+
         if (!line.endsWith(" "))
             currentFillinLine += " ";
 
@@ -116,6 +123,11 @@ public class KamiGuiChat extends GuiChat {
         }
 
         if (cutSpace) currentFillinLine = currentFillinLine.substring(1);
+
+        if (Keyboard.isKeyDown(Keyboard.KEY_TAB) && !currentFillinLine.contains("<")) {
+            this.inputField.setText(chatLine + currentFillinLine);
+            currentFillinLine = "";
+        }
     }
 
     @Override
