@@ -82,10 +82,11 @@ public class KamiGUI extends GUI {
             CheckButton checkButton = new CheckButton(module.getName(), module.getDescription());
             checkButton.setToggled(module.isEnabled());
 
+            /* descriptions aren't changed ever, so you don't need a tick listener */
+            checkButton.setDescription(module.getDescription());
             checkButton.addTickListener(() -> { // dear god
                 checkButton.setToggled(module.isEnabled());
                 checkButton.setName(module.getName());
-                checkButton.setDescription(module.getDescription());
             });
 
             checkButton.addMouseListener(new MouseListener() {
