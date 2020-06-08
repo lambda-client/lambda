@@ -32,7 +32,9 @@ class Baritone : Module() {
     private var avoidPortals = register(Settings.b("Avoid Portals", false))
     private var mapArtMode = register(Settings.b("Map Art Mode", false))
     private var renderGoal = register(Settings.b("Render Goals", true))
-    private var hasRun = register(Settings.booleanBuilder("hasRun").withValue(false).withVisibility { false }.build())
+    private var failureTimeout = register(Settings.integerBuilder("Fail Timeout").withRange(1, 20).withValue(2).build())
+    private var blockReachDistance = register(Settings.floatBuilder("Reach Distance").withRange(1.0f, 10.0f).withValue(4.5f).build())
+    private var hasRun = register(Settings.booleanBuilder("hasRun1").withValue(false).withVisibility { false }.build())
 
     init {
         allowBreak.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().allowBreak.value = allowBreak.value } }
@@ -46,6 +48,8 @@ class Baritone : Module() {
         avoidPortals.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().enterPortal.value = !avoidPortals.value } }
         mapArtMode.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().mapArtMode.value = mapArtMode.value } }
         renderGoal.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().renderGoal.value = renderGoal.value } }
+        failureTimeout.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().failureTimeoutMS.value = failureTimeout.value * 1000L } }
+        blockReachDistance.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().blockReachDistance.value = blockReachDistance.value } }
     }
 
     @EventHandler // this is done because on first init the settings won't change if null
@@ -62,6 +66,8 @@ class Baritone : Module() {
             BaritoneAPI.getSettings().enterPortal.value = !avoidPortals.value
             BaritoneAPI.getSettings().mapArtMode.value = mapArtMode.value
             BaritoneAPI.getSettings().renderGoal.value = renderGoal.value
+            BaritoneAPI.getSettings().failureTimeoutMS.value = failureTimeout.value * 1000L
+            BaritoneAPI.getSettings().blockReachDistance.value = blockReachDistance.value
             hasRun.value = true
         }
     })
