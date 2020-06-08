@@ -101,7 +101,7 @@ public class KamiGuiChat extends GuiChat {
         if (alphaCommand.getSyntaxChunks() == null || alphaCommand.getSyntaxChunks().length == 0)
             return;
 
-        if (Keyboard.isKeyDown(Keyboard.KEY_TAB)) {
+        if (Keyboard.isKeyDown(Keyboard.KEY_TAB) && !currentFillinLine.contains("<") && !currentFillinLine.contains("[")) {
             this.inputField.setText(chatLine + currentFillinLine);
             currentFillinLine = "";
         }
@@ -124,7 +124,7 @@ public class KamiGuiChat extends GuiChat {
 
         if (cutSpace) currentFillinLine = currentFillinLine.substring(1);
 
-        if (Keyboard.isKeyDown(Keyboard.KEY_TAB) && !currentFillinLine.contains("<")) {
+        if (Keyboard.isKeyDown(Keyboard.KEY_TAB) && !currentFillinLine.contains("<") && !currentFillinLine.contains("[")) {
             this.inputField.setText(chatLine + currentFillinLine);
             currentFillinLine = "";
         }
