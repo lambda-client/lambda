@@ -70,7 +70,7 @@ public class BindCommand extends Command {
                 key = -1;
             }
             if (key == 0) {
-                sendErrorMessage("Unknown key '&7$rKey&f'! Left alt is &7lmenu&f, left Control is &7lcontrol&f and ` is &7grave&f. You cannot bind the &7meta&f key.");
+                sendErrorMessage("Unknown key '&7" + rkey + "&f'! Left alt is &7lmenu&f, left Control is &7lcontrol&f and ` is &7grave&f. You cannot bind the &7meta&f key.");
                 return;
             }
             m.getBind().setKey(key);
