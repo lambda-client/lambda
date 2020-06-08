@@ -9,11 +9,15 @@ import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.builder.SettingBuilder;
+import me.zeroeightsix.kami.util.Bind;
 import me.zeroeightsix.kami.util.Wrapper;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
-import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.*;
 
 /**
  * Created by 086 on 12/11/2017.
@@ -24,8 +28,8 @@ public class BindCommand extends Command {
 
     public BindCommand() {
         super("bind", new ChunkBuilder()
-                .append("[module]|modifiers", true, new ModuleParser())
-                .append("state", true, new EnumParser(new String[]{"key", "on", "off"}))
+                .append("[module]|modifiers|list", true, new ModuleParser())
+                .append("state", false, new EnumParser(new String[]{"key", "on", "off"}))
                 .build()
         );
         setDescription("Binds a module to a key, or allows you to change modifier options");
@@ -41,7 +45,16 @@ public class BindCommand extends Command {
         String module = args[0];
         String rkey = args[1];
 
-        if (module.equalsIgnoreCase("modifiers")) {
+        if (module.equalsIgnoreCase("list")) {
+            Collection<Module> modules = MODULE_MANAGER.getModules().stream().filter(module1 -> !module1.getBindName().equals("None")).collect(Collectors.toList());
+            if (modules.isEmpty()) return;
+
+            sendChatMessage("You have the following binds: ");
+            for (Module module1 : modules) {
+                sendRawChatMessage(module1.getBindName() + ": " + module1.getName());
+            }
+            return;
+        } else if (module.equalsIgnoreCase("modifiers")) {
             if (rkey == null) {
                 sendChatMessage("Expected: on or off");
                 return;
