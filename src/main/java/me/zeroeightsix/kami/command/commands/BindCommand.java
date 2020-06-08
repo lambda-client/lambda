@@ -13,6 +13,7 @@ import me.zeroeightsix.kami.util.Wrapper;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
+import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 
 /**
  * Created by 086 on 12/11/2017.
@@ -69,7 +70,7 @@ public class BindCommand extends Command {
                 key = -1;
             }
             if (key == 0) {
-                sendChatMessage("Unknown key '" + rkey + "'!");
+                sendErrorMessage("Unknown key '&7$rKey&f'! Left alt is &7lmenu&f, left Control is &7lcontrol&f and ` is &7grave&f. You cannot bind the &7meta&f key.");
                 return;
             }
             m.getBind().setKey(key);

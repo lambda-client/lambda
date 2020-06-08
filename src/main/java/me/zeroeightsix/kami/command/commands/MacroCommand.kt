@@ -20,7 +20,7 @@ class MacroCommand : Command("macro", ChunkBuilder().append("command", true, Enu
         val key = Wrapper.getKey(rKey)
 
         if (key == 0 && !rKey.equals("list", true)) {
-            sendErrorMessage("Unknown key '&7$rKey&f'! Left alt is &7lmenu&f and left Control is &7lctrl&f. You cannot bind the &7meta&f key.")
+            sendErrorMessage("Unknown key '&7$rKey&f'! Left alt is &7lmenu&f, left Control is &7lcontrol&f and ` is &7grave&f. You cannot bind the &7meta&f key.")
             return
         }
 
