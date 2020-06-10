@@ -82,7 +82,7 @@ public class KamiMod {
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/capes.json";
     public static final String GITHUB_LINK = "https://github.com/kami-blue/";
-    public static final String WEBSITE_LINK = "https://blue.bella.wtf";
+    public static final String WEBSITE_LINK = "https://kamiblue.org";
 
     public static final String KAMI_KANJI = "\u30ab\u30df\u30d6\u30eb";
     public static final char colour = '\u00A7';

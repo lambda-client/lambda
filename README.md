@@ -11,7 +11,7 @@ Please consider donating to help continue this project and get a unique cape in 
 
 ## Help and documentation
 
-Please go to [https://blue.bella.wtf](https://blue.bella.wtf) for documentation and help.
+Please go to [https://kamiblue.org](https://kamiblue.org) for documentation and help.
 
 ## Thank you
 
