@@ -20,6 +20,7 @@ import java.util.*
 /**
  * Created by 086 on 10/12/2017.
  * Updated by dominikaaaa on 14/12/19
+ * Updated by Afel on 08/06/20
  */
 @Module.Info(
         name = "StorageESP",
@@ -36,6 +37,8 @@ class StorageESP : Module() {
     private val hopper = register(Settings.b("Hopper", true))
     private val cart = register(Settings.b("Minecart", true))
     private val frame = register(Settings.b("Item Frame", true))
+    private val tracer = register(Settings.b("Tracers", true))
+
     private fun getTileEntityColor(tileEntity: TileEntity): Int {
         return if (tileEntity is TileEntityChest || tileEntity is TileEntityDispenser) ColourUtils.Colors.ORANGE else if (tileEntity is TileEntityShulkerBox) ColourUtils.Colors.RED else if (tileEntity is TileEntityEnderChest) ColourUtils.Colors.PURPLE else if (tileEntity is TileEntityFurnace) ColourUtils.Colors.GRAY else if (tileEntity is TileEntityHopper) ColourUtils.Colors.DARK_RED else -1
     }
@@ -49,6 +52,7 @@ class StorageESP : Module() {
     override fun onWorldRender(event: RenderEvent) {
         val a = ArrayList<Triplet<BlockPos, Int, Int>>()
         GlStateManager.pushMatrix()
+
         for (tileEntity in Wrapper.getWorld().loadedTileEntityList) {
             val pos = tileEntity.pos
             val color = getTileEntityColor(tileEntity)
@@ -62,16 +66,29 @@ class StorageESP : Module() {
             }
             if (tileEntity is TileEntityChest && chest.value || tileEntity is TileEntityDispenser && dispenser.value || tileEntity is TileEntityShulkerBox && shulker.value || tileEntity is TileEntityEnderChest && enderChest.value || tileEntity is TileEntityFurnace && furnace.value || tileEntity is TileEntityHopper && hopper.value) if (color != -1) a.add(Triplet(pos, color, side)) //GeometryTessellator.drawCuboid(event.getBuffer(), pos, GeometryMasks.Line.ALL, color);
         }
+
         for (entity in Wrapper.getWorld().loadedEntityList) {
             val pos = entity.position
             val color = getEntityColor(entity)
             if (entity is EntityItemFrame && frame.value || entity is EntityMinecartChest && cart.value) if (color != -1) a.add(Triplet(if (entity is EntityItemFrame) pos.add(0, -1, 0) else pos, color, GeometryMasks.Quad.ALL)) //GeometryTessellator.drawCuboid(event.getBuffer(), entity instanceof EntityItemFrame ? pos.add(0, -1, 0) : pos, GeometryMasks.Line.ALL, color);
         }
-        KamiTessellator.prepare(GL11.GL_QUADS)
-        for (pair in a) KamiTessellator.drawBox(pair.first, changeAlpha(pair.second, alpha.value), pair.third)
+
+        KamiTessellator.prepare(GL11.GL_QUADS) //pair.first = pos, pair.second = color
+
+        for (pair in a) {
+            KamiTessellator.drawBox(pair.first, changeAlpha(pair.second, alpha.value), pair.third)
+        }
+
         KamiTessellator.release()
         GlStateManager.popMatrix()
         GlStateManager.enableTexture2D()
+
+        if (tracer.value) {
+            for (pair in a) {
+                KamiTessellator.drawLineToBlock(pair.first, pair.second, (alpha.value.toFloat()) / 255)
+            }
+        }
+
     }
 
     private fun changeAlpha(origColor: Int, userInputedAlpha: Int): Int {

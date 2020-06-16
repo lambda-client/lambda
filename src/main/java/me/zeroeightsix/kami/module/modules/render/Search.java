@@ -36,6 +36,7 @@ import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 /**
  * @author wnuke
  * Updated by dominikaaaa on 20/04/20
+ * Updated by Afel on 08/06/20
  */
 @Module.Info(
         name = "Search",
@@ -50,6 +51,7 @@ public class Search extends Module {
     private final Setting<Integer> update = register(Settings.integerBuilder("Update Interval").withMinimum(100).withMaximum(10000).withValue(1500).build());
     public Setting<Boolean> overrideWarning = register(Settings.booleanBuilder("overrideWarning").withValue(false).withVisibility(v -> false).build());
     private final Setting<String> espBlockNames = register(Settings.stringBuilder("HiddenBlocks").withValue(DEFAULT_BLOCK_ESP_CONFIG).withConsumer((old, value) -> refreshESPBlocksSet(value)).build());
+    private final Setting<Boolean> tracers = register(Settings.booleanBuilder("Tracers").withValue(true));
 
     public String extGet() {
         return extGetInternal(null);
@@ -257,6 +259,12 @@ public class Search extends Module {
             KamiTessellator.release();
             GlStateManager.popMatrix();
             GlStateManager.enableTexture2D();
+
+            if (tracers.getValue()) {
+                for (Map.Entry<BlockPos, Tuple<Integer, Integer>> entry : blocksToShow.entrySet()) {
+                    KamiTessellator.drawLineToBlock(entry.getKey(), entry.getValue().getFirst(), ((float) alpha.getValue()) / 255);
+                }
+            }
         }
     }
 
