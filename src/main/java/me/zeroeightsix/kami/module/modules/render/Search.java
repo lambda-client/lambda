@@ -51,7 +51,7 @@ public class Search extends Module {
     private final Setting<Integer> update = register(Settings.integerBuilder("Update Interval").withMinimum(100).withMaximum(10000).withValue(1500).build());
     public Setting<Boolean> overrideWarning = register(Settings.booleanBuilder("overrideWarning").withValue(false).withVisibility(v -> false).build());
     private final Setting<String> espBlockNames = register(Settings.stringBuilder("HiddenBlocks").withValue(DEFAULT_BLOCK_ESP_CONFIG).withConsumer((old, value) -> refreshESPBlocksSet(value)).build());
-    private final Setting<Boolean> tracers = register(Settings.booleanBuilder("Tracers").withValue(true));
+    private final Setting<Boolean> tracers = register(Settings.booleanBuilder("Tracers").withValue(true).build());
 
     public String extGet() {
         return extGetInternal(null);
