@@ -14,7 +14,8 @@ import net.minecraft.init.Items
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketPlayerPosLook
-import net.minecraft.util.math.MathHelper
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
@@ -22,7 +23,7 @@ import kotlin.math.sqrt
  * Updated by Itistheend on 28/12/19.
  * Updated by dominikaaaa on 26/05/20
  * Updated by pNoName on 28/05/20
- * Updated by Xiaro on 20/06/20
+ * Updated by Xiaro on 22/06/20
  *
  * Some of Control mode was written by an anonymous donator who didn't wish to be named.
  */
@@ -51,6 +52,7 @@ class ElytraFlight : Module() {
     private val upPitch = register(Settings.integerBuilder("Up Pitch").withRange(-90, 90).withValue(-10).withVisibility { spoofPitch.value && mode.value == ElytraFlightMode.CONTROL }.build())
     private val forwardPitch = register(Settings.integerBuilder("Forward Pitch").withRange(-90, 90).withValue(0).withVisibility { spoofPitch.value && mode.value == ElytraFlightMode.CONTROL }.build())
     private val lookBoost = register(Settings.booleanBuilder("Look Boost").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
+    private val spaceBarTrigger = register(Settings.booleanBuilder("Space Bar Trigger").withValue(false).withVisibility { lookBoost.value && mode.value == ElytraFlightMode.CONTROL }.build())
     private val autoBoost = register(Settings.booleanBuilder("Auto Boost").withValue(true).withVisibility { lookBoost.value && mode.value == ElytraFlightMode.CONTROL }.build())
     private val hoverControl = register(Settings.booleanBuilder("Hover").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
@@ -69,6 +71,7 @@ class ElytraFlight : Module() {
     private var hoverState = false
     private var isBoosting = false
     private var elytraIsEquipped = false
+    private var isStandingStill = false
 
     /* Control Mode */
     @EventHandler
@@ -80,7 +83,10 @@ class ElytraFlight : Module() {
             val packet = event.packet as CPacketPlayer
             val moveUp = if (!lookBoost.value) mc.player.movementInput.jump else false
 
-            if (spoofPitch.value) {
+            if (isStandingStill && !mc.gameSettings.keyBindUseItem.isKeyDown && !mc.gameSettings.keyBindAttack.isKeyDown) { /* Cancels rotation packets when standing still and not clicking */
+                event.cancel()
+            }
+            if (spoofPitch.value && !isStandingStill) {
                 if (moveUp) {
                     packet.pitch = upPitch.value.toFloat()
                 } else {
@@ -145,29 +151,29 @@ class ElytraFlight : Module() {
         if (moveBackward) yawDeg -= 180.0f
 
         packetYaw = yawDeg
-        val yaw = Math.toRadians(yawDeg.toDouble()).toFloat()
+        val yaw = Math.toRadians(yawDeg.toDouble())
         val motionAmount = sqrt(mc.player.motionX * mc.player.motionX + mc.player.motionZ * mc.player.motionZ)
         hoverState = if (hoverState) mc.player.posY < hoverTarget + 0.1 else mc.player.posY < hoverTarget + 0.0
         val doHover: Boolean = hoverState && hoverControl.value
 
-        if (moveUp || moveForward || moveBackward || moveLeft || moveRight) {
+        if ((moveUp || moveForward || moveBackward || moveLeft || moveRight) && !isStandingStill) { /* Wait for the server side pitch to be updated before moving */
             if ((moveUp || doHover) && motionAmount > 1.0) {
                 if (mc.player.motionX == 0.0 && mc.player.motionZ == 0.0) {
                     mc.player.motionY = downSpeedControl.value
                 } else {
                     val calcMotionDiff = motionAmount * 0.008
                     mc.player.motionY += calcMotionDiff * 3.2
-                    mc.player.motionX -= (-MathHelper.sin(yaw)).toDouble() * calcMotionDiff / 1.0
-                    mc.player.motionZ -= MathHelper.cos(yaw).toDouble() * calcMotionDiff / 1.0
+                    mc.player.motionX -= (-sin(yaw)) * calcMotionDiff / 1.0
+                    mc.player.motionZ -= cos(yaw) * calcMotionDiff / 1.0
 
                     mc.player.motionX *= 0.99
                     mc.player.motionY *= 0.98
                     mc.player.motionZ *= 0.99
                 }
             } else { /* runs when pressing wasd */
-                mc.player.motionX = (-MathHelper.sin(yaw)).toDouble() * speedControl.value
+                mc.player.motionX = (-sin(yaw)) * speedControl.value
                 mc.player.motionY = (-fallSpeedControl.value).toDouble()
-                mc.player.motionZ = MathHelper.cos(yaw).toDouble() * speedControl.value
+                mc.player.motionZ = cos(yaw) * speedControl.value
             }
         } else { /* Stop moving if no inputs are pressed */
             mc.player.motionX = 0.0
@@ -184,6 +190,19 @@ class ElytraFlight : Module() {
         }
         event.cancel()
     })
+
+    private fun lookBoost() {
+        if (mc.player.movementInput.moveForward > 0 && mc.player.movementInput.jump && spaceBarTrigger.value && mc.player.rotationPitch > -10)
+            mc.player.rotationPitch = -25f
+
+        val readyToBoost = mc.player.movementInput.moveForward > 0 && ((mc.player.movementInput.jump && spaceBarTrigger.value) || !spaceBarTrigger.value) && mc.player.rotationPitch <= -10
+        val shouldAutoBoost = !autoBoost.value || ((mc.player.motionY >= (-fallSpeedControl.value) && sqrt(mc.player.motionX * mc.player.motionX + mc.player.motionZ * mc.player.motionZ) >= 0.8) || (mc.player.motionY >= 1))
+
+        if ((readyToBoost && shouldAutoBoost) != isBoosting)
+            mc.player.rotationPitch -= 0.0001f /* Tried with sending rotation packet, doesn't work on 2b2t.org */
+
+        isBoosting = readyToBoost && shouldAutoBoost
+    }
     /* End of Control Mode */
 
     override fun onUpdate() {
@@ -192,13 +211,16 @@ class ElytraFlight : Module() {
         if (!elytraIsEquipped || mc.player == null || mc.player.isSpectator) return
 
         if (mode.value == ElytraFlightMode.CONTROL) {
-            val shouldAutoBoost = if (autoBoost.value) {
-                !(mc.player.motionX.toInt() == 0 && mc.player.motionZ.toInt() == 0)
+            if (lookBoost.value) {
+                lookBoost()
             } else {
-                true
+                isBoosting = false
             }
-
-            isBoosting = (mc.player.rotationPitch < -10 && shouldAutoBoost) && lookBoost.value
+            if (spoofPitch.value) {
+                val wasStandingStill = isStandingStill
+                isStandingStill = (mc.player.movementInput.moveForward == 0f && mc.player.movementInput.moveStrafe == 0f && !mc.player.movementInput.jump && !mc.player.movementInput.sneak)
+                if ((wasStandingStill != isStandingStill) || isStandingStill && (mc.gameSettings.keyBindUseItem.isKeyDown || mc.gameSettings.keyBindAttack.isKeyDown)) mc.player.rotationPitch -= 0.0001f /* update server side pitch when starting moving or clicking */
+            } else isStandingStill = false
             return
         }
 
@@ -224,12 +246,12 @@ class ElytraFlight : Module() {
 
             if (mc.gameSettings.keyBindForward.isKeyDown) {
                 val yaw = Math.toRadians(mc.player.rotationYaw.toDouble()).toFloat()
-                mc.player.motionX -= MathHelper.sin(yaw) * 0.05f.toDouble()
-                mc.player.motionZ += MathHelper.cos(yaw) * 0.05f.toDouble()
+                mc.player.motionX -= sin(yaw) * 0.05
+                mc.player.motionZ += cos(yaw) * 0.05
             } else if (mc.gameSettings.keyBindBack.isKeyDown) {
                 val yaw = Math.toRadians(mc.player.rotationYaw.toDouble()).toFloat()
-                mc.player.motionX += MathHelper.sin(yaw) * 0.05f.toDouble()
-                mc.player.motionZ -= MathHelper.cos(yaw) * 0.05f.toDouble()
+                mc.player.motionX += sin(yaw) * 0.05
+                mc.player.motionZ -= cos(yaw) * 0.05
             }
         } else if (mode.value == ElytraFlightMode.CREATIVE || mode.value == ElytraFlightMode.FLY) {
             mc.player.capabilities.flySpeed = .915f
@@ -306,6 +328,7 @@ class ElytraFlight : Module() {
             upPitch.value = -10
             forwardPitch.value = 0
             lookBoost.value = true
+            spaceBarTrigger.value = false
             autoBoost.value = true
             hoverControl.value = false
             easyTakeOffControl.value = true
