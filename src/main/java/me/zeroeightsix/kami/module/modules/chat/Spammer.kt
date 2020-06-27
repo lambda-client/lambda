@@ -3,8 +3,8 @@ package me.zeroeightsix.kami.module.modules.chat
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MessageSendHelper.*
+import net.minecraft.client.gui.GuiChat
 import java.io.*
-import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 /**
@@ -24,6 +24,7 @@ class Spammer : Module() {
     private var spammer = ArrayList<String>()
     private var currentLine = 0
     private var startTime = 0L
+    private var isChatOpen = false
 
     private enum class Mode { IN_ORDER, RANDOM_ORDER }
 
@@ -48,7 +49,7 @@ class Spammer : Module() {
             return
         }
         sendChatMessage("$chatName Found '&7spammer.txt&f'!")
-
+        startTime = System.currentTimeMillis()
     }
 
     override fun onUpdate() {
@@ -56,14 +57,25 @@ class Spammer : Module() {
     }
 
     private fun sendMsg() {
-        if (startTime == 0L) startTime = System.currentTimeMillis()
-
         if (startTime + (timeoutTime.value * 1000) <= System.currentTimeMillis()) { // 1 timeout = 1 second = 1000 ms
-            startTime = System.currentTimeMillis()
-            if (modeSetting.value == Mode.IN_ORDER) {
-                sendServerMessage(getOrdered(spammer))
-            } else {
-                sendServerMessage(getRandom(spammer, currentLine))
+            when {
+                mc.currentScreen is GuiChat -> { /* Delays the spammer msg if the chat gui is open */
+                    startTime = System.currentTimeMillis() - (timeoutTime.value * 1000)
+                    isChatOpen = true
+                    return
+                }
+                isChatOpen -> { /* Adds extra delay after the chat gui is closed */
+                    startTime += 3000
+                    isChatOpen = false
+                }
+                else -> {
+                    startTime = System.currentTimeMillis()
+                    if (modeSetting.value == Mode.IN_ORDER) {
+                        sendServerMessage(getOrdered(spammer))
+                    } else {
+                        sendServerMessage(getRandom(spammer, currentLine))
+                    }
+                }
             }
         }
     }
@@ -75,8 +87,7 @@ class Spammer : Module() {
     }
 
     private fun getRandom(array: ArrayList<String>, LastLine: Int): String {
-        /* Avoids sending the same message */
-        while (currentLine == LastLine) currentLine = Random.nextInt(array.size)
+        while (currentLine == LastLine) currentLine = Random.nextInt(array.size) /* Avoids sending the same message */
         return array[currentLine]
     }
 }
