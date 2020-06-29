@@ -25,20 +25,16 @@ import net.minecraft.util.text.TextFormatting
         category = Module.Category.CHAT
 )
 class BaritoneRemote : Module() {
-    private val allow: Setting<Allow> = register(Settings.e("Allow", Allow.FRIENDS_AND_CUSTOM))
+    private val feedback = register(Settings.b("Send Feedback", true))
+    private val allow: Setting<Allow> = register(Settings.e("Allow", Allow.FRIENDS))
     private val custom = register(Settings.s("Custom", "unchanged"))
 
     private var sendNextMsg = false
     private var lastController = "-" /* - is default, ie invalid name */
 
+    /* instructions for changing custom setting */
     init {
-        allow.settingListener = Setting.SettingListeners {
-            mc.player?.let {
-                if ((allow.value == Allow.CUSTOM || allow.value == Allow.FRIENDS_AND_CUSTOM) && custom.value == "unchanged") {
-                    MessageSendHelper.sendChatMessage("$chatName Use the &7" + Command.getCommandPrefix() + "set $name Custom names&f command to change the custom users list. Use , to separate players, for example &7" + Command.getCommandPrefix() + "set $name Custom dominika,Dewy,086&f")
-                }
-            }
-        }
+        allow.settingListener = Setting.SettingListeners { mc.player?.let { if ((allow.value == Allow.CUSTOM || allow.value == Allow.FRIENDS_AND_CUSTOM) && custom.value == "unchanged") MessageSendHelper.sendChatMessage("$chatName Use the &7" + Command.getCommandPrefix() + "set $name Custom names&f command to change the custom users list. Use , to separate players, for example &7" + Command.getCommandPrefix() + "set $name Custom dominika,Dewy,086&f") } }
     }
 
     /* convert incoming dms into valid baritone commands */
@@ -67,7 +63,7 @@ class BaritoneRemote : Module() {
     /* forward baritone feedback to controller */
     @EventHandler
     private val chatHistoryListener = Listener(EventHook { event: PrintChatMessageEvent ->
-        if (lastController != "-" && event.chatComponent.formattedText.startsWith(TextFormatting.DARK_PURPLE.toString() + "[")) { /* this took like 30 minutes to figure out, fucking Baritone */
+        if (feedback.value && lastController != "-" && event.chatComponent.formattedText.startsWith(TextFormatting.DARK_PURPLE.toString() + "[")) { /* this took like 30 minutes to figure out, fucking Baritone */
             MessageSendHelper.sendServerMessage("/msg $lastController " + event.chatComponent.unformattedText)
         }
     })
