@@ -25,7 +25,7 @@ import net.minecraft.util.text.TextFormatting
         category = Module.Category.CHAT
 )
 class BaritoneRemote : Module() {
-    private val feedback = register(Settings.b("Send Feedback", true))
+    private val feedback = register(Settings.b("SendFeedback", true))
     private val allow: Setting<Allow> = register(Settings.e("Allow", Allow.FRIENDS))
     private val custom = register(Settings.s("Custom", "unchanged"))
 

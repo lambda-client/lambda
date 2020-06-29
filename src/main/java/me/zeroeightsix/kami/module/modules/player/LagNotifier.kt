@@ -29,8 +29,8 @@ import net.minecraft.client.gui.GuiChat
         category = Module.Category.PLAYER
 )
 class LagNotifier : Module() {
-    var pauseDuringLag: Setting<Boolean> = register(Settings.b("Pause Baritone", true))
-    private val feedback = register(Settings.booleanBuilder("Pause Feedback").withValue(true).withVisibility { pauseDuringLag.value }.build())
+    var pauseDuringLag: Setting<Boolean> = register(Settings.b("PauseBaritone", true))
+    private val feedback = register(Settings.booleanBuilder("PauseFeedback").withValue(true).withVisibility { pauseDuringLag.value }.build())
     private val timeout = register(Settings.doubleBuilder().withName("Timeout").withValue(2.0).withMinimum(0.0).withMaximum(10.0).build())
 
     private var serverLastUpdated: Long = 0
