@@ -57,8 +57,8 @@ class ElytraFlight : Module() {
     private val hoverControl = register(Settings.booleanBuilder("Hover").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val easyTakeOffControl = register(Settings.booleanBuilder("Easy Takeoff C").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val timerControl = register(Settings.booleanBuilder("Takeoff Timer").withValue(true).withVisibility { easyTakeOffControl.value && mode.value == ElytraFlightMode.CONTROL }.build())
-    private val speedControl = register(Settings.floatBuilder("Speed C").withValue(1.8f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
-    private val fallSpeedControl = register(Settings.floatBuilder("Fall Speed C").withValue(0.000100000002f).withMaximum(0.3f).withMinimum(0.0f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
+    private val speedControl = register(Settings.floatBuilder("Speed C").withValue(1.81f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
+    private val fallSpeedControl = register(Settings.floatBuilder("Fall Speed C").withValue(0.00000000000003f).withMaximum(0.3f).withMinimum(0.0f).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
     private val downSpeedControl = register(Settings.doubleBuilder("Down Speed C").withMaximum(10.0).withMinimum(0.0).withValue(1.0).withVisibility { mode.value == ElytraFlightMode.CONTROL }.build())
 
     /* Packet */
@@ -333,8 +333,8 @@ class ElytraFlight : Module() {
             hoverControl.value = false
             easyTakeOffControl.value = true
             timerControl.value = true
-            speedControl.value = 1.8f
-            fallSpeedControl.value = 0.000100000002f
+            speedControl.value = 1.81f
+            fallSpeedControl.value = 0.00000000000003f
             downSpeedControl.value = 1.0
 
             speedPacket.value = 1.3f
