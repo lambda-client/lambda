@@ -39,7 +39,7 @@ class DiscordRPC : Module() {
 
     fun getLine(line: LineInfo?): String {
         return when (line) {
-            LineInfo.VERSION -> KamiMod.MODVERSMALL
+            LineInfo.VERSION -> KamiMod.VER_SMALL
             LineInfo.WORLD -> if (mc.isIntegratedServerRunning) "Singleplayer" else if (mc.getCurrentServerData() != null) "Multiplayer" else "Main Menu"
             LineInfo.DIMENSION -> playerDimension(mc)
             LineInfo.USERNAME -> if (mc.player != null) mc.player.name else mc.getSession().username

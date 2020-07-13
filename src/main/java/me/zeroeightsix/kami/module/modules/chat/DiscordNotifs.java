@@ -119,7 +119,7 @@ public class DiscordNotifs extends Module {
 
     private void sendMessage(String content, String avatarUrl) {
         TemmieWebhook tm = new TemmieWebhook(url.getValue());
-        DiscordMessage dm = new DiscordMessage(KamiMod.MODNAME + " " + KamiMod.MODVER, content, avatarUrl);
+        DiscordMessage dm = new DiscordMessage(KamiMod.MODNAME + " " + KamiMod.VER_FULL_BETA, content, avatarUrl);
         tm.sendMessage(dm);
     }
 

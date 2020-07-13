@@ -8,8 +8,6 @@ import net.minecraft.client.ClientBrandRetriever;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.client.ForgeClientHandler;
-import net.minecraftforge.client.MinecraftForgeClient;
 import org.apache.commons.lang3.StringUtils;
 import org.lwjgl.opengl.GL11;
 
@@ -54,7 +52,7 @@ public class TroubleshootCommand extends Command {
         enabled.set(StringUtils.chop(StringUtils.chop(String.valueOf(enabled)))); // this looks horrible but I don't know how else to do it sorry
         sendChatMessage("Enabled modules: " + f + "\n" + TextFormatting.GRAY + enabled);
         if (args.length >= 2) return;
-        sendChatMessage(ClientBrandRetriever.getClientModName() + " " + KamiMod.MODVER);
+        sendChatMessage(ClientBrandRetriever.getClientModName() + " " + KamiMod.VER_FULL_BETA);
         sendChatMessage("CPU: " + OpenGlHelper.getCpu() + " GPU: " + GlStateManager.glGetString(GL11.GL_VENDOR));
         sendChatMessage("Please send a screenshot of the full output to the developer or moderator who's helping you!");
     }

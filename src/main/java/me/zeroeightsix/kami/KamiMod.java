@@ -64,15 +64,15 @@ import static me.zeroeightsix.kami.DiscordPresence.setCustomIcons;
 @Mod(
         modid = KamiMod.MODID,
         name = KamiMod.MODNAME,
-        version = KamiMod.MODVER
+        version = KamiMod.VER_FULL_BETA
 )
 public class KamiMod {
 
     public static final String MODNAME = "KAMI Blue";
     public static final String MODID = "kamiblue";
-    public static final String MODVER = "v1.1.7-beta"; // this is changed to v1.x.x-commit for debugging during travis releases
-    public static final String MODVERSMALL = "v1.1.7-beta"; // shown to the user
-    public static final String MODVERBROAD = "v1.1.6"; // used for update checking
+    public static final String VER_FULL_BETA = "v1.1.7-beta"; // this is changed to v1.x.x-commit for debugging by automatic builds
+    public static final String VER_SMALL = "v1.1.7-beta"; // shown to the user, unchanged
+    public static final String VER_STABLE = "v1.1.6"; // used for update checking
 
     public static final String APP_ID = "638403216278683661";
 
@@ -127,13 +127,13 @@ public class KamiMod {
     public void postInit(FMLPostInitializationEvent event) {
         setCustomIcons();
         if (MODULE_MANAGER.getModuleT(CommandConfig.class).customTitle.getValue()) {
-            Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + MODVERSMALL);
+            Display.setTitle(MODNAME + " " + KAMI_KANJI + " " + VER_SMALL);
         }
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        log.info("\n\nInitializing " + MODNAME + " " + MODVER);
+        log.info("\n\nInitializing " + MODNAME + " " + VER_FULL_BETA);
 
         MODULE_MANAGER.register();
 
@@ -282,16 +282,16 @@ public class KamiMod {
             JsonParser parser = new JsonParser();
             String latestVersion = parser.parse(IOUtils.toString(new URL(UPDATE_JSON))).getAsJsonObject().getAsJsonObject("stable").get("name").getAsString();
 
-            isLatest = latestVersion.equals(MODVERBROAD);
+            isLatest = latestVersion.equals(VER_STABLE);
             latest = latestVersion;
 
             if (!isLatest) {
-                KamiMod.log.warn("You are running an outdated version of KAMI Blue.\nCurrent: " + MODVERBROAD + "\nLatest: " + latestVersion);
+                KamiMod.log.warn("You are running an outdated version of KAMI Blue.\nCurrent: " + VER_STABLE + "\nLatest: " + latestVersion);
 
                 return;
             }
 
-            KamiMod.log.info("Your KAMI Blue (" + MODVERBROAD + ") is up-to-date with the latest stable release.");
+            KamiMod.log.info("Your KAMI Blue (" + VER_STABLE + ") is up-to-date with the latest stable release.");
         } catch (IOException e) {
             latest = null;
 
