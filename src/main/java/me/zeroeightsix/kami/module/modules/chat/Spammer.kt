@@ -19,7 +19,7 @@ import kotlin.random.Random
 )
 class Spammer : Module() {
     private val modeSetting = register(Settings.e<Mode>("Order", Mode.RANDOM_ORDER))
-    private val timeoutTime = register(Settings.integerBuilder("Timeout (s)").withRange(1, 240).withValue(10).build())
+    private val timeoutTime = register(Settings.integerBuilder("Timeout(s)").withRange(1, 240).withValue(10).build())
 
     private var spammer = ArrayList<String>()
     private var currentLine = 0
