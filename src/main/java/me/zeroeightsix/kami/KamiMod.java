@@ -74,11 +74,9 @@ public class KamiMod {
     public static final String MODVERSMALL = "v1.1.7-beta"; // shown to the user
     public static final String MODVERBROAD = "v1.1.6"; // used for update checking
 
-    public static final String MCVER = "1.12.2";
-
     public static final String APP_ID = "638403216278683661";
 
-    private static final String UPDATE_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/updateChecker.json";
+    private static final String UPDATE_JSON = "https://kamiblue.org/latest.json";
     public static final String DONATORS_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/donators.json";
     public static final String CAPES_JSON = "https://raw.githubusercontent.com/kami-blue/assets/assets/assets/capes.json";
     public static final String GITHUB_LINK = "https://github.com/kami-blue/";
@@ -282,7 +280,7 @@ public class KamiMod {
             KamiMod.log.info("Attempting KAMI Blue update check...");
 
             JsonParser parser = new JsonParser();
-            String latestVersion = parser.parse(IOUtils.toString(new URL(UPDATE_JSON))).getAsJsonObject().getAsJsonObject("version").get(MCVER + "-latest").getAsString();
+            String latestVersion = parser.parse(IOUtils.toString(new URL(UPDATE_JSON))).getAsJsonObject().getAsJsonObject("stable").get("name").getAsString();
 
             isLatest = latestVersion.equals(MODVERBROAD);
             latest = latestVersion;
