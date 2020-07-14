@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.module.modules.movement
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
+import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.PlayerUpdateMoveEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
@@ -29,6 +30,8 @@ class InventoryMove : Module() {
     private val speed = register(Settings.i("LookSpeed", 10))
     var sneak: Setting<Boolean> = register(Settings.b("Sneak", false))
 
+    private var hasSent = false
+
     @EventHandler
     private val sendListener = Listener(EventHook { event: PlayerUpdateMoveEvent ->
         if (mc.currentScreen != null && mc.currentScreen !is GuiChat && mc.currentScreen !is GuiEditSign && mc.currentScreen !is GuiRepair) {
@@ -46,43 +49,52 @@ class InventoryMove : Module() {
                 mc.player.rotationPitch = (mc.player.rotationPitch + speed.value).coerceAtMost(90f)
             }
 
-            mc.player.movementInput.moveStrafe = 0.0f
-            mc.player.movementInput.moveForward = 0.0f
+            try {
 
-            if (Keyboard.isKeyDown(mc.gameSettings.keyBindForward.keyCode)) {
-                ++mc.player.movementInput.moveForward
-                mc.player.movementInput.forwardKeyDown = true
-            } else {
-                mc.player.movementInput.forwardKeyDown = false
-            }
+                mc.player.movementInput.moveStrafe = 0.0f
+                mc.player.movementInput.moveForward = 0.0f
 
-            if (Keyboard.isKeyDown(mc.gameSettings.keyBindBack.keyCode)) {
-                --mc.player.movementInput.moveForward
-                mc.player.movementInput.backKeyDown = true
-            } else {
-                mc.player.movementInput.backKeyDown = false
-            }
+                if (Keyboard.isKeyDown(mc.gameSettings.keyBindForward.keyCode)) {
+                    ++mc.player.movementInput.moveForward
+                    mc.player.movementInput.forwardKeyDown = true
+                } else {
+                    mc.player.movementInput.forwardKeyDown = false
+                }
 
-            if (Keyboard.isKeyDown(mc.gameSettings.keyBindLeft.keyCode)) {
-                ++mc.player.movementInput.moveStrafe
-                mc.player.movementInput.leftKeyDown = true
-            } else {
-                mc.player.movementInput.leftKeyDown = false
-            }
+                if (Keyboard.isKeyDown(mc.gameSettings.keyBindBack.keyCode)) {
+                    --mc.player.movementInput.moveForward
+                    mc.player.movementInput.backKeyDown = true
+                } else {
+                    mc.player.movementInput.backKeyDown = false
+                }
 
-            if (Keyboard.isKeyDown(mc.gameSettings.keyBindRight.keyCode)) {
-                --mc.player.movementInput.moveStrafe
-                mc.player.movementInput.rightKeyDown = true
-            } else {
-                mc.player.movementInput.rightKeyDown = false
-            }
+                if (Keyboard.isKeyDown(mc.gameSettings.keyBindLeft.keyCode)) {
+                    ++mc.player.movementInput.moveStrafe
+                    mc.player.movementInput.leftKeyDown = true
+                } else {
+                    mc.player.movementInput.leftKeyDown = false
+                }
 
-            if (Keyboard.isKeyDown(mc.gameSettings.keyBindJump.keyCode)) {
-                mc.player.movementInput.jump = true
-            }
+                if (Keyboard.isKeyDown(mc.gameSettings.keyBindRight.keyCode)) {
+                    --mc.player.movementInput.moveStrafe
+                    mc.player.movementInput.rightKeyDown = true
+                } else {
+                    mc.player.movementInput.rightKeyDown = false
+                }
 
-            if (Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.keyCode) && sneak.value) {
-                mc.player.movementInput.sneak = true
+                if (Keyboard.isKeyDown(mc.gameSettings.keyBindJump.keyCode)) {
+                    mc.player.movementInput.jump = true
+                }
+
+                if (Keyboard.isKeyDown(mc.gameSettings.keyBindSneak.keyCode) && sneak.value) {
+                    mc.player.movementInput.sneak = true
+                }
+            } catch (e: IndexOutOfBoundsException) {
+                if (!hasSent) {
+                    KamiMod.log.error("$chatName Error: Key is bound to a mouse button!")
+                    e.printStackTrace()
+                    hasSent = true
+                }
             }
         }
     })
