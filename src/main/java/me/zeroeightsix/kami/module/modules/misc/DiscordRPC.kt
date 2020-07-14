@@ -48,8 +48,8 @@ class DiscordRPC : Module() {
             LineInfo.SERVER_IP -> if (mc.getCurrentServerData() != null) mc.getCurrentServerData()!!.serverIP else if (mc.isIntegratedServerRunning) "Offline" else "Main Menu"
             LineInfo.COORDS -> if (mc.player != null && coordsConfirm.value) "(" + mc.player.posX.toInt() + " " + mc.player.posY.toInt() + " " + mc.player.posZ.toInt() + ")" else "No Coords"
             LineInfo.SPEED -> if (mc.player != null) KamiMod.MODULE_MANAGER.getModuleT(InfoOverlay::class.java).speed else "No Speed"
-            LineInfo.HELD_ITEM -> "Holding " + (if (mc.player != null && !mc.player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()) mc.player.getHeldItem(EnumHand.MAIN_HAND).displayName.toLowerCase() else "No Item")
-            LineInfo.FPS -> Minecraft.debugFPS.toString() + " fps"
+            LineInfo.HELD_ITEM -> "Holding " + (if (mc.player != null && !mc.player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()) mc.player.getHeldItem(EnumHand.MAIN_HAND).displayName.toLowerCase() else "No Items")
+            LineInfo.FPS -> Minecraft.debugFPS.toString() + " FPS"
             LineInfo.TPS -> if (mc.getCurrentServerData() != null) tps(2).toString() + " tps" else "No TPS"
             else -> ""
         }
