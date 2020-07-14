@@ -43,14 +43,14 @@ class DiscordRPC : Module() {
             LineInfo.WORLD -> if (mc.isIntegratedServerRunning) "Singleplayer" else if (mc.getCurrentServerData() != null) "Multiplayer" else "Main Menu"
             LineInfo.DIMENSION -> playerDimension(mc)
             LineInfo.USERNAME -> if (mc.player != null) mc.player.name else mc.getSession().username
-            LineInfo.HEALTH -> if (mc.player != null) mc.player.health.toInt().toString() + " hp" else "No hp"
-            LineInfo.HUNGER -> if (mc.player != null) mc.player.getFoodStats().foodLevel.toString() + " hunger" else "No hunger"
+            LineInfo.HEALTH -> if (mc.player != null) mc.player.health.toInt().toString() + " HP" else "No HP"
+            LineInfo.HUNGER -> if (mc.player != null) mc.player.getFoodStats().foodLevel.toString() + " hunger" else "No Hunger"
             LineInfo.SERVER_IP -> if (mc.getCurrentServerData() != null) mc.getCurrentServerData()!!.serverIP else if (mc.isIntegratedServerRunning) "Offline" else "Main Menu"
-            LineInfo.COORDS -> if (mc.player != null && coordsConfirm.value) "(" + mc.player.posX.toInt() + " " + mc.player.posY.toInt() + " " + mc.player.posZ.toInt() + ")" else "No coords"
-            LineInfo.SPEED -> if (mc.player != null) "Travling at " + KamiMod.MODULE_MANAGER.getModuleT(InfoOverlay::class.java).speed else "No speed"
-            LineInfo.HELD_ITEM -> "Holding " + (if (mc.player != null && !mc.player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()) mc.player.getHeldItem(EnumHand.MAIN_HAND).displayName.toLowerCase() else "no item")
+            LineInfo.COORDS -> if (mc.player != null && coordsConfirm.value) "(" + mc.player.posX.toInt() + " " + mc.player.posY.toInt() + " " + mc.player.posZ.toInt() + ")" else "No Coords"
+            LineInfo.SPEED -> if (mc.player != null) KamiMod.MODULE_MANAGER.getModuleT(InfoOverlay::class.java).speed else "No Speed"
+            LineInfo.HELD_ITEM -> "Holding " + (if (mc.player != null && !mc.player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()) mc.player.getHeldItem(EnumHand.MAIN_HAND).displayName.toLowerCase() else "No Item")
             LineInfo.FPS -> Minecraft.debugFPS.toString() + " fps"
-            LineInfo.TPS -> if (mc.getCurrentServerData() != null) tps(2).toString() + " tps" else "No tps"
+            LineInfo.TPS -> if (mc.getCurrentServerData() != null) tps(2).toString() + " tps" else "No TPS"
             else -> ""
         }
     }
