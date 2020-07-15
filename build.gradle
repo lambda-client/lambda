@@ -1,5 +1,4 @@
 // forge's stuff
-
 buildscript {
     repositories {
         jcenter()
@@ -16,7 +15,8 @@ buildscript {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
         classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.3'
-        classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: "${kotlin_version}"    }
+        classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: "${kotlin_version}"
+    }
 }
 
 apply plugin: 'kotlin'
@@ -181,3 +181,11 @@ jar {
 }
 
 build.dependsOn(shadowJar)
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'me.zeroeightsix.installer.Installer'
+        )
+    }
+}
