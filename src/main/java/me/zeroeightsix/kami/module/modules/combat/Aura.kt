@@ -4,12 +4,13 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.misc.AutoTool.Companion.equipBestWeapon
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BaritoneUtils.pause
 import me.zeroeightsix.kami.util.BaritoneUtils.unpause
-import me.zeroeightsix.kami.util.EntityUtil.EntityPriority
-import me.zeroeightsix.kami.util.EntityUtil.faceEntity
-import me.zeroeightsix.kami.util.EntityUtil.getPrioritizedTarget
-import me.zeroeightsix.kami.util.EntityUtil.getTargetList
+import me.zeroeightsix.kami.util.EntityUtils.EntityPriority
+import me.zeroeightsix.kami.util.EntityUtils.faceEntity
+import me.zeroeightsix.kami.util.EntityUtils.getPrioritizedTarget
+import me.zeroeightsix.kami.util.EntityUtils.getTargetList
 import me.zeroeightsix.kami.util.LagCompensator
 import net.minecraft.entity.Entity
 import net.minecraft.init.Items
@@ -20,7 +21,7 @@ import net.minecraft.util.EnumHand
  * Updated by hub on 31 October 2019
  * Updated by bot-debug on 10/04/20
  * Baritone compat added by dominikaaaa on 18/05/20
- * Updated by Xiaro on 11/07/20
+ * Updated by Xiaro on 16/07/20
  */
 @Module.Info(
         name = "Aura",
@@ -44,7 +45,7 @@ class Aura : Module() {
     private val range = register(Settings.f("Range", 5.5f))
     private val ignoreWalls = register(Settings.b("IgnoreWalls", true))
     private val sync = register(Settings.b("TPSSync", false))
-    val pauseBaritone: Setting<Boolean> = register(Settings.b("PauseBaritone", true))
+    private val pauseBaritone: Setting<Boolean> = register(Settings.b("PauseBaritone", true))
     private val timeAfterAttack = register(Settings.integerBuilder("ResumeDelay").withRange(1, 10).withValue(3).withVisibility { pauseBaritone.value }.build())
     private val autoTool = register(Settings.b("AutoWeapon", true))
     private val prefer = register(Settings.e<HitMode>("Prefer", HitMode.SWORD))
@@ -52,7 +53,7 @@ class Aura : Module() {
 
     private var waitCounter = 0
     private var startTime: Long = 0
-    var isAttacking = false // returned to TemporaryPauseProcess
+    var isAttacking = false // returned to AutoEat
 
     private enum class WaitMode {
         DELAY, SPAM
@@ -74,7 +75,7 @@ class Aura : Module() {
         val targetList = getTargetList(player, mob, ignoreWalls.value, delayMode.value == WaitMode.SPAM, range.value)
         if (targetList.isNotEmpty()) {
             /* Pausing baritone and other stuff */
-            if (pauseBaritone.value && !isAttacking) {
+            if (pauseBaritone.value && !BaritoneUtils.paused) {
                 isAttacking = true
                 startTime = 0L
                 pause()
@@ -90,7 +91,7 @@ class Aura : Module() {
                 if (lockView.value) faceEntity(target)
                 if (canAttack()) attack(target)
             }
-        } else if (isAttacking && canResume()) {
+        } else if (canResume() && BaritoneUtils.paused) {
             isAttacking = false
             unpause()
         }

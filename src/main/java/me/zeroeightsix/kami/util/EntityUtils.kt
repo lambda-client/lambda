@@ -8,11 +8,13 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityAgeable
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.EnumCreatureType
+import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.monster.EntityEnderman
 import net.minecraft.entity.monster.EntityIronGolem
 import net.minecraft.entity.monster.EntityPigZombie
 import net.minecraft.entity.passive.*
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
@@ -21,7 +23,9 @@ import java.io.IOException
 import java.net.URL
 import kotlin.math.*
 
-object EntityUtil {
+object EntityUtils {
+    private val mc = Minecraft.getMinecraft()
+
     @JvmStatic
     fun mobTypeSettings(e: Entity, mobs: Boolean, passive: Boolean, neutral: Boolean, hostile: Boolean): Boolean {
         return mobs && (passive && isPassiveMob(e) || neutral && isCurrentlyNeutral(e) || hostile && isMobAggressive(e))
@@ -193,9 +197,17 @@ object EntityUtil {
         y /= speed
         z /= speed
 
-        val yaw = Math.toDegrees(atan2(z, x))-90.0
+        val yaw = Math.toDegrees(atan2(z, x)) - 90.0
         val pitch = Math.toDegrees(-asin(y))
 
+        return arrayOf(yaw, pitch)
+    }
+
+    fun getRotationFromBlockPos(posFrom: BlockPos, posTo: BlockPos): Array<Double> {
+        val delta = doubleArrayOf((posFrom.x - posTo.x).toDouble(), (posFrom.y - posTo.y).toDouble(), (posFrom.z - posTo.z).toDouble())
+        val yaw = Math.toDegrees(atan2(delta[0], -delta[2]))
+        val dist = sqrt(delta[0] * delta[0] + delta[2] * delta[2])
+        val pitch = Math.toDegrees(atan2(delta[1], dist))
         return arrayOf(yaw, pitch)
     }
 
@@ -236,7 +248,6 @@ object EntityUtil {
     }
 
     fun getPrioritizedTarget(targetList: Array<Entity>, priority: EntityPriority): Entity {
-        val mc = Minecraft.getMinecraft()
         var entity = targetList[0]
         when (priority) {
             EntityPriority.DISTANCE -> {
@@ -264,7 +275,6 @@ object EntityUtil {
     }
 
     fun getTargetList(player: Array<Boolean>, mobs: Array<Boolean>, ignoreWalls: Boolean, immune: Boolean, range: Float): Array<Entity> {
-        val mc = Minecraft.getMinecraft()
         val entityList = ArrayList<Entity>()
         for (entity in mc.world.loadedEntityList) {
             /* Entity type check */
@@ -276,6 +286,7 @@ object EntityUtil {
                 if (!player[2] && entity.isPlayerSleeping) continue
             } else if (!mobTypeSettings(entity, mobs[0], mobs[1], mobs[2], mobs[3])) continue
 
+            if (mc.player.isRiding && entity == mc.player.ridingEntity) continue // Riding entity check
             if (mc.player.getDistance(entity) > range) continue // Distance check
             if ((entity as EntityLivingBase).health <= 0) continue // HP check
             if (!ignoreWalls && !mc.player.canEntityBeSeen(entity) && !canEntityFeetBeSeen(entity)) continue  // If walls is on & you can't see the feet or head of the target, skip. 2 raytraces needed
@@ -286,12 +297,10 @@ object EntityUtil {
     }
 
     fun canEntityFeetBeSeen(entityIn: Entity): Boolean {
-        val mc = Minecraft.getMinecraft()
         return mc.world.rayTraceBlocks(Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ), Vec3d(entityIn.posX, entityIn.posY, entityIn.posZ), false, true, false) == null
     }
 
     fun faceEntity(entity: Entity) {
-        val mc = Minecraft.getMinecraft()
         val diffX = entity.posX - mc.player.posX
         val diffZ = entity.posZ - mc.player.posZ
         val diffY = mc.player.posY + mc.player.getEyeHeight().toDouble() - (entity.posY + entity.eyeHeight.toDouble())
@@ -302,5 +311,27 @@ object EntityUtil {
 
         mc.player.rotationYaw = yaw
         mc.player.rotationPitch = -pitch
+    }
+
+    fun getDroppedItems(itemId: Int, range: Float): Array<Entity>? {
+        val entityList = arrayListOf<Entity>()
+        for (currentEntity in mc.world.loadedEntityList) {
+            if (currentEntity.getDistance(mc.player) > range) continue /* Entities within specified  blocks radius */
+            if (currentEntity !is EntityItem) continue /* Entites that are dropped item */
+            if (Item.getIdFromItem(currentEntity.item.getItem()) != itemId) continue /* Dropped items that are has give item id */
+            entityList.add(currentEntity)
+        }
+        return if (entityList.isNotEmpty()) entityList.toTypedArray() else null
+    }
+
+    fun getDroppedItem(itemId: Int, range: Float): BlockPos? {
+        val entityList = getDroppedItems(itemId, range)
+        if (entityList != null) {
+            for (dist in 1..ceil(range).toInt()) for (currentEntity in entityList) {
+                if (currentEntity.getDistance(mc.player) > dist) continue
+                return currentEntity.position
+            }
+        }
+        return null
     }
 }
