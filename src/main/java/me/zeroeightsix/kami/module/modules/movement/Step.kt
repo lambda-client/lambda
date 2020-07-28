@@ -37,7 +37,7 @@ import kotlin.math.max
 class Step : Module() {
     private val mode: Setting<Mode> = register(Settings.e("Mode", Mode.PACKET))
     private val speed = register(Settings.integerBuilder("Speed").withMinimum(1).withMaximum(100).withValue(40).withVisibility { mode.value == Mode.VANILLA }.build())
-    private val height= register(Settings.floatBuilder("Height").withRange(0.0f, 10.0f).withValue(1.5f).withVisibility { mode.value == Mode.PACKET }.build())
+    private val height= register(Settings.floatBuilder("Height").withRange(0.0f, 10.0f).withValue(1.0f).withVisibility { mode.value == Mode.PACKET }.build())
     private val downStep = register(Settings.booleanBuilder("DownStep").withValue(false).withVisibility { mode.value == Mode.PACKET }.build())
     private val entityStep = register(Settings.booleanBuilder("Entities").withValue(true).withVisibility { mode.value == Mode.PACKET }.build())
 
