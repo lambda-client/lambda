@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.movement
 
+import baritone.api.BaritoneAPI
 import com.google.common.collect.Lists
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
@@ -36,6 +37,7 @@ import kotlin.math.max
 )
 class Step : Module() {
     private val mode: Setting<Mode> = register(Settings.e("Mode", Mode.PACKET))
+    private var baritoneCompat = register(Settings.b("BaritoneCompatibility", true))
     private val speed = register(Settings.integerBuilder("Speed").withMinimum(1).withMaximum(100).withValue(40).withVisibility { mode.value == Mode.VANILLA }.build())
     private val height= register(Settings.floatBuilder("Height").withRange(0.0f, 10.0f).withValue(1.0f).withVisibility { mode.value == Mode.PACKET }.build())
     private val downStep = register(Settings.booleanBuilder("DownStep").withValue(false).build())
@@ -47,6 +49,13 @@ class Step : Module() {
 
     private enum class Mode {
         VANILLA, PACKET
+
+    }
+
+    override fun onToggle() {
+        if (mc.player != null && baritoneCompat.value) {
+            BaritoneAPI.getSettings().assumeStep.value = isEnabled
+        }
     }
 
     /**
