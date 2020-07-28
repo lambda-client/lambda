@@ -38,7 +38,7 @@ class Step : Module() {
     private val mode: Setting<Mode> = register(Settings.e("Mode", Mode.PACKET))
     private val speed = register(Settings.integerBuilder("Speed").withMinimum(1).withMaximum(100).withValue(40).withVisibility { mode.value == Mode.VANILLA }.build())
     private val height= register(Settings.floatBuilder("Height").withRange(0.0f, 10.0f).withValue(1.0f).withVisibility { mode.value == Mode.PACKET }.build())
-    private val downStep = register(Settings.booleanBuilder("DownStep").withValue(false).withVisibility { mode.value == Mode.PACKET }.build())
+    private val downStep = register(Settings.booleanBuilder("DownStep").withValue(false).build())
     private val entityStep = register(Settings.booleanBuilder("Entities").withValue(true).withVisibility { mode.value == Mode.PACKET }.build())
 
     private var previousPositionPacket: CPacketPlayer? = null
@@ -54,12 +54,12 @@ class Step : Module() {
      */
     override fun onUpdate() {
         if (mode.value == Mode.VANILLA) {
-            if (mc.player.collidedHorizontally
-                    && mc.player.onGround
-                    && !mc.player.isOnLadder
-                    && !mc.player.isInWater
-                    && !mc.player.isInLava) {
-                mc.player.motionY = speed.value / 100.0
+            if (mc.player.onGround && !mc.player.isOnLadder && !mc.player.isInWater && !mc.player.isInLava) {
+                if (mc.player.collidedHorizontally) {
+                    mc.player.motionY = speed.value / 100.0
+                } else if (downStep.value) {
+                    mc.player.motionY = -(speed.value / 100.0)
+                }
             }
         }
     }
