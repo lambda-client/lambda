@@ -18,6 +18,7 @@ import net.minecraft.entity.player.EntityPlayer
         description = "Logs when a player teleports somewhere"
 )
 class TeleportLogger : Module() {
+    private var saveToFile = register(Settings.b("SaveToFile", true))
     private var remove = register(Settings.b("RemoveInRange", true))
     private var printAdd = register(Settings.b("PrintAdd", true))
     private var printRemove = register(Settings.booleanBuilder("PrintRemove").withValue(true).withVisibility { remove.value }.build())
@@ -45,21 +46,33 @@ class TeleportLogger : Module() {
                 continue
             }
 
-            if (minimumDistance.value >= player.getDistance(mc.player) || teleportedPlayers.containsKey(player.name)) {
+            if (minimumDistance.value > player.getDistance(mc.player) || teleportedPlayers.containsKey(player.name)) {
                 continue
             }
 
             val coords = logCoordinates(Coordinate(player.posX.toInt(), player.posY.toInt(), player.posZ.toInt()), "${player.name} Teleport Spot")
             teleportedPlayers[player.name] = coords
-            if (printAdd.value) MessageSendHelper.sendChatMessage("$chatName ${player.name} teleported, saved their coordinates at ${coords(coords)}")
+            if (printAdd.value) MessageSendHelper.sendChatMessage("$chatName ${player.name} teleported, ${getSaveText()} ${coords(coords)}")
         }
-    }
-
-    private fun logCoordinates(coordinate: Coordinate, name: String): Coordinate {
-        return CoordUtil.writeCustomCoords(coordinate, name)
     }
 
     private fun coords(coordinate: Coordinate): String {
         return coordinate.x.toString() + ", " + coordinate.y + ", " + coordinate.z
+    }
+
+    private fun logCoordinates(coordinate: Coordinate, name: String): Coordinate {
+        return if (saveToFile.value) {
+            CoordUtil.writeCustomCoords(coordinate, name)
+        } else {
+            coordinate
+        }
+    }
+
+    private fun getSaveText(): String {
+        return if (saveToFile.value) {
+            "saved their coordinates at"
+        } else {
+            "their coordinates are"
+        }
     }
 }
