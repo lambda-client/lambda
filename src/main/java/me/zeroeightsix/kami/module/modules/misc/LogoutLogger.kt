@@ -22,11 +22,21 @@ class LogoutLogger : Module() {
     private var print = register(Settings.b("PrintToChat", true))
 
     private val loggedPlayers = HashMap<String, Coordinate>()
-    private var onlinePlayers = listOf<NetworkPlayerInfo>()
+    private var onlinePlayers = mutableListOf<NetworkPlayerInfo>()
     private var ticks = 0
+    private var hasCleared = false
 
     override fun onUpdate() {
-        if (mc.player == null) return
+        if (mc.player == null) {
+            if (!hasCleared) {
+                loggedPlayers.clear()
+                onlinePlayers.clear()
+                hasCleared = true
+            }
+            return
+        }
+
+        hasCleared = false
         ticks++
 
         for (player in mc.world.loadedEntityList.filterIsInstance<EntityPlayer>()) {
@@ -70,6 +80,6 @@ class LogoutLogger : Module() {
 
     private fun updateOnlinePlayers() {
         if (mc.player == null) return
-        onlinePlayers = mc.player.connection.playerInfoMap.toList()
+        onlinePlayers = mc.player.connection.playerInfoMap.toMutableList()
     }
 }
