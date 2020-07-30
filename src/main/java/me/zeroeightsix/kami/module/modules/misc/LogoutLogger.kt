@@ -21,7 +21,7 @@ class LogoutLogger : Module() {
     private var saveToFile = register(Settings.b("SaveToFile", true))
     private var print = register(Settings.b("PrintToChat", true))
 
-    private val loggedPlayers = HashMap<String, Coordinate>()
+    private var loggedPlayers = HashMap<String, Coordinate>()
     private var onlinePlayers = mutableListOf<NetworkPlayerInfo>()
     private var ticks = 0
     private var hasCleared = false
