@@ -5,6 +5,7 @@ import baritone.api.pathing.goals.GoalXZ
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
+import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.ServerDisconnectedEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
@@ -44,6 +45,10 @@ class AutoWalk : Module() {
                 event.movementInput.moveForward = -1f
             }
             AutoWalkMode.BARITONE -> disableBaritone = true
+
+            else -> {
+                KamiMod.log.error("Mode is irregular. Value: " + mode.value)
+            }
         }
     })
 
@@ -77,6 +82,11 @@ class AutoWalk : Module() {
             Cardinal.POS_X_NEG_Z -> BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(mc.player.posX.toInt() + border, mc.player.posZ.toInt() - border))
             Cardinal.POS_X -> BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(mc.player.posX.toInt() + border, mc.player.posZ.toInt()))
             Cardinal.POS_X_POS_Z -> BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(mc.player.posX.toInt() + border, mc.player.posZ.toInt() + border))
+            else -> {
+                sendErrorMessage("&cCould not determine direction. Disabling...")
+
+                disable()
+            }
         }
 
         direction = MathsUtils.getPlayerCardinal(mc)!!.cardinalName
@@ -84,12 +94,16 @@ class AutoWalk : Module() {
 
     override fun getHudInfo(): String {
         return if (BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.goal != null) {
-            direction!!
+            direction.toString()
         } else {
             when (mode.value) {
                 AutoWalkMode.BARITONE -> "NONE"
                 AutoWalkMode.FORWARD -> "FORWARD"
                 AutoWalkMode.BACKWARDS -> "BACKWARDS"
+
+                else -> {
+                    "N/A"
+                }
             }
         }
     }
