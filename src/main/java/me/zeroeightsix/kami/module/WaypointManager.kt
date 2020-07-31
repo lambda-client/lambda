@@ -10,7 +10,7 @@ import me.zeroeightsix.kami.util.Waypoint
 object WaypointManager {
 
     /**
-     * Reads waypoints from KAMIBlueCoords.json into the waypoints ArrayList
+     * Reads waypoints from KAMIBlueWaypoints.json into the waypoints ArrayList
      */
     fun registerWaypoints() {
         KamiMod.log.info("Registering waypoints...")
@@ -19,7 +19,7 @@ object WaypointManager {
     }
 
     /**
-     * Saves waypoints from the waypoints ArrayList into KAMIBlueCoords.json
+     * Saves waypoints from the waypoints ArrayList into KAMIBlueWaypoints.json
      */
     fun saveWaypoints() {
         KamiMod.log.info("Saving waypoints...")

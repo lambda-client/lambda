@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.module.modules.misc
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.Coordinate
+import me.zeroeightsix.kami.util.InfoCalculator
 import me.zeroeightsix.kami.util.MessageSendHelper
 import me.zeroeightsix.kami.util.Waypoint
 
@@ -33,7 +34,7 @@ class CoordsLog : Module() {
         }
 
         if (!playerIsDead && 0 >= mc.player.health && forceLogOnDeath.value) {
-            val deathPoint = logCoordinates("deathPoint")
+            val deathPoint = logCoordinates("Death - " + InfoCalculator.getServerType(mc))
             if (deathInChat.value) {
                 MessageSendHelper.sendChatMessage("You died at " + deathPoint.x + " " + deathPoint.y + " " + deathPoint.z)
             }
