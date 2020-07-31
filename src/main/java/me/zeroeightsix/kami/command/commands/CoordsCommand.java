@@ -3,16 +3,17 @@ package me.zeroeightsix.kami.command.commands;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder;
 import me.zeroeightsix.kami.command.syntax.parsers.EnumParser;
+import me.zeroeightsix.kami.module.FileInstanceManager;
 import me.zeroeightsix.kami.module.modules.movement.AutoWalk;
 import me.zeroeightsix.kami.util.Coordinate;
-import me.zeroeightsix.kami.util.CoordinateInfo;
+import me.zeroeightsix.kami.util.WaypointInfo;
 import me.zeroeightsix.kami.util.MessageSendHelper;
+import me.zeroeightsix.kami.util.Waypoint;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
 import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
-import static me.zeroeightsix.kami.util.CoordUtil.*;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendRawChatMessage;
 
@@ -43,12 +44,12 @@ public class CoordsCommand extends Command {
                             }
                             String[] split = args[2].split(",");
                             Coordinate coordinate = new Coordinate(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
-                            confirm(args[1], writeCustomCoords(coordinate, args[1]));
+                            confirm(args[1], Waypoint.INSTANCE.createWaypoint(coordinate, args[1]));
                         } else {
-                            confirm(args[1], writePlayerCoords(args[1]));
+                            confirm(args[1], Waypoint.INSTANCE.writePlayerCoords(args[1]));
                         }
                     } else {
-                        confirm("Unnamed", writePlayerCoords("Unnamed"));
+                        confirm("Unnamed", Waypoint.INSTANCE.writePlayerCoords("Unnamed"));
                     }
                     break;
                 case "list":
@@ -63,7 +64,7 @@ public class CoordsCommand extends Command {
                     break;
                 case "del":
                     if (args[1] != null) {
-                        if (removeCoord(args[1], coordsLogFilename)) {
+                        if (Waypoint.INSTANCE.removeWaypoint(args[1])) {
                             sendChatMessage("Removed coordinate with ID " + args[1]);
                         } else {
                             sendChatMessage("No coordinate with ID " + args[1]);
@@ -74,7 +75,7 @@ public class CoordsCommand extends Command {
                     break;
                 case "goto":
                     if (args[1] != null) {
-                        Coordinate current = getCoord(args[1], coordsLogFilename);
+                        Coordinate current = Waypoint.INSTANCE.getWaypoint(args[1]);
                         if (current != null) {
                             if (MODULE_MANAGER.isModuleEnabled(AutoWalk.class)) {
                                 MODULE_MANAGER.getModuleT(AutoWalk.class).disable();
@@ -106,7 +107,7 @@ public class CoordsCommand extends Command {
     }
 
     private void listCoords(boolean stashes) {
-        ArrayList<CoordinateInfo> coords = readCoords(coordsLogFilename);
+        ArrayList<WaypointInfo> coords = FileInstanceManager.waypoints;
         if (coords.isEmpty()) {
             if (!stashes) {
                 sendChatMessage("No coordinates have been logged.");
@@ -137,8 +138,8 @@ public class CoordsCommand extends Command {
     private void searchCoords(String search) {
         boolean hasfound = false;
         boolean firstfind = true;
-        ArrayList<CoordinateInfo> coords = readCoords(coordsLogFilename);
-        for (CoordinateInfo coord : Objects.requireNonNull(coords)) {
+        ArrayList<WaypointInfo> coords = FileInstanceManager.waypoints;
+        for (WaypointInfo coord : Objects.requireNonNull(coords)) {
             if (coord.name.contains(search)) {
                 if (firstfind) {
                     sendChatMessage("Result of search for &7" + search + "&f: ");
@@ -153,8 +154,8 @@ public class CoordsCommand extends Command {
         }
     }
 
-    private String format(CoordinateInfo coord, String search) {
-        String message = "   [" + coord.id + "] " + coord.name + " (" + coord.xyz.x + " " + coord.xyz.y + " " + coord.xyz.z + ")";
+    private String format(WaypointInfo waypoint, String search) {
+        String message = "   [" + waypoint.id + "] " + waypoint.name + " (" + waypoint.pos.x + " " + waypoint.pos.y + " " + waypoint.pos.z + ")";
         return message.replaceAll(search, "&7" + search + "&f");
     }
 

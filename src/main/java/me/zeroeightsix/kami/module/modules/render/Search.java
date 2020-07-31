@@ -10,6 +10,7 @@ import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.util.Coordinate;
 import me.zeroeightsix.kami.util.GeometryMasks;
 import me.zeroeightsix.kami.util.KamiTessellator;
+import me.zeroeightsix.kami.util.Waypoint;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockPortal;
 import net.minecraft.client.multiplayer.ChunkProviderClient;
@@ -29,7 +30,6 @@ import java.util.stream.Collectors;
 
 import static me.zeroeightsix.kami.util.ColourConverter.rgbToInt;
 import static me.zeroeightsix.kami.util.ColourUtils.toRGBA;
-import static me.zeroeightsix.kami.util.CoordUtil.getCurrentCoord;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendErrorMessage;
 import static me.zeroeightsix.kami.util.MessageSendHelper.sendWarningMessage;
 
@@ -185,7 +185,7 @@ public class Search extends Module {
     });
 
     private void reloadChunks() {
-        Coordinate pcoords = getCurrentCoord();
+        Coordinate pcoords = Waypoint.INSTANCE.getCurrentCoord();
         int renderdist = mc.gameSettings.renderDistanceChunks;
         if (renderdist > 8) {
             renderdist = 8;
