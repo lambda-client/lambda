@@ -94,7 +94,7 @@ class AutoWalk : Module() {
 
     override fun getHudInfo(): String {
         return if (BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.goal != null && direction != null) {
-            direction.toString()
+            direction!!
         } else {
             when (mode.value) {
                 AutoWalkMode.BARITONE -> "NONE"
