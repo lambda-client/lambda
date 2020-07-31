@@ -5,9 +5,9 @@ import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.CoordUtil
 import me.zeroeightsix.kami.util.Coordinate
 import me.zeroeightsix.kami.util.MessageSendHelper
+import me.zeroeightsix.kami.util.Waypoint
 import net.minecraft.client.network.NetworkPlayerInfo
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
@@ -79,7 +79,7 @@ class LogoutLogger : Module() {
 
     private fun logCoordinates(coordinate: Coordinate, name: String): Coordinate {
         return if (saveToFile.value) {
-            CoordUtil.writeCustomCoords(coordinate, name)
+            Waypoint.createWaypoint(coordinate, name)
         } else {
             coordinate
         }
