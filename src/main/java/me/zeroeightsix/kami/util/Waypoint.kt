@@ -21,7 +21,7 @@ object Waypoint {
     private const val oldConfigName = "KAMIBlueCoords.json" /* maintain backwards compat with old format */
     private const val configName = "KAMIBlueWaypoints.json"
     private val oldFile = File(oldConfigName)
-    private val file = File(configName)
+    val file = File(configName)
     private val sdf = SimpleDateFormat("HH:mm:ss dd/MM/yyyy")
 
     fun writeMemoryToFile() {

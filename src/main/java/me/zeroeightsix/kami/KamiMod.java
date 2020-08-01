@@ -16,10 +16,7 @@ import me.zeroeightsix.kami.gui.rgui.component.Component;
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
-import me.zeroeightsix.kami.module.MacroManager;
-import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.WaypointManager;
+import me.zeroeightsix.kami.module.*;
 import me.zeroeightsix.kami.module.modules.chat.ChatEncryption;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
 import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
@@ -154,6 +151,7 @@ public class KamiMod {
 
         Friends.initFriends();
 
+        FileInstanceManager.fixEmptyFiles();
         MacroManager.INSTANCE.registerMacros();
         WaypointManager.INSTANCE.registerWaypoints();
 

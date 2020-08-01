@@ -14,7 +14,7 @@ import java.util.*
 object Macro {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private const val configName = "KAMIBlueMacros.json"
-    private val file = File(configName)
+    val file = File(configName)
 
     fun writeMemoryToFile() {
         try {
