@@ -49,12 +49,8 @@ class TeleportLogger : Module() {
 
             val coords = logCoordinates(Coordinate(player.posX.toInt(), player.posY.toInt(), player.posZ.toInt()), "${player.name} Teleport Spot")
             teleportedPlayers[player.name] = coords
-            if (printAdd.value) MessageSendHelper.sendChatMessage("$chatName ${player.name} teleported, ${getSaveText()} ${coords(coords)}")
+            if (printAdd.value) MessageSendHelper.sendChatMessage("$chatName ${player.name} teleported, ${getSaveText()} ${coords.asString()}")
         }
-    }
-
-    private fun coords(coordinate: Coordinate): String {
-        return coordinate.x.toString() + ", " + coordinate.y + ", " + coordinate.z
     }
 
     private fun logCoordinates(coordinate: Coordinate, name: String): Coordinate {

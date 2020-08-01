@@ -51,7 +51,7 @@ class LogoutLogger : Module() {
                     }
 
                     if (!found) {
-                        if (print.value) MessageSendHelper.sendChatMessage("${loggedPlayer.key} logged out at ${coords(loggedPlayer.value)}")
+                        if (print.value) MessageSendHelper.sendChatMessage("${loggedPlayer.key} logged out at ${loggedPlayer.value.asString()}")
                         logCoordinates(loggedPlayer.value, "${loggedPlayer.key} Logout Spot")
                         loggedPlayers.remove(loggedPlayer.key)
                     }
@@ -72,10 +72,6 @@ class LogoutLogger : Module() {
         loggedPlayers.clear()
         onlinePlayers.clear()
     })
-
-    private fun coords(coordinate: Coordinate): String {
-        return coordinate.x.toString() + ", " + coordinate.y + ", " + coordinate.z
-    }
 
     private fun logCoordinates(coordinate: Coordinate, name: String): Coordinate {
         return if (saveToFile.value) {
