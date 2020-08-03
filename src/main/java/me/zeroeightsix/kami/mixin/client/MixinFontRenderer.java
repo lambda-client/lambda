@@ -51,6 +51,8 @@ public abstract class MixinFontRenderer {
     @Shadow protected abstract float renderChar(char ch, boolean italic);
     @Shadow protected abstract void doDraw(float f);
 
+    List<Emoji> emojis = new ArrayList<>();
+
     /**
      * @author Tiger
      */
@@ -59,7 +61,6 @@ public abstract class MixinFontRenderer {
         try {
             if (KamiMod.MODULE_MANAGER.isModuleEnabled(me.zeroeightsix.kami.module.modules.chat.KamiMoji.class)) {
                 int size = getStringWidth("  ");
-                List<Emoji> emojis = new ArrayList<>();
 
                 for (String possible : text.split(":")) {
                     if (KamiMod.KAMIMOJI.isEmoji(possible)) {
@@ -185,6 +186,8 @@ public abstract class MixinFontRenderer {
                         doDraw(f);
                     }
                 }
+
+                emojis.clear();
             } else {
                 renderVanilla(text, shadow);
             }
