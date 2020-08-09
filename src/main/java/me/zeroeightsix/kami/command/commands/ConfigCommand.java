@@ -9,6 +9,7 @@ import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.module.MacroManager;
 import me.zeroeightsix.kami.module.WaypointManager;
 import me.zeroeightsix.kami.util.Macro;
+import me.zeroeightsix.kami.util.Waypoint;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -41,6 +42,7 @@ public class ConfigCommand extends Command {
         switch (args[0].toLowerCase()) {
             case "reload":
                 Macro.INSTANCE.readFileToMemory();
+                Waypoint.INSTANCE.readFileToMemory();
                 reload();
                 break;
             case "save":
