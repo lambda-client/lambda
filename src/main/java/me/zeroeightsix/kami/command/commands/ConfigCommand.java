@@ -87,7 +87,7 @@ public class ConfigCommand extends Command {
         KamiMod.getInstance().guiManager = new KamiGUI();
         KamiMod.getInstance().guiManager.initializeGUI();
         KamiMod.loadConfiguration();
-        sendChatMessage("Configuration and macros reloaded!");
+        sendChatMessage("Configuration, macros and waypoints reloaded!");
     }
 
 }
