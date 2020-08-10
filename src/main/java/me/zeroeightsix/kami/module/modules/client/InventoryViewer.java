@@ -59,8 +59,8 @@ public class InventoryViewer extends Module {
 
     private void boxRender(final int x, final int y) {
         // SET UNRELIABLE DEFAULTS (Don't restore these) {
-        GlStateManager.enableAlpha();
-        GlStateManager.disableBlend();
+//        GlStateManager.enableAlpha(); // these make chat and everything gray when playermodel is disabled for some reason
+//        GlStateManager.disableBlend();
         // }
 
         // ENABLE LOCAL CHANGES {
@@ -95,10 +95,10 @@ public class InventoryViewer extends Module {
         for (int size = items.size(), item = 9; item < size; ++item) {
             final int slotX = x + 1 + item % 9 * 18;
             final int slotY = y + 1 + (item / 9 - 1) * 18;
-            //preItemRender(); Breaks with PlayerModel
+            preItemRender();
             mc.getRenderItem().renderItemAndEffectIntoGUI(items.get(item), slotX, slotY);
             mc.getRenderItem().renderItemOverlays(mc.fontRenderer, items.get(item), slotX, slotY);
-            //postItemRender(); Breaks with PlayerModel
+            postItemRender();
         }
     }
 
