@@ -8,6 +8,7 @@ import me.zeroeightsix.kami.util.colourUtils.ColourConverter;
 import me.zeroeightsix.kami.util.colourUtils.ColourHolder;
 import me.zeroeightsix.kami.util.EntityUtils;
 import me.zeroeightsix.kami.util.Friends;
+import me.zeroeightsix.kami.util.KamiTessellator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.*;
@@ -71,7 +72,7 @@ public class Nametags extends Module {
     private void drawNametag(Entity entityIn) {
         GlStateManager.pushMatrix();
 
-        Vec3d interp = EntityUtils.getInterpolatedRenderPos(entityIn, mc.getRenderPartialTicks());
+        Vec3d interp = EntityUtils.getInterpolatedRenderPos(entityIn, KamiTessellator.pTicks());
         float yAdd = entityIn.height + 0.5F - (entityIn.isSneaking() ? 0.25F : 0.0F);
         double x = interp.x;
         double y = interp.y + yAdd;
