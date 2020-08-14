@@ -20,9 +20,14 @@ class KamiMoji {
 
     fun start() {
         val dir = File(FOLDER)
+        val kamiMojiDir = File("kamimoji")
 
         if (!dir.exists()) {
             dir.mkdir()
+        }
+
+        if (kamiMojiDir.exists()) {
+            kamiMojiDir.deleteRecursively()
         }
 
         try {
@@ -111,9 +116,9 @@ class KamiMoji {
     }
 
     companion object {
-        private const val FOLDER = "kamimoji"
-        private const val VERSION_URL = "https://raw.githubusercontent.com/kami-blue/kamimoji/master/version.json"
+        private const val FOLDER = "emojis"
+        private const val VERSION_URL = "https://raw.githubusercontent.com/2b2t-Utilities/emojis/master/version.json"
         private val LOCAL_VERSION = File(FOLDER + File.separator + "version.json")
-        private const val ZIP_URL = "https://github.com/kami-blue/kamimoji/archive/master.zip"
+        private const val ZIP_URL = "https://github.com/2b2t-Utilities/emojis/archive/master.zip"
     }
 }
