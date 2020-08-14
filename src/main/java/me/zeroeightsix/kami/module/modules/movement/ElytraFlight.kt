@@ -62,7 +62,7 @@ class ElytraFlight : Module() {
 
     /* Extra */
     val elytraSounds = register(Settings.booleanBuilder("ElytraSounds").withValue(true).withVisibility { page.value == Page.GENERIC_SETTINGS }.build())
-    private val swingAmount = register(Settings.floatBuilder("SwingAmount").withValue(1.0f).withRange(0.0f, 2.0f).withVisibility { page.value == Page.GENERIC_SETTINGS && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) }.build())
+    private val swingAmount = register(Settings.floatBuilder("SwingAmount").withValue(0.4f).withRange(0.0f, 2.0f).withVisibility { page.value == Page.GENERIC_SETTINGS && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) }.build())
     /* End of Generic Settings */
 
     /* Mode Settings */
