@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.ColourHolder
+import me.zeroeightsix.kami.util.colourUtils.ColourHolder
 import me.zeroeightsix.kami.util.ESPRenderer
 import me.zeroeightsix.kami.util.GeometryMasks
 import net.minecraft.util.math.BlockPos
@@ -46,7 +46,6 @@ class SelectionHighlight : Module() {
 
         if (entity.value && hitObject.typeOfHit == Type.ENTITY) {
             val lookVec = mc.player.lookVec
-            val eyePos = mc.player.getPositionEyes(event.partialTicks)
             val sightEnd = eyePos.add(lookVec.scale(6.0))
             val hitSide = hitObject.entityHit.boundingBox.calculateIntercept(eyePos, sightEnd)!!.sideHit
             val side = if (hitSideOnly.value) GeometryMasks.FACEMAP[hitSide]!! else GeometryMasks.Quad.ALL
