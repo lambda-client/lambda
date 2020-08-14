@@ -13,6 +13,7 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BlockUtils.checkForLiquid
 import me.zeroeightsix.kami.util.BlockUtils.getGroundPosY
 import me.zeroeightsix.kami.util.MessageSendHelper.sendChatMessage
+import me.zeroeightsix.kami.util.MovementUtils
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
@@ -61,6 +62,7 @@ class ElytraFlight : Module() {
 
     /* Extra */
     val elytraSounds = register(Settings.booleanBuilder("ElytraSounds").withValue(true).withVisibility { page.value == Page.GENERIC_SETTINGS }.build())
+    private val swingAmount = register(Settings.floatBuilder("SwingAmount").withValue(0.4f).withRange(0.0f, 2.0f).withVisibility { page.value == Page.GENERIC_SETTINGS && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) }.build())
     /* End of Generic Settings */
 
     /* Mode Settings */
@@ -105,7 +107,7 @@ class ElytraFlight : Module() {
     private var elytraDurability = 0
     private var outOfDurability = false
     private var wasInLiquid = false
-    private var isFlying = false
+    var isFlying = false
     private var isPacketFlying = false
     private var isStandingStillH = false
     private var isStandingStill = false
@@ -237,7 +239,11 @@ class ElytraFlight : Module() {
         if (!isFlying || isStandingStill) speedPercentage = accelerateStartSpeed.value.toFloat()
 
         /* Remove legs swing */
-        if (autoLanding.value || isFlying && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)) {
+        if (shouldSwing() && !autoLanding.value && !isStandingStillH) {
+            mc.player.prevLimbSwingAmount = mc.player.limbSwingAmount
+            mc.player.limbSwingAmount += (swingAmount.value - mc.player.limbSwingAmount) * 0.4f
+            mc.player.limbSwing += mc.player.limbSwingAmount
+        } else if (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) {
             mc.player.prevLimbSwingAmount = 0.0f
             mc.player.limbSwing = 0.0f
             mc.player.limbSwingAmount = 0.0f
@@ -485,6 +491,10 @@ class ElytraFlight : Module() {
         mc.player.motionY = (if (mc.player.movementInput.sneak) -downSpeedPacket.value else -fallSpeedPacket.value).toDouble()
 
         event.cancel()
+    }
+
+    fun shouldSwing():Boolean {
+        return isEnabled && isFlying && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
     }
 
     override fun onUpdate() {

@@ -30,6 +30,7 @@
     "MixinLayerArmorBase",
     "MixinMinecraft",
     "MixinModelBoat",
+    "MixinModelPlayer",
     "MixinMovementInputFromOptions",
     "MixinNetHandlerPlayClient",
     "MixinNetworkManager",
