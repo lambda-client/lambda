@@ -10,13 +10,10 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.colourUtils.ColourHolder
 import net.minecraft.block.*
-import net.minecraft.client.Minecraft
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
 import net.minecraft.init.SoundEvents
-import net.minecraft.item.ItemBlock
-import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.util.EnumFacing
@@ -39,7 +36,7 @@ import kotlin.math.roundToInt
 )
 class HighwayTools : Module() {
     private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
-    private val baritoneModee = register(Settings.b("Baritone", true))
+    private val baritoneMode = register(Settings.b("Baritone", true))
     private val infoMessage = register(Settings.b("Logs", true))
     private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(9).build())
     private val tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(1).withMaximum(10).build())
@@ -60,12 +57,12 @@ class HighwayTools : Module() {
     //Stats
     var totalBlocksPlaced = 0
     var totalBlocksDestroyed = 0
-    var totalBlocksDistanceWent = 0
+    private var totalBlocksDistanceWent = 0
 
     val blockQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     private val doneQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     var a = mutableListOf<Pair<BlockPos, Boolean>>()
-    var waitTicks = 0
+    private var waitTicks = 0
 
     override fun onEnable() {
         if (mc.player == null) {
@@ -76,11 +73,11 @@ class HighwayTools : Module() {
 
         playerHotbarSlot = mc.player.inventory.currentItem
         buildDirectionCoordinateSavedY = mc.player.positionVector.y
-        if (buildDirectionSaved == 0 || buildDirectionSaved == 2) {
-            buildDirectionCoordinateSaved = mc.player.positionVector.x
+        buildDirectionCoordinateSaved = if (buildDirectionSaved == 0 || buildDirectionSaved == 2) {
+            mc.player.positionVector.x
         }
         else {
-            buildDirectionCoordinateSaved = mc.player.positionVector.z
+            mc.player.positionVector.z
         }
 
         blockQueue.clear()
@@ -89,13 +86,13 @@ class HighwayTools : Module() {
         MessageSendHelper.sendChatMessage("$chatName Module started." +
                 "\n    §9> §rSelected direction: §a" + directions[buildDirectionSaved] + "§r" +
                 "\n    §9> §rSnap to coordinate: §a" + buildDirectionCoordinateSaved.roundToInt() + "§r" +
-                "\n    §9> §rBaritone mode: §a" + baritoneModee.value + "§r")
+                "\n    §9> §rBaritone mode: §a" + baritoneMode.value + "§r")
     }
 
     override fun onUpdate() {
         if (!BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.isActive) {
             if (isDone()) {
-                if (baritoneModee.value) {
+                if (baritoneMode.value) {
                     moveOneBlock()
                 }
                 doneQueueReset()
@@ -126,7 +123,7 @@ class HighwayTools : Module() {
     private fun doTask(): Boolean {
         if (!isDone()) {
             if (waitTicks == 0) {
-                var blockAction = blockQueue.peek()
+                val blockAction = blockQueue.peek()
                 if (blockAction.getTaskState() == TaskState.BREAK) {
                     mineBlock(blockAction.getBlockPos(), true)
                     blockAction.setTaskState(TaskState.BREAKING)
@@ -140,10 +137,19 @@ class HighwayTools : Module() {
                     }
                 } else if (blockAction.getTaskState() == TaskState.BREAKING) {
                     mineBlock(blockAction.getBlockPos(), false)
-                    if (blockAction.getBlock()) {
-                        blockAction.setTaskState(TaskState.PLACE)
+                    blockAction.setTaskState(TaskState.BROKE)
+                    doTask()
+                } else if (blockAction.getTaskState() == TaskState.BROKE) {
+                    val block = mc.world.getBlockState(blockAction.getBlockPos()).block
+                    if (block is BlockAir) {
+                        if (blockAction.getBlock()) {
+                            blockAction.setTaskState(TaskState.PLACE)
+                        } else {
+                            blockAction.setTaskState(TaskState.DONE)
+                        }
+                        doTask()
                     } else {
-                        blockAction.setTaskState(TaskState.DONE)
+                        blockAction.setTaskState(TaskState.BREAK)
                     }
                 } else if (blockAction.getTaskState() == TaskState.PLACE) {
                     if (placeBlock(blockAction.getBlockPos())) {
@@ -160,6 +166,7 @@ class HighwayTools : Module() {
                     doTask()
                 }
             } else {
+                MessageSendHelper.sendChatMessage(waitTicks.toString())
                 waitTicks--
             }
             return true
@@ -193,21 +200,24 @@ class HighwayTools : Module() {
 
     private fun moveOneBlock() {
         // set head rotation to get max walking speed
-        var nextBlockPos: BlockPos
-        if (buildDirectionSaved == 0) {
-            nextBlockPos = BlockPos(mc.player.positionVector).north()
-            mc.player.rotationYaw = -180F
-        }
-        else if (buildDirectionSaved == 1) {
-            nextBlockPos = BlockPos(mc.player.positionVector).east()
-            mc.player.rotationYaw = -90F
-        }
-        else if (buildDirectionSaved == 2) {
-            nextBlockPos = BlockPos(mc.player.positionVector).south()
-            mc.player.rotationYaw = 0F
-        } else {
-            nextBlockPos = BlockPos(mc.player.positionVector).west()
-            mc.player.rotationYaw = 90F
+        val nextBlockPos: BlockPos
+        when (buildDirectionSaved) {
+            0 -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).north()
+                mc.player.rotationYaw = -180F
+            }
+            1 -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).east()
+                mc.player.rotationYaw = -90F
+            }
+            2 -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).south()
+                mc.player.rotationYaw = 0F
+            }
+            else -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).west()
+                mc.player.rotationYaw = 90F
+            }
         }
         mc.player.rotationPitch = 0F
         BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(nextBlockPos.getX(), nextBlockPos.getZ()))
@@ -262,6 +272,7 @@ class HighwayTools : Module() {
         //Swap to Obsidian in Hotbar or get from inventory
         if (InventoryUtils.getSlotsHotbar(49) == null && InventoryUtils.getSlotsNoHotbar(49) != null) {
             InventoryUtils.moveToHotbar(49, 130, (tickDelay.value * 16).toLong())
+            InventoryUtils.quickMoveSlot(1, (tickDelay.value * 16).toLong())
             return false
         } else if (InventoryUtils.getSlots(0, 35, 49) == null) {
             MessageSendHelper.sendChatMessage("$chatName No Obsidian was found in inventory, disabling.")
@@ -315,7 +326,7 @@ class HighwayTools : Module() {
 
     private fun updateBlockArray() {
         a.clear()
-        var b = BlockPos(mc.player.positionVector)
+        val b = BlockPos(mc.player.positionVector)
 
         when(mode.value) {
             Mode.HIGHWAY -> {
@@ -450,11 +461,14 @@ class HighwayTools : Module() {
                     }
                 }
             }
+            Mode.FLAT -> {
+                a.add(Pair((b), false))
+            }
         }
     }
 
     fun isDone(): Boolean { return blockQueue.size == 0 }
-    fun doneQueueReset() { doneQueue.clear() }
+    private fun doneQueueReset() { doneQueue.clear() }
 
     override fun onWorldRender(event: RenderEvent) {
         if (mc.player == null) return
@@ -467,11 +481,10 @@ class HighwayTools : Module() {
 
     fun getPlayerDirection(): Int {
         val yaw = (mc.player.rotationYaw % 360 + 360) % 360
-        if (yaw >= 135 && yaw < 225) { return 0 } //NORTH
-        else if (yaw >= 225 && yaw < 315) { return 1 } //EAST
-        else if (yaw >= 315 || yaw < 45) { return 2 } //SOUTH
-        else if (yaw >= 45 && yaw < 135){ return 3 } //WEST
-        else { return -1 } //WRONG
+        return if (yaw >= 135 && yaw < 225) { 0 } //NORTH
+        else if (yaw >= 225 && yaw < 315) { 1 } //EAST
+        else if (yaw >= 315 || yaw < 45) { 2 } //SOUTH
+        else { 3 } //WEST
     }
 }
 
@@ -485,6 +498,7 @@ class BlockTask(private val bp: BlockPos, private var tt: TaskState, private val
 enum class TaskState(val color: ColourHolder) {
     BREAK(ColourHolder(222, 0, 0)),
     BREAKING(ColourHolder(240, 222, 60)),
+    BROKE(ColourHolder(240, 77, 60)),
     PLACE(ColourHolder(35, 188, 254)),
     PLACED(ColourHolder(53, 222, 66)),
     DONE(ColourHolder(50, 50, 50))
