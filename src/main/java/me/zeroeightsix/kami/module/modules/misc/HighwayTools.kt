@@ -2,16 +2,15 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import baritone.api.BaritoneAPI
 import baritone.api.pathing.goals.GoalXZ
-import com.mojang.realmsclient.gui.ChatFormatting
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.player.Freecam
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.colourUtils.ColourHolder
 import net.minecraft.block.*
+import net.minecraft.client.Minecraft
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
@@ -25,18 +24,17 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import java.util.*
 import kotlin.math.roundToInt
 
 /**
  * @author Avanatiker
- * @since 15/08/2020
+ * @since 20/08/2020
  */
+
 @Module.Info(
         name = "HighwayTools",
-        description = "Better High-ways for the greater good.",
+        description = "Even Better High-ways for the greater good.",
         category = Module.Category.MISC
 )
 class HighwayTools : Module() {
@@ -51,44 +49,32 @@ class HighwayTools : Module() {
     private val aFilled = register(Settings.integerBuilder("FilledAlpha").withMinimum(0).withValue(31).withMaximum(255).withVisibility { filled.value }.build())
     private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value }.build())
 
-    private var offsetStep = 0
-    private var delayStep = 0
-    private var blocksDonePlacing = 0
     private var playerHotbarSlot = -1
-    private var lastHotbarSlot = -1
-    private var isSneaking = false
-    private var totalTicksRunning = 0
-    private var firstRun = false
-    private var missingObiDisable = false
-    private var ismining = false
-    private var nextBlockPos = BlockPos(0,0,0)
-    private var currentBlockPos = BlockPos(0,0,0)
-    private val directions = listOf("North", "East", "South", "West")
-
     private var buildDirectionSaved = 0
     private var buildDirectionCoordinateSaved = 0.0
     private var buildDirectionCoordinateSavedY = 0.0
-    private var offsetPattern = arrayOfNulls<Vec3d>(0)
-    private var maxSteps = 0
+    private val directions = listOf("North", "East", "South", "West")
 
-    private var totalBlocksPlaced = 0
-    private var totalBlocksDestroyed = 0
-    private var totalBlocksDistanceWent = 0
+    private var isSneaking = false
 
-    private var placementPendingBlockTiles = ConcurrentHashMap<BlockPos, ColourHolder>()
-    private var placedBlocksIteration = ConcurrentHashMap<BlockPos, ColourHolder>()
-    private var pendingWrongBlocks = ConcurrentHashMap<BlockPos, ColourHolder>()
+    //Stats
+    var totalBlocksPlaced = 0
+    var totalBlocksDestroyed = 0
+    var totalBlocksDistanceWent = 0
+
+    val blockQueue: Queue<BlockTask> = LinkedList<BlockTask>()
+    private val doneQueue: Queue<BlockTask> = LinkedList<BlockTask>()
+    var a = mutableListOf<Pair<BlockPos, Boolean>>()
+    var waitTicks = 0
 
     override fun onEnable() {
         if (mc.player == null) {
             disable()
             return
         }
-        firstRun = true
+        buildDirectionSaved = getPlayerDirection()
 
         playerHotbarSlot = mc.player.inventory.currentItem
-        lastHotbarSlot = -1
-        buildDirectionSaved = getPlayerDirection()
         buildDirectionCoordinateSavedY = mc.player.positionVector.y
         if (buildDirectionSaved == 0 || buildDirectionSaved == 2) {
             buildDirectionCoordinateSaved = mc.player.positionVector.x
@@ -97,201 +83,162 @@ class HighwayTools : Module() {
             buildDirectionCoordinateSaved = mc.player.positionVector.z
         }
 
-        if (mode.value == Mode.FLAT) {
-            offsetPattern = OffsetsBlocks.FLAT
-            maxSteps = OffsetsBlocks.FLAT.size
-        }
-        if (mode.value == Mode.HIGHWAY) {
-            if (buildDirectionSaved == 0) {
-                offsetPattern = OffsetsBlocks.HIGHWAY_0
-                maxSteps = OffsetsBlocks.HIGHWAY_0.size
-            }
-            else if (buildDirectionSaved == 1) {
-                offsetPattern = OffsetsBlocks.HIGHWAY_1
-                maxSteps = OffsetsBlocks.HIGHWAY_1.size
-            }
-            else if (buildDirectionSaved == 2) {
-                offsetPattern = OffsetsBlocks.HIGHWAY_2
-                maxSteps = OffsetsBlocks.HIGHWAY_2.size
-            }
-            else if (buildDirectionSaved == 3) {
-                offsetPattern = OffsetsBlocks.HIGHWAY_3
-                maxSteps = OffsetsBlocks.HIGHWAY_3.size
-            }
-        }
-
+        blockQueue.clear()
+        doneQueueReset()
+        updateTasks()
         MessageSendHelper.sendChatMessage("$chatName Module started." +
-                "\n    §9> §rSelected direction: §a" + directions[getPlayerDirection()] + "§r" +
+                "\n    §9> §rSelected direction: §a" + directions[buildDirectionSaved] + "§r" +
                 "\n    §9> §rSnap to coordinate: §a" + buildDirectionCoordinateSaved.roundToInt() + "§r" +
                 "\n    §9> §rBaritone mode: §a" + baritoneModee.value + "§r")
     }
 
-    override fun onDisable() {
-        if (mc.player == null) return
-
-        // load initial player hand
-        if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
-            mc.player.inventory.currentItem = playerHotbarSlot
+    override fun onUpdate() {
+        if (!BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.isActive) {
+            if (isDone()) {
+                if (baritoneModee.value) {
+                    moveOneBlock()
+                }
+                doneQueueReset()
+                updateTasks()
+                totalBlocksDistanceWent++
+            } else {
+                doTask()
+                //getDebug()
+            }
         }
-        if (isSneaking) {
-            mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING))
-            isSneaking = false
-        }
-        playerHotbarSlot = -1
-        lastHotbarSlot = -1
-        missingObiDisable = false
-        BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
-        MessageSendHelper.sendChatMessage("$chatName Module stopped." +
-                "\n    §9> §rPlaced obsidian: §a" + totalBlocksPlaced + "§r" +
-                "\n    §9> §rDestroyed blocks: §a" + totalBlocksDestroyed + "§r" +
-                "\n    §9> §rDistance: §a" + totalBlocksDistanceWent + "§r")
-        totalBlocksPlaced = 0
-        totalBlocksDestroyed = 0
-        totalBlocksDistanceWent = 0
     }
 
-    override fun onUpdate() {
-        if (mc.player == null || KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam::class.java)) {
+    private fun addTask(bps: BlockPos, ts: TaskState, bb: Boolean) {
+        blockQueue.add(BlockTask(bps, ts, bb))
+    }
+
+    private fun getDebug() {
+        MessageSendHelper.sendChatMessage("#### LOG ####")
+        for (bt in blockQueue) {
+            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
+        }
+        MessageSendHelper.sendChatMessage("#### DONE ####")
+        for (bt in doneQueue) {
+            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
+        }
+    }
+
+    private fun doTask(): Boolean {
+        if (!isDone()) {
+            if (waitTicks == 0) {
+                var blockAction = blockQueue.peek()
+                if (blockAction.getTaskState() == TaskState.BREAK) {
+                    mineBlock(blockAction.getBlockPos(), true)
+                    blockAction.setTaskState(TaskState.BREAKING)
+                    val block = mc.world.getBlockState(blockAction.getBlockPos()).block
+                    if (block is BlockNetherrack) {
+                        waitTicks = 0
+                    } else {
+                        val efficiencyLevel = 5
+                        waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
+                        waitTicks = 20
+                    }
+                } else if (blockAction.getTaskState() == TaskState.BREAKING) {
+                    mineBlock(blockAction.getBlockPos(), false)
+                    if (blockAction.getBlock()) {
+                        blockAction.setTaskState(TaskState.PLACE)
+                    } else {
+                        blockAction.setTaskState(TaskState.DONE)
+                    }
+                } else if (blockAction.getTaskState() == TaskState.PLACE) {
+                    if (placeBlock(blockAction.getBlockPos())) {
+                        blockAction.setTaskState(TaskState.PLACED)
+                    } else {
+                        return false
+                    }
+                } else if (blockAction.getTaskState() == TaskState.PLACED) {
+                    blockAction.setTaskState(TaskState.DONE)
+                    doTask()
+                } else if (blockAction.getTaskState() == TaskState.DONE) {
+                    blockQueue.remove()
+                    doneQueue.add(blockAction)
+                    doTask()
+                }
+            } else {
+                waitTicks--
+            }
+            return true
+        } else {
+            return false
+        }
+    }
+
+    private fun updateTasks() {
+        updateBlockArray()
+        for ((a, b) in a) {
+            val block = mc.world.getBlockState(a).block
+            if (b && block is BlockAir) { addTask(a, TaskState.PLACE, true) }
+            else if (b && block !is BlockAir && block !is BlockObsidian) { addTask(a, TaskState.BREAK, true) }
+            else if (!b && block !is BlockAir) { addTask(a, TaskState.BREAK, false) }
+            else if (b && block is BlockObsidian) { addTask(a, TaskState.DONE, true) }
+            else if (!b && block is BlockAir) { addTask(a, TaskState.DONE, false) }
+        }
+    }
+
+    private fun updateRenderer(renderer: ESPRenderer): ESPRenderer {
+        val side = GeometryMasks.Quad.ALL
+        for (bt in blockQueue) {
+            if (bt.getTaskState() != TaskState.DONE) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
+        }
+        for (bt in doneQueue) {
+            if (bt.getBlock()) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
+        }
+        return renderer
+    }
+
+    private fun moveOneBlock() {
+        // set head rotation to get max walking speed
+        var nextBlockPos: BlockPos
+        if (buildDirectionSaved == 0) {
+            nextBlockPos = BlockPos(mc.player.positionVector).north()
+            mc.player.rotationYaw = -180F
+        }
+        else if (buildDirectionSaved == 1) {
+            nextBlockPos = BlockPos(mc.player.positionVector).east()
+            mc.player.rotationYaw = -90F
+        }
+        else if (buildDirectionSaved == 2) {
+            nextBlockPos = BlockPos(mc.player.positionVector).south()
+            mc.player.rotationYaw = 0F
+        } else {
+            nextBlockPos = BlockPos(mc.player.positionVector).west()
+            mc.player.rotationYaw = 90F
+        }
+        mc.player.rotationPitch = 0F
+        BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(nextBlockPos.getX(), nextBlockPos.getZ()))
+    }
+
+    private fun mineBlock(pos: BlockPos, pre: Boolean) {
+        if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
+            InventoryUtils.moveToHotbar(278, 130, (tickDelay.value * 16).toLong())
+            return
+        } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
+            MessageSendHelper.sendChatMessage("$chatName No pickaxe was found in inventory, disabling.")
+            mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
             return
         }
+        InventoryUtils.swapSlotToItem(278)
+        lookAtBlock(pos)
 
-        if (!firstRun) {
-            delayStep = if (delayStep < tickDelay.value) {
-                delayStep++
-                return
-            } else {
-                0
-            }
+        if (pre) {
+            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, mc.objectMouseOver.sideHit))
+        } else {
+            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, mc.objectMouseOver.sideHit))
         }
-
-        if (firstRun) {
-            firstRun = false
-            if (findObiInHotbar() == -1) {
-                missingObiDisable = true
-            }
-        }
-
-        var blocksPlaced = 0
-
-        blocksDonePlacing = 0
-
-        // get workload and render
-        placementPendingBlockTiles.clear()
-        placedBlocksIteration.clear()
-        pendingWrongBlocks.clear()
-        for(x in 0 until maxSteps) {
-            val offsetPos = BlockPos(offsetPattern[x])
-            val snappedCoords = BlockPos(mc.player.positionVector)
-            snappedCoords.y = buildDirectionCoordinateSavedY.toInt()
-            if (getPlayerDirection() == 0 || getPlayerDirection() == 2) {
-                snappedCoords.x = buildDirectionCoordinateSaved.toInt()
-            }
-            else if (getPlayerDirection() == 1 || getPlayerDirection() == 3) {
-                snappedCoords.z = buildDirectionCoordinateSaved.toInt()
-            }
-            val targetPos = BlockPos(snappedCoords).add(offsetPos.x, offsetPos.y, offsetPos.z)
-            if (x == 1) {
-                currentBlockPos = nextBlockPos
-                nextBlockPos = targetPos
-            }
-            val block = mc.world.getBlockState(targetPos).block
-            if (block is BlockAir) {
-                placementPendingBlockTiles[targetPos] = ColourHolder(35, 188, 254)
-            }
-            if (block is BlockObsidian) {
-                placementPendingBlockTiles[targetPos] = ColourHolder(50, 50, 50)
-                blocksDonePlacing++
-            }
-        }
-
-        // actually do the work
-        while (blocksPlaced < blocksPerTick.value) {
-            if (offsetStep >= maxSteps) {
-                offsetStep = 0
-                break
-            }
-            val offsetPos = BlockPos(offsetPattern[offsetStep])
-            var targetPos = BlockPos(mc.player.positionVector).add(offsetPos.x, offsetPos.y, offsetPos.z)
-            if (mode.value == Mode.HIGHWAY) {
-                val snappedCoords = BlockPos(mc.player.positionVector)
-                snappedCoords.y = buildDirectionCoordinateSavedY.toInt()
-                if (getPlayerDirection() == 0 || getPlayerDirection() == 2) {
-                    snappedCoords.x = buildDirectionCoordinateSaved.toInt()
-                }
-                else if (getPlayerDirection() == 1 || getPlayerDirection() == 3) {
-                    snappedCoords.z = buildDirectionCoordinateSaved.toInt()
-                }
-                targetPos = BlockPos(snappedCoords).add(offsetPos.x, offsetPos.y, offsetPos.z)
-            }
-            if (placeBlock(targetPos)) {
-                placedBlocksIteration[targetPos] = ColourHolder(53, 222, 66)
-                blocksPlaced++
-                totalBlocksPlaced++
-            }
-            offsetStep++
-        }
-
-        // check if row is ready for moving on
-        if (baritoneModee.value && (blocksDonePlacing == maxSteps)) {
-            moveOneBlock()
-        }
-
-        if (blocksPlaced > 0) {
-            if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
-                mc.player.inventory.currentItem = playerHotbarSlot
-                lastHotbarSlot = playerHotbarSlot
-            }
-            if (isSneaking) {
-                mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING))
-                isSneaking = false
-            }
-        }
-
-        totalTicksRunning++
-
-        if (missingObiDisable && infoMessage.value) {
-            missingObiDisable = false
-            MessageSendHelper.sendChatMessage("$chatName " + ChatFormatting.RED + "Disabled" + ChatFormatting.RESET + ", Obsidian missing!")
-            disable()
-        }
+        mc.player.swingArm(EnumHand.MAIN_HAND)
     }
 
-    private fun getPlayerDirection(): Int {
-        val yaw = (mc.player.rotationYaw % 360 + 360) % 360
-        if (yaw >= 135 && yaw < 225) {
-            return 0 //NORTH
-        }
-        else if (yaw >= 225 && yaw < 315) {
-            return 1 //EAST
-        }
-        else if (yaw >= 315 || yaw < 45) {
-            return 2 //SOUTH
-        }
-        else if (yaw >= 45 && yaw < 135){
-            return 3 //WEST
-        }
-        else {
-            return -1
-        }
-    }
-
-    private fun placeBlock(pos: BlockPos): Boolean {
+    private fun placeBlock(pos: BlockPos): Boolean
+    {
         // check if block is already placed
         val block = mc.world.getBlockState(pos).block
         if (block !is BlockAir && block !is BlockLiquid) {
-            if (block !is BlockObsidian) {
-                pendingWrongBlocks[pos] = ColourHolder(222, 0, 0)
-                val backupYaw = mc.player.rotationYaw
-                val backupPitch = mc.player.rotationPitch
-                mineBlock(pos, true)
-                Executors.newSingleThreadScheduledExecutor().schedule({
-                    mineBlock(pos, false)
-                    mc.player.rotationYaw = backupYaw
-                    mc.player.rotationPitch = backupPitch
-                    totalBlocksDestroyed++
-                }, tickDelay.value * 50L, TimeUnit.MILLISECONDS)
-                blocksDonePlacing--
-            }
             return false
         }
 
@@ -312,18 +259,21 @@ class HighwayTools : Module() {
             return false
         }
 
-        val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(opposite.directionVec).scale(0.5))
-        val neighbourBlock = mc.world.getBlockState(neighbour).block
-        val obiSlot = findObiInHotbar()
-
-        if (obiSlot == -1) {
-            missingObiDisable = true
+        //Swap to Obsidian in Hotbar or get from inventory
+        if (InventoryUtils.getSlotsHotbar(49) == null && InventoryUtils.getSlotsNoHotbar(49) != null) {
+            InventoryUtils.moveToHotbar(49, 130, (tickDelay.value * 16).toLong())
+            return false
+        } else if (InventoryUtils.getSlots(0, 35, 49) == null) {
+            MessageSendHelper.sendChatMessage("$chatName No Obsidian was found in inventory, disabling.")
+            mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
             return false
         }
-        if (lastHotbarSlot != obiSlot) {
-            mc.player.inventory.currentItem = obiSlot
-            lastHotbarSlot = obiSlot
-        }
+        InventoryUtils.swapSlotToItem(49)
+
+        val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(opposite.directionVec).scale(0.5))
+        val neighbourBlock = mc.world.getBlockState(neighbour).block
+
         if (!isSneaking && BlockUtils.blackList.contains(neighbourBlock) || BlockUtils.shulkerList.contains(neighbourBlock)) {
             mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
             isSneaking = true
@@ -342,59 +292,18 @@ class HighwayTools : Module() {
         return true
     }
 
-    private fun mineBlock(pos: BlockPos, pre: Boolean) {
-        // get mining tool in mainhand
-        if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
-            InventoryUtils.moveToHotbar(278, 130, (tickDelay.value * 16).toLong())
-            return
-        } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
-            MessageSendHelper.sendChatMessage("$chatName No pickaxe was found in inventory, disabling.")
-            mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-            this.disable()
-            return
+    private fun getPlaceableSide(pos: BlockPos): EnumFacing? {
+        for (side in EnumFacing.values()) {
+            val neighbour = pos.offset(side)
+            if (!mc.world.getBlockState(neighbour).block.canCollideCheck(mc.world.getBlockState(neighbour), false)) {
+                continue
+            }
+            val blockState = mc.world.getBlockState(neighbour)
+            if (!blockState.material.isReplaceable) {
+                return side
+            }
         }
-        InventoryUtils.swapSlotToItem(278)
-        lookAtBlock(pos)
-
-        /* Packet mining lol */
-        if (pre) {
-            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, mc.objectMouseOver.sideHit))
-            //if (state != AutoObsidian.State.SEARCHING) state = AutoObsidian.State.MINING else searchingState = AutoObsidian.SearchingState.MINING
-        } else {
-            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, mc.objectMouseOver.sideHit))
-        }
-        mc.player.swingArm(EnumHand.MAIN_HAND)
-    }
-
-    // just experimental
-    private fun mineBlockBaritone(pos: BlockPos) {
-        ismining = true
-        val bapi = BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager()
-        bapi.execute("sel 1 " + pos.x + " " + pos.y + " " + pos.z)
-        bapi.execute("sel 2 " + pos.x + " " + pos.y + " " + pos.z)
-        bapi.execute("sel ca")
-        bapi.execute("sel clear")
-        BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(nextBlockPos.getX(), nextBlockPos.getZ()))
-        ismining = false
-    }
-
-    private fun moveOneBlock() {
-        // set head rotation to get max walking speed
-        if (getPlayerDirection() == 0) {
-            mc.player.rotationYaw = -180F
-        }
-        else if (getPlayerDirection() == 1) {
-            mc.player.rotationYaw = -90F
-        }
-        else if (getPlayerDirection() == 2) {
-            mc.player.rotationYaw = 0F
-        } else {
-            mc.player.rotationYaw = 90F
-        }
-        mc.player.rotationPitch = 0F
-        //move to next block pos
-        BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(nextBlockPos.getX(), nextBlockPos.getZ()))
-        totalBlocksDistanceWent++
+        return null
     }
 
     private fun lookAtBlock(pos: BlockPos) {
@@ -404,198 +313,183 @@ class HighwayTools : Module() {
         mc.player.rotationPitch = lookAt[1].toFloat()
     }
 
+    private fun updateBlockArray() {
+        a.clear()
+        var b = BlockPos(mc.player.positionVector)
+
+        when(mode.value) {
+            Mode.HIGHWAY -> {
+                when (buildDirectionSaved) {
+                    0 -> { //NORTH
+                        a.add(Pair(b.down(), true))
+                        a.add(Pair(b.down().north(), true))
+                        a.add(Pair(b.down().north().north(), true))
+                        a.add(Pair(b.down().north().north().east(), true))
+                        a.add(Pair(b.down().north().north().west(), true))
+                        a.add(Pair(b.down().north().north().east().east(), true))
+                        a.add(Pair(b.down().north().north().west().west(), true))
+                        a.add(Pair(b.down().north().north().east().east().east(), true))
+                        a.add(Pair(b.down().north().north().west().west().west(), true))
+                        a.add(Pair(b.north().north().east().east().east(), true))
+                        a.add(Pair(b.north().north().west().west().west(), true))
+                        a.add(Pair(b.north().north(), false))
+                        a.add(Pair(b.north().north().east(), false))
+                        a.add(Pair(b.north().north().west(), false))
+                        a.add(Pair(b.north().north().east().east(), false))
+                        a.add(Pair(b.north().north().west().west(), false))
+                        a.add(Pair(b.up().north().north(), false))
+                        a.add(Pair(b.up().north().north().east(), false))
+                        a.add(Pair(b.up().north().north().west(), false))
+                        a.add(Pair(b.up().north().north().east().east(), false))
+                        a.add(Pair(b.up().north().north().west().west(), false))
+                        a.add(Pair(b.up().north().north().east().east().east(), false))
+                        a.add(Pair(b.up().north().north().west().west().west(), false))
+                        a.add(Pair(b.up().up().north().north(), false))
+                        a.add(Pair(b.up().up().north().north().east(), false))
+                        a.add(Pair(b.up().up().north().north().west(), false))
+                        a.add(Pair(b.up().up().north().north().east().east(), false))
+                        a.add(Pair(b.up().up().north().north().west().west(), false))
+                        a.add(Pair(b.up().up().north().north().east().east().east(), false))
+                        a.add(Pair(b.up().up().north().north().west().west().west(), false))
+                    }
+                    1 -> { //EAST
+                        a.add(Pair(b.down(), true))
+                        a.add(Pair(b.down().east(), true))
+                        a.add(Pair(b.down().east().east(), true))
+                        a.add(Pair(b.down().east().east().south(), true))
+                        a.add(Pair(b.down().east().east().north(), true))
+                        a.add(Pair(b.down().east().east().south().south(), true))
+                        a.add(Pair(b.down().east().east().north().north(), true))
+                        a.add(Pair(b.down().east().east().south().south().south(), true))
+                        a.add(Pair(b.down().east().east().north().north().north(), true))
+                        a.add(Pair(b.east().east().south().south().south(), true))
+                        a.add(Pair(b.east().east().north().north().north(), true))
+                        a.add(Pair(b.east().east(), false))
+                        a.add(Pair(b.east().east().south(), false))
+                        a.add(Pair(b.east().east().north(), false))
+                        a.add(Pair(b.east().east().south().south(), false))
+                        a.add(Pair(b.east().east().north().north(), false))
+                        a.add(Pair(b.up().east().east(), false))
+                        a.add(Pair(b.up().east().east().south(), false))
+                        a.add(Pair(b.up().east().east().north(), false))
+                        a.add(Pair(b.up().east().east().south().south(), false))
+                        a.add(Pair(b.up().east().east().north().north(), false))
+                        a.add(Pair(b.up().east().east().south().south().south(), false))
+                        a.add(Pair(b.up().east().east().north().north().north(), false))
+                        a.add(Pair(b.up().up().east().east(), false))
+                        a.add(Pair(b.up().up().east().east().south(), false))
+                        a.add(Pair(b.up().up().east().east().north(), false))
+                        a.add(Pair(b.up().up().east().east().south().south(), false))
+                        a.add(Pair(b.up().up().east().east().north().north(), false))
+                        a.add(Pair(b.up().up().east().east().south().south().south(), false))
+                        a.add(Pair(b.up().up().east().east().north().north().north(), false))
+                    }
+                    2 -> { //SOUTH
+                        a.add(Pair(b.down(), true))
+                        a.add(Pair(b.down().south(), true))
+                        a.add(Pair(b.down().south().south(), true))
+                        a.add(Pair(b.down().south().south().east(), true))
+                        a.add(Pair(b.down().south().south().west(), true))
+                        a.add(Pair(b.down().south().south().east().east(), true))
+                        a.add(Pair(b.down().south().south().west().west(), true))
+                        a.add(Pair(b.down().south().south().east().east().east(), true))
+                        a.add(Pair(b.down().south().south().west().west().west(), true))
+                        a.add(Pair(b.south().south().east().east().east(), true))
+                        a.add(Pair(b.south().south().west().west().west(), true))
+                        a.add(Pair(b.south().south(), false))
+                        a.add(Pair(b.south().south().east(), false))
+                        a.add(Pair(b.south().south().west(), false))
+                        a.add(Pair(b.south().south().east().east(), false))
+                        a.add(Pair(b.south().south().west().west(), false))
+                        a.add(Pair(b.up().south().south(), false))
+                        a.add(Pair(b.up().south().south().east(), false))
+                        a.add(Pair(b.up().south().south().west(), false))
+                        a.add(Pair(b.up().south().south().east().east(), false))
+                        a.add(Pair(b.up().south().south().west().west(), false))
+                        a.add(Pair(b.up().south().south().east().east().east(), false))
+                        a.add(Pair(b.up().south().south().west().west().west(), false))
+                        a.add(Pair(b.up().up().south().south(), false))
+                        a.add(Pair(b.up().up().south().south().east(), false))
+                        a.add(Pair(b.up().up().south().south().west(), false))
+                        a.add(Pair(b.up().up().south().south().east().east(), false))
+                        a.add(Pair(b.up().up().south().south().west().west(), false))
+                        a.add(Pair(b.up().up().south().south().east().east().east(), false))
+                        a.add(Pair(b.up().up().south().south().west().west().west(), false))
+                    }
+                    3 -> { //WEST
+                        a.add(Pair(b.down(), true))
+                        a.add(Pair(b.down().west(), true))
+                        a.add(Pair(b.down().west().west(), true))
+                        a.add(Pair(b.down().west().west().south(), true))
+                        a.add(Pair(b.down().west().west().north(), true))
+                        a.add(Pair(b.down().west().west().south().south(), true))
+                        a.add(Pair(b.down().west().west().north().north(), true))
+                        a.add(Pair(b.down().west().west().south().south().south(), true))
+                        a.add(Pair(b.down().west().west().north().north().north(), true))
+                        a.add(Pair(b.west().west().south().south().south(), true))
+                        a.add(Pair(b.west().west().north().north().north(), true))
+                        a.add(Pair(b.west().west(), false))
+                        a.add(Pair(b.west().west().south(), false))
+                        a.add(Pair(b.west().west().north(), false))
+                        a.add(Pair(b.west().west().south().south(), false))
+                        a.add(Pair(b.west().west().north().north(), false))
+                        a.add(Pair(b.up().west().west(), false))
+                        a.add(Pair(b.up().west().west().south(), false))
+                        a.add(Pair(b.up().west().west().north(), false))
+                        a.add(Pair(b.up().west().west().south().south(), false))
+                        a.add(Pair(b.up().west().west().north().north(), false))
+                        a.add(Pair(b.up().west().west().south().south().south(), false))
+                        a.add(Pair(b.up().west().west().north().north().north(), false))
+                        a.add(Pair(b.up().up().west().west(), false))
+                        a.add(Pair(b.up().up().west().west().south(), false))
+                        a.add(Pair(b.up().up().west().west().north(), false))
+                        a.add(Pair(b.up().up().west().west().south().south(), false))
+                        a.add(Pair(b.up().up().west().west().north().north(), false))
+                        a.add(Pair(b.up().up().west().west().south().south().south(), false))
+                        a.add(Pair(b.up().up().west().west().north().north().north(), false))
+                    }
+                }
+            }
+        }
+    }
+
+    fun isDone(): Boolean { return blockQueue.size == 0 }
+    fun doneQueueReset() { doneQueue.clear() }
+
     override fun onWorldRender(event: RenderEvent) {
         if (mc.player == null) return
-        val side = GeometryMasks.Quad.ALL
         val renderer = ESPRenderer(event.partialTicks)
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
-        if (!placementPendingBlockTiles.isEmpty()) {
-            for ((pos, colour) in placementPendingBlockTiles) {
-                renderer.add(pos, colour, side)
-            }
-        }
-        if (!placedBlocksIteration.isEmpty()) {
-            for ((pos, colour) in placedBlocksIteration) {
-                renderer.add(pos, colour, side)
-            }
-        }
-        if (!pendingWrongBlocks.isEmpty()) {
-            for ((pos, colour) in pendingWrongBlocks) {
-                renderer.add(pos, colour, side)
-            }
-        }
+        updateRenderer(renderer)
         renderer.render()
     }
 
-    private fun findObiInHotbar(): Int {
-        // search blocks in hotbar
-        var slot = -1
-        for (i in 0..8) {
-            // filter out non-block items
-            val stack = mc.player.inventory.getStackInSlot(i)
-            if (stack == ItemStack.EMPTY || stack.getItem() !is ItemBlock) {
-                continue
-            }
-            val block = (stack.getItem() as ItemBlock).block
-            if (block is BlockObsidian) {
-                slot = i
-                break
-            }
-            //else if (block is BlockNetherrack) {
-            //    slot = i
-            //    break
-            //}
-        }
-        return slot
+    fun getPlayerDirection(): Int {
+        val yaw = (mc.player.rotationYaw % 360 + 360) % 360
+        if (yaw >= 135 && yaw < 225) { return 0 } //NORTH
+        else if (yaw >= 225 && yaw < 315) { return 1 } //EAST
+        else if (yaw >= 315 || yaw < 45) { return 2 } //SOUTH
+        else if (yaw >= 45 && yaw < 135){ return 3 } //WEST
+        else { return -1 } //WRONG
     }
+}
 
-    private enum class Mode {
-        FLAT, HIGHWAY
-    }
+class BlockTask(private val bp: BlockPos, private var tt: TaskState, private val bb: Boolean) {
+    fun getBlockPos(): BlockPos { return bp }
+    fun getTaskState(): TaskState { return tt }
+    fun setTaskState(tts: TaskState) { tt = tts }
+    fun getBlock(): Boolean { return bb }
+}
 
-    private object Offsets_Space {
-        val HIGHWAY_0 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(0.0, -1.0, -1.0),
-                Vec3d(-1.0, -1.0, -1.0),
-                Vec3d(1.0, -1.0, -1.0),
-                Vec3d(-2.0, -1.0, -1.0),
-                Vec3d(2.0, -1.0, -1.0),
-                Vec3d(-3.0, -1.0, -1.0),
-                Vec3d(3.0, -1.0, -1.0),
-                Vec3d(3.0, 0.0, -1.0),
-                Vec3d(-3.0, 0.0, -1.0)
-        )
-        val HIGHWAY_1 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(1.0, -1.0, 0.0),
-                Vec3d(1.0, -1.0, -1.0),
-                Vec3d(1.0, -1.0, 1.0),
-                Vec3d(1.0, -1.0, -2.0),
-                Vec3d(1.0, -1.0, 2.0),
-                Vec3d(1.0, -1.0, -3.0),
-                Vec3d(1.0, -1.0, 3.0),
-                Vec3d(1.0, 0.0, 3.0),
-                Vec3d(1.0, 0.0, -3.0)
-        )
-        val HIGHWAY_2 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(0.0, -1.0, 1.0),
-                Vec3d(-1.0, -1.0, 1.0),
-                Vec3d(1.0, -1.0, 1.0),
-                Vec3d(-2.0, -1.0, 1.0),
-                Vec3d(2.0, -1.0, 1.0),
-                Vec3d(-3.0, -1.0, 1.0),
-                Vec3d(3.0, -1.0, 1.0),
-                Vec3d(3.0, 0.0, 1.0),
-                Vec3d(-3.0, 0.0, 1.0)
-        )
-        val HIGHWAY_3 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(-1.0, -1.0, 0.0),
-                Vec3d(-1.0, -1.0, -1.0),
-                Vec3d(-1.0, -1.0, 1.0),
-                Vec3d(-1.0, -1.0, -2.0),
-                Vec3d(-1.0, -1.0, 2.0),
-                Vec3d(-1.0, -1.0, -3.0),
-                Vec3d(-1.0, -1.0, 3.0),
-                Vec3d(-1.0, 0.0, 3.0),
-                Vec3d(-1.0, 0.0, -3.0)
-        )
-    }
+enum class TaskState(val color: ColourHolder) {
+    BREAK(ColourHolder(222, 0, 0)),
+    BREAKING(ColourHolder(240, 222, 60)),
+    PLACE(ColourHolder(35, 188, 254)),
+    PLACED(ColourHolder(53, 222, 66)),
+    DONE(ColourHolder(50, 50, 50))
+}
 
-    private object OffsetsBlocks {
-        val FLAT = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(1.0, -1.0, 0.0),
-                Vec3d(-1.0, -1.0, 0.0),
-                Vec3d(0.0, -1.0, 1.0),
-                Vec3d(0.0, -1.0, -1.0),
-                Vec3d(1.0, -1.0, 1.0),
-                Vec3d(-1.0, -1.0, -1.0),
-                Vec3d(1.0, -1.0, -1.0),
-                Vec3d(-1.0, -1.0, 1.0),
-                Vec3d(2.0, -1.0, 0.0),
-                Vec3d(-2.0, -1.0, 0.0),
-                Vec3d(0.0, -1.0, 2.0),
-                Vec3d(0.0, -1.0, -2.0),
-                Vec3d(1.0, -1.0, 2.0),
-                Vec3d(-1.0, -1.0, 2.0),
-                Vec3d(2.0, -1.0, -1.0),
-                Vec3d(2.0, -1.0, 1.0),
-                Vec3d(-2.0, -1.0, -1.0),
-                Vec3d(-2.0, -1.0, 1.0),
-                Vec3d(1.0, -1.0, -2.0),
-                Vec3d(-1.0, -1.0, -2.0),
-                Vec3d(2.0, -1.0, 2.0),
-                Vec3d(-2.0, -1.0, 2.0),
-                Vec3d(-2.0, -1.0, -2.0),
-                Vec3d(2.0, -1.0, -2.0)
-        )
-        val HIGHWAY_0 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(0.0, -1.0, -1.0),
-                Vec3d(-1.0, -1.0, -1.0),
-                Vec3d(1.0, -1.0, -1.0),
-                Vec3d(-2.0, -1.0, -1.0),
-                Vec3d(2.0, -1.0, -1.0),
-                Vec3d(-3.0, -1.0, -1.0),
-                Vec3d(3.0, -1.0, -1.0),
-                Vec3d(3.0, 0.0, -1.0),
-                Vec3d(-3.0, 0.0, -1.0)
-        )
-        val HIGHWAY_1 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(1.0, -1.0, 0.0),
-                Vec3d(1.0, -1.0, -1.0),
-                Vec3d(1.0, -1.0, 1.0),
-                Vec3d(1.0, -1.0, -2.0),
-                Vec3d(1.0, -1.0, 2.0),
-                Vec3d(1.0, -1.0, -3.0),
-                Vec3d(1.0, -1.0, 3.0),
-                Vec3d(1.0, 0.0, 3.0),
-                Vec3d(1.0, 0.0, -3.0)
-        )
-        val HIGHWAY_2 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(0.0, -1.0, 1.0),
-                Vec3d(-1.0, -1.0, 1.0),
-                Vec3d(1.0, -1.0, 1.0),
-                Vec3d(-2.0, -1.0, 1.0),
-                Vec3d(2.0, -1.0, 1.0),
-                Vec3d(-3.0, -1.0, 1.0),
-                Vec3d(3.0, -1.0, 1.0),
-                Vec3d(3.0, 0.0, 1.0),
-                Vec3d(-3.0, 0.0, 1.0)
-        )
-        val HIGHWAY_3 = arrayOf<Vec3d?>(
-                Vec3d(0.0, -1.0, 0.0),
-                Vec3d(-1.0, -1.0, 0.0),
-                Vec3d(-1.0, -1.0, -1.0),
-                Vec3d(-1.0, -1.0, 1.0),
-                Vec3d(-1.0, -1.0, -2.0),
-                Vec3d(-1.0, -1.0, 2.0),
-                Vec3d(-1.0, -1.0, -3.0),
-                Vec3d(-1.0, -1.0, 3.0),
-                Vec3d(-1.0, 0.0, 3.0),
-                Vec3d(-1.0, 0.0, -3.0)
-        )
-    }
-
-    companion object {
-        private fun getPlaceableSide(pos: BlockPos): EnumFacing? {
-            for (side in EnumFacing.values()) {
-                val neighbour = pos.offset(side)
-                if (!mc.world.getBlockState(neighbour).block.canCollideCheck(mc.world.getBlockState(neighbour), false)) {
-                    continue
-                }
-                val blockState = mc.world.getBlockState(neighbour)
-                if (!blockState.material.isReplaceable) {
-                    return side
-                }
-            }
-            return null
-        }
-    }
+enum class Mode {
+    FLAT, HIGHWAY
 }
