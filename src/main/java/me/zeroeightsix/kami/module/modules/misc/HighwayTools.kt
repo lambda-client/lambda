@@ -37,7 +37,6 @@ import kotlin.math.roundToInt
 class HighwayTools : Module() {
     private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
     private val baritoneMode = register(Settings.b("Baritone", true))
-    private val infoMessage = register(Settings.b("Logs", true))
     private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(9).build())
     private val tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(1).withMaximum(10).build())
     private val rotate = register(Settings.b("Rotate", true))
@@ -63,6 +62,7 @@ class HighwayTools : Module() {
     private val doneQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     var a = mutableListOf<Pair<BlockPos, Boolean>>()
     private var waitTicks = 0
+    private var blocksPlaced = 0
 
     override fun onEnable() {
         if (mc.player == null) {
@@ -125,23 +125,55 @@ class HighwayTools : Module() {
             if (waitTicks == 0) {
                 val blockAction = blockQueue.peek()
                 if (blockAction.getTaskState() == TaskState.BREAK) {
-                    mineBlock(blockAction.getBlockPos(), true)
-                    blockAction.setTaskState(TaskState.BREAKING)
                     val block = mc.world.getBlockState(blockAction.getBlockPos()).block
-                    if (block is BlockNetherrack) {
-                        waitTicks = 0
+                    for (side in EnumFacing.values()) {
+                        val neighbour = blockAction.getBlockPos().offset(side)
+                        var found = false
+                        if (mc.world.getBlockState(neighbour).block is BlockLiquid) {
+                            for (bt in blockQueue) {
+                                if (bt.getBlockPos() == neighbour) {
+                                    found = true
+                                }
+                            }
+                            if (!found) {
+                                var inside_build = false
+                                for ((pos, block) in a) {
+                                    if (neighbour == pos) {
+                                        if (!block) { inside_build = true }
+                                    }
+                                }
+                                if (inside_build) {
+                                    addTask(neighbour, TaskState.PLACE, false)
+                                } else {
+                                    addTask(neighbour, TaskState.PLACE, true)
+                                }
+                            }
+                        }
+                    }
+                    if (block is BlockAir) {
+                        blockAction.setTaskState(TaskState.BROKE)
+                        doTask()
+                    } else if (block is BlockLiquid) {
+                        blockAction.setTaskState(TaskState.PLACE)
+                        doTask()
                     } else {
-                        val efficiencyLevel = 5
-                        waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
-                        waitTicks = 20
+                        mineBlock(blockAction.getBlockPos(), true)
+                        blockAction.setTaskState(TaskState.BREAKING)
+                        if (block is BlockNetherrack) {
+                            waitTicks = 0
+                        } else {
+                            val efficiencyLevel = 5
+                            waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
+                            waitTicks = 20
+                        }
                     }
                 } else if (blockAction.getTaskState() == TaskState.BREAKING) {
                     mineBlock(blockAction.getBlockPos(), false)
                     blockAction.setTaskState(TaskState.BROKE)
-                    doTask()
                 } else if (blockAction.getTaskState() == TaskState.BROKE) {
                     val block = mc.world.getBlockState(blockAction.getBlockPos()).block
                     if (block is BlockAir) {
+                        totalBlocksDestroyed++
                         if (blockAction.getBlock()) {
                             blockAction.setTaskState(TaskState.PLACE)
                         } else {
@@ -154,11 +186,22 @@ class HighwayTools : Module() {
                 } else if (blockAction.getTaskState() == TaskState.PLACE) {
                     if (placeBlock(blockAction.getBlockPos())) {
                         blockAction.setTaskState(TaskState.PLACED)
+                        if (blocksPerTick.value > blocksPlaced) {
+                            blocksPlaced++
+                            doTask()
+                        } else {
+                            blocksPlaced = 0
+                        }
+                        totalBlocksPlaced++
                     } else {
                         return false
                     }
                 } else if (blockAction.getTaskState() == TaskState.PLACED) {
-                    blockAction.setTaskState(TaskState.DONE)
+                    if (blockAction.getBlock()) {
+                        blockAction.setTaskState(TaskState.DONE)
+                    } else {
+                        blockAction.setTaskState(TaskState.BREAK)
+                    }
                     doTask()
                 } else if (blockAction.getTaskState() == TaskState.DONE) {
                     blockQueue.remove()
@@ -462,7 +505,15 @@ class HighwayTools : Module() {
                 }
             }
             Mode.FLAT -> {
-                a.add(Pair((b), false))
+                a.add(Pair((b.down()), true))
+                a.add(Pair((b.down().north()), true))
+                a.add(Pair((b.down().east()), true))
+                a.add(Pair((b.down().south()), true))
+                a.add(Pair((b.down().west()), true))
+                a.add(Pair((b.down().north().east()), true))
+                a.add(Pair((b.down().north().west()), true))
+                a.add(Pair((b.down().south().east()), true))
+                a.add(Pair((b.down().south().west()), true))
             }
         }
     }
