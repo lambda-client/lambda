@@ -49,7 +49,7 @@ class HighwayTools : Module() {
     private var buildDirectionSaved = 0
     private var buildDirectionCoordinateSaved = 0.0
     private var buildDirectionCoordinateSavedY = 0.0
-    private val directions = listOf("North", "East", "South", "West")
+    private val directions = listOf("North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West")
 
     private var isSneaking = false
 
@@ -60,7 +60,7 @@ class HighwayTools : Module() {
 
     val blockQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     private val doneQueue: Queue<BlockTask> = LinkedList<BlockTask>()
-    var a = mutableListOf<Pair<BlockPos, Boolean>>()
+    private var blockOffsets = mutableListOf<Pair<BlockPos, Boolean>>()
     private var waitTicks = 0
     private var blocksPlaced = 0
 
@@ -109,7 +109,7 @@ class HighwayTools : Module() {
         blockQueue.add(BlockTask(bps, ts, bb))
     }
 
-    private fun getDebug() {
+    private fun printDebug() {
         MessageSendHelper.sendChatMessage("#### LOG ####")
         for (bt in blockQueue) {
             MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
@@ -137,7 +137,7 @@ class HighwayTools : Module() {
                             }
                             if (!found) {
                                 var inside_build = false
-                                for ((pos, block) in a) {
+                                for ((pos, block) in blockOffsets) {
                                     if (neighbour == pos) {
                                         if (!block) { inside_build = true }
                                     }
@@ -159,12 +159,12 @@ class HighwayTools : Module() {
                     } else {
                         mineBlock(blockAction.getBlockPos(), true)
                         blockAction.setTaskState(TaskState.BREAKING)
-                        if (block is BlockNetherrack) {
+                        if (block is BlockNetherrack || block is BlockMagma) {
                             waitTicks = 0
                         } else {
-                            val efficiencyLevel = 5
-                            waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
-                            waitTicks = 20
+                            //val efficiencyLevel = 5
+                            //waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
+                            waitTicks = 5
                         }
                     }
                 } else if (blockAction.getTaskState() == TaskState.BREAKING) {
@@ -186,7 +186,7 @@ class HighwayTools : Module() {
                 } else if (blockAction.getTaskState() == TaskState.PLACE) {
                     if (placeBlock(blockAction.getBlockPos())) {
                         blockAction.setTaskState(TaskState.PLACED)
-                        if (blocksPerTick.value > blocksPlaced) {
+                        if (blocksPerTick.value > blocksPlaced + 1) {
                             blocksPlaced++
                             doTask()
                         } else {
@@ -220,7 +220,7 @@ class HighwayTools : Module() {
 
     private fun updateTasks() {
         updateBlockArray()
-        for ((a, b) in a) {
+        for ((a, b) in blockOffsets) {
             val block = mc.world.getBlockState(a).block
             if (b && block is BlockAir) { addTask(a, TaskState.PLACE, true) }
             else if (b && block !is BlockAir && block !is BlockObsidian) { addTask(a, TaskState.BREAK, true) }
@@ -250,16 +250,32 @@ class HighwayTools : Module() {
                 mc.player.rotationYaw = -180F
             }
             1 -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).north().east()
+                mc.player.rotationYaw = -135F
+            }
+            2 -> {
                 nextBlockPos = BlockPos(mc.player.positionVector).east()
                 mc.player.rotationYaw = -90F
             }
-            2 -> {
+            3 -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).south().east()
+                mc.player.rotationYaw = -45F
+            }
+            4 -> {
                 nextBlockPos = BlockPos(mc.player.positionVector).south()
                 mc.player.rotationYaw = 0F
             }
-            else -> {
+            5 -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).south().west()
+                mc.player.rotationYaw = 45F
+            }
+            6 -> {
                 nextBlockPos = BlockPos(mc.player.positionVector).west()
                 mc.player.rotationYaw = 90F
+            }
+            else -> {
+                nextBlockPos = BlockPos(mc.player.positionVector).north().west()
+                mc.player.rotationYaw = 135F
             }
         }
         mc.player.rotationPitch = 0F
@@ -368,152 +384,308 @@ class HighwayTools : Module() {
     }
 
     private fun updateBlockArray() {
-        a.clear()
+        blockOffsets.clear()
         val b = BlockPos(mc.player.positionVector)
 
         when(mode.value) {
             Mode.HIGHWAY -> {
                 when (buildDirectionSaved) {
                     0 -> { //NORTH
-                        a.add(Pair(b.down(), true))
-                        a.add(Pair(b.down().north(), true))
-                        a.add(Pair(b.down().north().north(), true))
-                        a.add(Pair(b.down().north().north().east(), true))
-                        a.add(Pair(b.down().north().north().west(), true))
-                        a.add(Pair(b.down().north().north().east().east(), true))
-                        a.add(Pair(b.down().north().north().west().west(), true))
-                        a.add(Pair(b.down().north().north().east().east().east(), true))
-                        a.add(Pair(b.down().north().north().west().west().west(), true))
-                        a.add(Pair(b.north().north().east().east().east(), true))
-                        a.add(Pair(b.north().north().west().west().west(), true))
-                        a.add(Pair(b.north().north(), false))
-                        a.add(Pair(b.north().north().east(), false))
-                        a.add(Pair(b.north().north().west(), false))
-                        a.add(Pair(b.north().north().east().east(), false))
-                        a.add(Pair(b.north().north().west().west(), false))
-                        a.add(Pair(b.up().north().north(), false))
-                        a.add(Pair(b.up().north().north().east(), false))
-                        a.add(Pair(b.up().north().north().west(), false))
-                        a.add(Pair(b.up().north().north().east().east(), false))
-                        a.add(Pair(b.up().north().north().west().west(), false))
-                        a.add(Pair(b.up().north().north().east().east().east(), false))
-                        a.add(Pair(b.up().north().north().west().west().west(), false))
-                        a.add(Pair(b.up().up().north().north(), false))
-                        a.add(Pair(b.up().up().north().north().east(), false))
-                        a.add(Pair(b.up().up().north().north().west(), false))
-                        a.add(Pair(b.up().up().north().north().east().east(), false))
-                        a.add(Pair(b.up().up().north().north().west().west(), false))
-                        a.add(Pair(b.up().up().north().north().east().east().east(), false))
-                        a.add(Pair(b.up().up().north().north().west().west().west(), false))
+                        blockOffsets.add(Pair(b.down(), true))
+                        blockOffsets.add(Pair(b.down().north(), true))
+                        blockOffsets.add(Pair(b.down().north().north(), true))
+                        blockOffsets.add(Pair(b.down().north().north().east(), true))
+                        blockOffsets.add(Pair(b.down().north().north().west(), true))
+                        blockOffsets.add(Pair(b.down().north().north().east().east(), true))
+                        blockOffsets.add(Pair(b.down().north().north().west().west(), true))
+                        blockOffsets.add(Pair(b.down().north().north().east().east().east(), true))
+                        blockOffsets.add(Pair(b.down().north().north().west().west().west(), true))
+                        blockOffsets.add(Pair(b.north().north().east().east().east(), true))
+                        blockOffsets.add(Pair(b.north().north().west().west().west(), true))
+                        blockOffsets.add(Pair(b.north().north(), false))
+                        blockOffsets.add(Pair(b.north().north().east(), false))
+                        blockOffsets.add(Pair(b.north().north().west(), false))
+                        blockOffsets.add(Pair(b.north().north().east().east(), false))
+                        blockOffsets.add(Pair(b.north().north().west().west(), false))
+                        blockOffsets.add(Pair(b.up().north().north(), false))
+                        blockOffsets.add(Pair(b.up().north().north().east(), false))
+                        blockOffsets.add(Pair(b.up().north().north().west(), false))
+                        blockOffsets.add(Pair(b.up().north().north().east().east(), false))
+                        blockOffsets.add(Pair(b.up().north().north().west().west(), false))
+                        blockOffsets.add(Pair(b.up().north().north().east().east().east(), false))
+                        blockOffsets.add(Pair(b.up().north().north().west().west().west(), false))
+                        blockOffsets.add(Pair(b.up().up().north().north(), false))
+                        blockOffsets.add(Pair(b.up().up().north().north().east(), false))
+                        blockOffsets.add(Pair(b.up().up().north().north().west(), false))
+                        blockOffsets.add(Pair(b.up().up().north().north().east().east(), false))
+                        blockOffsets.add(Pair(b.up().up().north().north().west().west(), false))
+                        blockOffsets.add(Pair(b.up().up().north().north().east().east().east(), false))
+                        blockOffsets.add(Pair(b.up().up().north().north().west().west().west(), false))
                     }
-                    1 -> { //EAST
-                        a.add(Pair(b.down(), true))
-                        a.add(Pair(b.down().east(), true))
-                        a.add(Pair(b.down().east().east(), true))
-                        a.add(Pair(b.down().east().east().south(), true))
-                        a.add(Pair(b.down().east().east().north(), true))
-                        a.add(Pair(b.down().east().east().south().south(), true))
-                        a.add(Pair(b.down().east().east().north().north(), true))
-                        a.add(Pair(b.down().east().east().south().south().south(), true))
-                        a.add(Pair(b.down().east().east().north().north().north(), true))
-                        a.add(Pair(b.east().east().south().south().south(), true))
-                        a.add(Pair(b.east().east().north().north().north(), true))
-                        a.add(Pair(b.east().east(), false))
-                        a.add(Pair(b.east().east().south(), false))
-                        a.add(Pair(b.east().east().north(), false))
-                        a.add(Pair(b.east().east().south().south(), false))
-                        a.add(Pair(b.east().east().north().north(), false))
-                        a.add(Pair(b.up().east().east(), false))
-                        a.add(Pair(b.up().east().east().south(), false))
-                        a.add(Pair(b.up().east().east().north(), false))
-                        a.add(Pair(b.up().east().east().south().south(), false))
-                        a.add(Pair(b.up().east().east().north().north(), false))
-                        a.add(Pair(b.up().east().east().south().south().south(), false))
-                        a.add(Pair(b.up().east().east().north().north().north(), false))
-                        a.add(Pair(b.up().up().east().east(), false))
-                        a.add(Pair(b.up().up().east().east().south(), false))
-                        a.add(Pair(b.up().up().east().east().north(), false))
-                        a.add(Pair(b.up().up().east().east().south().south(), false))
-                        a.add(Pair(b.up().up().east().east().north().north(), false))
-                        a.add(Pair(b.up().up().east().east().south().south().south(), false))
-                        a.add(Pair(b.up().up().east().east().north().north().north(), false))
+                    1 -> { // NORTH-EAST
+                        blockOffsets.add(Pair(b.north().east().down(), true))
+                        blockOffsets.add(Pair(b.north().east().down().north(), true))
+                        blockOffsets.add(Pair(b.north().east().down().east(), true))
+                        blockOffsets.add(Pair(b.north().east().down().north().east(), true))
+                        blockOffsets.add(Pair(b.north().east().down().north().north(), true))
+                        blockOffsets.add(Pair(b.north().east().down().east().east(), true))
+                        blockOffsets.add(Pair(b.north().east().down().east().east().south(), true))
+                        blockOffsets.add(Pair(b.north().east().down().north().north().west(), true))
+                        blockOffsets.add(Pair(b.north().east().down().east().east().south().east(), true))
+                        blockOffsets.add(Pair(b.north().east().down().north().north().west().north(), true))
+                        blockOffsets.add(Pair(b.north().east().east().east().south().east(), true))
+                        blockOffsets.add(Pair(b.north().east().north().north().west().north(), true))
+                        blockOffsets.add(Pair(b.north().east().north(), false))
+                        blockOffsets.add(Pair(b.north().east().north().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east(), false))
+                        blockOffsets.add(Pair(b.north().east().east().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().east(), false))
+                        blockOffsets.add(Pair(b.north().east().north().east().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().east().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north().west(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north().west().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north().west().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east().south(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east().south().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east().south().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north().west().north().up(), false))
+                        blockOffsets.add(Pair(b.north().east().north().north().west().north().up().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east().south().east().up(), false))
+                        blockOffsets.add(Pair(b.north().east().east().east().south().east().up().up(), false))
                     }
-                    2 -> { //SOUTH
-                        a.add(Pair(b.down(), true))
-                        a.add(Pair(b.down().south(), true))
-                        a.add(Pair(b.down().south().south(), true))
-                        a.add(Pair(b.down().south().south().east(), true))
-                        a.add(Pair(b.down().south().south().west(), true))
-                        a.add(Pair(b.down().south().south().east().east(), true))
-                        a.add(Pair(b.down().south().south().west().west(), true))
-                        a.add(Pair(b.down().south().south().east().east().east(), true))
-                        a.add(Pair(b.down().south().south().west().west().west(), true))
-                        a.add(Pair(b.south().south().east().east().east(), true))
-                        a.add(Pair(b.south().south().west().west().west(), true))
-                        a.add(Pair(b.south().south(), false))
-                        a.add(Pair(b.south().south().east(), false))
-                        a.add(Pair(b.south().south().west(), false))
-                        a.add(Pair(b.south().south().east().east(), false))
-                        a.add(Pair(b.south().south().west().west(), false))
-                        a.add(Pair(b.up().south().south(), false))
-                        a.add(Pair(b.up().south().south().east(), false))
-                        a.add(Pair(b.up().south().south().west(), false))
-                        a.add(Pair(b.up().south().south().east().east(), false))
-                        a.add(Pair(b.up().south().south().west().west(), false))
-                        a.add(Pair(b.up().south().south().east().east().east(), false))
-                        a.add(Pair(b.up().south().south().west().west().west(), false))
-                        a.add(Pair(b.up().up().south().south(), false))
-                        a.add(Pair(b.up().up().south().south().east(), false))
-                        a.add(Pair(b.up().up().south().south().west(), false))
-                        a.add(Pair(b.up().up().south().south().east().east(), false))
-                        a.add(Pair(b.up().up().south().south().west().west(), false))
-                        a.add(Pair(b.up().up().south().south().east().east().east(), false))
-                        a.add(Pair(b.up().up().south().south().west().west().west(), false))
+                    2 -> { //EAST
+                        blockOffsets.add(Pair(b.down(), true))
+                        blockOffsets.add(Pair(b.down().east(), true))
+                        blockOffsets.add(Pair(b.down().east().east(), true))
+                        blockOffsets.add(Pair(b.down().east().east().south(), true))
+                        blockOffsets.add(Pair(b.down().east().east().north(), true))
+                        blockOffsets.add(Pair(b.down().east().east().south().south(), true))
+                        blockOffsets.add(Pair(b.down().east().east().north().north(), true))
+                        blockOffsets.add(Pair(b.down().east().east().south().south().south(), true))
+                        blockOffsets.add(Pair(b.down().east().east().north().north().north(), true))
+                        blockOffsets.add(Pair(b.east().east().south().south().south(), true))
+                        blockOffsets.add(Pair(b.east().east().north().north().north(), true))
+                        blockOffsets.add(Pair(b.east().east(), false))
+                        blockOffsets.add(Pair(b.east().east().south(), false))
+                        blockOffsets.add(Pair(b.east().east().north(), false))
+                        blockOffsets.add(Pair(b.east().east().south().south(), false))
+                        blockOffsets.add(Pair(b.east().east().north().north(), false))
+                        blockOffsets.add(Pair(b.up().east().east(), false))
+                        blockOffsets.add(Pair(b.up().east().east().south(), false))
+                        blockOffsets.add(Pair(b.up().east().east().north(), false))
+                        blockOffsets.add(Pair(b.up().east().east().south().south(), false))
+                        blockOffsets.add(Pair(b.up().east().east().north().north(), false))
+                        blockOffsets.add(Pair(b.up().east().east().south().south().south(), false))
+                        blockOffsets.add(Pair(b.up().east().east().north().north().north(), false))
+                        blockOffsets.add(Pair(b.up().up().east().east(), false))
+                        blockOffsets.add(Pair(b.up().up().east().east().south(), false))
+                        blockOffsets.add(Pair(b.up().up().east().east().north(), false))
+                        blockOffsets.add(Pair(b.up().up().east().east().south().south(), false))
+                        blockOffsets.add(Pair(b.up().up().east().east().north().north(), false))
+                        blockOffsets.add(Pair(b.up().up().east().east().south().south().south(), false))
+                        blockOffsets.add(Pair(b.up().up().east().east().north().north().north(), false))
                     }
-                    3 -> { //WEST
-                        a.add(Pair(b.down(), true))
-                        a.add(Pair(b.down().west(), true))
-                        a.add(Pair(b.down().west().west(), true))
-                        a.add(Pair(b.down().west().west().south(), true))
-                        a.add(Pair(b.down().west().west().north(), true))
-                        a.add(Pair(b.down().west().west().south().south(), true))
-                        a.add(Pair(b.down().west().west().north().north(), true))
-                        a.add(Pair(b.down().west().west().south().south().south(), true))
-                        a.add(Pair(b.down().west().west().north().north().north(), true))
-                        a.add(Pair(b.west().west().south().south().south(), true))
-                        a.add(Pair(b.west().west().north().north().north(), true))
-                        a.add(Pair(b.west().west(), false))
-                        a.add(Pair(b.west().west().south(), false))
-                        a.add(Pair(b.west().west().north(), false))
-                        a.add(Pair(b.west().west().south().south(), false))
-                        a.add(Pair(b.west().west().north().north(), false))
-                        a.add(Pair(b.up().west().west(), false))
-                        a.add(Pair(b.up().west().west().south(), false))
-                        a.add(Pair(b.up().west().west().north(), false))
-                        a.add(Pair(b.up().west().west().south().south(), false))
-                        a.add(Pair(b.up().west().west().north().north(), false))
-                        a.add(Pair(b.up().west().west().south().south().south(), false))
-                        a.add(Pair(b.up().west().west().north().north().north(), false))
-                        a.add(Pair(b.up().up().west().west(), false))
-                        a.add(Pair(b.up().up().west().west().south(), false))
-                        a.add(Pair(b.up().up().west().west().north(), false))
-                        a.add(Pair(b.up().up().west().west().south().south(), false))
-                        a.add(Pair(b.up().up().west().west().north().north(), false))
-                        a.add(Pair(b.up().up().west().west().south().south().south(), false))
-                        a.add(Pair(b.up().up().west().west().north().north().north(), false))
+                    3 -> { //SOUTH-EAST
+                        blockOffsets.add(Pair(b.east().south().down(), true))
+                        blockOffsets.add(Pair(b.east().south().down().east(), true))
+                        blockOffsets.add(Pair(b.east().south().down().south(), true))
+                        blockOffsets.add(Pair(b.east().south().down().east().south(), true))
+                        blockOffsets.add(Pair(b.east().south().down().east().east(), true))
+                        blockOffsets.add(Pair(b.east().south().down().south().south(), true))
+                        blockOffsets.add(Pair(b.east().south().down().south().south().west(), true))
+                        blockOffsets.add(Pair(b.east().south().down().east().east().north(), true))
+                        blockOffsets.add(Pair(b.east().south().down().south().south().west().south(), true))
+                        blockOffsets.add(Pair(b.east().south().down().east().east().north().east(), true))
+                        blockOffsets.add(Pair(b.east().south().south().south().west().south(), true))
+                        blockOffsets.add(Pair(b.east().south().east().east().north().east(), true))
+                        blockOffsets.add(Pair(b.east().south().east(), false))
+                        blockOffsets.add(Pair(b.east().south().east().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south(), false))
+                        blockOffsets.add(Pair(b.east().south().south().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().south(), false))
+                        blockOffsets.add(Pair(b.east().south().east().south().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().south().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east().north(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east().north().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east().north().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south().west(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south().west().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south().west().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east().north().east().up(), false))
+                        blockOffsets.add(Pair(b.east().south().east().east().north().east().up().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south().west().south().up(), false))
+                        blockOffsets.add(Pair(b.east().south().south().south().west().south().up().up(), false))
+                    }
+                    4 -> { //SOUTH
+                        blockOffsets.add(Pair(b.down(), true))
+                        blockOffsets.add(Pair(b.down().south(), true))
+                        blockOffsets.add(Pair(b.down().south().south(), true))
+                        blockOffsets.add(Pair(b.down().south().south().east(), true))
+                        blockOffsets.add(Pair(b.down().south().south().west(), true))
+                        blockOffsets.add(Pair(b.down().south().south().east().east(), true))
+                        blockOffsets.add(Pair(b.down().south().south().west().west(), true))
+                        blockOffsets.add(Pair(b.down().south().south().east().east().east(), true))
+                        blockOffsets.add(Pair(b.down().south().south().west().west().west(), true))
+                        blockOffsets.add(Pair(b.south().south().east().east().east(), true))
+                        blockOffsets.add(Pair(b.south().south().west().west().west(), true))
+                        blockOffsets.add(Pair(b.south().south(), false))
+                        blockOffsets.add(Pair(b.south().south().east(), false))
+                        blockOffsets.add(Pair(b.south().south().west(), false))
+                        blockOffsets.add(Pair(b.south().south().east().east(), false))
+                        blockOffsets.add(Pair(b.south().south().west().west(), false))
+                        blockOffsets.add(Pair(b.up().south().south(), false))
+                        blockOffsets.add(Pair(b.up().south().south().east(), false))
+                        blockOffsets.add(Pair(b.up().south().south().west(), false))
+                        blockOffsets.add(Pair(b.up().south().south().east().east(), false))
+                        blockOffsets.add(Pair(b.up().south().south().west().west(), false))
+                        blockOffsets.add(Pair(b.up().south().south().east().east().east(), false))
+                        blockOffsets.add(Pair(b.up().south().south().west().west().west(), false))
+                        blockOffsets.add(Pair(b.up().up().south().south(), false))
+                        blockOffsets.add(Pair(b.up().up().south().south().east(), false))
+                        blockOffsets.add(Pair(b.up().up().south().south().west(), false))
+                        blockOffsets.add(Pair(b.up().up().south().south().east().east(), false))
+                        blockOffsets.add(Pair(b.up().up().south().south().west().west(), false))
+                        blockOffsets.add(Pair(b.up().up().south().south().east().east().east(), false))
+                        blockOffsets.add(Pair(b.up().up().south().south().west().west().west(), false))
+                    }
+                    5 -> { // SOUTH-WEST
+                        blockOffsets.add(Pair(b.south().west().down(), true))
+                        blockOffsets.add(Pair(b.south().west().down().south(), true))
+                        blockOffsets.add(Pair(b.south().west().down().west(), true))
+                        blockOffsets.add(Pair(b.south().west().down().south().west(), true))
+                        blockOffsets.add(Pair(b.south().west().down().south().south(), true))
+                        blockOffsets.add(Pair(b.south().west().down().west().west(), true))
+                        blockOffsets.add(Pair(b.south().west().down().west().west().north(), true))
+                        blockOffsets.add(Pair(b.south().west().down().south().south().east(), true))
+                        blockOffsets.add(Pair(b.south().west().down().west().west().north().west(), true))
+                        blockOffsets.add(Pair(b.south().west().down().south().south().east().south(), true))
+                        blockOffsets.add(Pair(b.south().west().west().west().north().west(), true))
+                        blockOffsets.add(Pair(b.south().west().south().south().east().south(), true))
+                        blockOffsets.add(Pair(b.south().west().south(), false))
+                        blockOffsets.add(Pair(b.south().west().south().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west(), false))
+                        blockOffsets.add(Pair(b.south().west().west().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().west(), false))
+                        blockOffsets.add(Pair(b.south().west().south().west().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().west().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south().east(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south().east().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south().east().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west().north(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west().north().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west().north().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south().east().south().up(), false))
+                        blockOffsets.add(Pair(b.south().west().south().south().east().south().up().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west().north().west().up(), false))
+                        blockOffsets.add(Pair(b.south().west().west().west().north().west().up().up(), false))
+                    }
+                    6 -> { //WEST
+                        blockOffsets.add(Pair(b.down(), true))
+                        blockOffsets.add(Pair(b.down().west(), true))
+                        blockOffsets.add(Pair(b.down().west().west(), true))
+                        blockOffsets.add(Pair(b.down().west().west().south(), true))
+                        blockOffsets.add(Pair(b.down().west().west().north(), true))
+                        blockOffsets.add(Pair(b.down().west().west().south().south(), true))
+                        blockOffsets.add(Pair(b.down().west().west().north().north(), true))
+                        blockOffsets.add(Pair(b.down().west().west().south().south().south(), true))
+                        blockOffsets.add(Pair(b.down().west().west().north().north().north(), true))
+                        blockOffsets.add(Pair(b.west().west().south().south().south(), true))
+                        blockOffsets.add(Pair(b.west().west().north().north().north(), true))
+                        blockOffsets.add(Pair(b.west().west(), false))
+                        blockOffsets.add(Pair(b.west().west().south(), false))
+                        blockOffsets.add(Pair(b.west().west().north(), false))
+                        blockOffsets.add(Pair(b.west().west().south().south(), false))
+                        blockOffsets.add(Pair(b.west().west().north().north(), false))
+                        blockOffsets.add(Pair(b.up().west().west(), false))
+                        blockOffsets.add(Pair(b.up().west().west().south(), false))
+                        blockOffsets.add(Pair(b.up().west().west().north(), false))
+                        blockOffsets.add(Pair(b.up().west().west().south().south(), false))
+                        blockOffsets.add(Pair(b.up().west().west().north().north(), false))
+                        blockOffsets.add(Pair(b.up().west().west().south().south().south(), false))
+                        blockOffsets.add(Pair(b.up().west().west().north().north().north(), false))
+                        blockOffsets.add(Pair(b.up().up().west().west(), false))
+                        blockOffsets.add(Pair(b.up().up().west().west().south(), false))
+                        blockOffsets.add(Pair(b.up().up().west().west().north(), false))
+                        blockOffsets.add(Pair(b.up().up().west().west().south().south(), false))
+                        blockOffsets.add(Pair(b.up().up().west().west().north().north(), false))
+                        blockOffsets.add(Pair(b.up().up().west().west().south().south().south(), false))
+                        blockOffsets.add(Pair(b.up().up().west().west().north().north().north(), false))
+                    }
+                    7 -> { //NORTH-WEST
+                        blockOffsets.add(Pair(b.west().north().down(), true))
+                        blockOffsets.add(Pair(b.west().north().down().west(), true))
+                        blockOffsets.add(Pair(b.west().north().down().north(), true))
+                        blockOffsets.add(Pair(b.west().north().down().west().north(), true))
+                        blockOffsets.add(Pair(b.west().north().down().west().west(), true))
+                        blockOffsets.add(Pair(b.west().north().down().north().north(), true))
+                        blockOffsets.add(Pair(b.west().north().down().north().north().east(), true))
+                        blockOffsets.add(Pair(b.west().north().down().west().west().south(), true))
+                        blockOffsets.add(Pair(b.west().north().down().north().north().east().north(), true))
+                        blockOffsets.add(Pair(b.west().north().down().west().west().south().west(), true))
+                        blockOffsets.add(Pair(b.west().north().north().north().east().north(), true))
+                        blockOffsets.add(Pair(b.west().north().west().west().south().west(), true))
+                        blockOffsets.add(Pair(b.west().north().west(), false))
+                        blockOffsets.add(Pair(b.west().north().west().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north(), false))
+                        blockOffsets.add(Pair(b.west().north().north().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().north(), false))
+                        blockOffsets.add(Pair(b.west().north().west().north().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().north().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west().south(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west().south().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west().south().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north().east(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north().east().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north().east().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west().south().west().up(), false))
+                        blockOffsets.add(Pair(b.west().north().west().west().south().west().up().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north().east().north().up(), false))
+                        blockOffsets.add(Pair(b.west().north().north().north().east().north().up().up(), false))
                     }
                 }
             }
             Mode.FLAT -> {
-                a.add(Pair((b.down()), true))
-                a.add(Pair((b.down().north()), true))
-                a.add(Pair((b.down().east()), true))
-                a.add(Pair((b.down().south()), true))
-                a.add(Pair((b.down().west()), true))
-                a.add(Pair((b.down().north().east()), true))
-                a.add(Pair((b.down().north().west()), true))
-                a.add(Pair((b.down().south().east()), true))
-                a.add(Pair((b.down().south().west()), true))
+                blockOffsets.add(Pair((b.down()), true))
+                blockOffsets.add(Pair((b.down().north()), true))
+                blockOffsets.add(Pair((b.down().east()), true))
+                blockOffsets.add(Pair((b.down().south()), true))
+                blockOffsets.add(Pair((b.down().west()), true))
+                blockOffsets.add(Pair((b.down().north().east()), true))
+                blockOffsets.add(Pair((b.down().north().west()), true))
+                blockOffsets.add(Pair((b.down().south().east()), true))
+                blockOffsets.add(Pair((b.down().south().west()), true))
             }
         }
     }
@@ -532,10 +704,14 @@ class HighwayTools : Module() {
 
     fun getPlayerDirection(): Int {
         val yaw = (mc.player.rotationYaw % 360 + 360) % 360
-        return if (yaw >= 135 && yaw < 225) { 0 } //NORTH
-        else if (yaw >= 225 && yaw < 315) { 1 } //EAST
-        else if (yaw >= 315 || yaw < 45) { 2 } //SOUTH
-        else { 3 } //WEST
+        return if (yaw >= 158 && yaw < 203) { 0 } //NORTH
+        else if (yaw >= 203 && yaw < 258) { 1 } //NORTH-EAST
+        else if (yaw >= 258 && yaw < 293) { 2 } //EAST
+        else if (yaw >= 293 && yaw < 338) { 3 } //SOUTH-EAST
+        else if (yaw >= 338 || yaw < 23) { 4 } //SOUTH
+        else if (yaw >= 23 && yaw < 68) { 5 } //SOUTH-WEST
+        else if (yaw >= 68 && yaw < 113) { 6 } //WEST
+        else { 7 } //NORTH-WEST
     }
 }
 
