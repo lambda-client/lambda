@@ -15,7 +15,7 @@ import net.minecraft.init.Items
 @Module.Info(
         name = "ChestStealer",
         category = Module.Category.PLAYER,
-        description = "Automatically steam Items in container"
+        description = "Automatically steal items from containers"
 )
 class ChestStealer : Module() {
     val stealMode: Setting<StealMode> = register(Settings.e<StealMode>("StealMode", StealMode.TOGGLE))

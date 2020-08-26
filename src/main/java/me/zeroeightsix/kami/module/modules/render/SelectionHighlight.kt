@@ -4,10 +4,10 @@ import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.colourUtils.ColourHolder
 import me.zeroeightsix.kami.util.ESPRenderer
 import me.zeroeightsix.kami.util.GeometryMasks
 import me.zeroeightsix.kami.util.KamiTessellator
+import me.zeroeightsix.kami.util.colourUtils.ColourHolder
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult.Type
 import kotlin.math.floor
@@ -17,6 +17,12 @@ import kotlin.math.floor
         description = "Highlights object you are looking at",
         category = Module.Category.RENDER
 )
+/**
+ * @author Xiaro
+ *
+ * Created by Xiaro on 07/08/20
+ * Updated by Xiaro on 24/08/20
+ */
 class SelectionHighlight : Module() {
     val block: Setting<Boolean> = register(Settings.b("Block", true))
     private val entity = register(Settings.b("Entity", false))
@@ -36,8 +42,8 @@ class SelectionHighlight : Module() {
         val eyeBlockPos = BlockPos(floor(eyePos.x), floor(eyePos.y), floor(eyePos.z))
         if (!mc.world.isAirBlock(eyeBlockPos) && !mc.player.isInLava && !mc.player.isInWater) return
         val colour = ColourHolder(r.value, g.value, b.value)
-        val hitObject = mc.objectMouseOver
-        val renderer = ESPRenderer(event.partialTicks)
+        val hitObject = mc.objectMouseOver ?: return
+        val renderer = ESPRenderer()
 
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
@@ -59,6 +65,6 @@ class SelectionHighlight : Module() {
             val side = if (hitSideOnly.value) GeometryMasks.FACEMAP[hitObject.sideHit]!! else GeometryMasks.Quad.ALL
             renderer.add(box.grow(0.002), colour, side)
         }
-        renderer.render()
+        renderer.render(true)
     }
 }
