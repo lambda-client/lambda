@@ -18,6 +18,7 @@ import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.*;
+import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.chat.ChatEncryption;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
 import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
