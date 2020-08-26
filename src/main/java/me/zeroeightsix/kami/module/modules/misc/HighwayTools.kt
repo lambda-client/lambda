@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc
 
 import baritone.api.BaritoneAPI
-import baritone.api.pathing.goals.GoalXZ
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
 import me.zeroeightsix.kami.event.events.RenderEvent
@@ -79,12 +78,9 @@ class HighwayTools : Module() {
 
         playerHotbarSlot = mc.player.inventory.currentItem
         buildDirectionCoordinateSavedY = mc.player.positionVector.y
-        buildDirectionCoordinateSaved = if (buildDirectionSaved == 0 || buildDirectionSaved == 2) {
-            mc.player.positionVector.x
-        }
-        else {
-            mc.player.positionVector.z
-        }
+        buildDirectionCoordinateSaved = if (buildDirectionSaved == 0 || buildDirectionSaved == 4) { mc.player.positionVector.x }
+        else if (buildDirectionSaved == 2 || buildDirectionSaved == 6) { mc.player.positionVector.z }
+        else { 0.0 }
 
         blockQueue.clear()
         doneQueueReset()
@@ -124,7 +120,6 @@ class HighwayTools : Module() {
 
         if (!isDone()) {
             doTask()
-            //getDebug()
         }
     }
 
@@ -246,7 +241,6 @@ class HighwayTools : Module() {
                     doTask()
                 }
             } else {
-                //MessageSendHelper.sendChatMessage(waitTicks.toString())
                 waitTicks--
             }
             return true
@@ -317,7 +311,6 @@ class HighwayTools : Module() {
         }
         mc.player.rotationPitch = 0F
         return nextBlockPos
-        //BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(nextBlockPos.getX(), nextBlockPos.getZ()))
     }
 
     private fun mineBlock(pos: BlockPos, pre: Boolean) {
@@ -429,7 +422,6 @@ class HighwayTools : Module() {
             Mode.HIGHWAY -> {
                 when (buildDirectionSaved) {
                     0 -> { //NORTH
-                        blockOffsets.add(Pair(b.down(), true))
                         blockOffsets.add(Pair(b.down().north(), true))
                         blockOffsets.add(Pair(b.down().north().north(), true))
                         blockOffsets.add(Pair(b.down().north().north().east(), true))
@@ -500,7 +492,6 @@ class HighwayTools : Module() {
                         blockOffsets.add(Pair(b.north().east().east().east().south().east().up().up(), false))
                     }
                     2 -> { //EAST
-                        blockOffsets.add(Pair(b.down(), true))
                         blockOffsets.add(Pair(b.down().east(), true))
                         blockOffsets.add(Pair(b.down().east().east(), true))
                         blockOffsets.add(Pair(b.down().east().east().south(), true))
@@ -571,7 +562,6 @@ class HighwayTools : Module() {
                         blockOffsets.add(Pair(b.east().south().south().south().west().south().up().up(), false))
                     }
                     4 -> { //SOUTH
-                        blockOffsets.add(Pair(b.down(), true))
                         blockOffsets.add(Pair(b.down().south(), true))
                         blockOffsets.add(Pair(b.down().south().south(), true))
                         blockOffsets.add(Pair(b.down().south().south().east(), true))
@@ -642,7 +632,6 @@ class HighwayTools : Module() {
                         blockOffsets.add(Pair(b.south().west().west().west().north().west().up().up(), false))
                     }
                     6 -> { //WEST
-                        blockOffsets.add(Pair(b.down(), true))
                         blockOffsets.add(Pair(b.down().west(), true))
                         blockOffsets.add(Pair(b.down().west().west(), true))
                         blockOffsets.add(Pair(b.down().west().west().south(), true))
@@ -715,7 +704,6 @@ class HighwayTools : Module() {
                 }
             }
             Mode.FLAT -> {
-                blockOffsets.add(Pair((b.down()), true))
                 blockOffsets.add(Pair((b.down().north()), true))
                 blockOffsets.add(Pair((b.down().east()), true))
                 blockOffsets.add(Pair((b.down().south()), true))
@@ -736,11 +724,11 @@ class HighwayTools : Module() {
 
     override fun onWorldRender(event: RenderEvent) {
         if (mc.player == null) return
-        val renderer = ESPRenderer(event.partialTicks)
+        val renderer = ESPRenderer()
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
         updateRenderer(renderer)
-        renderer.render()
+        renderer.render(true)
     }
 
     fun getPlayerDirection(): Int {
