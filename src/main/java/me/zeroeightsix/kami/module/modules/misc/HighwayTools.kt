@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
+import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.colourUtils.ColourHolder
@@ -38,9 +39,9 @@ import kotlin.math.roundToInt
 )
 class HighwayTools : Module() {
     private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
-    val baritoneMode = register(Settings.b("Baritone", true))
+    val baritoneMode: Setting<Boolean> = register(Settings.b("Baritone", true))
     private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(9).build())
-    private val tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(1).withMaximum(10).build())
+    private val tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(0).withMaximum(10).build())
     private val rotate = register(Settings.b("Rotate", true))
     private val filled = register(Settings.b("Filled", true))
     private val outline = register(Settings.b("Outline", true))
@@ -84,10 +85,18 @@ class HighwayTools : Module() {
         blockQueue.clear()
         doneQueueReset()
         updateTasks()
-        MessageSendHelper.sendChatMessage("$chatName Module started." +
-                "\n    §9> §rSelected direction: §a" + directions[buildDirectionSaved] + "§r" +
-                "\n    §9> §rSnap to coordinate: §a" + buildDirectionCoordinateSaved.roundToInt() + "§r" +
-                "\n    §9> §rBaritone mode: §a" + baritoneMode.value + "§r")
+        if (buildDirectionSaved == 1 || buildDirectionSaved == 3 || buildDirectionSaved == 5 || buildDirectionSaved == 5 || buildDirectionSaved == 7) {
+            MessageSendHelper.sendChatMessage("$chatName Module started." +
+                    "\n    §9> §rSelected direction: §a" + directions[buildDirectionSaved] + "§r" +
+                    "\n    §9> §rSnap to coordinates: §a" + mc.player.positionVector.x.roundToInt() + ", " + mc.player.positionVector.z.roundToInt() + "§r" +
+                    "\n    §9> §rBaritone mode: §a" + baritoneMode.value + "§r")
+        } else {
+            MessageSendHelper.sendChatMessage("$chatName Module started." +
+                    "\n    §9> §rSelected direction: §a" + directions[buildDirectionSaved] + "§r" +
+                    "\n    §9> §rSnap to coordinate: §a" + buildDirectionCoordinateSaved.roundToInt() + "§r" +
+                    "\n    §9> §rBaritone mode: §a" + baritoneMode.value + "§r")
+        }
+
     }
 
     override fun onDisable() {
