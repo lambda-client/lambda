@@ -18,11 +18,11 @@ import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
 import me.zeroeightsix.kami.module.*;
-import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.chat.ChatEncryption;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
 import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
 import me.zeroeightsix.kami.process.AutoObsidianProcess;
+import me.zeroeightsix.kami.process.HighwayToolsProcess;
 import me.zeroeightsix.kami.process.TemporaryPauseProcess;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -102,6 +102,7 @@ public class KamiMod {
 
     public static TemporaryPauseProcess pauseProcess;
     public static AutoObsidianProcess autoObsidianProcess;
+    public static HighwayToolsProcess highwayToolsProcess;
 
     @Mod.Instance
     private static KamiMod INSTANCE;
@@ -126,6 +127,7 @@ public class KamiMod {
 
         pauseProcess = new TemporaryPauseProcess();
         autoObsidianProcess = new AutoObsidianProcess();
+        highwayToolsProcess = new HighwayToolsProcess();
     }
 
     @Mod.EventHandler

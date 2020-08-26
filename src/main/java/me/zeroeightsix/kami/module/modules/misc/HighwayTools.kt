@@ -3,8 +3,10 @@ package me.zeroeightsix.kami.module.modules.misc
 import baritone.api.BaritoneAPI
 import baritone.api.pathing.goals.GoalXZ
 import me.zeroeightsix.kami.KamiMod
+import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
@@ -24,6 +26,7 @@ import net.minecraft.util.math.Vec3d
 import java.util.*
 import kotlin.math.roundToInt
 
+
 /**
  * @author Avanatiker
  * @since 20/08/2020
@@ -36,7 +39,7 @@ import kotlin.math.roundToInt
 )
 class HighwayTools : Module() {
     private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
-    private val baritoneMode = register(Settings.b("Baritone", true))
+    val baritoneMode = register(Settings.b("Baritone", true))
     private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(9).build())
     private val tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(1).withMaximum(10).build())
     private val rotate = register(Settings.b("Rotate", true))
@@ -46,15 +49,15 @@ class HighwayTools : Module() {
     private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value }.build())
 
     private var playerHotbarSlot = -1
+    private var lastHotbarSlot = -1
+    private var isSneaking = false
     private var buildDirectionSaved = 0
     private var buildDirectionCoordinateSaved = 0.0
     private var buildDirectionCoordinateSavedY = 0.0
     private val directions = listOf("North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West")
 
-    private var isSneaking = false
-
     //Stats
-    var totalBlocksPlaced = 0
+    private var totalBlocksPlaced = 0
     var totalBlocksDestroyed = 0
     private var totalBlocksDistanceWent = 0
 
@@ -63,6 +66,7 @@ class HighwayTools : Module() {
     private var blockOffsets = mutableListOf<Pair<BlockPos, Boolean>>()
     private var waitTicks = 0
     private var blocksPlaced = 0
+    var walking = false
 
     override fun onEnable() {
         if (mc.player == null) {
@@ -70,6 +74,8 @@ class HighwayTools : Module() {
             return
         }
         buildDirectionSaved = getPlayerDirection()
+        playerHotbarSlot = mc.player.inventory.currentItem
+        lastHotbarSlot = -1
 
         playerHotbarSlot = mc.player.inventory.currentItem
         buildDirectionCoordinateSavedY = mc.player.positionVector.y
@@ -89,20 +95,43 @@ class HighwayTools : Module() {
                 "\n    §9> §rBaritone mode: §a" + baritoneMode.value + "§r")
     }
 
-    override fun onUpdate() {
-        if (!BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.isActive) {
-            if (isDone()) {
-                if (baritoneMode.value) {
-                    moveOneBlock()
-                }
-                doneQueueReset()
-                updateTasks()
-                totalBlocksDistanceWent++
-            } else {
-                doTask()
-                //getDebug()
-            }
+    override fun onDisable() {
+        if (mc.player == null) return
+
+        // load initial player hand
+        if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
+            mc.player.inventory.currentItem = playerHotbarSlot
         }
+        if (isSneaking) {
+            mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING))
+            isSneaking = false
+        }
+        playerHotbarSlot = -1
+        lastHotbarSlot = -1
+
+        BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
+        MessageSendHelper.sendChatMessage("$chatName Module stopped." +
+                "\n    §9> §rPlaced obsidian: §a" + totalBlocksPlaced + "§r" +
+                "\n    §9> §rDestroyed blocks: §a" + totalBlocksDestroyed + "§r" +
+                "\n    §9> §rDistance: §a" + totalBlocksDistanceWent + "§r")
+        totalBlocksPlaced = 0
+        totalBlocksDestroyed = 0
+        totalBlocksDistanceWent = 0
+    }
+
+    override fun onUpdate() {
+        if (mc.playerController == null) return
+
+        if (!isDone()) {
+            doTask()
+            //getDebug()
+        }
+    }
+
+    fun done() {
+        doneQueueReset()
+        updateTasks()
+        totalBlocksDistanceWent++
     }
 
     private fun addTask(bps: BlockPos, ts: TaskState, bb: Boolean) {
@@ -121,9 +150,10 @@ class HighwayTools : Module() {
     }
 
     private fun doTask(): Boolean {
-        if (!isDone()) {
+        if (!isDone() && !MODULE_MANAGER.getModuleT(LagNotifier::class.java).paused) {
             if (waitTicks == 0) {
                 val blockAction = blockQueue.peek()
+                BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(KamiMod.highwayToolsProcess)
                 if (blockAction.getTaskState() == TaskState.BREAK) {
                     val block = mc.world.getBlockState(blockAction.getBlockPos()).block
                     for (side in EnumFacing.values()) {
@@ -136,13 +166,13 @@ class HighwayTools : Module() {
                                 }
                             }
                             if (!found) {
-                                var inside_build = false
-                                for ((pos, block) in blockOffsets) {
+                                var insideBuild = false
+                                for ((pos, buildBlock) in blockOffsets) {
                                     if (neighbour == pos) {
-                                        if (!block) { inside_build = true }
+                                        if (!buildBlock) { insideBuild = true }
                                     }
                                 }
-                                if (inside_build) {
+                                if (insideBuild) {
                                     addTask(neighbour, TaskState.PLACE, false)
                                 } else {
                                     addTask(neighbour, TaskState.PLACE, true)
@@ -150,30 +180,36 @@ class HighwayTools : Module() {
                             }
                         }
                     }
-                    if (block is BlockAir) {
-                        blockAction.setTaskState(TaskState.BROKE)
-                        doTask()
-                    } else if (block is BlockLiquid) {
-                        blockAction.setTaskState(TaskState.PLACE)
-                        doTask()
-                    } else {
-                        mineBlock(blockAction.getBlockPos(), true)
-                        blockAction.setTaskState(TaskState.BREAKING)
-                        if (block is BlockNetherrack || block is BlockMagma) {
-                            waitTicks = 0
-                        } else {
-                            //val efficiencyLevel = 5
-                            //waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
-                            waitTicks = 5
+                    when (block) {
+                        is BlockAir -> {
+                            blockAction.setTaskState(TaskState.BROKE)
+                            doTask()
+                        }
+                        is BlockLiquid -> {
+                            blockAction.setTaskState(TaskState.PLACE)
+                            doTask()
+                        }
+                        else -> {
+                            mineBlock(blockAction.getBlockPos(), true)
+                            blockAction.setTaskState(TaskState.BREAKING)
+                            waitTicks = if (block is BlockNetherrack || block is BlockMagma) {
+                                0
+                            } else {
+                                //val efficiencyLevel = 5
+                                //waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
+                                5
+                            }
                         }
                     }
                 } else if (blockAction.getTaskState() == TaskState.BREAKING) {
                     mineBlock(blockAction.getBlockPos(), false)
                     blockAction.setTaskState(TaskState.BROKE)
+                    waitTicks = tickDelay.value - 1
                 } else if (blockAction.getTaskState() == TaskState.BROKE) {
                     val block = mc.world.getBlockState(blockAction.getBlockPos()).block
                     if (block is BlockAir) {
                         totalBlocksDestroyed++
+                        waitTicks = tickDelay.value - 1
                         if (blockAction.getBlock()) {
                             blockAction.setTaskState(TaskState.PLACE)
                         } else {
@@ -192,6 +228,7 @@ class HighwayTools : Module() {
                         } else {
                             blocksPlaced = 0
                         }
+                        waitTicks = tickDelay.value - 1
                         totalBlocksPlaced++
                     } else {
                         return false
@@ -209,7 +246,7 @@ class HighwayTools : Module() {
                     doTask()
                 }
             } else {
-                MessageSendHelper.sendChatMessage(waitTicks.toString())
+                //MessageSendHelper.sendChatMessage(waitTicks.toString())
                 waitTicks--
             }
             return true
@@ -241,7 +278,7 @@ class HighwayTools : Module() {
         return renderer
     }
 
-    private fun moveOneBlock() {
+    fun getNextBlock(): BlockPos {
         // set head rotation to get max walking speed
         val nextBlockPos: BlockPos
         when (buildDirectionSaved) {
@@ -279,7 +316,8 @@ class HighwayTools : Module() {
             }
         }
         mc.player.rotationPitch = 0F
-        BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(nextBlockPos.getX(), nextBlockPos.getZ()))
+        return nextBlockPos
+        //BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(nextBlockPos.getX(), nextBlockPos.getZ()))
     }
 
     private fun mineBlock(pos: BlockPos, pre: Boolean) {
@@ -356,8 +394,8 @@ class HighwayTools : Module() {
         mc.player.swingArm(EnumHand.MAIN_HAND)
         mc.rightClickDelayTimer = 4
 
-        if (KamiMod.MODULE_MANAGER.isModuleEnabled(NoBreakAnimation::class.java)) {
-            KamiMod.MODULE_MANAGER.getModuleT(NoBreakAnimation::class.java).resetMining()
+        if (MODULE_MANAGER.isModuleEnabled(NoBreakAnimation::class.java)) {
+            MODULE_MANAGER.getModuleT(NoBreakAnimation::class.java).resetMining()
         }
         return true
     }
@@ -686,6 +724,9 @@ class HighwayTools : Module() {
                 blockOffsets.add(Pair((b.down().north().west()), true))
                 blockOffsets.add(Pair((b.down().south().east()), true))
                 blockOffsets.add(Pair((b.down().south().west()), true))
+            }
+            null -> {
+                disable()
             }
         }
     }
