@@ -40,13 +40,14 @@ import kotlin.math.roundToInt
 class HighwayTools : Module() {
     private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
     val baritoneMode: Setting<Boolean> = register(Settings.b("Baritone", true))
-    private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(9).build())
-    private val tickDelay = register(Settings.integerBuilder("TickDelay").withMinimum(0).withValue(0).withMaximum(10).build())
+    private val blocksPerTick = register(Settings.integerBuilder("Blocks Per Tick").withMinimum(1).withValue(1).withMaximum(9).build())
+    private val tickDelay = register(Settings.integerBuilder("Tick-Delay Place").withMinimum(0).withValue(0).withMaximum(10).build())
+    private val tickDelayBreak = register(Settings.integerBuilder("Tick-Delay Break").withMinimum(0).withValue(0).withMaximum(10).build())
     private val rotate = register(Settings.b("Rotate", true))
     private val filled = register(Settings.b("Filled", true))
     private val outline = register(Settings.b("Outline", true))
-    private val aFilled = register(Settings.integerBuilder("FilledAlpha").withMinimum(0).withValue(31).withMaximum(255).withVisibility { filled.value }.build())
-    private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value }.build())
+    private val aFilled = register(Settings.integerBuilder("Filled Alpha").withMinimum(0).withValue(31).withMaximum(255).withVisibility { filled.value }.build())
+    private val aOutline = register(Settings.integerBuilder("Outline Alpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value }.build())
 
     private var playerHotbarSlot = -1
     private var lastHotbarSlot = -1
@@ -207,12 +208,11 @@ class HighwayTools : Module() {
                 } else if (blockAction.getTaskState() == TaskState.BREAKING) {
                     mineBlock(blockAction.getBlockPos(), false)
                     blockAction.setTaskState(TaskState.BROKE)
-                    waitTicks = tickDelay.value
                 } else if (blockAction.getTaskState() == TaskState.BROKE) {
                     val block = mc.world.getBlockState(blockAction.getBlockPos()).block
                     if (block is BlockAir) {
                         totalBlocksDestroyed++
-                        waitTicks = tickDelay.value
+                        waitTicks = tickDelayBreak.value
                         if (blockAction.getBlock()) {
                             blockAction.setTaskState(TaskState.PLACE)
                         } else {
@@ -326,7 +326,7 @@ class HighwayTools : Module() {
             InventoryUtils.moveToHotbar(278, 130, (tickDelay.value * 16).toLong())
             return
         } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
-            MessageSendHelper.sendChatMessage("$chatName No pickaxe was found in inventory, disabling.")
+            MessageSendHelper.sendChatMessage("$chatName No Pickaxe was found in inventory")
             mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             disable()
             return
@@ -373,7 +373,7 @@ class HighwayTools : Module() {
             InventoryUtils.quickMoveSlot(1, (tickDelay.value * 16).toLong())
             return false
         } else if (InventoryUtils.getSlots(0, 35, 49) == null) {
-            MessageSendHelper.sendChatMessage("$chatName No Obsidian was found in inventory, disabling.")
+            MessageSendHelper.sendChatMessage("$chatName No Obsidian was found in inventory")
             mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             disable()
             return false
