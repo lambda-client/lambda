@@ -65,7 +65,6 @@ class HighwayTools : Module() {
     private var blockOffsets = mutableListOf<Pair<BlockPos, Boolean>>()
     private var waitTicks = 0
     private var blocksPlaced = 0
-    var walking = false
 
     override fun onEnable() {
         if (mc.player == null) {
@@ -199,12 +198,12 @@ class HighwayTools : Module() {
                 } else if (blockAction.getTaskState() == TaskState.BREAKING) {
                     mineBlock(blockAction.getBlockPos(), false)
                     blockAction.setTaskState(TaskState.BROKE)
-                    waitTicks = tickDelay.value - 1
+                    waitTicks = tickDelay.value
                 } else if (blockAction.getTaskState() == TaskState.BROKE) {
                     val block = mc.world.getBlockState(blockAction.getBlockPos()).block
                     if (block is BlockAir) {
                         totalBlocksDestroyed++
-                        waitTicks = tickDelay.value - 1
+                        waitTicks = tickDelay.value
                         if (blockAction.getBlock()) {
                             blockAction.setTaskState(TaskState.PLACE)
                         } else {
@@ -223,7 +222,7 @@ class HighwayTools : Module() {
                         } else {
                             blocksPlaced = 0
                         }
-                        waitTicks = tickDelay.value - 1
+                        waitTicks = tickDelay.value
                         totalBlocksPlaced++
                     } else {
                         return false
