@@ -4,9 +4,12 @@ import com.mojang.authlib.GameProfile;
 import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.gui.mc.KamiGuiBeacon;
+import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.chat.PortalChat;
 import me.zeroeightsix.kami.module.modules.misc.BeaconSelector;
+import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.MoverType;
@@ -65,5 +68,15 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         PlayerMoveEvent event = new PlayerMoveEvent(type, x, y, z);
         KamiMod.EVENT_BUS.post(event);
         if (event.isCancelled()) info.cancel();
+    }
+
+    @Redirect(method = "setSprinting", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/AbstractClientPlayer;setSprinting(Z)V"))
+    public void setSprinting(AbstractClientPlayer abstractClientPlayer, boolean sprinting) {
+        Sprint sprint = ModuleManager.getModuleT(Sprint.class);
+        assert sprint != null;
+        if (sprint.isEnabled() && sprint.shouldSprint()) {
+            sprinting = sprint.getSprinting();
+        }
+        super.setSprinting(sprinting);
     }
 }
