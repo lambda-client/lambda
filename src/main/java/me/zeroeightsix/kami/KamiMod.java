@@ -164,8 +164,6 @@ public class KamiMod {
         guiManager.initializeGUI();
         commandManager = new CommandManager();
 
-        Friends.initFriends();
-
         FileInstanceManager.fixEmptyFiles();
 
         /* Custom static Settings, which can't register normally if they're static */
