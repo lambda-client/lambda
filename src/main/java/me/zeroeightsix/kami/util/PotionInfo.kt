@@ -10,7 +10,7 @@ data class PotionInfo(val name: String, val amplifier: Int, val potionEffect: Po
      * (min:secs)
      */
     fun formattedTimeLeft(): String {
-        val tps = LagCompensator.tickRate.toLong()
+        val tps = LagCompensator.tickRate.toInt()
         val compTps = if (tps != 0) tps else 20
         val compensatedDuration: Long = potionEffect.duration / compTps
         val min = TimeUnit.SECONDS.toMinutes(compensatedDuration)
