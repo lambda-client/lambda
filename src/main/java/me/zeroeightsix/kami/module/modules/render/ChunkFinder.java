@@ -46,6 +46,10 @@ public class ChunkFinder extends Module {
     private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("SaveNormalCoords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> closeFile = register(Settings.booleanBuilder("CloseFile").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Integer> range = register(Settings.integerBuilder("RenderRange").withValue(256).withRange(64, 1024).build());
+    private Setting<Boolean> customColor = register(Settings.b("CustomColor", false));
+    private Setting<Integer> red = register(Settings.integerBuilder("Red").withRange(1, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
+    private Setting<Integer> blue = register(Settings.integerBuilder("Blue").withRange(1, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
+    private Setting<Integer> green = register(Settings.integerBuilder("Green").withRange(1, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
 
     private LastSetting lastSetting = new LastSetting();
     private PrintWriter logWriter;
@@ -59,10 +63,10 @@ public class ChunkFinder extends Module {
         glLineWidth(2.0F);
         glDisable(GL_DEPTH_TEST);
         ColorHolder color;
-        if (mc.player.dimension == -1) { /* Nether */
-            color = new ColorHolder(25, 225, 50);
+        if (customColor.getValue()) {
+            color = new ColorHolder(red.getValue(), blue.getValue(), green.getValue());
         } else {
-            color = new ColorHolder(255, 25, 50);
+            color = new ColorHolder(155, 144, 255);
         }
         BufferBuilder buffer = KamiTessellator.INSTANCE.getBuffer();
         for (Chunk chunk : chunks) {
