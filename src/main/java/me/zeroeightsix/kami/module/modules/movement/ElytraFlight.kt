@@ -21,7 +21,6 @@ import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
-import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketEntityMetadata
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import kotlin.math.*
@@ -31,7 +30,7 @@ import kotlin.math.*
  * Updated by Itistheend on 28/12/19.
  * Updated by pNoName on 28/05/20
  * Updated by dominikaaaa on 06/07/20
- * Updated by Xiaro on 08/07/20
+ * Updated by Xiaro on 27/08/20
  */
 @Module.Info(
         name = "ElytraFlight",
@@ -162,6 +161,7 @@ class ElytraFlight : Module() {
                     ElytraFlightMode.PACKET -> packetMode(event)
                 }
             }
+            spoofRotation()
         } else if (!outOfDurability) {
             reset(true)
         }
@@ -480,7 +480,7 @@ class ElytraFlight : Module() {
         return isEnabled && isFlying && !autoLanding.value && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
     }
 
-    override fun onUpdate() {
+    private fun spoofRotation() {
         if (mc.player.isSpectator || !elytraIsEquipped || elytraDurability <= 1 || !isFlying) return
         val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(mc.player))
         if (autoLanding.value) {
