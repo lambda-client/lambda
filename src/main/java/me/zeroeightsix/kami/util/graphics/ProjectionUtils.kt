@@ -44,6 +44,10 @@ object ProjectionUtils {
         matrix.load(floatBuffer)
     }
 
+    fun toScaledScreenPos(posIn: Vec3d): Vec3d {
+        return toScreenPos(posIn).scale(1.0 / resolution.scaleFactor)
+    }
+
     fun toScreenPos(posIn: Vec3d): Vec3d {
         val relativePos = camPos.subtract(posIn)
         val vector4f = Vector4f(relativePos.x.toFloat(), relativePos.y.toFloat(), relativePos.z.toFloat(), 1f)
@@ -60,8 +64,8 @@ object ProjectionUtils {
             vector4f.y *= invert
         }
 
-        val width = resolution.scaledWidth
-        val height = resolution.scaledHeight
+        val width = mc.displayWidth
+        val height = mc.displayHeight
 
         vector4f.x = width / 2f + (0.5f * vector4f.x * width + 0.5f)
         vector4f.y = height / 2f - (0.5f * vector4f.y * height + 0.5f)
