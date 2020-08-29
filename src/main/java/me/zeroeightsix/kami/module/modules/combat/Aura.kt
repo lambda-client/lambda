@@ -23,7 +23,7 @@ import net.minecraft.util.EnumHand
  * Updated by hub on 31 October 2019
  * Updated by bot-debug on 10/04/20
  * Baritone compat added by dominikaaaa on 18/05/20
- * Updated by Xiaro on 02/08/20
+ * Updated by Xiaro on 29/08/20
  */
 @Module.Info(
         name = "Aura",
@@ -34,7 +34,7 @@ import net.minecraft.util.EnumHand
 class Aura : Module() {
     private val delayMode = register(Settings.e<WaitMode>("Mode", WaitMode.DELAY))
     private val priority = register(Settings.e<EntityPriority>("Priority", EntityPriority.DISTANCE))
-    private val multi = register(Settings.b("Multi", true))
+    private val multi = register(Settings.b("Multi", false))
     private val spoofRotation = register(Settings.booleanBuilder("SpoofRotation").withValue(true).withVisibility { !multi.value }.build())
     private val lockView = register(Settings.booleanBuilder("LockView").withValue(false).withVisibility { !multi.value }.build())
     private val waitTick = register(Settings.floatBuilder("SpamDelay").withMinimum(0.1f).withValue(2.0f).withMaximum(40.0f).withVisibility { delayMode.value == WaitMode.SPAM }.build())
