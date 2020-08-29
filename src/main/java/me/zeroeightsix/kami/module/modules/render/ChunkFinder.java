@@ -30,7 +30,7 @@ import static org.lwjgl.opengl.GL11.*;
 /**
  * @author 086 and IronException
  * Rendering bugs fixed by dominikaaaa on 16/05/20
- * Updated by Xiaro on 02/08/20
+ * Updated by Xiaro on 29/08/20
  */
 @Module.Info(
         name = "ChunkFinder",
@@ -47,9 +47,9 @@ public class ChunkFinder extends Module {
     private Setting<Boolean> closeFile = register(Settings.booleanBuilder("CloseFile").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Integer> range = register(Settings.integerBuilder("RenderRange").withValue(256).withRange(64, 1024).build());
     private Setting<Boolean> customColor = register(Settings.b("CustomColor", false));
-    private Setting<Integer> red = register(Settings.integerBuilder("Red").withRange(1, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
-    private Setting<Integer> blue = register(Settings.integerBuilder("Blue").withRange(1, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
-    private Setting<Integer> green = register(Settings.integerBuilder("Green").withRange(1, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
+    private Setting<Integer> red = register(Settings.integerBuilder("Red").withRange(0, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
+    private Setting<Integer> green = register(Settings.integerBuilder("Green").withRange(0, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
+    private Setting<Integer> blue = register(Settings.integerBuilder("Blue").withRange(0, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
 
     private LastSetting lastSetting = new LastSetting();
     private PrintWriter logWriter;
@@ -64,7 +64,7 @@ public class ChunkFinder extends Module {
         glDisable(GL_DEPTH_TEST);
         ColorHolder color;
         if (customColor.getValue()) {
-            color = new ColorHolder(red.getValue(), blue.getValue(), green.getValue());
+            color = new ColorHolder(red.getValue(), green.getValue(), blue.getValue());
         } else {
             color = new ColorHolder(155, 144, 255);
         }
