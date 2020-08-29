@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.combat;
 
-import kotlin.Pair;
 import me.zero.alpine.listener.EventHandler;
 import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
@@ -15,6 +14,7 @@ import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.InfoCalculator;
 import me.zeroeightsix.kami.util.color.ColorHolder;
 import me.zeroeightsix.kami.util.graphics.ESPRenderer;
+import me.zeroeightsix.kami.util.math.Vec2d;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -367,8 +367,8 @@ public class CrystalAura extends Module {
     }
 
     private void lookAtPacket(Vec3d pos) {
-        Pair<Double, Double> lookAt = getRotationTo(pos, true);
-        setYawAndPitch((float) (double) lookAt.getFirst(), (float) (double) lookAt.getSecond());
+        Vec2d lookAt = getRotationTo(pos, true);
+        setYawAndPitch((float) lookAt.getX(), (float) lookAt.getY());
     }
 
     private boolean canPlaceCrystal(BlockPos blockPos) {

@@ -102,8 +102,8 @@ class Aura : Module() {
                 val target = getPrioritizedTarget(targetList.toTypedArray(), priority.value)
                 if (spoofRotation.value) {
                     val rotation = getRotationToEntity(target)
-                    val yaw = rotation.first.toFloat()
-                    val pitch = rotation.second.toFloat()
+                    val yaw = rotation.x.toFloat()
+                    val pitch = rotation.y.toFloat()
                     val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(yaw, pitch))
                     PlayerPacketManager.addPacket(this, packet)
                 }

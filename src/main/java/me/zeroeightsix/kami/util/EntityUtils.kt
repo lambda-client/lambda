@@ -167,7 +167,7 @@ object EntityUtils {
 
     fun resetHSpeed(speed: Float, player: EntityPlayer) {
         val vec3d = Vec3d(player.motionX, player.motionY, player.motionZ)
-        val yaw = Math.toRadians(getRotationFromVec(vec3d).first)
+        val yaw = Math.toRadians(getRotationFromVec(vec3d).x)
         player.motionX = sin(-yaw) * speed
         player.motionZ = cos(yaw) * speed
     }

@@ -255,8 +255,8 @@ class AutoObsidian : Module() {
     private fun lookAtBlock(pos: BlockPos) {
         val vec3d = Vec3d(pos).add(0.5, 0.0, 0.5)
         val lookAt = getRotationTo(vec3d, true)
-        mc.player.rotationYaw = lookAt.first.toFloat()
-        mc.player.rotationPitch = lookAt.first.toFloat()
+        mc.player.rotationYaw = lookAt.x.toFloat()
+        mc.player.rotationPitch = lookAt.y.toFloat()
     }
 
     /* Tasks */
