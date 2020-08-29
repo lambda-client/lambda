@@ -4,7 +4,6 @@ import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.event.events.PacketEvent.Receive
-import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
@@ -12,11 +11,11 @@ import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BaritoneUtils.pause
 import me.zeroeightsix.kami.util.BaritoneUtils.unpause
 import me.zeroeightsix.kami.util.WebHelper
-import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.math.MathUtils
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.client.gui.GuiChat
 import net.minecraft.client.gui.ScaledResolution
+import org.lwjgl.opengl.GL11.glColor4f
 
 /**
  * @author dominikaaaa
@@ -66,11 +65,12 @@ class LagNotifier : Module() {
             if (pauseTakeoff.value) paused = true
         }
         text = text.replace("! .*".toRegex(), "! " + timeDifference() + "s")
-        val renderer = Wrapper.fontRenderer
-        val divider = ScaledResolution(mc).scaleFactor
+        val fontRenderer = mc.fontRenderer
+        val resolution = ScaledResolution(mc)
 
         /* 217 is the offset to make it go high, bigger = higher, with 0 being center */
-        renderer.drawStringWithShadow(mc.displayWidth / divider / 2 - renderer.getStringWidth(text) / 2, mc.displayHeight / divider / 2 - 217, 255, 85, 85, text)
+        fontRenderer.drawStringWithShadow(text, resolution.scaledWidth / 2f - fontRenderer.getStringWidth(text) / 2f, resolution.scaledHeight / 2f - 217f, 0xff3333)
+        glColor4f(1f, 1f, 1f, 1f)
     }
 
     override fun onDisable() {
