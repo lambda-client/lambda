@@ -68,8 +68,8 @@ class LagNotifier : Module() {
         val fontRenderer = mc.fontRenderer
         val resolution = ScaledResolution(mc)
 
-        /* 217 is the offset to make it go high, bigger = higher, with 0 being center */
-        fontRenderer.drawStringWithShadow(text, resolution.scaledWidth / 2f - fontRenderer.getStringWidth(text) / 2f, resolution.scaledHeight / 2f - 217f, 0xff3333)
+        /* 80px down from the top edge of the screen */
+        fontRenderer.drawStringWithShadow(text, resolution.scaledWidth / 2f - fontRenderer.getStringWidth(text) / 2f, 80f / resolution.scaleFactor, 0xff3333)
         glColor4f(1f, 1f, 1f, 1f)
     }
 
