@@ -2,15 +2,19 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.KamiMod
-import me.zeroeightsix.kami.KamiMod.MODULE_MANAGER
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
-import me.zeroeightsix.kami.util.colourUtils.ColourHolder
+import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.graphics.ESPRenderer
+import me.zeroeightsix.kami.util.graphics.GeometryMasks
+import me.zeroeightsix.kami.util.math.RotationUtils
+import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.block.*
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityItem
@@ -138,8 +142,8 @@ class HighwayTools : Module() {
         totalBlocksDistanceWent++
     }
 
-    private fun addTask(bps: BlockPos, ts: TaskState, bb: Boolean) {
-        blockQueue.add(BlockTask(bps, ts, bb))
+    private fun addTask(blockPos: BlockPos, taskState: TaskState, filled: Boolean) {
+        blockQueue.add(BlockTask(blockPos, taskState, filled))
     }
 
     private fun printDebug() {
@@ -154,7 +158,7 @@ class HighwayTools : Module() {
     }
 
     private fun doTask(): Boolean {
-        if (!isDone() && !MODULE_MANAGER.getModuleT(LagNotifier::class.java).paused) {
+        if (!isDone() && !ModuleManager.getModuleT(LagNotifier::class.java)?.paused!!) {
             if (waitTicks == 0) {
                 val blockAction = blockQueue.peek()
                 BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(KamiMod.highwayToolsProcess)
@@ -196,13 +200,6 @@ class HighwayTools : Module() {
                         else -> {
                             mineBlock(blockAction.getBlockPos(), true)
                             blockAction.setTaskState(TaskState.BREAKING)
-                            waitTicks = if (block is BlockNetherrack || block is BlockMagma) {
-                                0
-                            } else {
-                                //val efficiencyLevel = 5
-                                //waitTicks = (block.blockHardness * 5.0 / (8 + efficiencyLevel * efficiencyLevel + 1) / 20).toInt()
-                                5
-                            }
                         }
                     }
                 } else if (blockAction.getTaskState() == TaskState.BREAKING) {
@@ -395,8 +392,9 @@ class HighwayTools : Module() {
         mc.player.swingArm(EnumHand.MAIN_HAND)
         mc.rightClickDelayTimer = 4
 
-        if (MODULE_MANAGER.isModuleEnabled(NoBreakAnimation::class.java)) {
-            MODULE_MANAGER.getModuleT(NoBreakAnimation::class.java).resetMining()
+        val noBreakAnimation = ModuleManager.getModuleT(NoBreakAnimation::class.java)!!
+        if (noBreakAnimation.isEnabled) {
+            noBreakAnimation.resetMining()
         }
         return true
     }
@@ -416,10 +414,10 @@ class HighwayTools : Module() {
     }
 
     private fun lookAtBlock(pos: BlockPos) {
-        val vec3d = Vec3d((pos.x + 0.5) - mc.player.posX, pos.y - (mc.player.eyeHeight + mc.player.posY), (pos.z + 0.5) - mc.player.posZ)
-        val lookAt = EntityUtils.getRotationFromVec3d(vec3d)
-        mc.player.rotationYaw = lookAt[0].toFloat()
-        mc.player.rotationPitch = lookAt[1].toFloat()
+        val vec3d = Vec3d(pos).add(0.5, 0.0, 0.5)
+        val lookAt = RotationUtils.getRotationTo(vec3d, true)
+        mc.player.rotationYaw = lookAt.x.toFloat()
+        mc.player.rotationPitch = lookAt.y.toFloat()
     }
 
     private fun updateBlockArray() {
@@ -759,13 +757,13 @@ class BlockTask(private val bp: BlockPos, private var tt: TaskState, private val
     fun getBlock(): Boolean { return bb }
 }
 
-enum class TaskState(val color: ColourHolder) {
-    BREAK(ColourHolder(222, 0, 0)),
-    BREAKING(ColourHolder(240, 222, 60)),
-    BROKE(ColourHolder(240, 77, 60)),
-    PLACE(ColourHolder(35, 188, 254)),
-    PLACED(ColourHolder(53, 222, 66)),
-    DONE(ColourHolder(50, 50, 50))
+enum class TaskState(val color: ColorHolder) {
+    BREAK(ColorHolder(222, 0, 0)),
+    BREAKING(ColorHolder(240, 222, 60)),
+    BROKE(ColorHolder(240, 77, 60)),
+    PLACE(ColorHolder(35, 188, 254)),
+    PLACED(ColorHolder(53, 222, 66)),
+    DONE(ColorHolder(50, 50, 50))
 }
 
 enum class Mode {

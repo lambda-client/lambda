@@ -1,17 +1,18 @@
 package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.event.events.RenderEvent
-import me.zeroeightsix.kami.module.FileInstanceManager
+import me.zeroeightsix.kami.manager.mangers.FileInstanceManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.*
-import me.zeroeightsix.kami.util.colourUtils.ColourHolder
-import net.minecraft.client.renderer.GlStateManager
+import me.zeroeightsix.kami.util.WaypointInfo
+import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.graphics.*
+import me.zeroeightsix.kami.util.math.Vec2d
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import org.lwjgl.opengl.GL11.*
-import kotlin.math.max
-import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -23,15 +24,15 @@ import kotlin.math.sqrt
         category = Module.Category.RENDER
 )
 class WaypointRender : Module() {
-    private val page = register(Settings.e<Page>("Page", Page.INFOBOX))
+    private val page = register(Settings.e<Page>("Page", Page.INFO_BOX))
 
     /* Page one */
-    private val name = register(Settings.booleanBuilder("ShowName").withValue(true).withVisibility { page.value == Page.INFOBOX }.build())
-    private val date = register(Settings.booleanBuilder("ShowDate").withValue(true).withVisibility { page.value == Page.INFOBOX }.build())
-    private val coords = register(Settings.booleanBuilder("ShowCoords").withValue(true).withVisibility { page.value == Page.INFOBOX }.build())
-    private val dist = register(Settings.booleanBuilder("ShowDistance").withValue(true).withVisibility { page.value == Page.INFOBOX }.build())
-    private val textScale = register(Settings.floatBuilder("TextScale").withValue(1.0f).withRange(0.0f, 5.0f).withVisibility { page.value == Page.INFOBOX }.build())
-    private val infoBoxRange = register(Settings.integerBuilder("InfoBoxRange").withValue(512).withRange(128, 2048).withVisibility { page.value == Page.INFOBOX }.build())
+    private val showName = register(Settings.booleanBuilder("ShowName").withValue(true).withVisibility { page.value == Page.INFO_BOX }.build())
+    private val showDate = register(Settings.booleanBuilder("ShowDate").withValue(true).withVisibility { page.value == Page.INFO_BOX }.build())
+    private val showCoords = register(Settings.booleanBuilder("ShowCoords").withValue(true).withVisibility { page.value == Page.INFO_BOX }.build())
+    private val showDist = register(Settings.booleanBuilder("ShowDistance").withValue(true).withVisibility { page.value == Page.INFO_BOX }.build())
+    private val textScale = register(Settings.floatBuilder("TextScale").withValue(1.0f).withRange(0.0f, 5.0f).withVisibility { page.value == Page.INFO_BOX }.build())
+    private val infoBoxRange = register(Settings.integerBuilder("InfoBoxRange").withValue(512).withRange(128, 2048).withVisibility { page.value == Page.INFO_BOX }.build())
 
     /* Page two */
     private val espRangeLimit = register(Settings.booleanBuilder("RenderRange").withValue(true).withVisibility { page.value == Page.ESP }.build())
@@ -48,72 +49,63 @@ class WaypointRender : Module() {
     private val thickness = register(Settings.floatBuilder("LineThickness").withValue(2.0f).withRange(0.0f, 8.0f).build())
 
     private enum class Page {
-        INFOBOX, ESP
+        INFO_BOX, ESP
     }
 
     private val waypoints = ArrayList<WaypointInfo>()
 
     override fun onWorldRender(event: RenderEvent) {
         if (mc.player == null || mc.renderManager.options == null || waypoints.isEmpty()) return
-        val colour = ColourHolder(r.value, g.value, b.value)
+        val color = ColorHolder(r.value, g.value, b.value)
         val renderer = ESPRenderer()
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
         renderer.aTracer = if (tracer.value) aTracer.value else 0
         renderer.thickness = thickness.value
-        val glList = glGenLists(1)
-        glNewList(glList, GL_COMPILE)
         for (waypoint in waypoints) {
             val pos = BlockPos(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z)
             val distance = sqrt(mc.player.getDistanceSq(pos))
-            /* Draw waypoint ESP */
-            if (espRangeLimit.value && distance <= espRange.value) {
-                renderer.add(AxisAlignedBB(pos), colour) /* Adds pos to ESPRenderer list */
-                drawVerticalLines(pos, colour, aOutline.value) /* Draw lines from y 0 to y 256 */
-            }
-            /* Draw waypoint info box */
-            if ((coords.value || name.value || date.value || dist.value) && distance <= infoBoxRange.value) {
-                drawText(waypoint, KamiTessellator.pTicks())
-            }
+            if (espRangeLimit.value && distance > espRange.value) continue
+            renderer.add(AxisAlignedBB(pos), color) /* Adds pos to ESPRenderer list */
+            drawVerticalLines(pos, color, aOutline.value) /* Draw lines from y 0 to y 256 */
         }
-        glEndList()
         renderer.render(true)
-        GlStateManager.disableDepth()
-        glCallList(glList) /* Render the text after so it will be on top of the ESP */
     }
 
-    private fun drawVerticalLines(pos: BlockPos, colour: ColourHolder, a: Int) {
+    override fun onRender() {
+        if (!showCoords.value && !showName.value && !showDate.value && !showDist.value) return
+        GlStateUtils.rescale(mc.displayWidth.toDouble(), mc.displayHeight.toDouble())
+        for (waypoint in waypoints) {
+            val pos = BlockPos(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z)
+            val distance = sqrt(mc.player.getDistanceSq(pos))
+            if (distance > infoBoxRange.value) continue
+            drawText(waypoint)
+        }
+        GlStateUtils.rescaleMc()
+    }
+
+    private fun drawVerticalLines(pos: BlockPos, color: ColorHolder, a: Int) {
         val box = AxisAlignedBB(pos.x.toDouble(), 0.0, pos.z.toDouble(),
                 pos.x + 1.0, 256.0, pos.z + 1.0)
         KamiTessellator.begin(GL_LINES)
-        KamiTessellator.drawOutline(box, colour, a, GeometryMasks.Quad.ALL, thickness.value)
+        KamiTessellator.drawOutline(box, color, a, GeometryMasks.Quad.ALL, thickness.value)
         KamiTessellator.render()
     }
 
-    private fun drawText(waypoint: WaypointInfo, pTicks: Float) {
-        GlStateManager.pushMatrix()
+    private fun drawText(waypoint: WaypointInfo) {
+        glPushMatrix()
+        glDisable(GL_TEXTURE_2D)
 
-        val x = (waypoint.pos.x + 0.5)
-        val y = (waypoint.pos.y + 0.5)
-        val z = (waypoint.pos.z + 0.5)
-        GlStateManager.translate(x - mc.renderManager.renderPosX, y - mc.renderManager.renderPosY, z - mc.renderManager.renderPosZ)
-
-        val viewerYaw = -mc.renderManager.playerViewY
-        var viewerPitch = mc.renderManager.playerViewX
-        if (mc.renderManager.options.thirdPersonView == 2) viewerPitch *= -1
-        GlStateManager.rotate(viewerYaw, 0.0f, 1.0f, 0.0f)
-        GlStateManager.rotate(viewerPitch, 1.0f, 0.0f, 0.0f)
-
-        val distance = sqrt(EntityUtils.getInterpolatedPos(mc.player, KamiTessellator.pTicks()).squareDistanceTo(x, y, z))
-        val scale = max(distance, 2.0) / 8f * 1.2589254.pow(textScale.value.toDouble())
-        GlStateManager.scale(scale, scale, scale)
-        GlStateManager.scale(-0.025f, -0.025f, 0.025f)
+        val pos = Vec3d(waypoint.pos).add(0.5, 0.5, 0.5)
+        val screenPos = ProjectionUtils.toScreenPos(pos)
+        glTranslated(screenPos.x, screenPos.y, 0.0)
+        glScalef(textScale.value * 2f, textScale.value * 2f, 0f)
 
         var str = ""
-        if (name.value) str += "${'\n'}${waypoint.name}"
-        if (date.value) str += "${'\n'}${waypoint.date}"
-        if (coords.value) str += "${'\n'}${waypoint.pos.asString()}"
-        if (dist.value) str += "${'\n'}${distance.toInt()} m"
+        if (showName.value) str += "${'\n'}${waypoint.name}"
+        if (showDate.value) str += "${'\n'}${waypoint.date}"
+        if (showCoords.value) str += "${'\n'}${waypoint.asString()}"
+        if (showDist.value) str += "${'\n'}${mc.player.getDistance(pos.x, pos.y, pos.z).roundToInt()} m"
 
         val fontRenderer = mc.fontRenderer
         var longestLine = ""
@@ -122,47 +114,31 @@ class WaypointRender : Module() {
                 longestLine = strLine
             }
         }
-        val stringWidth = fontRenderer.getStringWidth(longestLine) + 8.0
-        val stringHeight = (fontRenderer.FONT_HEIGHT + 1) * (str.lines().size - 1) + 5.0
+        val stringWidth = fontRenderer.getStringWidth(longestLine)
+        val stringHeight = (fontRenderer.FONT_HEIGHT + 2) * (str.lines().size - 1)
+        val vertexHelper = VertexHelper(GlStateUtils.useVbo())
+        val pos1 = Vec2d(stringWidth * -0.5 - 4.0, stringHeight * -0.5 - 4.0)
+        val pos2 = Vec2d(stringWidth * 0.5 + 4.0, stringHeight * 0.5 + 2.0)
 
         /* Rectangle */
-        GlStateManager.color(0.1f, 0.1f, 0.1f, 0.7f)
-        GlStateManager.glBegin(GL_QUADS) /* Was going to use VBO, don't know why it broke */
-        glVertex3d(stringWidth * -0.5, 0.0, 0.0)
-        glVertex3d(stringWidth * -0.5, -stringHeight, 0.0)
-        glVertex3d(stringWidth * 0.5, -stringHeight, 0.0)
-        glVertex3d(stringWidth * 0.5, 0.0, 0.0)
-        GlStateManager.glEnd()
+        RenderUtils2D.drawRectFilled(vertexHelper, pos1, pos2, ColorHolder(32, 32, 32, 172))
 
         /* Outline of the rectangle */
-        GlStateManager.color(0.3f, 0.3f, 0.3f, 0.8f)
-        GlStateManager.glLineWidth(2f)
-        GlStateManager.glBegin(GL_LINE_LOOP)
-        glVertex3d(stringWidth * -0.5, 0.0, 0.0)
-        glVertex3d(stringWidth * -0.5, -stringHeight, 0.0)
-        glVertex3d(stringWidth * 0.5, -stringHeight, 0.0)
-        glVertex3d(stringWidth * 0.5, 0.0, 0.0)
-        GlStateManager.glEnd()
+        RenderUtils2D.drawRectOutline(vertexHelper, pos1, pos2, 2f, ColorHolder(80, 80, 80, 232))
 
-        GlStateManager.enableTexture2D()
-        GlStateManager.disableBlend()
-        GlStateManager.glNormal3f(0.0f, 1.0f, 0.0f)
-        GlStateManager.translate(0.0, -stringHeight - 6.0, 0.0)
+        glTranslated(0.0, -stringHeight * 0.5, 0.0)
 
         /* Draw string line by line */
+        glEnable(GL_TEXTURE_2D)
         for (line in str.lines()) {
             val strLine = line.replace("${'\n'}", "")
             if (strLine.isBlank()) continue
             val strLineWidth = fontRenderer.getStringWidth(strLine).toFloat()
-            fontRenderer.drawString(strLine, (strLineWidth / -2f), 10f, 0xffffff, false)
-            GlStateManager.translate(0.0, 10.0, 0.0)
+            fontRenderer.drawString(strLine, (strLineWidth / -2f), 0f, 0xffffff, false)
+            glTranslated(0.0, fontRenderer.FONT_HEIGHT + 2.0, 0.0)
         }
 
-        GlStateManager.scale(-10f, -10f, 10f)
-        GlStateManager.glNormal3f(0.0f, 0.0f, 0.0f)
-        GlStateManager.enableBlend()
-        GlStateManager.disableTexture2D()
-        GlStateManager.popMatrix()
+        glPopMatrix()
     }
 
     override fun onUpdate() {

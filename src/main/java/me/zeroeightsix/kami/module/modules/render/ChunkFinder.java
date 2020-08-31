@@ -8,8 +8,8 @@ import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
-import me.zeroeightsix.kami.util.KamiTessellator;
-import me.zeroeightsix.kami.util.colourUtils.ColourHolder;
+import me.zeroeightsix.kami.util.color.ColorHolder;
+import me.zeroeightsix.kami.util.graphics.KamiTessellator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.world.chunk.Chunk;
@@ -24,13 +24,13 @@ import java.util.Date;
 import java.util.Objects;
 
 import static me.zeroeightsix.kami.util.EntityUtils.getInterpolatedPos;
-import static me.zeroeightsix.kami.util.MessageSendHelper.*;
+import static me.zeroeightsix.kami.util.text.MessageSendHelper.*;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
  * @author 086 and IronException
  * Rendering bugs fixed by dominikaaaa on 16/05/20
- * Updated by Xiaro on 02/08/20
+ * Updated by Xiaro on 29/08/20
  */
 @Module.Info(
         name = "ChunkFinder",
@@ -46,6 +46,10 @@ public class ChunkFinder extends Module {
     private Setting<Boolean> alsoSaveNormalCoords = register(Settings.booleanBuilder("SaveNormalCoords").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> closeFile = register(Settings.booleanBuilder("CloseFile").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Integer> range = register(Settings.integerBuilder("RenderRange").withValue(256).withRange(64, 1024).build());
+    private Setting<Boolean> customColor = register(Settings.b("CustomColor", false));
+    private Setting<Integer> red = register(Settings.integerBuilder("Red").withRange(0, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
+    private Setting<Integer> green = register(Settings.integerBuilder("Green").withRange(0, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
+    private Setting<Integer> blue = register(Settings.integerBuilder("Blue").withRange(0, 255).withValue(255).withVisibility(v -> customColor.getValue()).build());
 
     private LastSetting lastSetting = new LastSetting();
     private PrintWriter logWriter;
@@ -54,15 +58,15 @@ public class ChunkFinder extends Module {
 
     @Override
     public void onWorldRender(RenderEvent event) {
-        double y = (double) yOffset.getValue() + (relative.getValue()? getInterpolatedPos(mc.player, KamiTessellator.pTicks()).y : 0.0);
+        double y = (double) yOffset.getValue() + (relative.getValue() ? getInterpolatedPos(mc.player, KamiTessellator.pTicks()).y : 0.0);
 
         glLineWidth(2.0F);
         glDisable(GL_DEPTH_TEST);
-        ColourHolder color;
-        if (mc.player.dimension == -1) { /* Nether */
-            color = new ColourHolder(25, 225, 50);
+        ColorHolder color;
+        if (customColor.getValue()) {
+            color = new ColorHolder(red.getValue(), green.getValue(), blue.getValue());
         } else {
-            color = new ColourHolder(255, 25, 50);
+            color = new ColorHolder(155, 144, 255);
         }
         BufferBuilder buffer = KamiTessellator.INSTANCE.getBuffer();
         for (Chunk chunk : chunks) {

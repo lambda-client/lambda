@@ -7,6 +7,7 @@ import baritone.api.process.IBaritoneProcess
 import baritone.api.process.PathingCommand
 import baritone.api.process.PathingCommandType
 import me.zeroeightsix.kami.KamiMod
+import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.misc.HighwayTools
 
 /**
@@ -27,7 +28,7 @@ class HighwayToolsProcess : IBaritoneProcess {
     override fun onLostControl() {}
 
     override fun displayName0(): String {
-        val highwayTools = KamiMod.MODULE_MANAGER.getModuleT(HighwayTools::class.java)
+        val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
         var processName = ""
         processName = if (highwayTools.blockQueue.size > 0) {
             highwayTools.blockQueue.peek().getTaskState().toString() + " " + highwayTools.blockQueue.peek().getBlockPos().toString()
@@ -38,12 +39,12 @@ class HighwayToolsProcess : IBaritoneProcess {
     }
 
     override fun isActive(): Boolean {
-        return (KamiMod.MODULE_MANAGER.isModuleEnabled(HighwayTools::class.java))
+        return (ModuleManager.isModuleEnabled(HighwayTools::class.java))
     }
 
     override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
         baritone = BaritoneAPI.getProvider().primaryBaritone
-        val highwayTools = KamiMod.MODULE_MANAGER.getModuleT(HighwayTools::class.java)
+        val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
         return if (highwayTools.isDone() && highwayTools.baritoneMode.value) {
             highwayTools.done()
             PathingCommand(GoalNear(highwayTools.getNextBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)

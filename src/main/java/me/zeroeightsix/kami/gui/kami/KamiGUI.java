@@ -20,13 +20,15 @@ import me.zeroeightsix.kami.gui.rgui.component.use.Label;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
+import me.zeroeightsix.kami.manager.mangers.FileInstanceManager;
+import me.zeroeightsix.kami.manager.mangers.FriendManager;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
 import me.zeroeightsix.kami.module.modules.movement.AutoWalk;
 import me.zeroeightsix.kami.util.Friends;
-import me.zeroeightsix.kami.util.MathsUtils;
 import me.zeroeightsix.kami.util.Wrapper;
-import me.zeroeightsix.kami.util.colourUtils.ColourHolder;
+import me.zeroeightsix.kami.util.color.ColorHolder;
+import me.zeroeightsix.kami.util.math.MathUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -58,7 +60,7 @@ public class KamiGUI extends GUI {
     public static final RootFontRenderer fontRenderer = new RootFontRenderer(1);
     public Theme theme;
 
-    public static ColourHolder primaryColour = new ColourHolder(29, 29, 29, 100);
+    public static ColorHolder primaryColour = new ColorHolder(29, 29, 29, 100);
 
     public KamiGUI() {
         super(new KamiTheme());
@@ -74,8 +76,8 @@ public class KamiGUI extends GUI {
     public void initializeGUI() {
         HashMap<Module.Category, Pair<Scrollpane, SettingsPanel>> categoryScrollpaneHashMap = new HashMap<>();
         for (Module module : MODULE_MANAGER.getModules()) {
-            if (module.getCategory().isHidden()) continue;
-            Module.Category moduleCategory = module.getCategory();
+            if (module.category.isHidden()) continue;
+            Module.Category moduleCategory = module.category;
             if (!categoryScrollpaneHashMap.containsKey(moduleCategory)) {
                 Stretcherlayout stretcherlayout = new Stretcherlayout(1);
                 stretcherlayout.setComponentOffsetWidth(0);
@@ -86,14 +88,14 @@ public class KamiGUI extends GUI {
 
             Pair<Scrollpane, SettingsPanel> pair = categoryScrollpaneHashMap.get(moduleCategory);
             Scrollpane scrollpane = pair.getFirst();
-            CheckButton checkButton = new CheckButton(module.getName(), module.getDescription());
+            CheckButton checkButton = new CheckButton(module.name.getValue(), module.description);
             checkButton.setToggled(module.isEnabled());
 
             /* descriptions aren't changed ever, so you don't need a tick listener */
-            checkButton.setDescription(module.getDescription());
+            checkButton.setDescription(module.description);
             checkButton.addTickListener(() -> { // dear god
                 checkButton.setToggled(module.isEnabled());
-                checkButton.setName(module.getName());
+                checkButton.setName(module.name.getValue());
             });
 
             checkButton.addMouseListener(new MouseListener() {
@@ -143,7 +145,7 @@ public class KamiGUI extends GUI {
         for (Map.Entry<Module.Category, Pair<Scrollpane, SettingsPanel>> entry : categoryScrollpaneHashMap.entrySet()) {
             Stretcherlayout stretcherlayout = new Stretcherlayout(1);
             stretcherlayout.COMPONENT_OFFSET_Y = 1;
-            Frame frame = new Frame(getTheme(), stretcherlayout, entry.getKey().getName());
+            Frame frame = new Frame(getTheme(), stretcherlayout, entry.getKey().getCategoryName());
             Scrollpane scrollpane = entry.getValue().getFirst();
             frame.addChild(scrollpane);
             frame.addChild(entry.getValue().getSecond());
@@ -269,7 +271,14 @@ public class KamiGUI extends GUI {
         friends.addTickListener(() -> {
             friends.setText("");
             if (!finalFrame.isMinimized()) {
-                Friends.friends.getValue().forEach(friend -> friends.addLine(friend.getUsername()));
+                if (FriendManager.INSTANCE.getFriendFile().enabled) {
+                    for (Friends.Friend friend : FriendManager.INSTANCE.getFriendFile().friends) {
+                        if (friend.getUsername() == null || friend.getUsername().isEmpty()) continue;
+                        friends.addLine(friend.getUsername());
+                    }
+                } else {
+                    friends.addLine(KamiMod.colour + "cDisabled");
+                }
             }
         });
 
@@ -473,7 +482,7 @@ public class KamiGUI extends GUI {
                 );
                 coordsLabel.setText("");
                 coordsLabel.addLine(ow);
-                coordsLabel.addLine(MathsUtils.getPlayerCardinal(mc).cardinalName + colouredSeparator + nether);
+                coordsLabel.addLine(MathUtils.getPlayerCardinal(mc).cardinalName + colouredSeparator + nether);
             }
         });
         frame.addChild(coordsLabel);
@@ -563,15 +572,15 @@ public class KamiGUI extends GUI {
         if (docking.isTop())
             component.setY(DOCK_OFFSET);
         if (docking.isBottom())
-            component.setY((Wrapper.getMinecraft().displayHeight / DisplayGuiScreen.getScale()) - component.getHeight() - DOCK_OFFSET);
+            component.setY((int) ((Wrapper.getMinecraft().displayHeight / DisplayGuiScreen.getScale()) - component.getHeight() - DOCK_OFFSET));
         if (docking.isLeft())
             component.setX(DOCK_OFFSET);
         if (docking.isRight())
-            component.setX((Wrapper.getMinecraft().displayWidth / DisplayGuiScreen.getScale()) - component.getWidth() - DOCK_OFFSET);
+            component.setX((int) ((Wrapper.getMinecraft().displayWidth / DisplayGuiScreen.getScale()) - component.getWidth() - DOCK_OFFSET));
         if (docking.isCenterHorizontal())
-            component.setX((Wrapper.getMinecraft().displayWidth / (DisplayGuiScreen.getScale() * 2) - component.getWidth() / 2));
+            component.setX((int) (Wrapper.getMinecraft().displayWidth / (DisplayGuiScreen.getScale() * 2) - component.getWidth() / 2));
         if (docking.isCenterVertical())
-            component.setY(Wrapper.getMinecraft().displayHeight / (DisplayGuiScreen.getScale() * 2) - component.getHeight() / 2);
+            component.setY((int) (Wrapper.getMinecraft().displayHeight / (DisplayGuiScreen.getScale() * 2) - component.getHeight() / 2));
 
     }
 }
