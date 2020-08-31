@@ -30,7 +30,7 @@ import static me.zeroeightsix.kami.util.text.MessageSendHelper.sendDisableMessag
 )
 public class InventoryViewer extends Module {
     private Setting<Boolean> mcTexture = register(Settings.b("UseResourcePack", false));
-    private Setting<Boolean> showIcon = register(Settings.booleanBuilder("ShowIcon").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
+    private Setting<Boolean> showIcon = register(Settings.booleanBuilder("ShowIcon").withValue(false).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<ViewSize> viewSizeSetting = register(Settings.enumBuilder(ViewSize.class).withName("IconSize").withValue(ViewSize.LARGE).withVisibility(v -> showIcon.getValue() && !mcTexture.getValue()).build());
     private Setting<Boolean> coloredBackground = register(Settings.booleanBuilder("ColoredBackground").withValue(true).withVisibility(v -> !mcTexture.getValue()).build());
     private Setting<Integer> a = register(Settings.integerBuilder("Transparency").withMinimum(0).withValue(32).withMaximum(255).withVisibility(v -> coloredBackground.getValue() && !mcTexture.getValue()).build());
