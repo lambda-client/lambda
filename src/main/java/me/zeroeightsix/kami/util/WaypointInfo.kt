@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.util
 
 import com.google.gson.annotations.SerializedName
 import me.zeroeightsix.kami.manager.mangers.FileInstanceManager
+import me.zeroeightsix.kami.util.Waypoint.genServer
 import net.minecraft.util.math.BlockPos
 
 /**
@@ -22,6 +23,9 @@ class WaypointInfo(
 
     @SerializedName("id")
     var id: Int = genID()
+
+    @SerializedName("server")
+    var server: String = genServer()
 
     fun asString(): String {
         return "${pos.x}, ${pos.y}, ${pos.z}"

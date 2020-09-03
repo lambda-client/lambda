@@ -126,6 +126,21 @@ object Waypoint {
         return null
     }
 
+    fun genServer(): String {
+        val mc = Wrapper.minecraft
+        return when {
+            mc.getCurrentServerData() != null -> {
+                mc.getCurrentServerData()!!.serverIP
+            }
+            mc.isIntegratedServerRunning -> {
+                "Singleplayer"
+            }
+            else -> {
+                "Main Menu"
+            }
+        }
+    }
+
     /**
      * file deletion does not work on OSX, issue #1044
      * because of this, we must also check if they've used the new format

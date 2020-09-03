@@ -152,12 +152,16 @@ class WaypointCommand : Command("waypoint", ChunkBuilder().append("command", tru
     }
 
     private fun format(waypoint: WaypointInfo, search: String): String {
-        val message = "   [${waypoint.id}] ${waypoint.name} (${waypoint.pos})"
+        val message = "${formattedID(waypoint.id)} [${waypoint.server}] ${waypoint.name} (${waypoint.pos})"
         return message.replace(search.toRegex(), "&7$search&f")
     }
 
+    private fun formattedID(id: Int): String { // massive meme to format the spaces for the width of id lmao
+        return " ".repeat((5 - id.toString().length).coerceAtLeast(0)) + "[$id]"
+    }
+
     private fun confirm(name: String, pos: BlockPos) {
-        sendChatMessage("Added waypoint at ${pos} with name '&7$name&f'.")
+        sendChatMessage("Added waypoint at $pos with name '&7$name&f'.")
     }
 
 }

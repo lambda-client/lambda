@@ -1,9 +1,13 @@
 package me.zeroeightsix.kami.module.modules.render
 
+import me.zero.alpine.listener.EventHandler
+import me.zero.alpine.listener.EventHook
+import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.manager.mangers.FileInstanceManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.Waypoint
 import me.zeroeightsix.kami.util.WaypointInfo
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
@@ -11,6 +15,7 @@ import me.zeroeightsix.kami.util.math.Vec2d
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -53,6 +58,7 @@ class WaypointRender : Module() {
     }
 
     private val waypoints = ArrayList<WaypointInfo>()
+    private var currentServer: String? = null
 
     override fun onWorldRender(event: RenderEvent) {
         if (mc.player == null || mc.renderManager.options == null || waypoints.isEmpty()) return
@@ -142,7 +148,20 @@ class WaypointRender : Module() {
     }
 
     override fun onUpdate() {
+        if (currentServer == null) {
+            currentServer = Waypoint.genServer()
+        }
         waypoints.clear()
-        waypoints.addAll(FileInstanceManager.waypoints)
+        waypoints.addAll(FileInstanceManager.waypoints.filter { w -> w.server == currentServer!! })
     }
+
+    @EventHandler
+    private val clientDisconnect = Listener(EventHook { event: FMLNetworkEvent.ClientDisconnectionFromServerEvent ->
+        currentServer = null
+    })
+
+    @EventHandler
+    private val serverDisconnect = Listener(EventHook { event: FMLNetworkEvent.ServerDisconnectionFromClientEvent ->
+        currentServer = null
+    })
 }
