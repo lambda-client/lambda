@@ -82,7 +82,7 @@ object Waypoint {
     fun createWaypoint(pos: BlockPos, locationName: String): BlockPos {
         FileInstanceManager.waypoints.add(dateFormatter(pos, locationName))
 
-        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.UpdateType.CREATE)
+        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.Create())
         return pos
     }
 
@@ -97,6 +97,8 @@ object Waypoint {
                 break
             }
         }
+
+        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.Remove())
         return removed
     }
 
@@ -110,7 +112,7 @@ object Waypoint {
             break
         }
 
-        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.UpdateType.REMOVE)
+        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.Remove())
         return removed
     }
 
@@ -122,7 +124,7 @@ object Waypoint {
             }
         }
 
-        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.UpdateType.REMOVE)
+        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.Get())
         return null
     }
 

@@ -4,6 +4,7 @@ import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.event.events.RenderEvent
+import me.zeroeightsix.kami.event.events.WaypointUpdateEvent
 import me.zeroeightsix.kami.manager.mangers.FileInstanceManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
@@ -12,6 +13,7 @@ import me.zeroeightsix.kami.util.WaypointInfo
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.math.Vec2d
+import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -147,13 +149,25 @@ class WaypointRender : Module() {
         glPopMatrix()
     }
 
-    override fun onUpdate() {
-        if (currentServer == null) {
-            currentServer = Waypoint.genServer()
-        }
-        waypoints.clear()
-        waypoints.addAll(FileInstanceManager.waypoints.filter { w -> w.server == currentServer!! })
+    override fun onEnable() {
+        updateList()
     }
+
+    override fun onDisable() {
+        currentServer = null
+    }
+
+    @EventHandler
+    private val createWaypoint = Listener(EventHook { event: WaypointUpdateEvent.Create ->
+        MessageSendHelper.sendChatMessage("create1")
+        updateList()
+    })
+
+    @EventHandler
+    private val removeWaypoint = Listener(EventHook { event: WaypointUpdateEvent.Remove ->
+        MessageSendHelper.sendChatMessage("remove1")
+        updateList()
+    })
 
     @EventHandler
     private val clientDisconnect = Listener(EventHook { event: FMLNetworkEvent.ClientDisconnectionFromServerEvent ->
@@ -164,4 +178,12 @@ class WaypointRender : Module() {
     private val serverDisconnect = Listener(EventHook { event: FMLNetworkEvent.ServerDisconnectionFromClientEvent ->
         currentServer = null
     })
+
+    private fun updateList() {
+        if (currentServer == null) {
+            currentServer = Waypoint.genServer()
+        }
+        waypoints.clear()
+        waypoints.addAll(FileInstanceManager.waypoints.filter { w -> w.server == currentServer!! })
+    }
 }
