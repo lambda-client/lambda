@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.command.syntax.parsers.EnumParser
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.misc.HighwayTools
 import me.zeroeightsix.kami.util.text.MessageSendHelper
-import net.minecraft.item.Item.getByNameOrId
+import net.minecraft.block.Block
 
 /**
  * @author Avanatiker
@@ -27,18 +27,26 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
 
             SubCommands.MATERIAL -> {
                 try {
-                    val newmat = getByNameOrId(args[1].toString())
-                    ht!!.material = args[1].toString()
+                    val newmat = Block.getBlockFromName(args[1].toString())!!
+                    ht!!.material = newmat
                     MessageSendHelper.sendChatMessage("&7${newmat}&r is now your building material.")
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is no material.")
                 }
-
             }
 
             SubCommands.IGNORE -> {
-                ht!!.material = args[1].toString()
-                MessageSendHelper.sendChatMessage("&7${args[1]}&r is now building material.")
+                try {
+                    val newmat = Block.getBlockFromName(args[1].toString())!!
+                    if (newmat !in ht!!.ignoreBlocks) {
+                        ht.ignoreBlocks.add(newmat)
+                        MessageSendHelper.sendChatMessage("&7${newmat}&r is now ignored.")
+                    } else {
+                        MessageSendHelper.sendChatMessage("&7${newmat}&r is already ignored.")
+                    }
+                } catch (e: Exception) {
+                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is no material.")
+                }
             }
 
             SubCommands.NULL -> {
