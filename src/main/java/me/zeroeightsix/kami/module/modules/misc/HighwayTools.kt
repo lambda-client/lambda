@@ -61,14 +61,13 @@ class HighwayTools : Module() {
     var material: Block = getBlockById(49)
     var ignoreBlocks = mutableListOf(BlockStandingSign(), BlockWallSign(), BlockBanner.BlockBannerHanging(), BlockBanner.BlockBannerStanding(), BlockPortal())
     private var buildDirectionSaved = 0
-    private var buildDirectionCoordinateSaved = 0
-    private var buildDirectionCoordinateSavedY = 0
+    private var buildDirectionCoordinate = 0
     private val directions = listOf("North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West")
 
     //Stats
     private var totalBlocksPlaced = 0
     var totalBlocksDestroyed = 0
-    private var totalBlocksDistanceWent = 0
+    private var totalBlocksDistance = 0
     
     //Custom settings
     @JvmField
@@ -96,8 +95,7 @@ class HighwayTools : Module() {
         lastHotbarSlot = -1
 
         playerHotbarSlot = mc.player.inventory.currentItem
-        buildDirectionCoordinateSavedY = startingBlockPos.getY()
-        buildDirectionCoordinateSaved = if (buildDirectionSaved == 0 || buildDirectionSaved == 4) { startingBlockPos.getX() }
+        buildDirectionCoordinate = if (buildDirectionSaved == 0 || buildDirectionSaved == 4) { startingBlockPos.getX() }
         else if (buildDirectionSaved == 2 || buildDirectionSaved == 6) { startingBlockPos.getZ() }
         else { 0 }
 
@@ -125,7 +123,7 @@ class HighwayTools : Module() {
         printDisable()
         totalBlocksPlaced = 0
         totalBlocksDestroyed = 0
-        totalBlocksDistanceWent = 0
+        totalBlocksDistance = 0
     }
 
     override fun onUpdate() {
@@ -144,7 +142,7 @@ class HighwayTools : Module() {
         } else {
             if (checkTasks()) {
                 currentBlockPos = getNextBlock()
-                totalBlocksDistanceWent++
+                totalBlocksDistance++
                 doneQueue.clear()
                 updateTasks()
                 pathing = true
@@ -467,16 +465,16 @@ class HighwayTools : Module() {
         } else {
             MessageSendHelper.sendChatMessage("$chatName Module started." +
                     "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
-                    "\n    §9> §7Coordinate: §a" + buildDirectionCoordinateSaved + "§r" +
+                    "\n    §9> §7Coordinate: §a" + buildDirectionCoordinate + "§r" +
                     "\n    §9> §7Baritone mode: §a" + baritoneMode.value + "§r")
         }
     }
 
     private fun printDisable() {
         MessageSendHelper.sendChatMessage("$chatName Module stopped." +
-                "\n    §9> §rPlaced blocks: §a" + totalBlocksPlaced + "§r" +
-                "\n    §9> §rDestroyed blocks: §a" + totalBlocksDestroyed + "§r" +
-                "\n    §9> §rDistance: §a" + totalBlocksDistanceWent + "§r")
+                "\n    §9> §7Placed blocks: §a" + totalBlocksPlaced + "§r" +
+                "\n    §9> §7Destroyed blocks: §a" + totalBlocksDestroyed + "§r" +
+                "\n    §9> §7Distance: §a" + totalBlocksDistance + "§r")
     }
 
     fun getNextBlock(): BlockPos {

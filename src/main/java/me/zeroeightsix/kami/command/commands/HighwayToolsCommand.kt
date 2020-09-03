@@ -13,7 +13,7 @@ import net.minecraft.block.Block
  * @since 01/09/2020
  */
 class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
-        .append("mode", true, EnumParser(arrayOf("airspace", "corner", "material", "ignore", "baritone", "logout")))
+        .append("mode", true, EnumParser(arrayOf("material", "ignore", "settings")))
         .append("value")
         .build(), "ht") {
 
