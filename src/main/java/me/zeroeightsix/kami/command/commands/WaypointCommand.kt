@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.util.Waypoint.getWaypoint
 import me.zeroeightsix.kami.util.Waypoint.removeWaypoint
 import me.zeroeightsix.kami.util.Waypoint.writePlayerCoords
 import me.zeroeightsix.kami.util.WaypointInfo
+import me.zeroeightsix.kami.util.math.CoordinateConverter.bothConverted
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendErrorMessage
@@ -48,7 +49,7 @@ class WaypointCommand : Command("waypoint", ChunkBuilder().append("command", tru
                 "del" -> delete(args)
                 "goto" -> {
                     if (args[1] != null) {
-                        val current = getWaypoint(args[1]!!)
+                        val current = getWaypoint(args[1]!!, true)
                         if (current != null) {
                             if (KamiMod.MODULE_MANAGER.isModuleEnabled(AutoWalk::class.java)) {
                                 KamiMod.MODULE_MANAGER.getModuleT(AutoWalk::class.java)?.disable()
@@ -152,7 +153,7 @@ class WaypointCommand : Command("waypoint", ChunkBuilder().append("command", tru
     }
 
     private fun format(waypoint: WaypointInfo, search: String): String {
-        val message = "${formattedID(waypoint.id)} [${waypoint.server}] ${waypoint.name} (${waypoint.pos})"
+        val message = "${formattedID(waypoint.id)} [${waypoint.server}] ${waypoint.name} (${bothConverted(waypoint.dimension, waypoint.pos)})"
         return message.replace(search.toRegex(), "&7$search&f")
     }
 

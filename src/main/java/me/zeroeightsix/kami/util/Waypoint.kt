@@ -91,7 +91,7 @@ object Waypoint {
         val waypoints = FileInstanceManager.waypoints
 
         for (waypoint in waypoints) {
-            if (waypoint.pos.x == pos.x && waypoint.pos.y == pos.y && waypoint.pos.z == pos.z) {
+            if (waypoint.currentPos().x == pos.x && waypoint.currentPos().y == pos.y && waypoint.currentPos().z == pos.z) {
                 waypoints.remove(waypoint)
                 removed = true
                 break
@@ -116,11 +116,15 @@ object Waypoint {
         return removed
     }
 
-    fun getWaypoint(id: String): BlockPos? {
+    fun getWaypoint(id: String, currentDimension: Boolean): BlockPos? {
         val waypoints = FileInstanceManager.waypoints
         for (waypoint in waypoints) {
             if (waypoint.idString == id) {
-                return waypoint.pos
+                return if (currentDimension) {
+                    waypoint.currentPos()
+                } else {
+                    waypoint.pos
+                }
             }
         }
 
@@ -140,6 +144,15 @@ object Waypoint {
             else -> {
                 "Main Menu"
             }
+        }
+    }
+
+    fun genDimension(): Int {
+        val mc = Wrapper.minecraft
+        return if (mc.player == null) {
+            -2 /* this shouldn't ever happen at all */
+        } else {
+            mc.player.dimension
         }
     }
 

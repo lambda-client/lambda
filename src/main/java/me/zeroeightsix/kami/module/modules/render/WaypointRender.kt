@@ -34,6 +34,7 @@ class WaypointRender : Module() {
     private val page = register(Settings.e<Page>("Page", Page.INFO_BOX))
 
     /* Page one */
+    private val dimension = register(Settings.enumBuilder(Dimension::class.java).withName("Dimension").withValue(Dimension.CURRENT).withVisibility { page.value == Page.INFO_BOX })
     private val showName = register(Settings.booleanBuilder("ShowName").withValue(true).withVisibility { page.value == Page.INFO_BOX }.build())
     private val showDate = register(Settings.booleanBuilder("ShowDate").withValue(true).withVisibility { page.value == Page.INFO_BOX }.build())
     private val showCoords = register(Settings.booleanBuilder("ShowCoords").withValue(true).withVisibility { page.value == Page.INFO_BOX }.build())
@@ -55,6 +56,10 @@ class WaypointRender : Module() {
     private val aTracer = register(Settings.integerBuilder("TracerAlpha").withValue(200).withRange(0, 255).withVisibility { page.value == Page.ESP && tracer.value }.build())
     private val thickness = register(Settings.floatBuilder("LineThickness").withValue(2.0f).withRange(0.0f, 8.0f).build())
 
+    private enum class Dimension {
+        CURRENT, ANY
+    }
+
     private enum class Page {
         INFO_BOX, ESP
     }
@@ -71,7 +76,7 @@ class WaypointRender : Module() {
         renderer.aTracer = if (tracer.value) aTracer.value else 0
         renderer.thickness = thickness.value
         for (waypoint in waypoints) {
-            val pos = BlockPos(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z)
+            val pos = waypoint.currentPos()
             val distance = sqrt(mc.player.getDistanceSq(pos))
             if (espRangeLimit.value && distance > espRange.value) continue
             renderer.add(AxisAlignedBB(pos), color) /* Adds pos to ESPRenderer list */
@@ -84,7 +89,7 @@ class WaypointRender : Module() {
         if (!showCoords.value && !showName.value && !showDate.value && !showDist.value) return
         GlStateUtils.rescale(mc.displayWidth.toDouble(), mc.displayHeight.toDouble())
         for (waypoint in waypoints) {
-            val pos = BlockPos(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z)
+            val pos = waypoint.currentPos()
             val distance = sqrt(mc.player.getDistanceSq(pos))
             if (distance > infoBoxRange.value) continue
             drawText(waypoint)
@@ -104,7 +109,7 @@ class WaypointRender : Module() {
         glPushMatrix()
         glDisable(GL_TEXTURE_2D)
 
-        val pos = Vec3d(waypoint.pos).add(0.5, 0.5, 0.5)
+        val pos = Vec3d(waypoint.currentPos()).add(0.5, 0.5, 0.5)
         val screenPos = ProjectionUtils.toScreenPos(pos)
         glTranslated(screenPos.x, screenPos.y, 0.0)
         glScalef(textScale.value * 2f, textScale.value * 2f, 0f)
@@ -112,7 +117,7 @@ class WaypointRender : Module() {
         var str = ""
         if (showName.value) str += "${'\n'}${waypoint.name}"
         if (showDate.value) str += "${'\n'}${waypoint.date}"
-        if (showCoords.value) str += "${'\n'}${waypoint.asString()}"
+        if (showCoords.value) str += "${'\n'}${waypoint.asString(true)}"
         if (showDist.value) str += "${'\n'}${mc.player.getDistance(pos.x, pos.y, pos.z).roundToInt()} m"
 
         val fontRenderer = mc.fontRenderer
@@ -184,6 +189,10 @@ class WaypointRender : Module() {
             currentServer = Waypoint.genServer()
         }
         waypoints.clear()
-        waypoints.addAll(FileInstanceManager.waypoints.filter { w -> w.server == currentServer!! })
+        waypoints.addAll(
+                FileInstanceManager.waypoints.filter { w ->
+                    w.server == currentServer!! && (dimension.value == Dimension.ANY || w.dimension == Waypoint.genDimension())
+                }
+        )
     }
 }
