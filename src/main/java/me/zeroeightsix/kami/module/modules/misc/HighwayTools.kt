@@ -32,7 +32,6 @@ import java.util.*
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
-
 /**
  * @author Avanatiker
  * @since 20/08/2020
@@ -83,6 +82,8 @@ class HighwayTools : Module() {
     private lateinit var currentBlockPos: BlockPos
     private lateinit var startingBlockPos: BlockPos
 
+    fun isDone(): Boolean { return blockQueue.size == 0 }
+
     override fun onEnable() {
         if (mc.player == null) {
             disable()
@@ -101,20 +102,9 @@ class HighwayTools : Module() {
         else { 0 }
 
         blockQueue.clear()
-        doneQueueReset()
+        doneQueue.clear()
         updateTasks()
-        if (buildDirectionSaved == 1 || buildDirectionSaved == 3 || buildDirectionSaved == 5 || buildDirectionSaved == 5 || buildDirectionSaved == 7) {
-            MessageSendHelper.sendChatMessage("$chatName Module started." +
-                    "\n    §9> §rDirection: §a" + directions[buildDirectionSaved] + "§r" +
-                    "\n    §9> §rCoordinates: §a" + mc.player.positionVector.x.roundToInt() + ", " + mc.player.positionVector.z.roundToInt() + "§r" +
-                    "\n    §9> §rBaritone mode: §a" + baritoneMode.value + "§r")
-        } else {
-            MessageSendHelper.sendChatMessage("$chatName Module started." +
-                    "\n    §9> §rDirection: §a" + directions[buildDirectionSaved] + "§r" +
-                    "\n    §9> §rCoordinate: §a" + buildDirectionCoordinateSaved + "§r" +
-                    "\n    §9> §rBaritone mode: §a" + baritoneMode.value + "§r")
-        }
-
+        printEnable()
     }
 
     override fun onDisable() {
@@ -132,10 +122,7 @@ class HighwayTools : Module() {
         lastHotbarSlot = -1
 
         BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
-        MessageSendHelper.sendChatMessage("$chatName Module stopped." +
-                "\n    §9> §rPlaced blocks: §a" + totalBlocksPlaced + "§r" +
-                "\n    §9> §rDestroyed blocks: §a" + totalBlocksDestroyed + "§r" +
-                "\n    §9> §rDistance: §a" + totalBlocksDistanceWent + "§r")
+        printDisable()
         totalBlocksPlaced = 0
         totalBlocksDestroyed = 0
         totalBlocksDistanceWent = 0
@@ -150,7 +137,7 @@ class HighwayTools : Module() {
                 pathing = false
             }
             if (!doTask()) {
-                doneQueueReset()
+                doneQueue.clear()
                 blockQueue.clear()
                 updateTasks()
             }
@@ -158,11 +145,11 @@ class HighwayTools : Module() {
             if (checkTasks()) {
                 currentBlockPos = getNextBlock()
                 totalBlocksDistanceWent++
-                doneQueueReset()
+                doneQueue.clear()
                 updateTasks()
                 pathing = true
             } else {
-                doneQueueReset()
+                doneQueue.clear()
                 updateTasks()
             }
         }
@@ -188,24 +175,6 @@ class HighwayTools : Module() {
             }
         }
         return true
-    }
-
-    private fun printDebug() {
-        MessageSendHelper.sendChatMessage("#### LOG ####")
-        for (bt in blockQueue) {
-            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
-        }
-        MessageSendHelper.sendChatMessage("#### DONE ####")
-        for (bt in doneQueue) {
-            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
-        }
-    }
-
-    fun printSettings() {
-        MessageSendHelper.sendChatMessage("---- Settings ----\nIgnored Blocks: ")
-        for (b in ignoreBlocks) {
-            MessageSendHelper.sendChatMessage("    > $b")
-        }
     }
 
     private fun doTask(): Boolean {
@@ -333,58 +302,6 @@ class HighwayTools : Module() {
         }
     }
 
-    private fun updateRenderer(renderer: ESPRenderer): ESPRenderer {
-        val side = GeometryMasks.Quad.ALL
-        for (bt in blockQueue) {
-            if (bt.getTaskState() != TaskState.DONE) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
-        }
-        for (bt in doneQueue) {
-            if (bt.getBlock()::class != BlockAir::class) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
-        }
-        return renderer
-    }
-
-    fun getNextBlock(): BlockPos {
-        // set head rotation to get max walking speed
-        val nextBlockPos: BlockPos
-        when (buildDirectionSaved) {
-            0 -> {
-                nextBlockPos = currentBlockPos.north()
-                mc.player.rotationYaw = -180F
-            }
-            1 -> {
-                nextBlockPos = currentBlockPos.north().east()
-                mc.player.rotationYaw = -135F
-            }
-            2 -> {
-                nextBlockPos = currentBlockPos.east()
-                mc.player.rotationYaw = -90F
-            }
-            3 -> {
-                nextBlockPos = currentBlockPos.south().east()
-                mc.player.rotationYaw = -45F
-            }
-            4 -> {
-                nextBlockPos = currentBlockPos.south()
-                mc.player.rotationYaw = 0F
-            }
-            5 -> {
-                nextBlockPos = currentBlockPos.south().west()
-                mc.player.rotationYaw = 45F
-            }
-            6 -> {
-                nextBlockPos = currentBlockPos.west()
-                mc.player.rotationYaw = 90F
-            }
-            else -> {
-                nextBlockPos = currentBlockPos.north().west()
-                mc.player.rotationYaw = 135F
-            }
-        }
-        mc.player.rotationPitch = 0F
-        return nextBlockPos
-    }
-
     private fun mineBlock(pos: BlockPos, pre: Boolean) {
         if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
             InventoryUtils.moveToHotbar(278, 130, (tickDelay.value * 16).toLong())
@@ -485,6 +402,122 @@ class HighwayTools : Module() {
         val lookAt = RotationUtils.getRotationTo(vec3d, true)
         mc.player.rotationYaw = lookAt.x.toFloat()
         mc.player.rotationPitch = lookAt.y.toFloat()
+    }
+
+    fun getPlayerDirection(): Int {
+        val yaw = (mc.player.rotationYaw % 360 + 360) % 360
+        return if (yaw >= 158 && yaw < 203) { 0 } //NORTH
+        else if (yaw >= 203 && yaw < 258) { 1 } //NORTH-EAST
+        else if (yaw >= 258 && yaw < 293) { 2 } //EAST
+        else if (yaw >= 293 && yaw < 338) { 3 } //SOUTH-EAST
+        else if (yaw >= 338 || yaw < 23) { 4 } //SOUTH
+        else if (yaw >= 23 && yaw < 68) { 5 } //SOUTH-WEST
+        else if (yaw >= 68 && yaw < 113) { 6 } //WEST
+        else { 7 } //NORTH-WEST
+    }
+
+    private fun updateRenderer(renderer: ESPRenderer): ESPRenderer {
+        val side = GeometryMasks.Quad.ALL
+        for (bt in blockQueue) {
+            if (bt.getTaskState() != TaskState.DONE) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
+        }
+        for (bt in doneQueue) {
+            if (bt.getBlock()::class != BlockAir::class) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
+        }
+        return renderer
+    }
+
+    override fun onWorldRender(event: RenderEvent) {
+        if (mc.player == null) return
+        val renderer = ESPRenderer()
+        renderer.aFilled = if (filled.value) aFilled.value else 0
+        renderer.aOutline = if (outline.value) aOutline.value else 0
+        updateRenderer(renderer)
+        renderer.render(true)
+    }
+
+    private fun printDebug() {
+        MessageSendHelper.sendChatMessage("#### LOG ####")
+        for (bt in blockQueue) {
+            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
+        }
+        MessageSendHelper.sendChatMessage("#### DONE ####")
+        for (bt in doneQueue) {
+            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
+        }
+    }
+
+    fun printSettings() {
+        var message = "$chatName Settings" +
+                "\n    §9> §rMaterial: §7$material" +
+                "\n    §9> §rBaritone: §7${baritoneMode.value}" +
+                "\n    §9> §rIgnored Blocks:"
+        for (b in ignoreBlocks) {
+            message += "\n        §9> §7$b"
+        }
+        MessageSendHelper.sendChatMessage(message)
+    }
+
+    private fun printEnable() {
+        if (buildDirectionSaved == 1 || buildDirectionSaved == 3 || buildDirectionSaved == 5 || buildDirectionSaved == 5 || buildDirectionSaved == 7) {
+            MessageSendHelper.sendChatMessage("$chatName Module started." +
+                    "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
+                    "\n    §9> §7Coordinates: §a" + mc.player.positionVector.x.roundToInt() + ", " + mc.player.positionVector.z.roundToInt() + "§r" +
+                    "\n    §9> §7Baritone mode: §a" + baritoneMode.value + "§r")
+        } else {
+            MessageSendHelper.sendChatMessage("$chatName Module started." +
+                    "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
+                    "\n    §9> §7Coordinate: §a" + buildDirectionCoordinateSaved + "§r" +
+                    "\n    §9> §7Baritone mode: §a" + baritoneMode.value + "§r")
+        }
+    }
+
+    private fun printDisable() {
+        MessageSendHelper.sendChatMessage("$chatName Module stopped." +
+                "\n    §9> §rPlaced blocks: §a" + totalBlocksPlaced + "§r" +
+                "\n    §9> §rDestroyed blocks: §a" + totalBlocksDestroyed + "§r" +
+                "\n    §9> §rDistance: §a" + totalBlocksDistanceWent + "§r")
+    }
+
+    fun getNextBlock(): BlockPos {
+        // set head rotation to get max walking speed
+        val nextBlockPos: BlockPos
+        when (buildDirectionSaved) {
+            0 -> {
+                nextBlockPos = currentBlockPos.north()
+                mc.player.rotationYaw = -180F
+            }
+            1 -> {
+                nextBlockPos = currentBlockPos.north().east()
+                mc.player.rotationYaw = -135F
+            }
+            2 -> {
+                nextBlockPos = currentBlockPos.east()
+                mc.player.rotationYaw = -90F
+            }
+            3 -> {
+                nextBlockPos = currentBlockPos.south().east()
+                mc.player.rotationYaw = -45F
+            }
+            4 -> {
+                nextBlockPos = currentBlockPos.south()
+                mc.player.rotationYaw = 0F
+            }
+            5 -> {
+                nextBlockPos = currentBlockPos.south().west()
+                mc.player.rotationYaw = 45F
+            }
+            6 -> {
+                nextBlockPos = currentBlockPos.west()
+                mc.player.rotationYaw = 90F
+            }
+            else -> {
+                nextBlockPos = currentBlockPos.north().west()
+                mc.player.rotationYaw = 135F
+            }
+        }
+        mc.player.rotationPitch = 0F
+        return nextBlockPos
     }
 
     private fun updateBlockArray() {
@@ -790,30 +823,6 @@ class HighwayTools : Module() {
                 disable()
             }
         }
-    }
-
-    fun isDone(): Boolean { return blockQueue.size == 0 }
-    private fun doneQueueReset() { doneQueue.clear() }
-
-    override fun onWorldRender(event: RenderEvent) {
-        if (mc.player == null) return
-        val renderer = ESPRenderer()
-        renderer.aFilled = if (filled.value) aFilled.value else 0
-        renderer.aOutline = if (outline.value) aOutline.value else 0
-        updateRenderer(renderer)
-        renderer.render(true)
-    }
-
-    fun getPlayerDirection(): Int {
-        val yaw = (mc.player.rotationYaw % 360 + 360) % 360
-        return if (yaw >= 158 && yaw < 203) { 0 } //NORTH
-        else if (yaw >= 203 && yaw < 258) { 1 } //NORTH-EAST
-        else if (yaw >= 258 && yaw < 293) { 2 } //EAST
-        else if (yaw >= 293 && yaw < 338) { 3 } //SOUTH-EAST
-        else if (yaw >= 338 || yaw < 23) { 4 } //SOUTH
-        else if (yaw >= 23 && yaw < 68) { 5 } //SOUTH-WEST
-        else if (yaw >= 68 && yaw < 113) { 6 } //WEST
-        else { 7 } //NORTH-WEST
     }
 }
 

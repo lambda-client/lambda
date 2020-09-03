@@ -10,7 +10,8 @@ import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.misc.HighwayTools
 
 /**
- * Created by Avanatiker on 26/08/20.
+ * @author Avanatiker
+ * @since 26/08/20
  */
 class HighwayToolsProcess : IBaritoneProcess {
 
@@ -28,10 +29,10 @@ class HighwayToolsProcess : IBaritoneProcess {
 
     override fun displayName0(): String {
         val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
-        val processName = if (highwayTools.blockQueue.size > 0) {
-            highwayTools.blockQueue.peek().getBlockPos().toString() + " " + highwayTools.blockQueue.peek().getTaskState().toString() + " " + highwayTools.blockQueue.peek().getBlock().toString()
+        val processName = if (highwayTools.blockQueue.size > 0 && !highwayTools.pathing) {
+             highwayTools.blockQueue.peek().getBlock().toString() + " @ " + highwayTools.blockQueue.peek().getBlockPos().toString() + " State: " + highwayTools.blockQueue.peek().getTaskState().toString()
         } else {
-            "Moving to next block"
+            "Moving to ${highwayTools.getNextBlock()}"
         }
         return "HighwayTools: $processName"
     }
