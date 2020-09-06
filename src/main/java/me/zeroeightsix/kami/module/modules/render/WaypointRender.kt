@@ -7,13 +7,13 @@ import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.event.events.WaypointUpdateEvent
 import me.zeroeightsix.kami.manager.mangers.FileInstanceManager
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.Waypoint
 import me.zeroeightsix.kami.util.WaypointInfo
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.math.Vec2d
-import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -66,6 +66,7 @@ class WaypointRender : Module() {
 
     private val waypoints = ArrayList<WaypointInfo>()
     private var currentServer: String? = null
+    private var ticks = 0
 
     override fun onWorldRender(event: RenderEvent) {
         if (mc.player == null || mc.renderManager.options == null || waypoints.isEmpty()) return
@@ -154,6 +155,14 @@ class WaypointRender : Module() {
         glPopMatrix()
     }
 
+    override fun onUpdate() {
+        ticks++
+        if (ticks >= 20) {
+            updateList()
+            ticks = 0
+        }
+    }
+
     override fun onEnable() {
         updateList()
     }
@@ -162,15 +171,19 @@ class WaypointRender : Module() {
         currentServer = null
     }
 
+    init {
+        dimension.settingListener = Setting.SettingListeners {
+            updateList()
+        }
+    }
+
     @EventHandler
     private val createWaypoint = Listener(EventHook { event: WaypointUpdateEvent.Create ->
-        MessageSendHelper.sendChatMessage("create1")
         updateList()
     })
 
     @EventHandler
     private val removeWaypoint = Listener(EventHook { event: WaypointUpdateEvent.Remove ->
-        MessageSendHelper.sendChatMessage("remove1")
         updateList()
     })
 
@@ -189,9 +202,10 @@ class WaypointRender : Module() {
             currentServer = Waypoint.genServer()
         }
         waypoints.clear()
+        if (currentServer == null) return
         waypoints.addAll(
                 FileInstanceManager.waypoints.filter { w ->
-                    w.server == currentServer!! && (dimension.value == Dimension.ANY || w.dimension == Waypoint.genDimension())
+                    (w.server == null || w.server == currentServer) && (dimension.value == Dimension.ANY || w.dimension == Waypoint.genDimension())
                 }
         )
     }

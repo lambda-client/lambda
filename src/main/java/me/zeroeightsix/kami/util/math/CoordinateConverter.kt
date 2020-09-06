@@ -4,6 +4,13 @@ import me.zeroeightsix.kami.util.Waypoint
 import net.minecraft.util.math.BlockPos
 
 object CoordinateConverter {
+    /**
+     * More efficient impl of [BlockPos.toString]
+     */
+    fun BlockPos.asString(): String {
+        return "${this.x}, ${this.y}, ${this.z}"
+    }
+
     fun toCurrent(dimension: Int, pos: BlockPos): BlockPos {
         return if (dimension == Waypoint.genDimension()) {
             pos
@@ -18,9 +25,9 @@ object CoordinateConverter {
 
     fun bothConverted(dimension: Int, pos: BlockPos): String {
         return if (dimension == -1) {
-            "${toOverworld(pos)} ($pos)"
+            "${toOverworld(pos).asString()} (${pos.asString()})"
         } else {
-            "$pos (${toNether(pos)})"
+            "${pos.asString()} (${toNether(pos).asString()})"
         }
     }
 

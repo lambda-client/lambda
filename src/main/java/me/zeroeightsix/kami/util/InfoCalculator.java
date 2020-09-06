@@ -94,9 +94,8 @@ public class InfoCalculator {
     // }
 
     // Dimension {
-    public static String playerDimension(Minecraft mc) {
-        if (mc.player == null) return "No Dimension";
-        switch (mc.player.dimension) {
+    public static String dimension(int dimension) {
+        switch (dimension) {
             case -1:
                 return "Nether";
             case 0:

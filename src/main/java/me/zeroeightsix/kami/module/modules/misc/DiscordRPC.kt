@@ -3,10 +3,11 @@ package me.zeroeightsix.kami.module.modules.misc
 import me.zeroeightsix.kami.DiscordPresence
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.client.InfoOverlay
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.InfoCalculator.playerDimension
+import me.zeroeightsix.kami.util.InfoCalculator.dimension
 import me.zeroeightsix.kami.util.InfoCalculator.tps
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.client.Minecraft
@@ -42,13 +43,13 @@ class DiscordRPC : Module() {
         return when (line) {
             LineInfo.VERSION -> KamiMod.VER_SMALL
             LineInfo.WORLD -> if (mc.isIntegratedServerRunning) "Singleplayer" else if (mc.getCurrentServerData() != null) "Multiplayer" else "Main Menu"
-            LineInfo.DIMENSION -> playerDimension(mc)
+            LineInfo.DIMENSION -> dimension(mc.player.dimension)
             LineInfo.USERNAME -> if (mc.player != null) mc.player.name else mc.getSession().username
             LineInfo.HEALTH -> if (mc.player != null) mc.player.health.toInt().toString() + " HP" else "No HP"
             LineInfo.HUNGER -> if (mc.player != null) mc.player.getFoodStats().foodLevel.toString() + " hunger" else "No Hunger"
             LineInfo.SERVER_IP -> if (mc.getCurrentServerData() != null) mc.getCurrentServerData()!!.serverIP else if (mc.isIntegratedServerRunning) "Offline" else "Main Menu"
             LineInfo.COORDS -> if (mc.player != null && coordsConfirm.value) "(" + mc.player.posX.toInt() + " " + mc.player.posY.toInt() + " " + mc.player.posZ.toInt() + ")" else "No Coords"
-            LineInfo.SPEED -> if (mc.player != null) KamiMod.MODULE_MANAGER.getModuleT(InfoOverlay::class.java)?.speed ?: "No Speed" else "No Speed"
+            LineInfo.SPEED -> if (mc.player != null) ModuleManager.getModuleT(InfoOverlay::class.java)?.speed ?: "No Speed" else "No Speed"
             LineInfo.HELD_ITEM -> "Holding " + (if (mc.player != null && !mc.player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()) mc.player.getHeldItem(EnumHand.MAIN_HAND).displayName.toLowerCase() else "No Items")
             LineInfo.FPS -> Minecraft.debugFPS.toString() + " FPS"
             LineInfo.TPS -> if (mc.player != null) tps(2).toString() + " tps" else "No TPS"

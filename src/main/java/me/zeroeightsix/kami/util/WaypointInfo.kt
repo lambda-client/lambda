@@ -27,7 +27,7 @@ class WaypointInfo(
     var id: Int = genID()
 
     @SerializedName("server")
-    var server: String = genServer()
+    var server: String? = genServer() /* can be null from old configs */
 
     @SerializedName("dimension")
     var dimension: Int = genDimension()
