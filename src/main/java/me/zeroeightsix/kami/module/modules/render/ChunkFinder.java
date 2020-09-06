@@ -40,6 +40,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class ChunkFinder extends Module {
     private Setting<Integer> yOffset = register(Settings.i("YOffset", 0));
     private Setting<Boolean> relative = register(Settings.b("Relative", true));
+    private Setting<Boolean> autoClear = register(Settings.b("AutoClear", true));
     private Setting<Boolean> saveNewChunks = register(Settings.b("SaveNewChunks", false));
     private Setting<SaveOption> saveOption = register(Settings.enumBuilder(SaveOption.class).withValue(SaveOption.EXTRA_FOLDER).withName("SaveOption").withVisibility(aBoolean -> saveNewChunks.getValue()).build());
     private Setting<Boolean> saveInRegionFolder = register(Settings.booleanBuilder("InRegion").withValue(false).withVisibility(aBoolean -> saveNewChunks.getValue()).build());
@@ -81,13 +82,15 @@ public class ChunkFinder extends Module {
         glEnable(GL_DEPTH_TEST);
     }
 
+    private int ticks = 0;
+
     @Override
     public void onUpdate() {
-        if (!closeFile.getValue())
-            return;
-        closeFile.setValue(false);
-        logWriterClose();
-        sendChatMessage(getChatName() + " Saved file!");
+        ticks++;
+        if (ticks >= 12000 && autoClear.getValue()) { // 10 minutes
+            chunks.clear();
+            sendChatMessage(getChatName() + " Cleared chunks!");
+        }
     }
 
     @Override
@@ -95,6 +98,18 @@ public class ChunkFinder extends Module {
         logWriterClose();
         chunks.clear();
         sendChatMessage(getChatName() + " Saved and cleared chunks!");
+    }
+
+    public ChunkFinder() {
+        super();
+
+        closeFile.settingListener = setting -> {
+            if (closeFile.getValue()) {
+                logWriterClose();
+                sendChatMessage(getChatName() + " Saved file!");
+                closeFile.setValue(false);
+            }
+        };
     }
 
     @EventHandler
