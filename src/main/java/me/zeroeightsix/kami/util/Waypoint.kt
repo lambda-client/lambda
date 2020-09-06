@@ -132,7 +132,25 @@ object Waypoint {
         return null
     }
 
-    fun genServer(): String {
+    fun getWaypoint(pos: BlockPos, currentDimension: Boolean): WaypointInfo? {
+        val waypoints = FileInstanceManager.waypoints
+        for (waypoint in waypoints) {
+            if (currentDimension) {
+                if (waypoint.currentPos().x == pos.x && waypoint.currentPos().y == pos.y && waypoint.currentPos().z == pos.z) {
+                    return waypoint
+                }
+            } else {
+                if (waypoint.pos.x == pos.x && waypoint.pos.y == pos.y && waypoint.pos.z == pos.z) {
+                    return waypoint
+                }
+            }
+        }
+
+        KamiMod.EVENT_BUS.post(WaypointUpdateEvent.Get())
+        return null
+    }
+
+    fun genServer(): String? {
         val mc = Wrapper.minecraft
         return when {
             mc.getCurrentServerData() != null -> {
@@ -142,7 +160,7 @@ object Waypoint {
                 "Singleplayer"
             }
             else -> {
-                "Main Menu"
+                null
             }
         }
     }
