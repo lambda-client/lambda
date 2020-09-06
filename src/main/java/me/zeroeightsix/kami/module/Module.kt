@@ -5,6 +5,8 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.RenderEvent
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
+import me.zeroeightsix.kami.module.modules.ClickGUI
 import me.zeroeightsix.kami.module.modules.client.CommandConfig
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
@@ -96,13 +98,20 @@ open class Module {
         enabled.value = true
         onEnable()
         onToggle()
+        sendToggleMessage()
         if (!alwaysListening) KamiMod.EVENT_BUS.subscribe(this)
     }
     fun disable() {
         enabled.value = false
         onDisable()
         onToggle()
+        sendToggleMessage()
         if (!alwaysListening) KamiMod.EVENT_BUS.unsubscribe(this)
+    }
+    private fun sendToggleMessage() {
+        if (mc.currentScreen !is DisplayGuiScreen && this !is ClickGUI && ModuleManager.getModuleT(CommandConfig::class.java)!!.toggleMessages.value) {
+            MessageSendHelper.sendChatMessage(name.value.toString() + if (enabled.value) " &aenabled" else " &cdisabled")
+        }
     }
 
 
@@ -121,11 +130,7 @@ open class Module {
     open fun onWorldRender(event: RenderEvent) {}
     protected open fun onEnable() {}
     protected open fun onDisable() {}
-    protected open fun onToggle() {
-        if (name.value != "clickGUI" && KamiMod.MODULE_MANAGER.getModuleT(CommandConfig::class.java)!!.toggleMessages.value) {
-            MessageSendHelper.sendChatMessage(name.value.toString() + if (enabled.value) " &aenabled" else " &cdisabled")
-        }
-    }
+    protected open fun onToggle() {}
 
 
     /* Setting registering */
