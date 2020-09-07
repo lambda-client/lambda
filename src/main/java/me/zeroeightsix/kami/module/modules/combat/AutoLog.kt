@@ -55,7 +55,7 @@ class AutoLog : Module() {
     @EventHandler
     private val livingDamageEvent = Listener(EventHook { event: LivingDamageEvent ->
         if (mc.player == null) return@EventHook
-        if (event.entity.name == mc.player.name) {
+        if (event.entity == mc.player) {
             event.source.trueSource?.let {
                 lastDamageSource = it.name
             }
@@ -91,7 +91,7 @@ class AutoLog : Module() {
         if (players.value) {
             for (entity in mc.world.loadedEntityList) {
                 if (entity is EntityPlayer
-                        && entity.name != mc.player.name
+                        && entity != mc.player
                         && entity.getDistance(mc.player) < playerDistance.value
                         && (friends.value || !Friends.isFriend(entity.name))) {
                     log(listOf("Player ${entity.name} came within ${playerDistance.value} blocks range!"))
