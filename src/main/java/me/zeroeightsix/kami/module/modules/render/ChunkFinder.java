@@ -89,6 +89,7 @@ public class ChunkFinder extends Module {
         ticks++;
         if (ticks >= 12000 && autoClear.getValue()) { // 10 minutes
             chunks.clear();
+            ticks = 0;
             sendChatMessage(getChatName() + " Cleared chunks!");
         }
     }
@@ -97,6 +98,7 @@ public class ChunkFinder extends Module {
     protected void onDisable() {
         logWriterClose();
         chunks.clear();
+        ticks = 0;
         sendChatMessage(getChatName() + " Saved and cleared chunks!");
     }
 
