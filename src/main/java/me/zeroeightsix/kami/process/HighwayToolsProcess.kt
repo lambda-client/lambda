@@ -44,7 +44,7 @@ class HighwayToolsProcess : IBaritoneProcess {
     override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
         baritone = BaritoneAPI.getProvider().primaryBaritone
         val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
-        return if (highwayTools.pathing && highwayTools.baritoneMode.value) {
+        return if (highwayTools.baritoneMode.value && highwayTools.pathing) {
             PathingCommand(GoalNear(highwayTools.getNextBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
         } else PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
     }
