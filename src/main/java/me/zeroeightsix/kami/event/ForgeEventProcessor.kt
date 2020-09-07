@@ -311,6 +311,11 @@ open class ForgeEventProcessor {
         KamiMod.EVENT_BUS.post(event)
     }
 
+    @SubscribeEvent
+    fun onLivingDamage(event: LivingDamageEvent) {
+        KamiMod.EVENT_BUS.post(event)
+    }
+
     companion object {
         @JvmField
         val icons = ResourceLocation(KamiMod.MODID, "textures/hungeroverlay.png")
