@@ -20,7 +20,7 @@ open class TimerUtils {
 
     enum class TimeUnit(val multiplier: Long) {
         MILLISECONDS(1L),
-        TICKS(1L),
+        TICKS(50L),
         SECONDS(1000L),
         MINUTES(60000L);
     }
@@ -40,7 +40,7 @@ open class TimerUtils {
 
     class StopTimer(val timeUnit: TimeUnit = TimeUnit.MILLISECONDS) : TimerUtils() {
         fun stop(): Long {
-            return (getCurrentTime() - time) * timeUnit.multiplier
+            return (getCurrentTime() - time) / timeUnit.multiplier
         }
     }
 }
