@@ -17,19 +17,19 @@ import java.util.*
 )
 class PingSpoof : Module() {
     private val cancel = register(Settings.b("Cancel", false))// most servers will kick/time you out for this
-    private val delay = register(Settings.integerBuilder("Delay").withValue(400).withMinimum(0).withMaximum(4000).withVisibility { !cancel.value }.build())
+    private val delay = register(Settings.integerBuilder("Delay").withValue(100).withRange(0, 2000).withVisibility { !cancel.value }.build())
 
     @EventHandler
     private val receiveListener = Listener(EventHook { event: PacketEvent.Receive ->
         if (event.packet is SPacketKeepAlive) {
             event.cancel()
-            if (!cancel.value)
-                Timer().schedule(
-                        object : TimerTask() {
-                            override fun run() {
-                                mc.connection.let { it!!.sendPacket(CPacketKeepAlive((event.packet as SPacketKeepAlive).id)) }
-                            }
-                        }, delay.value.toLong())
+            if (!cancel.value) {
+                Timer().schedule(object : TimerTask() {
+                    override fun run() {
+                        mc.connection.let { it!!.sendPacket(CPacketKeepAlive(event.packet.id)) }
+                    }
+                }, delay.value.toLong())
+            }
         }
     })
 }
