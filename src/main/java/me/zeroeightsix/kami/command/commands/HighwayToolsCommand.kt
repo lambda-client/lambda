@@ -13,7 +13,7 @@ import net.minecraft.block.Block
  * @since 01/09/2020
  */
 class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
-        .append("mode", true, EnumParser(arrayOf("material", "ignore", "settings")))
+        .append("mode", true, EnumParser(arrayOf("material", "filler", "ignore", "settings")))
         .append("value")
         .build(), "ht") {
 
@@ -29,7 +29,17 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                 try {
                     val newmat = Block.getBlockFromName(args[1].toString())!!
                     ht!!.material = newmat
-                    MessageSendHelper.sendChatMessage("&7${newmat}&r is now your building material.")
+                    MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now your building material.")
+                } catch (e: Exception) {
+                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is no block.")
+                }
+            }
+
+            SubCommands.FILLER -> {
+                try {
+                    val newmat = Block.getBlockFromName(args[1].toString())!!
+                    ht!!.fillerMat = newmat
+                    MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now your filling material.")
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is no block.")
                 }
@@ -41,9 +51,9 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                     if (newmat !in ht!!.ignoreBlocks) {
                         ht.ignoreBlocks.add(newmat)
                         ht.printSettings()
-                        MessageSendHelper.sendChatMessage("&7${newmat}&r is now added to your ignore list.")
+                        MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now added to your ignore list.")
                     } else {
-                        MessageSendHelper.sendChatMessage("&7${newmat}&r is already ignored.")
+                        MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is already ignored.")
                     }
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is no material.")
@@ -56,9 +66,9 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                     if (newmat !in ht!!.ignoreBlocks) {
                         ht.ignoreBlocks.remove(newmat)
                         ht.printSettings()
-                        MessageSendHelper.sendChatMessage("&7${newmat}&r is now removed from your ignore list.")
+                        MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now removed from your ignore list.")
                     } else {
-                        MessageSendHelper.sendChatMessage("&7${newmat}&r is not yet ignored.")
+                        MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is not yet ignored.")
                     }
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is no material.")
@@ -80,6 +90,8 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
 
             args[0].equals("material", ignoreCase = true) -> SubCommands.MATERIAL
 
+            args[0].equals("filler", ignoreCase = true) -> SubCommands.FILLER
+
             args[0].equals("ignore", ignoreCase = true) && args[2].isNullOrBlank() -> SubCommands.IGNORE_ADD
 
             args[0].equals("ignore", ignoreCase = true) && args[1].equals("add", ignoreCase = true) -> SubCommands.IGNORE_ADD
@@ -91,7 +103,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
     }
 
     private enum class SubCommands {
-        MATERIAL, IGNORE_ADD, IGNORE_DEL, SHOWSETTINGS, NULL
+        MATERIAL, FILLER, IGNORE_ADD, IGNORE_DEL, SHOWSETTINGS, NULL
     }
 
     init {

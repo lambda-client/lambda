@@ -8,6 +8,7 @@ import baritone.api.process.PathingCommand
 import baritone.api.process.PathingCommandType
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.misc.HighwayTools
+import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 
 /**
  * @author Avanatiker
@@ -30,9 +31,9 @@ class HighwayToolsProcess : IBaritoneProcess {
     override fun displayName0(): String {
         val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
         val processName = if (highwayTools.blockQueue.size > 0 && !highwayTools.pathing) {
-             highwayTools.blockQueue.peek().getBlock().toString() + " @ " + highwayTools.blockQueue.peek().getBlockPos().toString() + " State: " + highwayTools.blockQueue.peek().getTaskState().toString()
+            "Block: " + highwayTools.blockQueue.peek().getBlock().localizedName + " @ Position: (" + highwayTools.blockQueue.peek().getBlockPos().asString() + ") Prio: " + highwayTools.blockQueue.peek().getPriority() + " State: " + highwayTools.blockQueue.peek().getTaskState().toString()
         } else {
-            "Moving to ${highwayTools.getNextBlock()}"
+            "Moving to Position: (${highwayTools.getNextBlock().asString()})"
         }
         return "HighwayTools: $processName"
     }

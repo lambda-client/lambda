@@ -7,12 +7,12 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
-import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.graphics.GeometryMasks
+import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.block.*
@@ -31,6 +31,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.registry.ForgeRegistries
 import java.util.*
+import java.util.stream.IntStream.range
+import kotlin.Comparator
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -45,17 +47,37 @@ import kotlin.math.roundToInt
         category = Module.Category.MISC
 )
 class HighwayTools : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
-    val baritoneMode: Setting<Boolean> = register(Settings.b("Baritone", true))
-    private val blocksPerTick = register(Settings.integerBuilder("Blocks Per Tick").withMinimum(1).withValue(1).withMaximum(9).build())
-    private val tickDelay = register(Settings.integerBuilder("Tick-Delay Place").withMinimum(0).withValue(0).withMaximum(10).build())
-    private val tickDelayBreak = register(Settings.integerBuilder("Tick-Delay Break").withMinimum(0).withValue(0).withMaximum(10).build())
-    private val rotate = register(Settings.b("Rotate", true))
-    private val filled = register(Settings.b("Filled", true))
-    private val outline = register(Settings.b("Outline", true))
-    private val aFilled = register(Settings.integerBuilder("Filled Alpha").withMinimum(0).withValue(31).withMaximum(255).withVisibility { filled.value }.build())
-    private val aOutline = register(Settings.integerBuilder("Outline Alpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value }.build())
 
+    private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
+    private val page = register(Settings.e<Page>("Page", Page.MAIN))
+    //Settings for module
+    val baritoneMode = register(Settings.booleanBuilder("Baritone").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val blocksPerTick = register(Settings.integerBuilder("Blocks Per Tick").withMinimum(1).withValue(1).withMaximum(9).withVisibility { page.value == Page.MAIN }.build())
+    private val tickDelay = register(Settings.integerBuilder("Tick-Delay Place").withMinimum(0).withValue(0).withMaximum(10).withVisibility { page.value == Page.MAIN }.build())
+    private val tickDelayBreak = register(Settings.integerBuilder("Tick-Delay Break").withMinimum(0).withValue(0).withMaximum(10).withVisibility { page.value == Page.MAIN }.build())
+    private val noViewReset = register(Settings.booleanBuilder("NoViewReset").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val rotate = register(Settings.booleanBuilder("Rotate").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val stats = register(Settings.booleanBuilder("ShowStats").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val filled = register(Settings.booleanBuilder("Filled").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val outline = register(Settings.booleanBuilder("Outline").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val aFilled = register(Settings.integerBuilder("Filled Alpha").withMinimum(0).withValue(31).withMaximum(255).withVisibility { filled.value && page.value == Page.MAIN }.build())
+    private val aOutline = register(Settings.integerBuilder("Outline Alpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value && page.value == Page.MAIN }.build())
+
+    //Custom build settings
+    val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD }.build())
+    var clearHeight = register(Settings.integerBuilder("ClearHeight").withMinimum(1).withValue(4).withMaximum(6).withVisibility { page.value == Page.BUILD && clearSpace.value }.build())
+    private var buildWidth = register(Settings.integerBuilder("BuildWidth").withMinimum(1).withValue(7).withMaximum(9).withVisibility { page.value == Page.BUILD }.build())
+    private val rims = register(Settings.booleanBuilder("Rims").withValue(true).withVisibility { page.value == Page.BUILD }.build())
+    private var rimHeight = register(Settings.integerBuilder("RimHeight").withMinimum(1).withValue(1).withMaximum(clearHeight.value).withVisibility { rims.value && page.value == Page.BUILD }.build())
+    private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(true).withVisibility { page.value == Page.BUILD }.build())
+
+    var ignoreBlocks = mutableListOf(ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "standing_sign")),
+            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_sign")),
+            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "standing_banner")),
+            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_banner")),
+            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "portal")))
+    var material: Block = ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "obsidian"))!!
+    var fillerMat: Block = ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "netherrack"))!!
     private var playerHotbarSlot = -1
     private var lastHotbarSlot = -1
     private var isSneaking = false
@@ -68,21 +90,8 @@ class HighwayTools : Module() {
     private var totalBlocksPlaced = 0
     var totalBlocksDestroyed = 0
     private var totalBlocksDistance = 0
-    
-    //Custom settings
-    @JvmField
-    var material: Block = ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "obsidian"))!!
-    var ignoreBlocks = mutableListOf(ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "standing_sign")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_sign")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "standing_banner")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_banner")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "portal")))
-    var buildHeight: Setting<Int> = register(Settings.integerBuilder("BuildHeight").withMinimum(1).withValue(4).withMaximum(6).build())
-    var buildWidth: Setting<Int> = register(Settings.integerBuilder("BuildWidth").withMinimum(3).withValue(7).withMaximum(9).build())
-    private val cornerBlock: Setting<Boolean> = register(Settings.b("CornerBlock", true))
-    val clearSpace: Setting<Boolean> = register(Settings.b("ClearSpace", true))
-    private val noRims: Setting<Boolean> = register(Settings.b("NoRims", false))
 
+    //val blockQueue = PriorityQueue<BlockTask>(TaskComparator())
     val blockQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     private val doneQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     private var blockOffsets = mutableListOf<Pair<BlockPos, Boolean>>()
@@ -138,11 +147,10 @@ class HighwayTools : Module() {
 
     override fun onUpdate() {
         if (mc.playerController == null) return
-
+        if (!BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing) {
+            pathing = false
+        }
         if (!isDone()) {
-            if (!BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing) {
-                pathing = false
-            }
             if (!doTask()) {
                 doneQueue.clear()
                 blockQueue.clear()
@@ -155,7 +163,7 @@ class HighwayTools : Module() {
                 doneQueue.clear()
                 updateTasks()
                 pathing = true
-                lookInWalkDirection()
+                if (!noViewReset.value) lookInWalkDirection()
             } else {
                 doneQueue.clear()
                 updateTasks()
@@ -164,8 +172,8 @@ class HighwayTools : Module() {
         //printDebug()
     }
 
-    private fun addTask(blockPos: BlockPos, taskState: TaskState, material: Block) {
-        blockQueue.add(BlockTask(blockPos, taskState, material))
+    private fun addTask(blockPos: BlockPos, taskState: TaskState, material: Block, prio: Int) {
+        blockQueue.add(BlockTask(blockPos, taskState, material, prio))
     }
 
     private fun checkTasks(): Boolean {
@@ -195,6 +203,7 @@ class HighwayTools : Module() {
                     for (b in ignoreBlocks) {
                         if (block::class == b!!::class) {
                             blockAction.setTaskState(TaskState.DONE)
+                            blockAction.setPriority(4)
                             doTask()
                         }
                     }
@@ -215,9 +224,9 @@ class HighwayTools : Module() {
                                     }
                                 }
                                 if (insideBuild) {
-                                    addTask(neighbour, TaskState.PLACE, ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "netherrack"))!!)
+                                    addTask(neighbour, TaskState.PLACE, fillerMat, 1)
                                 } else {
-                                    addTask(neighbour, TaskState.PLACE, material)
+                                    addTask(neighbour, TaskState.PLACE, material, 1)
                                 }
                             }
                         }
@@ -229,6 +238,7 @@ class HighwayTools : Module() {
                         }
                         is BlockLiquid -> {
                             blockAction.setTaskState(TaskState.PLACE)
+                            blockAction.setPriority(3)
                             doTask()
                         }
                         else -> {
@@ -246,8 +256,10 @@ class HighwayTools : Module() {
                         waitTicks = tickDelayBreak.value
                         if (blockAction.getBlock()::class == material::class) {
                             blockAction.setTaskState(TaskState.PLACE)
+                            blockAction.setPriority(3)
                         } else {
                             blockAction.setTaskState(TaskState.DONE)
+                            blockAction.setPriority(4)
                         }
                         doTask()
                     } else {
@@ -256,11 +268,11 @@ class HighwayTools : Module() {
                 } else if (blockAction.getTaskState() == TaskState.PLACE) {
                     val block = mc.world.getBlockState(blockAction.getBlockPos()).block
                     if (blockAction.getBlock() is BlockAir && block !is BlockLiquid) {
-                        blockQueue.remove()
+                        blockQueue.poll()
                         return true
                     }
                     if (block is BlockLiquid) {
-                        blockAction.setBlock(ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "netherrack"))!!)
+                        blockAction.setBlock(fillerMat)
                     }
                     if (placeBlock(blockAction.getBlockPos(), blockAction.getBlock())) {
                         blockAction.setTaskState(TaskState.PLACED)
@@ -280,15 +292,17 @@ class HighwayTools : Module() {
                         val block = mc.world.getBlockState(blockAction.getBlockPos()).block
                         if (block !is BlockAir) {
                             blockAction.setTaskState(TaskState.DONE)
+                            blockAction.setPriority(4)
                         } else {
                             blockAction.setTaskState(TaskState.PLACE)
                         }
                     } else {
                         blockAction.setTaskState(TaskState.BREAK)
+                        blockAction.setPriority(2)
                     }
                     doTask()
                 } else if (blockAction.getTaskState() == TaskState.DONE) {
-                    blockQueue.remove()
+                    blockQueue.poll()
                     doneQueue.add(blockAction)
                     doTask()
                 }
@@ -305,12 +319,12 @@ class HighwayTools : Module() {
         updateBlockArray()
         for ((a, b) in blockOffsets) {
             val block = mc.world.getBlockState(a).block
-            if (!b && block in ignoreBlocks) { addTask(a, TaskState.DONE, getBlockById(0)) }
-            else if (b && block is BlockAir) { addTask(a, TaskState.PLACE, material) }
-            else if (b && block !is BlockAir && block::class != material::class) { addTask(a, TaskState.BREAK, material) }
-            else if (!b && block !is BlockAir) { addTask(a, TaskState.BREAK, getBlockById(0)) }
-            else if (b && block::class == material::class) { addTask(a, TaskState.DONE, material) }
-            else if (!b && block is BlockAir) { addTask(a, TaskState.DONE, getBlockById(0)) }
+            if (!b && block in ignoreBlocks) { addTask(a, TaskState.DONE, getBlockById(0), 4) }
+            else if (b && block is BlockAir) { addTask(a, TaskState.PLACE, material, 3) }
+            else if (b && block !is BlockAir && block::class != material::class) { addTask(a, TaskState.BREAK, material, 2) }
+            else if (!b && block !is BlockAir) { addTask(a, TaskState.BREAK, getBlockById(0), 2) }
+            else if (b && block::class == material::class) { addTask(a, TaskState.DONE, material, 4) }
+            else if (!b && block is BlockAir) { addTask(a, TaskState.DONE, getBlockById(0), 4) }
         }
     }
 
@@ -449,46 +463,57 @@ class HighwayTools : Module() {
     }
 
     private fun printDebug() {
-        MessageSendHelper.sendChatMessage("#### LOG ####")
+        MessageSendHelper.sendChatMessage("")
+        MessageSendHelper.sendChatMessage("")
+        MessageSendHelper.sendChatMessage("-------------------- QUEUE -------------------")
         for (bt in blockQueue) {
-            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
+            MessageSendHelper.sendChatMessage(bt.getBlock().localizedName + "@(" + bt.getBlockPos().asString() + ") State: " + bt.getTaskState().toString() + " Prio: " + bt.getPriority())
         }
-        MessageSendHelper.sendChatMessage("#### DONE ####")
+        MessageSendHelper.sendChatMessage("")
+        MessageSendHelper.sendChatMessage("-------------------- DONE --------------------")
         for (bt in doneQueue) {
-            MessageSendHelper.sendChatMessage(bt.getBlockPos().toString() + " " + bt.getTaskState().toString() + " " + bt.getBlock().toString())
+            MessageSendHelper.sendChatMessage(bt.getBlock().localizedName + "@(" + bt.getBlockPos().asString() + ") State: " + bt.getTaskState().toString() + " Prio: " + bt.getPriority())
         }
     }
 
     fun printSettings() {
         var message = "$chatName Settings" +
-                "\n    §9> §rMaterial: §7$material" +
+                "\n    §9> §rMaterial: §7${material.localizedName}" +
                 "\n    §9> §rBaritone: §7${baritoneMode.value}" +
                 "\n    §9> §rIgnored Blocks:"
         for (b in ignoreBlocks) {
-            message += "\n        §9> §7$b"
+            message += "\n        §9> §7${b!!.localizedName}"
         }
         MessageSendHelper.sendChatMessage(message)
     }
 
     private fun printEnable() {
-        if (buildDirectionSaved == 1 || buildDirectionSaved == 3 || buildDirectionSaved == 5 || buildDirectionSaved == 5 || buildDirectionSaved == 7) {
-            MessageSendHelper.sendChatMessage("$chatName Module started." +
-                    "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
-                    "\n    §9> §7Coordinates: §a" + mc.player.positionVector.x.roundToInt() + ", " + mc.player.positionVector.z.roundToInt() + "§r" +
-                    "\n    §9> §7Baritone mode: §a" + baritoneMode.value + "§r")
+        if (stats.value) {
+            if (buildDirectionSaved == 1 || buildDirectionSaved == 3 || buildDirectionSaved == 5 || buildDirectionSaved == 5 || buildDirectionSaved == 7) {
+                MessageSendHelper.sendChatMessage("$chatName Module started." +
+                        "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
+                        "\n    §9> §7Coordinates: §a" + mc.player.positionVector.x.roundToInt() + ", " + mc.player.positionVector.z.roundToInt() + "§r" +
+                        "\n    §9> §7Baritone mode: §a" + baritoneMode.value + "§r")
+            } else {
+                MessageSendHelper.sendChatMessage("$chatName Module started." +
+                        "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
+                        "\n    §9> §7Coordinate: §a" + buildDirectionCoordinate + "§r" +
+                        "\n    §9> §7Baritone mode: §a" + baritoneMode.value + "§r")
+            }
         } else {
-            MessageSendHelper.sendChatMessage("$chatName Module started." +
-                    "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
-                    "\n    §9> §7Coordinate: §a" + buildDirectionCoordinate + "§r" +
-                    "\n    §9> §7Baritone mode: §a" + baritoneMode.value + "§r")
+            MessageSendHelper.sendChatMessage("$chatName Module started.")
         }
     }
 
     private fun printDisable() {
-        MessageSendHelper.sendChatMessage("$chatName Module stopped." +
-                "\n    §9> §7Placed blocks: §a" + totalBlocksPlaced + "§r" +
-                "\n    §9> §7Destroyed blocks: §a" + totalBlocksDestroyed + "§r" +
-                "\n    §9> §7Distance: §a" + totalBlocksDistance + "§r")
+        if (stats.value) {
+            MessageSendHelper.sendChatMessage("$chatName Module stopped." +
+                    "\n    §9> §7Placed blocks: §a" + totalBlocksPlaced + "§r" +
+                    "\n    §9> §7Destroyed blocks: §a" + totalBlocksDestroyed + "§r" +
+                    "\n    §9> §7Distance: §a" + totalBlocksDistance + "§r")
+        } else {
+            MessageSendHelper.sendChatMessage("$chatName Module stopped.")
+        }
     }
 
     fun getNextBlock(): BlockPos {
@@ -519,320 +544,122 @@ class HighwayTools : Module() {
         mc.player.rotationPitch = 0F
     }
 
+    private fun relativeDirection(curs: BlockPos, steps: Int, turn: Int): BlockPos {
+        var c = curs
+        var d = (buildDirectionSaved + turn).rem(8)
+        if (d < 0) d += 8
+        when (d) {
+            0 -> c = c.north(steps)
+            1 -> c = c.north(steps).east(steps)
+            2 -> c = c.east(steps)
+            3 -> c = c.south(steps).east(steps)
+            4 -> c = c.south(steps)
+            5 -> c = c.south(steps).west(steps)
+            6 -> c = c.west(steps)
+            7 -> c = c.north(steps).west(steps)
+        }
+        return c
+    }
+
+    private fun isDiagonal(): Boolean {
+        return when(buildDirectionSaved) {
+            1 -> true
+            3 -> true
+            5 -> true
+            7 -> true
+            else -> false
+        }
+    }
+
     private fun updateBlockArray() {
         blockOffsets.clear()
         val b = currentBlockPos
 
         when(mode.value) {
             Mode.HIGHWAY -> {
-                when (buildDirectionSaved) {
-                    0 -> { //NORTH
-                        blockOffsets.add(Pair(b.down().north(), true))
-                        blockOffsets.add(Pair(b.down().north().north(), true))
-                        blockOffsets.add(Pair(b.down().north().north().east(), true))
-                        blockOffsets.add(Pair(b.down().north().north().west(), true))
-                        blockOffsets.add(Pair(b.down().north().north().east().east(), true))
-                        blockOffsets.add(Pair(b.down().north().north().west().west(), true))
-                        if (cornerBlock.value) {
-                            blockOffsets.add(Pair(b.down().north().north().east().east().east(), true))
-                            blockOffsets.add(Pair(b.down().north().north().west().west().west(), true))
+                var cursor = b
+                cursor = cursor.down()
+
+                cursor = relativeDirection(cursor, 1, 0)
+                blockOffsets.add(Pair(cursor, true))
+                cursor = relativeDirection(cursor, 1, 0)
+
+                var flip = false
+                for (x in range(1, buildWidth.value + 1)) {
+                    val alterDirection = if (flip) { -1 } else { 1 }
+                    if (isDiagonal()) {
+                        if (x != 1) {
+                            blockOffsets.add(Pair(relativeDirection(relativeDirection(cursor, x / 2 - 1, 1 * alterDirection), x / 2, 3 * alterDirection), true))
                         }
-                        if (buildHeight.value > 1) {
-                            if (!noRims.value) {
-                                blockOffsets.add(Pair(b.north().north().east().east().east(), true))
-                                blockOffsets.add(Pair(b.north().north().west().west().west(), true))
+                        blockOffsets.add(Pair(relativeDirection(cursor, x / 2, 2 * alterDirection), true))
+                        if (rims.value && x == buildWidth.value) {
+                            var c = cursor
+                            for (y in range(1, rimHeight.value + 1)) {
+                                c = c.up()
+                                if (buildWidth.value % 2 != 0) {
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection * (-1)), true))
+                                } else {
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2 - 1, 2 * alterDirection * (-1)), true))
+                                }
                             }
                         }
                         if (clearSpace.value) {
-                            if (noRims.value) {
-                                blockOffsets.add(Pair(b.north().north().east().east().east(), false))
-                                blockOffsets.add(Pair(b.north().north().west().west().west(), false))
+                            var c = cursor
+                            for (y in range(1, clearHeight.value)) {
+                                c = c.up()
+                                if (rims.value) {
+                                    if (!((x == buildWidth.value || x == buildWidth.value - 1) && y <= rimHeight.value)) {
+                                        blockOffsets.add(Pair(relativeDirection(relativeDirection(c, x / 2 - 1, 1 * alterDirection), x / 2, 3 * alterDirection), false))
+                                        blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), false))
+                                    } else {
+                                        blockOffsets.add(Pair(relativeDirection(relativeDirection(c, x / 2 - 1, 1 * alterDirection), x / 2, 3 * alterDirection), false))
+                                    }
+                                } else {
+                                    if (x != 1) {
+                                        blockOffsets.add(Pair(relativeDirection(relativeDirection(c, x / 2 - 1, 1 * alterDirection), x / 2, 3 * alterDirection), false))
+                                    }
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), false))
+                                }
                             }
-                            if (buildHeight.value > 1) {
-                                blockOffsets.add(Pair(b.north().north(), false))
-                                blockOffsets.add(Pair(b.north().north().east(), false))
-                                blockOffsets.add(Pair(b.north().north().west(), false))
-                                blockOffsets.add(Pair(b.north().north().east().east(), false))
-                                blockOffsets.add(Pair(b.north().north().west().west(), false))
+                        }
+                    } else {
+                        if (cornerBlock.value) {
+                            blockOffsets.add(Pair(relativeDirection(cursor, x / 2, 2 * alterDirection), true))
+                        } else {
+                            if (!(x == buildWidth.value || x == buildWidth.value - 1)) {
+                                blockOffsets.add(Pair(relativeDirection(cursor, x / 2, 2 * alterDirection), true))
                             }
-                            if (buildHeight.value > 2) {
-                                blockOffsets.add(Pair(b.up().north().north(), false))
-                                blockOffsets.add(Pair(b.up().north().north().east(), false))
-                                blockOffsets.add(Pair(b.up().north().north().west(), false))
-                                blockOffsets.add(Pair(b.up().north().north().east().east(), false))
-                                blockOffsets.add(Pair(b.up().north().north().west().west(), false))
-                                blockOffsets.add(Pair(b.up().north().north().east().east().east(), false))
-                                blockOffsets.add(Pair(b.up().north().north().west().west().west(), false))
+                        }
+                        if (rims.value && x == buildWidth.value) {
+                            var c = cursor
+                            for (y in range(1, rimHeight.value + 1)) {
+                                c = c.up()
+                                if (buildWidth.value % 2 != 0) {
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection * (-1)), true))
+                                } else {
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2 - 1, 2 * alterDirection * (-1)), true))
+                                }
                             }
-                            if (buildHeight.value > 3) {
-                                blockOffsets.add(Pair(b.up().up().north().north(), false))
-                                blockOffsets.add(Pair(b.up().up().north().north().east(), false))
-                                blockOffsets.add(Pair(b.up().up().north().north().west(), false))
-                                blockOffsets.add(Pair(b.up().up().north().north().east().east(), false))
-                                blockOffsets.add(Pair(b.up().up().north().north().west().west(), false))
-                                blockOffsets.add(Pair(b.up().up().north().north().east().east().east(), false))
-                                blockOffsets.add(Pair(b.up().up().north().north().west().west().west(), false))
-                            }
-                            if (buildHeight.value > 4) {
-                                blockOffsets.add(Pair(b.up().up().up().north().north(), false))
-                                blockOffsets.add(Pair(b.up().up().up().north().north().east(), false))
-                                blockOffsets.add(Pair(b.up().up().up().north().north().west(), false))
-                                blockOffsets.add(Pair(b.up().up().up().north().north().east().east(), false))
-                                blockOffsets.add(Pair(b.up().up().up().north().north().west().west(), false))
-                                blockOffsets.add(Pair(b.up().up().up().north().north().east().east().east(), false))
-                                blockOffsets.add(Pair(b.up().up().up().north().north().west().west().west(), false))
+                        }
+                        if (clearSpace.value) {
+                            var c = cursor
+                            for (y in range(1, clearHeight.value)) {
+                                c = c.up()
+                                if (rims.value) {
+                                    if (!((x == buildWidth.value || x == buildWidth.value - 1) && y <= rimHeight.value)) {
+                                        blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), false))
+                                    }
+                                } else {
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), false))
+                                }
                             }
                         }
                     }
-                    1 -> { // NORTH-EAST
-                        blockOffsets.add(Pair(b.north().east().down(), true))
-                        blockOffsets.add(Pair(b.north().east().down().north(), true))
-                        blockOffsets.add(Pair(b.north().east().down().east(), true))
-                        blockOffsets.add(Pair(b.north().east().down().north().east(), true))
-                        blockOffsets.add(Pair(b.north().east().down().north().north(), true))
-                        blockOffsets.add(Pair(b.north().east().down().east().east(), true))
-                        blockOffsets.add(Pair(b.north().east().down().east().east().south(), true))
-                        blockOffsets.add(Pair(b.north().east().down().north().north().west(), true))
-                        blockOffsets.add(Pair(b.north().east().down().east().east().south().east(), true))
-                        blockOffsets.add(Pair(b.north().east().down().north().north().west().north(), true))
-                        blockOffsets.add(Pair(b.north().east().east().east().south().east(), true))
-                        blockOffsets.add(Pair(b.north().east().north().north().west().north(), true))
-                        blockOffsets.add(Pair(b.north().east().north(), false))
-                        blockOffsets.add(Pair(b.north().east().north().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east(), false))
-                        blockOffsets.add(Pair(b.north().east().east().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().east(), false))
-                        blockOffsets.add(Pair(b.north().east().north().east().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().east().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north().west(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north().west().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north().west().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east().south(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east().south().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east().south().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north().west().north().up(), false))
-                        blockOffsets.add(Pair(b.north().east().north().north().west().north().up().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east().south().east().up(), false))
-                        blockOffsets.add(Pair(b.north().east().east().east().south().east().up().up(), false))
-                    }
-                    2 -> { //EAST
-                        blockOffsets.add(Pair(b.down().east(), true))
-                        blockOffsets.add(Pair(b.down().east().east(), true))
-                        blockOffsets.add(Pair(b.down().east().east().south(), true))
-                        blockOffsets.add(Pair(b.down().east().east().north(), true))
-                        blockOffsets.add(Pair(b.down().east().east().south().south(), true))
-                        blockOffsets.add(Pair(b.down().east().east().north().north(), true))
-                        blockOffsets.add(Pair(b.down().east().east().south().south().south(), true))
-                        blockOffsets.add(Pair(b.down().east().east().north().north().north(), true))
-                        blockOffsets.add(Pair(b.east().east().south().south().south(), true))
-                        blockOffsets.add(Pair(b.east().east().north().north().north(), true))
-                        blockOffsets.add(Pair(b.east().east(), false))
-                        blockOffsets.add(Pair(b.east().east().south(), false))
-                        blockOffsets.add(Pair(b.east().east().north(), false))
-                        blockOffsets.add(Pair(b.east().east().south().south(), false))
-                        blockOffsets.add(Pair(b.east().east().north().north(), false))
-                        blockOffsets.add(Pair(b.up().east().east(), false))
-                        blockOffsets.add(Pair(b.up().east().east().south(), false))
-                        blockOffsets.add(Pair(b.up().east().east().north(), false))
-                        blockOffsets.add(Pair(b.up().east().east().south().south(), false))
-                        blockOffsets.add(Pair(b.up().east().east().north().north(), false))
-                        blockOffsets.add(Pair(b.up().east().east().south().south().south(), false))
-                        blockOffsets.add(Pair(b.up().east().east().north().north().north(), false))
-                        blockOffsets.add(Pair(b.up().up().east().east(), false))
-                        blockOffsets.add(Pair(b.up().up().east().east().south(), false))
-                        blockOffsets.add(Pair(b.up().up().east().east().north(), false))
-                        blockOffsets.add(Pair(b.up().up().east().east().south().south(), false))
-                        blockOffsets.add(Pair(b.up().up().east().east().north().north(), false))
-                        blockOffsets.add(Pair(b.up().up().east().east().south().south().south(), false))
-                        blockOffsets.add(Pair(b.up().up().east().east().north().north().north(), false))
-                    }
-                    3 -> { //SOUTH-EAST
-                        blockOffsets.add(Pair(b.east().south().down(), true))
-                        blockOffsets.add(Pair(b.east().south().down().east(), true))
-                        blockOffsets.add(Pair(b.east().south().down().south(), true))
-                        blockOffsets.add(Pair(b.east().south().down().east().south(), true))
-                        blockOffsets.add(Pair(b.east().south().down().east().east(), true))
-                        blockOffsets.add(Pair(b.east().south().down().south().south(), true))
-                        blockOffsets.add(Pair(b.east().south().down().south().south().west(), true))
-                        blockOffsets.add(Pair(b.east().south().down().east().east().north(), true))
-                        blockOffsets.add(Pair(b.east().south().down().south().south().west().south(), true))
-                        blockOffsets.add(Pair(b.east().south().down().east().east().north().east(), true))
-                        blockOffsets.add(Pair(b.east().south().south().south().west().south(), true))
-                        blockOffsets.add(Pair(b.east().south().east().east().north().east(), true))
-                        blockOffsets.add(Pair(b.east().south().east(), false))
-                        blockOffsets.add(Pair(b.east().south().east().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south(), false))
-                        blockOffsets.add(Pair(b.east().south().south().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().south(), false))
-                        blockOffsets.add(Pair(b.east().south().east().south().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().south().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east().north(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east().north().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east().north().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south().west(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south().west().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south().west().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east().north().east().up(), false))
-                        blockOffsets.add(Pair(b.east().south().east().east().north().east().up().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south().west().south().up(), false))
-                        blockOffsets.add(Pair(b.east().south().south().south().west().south().up().up(), false))
-                    }
-                    4 -> { //SOUTH
-                        blockOffsets.add(Pair(b.down().south(), true))
-                        blockOffsets.add(Pair(b.down().south().south(), true))
-                        blockOffsets.add(Pair(b.down().south().south().east(), true))
-                        blockOffsets.add(Pair(b.down().south().south().west(), true))
-                        blockOffsets.add(Pair(b.down().south().south().east().east(), true))
-                        blockOffsets.add(Pair(b.down().south().south().west().west(), true))
-                        blockOffsets.add(Pair(b.down().south().south().east().east().east(), true))
-                        blockOffsets.add(Pair(b.down().south().south().west().west().west(), true))
-                        blockOffsets.add(Pair(b.south().south().east().east().east(), true))
-                        blockOffsets.add(Pair(b.south().south().west().west().west(), true))
-                        blockOffsets.add(Pair(b.south().south(), false))
-                        blockOffsets.add(Pair(b.south().south().east(), false))
-                        blockOffsets.add(Pair(b.south().south().west(), false))
-                        blockOffsets.add(Pair(b.south().south().east().east(), false))
-                        blockOffsets.add(Pair(b.south().south().west().west(), false))
-                        blockOffsets.add(Pair(b.up().south().south(), false))
-                        blockOffsets.add(Pair(b.up().south().south().east(), false))
-                        blockOffsets.add(Pair(b.up().south().south().west(), false))
-                        blockOffsets.add(Pair(b.up().south().south().east().east(), false))
-                        blockOffsets.add(Pair(b.up().south().south().west().west(), false))
-                        blockOffsets.add(Pair(b.up().south().south().east().east().east(), false))
-                        blockOffsets.add(Pair(b.up().south().south().west().west().west(), false))
-                        blockOffsets.add(Pair(b.up().up().south().south(), false))
-                        blockOffsets.add(Pair(b.up().up().south().south().east(), false))
-                        blockOffsets.add(Pair(b.up().up().south().south().west(), false))
-                        blockOffsets.add(Pair(b.up().up().south().south().east().east(), false))
-                        blockOffsets.add(Pair(b.up().up().south().south().west().west(), false))
-                        blockOffsets.add(Pair(b.up().up().south().south().east().east().east(), false))
-                        blockOffsets.add(Pair(b.up().up().south().south().west().west().west(), false))
-                    }
-                    5 -> { // SOUTH-WEST
-                        blockOffsets.add(Pair(b.south().west().down(), true))
-                        blockOffsets.add(Pair(b.south().west().down().south(), true))
-                        blockOffsets.add(Pair(b.south().west().down().west(), true))
-                        blockOffsets.add(Pair(b.south().west().down().south().west(), true))
-                        blockOffsets.add(Pair(b.south().west().down().south().south(), true))
-                        blockOffsets.add(Pair(b.south().west().down().west().west(), true))
-                        blockOffsets.add(Pair(b.south().west().down().west().west().north(), true))
-                        blockOffsets.add(Pair(b.south().west().down().south().south().east(), true))
-                        blockOffsets.add(Pair(b.south().west().down().west().west().north().west(), true))
-                        blockOffsets.add(Pair(b.south().west().down().south().south().east().south(), true))
-                        blockOffsets.add(Pair(b.south().west().west().west().north().west(), true))
-                        blockOffsets.add(Pair(b.south().west().south().south().east().south(), true))
-                        blockOffsets.add(Pair(b.south().west().south(), false))
-                        blockOffsets.add(Pair(b.south().west().south().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west(), false))
-                        blockOffsets.add(Pair(b.south().west().west().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().west(), false))
-                        blockOffsets.add(Pair(b.south().west().south().west().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().west().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south().east(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south().east().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south().east().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west().north(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west().north().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west().north().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south().east().south().up(), false))
-                        blockOffsets.add(Pair(b.south().west().south().south().east().south().up().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west().north().west().up(), false))
-                        blockOffsets.add(Pair(b.south().west().west().west().north().west().up().up(), false))
-                    }
-                    6 -> { //WEST
-                        blockOffsets.add(Pair(b.down().west(), true))
-                        blockOffsets.add(Pair(b.down().west().west(), true))
-                        blockOffsets.add(Pair(b.down().west().west().south(), true))
-                        blockOffsets.add(Pair(b.down().west().west().north(), true))
-                        blockOffsets.add(Pair(b.down().west().west().south().south(), true))
-                        blockOffsets.add(Pair(b.down().west().west().north().north(), true))
-                        blockOffsets.add(Pair(b.down().west().west().south().south().south(), true))
-                        blockOffsets.add(Pair(b.down().west().west().north().north().north(), true))
-                        blockOffsets.add(Pair(b.west().west().south().south().south(), true))
-                        blockOffsets.add(Pair(b.west().west().north().north().north(), true))
-                        blockOffsets.add(Pair(b.west().west(), false))
-                        blockOffsets.add(Pair(b.west().west().south(), false))
-                        blockOffsets.add(Pair(b.west().west().north(), false))
-                        blockOffsets.add(Pair(b.west().west().south().south(), false))
-                        blockOffsets.add(Pair(b.west().west().north().north(), false))
-                        blockOffsets.add(Pair(b.up().west().west(), false))
-                        blockOffsets.add(Pair(b.up().west().west().south(), false))
-                        blockOffsets.add(Pair(b.up().west().west().north(), false))
-                        blockOffsets.add(Pair(b.up().west().west().south().south(), false))
-                        blockOffsets.add(Pair(b.up().west().west().north().north(), false))
-                        blockOffsets.add(Pair(b.up().west().west().south().south().south(), false))
-                        blockOffsets.add(Pair(b.up().west().west().north().north().north(), false))
-                        blockOffsets.add(Pair(b.up().up().west().west(), false))
-                        blockOffsets.add(Pair(b.up().up().west().west().south(), false))
-                        blockOffsets.add(Pair(b.up().up().west().west().north(), false))
-                        blockOffsets.add(Pair(b.up().up().west().west().south().south(), false))
-                        blockOffsets.add(Pair(b.up().up().west().west().north().north(), false))
-                        blockOffsets.add(Pair(b.up().up().west().west().south().south().south(), false))
-                        blockOffsets.add(Pair(b.up().up().west().west().north().north().north(), false))
-                    }
-                    7 -> { //NORTH-WEST
-                        blockOffsets.add(Pair(b.west().north().down(), true))
-                        blockOffsets.add(Pair(b.west().north().down().west(), true))
-                        blockOffsets.add(Pair(b.west().north().down().north(), true))
-                        blockOffsets.add(Pair(b.west().north().down().west().north(), true))
-                        blockOffsets.add(Pair(b.west().north().down().west().west(), true))
-                        blockOffsets.add(Pair(b.west().north().down().north().north(), true))
-                        blockOffsets.add(Pair(b.west().north().down().north().north().east(), true))
-                        blockOffsets.add(Pair(b.west().north().down().west().west().south(), true))
-                        blockOffsets.add(Pair(b.west().north().down().north().north().east().north(), true))
-                        blockOffsets.add(Pair(b.west().north().down().west().west().south().west(), true))
-                        blockOffsets.add(Pair(b.west().north().north().north().east().north(), true))
-                        blockOffsets.add(Pair(b.west().north().west().west().south().west(), true))
-                        blockOffsets.add(Pair(b.west().north().west(), false))
-                        blockOffsets.add(Pair(b.west().north().west().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north(), false))
-                        blockOffsets.add(Pair(b.west().north().north().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().north(), false))
-                        blockOffsets.add(Pair(b.west().north().west().north().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().north().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west().south(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west().south().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west().south().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north().east(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north().east().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north().east().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west().south().west().up(), false))
-                        blockOffsets.add(Pair(b.west().north().west().west().south().west().up().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north().east().north().up(), false))
-                        blockOffsets.add(Pair(b.west().north().north().north().east().north().up().up(), false))
-                    }
+                    flip = !flip
                 }
             }
             Mode.FLAT -> {
@@ -850,25 +677,41 @@ class HighwayTools : Module() {
             }
         }
     }
+
+    private enum class Mode {
+        FLAT, HIGHWAY
+    }
+
+    private enum class Page {
+        MAIN, BUILD
+    }
+
+    class BlockTask(private val bp: BlockPos, private var tt: TaskState, private var bb: Block, private var prio: Int) {
+        fun getBlockPos(): BlockPos { return bp }
+        fun getTaskState(): TaskState { return tt }
+        fun setTaskState(tts: TaskState) { tt = tts }
+        fun getBlock(): Block { return bb }
+        fun setBlock(b: Block) { bb = b }
+        fun getPriority(): Int { return prio }
+        fun setPriority(p: Int) { prio = p }
+    }
+
+    private class TaskComparator: Comparator<BlockTask>{
+        override fun compare(o1: BlockTask?, o2: BlockTask?): Int {
+            if (o1 == null || o2 == null) {
+                return 0
+            }
+            return o1.getPriority().compareTo(o2.getPriority())
+        }
+    }
+
+    enum class TaskState(val color: ColorHolder) {
+        BREAK(ColorHolder(222, 0, 0)),
+        BREAKING(ColorHolder(240, 222, 60)),
+        BROKE(ColorHolder(240, 77, 60)),
+        PLACE(ColorHolder(35, 188, 254)),
+        PLACED(ColorHolder(53, 222, 66)),
+        DONE(ColorHolder(50, 50, 50))
+    }
 }
 
-class BlockTask(private val bp: BlockPos, private var tt: TaskState, private var bb: Block) {
-    fun getBlockPos(): BlockPos { return bp }
-    fun getTaskState(): TaskState { return tt }
-    fun setTaskState(tts: TaskState) { tt = tts }
-    fun getBlock(): Block { return bb }
-    fun setBlock(b: Block) { bb = b }
-}
-
-enum class TaskState(val color: ColorHolder) {
-    BREAK(ColorHolder(222, 0, 0)),
-    BREAKING(ColorHolder(240, 222, 60)),
-    BROKE(ColorHolder(240, 77, 60)),
-    PLACE(ColorHolder(35, 188, 254)),
-    PLACED(ColorHolder(53, 222, 66)),
-    DONE(ColorHolder(50, 50, 50))
-}
-
-enum class Mode {
-    FLAT, HIGHWAY
-}
