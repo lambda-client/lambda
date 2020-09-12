@@ -8,15 +8,19 @@ import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.BlockUtils
+import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.graphics.GeometryMasks
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.text.MessageSendHelper
-import net.minecraft.block.*
-import net.minecraft.block.Block.*
+import net.minecraft.block.Block
+import net.minecraft.block.Block.getBlockById
+import net.minecraft.block.Block.getIdFromBlock
+import net.minecraft.block.BlockAir
+import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
@@ -32,7 +36,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.registry.ForgeRegistries
 import java.util.*
 import java.util.stream.IntStream.range
-import kotlin.Comparator
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -75,6 +78,7 @@ class HighwayTools : Module() {
             ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_sign")),
             ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "standing_banner")),
             ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_banner")),
+            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "bedrock")),
             ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "portal")))
     var material: Block = ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "obsidian"))!!
     var fillerMat: Block = ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "netherrack"))!!
@@ -82,6 +86,7 @@ class HighwayTools : Module() {
     private var lastHotbarSlot = -1
     private var isSneaking = false
     var pathing = true
+    private var stuckDetector = 0
     private var buildDirectionSaved = 0
     private var buildDirectionCoordinate = 0
     private val directions = listOf("North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West")
@@ -92,7 +97,7 @@ class HighwayTools : Module() {
     private var totalBlocksDistance = 0
 
     //val blockQueue = PriorityQueue<BlockTask>(TaskComparator())
-    val blockQueue: Queue<BlockTask> = LinkedList<BlockTask>()
+    var blockQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     private val doneQueue: Queue<BlockTask> = LinkedList<BlockTask>()
     private var blockOffsets = mutableListOf<Pair<BlockPos, Boolean>>()
     private var waitTicks = 0
@@ -147,14 +152,27 @@ class HighwayTools : Module() {
 
     override fun onUpdate() {
         if (mc.playerController == null) return
-        if (!BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing) {
-            pathing = false
-        }
+
         if (!isDone()) {
+            if (!BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing) {
+                pathing = false
+            }
             if (!doTask()) {
-                doneQueue.clear()
-                blockQueue.clear()
-                updateTasks()
+                if (!pathing && !ModuleManager.getModuleT(LagNotifier::class.java)!!.paused) {
+                    stuckDetector += 1
+                    blockQueue = LinkedList<BlockTask>(blockQueue.shuffled())
+                    if (stuckDetector > 20) {
+                        doneQueue.clear()
+                        blockQueue.clear()
+                        updateTasks()
+                    }
+                } else {
+                    doneQueue.clear()
+                    blockQueue.clear()
+                    updateTasks()
+                }
+            } else {
+                stuckDetector = 0
             }
         } else {
             if (checkTasks()) {
@@ -218,9 +236,9 @@ class HighwayTools : Module() {
                             }
                             if (!found) {
                                 var insideBuild = false
-                                for ((pos, buildBlock) in blockOffsets) {
+                                for ((pos, _) in blockOffsets) {
                                     if (neighbour == pos) {
-                                        if (!buildBlock) { insideBuild = true }
+                                        insideBuild = true
                                     }
                                 }
                                 if (insideBuild) {
@@ -374,13 +392,15 @@ class HighwayTools : Module() {
             return false
         }
 
-        //Swap to Obsidian in Hotbar or get from inventory
+        //Swap to material in Hotbar or get from inventory
         if (InventoryUtils.getSlotsHotbar(getIdFromBlock(mat)) == null && InventoryUtils.getSlotsNoHotbar(getIdFromBlock(mat)) != null) {
-            InventoryUtils.moveToHotbar(getIdFromBlock(mat), 130, (tickDelay.value * 16).toLong())
-            InventoryUtils.quickMoveSlot(1, (tickDelay.value * 16).toLong())
-            return false
+            //InventoryUtils.moveToHotbar(getIdFromBlock(mat), 130, (tickDelay.value * 16).toLong())
+            for (x in InventoryUtils.getSlotsNoHotbar(getIdFromBlock(mat))!!) {
+                InventoryUtils.quickMoveSlot(x, (tickDelay.value * 16).toLong())
+            }
+            //InventoryUtils.quickMoveSlot(1, (tickDelay.value * 16).toLong())
         } else if (InventoryUtils.getSlots(0, 35, getIdFromBlock(mat)) == null) {
-            MessageSendHelper.sendChatMessage("$chatName No $mat was found in inventory")
+            MessageSendHelper.sendChatMessage("$chatName No ${mat.localizedName} was found in inventory")
             mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             disable()
             return false
