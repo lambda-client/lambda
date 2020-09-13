@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.ModuleManager
+import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.setting.Settings
@@ -212,8 +213,8 @@ class HighwayTools : Module() {
     }
 
     private fun doTask(): Boolean {
-        BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(KamiMod.highwayToolsProcess)
-        if (!isDone() && !pathing && !ModuleManager.getModuleT(LagNotifier::class.java)!!.paused) {
+        if (!isDone() && !pathing && !ModuleManager.getModuleT(LagNotifier::class.java)!!.paused && !ModuleManager.getModuleT(AutoObsidian::class.java)!!.active) {
+            BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(KamiMod.highwayToolsProcess)
             if (waitTicks == 0) {
                 val blockAction = blockQueue.peek()
                 if (blockAction.getTaskState() == TaskState.BREAK) {
