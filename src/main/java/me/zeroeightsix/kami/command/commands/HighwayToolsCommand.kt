@@ -29,9 +29,9 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                 try {
                     val newmat = Block.getBlockFromName(args[1].toString())!!
                     ht!!.material = newmat
-                    MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now your building material.")
+                    MessageSendHelper.sendChatMessage("Set your building material to &7${newmat.localizedName}&r.")
                 } catch (e: Exception) {
-                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is no block.")
+                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
                 }
             }
 
@@ -39,9 +39,9 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                 try {
                     val newmat = Block.getBlockFromName(args[1].toString())!!
                     ht!!.fillerMat = newmat
-                    MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now your filling material.")
+                    MessageSendHelper.sendChatMessage("Set your filling material to &7${newmat.localizedName}&r.")
                 } catch (e: Exception) {
-                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is no block.")
+                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
                 }
             }
 
@@ -51,12 +51,12 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                     if (newmat !in ht!!.ignoreBlocks) {
                         ht.ignoreBlocks.add(newmat)
                         ht.printSettings()
-                        MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now added to your ignore list.")
+                        MessageSendHelper.sendChatMessage("Added &7${newmat.localizedName}&r to ignore list.")
                     } else {
                         MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is already ignored.")
                     }
                 } catch (e: Exception) {
-                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is no material.")
+                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
                 }
             }
 
@@ -66,12 +66,12 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                     if (newmat !in ht!!.ignoreBlocks) {
                         ht.ignoreBlocks.remove(newmat)
                         ht.printSettings()
-                        MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is now removed from your ignore list.")
+                        MessageSendHelper.sendChatMessage("Removed &7${newmat.localizedName}&r from ignore list.")
                     } else {
                         MessageSendHelper.sendChatMessage("&7${newmat.localizedName}&r is not yet ignored.")
                     }
                 } catch (e: Exception) {
-                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is no material.")
+                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
                 }
             }
 

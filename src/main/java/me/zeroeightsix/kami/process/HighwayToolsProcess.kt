@@ -31,7 +31,7 @@ class HighwayToolsProcess : IBaritoneProcess {
     override fun displayName0(): String {
         val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
         val processName = if (highwayTools.blockQueue.size > 0 && !highwayTools.pathing) {
-            "Block: " + highwayTools.blockQueue.peek().getBlock().localizedName + " @ Position: (" + highwayTools.blockQueue.peek().getBlockPos().asString() + ") Prio: " + highwayTools.blockQueue.peek().getPriority() + " State: " + highwayTools.blockQueue.peek().getTaskState().toString()
+            "Block: " + highwayTools.blockQueue.peek().block.localizedName + " @ Position: (" + highwayTools.blockQueue.peek().blockPos.asString() + ") Prio: " + highwayTools.blockQueue.peek().priority + " State: " + highwayTools.blockQueue.peek().taskState.toString()
         } else {
             "Moving to Position: (${highwayTools.getNextBlock().asString()})"
         }

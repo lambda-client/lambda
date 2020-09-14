@@ -5,7 +5,6 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.ModuleManager
-import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.setting.Settings
@@ -16,25 +15,23 @@ import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.graphics.GeometryMasks
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.RotationUtils
+import me.zeroeightsix.kami.util.math.VectorUtils
 import me.zeroeightsix.kami.util.text.MessageSendHelper
-import net.minecraft.block.Block
+import net.minecraft.block.*
 import net.minecraft.block.Block.getBlockById
 import net.minecraft.block.Block.getIdFromBlock
-import net.minecraft.block.BlockAir
-import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
+import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.fml.common.registry.ForgeRegistries
 import java.util.*
 import java.util.stream.IntStream.range
 import kotlin.math.floor
@@ -54,20 +51,21 @@ class HighwayTools : Module() {
 
     private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
     private val page = register(Settings.e<Page>("Page", Page.MAIN))
-    //Settings for module
-    val baritoneMode = register(Settings.booleanBuilder("Baritone").withValue(true).withVisibility { page.value == Page.MAIN }.build())
-    private val blocksPerTick = register(Settings.integerBuilder("Blocks Per Tick").withMinimum(1).withValue(1).withMaximum(9).withVisibility { page.value == Page.MAIN }.build())
-    private val tickDelay = register(Settings.integerBuilder("Tick-Delay Place").withMinimum(0).withValue(0).withMaximum(10).withVisibility { page.value == Page.MAIN }.build())
-    private val tickDelayBreak = register(Settings.integerBuilder("Tick-Delay Break").withMinimum(0).withValue(0).withMaximum(10).withVisibility { page.value == Page.MAIN }.build())
-    private val noViewReset = register(Settings.booleanBuilder("NoViewReset").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+
+    // settings for module
+    val baritoneMode = register(Settings.booleanBuilder("Baritone").withValue(true).withVisibility { false }.build())
+    private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(9).withVisibility { page.value == Page.MAIN }.build())
+    private val tickDelay = register(Settings.integerBuilder("TickDelayPlace").withMinimum(0).withValue(0).withMaximum(10).withVisibility { page.value == Page.MAIN }.build())
+    private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withMinimum(0).withValue(0).withMaximum(10).withVisibility { page.value == Page.MAIN }.build())
+    private val noViewReset = register(Settings.booleanBuilder("NoViewReset").withValue(false).withVisibility { page.value == Page.MAIN }.build())
     private val rotate = register(Settings.booleanBuilder("Rotate").withValue(true).withVisibility { page.value == Page.MAIN }.build())
-    private val stats = register(Settings.booleanBuilder("ShowStats").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.MAIN }.build())
     private val filled = register(Settings.booleanBuilder("Filled").withValue(true).withVisibility { page.value == Page.MAIN }.build())
     private val outline = register(Settings.booleanBuilder("Outline").withValue(true).withVisibility { page.value == Page.MAIN }.build())
-    private val aFilled = register(Settings.integerBuilder("Filled Alpha").withMinimum(0).withValue(31).withMaximum(255).withVisibility { filled.value && page.value == Page.MAIN }.build())
-    private val aOutline = register(Settings.integerBuilder("Outline Alpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value && page.value == Page.MAIN }.build())
+    private val aFilled = register(Settings.integerBuilder("FilledAlpha").withMinimum(0).withValue(31).withMaximum(255).withVisibility { filled.value && page.value == Page.MAIN }.build())
+    private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withMinimum(0).withValue(127).withMaximum(255).withVisibility { outline.value && page.value == Page.MAIN }.build())
 
-    //Custom build settings
+    // custom build settings
     val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD }.build())
     var clearHeight = register(Settings.integerBuilder("ClearHeight").withMinimum(1).withValue(4).withMaximum(6).withVisibility { page.value == Page.BUILD && clearSpace.value }.build())
     private var buildWidth = register(Settings.integerBuilder("BuildWidth").withMinimum(1).withValue(7).withMaximum(9).withVisibility { page.value == Page.BUILD }.build())
@@ -75,14 +73,9 @@ class HighwayTools : Module() {
     private var rimHeight = register(Settings.integerBuilder("RimHeight").withMinimum(1).withValue(1).withMaximum(clearHeight.value).withVisibility { rims.value && page.value == Page.BUILD }.build())
     private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(true).withVisibility { page.value == Page.BUILD }.build())
 
-    var ignoreBlocks = mutableListOf(ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "standing_sign")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_sign")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "standing_banner")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "wall_banner")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "bedrock")),
-            ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "portal")))
-    var material: Block = ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "obsidian"))!!
-    var fillerMat: Block = ForgeRegistries.BLOCKS.getValue(ResourceLocation("minecraft", "netherrack"))!!
+    var ignoreBlocks = mutableListOf(Blocks.STANDING_SIGN, Blocks.WALL_SIGN, Blocks.STANDING_BANNER, Blocks.WALL_BANNER, Blocks.BEDROCK, Blocks.PORTAL)
+    var material: Block = Blocks.OBSIDIAN
+    var fillerMat: Block = Blocks.NETHERRACK
     private var playerHotbarSlot = -1
     private var lastHotbarSlot = -1
     private var isSneaking = false
@@ -92,9 +85,9 @@ class HighwayTools : Module() {
     private var buildDirectionCoordinate = 0
     private val directions = listOf("North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West")
 
-    //Stats
+    // stats
     private var totalBlocksPlaced = 0
-    var totalBlocksDestroyed = 0
+    private var totalBlocksDestroyed = 0
     private var totalBlocksDistance = 0
 
     //val blockQueue = PriorityQueue<BlockTask>(TaskComparator())
@@ -106,7 +99,9 @@ class HighwayTools : Module() {
     private lateinit var currentBlockPos: BlockPos
     private lateinit var startingBlockPos: BlockPos
 
-    fun isDone(): Boolean { return blockQueue.size == 0 }
+    fun isDone(): Boolean {
+        return blockQueue.size == 0
+    }
 
     override fun onEnable() {
         if (mc.player == null) {
@@ -120,13 +115,15 @@ class HighwayTools : Module() {
         lastHotbarSlot = -1
 
         playerHotbarSlot = mc.player.inventory.currentItem
-        buildDirectionCoordinate = if (buildDirectionSaved == 0 || buildDirectionSaved == 4) { startingBlockPos.getX() }
-        else if (buildDirectionSaved == 2 || buildDirectionSaved == 6) { startingBlockPos.getZ() }
-        else { 0 }
+        buildDirectionCoordinate = if (buildDirectionSaved == 0 || buildDirectionSaved == 4) {
+            startingBlockPos.getX()
+        } else if (buildDirectionSaved == 2 || buildDirectionSaved == 6) {
+            startingBlockPos.getZ()
+        } else {
+            0
+        }
 
-        blockQueue.clear()
-        doneQueue.clear()
-        updateTasks()
+        refreshData()
         printEnable()
     }
 
@@ -163,14 +160,10 @@ class HighwayTools : Module() {
                     stuckDetector += 1
                     blockQueue = LinkedList<BlockTask>(blockQueue.shuffled())
                     if (stuckDetector > 20) {
-                        doneQueue.clear()
-                        blockQueue.clear()
-                        updateTasks()
+                        refreshData()
                     }
                 } else {
-                    doneQueue.clear()
-                    blockQueue.clear()
-                    updateTasks()
+                    refreshData()
                 }
             } else {
                 stuckDetector = 0
@@ -196,16 +189,20 @@ class HighwayTools : Module() {
     }
 
     private fun checkTasks(): Boolean {
-        for (bt in doneQueue) {
-            val block = mc.world.getBlockState(bt.getBlockPos()).block
+        for (blockTask in doneQueue) {
+            val block = mc.world.getBlockState(blockTask.blockPos).block
             var cont = false
             for (b in ignoreBlocks) {
-                if (b!!::class == block::class) { cont = true }
+                if (b!!::class == block::class) {
+                    cont = true
+                }
             }
-            if (cont) { continue }
-            if (bt.getBlock()::class == material::class && block is BlockAir) {
+            if (cont) {
+                continue
+            }
+            if (blockTask.block::class == material::class && block is BlockAir) {
                 return false
-            } else if (bt.getBlock()::class == BlockAir::class && block !is BlockAir) {
+            } else if (blockTask.block::class == BlockAir::class && block !is BlockAir) {
                 return false
             }
         }
@@ -215,115 +212,139 @@ class HighwayTools : Module() {
     private fun doTask(): Boolean {
         if (!isDone() && !pathing && !ModuleManager.getModuleT(LagNotifier::class.java)!!.paused && !ModuleManager.getModuleT(AutoObsidian::class.java)!!.active) {
             BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(KamiMod.highwayToolsProcess)
+
             if (waitTicks == 0) {
                 val blockAction = blockQueue.peek()
-                if (blockAction.getTaskState() == TaskState.BREAK) {
-                    val block = mc.world.getBlockState(blockAction.getBlockPos()).block
-                    for (b in ignoreBlocks) {
-                        if (block::class == b!!::class) {
-                            blockAction.setTaskState(TaskState.DONE)
-                            blockAction.setPriority(4)
-                            doTask()
-                        }
-                    }
-                    for (side in EnumFacing.values()) {
-                        val neighbour = blockAction.getBlockPos().offset(side)
-                        var found = false
-                        if (mc.world.getBlockState(neighbour).block is BlockLiquid) {
-                            for (bt in blockQueue) {
-                                if (bt.getBlockPos() == neighbour) {
-                                    found = true
-                                }
+
+                when (blockAction.taskState) {
+                    TaskState.BREAK -> {
+                        val block = mc.world.getBlockState(blockAction.blockPos).block
+
+                        for (b in ignoreBlocks) {
+                            if (block::class == b!!::class) {
+                                blockAction.taskState = TaskState.DONE
+                                blockAction.priority = 4
+                                doTask()
                             }
-                            if (!found) {
-                                var insideBuild = false
-                                for ((pos, _) in blockOffsets) {
-                                    if (neighbour == pos) {
-                                        insideBuild = true
+                        }
+
+                        for (side in EnumFacing.values()) {
+                            val neighbour = blockAction.blockPos.offset(side)
+                            var found = false
+
+                            if (mc.world.getBlockState(neighbour).block is BlockLiquid) {
+
+                                for (bt in blockQueue) {
+                                    if (bt.blockPos == neighbour) {
+                                        found = true
                                     }
                                 }
-                                if (insideBuild) {
-                                    addTask(neighbour, TaskState.PLACE, fillerMat, 1)
-                                } else {
-                                    addTask(neighbour, TaskState.PLACE, material, 1)
+
+                                if (!found) {
+                                    var insideBuild = false
+
+                                    for ((pos, _) in blockOffsets) {
+                                        if (neighbour == pos) {
+                                            insideBuild = true
+                                        }
+                                    }
+
+                                    if (insideBuild) {
+                                        addTask(neighbour, TaskState.PLACE, fillerMat, 1)
+                                    } else {
+                                        addTask(neighbour, TaskState.PLACE, material, 1)
+                                    }
                                 }
                             }
                         }
+
+                        when (block) {
+                            is BlockAir -> {
+                                blockAction.taskState = TaskState.BROKE
+                                doTask()
+                            }
+                            is BlockLiquid -> {
+                                blockAction.taskState = TaskState.PLACE
+                                blockAction.priority = 3
+                                doTask()
+                            }
+                            else -> {
+                                mineBlock(blockAction.blockPos, true)
+                                blockAction.taskState = TaskState.BREAKING
+                            }
+                        }
                     }
-                    when (block) {
-                        is BlockAir -> {
-                            blockAction.setTaskState(TaskState.BROKE)
-                            doTask()
-                        }
-                        is BlockLiquid -> {
-                            blockAction.setTaskState(TaskState.PLACE)
-                            blockAction.setPriority(3)
-                            doTask()
-                        }
-                        else -> {
-                            mineBlock(blockAction.getBlockPos(), true)
-                            blockAction.setTaskState(TaskState.BREAKING)
-                        }
+                    TaskState.BREAKING -> {
+                        mineBlock(blockAction.blockPos, false)
+                        blockAction.taskState = TaskState.BROKE
                     }
-                } else if (blockAction.getTaskState() == TaskState.BREAKING) {
-                    mineBlock(blockAction.getBlockPos(), false)
-                    blockAction.setTaskState(TaskState.BROKE)
-                } else if (blockAction.getTaskState() == TaskState.BROKE) {
-                    val block = mc.world.getBlockState(blockAction.getBlockPos()).block
-                    if (block is BlockAir) {
-                        totalBlocksDestroyed++
-                        waitTicks = tickDelayBreak.value
-                        if (blockAction.getBlock()::class == material::class) {
-                            blockAction.setTaskState(TaskState.PLACE)
-                            blockAction.setPriority(3)
+                    TaskState.BROKE -> {
+                        val block = mc.world.getBlockState(blockAction.blockPos).block
+
+                        if (block is BlockAir) {
+                            totalBlocksDestroyed++
+                            waitTicks = tickDelayBreak.value
+
+                            if (blockAction.block::class == material::class) {
+                                blockAction.taskState = TaskState.PLACE
+                                blockAction.priority = 3
+                            } else {
+                                blockAction.taskState = TaskState.DONE
+                                blockAction.priority = 4
+                            }
+
+                            doTask()
                         } else {
-                            blockAction.setTaskState(TaskState.DONE)
-                            blockAction.setPriority(4)
+                            blockAction.taskState = TaskState.BREAK
+                        }
+                    }
+                    TaskState.PLACE -> {
+                        val block = mc.world.getBlockState(blockAction.blockPos).block
+
+                        if (blockAction.block is BlockAir && block !is BlockLiquid) {
+                            blockQueue.poll()
+                            return true
+                        }
+
+                        if (block is BlockLiquid) {
+                            blockAction.block = fillerMat
+                        }
+
+                        if (placeBlock(blockAction.blockPos, blockAction.block)) {
+                            blockAction.taskState = TaskState.PLACED
+                            if (blocksPerTick.value > blocksPlaced + 1) {
+                                blocksPlaced++
+                                doTask()
+                            } else {
+                                blocksPlaced = 0
+                            }
+                            waitTicks = tickDelay.value
+                            totalBlocksPlaced++
+                        } else {
+                            return false
+                        }
+                    }
+                    TaskState.PLACED -> {
+                        if (blockAction.block::class == material::class) {
+                            val block = mc.world.getBlockState(blockAction.blockPos).block
+
+                            if (block !is BlockAir) {
+                                blockAction.taskState = TaskState.DONE
+                                blockAction.priority = 4
+                            } else {
+                                blockAction.taskState = TaskState.PLACE
+                            }
+                        } else {
+                            blockAction.taskState = TaskState.BREAK
+                            blockAction.priority = 2
                         }
                         doTask()
-                    } else {
-                        blockAction.setTaskState(TaskState.BREAK)
                     }
-                } else if (blockAction.getTaskState() == TaskState.PLACE) {
-                    val block = mc.world.getBlockState(blockAction.getBlockPos()).block
-                    if (blockAction.getBlock() is BlockAir && block !is BlockLiquid) {
+                    TaskState.DONE -> {
                         blockQueue.poll()
-                        return true
+                        doneQueue.add(blockAction)
+                        doTask()
                     }
-                    if (block is BlockLiquid) {
-                        blockAction.setBlock(fillerMat)
-                    }
-                    if (placeBlock(blockAction.getBlockPos(), blockAction.getBlock())) {
-                        blockAction.setTaskState(TaskState.PLACED)
-                        if (blocksPerTick.value > blocksPlaced + 1) {
-                            blocksPlaced++
-                            doTask()
-                        } else {
-                            blocksPlaced = 0
-                        }
-                        waitTicks = tickDelay.value
-                        totalBlocksPlaced++
-                    } else {
-                        return false
-                    }
-                } else if (blockAction.getTaskState() == TaskState.PLACED) {
-                    if (blockAction.getBlock()::class == material::class) {
-                        val block = mc.world.getBlockState(blockAction.getBlockPos()).block
-                        if (block !is BlockAir) {
-                            blockAction.setTaskState(TaskState.DONE)
-                            blockAction.setPriority(4)
-                        } else {
-                            blockAction.setTaskState(TaskState.PLACE)
-                        }
-                    } else {
-                        blockAction.setTaskState(TaskState.BREAK)
-                        blockAction.setPriority(2)
-                    }
-                    doTask()
-                } else if (blockAction.getTaskState() == TaskState.DONE) {
-                    blockQueue.poll()
-                    doneQueue.add(blockAction)
-                    doTask()
                 }
             } else {
                 waitTicks--
@@ -338,12 +359,19 @@ class HighwayTools : Module() {
         updateBlockArray()
         for ((a, b) in blockOffsets) {
             val block = mc.world.getBlockState(a).block
-            if (!b && block in ignoreBlocks) { addTask(a, TaskState.DONE, getBlockById(0), 4) }
-            else if (b && block is BlockAir) { addTask(a, TaskState.PLACE, material, 3) }
-            else if (b && block !is BlockAir && block::class != material::class) { addTask(a, TaskState.BREAK, material, 2) }
-            else if (!b && block !is BlockAir) { addTask(a, TaskState.BREAK, getBlockById(0), 2) }
-            else if (b && block::class == material::class) { addTask(a, TaskState.DONE, material, 4) }
-            else if (!b && block is BlockAir) { addTask(a, TaskState.DONE, getBlockById(0), 4) }
+            if (!b && block in ignoreBlocks) {
+                addTask(a, TaskState.DONE, getBlockById(0), 4)
+            } else if (b && block is BlockAir) {
+                addTask(a, TaskState.PLACE, material, 3)
+            } else if (b && block !is BlockAir && block::class != material::class) {
+                addTask(a, TaskState.BREAK, material, 2)
+            } else if (!b && block !is BlockAir) {
+                addTask(a, TaskState.BREAK, getBlockById(0), 2)
+            } else if (b && block::class == material::class) {
+                addTask(a, TaskState.DONE, material, 4)
+            } else if (!b && block is BlockAir) {
+                addTask(a, TaskState.DONE, getBlockById(0), 4)
+            }
         }
     }
 
@@ -368,8 +396,7 @@ class HighwayTools : Module() {
         mc.player.swingArm(EnumHand.MAIN_HAND)
     }
 
-    private fun placeBlock(pos: BlockPos, mat: Block): Boolean
-    {
+    private fun placeBlock(pos: BlockPos, mat: Block): Boolean {
         // check if block is already placed
         val block = mc.world.getBlockState(pos).block
         if (block !is BlockAir && block !is BlockLiquid) {
@@ -393,7 +420,7 @@ class HighwayTools : Module() {
             return false
         }
 
-        //Swap to material in Hotbar or get from inventory
+        // swap to material in Hotbar or get from inventory
         if (InventoryUtils.getSlotsHotbar(getIdFromBlock(mat)) == null && InventoryUtils.getSlotsNoHotbar(getIdFromBlock(mat)) != null) {
             //InventoryUtils.moveToHotbar(getIdFromBlock(mat), 130, (tickDelay.value * 16).toLong())
             for (x in InventoryUtils.getSlotsNoHotbar(getIdFromBlock(mat))!!) {
@@ -415,6 +442,7 @@ class HighwayTools : Module() {
             mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
             isSneaking = true
         }
+
         if (rotate.value) {
             BlockUtils.faceVectorPacketInstant(hitVec)
         }
@@ -453,23 +481,27 @@ class HighwayTools : Module() {
 
     fun getPlayerDirection(): Int {
         val yaw = (mc.player.rotationYaw % 360 + 360) % 360
-        return if (yaw >= 158 && yaw < 203) { 0 } //NORTH
-        else if (yaw >= 203 && yaw < 258) { 1 } //NORTH-EAST
-        else if (yaw >= 258 && yaw < 293) { 2 } //EAST
-        else if (yaw >= 293 && yaw < 338) { 3 } //SOUTH-EAST
-        else if (yaw >= 338 || yaw < 23) { 4 } //SOUTH
-        else if (yaw >= 23 && yaw < 68) { 5 } //SOUTH-WEST
-        else if (yaw >= 68 && yaw < 113) { 6 } //WEST
-        else { 7 } //NORTH-WEST
+        return if (yaw >= 158 && yaw < 203) 0 //NORTH
+        else if (yaw >= 203 && yaw < 258) 1 //NORTH-EAST
+        else if (yaw >= 258 && yaw < 293) 2 //EAST
+        else if (yaw >= 293 && yaw < 338) 3 //SOUTH-EAST
+        else if (yaw >= 338 || yaw < 23) 4 //SOUTH
+        else if (yaw >= 23 && yaw < 68) 5 //SOUTH-WEST
+        else if (yaw >= 68 && yaw < 113) 6 //WEST
+        else 7 //NORTH-WEST
     }
 
     private fun updateRenderer(renderer: ESPRenderer): ESPRenderer {
         val side = GeometryMasks.Quad.ALL
-        for (bt in blockQueue) {
-            if (bt.getTaskState() != TaskState.DONE) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
+        for (blockTask in blockQueue) {
+            if (blockTask.taskState != TaskState.DONE) {
+                renderer.add(blockTask.blockPos, blockTask.taskState.color, side)
+            }
         }
-        for (bt in doneQueue) {
-            if (bt.getBlock()::class != BlockAir::class) { renderer.add(bt.getBlockPos(), bt.getTaskState().color, side) }
+        for (blockTask in doneQueue) {
+            if (blockTask.block::class != BlockAir::class) {
+                renderer.add(blockTask.blockPos, blockTask.taskState.color, side)
+            }
         }
         return renderer
     }
@@ -484,17 +516,16 @@ class HighwayTools : Module() {
     }
 
     private fun printDebug() {
-        MessageSendHelper.sendChatMessage("")
-        MessageSendHelper.sendChatMessage("")
-        MessageSendHelper.sendChatMessage("-------------------- QUEUE -------------------")
-        for (bt in blockQueue) {
-            MessageSendHelper.sendChatMessage(bt.getBlock().localizedName + "@(" + bt.getBlockPos().asString() + ") State: " + bt.getTaskState().toString() + " Prio: " + bt.getPriority())
+        var message = "\n\n"
+        message += "-------------------- QUEUE -------------------"
+        for (blockTask in blockQueue) {
+            message += "\n" + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") State: " + blockTask.taskState.toString() + " Prio: " + blockTask.priority
         }
-        MessageSendHelper.sendChatMessage("")
-        MessageSendHelper.sendChatMessage("-------------------- DONE --------------------")
-        for (bt in doneQueue) {
-            MessageSendHelper.sendChatMessage(bt.getBlock().localizedName + "@(" + bt.getBlockPos().asString() + ") State: " + bt.getTaskState().toString() + " Prio: " + bt.getPriority())
+        message += "\n-------------------- DONE --------------------"
+        for (blockTask in doneQueue) {
+            message += "\n" + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") State: " + blockTask.taskState.toString() + " Prio: " + blockTask.priority
         }
+        MessageSendHelper.sendChatMessage(message)
     }
 
     fun printSettings() {
@@ -509,7 +540,7 @@ class HighwayTools : Module() {
     }
 
     private fun printEnable() {
-        if (stats.value) {
+        if (info.value) {
             if (buildDirectionSaved == 1 || buildDirectionSaved == 3 || buildDirectionSaved == 5 || buildDirectionSaved == 5 || buildDirectionSaved == 7) {
                 MessageSendHelper.sendChatMessage("$chatName Module started." +
                         "\n    §9> §7Direction: §a" + directions[buildDirectionSaved] + "§r" +
@@ -527,7 +558,7 @@ class HighwayTools : Module() {
     }
 
     private fun printDisable() {
-        if (stats.value) {
+        if (info.value) {
             MessageSendHelper.sendChatMessage("$chatName Module stopped." +
                     "\n    §9> §7Placed blocks: §a" + totalBlocksPlaced + "§r" +
                     "\n    §9> §7Destroyed blocks: §a" + totalBlocksDestroyed + "§r" +
@@ -539,28 +570,32 @@ class HighwayTools : Module() {
 
     fun getNextBlock(): BlockPos {
         return when (buildDirectionSaved) {
-            0 -> { currentBlockPos.north() }
-            1 -> { currentBlockPos.north().east() }
-            2 -> { currentBlockPos.east() }
-            3 -> { currentBlockPos.south().east() }
-            4 -> { currentBlockPos.south() }
-            5 -> { currentBlockPos.south().west() }
-            6 -> { currentBlockPos.west() }
-            else -> { currentBlockPos.north().west() }
+            0 -> currentBlockPos.north()
+            1 -> currentBlockPos.north().east()
+            2 -> currentBlockPos.east()
+            3 -> currentBlockPos.south().east()
+            4 -> currentBlockPos.south()
+            5 -> currentBlockPos.south().west()
+            6 -> currentBlockPos.west()
+            else -> {
+                currentBlockPos.north().west()
+            }
         }
     }
 
     private fun lookInWalkDirection() {
         // set head rotation to get max walking speed
         when (buildDirectionSaved) {
-            0 -> { mc.player.rotationYaw = -180F }
-            1 -> { mc.player.rotationYaw = -135F }
-            2 -> { mc.player.rotationYaw = -90F }
-            3 -> { mc.player.rotationYaw = -45F }
-            4 -> { mc.player.rotationYaw = 0F }
-            5 -> { mc.player.rotationYaw = 45F }
-            6 -> { mc.player.rotationYaw = 90F }
-            else -> { mc.player.rotationYaw = 135F }
+            0 -> mc.player.rotationYaw = -180F
+            1 -> mc.player.rotationYaw = -135F
+            2 -> mc.player.rotationYaw = -90F
+            3 -> mc.player.rotationYaw = -45F
+            4 -> mc.player.rotationYaw = 0F
+            5 -> mc.player.rotationYaw = 45F
+            6 -> mc.player.rotationYaw = 90F
+            else -> {
+                mc.player.rotationYaw = 135F
+            }
         }
         mc.player.rotationPitch = 0F
     }
@@ -583,7 +618,7 @@ class HighwayTools : Module() {
     }
 
     private fun isDiagonal(): Boolean {
-        return when(buildDirectionSaved) {
+        return when (buildDirectionSaved) {
             1 -> true
             3 -> true
             5 -> true
@@ -592,11 +627,17 @@ class HighwayTools : Module() {
         }
     }
 
+    private fun refreshData() {
+        doneQueue.clear()
+        blockQueue.clear()
+        updateTasks()
+    }
+
     private fun updateBlockArray() {
         blockOffsets.clear()
         val b = currentBlockPos
 
-        when(mode.value) {
+        when (mode.value) {
             Mode.HIGHWAY -> {
                 var cursor = b
                 cursor = cursor.down()
@@ -604,17 +645,24 @@ class HighwayTools : Module() {
                 cursor = relativeDirection(cursor, 1, 0)
                 blockOffsets.add(Pair(cursor, true))
                 cursor = relativeDirection(cursor, 1, 0)
-
                 var flip = false
+
                 for (x in range(1, buildWidth.value + 1)) {
-                    val alterDirection = if (flip) { -1 } else { 1 }
+                    val alterDirection = if (flip) {
+                        -1
+                    } else {
+                        1
+                    }
+
                     if (isDiagonal()) {
                         if (x != 1) {
                             blockOffsets.add(Pair(relativeDirection(relativeDirection(cursor, x / 2 - 1, 1 * alterDirection), x / 2, 3 * alterDirection), true))
                         }
+
                         blockOffsets.add(Pair(relativeDirection(cursor, x / 2, 2 * alterDirection), true))
                         if (rims.value && x == buildWidth.value) {
                             var c = cursor
+
                             for (y in range(1, rimHeight.value + 1)) {
                                 c = c.up()
                                 if (buildWidth.value % 2 != 0) {
@@ -626,10 +674,13 @@ class HighwayTools : Module() {
                                 }
                             }
                         }
+
                         if (clearSpace.value) {
                             var c = cursor
+
                             for (y in range(1, clearHeight.value)) {
                                 c = c.up()
+
                                 if (rims.value) {
                                     if (!((x == buildWidth.value || x == buildWidth.value - 1) && y <= rimHeight.value)) {
                                         blockOffsets.add(Pair(relativeDirection(relativeDirection(c, x / 2 - 1, 1 * alterDirection), x / 2, 3 * alterDirection), false))
@@ -653,10 +704,12 @@ class HighwayTools : Module() {
                                 blockOffsets.add(Pair(relativeDirection(cursor, x / 2, 2 * alterDirection), true))
                             }
                         }
+
                         if (rims.value && x == buildWidth.value) {
                             var c = cursor
                             for (y in range(1, rimHeight.value + 1)) {
                                 c = c.up()
+
                                 if (buildWidth.value % 2 != 0) {
                                     blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
                                     blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection * (-1)), true))
@@ -666,6 +719,7 @@ class HighwayTools : Module() {
                                 }
                             }
                         }
+
                         if (clearSpace.value) {
                             var c = cursor
                             for (y in range(1, clearHeight.value)) {
@@ -684,16 +738,12 @@ class HighwayTools : Module() {
                 }
             }
             Mode.FLAT -> {
-                blockOffsets.add(Pair((b.down().north()), true))
-                blockOffsets.add(Pair((b.down().east()), true))
-                blockOffsets.add(Pair((b.down().south()), true))
-                blockOffsets.add(Pair((b.down().west()), true))
-                blockOffsets.add(Pair((b.down().north().east()), true))
-                blockOffsets.add(Pair((b.down().north().west()), true))
-                blockOffsets.add(Pair((b.down().south().east()), true))
-                blockOffsets.add(Pair((b.down().south().west()), true))
+                for (bp in VectorUtils.getBlockPositionsInArea(b.down().north(buildWidth.value).west(buildWidth.value), b.down().south(buildWidth.value).east(buildWidth.value))) {
+                    blockOffsets.add(Pair(bp, true))
+                }
             }
             null -> {
+                MessageSendHelper.sendChatMessage("Module logic is a lie.")
                 disable()
             }
         }
@@ -707,22 +757,14 @@ class HighwayTools : Module() {
         MAIN, BUILD
     }
 
-    class BlockTask(private val bp: BlockPos, private var tt: TaskState, private var bb: Block, private var prio: Int) {
-        fun getBlockPos(): BlockPos { return bp }
-        fun getTaskState(): TaskState { return tt }
-        fun setTaskState(tts: TaskState) { tt = tts }
-        fun getBlock(): Block { return bb }
-        fun setBlock(b: Block) { bb = b }
-        fun getPriority(): Int { return prio }
-        fun setPriority(p: Int) { prio = p }
-    }
+    data class BlockTask(val blockPos: BlockPos, var taskState: TaskState, var block: Block, var priority: Int)
 
-    private class TaskComparator: Comparator<BlockTask>{
+    private class TaskComparator : Comparator<BlockTask> {
         override fun compare(o1: BlockTask?, o2: BlockTask?): Int {
             if (o1 == null || o2 == null) {
                 return 0
             }
-            return o1.getPriority().compareTo(o2.getPriority())
+            return o1.priority.compareTo(o2.priority)
         }
     }
 
