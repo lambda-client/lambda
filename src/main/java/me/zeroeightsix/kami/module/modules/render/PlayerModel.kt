@@ -47,8 +47,6 @@ class PlayerModel : Module() {
     }
 
     override fun onRender() {
-        if (entity == null) return
-
         entity?.let {
             GlStateManager.pushMatrix()
             GlStateManager.enableDepth()
