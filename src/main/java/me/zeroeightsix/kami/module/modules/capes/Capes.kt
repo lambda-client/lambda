@@ -117,7 +117,8 @@ class Capes : Module() {
     }
 
     companion object {
-        @JvmField var INSTANCE: Capes? = null
+        @JvmField
+        var INSTANCE: Capes? = null
 
         @JvmStatic
         fun getCapeResource(player: AbstractClientPlayer): ResourceLocation? {

@@ -14,7 +14,6 @@ import net.minecraft.network.play.client.CPacketClickWindow
 import net.minecraft.network.play.client.CPacketCreativeInventoryAction
 import java.util.*
 import java.util.stream.Collectors
-import kotlin.math.min
 
 /**
  * Created by d1gress/Qther on 25/11/2019.

@@ -98,8 +98,8 @@ class NewChunks : Module() {
     @EventHandler
     private val listener = Listener(EventHook { event: ChunkEvent ->
         if (event.packet.isFullChunk) return@EventHook
-            chunks.add(event.chunk)
-            if (saveNewChunks.value) saveNewChunk(event.chunk)
+        chunks.add(event.chunk)
+        if (saveNewChunks.value) saveNewChunk(event.chunk)
     })
 
     // needs to be synchronized so no data gets lost

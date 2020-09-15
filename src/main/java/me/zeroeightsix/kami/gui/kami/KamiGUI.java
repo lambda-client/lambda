@@ -47,8 +47,6 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static me.zeroeightsix.kami.KamiMod.MODULE_MANAGER;
-
 /**
  * Created by 086 on 25/06/2017.
  * Updated by dominikaaaa on 28/01/20
@@ -76,7 +74,7 @@ public class KamiGUI extends GUI {
     @Override
     public void initializeGUI() {
         HashMap<Module.Category, Pair<Scrollpane, SettingsPanel>> categoryScrollpaneHashMap = new HashMap<>();
-        for (Module module : MODULE_MANAGER.getModules()) {
+        for (Module module : ModuleManager.getModules()) {
             if (module.category.isHidden()) continue;
             Module.Category moduleCategory = module.category;
             if (!categoryScrollpaneHashMap.containsKey(moduleCategory)) {
@@ -232,7 +230,7 @@ public class KamiGUI extends GUI {
         Label information = new Label("");
         information.setShadow(true);
         information.addTickListener(() -> {
-            InfoOverlay info = MODULE_MANAGER.getModuleT(InfoOverlay.class);
+            InfoOverlay info = ModuleManager.getModuleT(InfoOverlay.class);
             information.setText("");
             info.infoContents().forEach(information::addLine);
         });

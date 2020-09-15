@@ -3,13 +3,11 @@ package me.zeroeightsix.kami.module.modules.combat
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
-import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.client.InfoOverlay
+import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.InventoryUtils
-import net.minecraft.init.Items
 import net.minecraft.network.play.server.SPacketEntityStatus
 
 /**
@@ -52,7 +50,7 @@ class AntiChainPop : Module() {
     private fun itemMode() {
         val old = totems
         if (InventoryUtils.countItemAll(449) < old) {
-            val surround = KamiMod.MODULE_MANAGER.getModuleT(Surround::class.java)!!
+            val surround = ModuleManager.getModuleT(Surround::class.java)!!
             surround.autoDisable.value = true
             surround.enable()
         }
@@ -60,7 +58,7 @@ class AntiChainPop : Module() {
     }
 
     private fun packetMode() {
-        val surround = KamiMod.MODULE_MANAGER.getModuleT(Surround::class.java)!!
+        val surround = ModuleManager.getModuleT(Surround::class.java)!!
         surround.autoDisable.value = true
         surround.enable()
     }

@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.combat
 
-import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.player.Freecam
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.setting.Setting
@@ -64,7 +64,7 @@ class Surround : Module() {
             CenterPlayer.centerPlayer(1.0f)
             if (debugMsgs.value == DebugMsgs.ALL) MessageSendHelper.sendChatMessage("$chatName Auto centering. Player position is " + mc.player.positionVector.toString())
         } else {
-            if (mc.player != null && !KamiMod.MODULE_MANAGER.isModuleEnabled(Freecam::class.java)) {
+            if (mc.player != null && !ModuleManager.isModuleEnabled(Freecam::class.java)) {
                 if (offsetStep == 0) {
                     basePos = BlockPos(mc.player.positionVector).down()
                     playerHotbarSlot = mc.player.inventory.currentItem
@@ -162,7 +162,7 @@ class Surround : Module() {
             placeBlockExecute(blockPos)
         }
 
-        val noBreakAnimation = KamiMod.MODULE_MANAGER.getModuleT(NoBreakAnimation::class.java)!!
+        val noBreakAnimation = ModuleManager.getModuleT(NoBreakAnimation::class.java)!!
         if (noBreakAnimation.isEnabled) {
             noBreakAnimation.resetMining()
         }

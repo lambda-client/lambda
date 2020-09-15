@@ -8,7 +8,6 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.math.MathUtils
 import net.minecraft.network.play.client.CPacketChatMessage
-import java.util.*
 
 /**
  * @author dominikaaaa

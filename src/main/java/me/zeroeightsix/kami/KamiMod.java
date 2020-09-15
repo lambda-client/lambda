@@ -14,10 +14,7 @@ import me.zeroeightsix.kami.manager.ManagerLoader;
 import me.zeroeightsix.kami.manager.mangers.FileInstanceManager;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
-import me.zeroeightsix.kami.module.modules.chat.ChatEncryption;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
-import me.zeroeightsix.kami.process.AutoObsidianProcess;
-import me.zeroeightsix.kami.process.TemporaryPauseProcess;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
@@ -73,12 +70,6 @@ public class KamiMod {
     public static final Logger log = LogManager.getLogger("KAMI Blue");
 
     public static final EventBus EVENT_BUS = new EventManager();
-
-    /**
-     * @deprecated Use ModuleManger instead
-     */
-    @Deprecated
-    public static final ModuleManager MODULE_MANAGER = ModuleManager.INSTANCE;
 
     public static final KamiMoji KAMIMOJI = new KamiMoji();
 
