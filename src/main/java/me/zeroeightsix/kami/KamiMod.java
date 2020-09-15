@@ -16,7 +16,6 @@ import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.chat.ChatEncryption;
 import me.zeroeightsix.kami.module.modules.client.CommandConfig;
-import me.zeroeightsix.kami.module.modules.hidden.RunConfig;
 import me.zeroeightsix.kami.process.AutoObsidianProcess;
 import me.zeroeightsix.kami.process.HighwayToolsProcess;
 import me.zeroeightsix.kami.process.TemporaryPauseProcess;
@@ -24,8 +23,6 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.util.ConfigUtils;
-import me.zeroeightsix.kami.util.Friends;
-import me.zeroeightsix.kami.util.RichPresence;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -41,8 +38,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Objects;
-
-import static me.zeroeightsix.kami.DiscordPresence.setCustomIcons;
 
 /**
  * Created by 086 on 7/11/2017.
@@ -92,10 +87,6 @@ public class KamiMod {
     public static boolean isLatest;
     public static boolean hasAskedToUpdate = false;
 
-    public static TemporaryPauseProcess pauseProcess;
-    public static AutoObsidianProcess autoObsidianProcess;
-    public static HighwayToolsProcess highwayToolsProcess;
-
     @Mod.Instance
     private static KamiMod INSTANCE;
 
@@ -118,16 +109,10 @@ public class KamiMod {
         updateCheck();
         ModuleManager.preLoad();
         ManagerLoader.preLoad();
-
-        pauseProcess = new TemporaryPauseProcess();
-        autoObsidianProcess = new AutoObsidianProcess();
-        highwayToolsProcess = new HighwayToolsProcess();
     }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        setCustomIcons();
-
         log.info("Initialising KamiMoji...");
         KAMIMOJI.start();
 
@@ -153,11 +138,7 @@ public class KamiMod {
 
         /* Custom static Settings, which can't register normally if they're static */
         SettingsRegister.register("commandPrefix", Command.commandPrefix);
-        SettingsRegister.register("delimiterV", ChatEncryption.delimiterValue);
         ConfigUtils.INSTANCE.loadAll();
-
-        new RichPresence();
-        log.info("Rich Presence Users init!");
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
         Module[] modules = ModuleManager.getModules();
@@ -165,9 +146,6 @@ public class KamiMod {
             if (module.alwaysListening) EVENT_BUS.subscribe(module);
             if (module.isEnabled()) module.enable();
         }
-
-        // load modules that are on by default // autoenable
-        Objects.requireNonNull(ModuleManager.getModule(RunConfig.class)).enable();
 
         log.info(MODNAME + " Mod initialized!\n");
     }
