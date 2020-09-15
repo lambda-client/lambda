@@ -60,10 +60,18 @@ class AutoTunnel : Module() {
         if (!current.contentEquals(lastCommand)) {
             lastCommand = current
             when (startingDirection) {
-                CardinalMain.POS_X -> { mc.player.rotationYaw = -90.0f; mc.player.rotationPitch = 0.0f }
-                CardinalMain.NEG_X -> { mc.player.rotationYaw = 90.0f; mc.player.rotationPitch = 0.0f }
-                CardinalMain.POS_Z -> { mc.player.rotationYaw = 0.0f; mc.player.rotationYaw = 0.0f }
-                CardinalMain.NEG_Z -> { mc.player.rotationYaw = 180.0f; mc.player.rotationYaw = 0.0f }
+                CardinalMain.POS_X -> {
+                    mc.player.rotationYaw = -90.0f; mc.player.rotationPitch = 0.0f
+                }
+                CardinalMain.NEG_X -> {
+                    mc.player.rotationYaw = 90.0f; mc.player.rotationPitch = 0.0f
+                }
+                CardinalMain.POS_Z -> {
+                    mc.player.rotationYaw = 0.0f; mc.player.rotationYaw = 0.0f
+                }
+                CardinalMain.NEG_Z -> {
+                    mc.player.rotationYaw = 180.0f; mc.player.rotationYaw = 0.0f
+                }
                 else -> return
             }
             MessageSendHelper.sendBaritoneCommand(*current)

@@ -48,7 +48,7 @@ class ActiveModules : Module() {
     private val render = register(Settings.s("Render", "105,48,109"))
 
     fun setColor(category: Category, color: IntArray) {
-        val setting = getSettingForCategory(category)?: return
+        val setting = getSettingForCategory(category) ?: return
         val r = color[0]
         val g = color[1]
         val b = color[2]
@@ -82,8 +82,9 @@ class ActiveModules : Module() {
 
     private fun settingsToColour(isOne: Boolean): Int {
         val localColor = when (infoGetSetting(isOne)) {
-            TextFormatting.UNDERLINE, TextFormatting.ITALIC, TextFormatting.RESET, TextFormatting.STRIKETHROUGH, TextFormatting.OBFUSCATED, TextFormatting.BOLD -> ColorTextFormatting.colourEnumMap[TextFormatting.WHITE]?.colorLocal?: Color.WHITE
-            else -> ColorTextFormatting.colourEnumMap[infoGetSetting(isOne)]?.colorLocal?: Color.WHITE
+            TextFormatting.UNDERLINE, TextFormatting.ITALIC, TextFormatting.RESET, TextFormatting.STRIKETHROUGH, TextFormatting.OBFUSCATED, TextFormatting.BOLD -> ColorTextFormatting.colourEnumMap[TextFormatting.WHITE]?.colorLocal
+                    ?: Color.WHITE
+            else -> ColorTextFormatting.colourEnumMap[infoGetSetting(isOne)]?.colorLocal ?: Color.WHITE
         }
         return rgbToInt(localColor.red, localColor.green, localColor.blue)
     }

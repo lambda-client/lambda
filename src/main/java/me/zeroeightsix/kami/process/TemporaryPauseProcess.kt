@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.process
 import baritone.api.process.IBaritoneProcess
 import baritone.api.process.PathingCommand
 import baritone.api.process.PathingCommandType
-import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.util.BaritoneUtils

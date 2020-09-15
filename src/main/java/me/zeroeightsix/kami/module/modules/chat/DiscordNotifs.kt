@@ -47,9 +47,14 @@ class DiscordNotifs : Module() {
     private val direct = register(Settings.booleanBuilder("ReceivedDMs").withValue(true).withVisibility { !all.value }.build())
     private val directSent = register(Settings.booleanBuilder("SendDMs").withValue(true).withVisibility { !all.value }.build())
 
-    @JvmField val url = register(Settings.s("URL", "unchanged"))
-    @JvmField val pingID = register(Settings.s("PingID", "unchanged"))
-    @JvmField val avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "assets/raw/assets/assets/icons/kami.png"))
+    @JvmField
+    val url = register(Settings.s("URL", "unchanged"))
+
+    @JvmField
+    val pingID = register(Settings.s("PingID", "unchanged"))
+
+    @JvmField
+    val avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "assets/raw/assets/assets/icons/kami.png"))
 
     private var cServer: ServerData? = null
 
