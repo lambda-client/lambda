@@ -157,8 +157,8 @@ class HighwayTools : Module() {
         pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
 
         if (!isDone()) {
-            if (!doTask() && !pathing) {
-                if (!ModuleManager.getModuleT(LagNotifier::class.java)!!.paused) {
+            if (!doTask()) {
+                if (!pathing && !ModuleManager.getModuleT(LagNotifier::class.java)!!.paused && !ModuleManager.getModuleT(AutoObsidian::class.java)!!.active) {
                     stuckDetector += 1
                     blockQueue = LinkedList<BlockTask>(blockQueue.shuffled())
                     if (debugMessages.value == DebugMessages.ALL) {
