@@ -25,22 +25,19 @@ import net.minecraft.block.Block.getBlockById
 import net.minecraft.block.Block.getIdFromBlock
 import net.minecraft.block.BlockAir
 import net.minecraft.block.BlockLiquid
-import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.entity.item.EntityItem
+import net.minecraft.entity.item.EntityXPOrb
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
-import net.minecraft.item.ItemBlock
-import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.*
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import java.util.*
 import java.util.stream.IntStream.range
-import kotlin.math.atan2
-import kotlin.math.sqrt
 
 /**
  * @author Avanatiker
@@ -145,7 +142,10 @@ class HighwayTools : Module() {
         lastHotbarSlot = -1
 
 
-        BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
+        val baritoneProcess = BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.mostRecentInControl()
+        if (baritoneProcess.isPresent && baritoneProcess.get() == HighwayToolsProcess) {
+            baritoneProcess.get().onLostControl()
+        }
         printDisable()
         totalBlocksPlaced = 0
         totalBlocksDestroyed = 0
@@ -154,15 +154,21 @@ class HighwayTools : Module() {
 
     override fun onUpdate() {
         if (mc.playerController == null) return
+        pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
 
         if (!isDone()) {
-            if (!BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing) pathing = false
-            if (!doTask()) {
-                if (!pathing && !ModuleManager.getModuleT(LagNotifier::class.java)!!.paused) {
+            if (!doTask() && !pathing) {
+                if (!ModuleManager.getModuleT(LagNotifier::class.java)!!.paused) {
                     stuckDetector += 1
                     blockQueue = LinkedList<BlockTask>(blockQueue.shuffled())
+                    if (debugMessages.value == DebugMessages.ALL) {
+                        MessageSendHelper.sendChatMessage("$chatName Shuffled tasks")
+                    }
                     if (stuckDetector > 20) {
                         refreshData()
+                        if (debugMessages.value == DebugMessages.IMPORTANT) {
+                            MessageSendHelper.sendChatMessage("$chatName You got stuck, retry")
+                        }
                     }
                 } else {
                     refreshData()
@@ -176,7 +182,6 @@ class HighwayTools : Module() {
                 totalBlocksDistance++
                 doneQueue.clear()
                 updateTasks()
-                pathing = true
                 if (!noViewReset.value) lookInWalkDirection()
             } else {
                 doneQueue.clear()
@@ -396,35 +401,54 @@ class HighwayTools : Module() {
         mc.player.swingArm(EnumHand.MAIN_HAND)
     }
 
-    private fun findMaterialInHotbar(material: Block): Int {
-        var slot = -1
-        for (i in 0..8) {
-            val stack = mc.player.inventory.getStackInSlot(i)
-            if (stack != ItemStack.EMPTY && stack.getItem() is ItemBlock) {
-                val block = (stack.getItem() as ItemBlock).block
-                if (block::class == material::class) {
-                    slot = i
-                    break
-                }
-            }
+    private fun placeBlock(pos: BlockPos, mat: Block): Boolean
+    {
+        // check if block is already placed
+        val block = mc.world.getBlockState(pos).block
+        if (block !is BlockAir && block !is BlockLiquid) {
+            return false
         }
-        return slot
-    }
-
-    private fun placeBlock(blockPos: BlockPos, material: Block): Boolean {
-        if (!mc.world.getBlockState(blockPos).material.isReplaceable) {
-            if (debugMessages.value == DebugMessages.ALL) {
-                MessageSendHelper.sendChatMessage("$chatName Block is already placed, skipping")
+        // check if entity blocks placing
+        for (entity in mc.world.getEntitiesWithinAABBExcludingEntity(null, AxisAlignedBB(pos))) {
+            if (entity !is EntityItem && entity !is EntityXPOrb) {
                 return false
             }
-        } else if (!BlockUtils.checkForNeighbours(blockPos) && debugMessages.value == DebugMessages.ALL) {
-            MessageSendHelper.sendChatMessage("$chatName No adjacent blocks found")
-            return false
-        } else {
-            if (placeAnimation.value) mc.player.connection.sendPacket(CPacketAnimation(mc.player.activeHand))
-            if (!placeBlockExecute(blockPos, material)) return false
         }
-
+        val side = getPlaceableSide(pos) ?: return false
+        // check if we have a block adjacent to blockpos to click at
+        val neighbour = pos.offset(side)
+        val opposite = side.opposite
+        // check if neighbor can be right clicked
+        if (!BlockUtils.canBeClicked(neighbour)) {
+            return false
+        }
+        //Swap to material in Hotbar or get from inventory
+        if (InventoryUtils.getSlotsHotbar(getIdFromBlock(mat)) == null && InventoryUtils.getSlotsNoHotbar(getIdFromBlock(mat)) != null) {
+            //InventoryUtils.moveToHotbar(getIdFromBlock(mat), 130, (tickDelay.value * 16).toLong())
+            for (x in InventoryUtils.getSlotsNoHotbar(getIdFromBlock(mat))!!) {
+                InventoryUtils.quickMoveSlot(x, (tickDelay.value * 16).toLong())
+            }
+            //InventoryUtils.quickMoveSlot(1, (tickDelay.value * 16).toLong())
+        } else if (InventoryUtils.getSlots(0, 35, getIdFromBlock(mat)) == null) {
+            MessageSendHelper.sendChatMessage("$chatName No ${mat.localizedName} was found in inventory")
+            mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
+            return false
+        }
+        InventoryUtils.swapSlotToItem(getIdFromBlock(mat))
+        val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(opposite.directionVec).scale(0.5))
+        val neighbourBlock = mc.world.getBlockState(neighbour).block
+        if (!isSneaking && BlockUtils.blackList.contains(neighbourBlock) || BlockUtils.shulkerList.contains(neighbourBlock)) {
+            mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
+            isSneaking = true
+        }
+        if (spoofRotations.value) {
+            BlockUtils.faceVectorPacketInstant(hitVec)
+        }
+        //PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(mc.player.rotationYaw, mc.player.rotationPitch)))
+        mc.playerController.processRightClickBlock(mc.player, mc.world, neighbour, opposite, hitVec, EnumHand.MAIN_HAND)
+        mc.player.swingArm(EnumHand.MAIN_HAND)
+        mc.rightClickDelayTimer = 4
         val noBreakAnimation = ModuleManager.getModuleT(NoBreakAnimation::class.java)!!
         if (noBreakAnimation.isEnabled) {
             noBreakAnimation.resetMining()
@@ -432,121 +456,18 @@ class HighwayTools : Module() {
         return true
     }
 
-    private fun placeBlockExecute(pos: BlockPos, material: Block): Boolean {
-        val eyesPos = Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight().toDouble(), mc.player.posZ)
-        val var3 = EnumFacing.values()
-        for (side in var3) {
-            val neighbor = pos.offset(side)
-            val side2 = side.opposite
-
-            if (!canBeClicked(neighbor)) {
-                if (debugMessages.value == DebugMessages.ALL) {
-                    MessageSendHelper.sendChatMessage("$chatName No neighbor to click at!")
-                    return false
-                }
-            } else {
-                val hitVec = Vec3d(neighbor).add(0.5, 0.5, 0.5).add(Vec3d(side2.directionVec).scale(0.5))
-
-                if (eyesPos.squareDistanceTo(hitVec) <= 18.0625) {
-                    if (spoofRotations.value) {
-                        faceVectorPacketInstant(hitVec)
-                    }
-
-                    var needSneak = false
-                    val blockBelow = mc.world.getBlockState(neighbor).block
-
-                    if (BlockUtils.blackList.contains(blockBelow) || BlockUtils.shulkerList.contains(blockBelow)) {
-                        if (debugMessages.value == DebugMessages.IMPORTANT) {
-                            MessageSendHelper.sendChatMessage("$chatName Sneak enabled!")
-                        }
-                        needSneak = true
-                    }
-
-                    if (needSneak) {
-                        mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
-                    }
-
-                    // swap to material in Hotbar or get from inventory
-                    if (InventoryUtils.getSlotsHotbar(getIdFromBlock(material)) == null && InventoryUtils.getSlotsNoHotbar(getIdFromBlock(material)) != null) {
-                        //InventoryUtils.moveToHotbar(getIdFromBlock(material), 130, (tickDelay.value * 16).toLong())
-                        for (x in InventoryUtils.getSlotsNoHotbar(getIdFromBlock(material))!!) {
-                            InventoryUtils.quickMoveSlot(x, (tickDelay.value * 16).toLong())
-                        }
-                        //InventoryUtils.quickMoveSlot(1, (tickDelay.value * 16).toLong())
-                    } else if (InventoryUtils.getSlots(0, 35, getIdFromBlock(material)) == null) {
-                        MessageSendHelper.sendChatMessage("$chatName No ${material.localizedName} was found in inventory")
-                        mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                        disable()
-                        return false
-                    }
-                    InventoryUtils.swapSlotToItem(getIdFromBlock(material))
-                    val materialSlot = findMaterialInHotbar(material)
-
-                    if (lastHotbarSlot != materialSlot) {
-                        if (debugMessages.value == DebugMessages.ALL) {
-                            MessageSendHelper.sendChatMessage("$chatName Setting Slot to obsidian at = $materialSlot")
-                        }
-
-                        if (spoofHotbar.value) {
-                            mc.player.connection.sendPacket(CPacketHeldItemChange(materialSlot))
-                        } else {
-                            mc.player.inventory.currentItem = materialSlot
-                        }
-                        lastHotbarSlot = materialSlot
-                    }
-
-                    mc.playerController.processRightClickBlock(mc.player, mc.world, neighbor, side2, hitVec, EnumHand.MAIN_HAND)
-                    mc.player.connection.sendPacket(CPacketAnimation(EnumHand.MAIN_HAND))
-
-                    if (needSneak) {
-                        if (debugMessages.value == DebugMessages.IMPORTANT) {
-                            MessageSendHelper.sendChatMessage("$chatName Sneak disabled!")
-                        }
-                        mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SNEAKING))
-                    }
-                }
-
-                if (debugMessages.value == DebugMessages.ALL) {
-                    MessageSendHelper.sendChatMessage("$chatName Distance > 4.25 blocks!")
-                }
+    private fun getPlaceableSide(pos: BlockPos): EnumFacing? {
+        for (side in EnumFacing.values()) {
+            val neighbour = pos.offset(side)
+            if (!mc.world.getBlockState(neighbour).block.canCollideCheck(mc.world.getBlockState(neighbour), false)) {
+                continue
+            }
+            val blockState = mc.world.getBlockState(neighbour)
+            if (!blockState.material.isReplaceable) {
+                return side
             }
         }
-        return true
-    }
-
-    companion object {
-        private fun canBeClicked(pos: BlockPos): Boolean {
-            return getBlock(pos).canCollideCheck(getState(pos), false)
-        }
-
-        fun getBlock(pos: BlockPos): Block {
-            return getState(pos).block
-        }
-
-        private fun getState(pos: BlockPos): IBlockState {
-            return mc.world.getBlockState(pos)
-        }
-
-        private fun faceVectorPacketInstant(vec: Vec3d) {
-            val rotations = getLegitRotations(vec)
-            mc.player.connection.sendPacket(CPacketPlayer.Rotation(rotations[0], rotations[1], mc.player.onGround))
-        }
-
-        private fun getLegitRotations(vec: Vec3d): FloatArray {
-            val eyesPos = eyesPos
-            val diffX = vec.x - eyesPos.x
-            val diffY = vec.y - eyesPos.y
-            val diffZ = vec.z - eyesPos.z
-
-            val diffXZ = sqrt(diffX * diffX + diffZ * diffZ)
-            val yaw = Math.toDegrees(atan2(diffZ, diffX)).toFloat() - 90.0f
-            val pitch = (-Math.toDegrees(atan2(diffY, diffXZ))).toFloat()
-
-            return floatArrayOf(mc.player.rotationYaw + MathHelper.wrapDegrees(yaw - mc.player.rotationYaw), mc.player.rotationPitch + MathHelper.wrapDegrees(pitch - mc.player.rotationPitch))
-        }
-
-        private val eyesPos: Vec3d
-            get() = Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight().toDouble(), mc.player.posZ)
+        return null
     }
 
     private fun lookAtBlock(pos: BlockPos) {
