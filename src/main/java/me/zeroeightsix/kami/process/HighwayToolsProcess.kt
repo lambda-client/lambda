@@ -14,9 +14,7 @@ import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
  * @author Avanatiker
  * @since 26/08/20
  */
-class HighwayToolsProcess : IBaritoneProcess {
-
-    private lateinit var baritone: IBaritone
+object HighwayToolsProcess : IBaritoneProcess {
 
     override fun isTemporary(): Boolean {
         return true
@@ -31,7 +29,7 @@ class HighwayToolsProcess : IBaritoneProcess {
     override fun displayName0(): String {
         val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
         val processName = if (highwayTools.blockQueue.size > 0 && !highwayTools.pathing) {
-            "Block: " + highwayTools.blockQueue.peek().block.localizedName + " @ Position: (" + highwayTools.blockQueue.peek().blockPos.asString() + ") Prio: " + highwayTools.blockQueue.peek().priority + " State: " + highwayTools.blockQueue.peek().taskState.toString()
+            "Block: " + highwayTools.blockQueue.peek().block.localizedName + " @ Position: (" + highwayTools.blockQueue.peek().blockPos.asString() + ") Priority: " + highwayTools.blockQueue.peek().priority + " State: " + highwayTools.blockQueue.peek().taskState.toString()
         } else {
             "Moving to Position: (${highwayTools.getNextBlock().asString()})"
         }
@@ -43,7 +41,6 @@ class HighwayToolsProcess : IBaritoneProcess {
     }
 
     override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
-        baritone = BaritoneAPI.getProvider().primaryBaritone
         val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
         return if (highwayTools.baritoneMode.value && highwayTools.pathing) {
             PathingCommand(GoalNear(highwayTools.getNextBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)

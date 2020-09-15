@@ -483,7 +483,7 @@ public class KamiGUI extends GUI {
                 );
                 coordsLabel.setText("");
                 coordsLabel.addLine(ow);
-                coordsLabel.addLine(MathUtils.getPlayerCardinal(mc).cardinalName + colouredSeparator + nether);
+                coordsLabel.addLine(MathUtils.getPlayerCardinal(mc).getDirectionName() + colouredSeparator + nether);
             }
         });
         frame.addChild(coordsLabel);
