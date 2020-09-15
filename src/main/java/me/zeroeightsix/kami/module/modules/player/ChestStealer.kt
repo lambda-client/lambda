@@ -69,10 +69,11 @@ class ChestStealer : Module() {
         val windowID = mc.player.openContainer.windowId
 
         if (timer.tick(delay.value.toLong())) {
-            when (movingMode.value as MovingMode) {
+            when (movingMode.value) {
                 MovingMode.QUICK_MOVE -> InventoryUtils.quickMoveSlot(windowID, slot)
                 MovingMode.PICKUP -> InventoryUtils.moveToSlot(windowID, slot, slotTo)
                 MovingMode.THROW -> InventoryUtils.throwAllInSlot(windowID, slot)
+                else -> { }
             }
         }
         return true
