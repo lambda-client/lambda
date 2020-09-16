@@ -65,8 +65,9 @@ object HighwayTools : Module() {
     val baritoneMode = register(Settings.booleanBuilder("Automatic").withValue(true).withVisibility { page.value == Page.MAIN }.build())
     private val maxReach = register(Settings.doubleBuilder("Reach").withValue(4.4).withMinimum(1.0).withVisibility { page.value == Page.MAIN }.build())
     private val noViewReset = register(Settings.booleanBuilder("NoViewReset").withValue(false).withVisibility { page.value == Page.MAIN }.build())
-    private val spoofRotations = register(Settings.booleanBuilder("SpoofRotations").withValue(true).withVisibility { page.value == Page.MAIN }.build())
-    private val spoofLookAt = register(Settings.booleanBuilder("SpoofLookAt").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    //private val spoofRotations = register(Settings.booleanBuilder("SpoofRotations").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val spoofing = register(Settings.enumBuilder(SpoofMode::class.java).withName("SpoofMode").withValue(SpoofMode.VIEWLOCK).withVisibility { page.value == Page.CONFIG }.build())
+    //private val spoofLookAt = register(Settings.booleanBuilder("SpoofLookAt").withValue(true).withVisibility { page.value == Page.MAIN }.build())
 
     // build settings
     val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD }.build())
@@ -275,6 +276,8 @@ object HighwayTools : Module() {
 
                 when (blockAction.taskState) {
                     TaskState.BREAK -> {
+                        if (mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(blockAction.blockPos).add(0.5, 0.5, 0.5)) == null) return false
+
                         val block = mc.world.getBlockState(blockAction.blockPos).block
 
                         for (b in ignoreBlocks) {
@@ -329,7 +332,7 @@ object HighwayTools : Module() {
                                 doTask()
                             }
                             else -> {
-                                mineBlock(blockAction.blockPos, true)
+                                if(!mineBlock(blockAction.blockPos, true)) return false
                                 blockAction.taskState = TaskState.BREAKING
                             }
                         }
@@ -363,6 +366,8 @@ object HighwayTools : Module() {
                         }
                     }
                     TaskState.PLACE -> {
+                        if (mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(blockAction.blockPos).add(0.5, 0.5, 0.5)) == null) return false
+
                         val block = mc.world.getBlockState(blockAction.blockPos).block
 
                         if (blockAction.block is BlockAir && block !is BlockLiquid) {
@@ -435,28 +440,38 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun mineBlock(pos: BlockPos, pre: Boolean) {
+    private fun mineBlock(pos: BlockPos, pre: Boolean): Boolean {
         if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
             InventoryUtils.moveToHotbar(278, 130)
-            return
+            return false
         } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
             MessageSendHelper.sendChatMessage("$chatName No Pickaxe was found in inventory")
             mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             disable()
-            return
+            return false
         }
         InventoryUtils.swapSlotToItem(278)
-        if (spoofLookAt.value) {
-            val lookAt = RotationUtils.getRotationTo(Vec3d(pos).add(0.5, 0.0, 0.5), true)
-            PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(lookAt.x.toFloat(), lookAt.y.toFloat())))
+
+        val rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return false
+        when (spoofing.value) {
+            SpoofMode.SPOOF -> {
+                val lookAt = RotationUtils.getRotationTo(Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(rayTrace.sideHit.directionVec).scale(0.5)), true)
+                PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(lookAt.x.toFloat(), lookAt.y.toFloat())))
+            }
+            SpoofMode.VIEWLOCK -> {
+                val lookAt = RotationUtils.getRotationTo(Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(rayTrace.sideHit.directionVec).scale(0.5)), true)
+                mc.player.rotationYaw = lookAt.x.toFloat()
+                mc.player.rotationPitch = lookAt.y.toFloat()
+            }
         }
 
         if (pre) {
-            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, mc.objectMouseOver.sideHit))
+            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, rayTrace.sideHit))
         } else {
-            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, mc.objectMouseOver.sideHit))
+            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, rayTrace.sideHit))
         }
         mc.player.swingArm(EnumHand.MAIN_HAND)
+        return true
     }
 
     private fun placeBlock(pos: BlockPos, mat: Block): Boolean
@@ -494,16 +509,25 @@ object HighwayTools : Module() {
             return false
         }
         InventoryUtils.swapSlotToItem(getIdFromBlock(mat))
+        //val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(opposite.directionVec).scale(0.5))
         val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(opposite.directionVec).scale(0.5))
         val neighbourBlock = mc.world.getBlockState(neighbour).block
         if (!isSneaking && BlockUtils.blackList.contains(neighbourBlock) || BlockUtils.shulkerList.contains(neighbourBlock)) {
             mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
             isSneaking = true
         }
-        if (spoofRotations.value) {
-            BlockUtils.faceVectorPacketInstant(hitVec)
+
+        when (spoofing.value) {
+            SpoofMode.SPOOF -> {
+                val lookAt = RotationUtils.getRotationTo(hitVec, true)
+                PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(lookAt.x.toFloat(), lookAt.y.toFloat())))
+            }
+            SpoofMode.VIEWLOCK -> {
+                val lookAt = RotationUtils.getRotationTo(hitVec, true)
+                mc.player.rotationYaw = lookAt.x.toFloat()
+                mc.player.rotationPitch = lookAt.y.toFloat()
+            }
         }
-        //PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(mc.player.rotationYaw, mc.player.rotationPitch)))
         mc.playerController.processRightClickBlock(mc.player, mc.world, neighbour, opposite, hitVec, EnumHand.MAIN_HAND)
         mc.player.swingArm(EnumHand.MAIN_HAND)
         mc.rightClickDelayTimer = 4
@@ -781,6 +805,10 @@ object HighwayTools : Module() {
 
     private enum class Mode {
         HIGHWAY, FLAT
+    }
+
+    private enum class SpoofMode {
+        NONE, SPOOF, VIEWLOCK
     }
 
     private enum class Page {
