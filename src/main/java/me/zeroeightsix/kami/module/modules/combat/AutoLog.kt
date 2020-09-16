@@ -30,7 +30,7 @@ import net.minecraftforge.event.entity.living.LivingDamageEvent
         category = Module.Category.COMBAT,
         alwaysListening = true
 )
-class AutoLog : Module() {
+object AutoLog : Module() {
     private val disable: Setting<DisableMode> = register(Settings.e("Disable", DisableMode.ALWAYS))
     private val health = register(Settings.integerBuilder("Health").withRange(0, 36).withValue(10).build())
     private val crystals = register(Settings.b("Crystals", false))
