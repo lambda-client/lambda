@@ -40,11 +40,10 @@ class KamiGuiDisconnected(private val reason: List<String>, private val screen: 
         }
     }
 
-    // TODO: CHANGE TO OBJECT
     private fun disable() {
         Thread {
             Thread.sleep(250)
-            ModuleManager.getModuleT(AutoLog::class.java)?.disable()
+            AutoLog.disable()
         }.start()
     }
 
