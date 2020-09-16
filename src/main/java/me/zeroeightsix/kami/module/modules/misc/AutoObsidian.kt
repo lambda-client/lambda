@@ -49,7 +49,7 @@ object AutoObsidian : Module() {
     var goal: BlockPos? = null
     var state = State.SEARCHING
 
-    private var active = false
+    var active = false
     private var searchingState = SearchingState.PLACING
     private var playerPos = BlockPos(0, -1, 0)
     private var placingPos = BlockPos(0, -1, 0)

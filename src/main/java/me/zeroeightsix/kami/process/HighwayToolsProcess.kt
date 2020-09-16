@@ -1,7 +1,5 @@
 package me.zeroeightsix.kami.process
 
-import baritone.api.BaritoneAPI
-import baritone.api.IBaritone
 import baritone.api.pathing.goals.GoalNear
 import baritone.api.process.IBaritoneProcess
 import baritone.api.process.PathingCommand
@@ -30,8 +28,10 @@ object HighwayToolsProcess : IBaritoneProcess {
         val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
         val processName = if (highwayTools.blockQueue.size > 0 && !highwayTools.pathing) {
             "Block: " + highwayTools.blockQueue.peek().block.localizedName + " @ Position: (" + highwayTools.blockQueue.peek().blockPos.asString() + ") Priority: " + highwayTools.blockQueue.peek().priority + " State: " + highwayTools.blockQueue.peek().taskState.toString()
-        } else {
+        } else if (highwayTools.pathing) {
             "Moving to Position: (${highwayTools.getNextBlock().asString()})"
+        } else {
+            "Manual mode"
         }
         return "HighwayTools: $processName"
     }
