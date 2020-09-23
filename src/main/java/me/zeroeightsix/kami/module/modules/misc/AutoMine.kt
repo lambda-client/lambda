@@ -37,7 +37,7 @@ object AutoMine : Module() {
         if (diamond.value) current += " diamond_ore"
         if (gold.value) current += " gold_ore"
         if (coal.value) current += " coal_ore"
-        if (log.value) current += " log"
+        if (log.value) current += " log log2"
 
         if (current.startsWith(" ")) {
             current = current.substring(1)
