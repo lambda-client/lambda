@@ -180,6 +180,11 @@ class ForgeEventProcessor {
     }
 
     @SubscribeEvent
+    fun onLivingEntityUseItemEventTick(entityUseItemEvent: LivingEntityUseItemEvent.Tick) {
+        KamiMod.EVENT_BUS.post(entityUseItemEvent)
+    }
+
+    @SubscribeEvent
     fun onLivingDamageEvent(event: LivingDamageEvent) {
         KamiMod.EVENT_BUS.post(event)
     }
