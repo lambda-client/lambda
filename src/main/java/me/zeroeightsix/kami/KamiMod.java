@@ -117,7 +117,7 @@ public class KamiMod {
         ModuleManager.load();
         ManagerLoader.load();
 
-        MinecraftForge.EVENT_BUS.register(new ForgeEventProcessor());
+        MinecraftForge.EVENT_BUS.register(ForgeEventProcessor.INSTANCE);
 
         guiManager = new KamiGUI();
         guiManager.initializeGUI();

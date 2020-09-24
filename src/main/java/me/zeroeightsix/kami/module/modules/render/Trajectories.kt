@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.render
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
-import me.zeroeightsix.kami.event.events.LocalPlayerUpdateEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
@@ -22,6 +21,7 @@ import net.minecraft.util.EnumHandSide
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
 import org.lwjgl.opengl.GL11.GL_LINE_STRIP
 import org.lwjgl.opengl.GL11.glLineWidth
 import kotlin.math.cos
@@ -53,7 +53,7 @@ object Trajectories : Module() {
     })
 
     @EventHandler
-    private val playerUpdateListener = Listener(EventHook { event: LocalPlayerUpdateEvent ->
+    private val playerUpdateListener = Listener(EventHook { event: LivingEntityUseItemEvent.Tick ->
         prevItemUseCount = mc.player.itemInUseCount
     })
 
