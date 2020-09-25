@@ -5,9 +5,7 @@
 
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.emoji.Emoji;
-import me.zeroeightsix.kami.module.ModuleManager;
+import me.zeroeightsix.kami.manager.mangers.KamiMojiManager;
 import me.zeroeightsix.kami.module.modules.chat.KamiMoji;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.gui.FontRenderer;
@@ -47,18 +45,18 @@ public abstract class MixinFontRenderer {
      */
     @Redirect(method = "renderString", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/FontRenderer;renderStringAtPos(Ljava/lang/String;Z)V"))
     private void renderStringAtPos(FontRenderer fontRenderer, String text, boolean shadow) {
-        if (KamiMoji.INSTANCE != null && KamiMoji.INSTANCE.isEnabled()) {
+        if (KamiMoji.INSTANCE.isEnabled()) {
             int size = FONT_HEIGHT;
 
             for (String possible : text.split(":")) {
-                if (KamiMod.KAMIMOJI.isEmoji(possible)) {
-                    Emoji emoji = new Emoji(possible);
+                if (KamiMojiManager.INSTANCE.isEmoji(possible)) {
+                    KamiMojiManager.Emoji emoji = new KamiMojiManager.Emoji(possible);
                     String emojiText = ":" + possible + ":";
                     if (!shadow) {
                         int index = text.indexOf(emojiText);
                         if (index == -1) continue;
                         int x = getStringWidth(text.substring(0, index)) + FONT_HEIGHT / 4;
-                        drawEmoji(KamiMod.KAMIMOJI.getEmoji(emoji), posX + x, posY, size, alpha);
+                        drawEmoji(KamiMojiManager.INSTANCE.getEmoji(emoji), posX + x, posY, size, alpha);
                     }
                     text = text.replaceFirst(emojiText, getReplacement());
                 }
@@ -72,10 +70,10 @@ public abstract class MixinFontRenderer {
      */
     @Inject(method = "getStringWidth", at = @At("TAIL"), cancellable = true)
     public void getStringWidth(String text, CallbackInfoReturnable<Integer> cir) {
-        if (cir.getReturnValue() != 0 && KamiMoji.INSTANCE != null && KamiMoji.INSTANCE.isEnabled()) {
+        if (cir.getReturnValue() != 0 && KamiMoji.INSTANCE.isEnabled()) {
             int reducedWidth = cir.getReturnValue();
             for (String possible : text.split(":")) {
-                if (KamiMod.KAMIMOJI.isEmoji(possible)) {
+                if (KamiMojiManager.INSTANCE.isEmoji(possible)) {
                     String emojiText = ":" + possible + ":";
                     int emojiTextWidth = emojiText.chars().map(i -> getCharWidth((char) i)).sum();
                     reducedWidth -= emojiTextWidth;
