@@ -16,8 +16,6 @@ import net.minecraft.client.gui.GuiChat
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraftforge.client.event.*
-import net.minecraftforge.event.entity.EntityJoinWorldEvent
-import net.minecraftforge.event.entity.living.LivingDamageEvent
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
 import net.minecraftforge.event.entity.player.AttackEntityEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent
@@ -130,16 +128,6 @@ object ForgeEventProcessor {
     @SubscribeEvent
     fun onLivingEntityUseItemEventTick(entityUseItemEvent: LivingEntityUseItemEvent.Tick) {
         KamiMod.EVENT_BUS.post(entityUseItemEvent)
-    }
-
-    @SubscribeEvent
-    fun onLivingDamageEvent(event: LivingDamageEvent) {
-        KamiMod.EVENT_BUS.post(event)
-    }
-
-    @SubscribeEvent
-    fun onEntityJoinWorldEvent(entityJoinWorldEvent: EntityJoinWorldEvent) {
-        KamiMod.EVENT_BUS.post(entityJoinWorldEvent)
     }
 
     @SubscribeEvent
