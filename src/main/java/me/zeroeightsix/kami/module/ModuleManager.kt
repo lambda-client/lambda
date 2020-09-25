@@ -48,18 +48,20 @@ object ModuleManager {
         val stopTimer = TimerUtils.StopTimer()
         for (clazz in moduleClassList!!) {
             try {
-                // First we try to get the constructor of the class and create a new instance with it.
-                // This is for modules that are still in Java.
-                // Because the INSTANCE field isn't assigned yet until the constructor gets called.
-                val module = clazz.getConstructor().newInstance() as Module
-                moduleMap[module.javaClass] = module
-            } catch (noSuchMethodException: NoSuchMethodException) {
-                // If we can't find the constructor for the class then it means it is a Kotlin object class.
-                // We just get the INSTANCE field from it, because Kotlin object class
-                // creates a new INSTANCE automatically when it gets called the first time
-                val module = clazz.getDeclaredField("INSTANCE")[null] as Module
-                moduleMap[module.javaClass] = module
-            } catch (exception: Exception) {
+                try {
+                    // First we try to get the constructor of the class and create a new instance with it.
+                    // This is for modules that are still in Java.
+                    // Because the INSTANCE field isn't assigned yet until the constructor gets called.
+                    val module = clazz.getConstructor().newInstance() as Module
+                    moduleMap[module.javaClass] = module
+                } catch (noSuchMethodException: NoSuchMethodException) {
+                    // If we can't find the constructor for the class then it means it is a Kotlin object class.
+                    // We just get the INSTANCE field from it, because Kotlin object class
+                    // creates a new INSTANCE automatically when it gets called the first time
+                    val module = clazz.getDeclaredField("INSTANCE")[null] as Module
+                    moduleMap[module.javaClass] = module
+                }
+            } catch (exception: Throwable) {
                 exception.printStackTrace()
                 System.err.println("Couldn't initiate module " + clazz.simpleName + "! Err: " + exception.javaClass.simpleName + ", message: " + exception.message)
             }
