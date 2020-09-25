@@ -23,11 +23,13 @@ object Fastuse : Module() {
     private val endCrystals = register(Settings.booleanBuilder().withName("EndCrystals").withValue(true).withVisibility { !allItems.value }.build())
     private val fireworks = register(Settings.booleanBuilder().withName("Fireworks").withValue(false).withVisibility { !allItems.value }.build())
     private val bow = register(Settings.booleanBuilder().withName("Bow").withValue(true).withVisibility { !allItems.value }.build())
-    private val bowCharge = register(Settings.integerBuilder("BowCharge").withMinimum(0).withMaximum(20).withValue(3).withVisibility { allItems.value || bow.value }.build())
+    private val chargeSetting = register(Settings.integerBuilder("BowCharge").withValue(3).withRange(0, 20).withVisibility { allItems.value || bow.value }.build())
     private val chargeVariation = register(Settings.integerBuilder("ChargeVariation").withValue(5).withRange(0, 20).withVisibility { allItems.value || bow.value }.build())
 
     private var randomVariation = 0
     private var time = 0
+
+    val bowCharge get() = if (isEnabled && (allItems.value || bow.value)) 72000.0 - (chargeSetting.value.toDouble() + chargeVariation.value / 2.0) else null
 
     override fun onUpdate() {
         if (mc.player.isSpectator) return
@@ -61,7 +63,7 @@ object Fastuse : Module() {
         if (randomVariation == 0) {
             randomVariation = if (chargeVariation.value == 0) 0 else (0..chargeVariation.value).random()
         }
-        return bowCharge.value + randomVariation
+        return chargeSetting.value + randomVariation
     }
 
     private fun passItemCheck(item: Item): Boolean {

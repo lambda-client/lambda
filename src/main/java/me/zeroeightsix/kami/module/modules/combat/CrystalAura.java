@@ -5,7 +5,6 @@ import me.zero.alpine.listener.Listener;
 import me.zeroeightsix.kami.event.events.PacketEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
 import me.zeroeightsix.kami.module.Module;
-import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.render.PlayerModel;
 import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
@@ -209,7 +208,7 @@ public class CrystalAura extends Module {
                     explode(crystal);
                 }
                 if (sneakEnable.getValue() && mc.player.isSneaking() && holeBlocks != 5) {
-                    ModuleManager.getModule(Surround.class).enable();
+                    Surround.INSTANCE.enable();
                 }
                 return;
             }
