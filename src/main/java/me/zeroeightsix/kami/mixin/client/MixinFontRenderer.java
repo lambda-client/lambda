@@ -35,6 +35,9 @@ public abstract class MixinFontRenderer {
     @Shadow public float alpha;
     @Shadow public float posX;
     @Shadow public float posY;
+    @Shadow public float red;
+    @Shadow public float green;
+    @Shadow public float blue;
 
     @Shadow protected abstract void renderStringAtPos(String text, boolean shadow);
     @Shadow public abstract int getStringWidth(String s);
@@ -62,6 +65,7 @@ public abstract class MixinFontRenderer {
                 }
             }
         }
+        GlStateManager.color(red, blue, green, alpha); // Big Mojang meme :monkey:
         renderStringAtPos(text, shadow);
     }
 
@@ -91,7 +95,7 @@ public abstract class MixinFontRenderer {
         BufferBuilder bufferbuilder = tessellator.getBuffer();
 
         Wrapper.getMinecraft().getTextureManager().bindTexture(emojiTexture);
-        GlStateManager.color(1, 1, 1, alpha);
+        GlStateManager.color(1f, 1f, 1f, alpha);
         GlStateManager.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX);
