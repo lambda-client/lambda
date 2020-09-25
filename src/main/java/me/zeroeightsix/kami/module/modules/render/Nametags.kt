@@ -57,7 +57,7 @@ object Nametags : Module() {
     private val line1center = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line1Center").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
     private val line1right = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line1Right").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
     private val line2left = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line2Left").withValue(ContentType.NAME).withVisibility { page.value == Page.CONTENT })
-    private val line2center = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line2enter").withValue(ContentType.PING).withVisibility { page.value == Page.CONTENT })
+    private val line2center = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line2Center").withValue(ContentType.PING).withVisibility { page.value == Page.CONTENT })
     private val line2right = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line2Right").withValue(ContentType.TOTAL_HP).withVisibility { page.value == Page.CONTENT })
     private val dropItemCount = register(Settings.booleanBuilder("DropItemCount").withValue(true).withVisibility { page.value == Page.CONTENT && items.value })
     private val maxDropItems = register(Settings.integerBuilder("MaxDropItems").withValue(5).withRange(2, 16).withStep(1).withVisibility { page.value == Page.CONTENT && items.value })
