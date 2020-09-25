@@ -49,7 +49,7 @@ import static me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage;
  * Updated 3 December 2019 by hub
  * Updated 8 March 2020 by polymer
  * Updated by qther on 27/03/20
- * Updated by dominikaaaa on 27/03/20
+ * Updated by l1ving on 27/03/20
  * Updated by Afel on 08/06/20
  */
 @Module.Info(

@@ -11,7 +11,7 @@ Please consider donating to help continue this project and get a unique cape in 
 
 ## Looking for maintainers. 
 
-Please check [dominika's](https://github.com/dominikaaaa) profile for contact methods. 
+Please check [dominika's](https://github.com/l1ving) profile for contact methods. 
 
 Due to this project rapidly expanding we're in need of Kotlin maintainers who can review pull requests and preferably have experience working with either Minecraft / Forge or GL before.
 
