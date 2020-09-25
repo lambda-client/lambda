@@ -49,6 +49,7 @@ object Trajectories : Module() {
 
     @EventHandler
     private val TravelListener = Listener(EventHook { event: PlayerTravelEvent ->
+        if (mc.player == null) return@EventHook
         prevMotion = Vec3d(mc.player.motionX, mc.player.motionY, mc.player.motionZ)
     })
 
