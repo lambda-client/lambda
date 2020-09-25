@@ -45,7 +45,7 @@ public abstract class MixinFontRenderer {
      */
     @Redirect(method = "renderString", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/FontRenderer;renderStringAtPos(Ljava/lang/String;Z)V"))
     private void renderStringAtPos(FontRenderer fontRenderer, String text, boolean shadow) {
-        if (KamiMoji.INSTANCE.isEnabled()) {
+        if (KamiMoji.INSTANCE.isEnabled() && text.contains(":")) {
             int size = FONT_HEIGHT;
 
             for (String possible : text.split(":")) {
@@ -70,7 +70,7 @@ public abstract class MixinFontRenderer {
      */
     @Inject(method = "getStringWidth", at = @At("TAIL"), cancellable = true)
     public void getStringWidth(String text, CallbackInfoReturnable<Integer> cir) {
-        if (cir.getReturnValue() != 0 && KamiMoji.INSTANCE.isEnabled()) {
+        if (cir.getReturnValue() != 0 && KamiMoji.INSTANCE.isEnabled() && text.contains(":")) {
             int reducedWidth = cir.getReturnValue();
             for (String possible : text.split(":")) {
                 if (KamiMojiManager.INSTANCE.isEmoji(possible)) {

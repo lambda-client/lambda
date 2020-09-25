@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.module.modules.ClickGUI
 import me.zeroeightsix.kami.util.ClassFinder
 import me.zeroeightsix.kami.util.EntityUtils.getInterpolatedPos
 import me.zeroeightsix.kami.util.TimerUtils
+import me.zeroeightsix.kami.util.graphics.GlStateUtils
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
@@ -88,7 +89,10 @@ object ModuleManager {
 
     fun onRender() {
         for (module in moduleList) {
-            if (isModuleListening(module)) module.onRender()
+            if (isModuleListening(module)) {
+                module.onRender()
+                GlStateUtils.blend(true)
+            }
         }
     }
 
