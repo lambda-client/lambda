@@ -30,7 +30,8 @@ object Baritone : Module() {
     private val renderGoal = register(Settings.b("RenderGoals", true))
     private val failureTimeout = register(Settings.integerBuilder("FailTimeout").withRange(1, 20).withValue(2).build())
     private val blockReachDistance = register(Settings.floatBuilder("ReachDistance").withRange(1.0f, 10.0f).withValue(4.5f).build())
-    private val hasRun = register(Settings.booleanBuilder("hasRun1").withValue(false).withVisibility { false }.build())
+    private val prefixControl = register(Settings.b("PrefixControl", false))
+    private var hasRun = false
 
     init {
         allowBreak.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().allowBreak.value = allowBreak.value } }
@@ -46,10 +47,11 @@ object Baritone : Module() {
         renderGoal.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().renderGoal.value = renderGoal.value } }
         failureTimeout.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().failureTimeoutMS.value = failureTimeout.value * 1000L } }
         blockReachDistance.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().blockReachDistance.value = blockReachDistance.value } }
+        prefixControl.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().prefixControl.value = prefixControl.value } }
     }
 
     override fun onUpdate() {
-        if (!hasRun.value) { // you can use a setting for this and only run it once because then it'll be updated in game, we're only worried about default settings
+        if (!hasRun) { // you can use a setting for this and only run it once because then it'll be updated in game, we're only worried about default settings
             BaritoneAPI.getSettings().allowBreak.value = allowBreak.value
             BaritoneAPI.getSettings().allowSprint.value = allowSprint.value
             BaritoneAPI.getSettings().allowPlace.value = allowPlace.value
@@ -63,7 +65,8 @@ object Baritone : Module() {
             BaritoneAPI.getSettings().renderGoal.value = renderGoal.value
             BaritoneAPI.getSettings().failureTimeoutMS.value = failureTimeout.value * 1000L
             BaritoneAPI.getSettings().blockReachDistance.value = blockReachDistance.value
-            hasRun.value = true
+            BaritoneAPI.getSettings().prefixControl.value = prefixControl.value
+            hasRun = true
         }
     }
 }
