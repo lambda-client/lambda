@@ -59,8 +59,8 @@ object HighwayTools : Module() {
     private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(10).withVisibility { page.value == Page.MAIN }.build())
     private val tickDelayPlace = register(Settings.integerBuilder("TickDelayPlace").withMinimum(0).withValue(0).withMaximum(15).withVisibility { page.value == Page.MAIN }.build())
     private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withMinimum(0).withValue(0).withMaximum(15).withVisibility { page.value == Page.MAIN }.build())
-    val baritoneMode = register(Settings.booleanBuilder("Baritone").withValue(true).withVisibility { page.value == Page.MAIN }.build())
-    private val maxReach = register(Settings.doubleBuilder("Reach").withValue(4.4).withMinimum(1.0).withVisibility { page.value == Page.MAIN }.build())
+    val baritoneMode = register(Settings.booleanBuilder("AutoMode").withValue(true).withVisibility { page.value == Page.MAIN }.build())
+    private val maxReach = register(Settings.doubleBuilder("MaxReach").withValue(4.4).withMinimum(2.0).withVisibility { page.value == Page.MAIN }.build())
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.MAIN }.build())
 
     // build settings
@@ -83,7 +83,7 @@ object HighwayTools : Module() {
     private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withMinimum(0).withValue(91).withMaximum(255).withVisibility { outline.value && page.value == Page.CONFIG }.build())
 
     // other settings
-    var ignoreBlocks = mutableListOf(Blocks.STANDING_SIGN, Blocks.WALL_SIGN, Blocks.STANDING_BANNER, Blocks.WALL_BANNER, Blocks.BEDROCK, Blocks.PORTAL)
+    val ignoreBlocks = mutableListOf(Blocks.STANDING_SIGN, Blocks.WALL_SIGN, Blocks.STANDING_BANNER, Blocks.WALL_BANNER, Blocks.BEDROCK, Blocks.PORTAL)
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
     private var playerHotbarSlot = -1
@@ -93,9 +93,8 @@ object HighwayTools : Module() {
     private var baritoneSettingRenderGoal = false
 
     // runtime vars
-    private val compareByPriority: Comparator<BlockTask> = compareBy { it.taskState.ordinal }
-    var blockQueue: PriorityQueue<BlockTask> = PriorityQueue(compareByPriority)
-    private val doneQueue: Queue<BlockTask> = LinkedList<BlockTask>()
+    val blockQueue: PriorityQueue<BlockTask> = PriorityQueue(compareBy { it.taskState.ordinal })
+    private val doneQueue: Queue<BlockTask> = LinkedList()
     private var blockOffsets = mutableListOf<Pair<BlockPos, Boolean>>()
     private var waitTicks = 0
     private var blocksPlaced = 0
