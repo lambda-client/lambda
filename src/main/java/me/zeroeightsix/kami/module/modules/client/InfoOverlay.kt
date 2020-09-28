@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.util.color.ColorTextFormatting
 import me.zeroeightsix.kami.util.color.ColorTextFormatting.ColourCode
 import me.zeroeightsix.kami.util.math.MathUtils
 import net.minecraft.client.Minecraft
-import net.minecraft.network.NetworkManager
 import net.minecraft.util.text.TextFormatting
 import java.util.*
 import kotlin.math.max
@@ -113,7 +112,7 @@ object InfoOverlay : Module() {
             infoContents.add(setToText(firstColour.value).toString() + mc.player.serverBrand)
         }
         if (durability.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InfoCalculator.dura() + setToText(secondColour.value).toString() + " dura")
+            infoContents.add(setToText(firstColour.value).toString() + InfoCalculator.heldItemDurability() + setToText(secondColour.value).toString() + " heldItemDurability")
         }
         if (biome.value) {
             infoContents.add(setToText(firstColour.value).toString() + mc.world.getBiome(mc.player.position).biomeName + setToText(secondColour.value).toString() + " biome")
