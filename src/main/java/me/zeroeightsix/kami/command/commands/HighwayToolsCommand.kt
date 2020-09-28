@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.command.commands
 import me.zeroeightsix.kami.command.Command
 import me.zeroeightsix.kami.command.syntax.ChunkBuilder
 import me.zeroeightsix.kami.command.syntax.parsers.EnumParser
-import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.misc.HighwayTools
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.block.Block
@@ -19,16 +18,16 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
 
     override fun call(args: Array<String?>) {
         val subCommand = getSubCommand(args)
-        val ht = ModuleManager.getModuleT(HighwayTools::class.java)
+        val ht = HighwayTools
         when (subCommand) {
             SubCommands.SETTINGS -> {
-                ht!!.printSettings()
+                ht.printSettings()
             }
 
             SubCommands.MATERIAL -> {
                 try {
                     val block = Block.getBlockFromName(args[1].toString())!!
-                    ht!!.material = block
+                    ht.material = block
                     MessageSendHelper.sendChatMessage("Set your building material to &7${block.localizedName}&r.")
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
@@ -38,7 +37,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             SubCommands.FILLER -> {
                 try {
                     val block = Block.getBlockFromName(args[1].toString())!!
-                    ht!!.fillerMat = block
+                    ht.fillerMat = block
                     MessageSendHelper.sendChatMessage("Set your filling material to &7${block.localizedName}&r.")
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
@@ -48,7 +47,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             SubCommands.IGNORE_ADD -> {
                 try {
                     val block = Block.getBlockFromName(args[2].toString())!!
-                    if (block !in ht!!.ignoreBlocks) {
+                    if (block !in ht.ignoreBlocks) {
                         ht.ignoreBlocks.add(block)
                         ht.printSettings()
                         MessageSendHelper.sendChatMessage("Added &7${block.localizedName}&r to ignore list.")
@@ -63,7 +62,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             SubCommands.IGNORE_DEL -> {
                 try {
                     val block = Block.getBlockFromName(args[2].toString())!!
-                    if (block !in ht!!.ignoreBlocks) {
+                    if (block !in ht.ignoreBlocks) {
                         ht.ignoreBlocks.remove(block)
                         ht.printSettings()
                         MessageSendHelper.sendChatMessage("Removed &7${block.localizedName}&r from ignore list.")
@@ -87,6 +86,8 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             args[0].isNullOrBlank() -> SubCommands.SETTINGS
 
             args[1].isNullOrBlank() -> SubCommands.NULL
+
+            args[0].equals("settings", ignoreCase = true) -> SubCommands.SETTINGS
 
             args[0].equals("material", ignoreCase = true) -> SubCommands.MATERIAL
 

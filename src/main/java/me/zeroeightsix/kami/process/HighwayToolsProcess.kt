@@ -4,7 +4,6 @@ import baritone.api.pathing.goals.GoalNear
 import baritone.api.process.IBaritoneProcess
 import baritone.api.process.PathingCommand
 import baritone.api.process.PathingCommandType
-import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.misc.HighwayTools
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 
@@ -25,11 +24,11 @@ object HighwayToolsProcess : IBaritoneProcess {
     override fun onLostControl() {}
 
     override fun displayName0(): String {
-        val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
-        val processName = if (highwayTools.blockQueue.size > 0 && !highwayTools.pathing) {
-            "Block: " + highwayTools.blockQueue.peek().block.localizedName + " @ Position: (" + highwayTools.blockQueue.peek().blockPos.asString() + ") Priority: " + highwayTools.blockQueue.peek().priority + " State: " + highwayTools.blockQueue.peek().taskState.toString()
-        } else if (highwayTools.pathing) {
-            "Moving to Position: (${highwayTools.getNextBlock().asString()})"
+        val ht = HighwayTools
+        val processName = if (ht.blockQueue.size > 0 && !ht.pathing) {
+            "Block: " + ht.blockQueue.peek().block.localizedName + " @ Position: (" + ht.blockQueue.peek().blockPos.asString() + ") Priority: " + ht.blockQueue.peek().taskState.ordinal + " State: " + ht.blockQueue.peek().taskState.toString()
+        } else if (ht.pathing) {
+            "Moving to Position: (${ht.getNextBlock().asString()})"
         } else {
             "Manual mode"
         }
@@ -37,13 +36,13 @@ object HighwayToolsProcess : IBaritoneProcess {
     }
 
     override fun isActive(): Boolean {
-        return (ModuleManager.isModuleEnabled(HighwayTools::class.java))
+        return (HighwayTools.isEnabled)
     }
 
     override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
-        val highwayTools = ModuleManager.getModuleT(HighwayTools::class.java)!!
-        return if (highwayTools.baritoneMode.value) {
-            PathingCommand(GoalNear(highwayTools.getNextBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
+        val ht = HighwayTools
+        return if (ht.baritoneMode.value) {
+            PathingCommand(GoalNear(ht.getNextBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
         } else PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
     }
 }
