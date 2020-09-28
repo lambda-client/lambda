@@ -420,14 +420,14 @@ object HighwayTools : Module() {
         for ((a, b) in blockOffsets) {
             val block = mc.world.getBlockState(a).block
             when {
-                (block == Blocks.LAVA || block == Blocks.WATER) -> addTask(a, TaskState.LIQUID_SOURCE, fillerMat)
-                (block == Blocks.FLOWING_LAVA || block == Blocks.FLOWING_WATER) -> addTask(a, TaskState.LIQUID_FLOW, fillerMat)
-                (!b && block in ignoreBlocks) -> addTask(a, Blocks.AIR)
-                (b && block == material) -> addTask(a, material)
-                (!b && block == Blocks.AIR) -> addTask(a, Blocks.AIR)
-                (b && block != Blocks.AIR && block != material) -> addTask(a, TaskState.BREAK, material)
-                (!b && block != Blocks.AIR) -> addTask(a, TaskState.BREAK, Blocks.AIR)
-                (b && block  == Blocks.AIR) -> addTask(a, TaskState.PLACE, material)
+                block == Blocks.LAVA || block == Blocks.WATER -> addTask(a, TaskState.LIQUID_SOURCE, fillerMat)
+                block == Blocks.FLOWING_LAVA || block == Blocks.FLOWING_WATER -> addTask(a, TaskState.LIQUID_FLOW, fillerMat)
+                !b && block in ignoreBlocks -> addTask(a, Blocks.AIR)
+                b && block == material -> addTask(a, material)
+                !b && block == Blocks.AIR -> addTask(a, Blocks.AIR)
+                b && block != Blocks.AIR && block != material -> addTask(a, TaskState.BREAK, material)
+                !b && block != Blocks.AIR -> addTask(a, TaskState.BREAK, Blocks.AIR)
+                b && block  == Blocks.AIR -> addTask(a, TaskState.PLACE, material)
             }
         }
     }
@@ -677,10 +677,10 @@ object HighwayTools : Module() {
                                 c = c.up()
                                 if (buildWidth.value % 2 != 0) {
                                     blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
-                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection * (-1)), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection * -1), true))
                                 } else {
                                     blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
-                                    blockOffsets.add(Pair(relativeDirection(c, x / 2 - 1, 2 * alterDirection * (-1)), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2 - 1, 2 * alterDirection * -1), true))
                                 }
                             }
                         }
@@ -722,10 +722,10 @@ object HighwayTools : Module() {
 
                                 if (buildWidth.value % 2 != 0) {
                                     blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
-                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection * (-1)), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection * -1), true))
                                 } else {
                                     blockOffsets.add(Pair(relativeDirection(c, x / 2, 2 * alterDirection), true))
-                                    blockOffsets.add(Pair(relativeDirection(c, x / 2 - 1, 2 * alterDirection * (-1)), true))
+                                    blockOffsets.add(Pair(relativeDirection(c, x / 2 - 1, 2 * alterDirection * -1), true))
                                 }
                             }
                         }

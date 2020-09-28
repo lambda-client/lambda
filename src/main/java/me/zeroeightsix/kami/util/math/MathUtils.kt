@@ -52,7 +52,7 @@ object MathUtils {
     fun getPlayerCardinal(mc: Minecraft): Cardinal {
         val angle = normalizeAngle(mc.player.rotationYaw.toDouble())
         return when {
-            (angle >= 157.6 || angle <= -157.5) -> Cardinal.NEG_Z //NORTH
+            angle >= 157.6 || angle <= -157.5 -> Cardinal.NEG_Z //NORTH
             isBetween(-157.6, -112.5, angle) -> Cardinal.POS_X_NEG_Z //NORTH-EAST
             isBetween(-112.5, -67.5, angle) -> Cardinal.POS_X //EAST
             isBetween(-67.6, -22.6, angle) -> Cardinal.POS_X_POS_Z //SOUTH-EAST

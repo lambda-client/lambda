@@ -36,7 +36,7 @@ object HighwayToolsProcess : IBaritoneProcess {
     }
 
     override fun isActive(): Boolean {
-        return (HighwayTools.isEnabled)
+        return HighwayTools.isEnabled
     }
 
     override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
