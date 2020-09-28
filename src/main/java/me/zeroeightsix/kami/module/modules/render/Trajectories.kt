@@ -6,7 +6,7 @@ import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.player.Fastuse
+import me.zeroeightsix.kami.module.modules.player.FastUse
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
@@ -181,7 +181,7 @@ object Trajectories : Module() {
             val cosPitch = cos(pitchRad)
 
             val initVelocity = if (throwingType == ThrowingType.BOW) {
-                val itemUseCount = Fastuse.bowCharge ?: if (mc.player.isHandActive) getInterpolatedCharge() else 0.0
+                val itemUseCount = FastUse.bowCharge ?: if (mc.player.isHandActive) getInterpolatedCharge() else 0.0
                 val useDuration = (72000 - itemUseCount) / 20.0
                 val velocity = (useDuration.pow(2) + useDuration * 2.0) / 3.0
                 min(velocity, 1.0) * throwingType.velocity
