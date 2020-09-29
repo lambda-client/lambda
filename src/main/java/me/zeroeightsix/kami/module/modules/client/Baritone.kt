@@ -30,7 +30,7 @@ object Baritone : Module() {
     private val renderGoal = register(Settings.b("RenderGoals", true))
     private val failureTimeout = register(Settings.integerBuilder("FailTimeout").withRange(1, 20).withValue(2).build())
     private val blockReachDistance = register(Settings.floatBuilder("ReachDistance").withRange(1.0f, 10.0f).withValue(4.5f).build())
-    private val prefixControl = register(Settings.b("PrefixControl", false))
+    private val prefixControl = register(Settings.b("UsePrefix", true))
     private var hasRun = false
 
     init {
