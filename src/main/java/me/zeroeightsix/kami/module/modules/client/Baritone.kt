@@ -48,6 +48,7 @@ object Baritone : Module() {
 
     private fun set() {
         mc.player?.let {
+            BaritoneAPI.getSettings().chatControl.value = false // enable chatControlAnyway if you want to use it
             BaritoneAPI.getSettings().allowBreak.value = allowBreak.value
             BaritoneAPI.getSettings().allowSprint.value = allowSprint.value
             BaritoneAPI.getSettings().allowPlace.value = allowPlace.value
