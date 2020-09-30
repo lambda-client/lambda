@@ -30,7 +30,6 @@ object Baritone : Module() {
     private val renderGoal = register(Settings.b("RenderGoals", true))
     private val failureTimeout = register(Settings.integerBuilder("FailTimeout").withRange(1, 20).withValue(2).build())
     private val blockReachDistance = register(Settings.floatBuilder("ReachDistance").withRange(1.0f, 10.0f).withValue(4.5f).build())
-    private val prefixControl = register(Settings.b("UsePrefix", true))
     private var hasRun = false
 
     init {
@@ -47,7 +46,6 @@ object Baritone : Module() {
         renderGoal.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().renderGoal.value = renderGoal.value } }
         failureTimeout.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().failureTimeoutMS.value = failureTimeout.value * 1000L } }
         blockReachDistance.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().blockReachDistance.value = blockReachDistance.value } }
-        prefixControl.settingListener = SettingListeners { mc.player?.let { BaritoneAPI.getSettings().prefixControl.value = prefixControl.value } }
     }
 
     override fun onUpdate() {
@@ -65,7 +63,6 @@ object Baritone : Module() {
             BaritoneAPI.getSettings().renderGoal.value = renderGoal.value
             BaritoneAPI.getSettings().failureTimeoutMS.value = failureTimeout.value * 1000L
             BaritoneAPI.getSettings().blockReachDistance.value = blockReachDistance.value
-            BaritoneAPI.getSettings().prefixControl.value = prefixControl.value
             hasRun = true
         }
     }
