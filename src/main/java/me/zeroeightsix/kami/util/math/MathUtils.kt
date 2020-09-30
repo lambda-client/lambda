@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.util.math
 
 import me.zeroeightsix.kami.util.math.RotationUtils.normalizeAngle
 import net.minecraft.client.Minecraft
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.math.BlockPos
 import kotlin.math.*
 
@@ -65,8 +66,8 @@ object MathUtils {
     }
 
     @JvmStatic
-    fun getPlayerMainCardinal(mc: Minecraft): CardinalMain {
-        return when (Character.toUpperCase(mc.player.horizontalFacing.toString()[0])) {
+    fun getPlayerMainCardinal(player: EntityPlayer): CardinalMain {
+        return when (Character.toUpperCase(player.horizontalFacing.toString()[0])) {
             'N' -> CardinalMain.NEG_Z
             'E' -> CardinalMain.POS_X
             'S' -> CardinalMain.POS_Z
