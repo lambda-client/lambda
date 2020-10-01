@@ -103,7 +103,7 @@ class TextComponent(val separator: String = "  ") {
         for (line in textLines) {
             if (skipEmptyLine && (line == null || line.isEmpty())) continue
             line?.drawLine(drawShadow, horizontalAlign)
-            glTranslatef(0f, (KamiFontRenderer.getFontHeight() + lineSpace), 0f)
+            glTranslatef(0f, (FontRenderAdapter.getFontHeight() + lineSpace), 0f)
         }
         glPopMatrix()
     }
@@ -112,7 +112,7 @@ class TextComponent(val separator: String = "  ") {
 
     fun getWidth() = textLines.map { it?.getWidth() ?: 0f }.max() ?: 0f
 
-    fun getHeight(lineSpace: Int, skipEmptyLines: Boolean = false) = KamiFontRenderer.getFontHeight() * getLines(skipEmptyLines) + lineSpace * (getLines(skipEmptyLines) - 1)
+    fun getHeight(lineSpace: Int, skipEmptyLines: Boolean = false) = FontRenderAdapter.getFontHeight() * getLines(skipEmptyLines) + lineSpace * (getLines(skipEmptyLines) - 1)
 
     fun getLines(skipEmptyLines: Boolean = true) = textLines.count { !skipEmptyLines || (it != null && !it.isEmpty()) }
 
@@ -135,14 +135,14 @@ class TextComponent(val separator: String = "  ") {
                 glTranslatef(-width, 0f, 0f)
             }
             for (textElement in textElementList) {
-                val width = KamiFontRenderer.getStringWidth(textElement.text + separator)
-                KamiFontRenderer.drawString(textElement.text, drawShadow = drawShadow, color = textElement.color)
+                val width = FontRenderAdapter.getStringWidth(textElement.text + separator)
+                FontRenderAdapter.drawString(textElement.text, drawShadow = drawShadow, color = textElement.color)
                 glTranslatef(width, 0f, 0f)
             }
             glPopMatrix()
         }
 
-        fun getWidth() = KamiFontRenderer.getStringWidth(toString())
+        fun getWidth() = FontRenderAdapter.getStringWidth(toString())
 
         override fun toString() = textElementList.joinToString(separator = separator)
     }

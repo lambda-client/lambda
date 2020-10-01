@@ -7,7 +7,7 @@ import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.color.ColorGradient
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
-import me.zeroeightsix.kami.util.graphics.font.KamiFontRenderer
+import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import me.zeroeightsix.kami.util.graphics.font.TextComponent
 import me.zeroeightsix.kami.util.graphics.font.TextProperties
 import me.zeroeightsix.kami.util.math.MathUtils
@@ -202,7 +202,7 @@ object Nametags : Module() {
 
         if (itemFrame.value) {
             glTranslatef(0f, -margins.value, 0f)
-            val duraHeight = if (drawDura) KamiFontRenderer.getFontHeight() + 2f else 0f
+            val duraHeight = if (drawDura) FontRenderAdapter.getFontHeight() + 2f else 0f
             val enchantmentHeight = if (enchantment.value) (itemList.map { it.second.getHeight(2) }.max()
                     ?: 0f) + 4f else 0f
             val height = 16 + duraHeight + enchantmentHeight * 0.6f
@@ -212,7 +212,7 @@ object Nametags : Module() {
         }
 
         glTranslatef(-halfWidth + 4f, -16f, 0f)
-        if (drawDura) glTranslatef(0f, -KamiFontRenderer.getFontHeight() - 2f, 0f)
+        if (drawDura) glTranslatef(0f, -FontRenderAdapter.getFontHeight() - 2f, 0f)
         RenderHelper.enableGUIStandardItemLighting()
 
         for ((itemStack, enchantmentText) in itemList) {
@@ -227,14 +227,14 @@ object Nametags : Module() {
                 val duraPercentage = 100f - (itemStack.itemDamage.toFloat() / itemStack.maxDamage.toFloat()) * 100f
                 val color = healthColorGradient.get(duraPercentage)
                 val text = duraPercentage.roundToInt().toString()
-                val textWidth = KamiFontRenderer.getStringWidth(text)
-                KamiFontRenderer.drawString(text, 8f - textWidth / 2f, 17f, textShadow.value, color)
+                val textWidth = FontRenderAdapter.getStringWidth(text)
+                FontRenderAdapter.drawString(text, 8f - textWidth / 2f, 17f, textShadow.value, color)
             }
 
             if (count.value && itemStack.count > 1) {
                 val itemCount = itemStack.count.toString()
                 glTranslatef(0f, 0f, 60f)
-                KamiFontRenderer.drawString(itemCount, 17f - KamiFontRenderer.getStringWidth(itemCount), 9f, textShadow.value)
+                FontRenderAdapter.drawString(itemCount, 17f - FontRenderAdapter.getStringWidth(itemCount), 9f, textShadow.value)
                 glTranslatef(0f, 0f, -60f)
             }
 
