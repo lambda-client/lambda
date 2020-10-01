@@ -31,6 +31,7 @@ object Freecam : Module() {
     private val horizontalSpeed = register(Settings.floatBuilder("HorizontalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
     private val verticalSpeed = register(Settings.floatBuilder("VerticalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
     private val arrowKeyMove = register(Settings.b("ArrowKeyMove", true))
+    private val disableOnDisconnect = register(Settings.b("DisconnectDisable", true))
 
     private var prevThirdPersonViewSetting = -1
     var cameraGuy: EntityPlayer? = null
@@ -42,6 +43,7 @@ object Freecam : Module() {
         prevThirdPersonViewSetting = -1
         cameraGuy = null
         mc.renderChunksMany = true
+        if (disableOnDisconnect.value) disable()
     })
 
     @EventHandler
