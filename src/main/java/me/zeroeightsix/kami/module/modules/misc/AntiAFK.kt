@@ -143,7 +143,7 @@ object AntiAFK : Module() {
     }
 
     private val isBaritoneActive: Boolean
-        get() = BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.isActive
+        get() = if (mc.player == null) false else BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.isActive
 
     private fun baritoneGotoXZ(x: Int, z: Int) {
         BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.setGoalAndPath(GoalXZ(x, z))
