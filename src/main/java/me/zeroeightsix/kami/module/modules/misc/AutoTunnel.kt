@@ -73,6 +73,10 @@ object AutoTunnel : Module() {
         lastCommand = arrayOf("")
     }
 
+    override fun getHudInfo(): String? {
+        return startingDirection.cardinalName
+    }
+
     @EventHandler
     private val disconnectListener = Listener(EventHook { event: ConnectionEvent.Disconnect ->
         BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
