@@ -174,8 +174,7 @@ object KamiFontRenderer {
         glTranslatef(posXIn, posYIn, 0.0f)
         glScalef(0.28f * scale, 0.28f * scale, 1.0f)
 
-        currentColor = DyeColors.WHITE.color
-        currentVariant = glyphArray[0]
+        resetStyle()
 
         for ((index, char) in text.withIndex()) {
             if (checkStyleCode(text, index)) continue
@@ -205,6 +204,8 @@ object KamiFontRenderer {
                 posX += charInfo.width - 1f
             }
         }
+        resetStyle()
+        glColor4f(1f, 1f, 1f, 1f)
 
         glPopMatrix()
         if (lighting) glEnable(GL_LIGHTING)
@@ -237,13 +238,19 @@ object KamiFontRenderer {
     @JvmOverloads
     fun getStringWidth(text: String, scale: Float = 1f): Float {
         var width = 0f
-        currentVariant = glyphArray[0]
+        resetStyle()
         for ((index, char) in text.withIndex()) {
             if (checkStyleCode(text, index)) continue
             width += currentVariant.getCharInfo(char).width.minus(1f)
         }
-
+        resetStyle()
         return width * 0.28f * scale
+    }
+
+    private fun resetStyle() {
+
+        currentVariant = glyphArray[0]
+        currentColor = DyeColors.WHITE.color
     }
 
     private fun checkStyleCode(text: String, index: Int): Boolean {
