@@ -532,7 +532,7 @@ public class KamiGUI extends GUI {
             );
             coordsLabel.setText("");
             coordsLabel.addLine(ow);
-            coordsLabel.addLine(MathUtils.getPlayerCardinal(player).cardinalName + colouredSeparator + nether);
+            coordsLabel.addLine(MathUtils.getPlayerCardinal(player).getDirectionName() + colouredSeparator + nether);
         });
         frame.addChild(coordsLabel);
         coordsLabel.setShadow(true);

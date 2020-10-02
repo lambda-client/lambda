@@ -12,7 +12,7 @@ import net.minecraft.block.Block
  * @since 01/09/2020
  */
 class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
-        .append("mode", true, EnumParser(arrayOf("material", "filler", "ignore", "settings")))
+        .append("mode", true, EnumParser(arrayOf("material", "filler", "ignore", "reach", "settings")))
         .append("value")
         .build(), "ht") {
 
@@ -74,6 +74,15 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                 }
             }
 
+            SubCommands.MAX_REACH -> {
+                try {
+                    ht.maxReach.value = args[1]!!.toFloatOrNull()
+                    MessageSendHelper.sendChatMessage("Set your max reach to &7${ht.maxReach.value}&r.")
+                } catch (e: Exception) {
+                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid number (eg: 5.5).")
+                }
+            }
+
             SubCommands.NULL -> {
                 val commands = args.joinToString(separator = " ")
                 MessageSendHelper.sendChatMessage("Invalid command &7${commandPrefix.value}${label} $commands&f!")
@@ -93,6 +102,8 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
 
             args[0].equals("filler", ignoreCase = true) -> SubCommands.FILLER
 
+            args[0].equals("reach", ignoreCase = true) -> SubCommands.MAX_REACH
+
             args[0].equals("ignore", ignoreCase = true) && args[2].isNullOrBlank() -> SubCommands.IGNORE_ADD
 
             args[0].equals("ignore", ignoreCase = true) && args[1].equals("add", ignoreCase = true) -> SubCommands.IGNORE_ADD
@@ -104,7 +115,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
     }
 
     private enum class SubCommands {
-        MATERIAL, FILLER, IGNORE_ADD, IGNORE_DEL, SETTINGS, NULL
+        MATERIAL, FILLER, IGNORE_ADD, IGNORE_DEL, MAX_REACH, SETTINGS, NULL
     }
 
     init {

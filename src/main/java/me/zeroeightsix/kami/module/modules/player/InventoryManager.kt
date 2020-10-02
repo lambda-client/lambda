@@ -30,10 +30,10 @@ object InventoryManager : Module() {
     private val itemSaver = register(Settings.b("ItemSaver", false))
     private val duraThreshold = register(Settings.integerBuilder("DurabilityThreshold").withValue(5).withRange(1, 50).withVisibility { itemSaver.value }.build())
     val autoEject = register(Settings.b("AutoEject", false))
-    private val fullOnly = register(Settings.booleanBuilder("OnlyAtFull").withValue(false).withVisibility { autoEject.value })
+    private val fullOnly = register(Settings.booleanBuilder("OnlyAtFull").withValue(false).withVisibility { autoEject.value }.build())
     private val pauseMovement: Setting<Boolean> = register(Settings.b("PauseMovement", true))
     private val ejectList = register(Settings.stringBuilder("EjectList").withValue(defaultEjectList).withVisibility { false }.build())
-    private val delay = register(Settings.integerBuilder("DelayTicks").withValue(1).withRange(0, 20))
+    private val delay = register(Settings.integerBuilder("DelayTicks").withValue(1).withRange(0, 20).build())
 
     /* Eject list */
     var ejectArrayList = ejectGetArrayList()
