@@ -6,6 +6,7 @@ import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.event.events.ClientPlayerAttackEvent
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.modules.misc.FakePlayer
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.graphics.font.TextComponent
 import me.zeroeightsix.kami.util.math.Vec2d
@@ -27,7 +28,6 @@ object AntiBot : Module() {
     private val ticksExists = register(Settings.integerBuilder("TicksExists").withValue(200).withRange(0, 500))
 
     val botSet = HashSet<EntityPlayer>()
-    private val textComponent = TextComponent().apply { addLine("BOT") }
 
     @EventHandler
     private val disconnectListener = Listener(EventHook { event: ConnectionEvent.Disconnect ->
@@ -51,7 +51,9 @@ object AntiBot : Module() {
         botSet.addAll(cacheSet)
     }
 
-    private fun isBot(entity: EntityPlayer) = tabList.value && mc.connection?.getPlayerInfo(entity.name) == null
+    private fun isBot(entity: EntityPlayer) = entity.name == mc.player.name
+            || entity.name == FakePlayer.playerName.value
+            || tabList.value && mc.connection?.getPlayerInfo(entity.name) == null
             || ping.value && mc.connection?.getPlayerInfo(entity.name)?.responseTime ?: -1 <= 0
             || hp.value && entity.health !in 0f..20f
             || sleeping.value && entity.isPlayerSleeping && !entity.onGround

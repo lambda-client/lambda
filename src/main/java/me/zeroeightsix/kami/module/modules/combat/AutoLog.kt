@@ -76,6 +76,7 @@ object AutoLog : Module() {
         if (players.value) {
             for (entity in mc.world.loadedEntityList) {
                 if (entity !is EntityPlayer) continue
+                if (AntiBot.botSet.contains(entity)) continue
                 if (entity == mc.player) continue
                 if (mc.player.getDistance(entity) > playerDistance.value) continue
                 if (!friends.value && Friends.isFriend(entity.name)) continue
