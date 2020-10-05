@@ -4,17 +4,13 @@ import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.combat.Aura.HitMode
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.combat.CombatUtils
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.EnumCreatureAttribute
 import net.minecraft.init.Enchantments
-import net.minecraft.item.ItemAxe
-import net.minecraft.item.ItemSword
-import net.minecraft.item.ItemTool
 import net.minecraftforge.event.entity.player.AttackEntityEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
 import org.lwjgl.input.Mouse
@@ -29,7 +25,7 @@ object AutoTool : Module() {
     private val switchBack = register(Settings.b("SwitchBack", true))
     private val timeout = register(Settings.integerBuilder("Timeout").withRange(1, 100).withValue(20).withVisibility { switchBack.value }.build())
     private val swapWeapon = register(Settings.b("SwitchWeapon", false))
-    private val preferWeapon = register(Settings.e<HitMode>("PreferWeapom", HitMode.SWORD))
+    private val preferWeapon = register(Settings.e<CombatUtils.PreferWeapon>("Prefer", CombatUtils.PreferWeapon.SWORD))
 
     private var shouldMoveBack = false
     private var lastSlot = 0
@@ -43,7 +39,7 @@ object AutoTool : Module() {
     @EventHandler
     private val attackListener = Listener(EventHook { event: AttackEntityEvent ->
         if (event.target !is EntityLivingBase) return@EventHook
-        if (swapWeapon.value) equipBestWeapon(preferWeapon.value)
+        if (swapWeapon.value) CombatUtils.equipBestWeapon(preferWeapon.value)
     })
 
     override fun onUpdate() {
@@ -76,39 +72,6 @@ object AutoTool : Module() {
                 speed += (if (EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack).also { eff = it } > 0.0) eff.toDouble().pow(2.0) + 1 else 0.0).toFloat()
                 if (speed > max) {
                     max = speed.toDouble()
-                    bestSlot = i
-                }
-            }
-        }
-        if (bestSlot != -1) equip(bestSlot)
-    }
-
-    @JvmStatic
-    fun equipBestWeapon(hitMode: HitMode) {
-        var bestSlot = -1
-        var maxDamage = 0.0
-        for (i in 0..8) {
-            val stack = mc.player.inventory.getStackInSlot(i)
-            if (stack.isEmpty) continue
-            if (stack.getItem() !is ItemAxe && hitMode == HitMode.AXE) continue
-            if (stack.getItem() !is ItemSword && hitMode == HitMode.SWORD) continue
-
-            if (stack.getItem() is ItemSword && (hitMode == HitMode.SWORD || hitMode == HitMode.NONE)) {
-                val damage = (stack.getItem() as ItemSword).attackDamage + EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED).toDouble()
-                if (damage > maxDamage) {
-                    maxDamage = damage
-                    bestSlot = i
-                }
-            } else if (stack.getItem() is ItemAxe && (hitMode == HitMode.AXE || hitMode == HitMode.NONE)) {
-                val damage = (stack.getItem() as ItemTool).attackDamage + EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED).toDouble()
-                if (damage > maxDamage) {
-                    maxDamage = damage
-                    bestSlot = i
-                }
-            } else if (stack.getItem() is ItemTool) {
-                val damage = (stack.getItem() as ItemTool).attackDamage + EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED).toDouble()
-                if (damage > maxDamage) {
-                    maxDamage = damage
                     bestSlot = i
                 }
             }

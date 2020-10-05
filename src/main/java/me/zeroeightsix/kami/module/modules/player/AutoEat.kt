@@ -45,7 +45,7 @@ object AutoEat : Module() {
     }
 
     override fun onUpdate() {
-        if (Aura.isEnabled && Aura.isAttacking) return
+        if (Aura.isActive()) return
 
         if (eating && !mc.player.isHandActive) {
             if (lastSlot != -1) {

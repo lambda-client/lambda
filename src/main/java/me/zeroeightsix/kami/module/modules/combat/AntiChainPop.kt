@@ -41,14 +41,12 @@ object AntiChainPop : Module() {
     private fun itemMode() {
         val old = totems
         if (InventoryUtils.countItemAll(449) < old) {
-            Surround.autoDisable.value = true
             Surround.enable()
         }
         totems = InventoryUtils.countItemAll(449)
     }
 
     private fun packetMode() {
-        Surround.autoDisable.value = true
         Surround.enable()
     }
 

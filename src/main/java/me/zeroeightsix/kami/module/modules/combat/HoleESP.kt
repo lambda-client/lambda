@@ -1,21 +1,19 @@
-package me.zeroeightsix.kami.module.modules.render
+package me.zeroeightsix.kami.module.modules.combat
 
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.BlockUtils.surroundOffset
 import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.graphics.GeometryMasks
 import me.zeroeightsix.kami.util.math.VectorUtils
-import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.ceil
 
 @Module.Info(
         name = "HoleESP",
-        category = Module.Category.RENDER,
+        category = Module.Category.COMBAT,
         description = "Show safe holes for crystal pvp"
 )
 object HoleESP : Module() {
@@ -55,30 +53,14 @@ object HoleESP : Module() {
         safeHoles.clear()
         val blockPosList = VectorUtils.getBlockPosInSphere(mc.player.positionVector, renderDistance.value)
         for (pos in blockPosList) {
-            if (mc.world.getBlockState(pos).block != Blocks.AIR// block gotta be air
-                    || mc.world.getBlockState(pos.up()).block != Blocks.AIR // block 1 above gotta be air
-                    || mc.world.getBlockState(pos.up().up()).block != Blocks.AIR) continue // block 2 above gotta be air
+            val holeType = SurroundUtils.checkHole(pos)
+            if (holeType == SurroundUtils.HoleType.NONE) continue
 
-            var isSafe = true
-            var isBedrock = true
-            for (offset in surroundOffset) {
-                val block = mc.world.getBlockState(pos.add(offset)).block
-                if (block !== Blocks.BEDROCK && block !== Blocks.OBSIDIAN && block !== Blocks.ENDER_CHEST && block !== Blocks.ANVIL) {
-                    isSafe = false
-                    break
-                }
-                if (block !== Blocks.BEDROCK) {
-                    isBedrock = false
-                }
+            if (holeType == SurroundUtils.HoleType.OBBY && shouldAddObby()) {
+                safeHoles[pos] = ColorHolder(r1.value, g1.value, b1.value)
             }
-
-            if (isSafe) {
-                if (!isBedrock && shouldAddObby()) {
-                    safeHoles[pos] = ColorHolder(r1.value, g1.value, b1.value)
-                }
-                if (isBedrock && shouldAddBedrock()) {
-                    safeHoles[pos] = ColorHolder(r2.value, g2.value, b2.value)
-                }
+            if (holeType == SurroundUtils.HoleType.BEDROCK && shouldAddBedrock()) {
+                safeHoles[pos] = ColorHolder(r2.value, g2.value, b2.value)
             }
         }
     }

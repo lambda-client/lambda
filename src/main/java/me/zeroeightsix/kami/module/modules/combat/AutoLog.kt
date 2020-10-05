@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.Friends
 import me.zeroeightsix.kami.util.InventoryUtils
+import me.zeroeightsix.kami.util.combat.CrystalUtils
 import me.zeroeightsix.kami.util.math.MathUtils
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.GuiMainMenu
@@ -57,7 +58,7 @@ object AutoLog : Module() {
             for (entity in mc.world.loadedEntityList) {
                 if (entity !is EntityEnderCrystal) continue
                 if (mc.player.getDistance(entity) > 8f) continue
-                if (mc.player.health - CrystalAura.calculateDamage(entity, mc.player) > health.value) continue
+                if (mc.player.health - CrystalUtils.calcDamage(entity, mc.player) > health.value) continue
                 log(END_CRYSTAL)
                 return
             }

@@ -70,7 +70,7 @@ object InventoryUtils {
      *
      * @return Array contains full inventory slot index, null if no item found
      */
-    fun getSlotsFullInv(min: Int, max: Int, itemId: Int): Array<Int>? {
+    fun getSlotsFullInv(min: Int = 9, max: Int = 44, itemId: Int): Array<Int>? {
         val slots = arrayListOf<Int>()
         for (i in min..max) {
             if (getIdFromItem(mc.player.inventoryContainer.inventory[i].getItem()) == itemId) {
@@ -106,14 +106,7 @@ object InventoryUtils {
      * @return Number of item with given [itemId] in hotbar
      */
     fun countItemHotbar(itemId: Int): Int {
-        val itemList = getSlots(0, 8, itemId)
-        var currentCount = 0
-        if (itemList != null) {
-            for (i in itemList) {
-                currentCount += mc.player.inventory.getStackInSlot(i).count
-            }
-        }
-        return currentCount
+        return countItem(36, 44, itemId)
     }
 
     /**
@@ -122,14 +115,7 @@ object InventoryUtils {
      * @return Number of item with given [itemId] in non hotbar
      */
     fun countItemNoHotbar(itemId: Int): Int {
-        val itemList = getSlots(9, 35, itemId)
-        var currentCount = 0
-        if (itemList != null) {
-            for (i in itemList) {
-                currentCount += mc.player.inventory.getStackInSlot(i).count
-            }
-        }
-        return currentCount
+        return countItem(0, 35, itemId)
     }
 
     /**
@@ -139,14 +125,7 @@ object InventoryUtils {
      */
     @JvmStatic
     fun countItemAll(itemId: Int): Int {
-        val itemList = getSlots(0, 35, itemId)
-        var currentCount = 0
-        if (itemList != null) {
-            for (i in itemList) {
-                currentCount += mc.player.inventory.getStackInSlot(i).count
-            }
-        }
-        return currentCount
+        return countItem(0, 45, itemId)
     }
 
     /**
@@ -155,12 +134,10 @@ object InventoryUtils {
      * @return Number of item with given [itemId] from slot [min] to slot [max]
      */
     fun countItem(min: Int, max: Int, itemId: Int): Int {
-        val itemList = getSlots(min, max, itemId)
+        val itemList = getSlotsFullInv(min, max, itemId)
         var currentCount = 0
-        if (itemList != null) {
-            for (i in itemList) {
-                currentCount += mc.player.inventory.getStackInSlot(i).count
-            }
+        if (itemList != null) for (i in itemList) {
+            currentCount += mc.player.inventoryContainer.inventory[i].count
         }
         return currentCount
     }
@@ -209,18 +186,21 @@ object InventoryUtils {
      * Move the item in [slotFrom]  to [slotTo] in player inventory,
      * if [slotTo] contains an item, then move it to [slotFrom]
      */
-    fun moveToSlot(slotFrom: Int, slotTo: Int) {
-        moveToSlot(0, slotFrom, slotTo)
+    fun moveToSlot(slotFrom: Int, slotTo: Int): ShortArray {
+        val transactionIds = moveToSlot(0, slotFrom, slotTo)
+        return transactionIds
     }
 
     /**
      * Move the item in [slotFrom] to [slotTo] in [windowId],
      * if [slotTo] contains an item, then move it to [slotFrom]
      */
-    fun moveToSlot(windowId: Int, slotFrom: Int, slotTo: Int) {
-        inventoryClick(windowId, slotFrom, type = ClickType.PICKUP)
-        inventoryClick(windowId, slotTo, type = ClickType.PICKUP)
-        inventoryClick(windowId, slotFrom, type = ClickType.PICKUP)
+    fun moveToSlot(windowId: Int, slotFrom: Int, slotTo: Int): ShortArray {
+        return shortArrayOf(
+                inventoryClick(windowId, slotFrom, type = ClickType.PICKUP),
+                inventoryClick(windowId, slotTo, type = ClickType.PICKUP),
+                inventoryClick(windowId, slotFrom, type = ClickType.PICKUP)
+        )
     }
 
     /**
@@ -234,16 +214,18 @@ object InventoryUtils {
 
     /**
      * Quick move (Shift + Click) the item in [slotFrom] in player inventory
+     *
+     * @return Transaction id
      */
-    fun quickMoveSlot(slotFrom: Int) {
-        quickMoveSlot(0, slotFrom)
+    fun quickMoveSlot(slotFrom: Int): Short {
+        return quickMoveSlot(0, slotFrom)
     }
 
     /**
      * Quick move (Shift + Click) the item in [slotFrom] in specified [windowId]
      */
-    fun quickMoveSlot(windowId: Int, slotFrom: Int) {
-        inventoryClick(windowId, slotFrom, type = ClickType.QUICK_MOVE)
+    fun quickMoveSlot(windowId: Int, slotFrom: Int): Short {
+        return inventoryClick(windowId, slotFrom, type = ClickType.QUICK_MOVE)
     }
 
     /**
@@ -271,11 +253,17 @@ object InventoryUtils {
         inventoryClick(slot = slot, type = ClickType.PICKUP)
     }
 
-    private fun inventoryClick(windowId: Int = 0, slot: Int, mousedButton: Int = 0, type: ClickType) {
+    /**
+     * Performs inventory clicking in specific window, slot, mouseButton, add click type
+     *
+     * @return Transaction id
+     */
+    fun inventoryClick(windowId: Int = 0, slot: Int, mouseButton: Int = 0, type: ClickType): Short {
         val container = if (windowId == 0) mc.player.inventoryContainer else mc.player.openContainer
         val transactionID = container.getNextTransactionID(mc.player.inventory)
-        val itemStack = container.slotClick(slot, mousedButton, type, mc.player)
-        mc.connection!!.sendPacket(CPacketClickWindow(windowId, slot, mousedButton, type, itemStack, transactionID))
+        val itemStack = container.slotClick(slot, mouseButton, type, mc.player)
+        mc.connection!!.sendPacket(CPacketClickWindow(windowId, slot, mouseButton, type, itemStack, transactionID))
+        return transactionID
     }
     /* End of inventory management */
 }
