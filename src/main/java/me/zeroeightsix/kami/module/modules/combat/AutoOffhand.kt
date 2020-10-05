@@ -119,7 +119,7 @@ object AutoOffhand : Module() {
                 || (checkCAGapple.value && !offhandCrystal.value) && CombatManager.isActiveAndTopPriority(CrystalAura))
     }
 
-    private fun checkCrystal() = offhandCrystal.value && checkCACrystal.value && CombatManager.isActiveAndTopPriority(CrystalAura)
+    private fun checkCrystal() = offhandCrystal.value && checkCACrystal.value && CrystalAura.isEnabled && CombatManager.isOnTopPriority(CrystalAura)
 
     private fun checkOffhandItem(type: Type) = Item.getIdFromItem(mc.player.heldItemOffhand.getItem()) == type.itemId
 
