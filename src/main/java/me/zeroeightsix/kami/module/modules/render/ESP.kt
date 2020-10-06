@@ -96,7 +96,6 @@ object ESP : Module() {
                     it.createBindFramebuffers(mc.displayWidth, mc.displayHeight)
                 }
             } catch (e: Exception) {
-                MessageSendHelper.sendErrorMessage("$chatName Error loading Shader: \"${e.message}\", check the log for more information!")
                 KamiMod.log.warn("$chatName Failed loading Shader")
                 e.printStackTrace()
                 null
