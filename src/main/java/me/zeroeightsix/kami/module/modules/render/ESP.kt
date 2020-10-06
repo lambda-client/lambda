@@ -74,13 +74,17 @@ object ESP : Module() {
 
     private val entityList = HashSet<Entity>()
 
+    var drawingOutline = false; private set
+    var drawNametag = false; private set
     private val shader: ShaderGroup?
-    private val frameBuffer: Framebuffer?
+    val frameBuffer: Framebuffer?
     private var prevWidth = mc.displayWidth
     private var prevHeight = mc.displayHeight
 
     init {
         mode.settingListener = Setting.SettingListeners {
+            drawingOutline = false
+            drawNametag = false
             resetGlow()
         }
 
@@ -111,6 +115,7 @@ object ESP : Module() {
         if (hideOriginal.value) {
             // Steal it from Minecraft rendering kek
             prepareFrameBuffer()
+            drawNametag = true
         }
     })
 
@@ -125,9 +130,12 @@ object ESP : Module() {
         mc.framebuffer.bindFramebuffer(false)
         GlStateManager.disableOutlineMode()
         GlStateManager.popMatrix()
+        drawingOutline = false
+        drawNametag = false
     })
 
     private fun prepareFrameBuffer() {
+        drawingOutline = true
         GlStateManager.pushMatrix()
         GlStateManager.enableOutlineMode(0xFFFFFF)
         frameBuffer?.bindFramebuffer(false)
