@@ -13,10 +13,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * @author 3arthqu4ke
- * Updated by l1ving on 29/06/20
- */
 @Mixin(GuiNewChat.class)
 public abstract class MixinGuiNewChat {
 
@@ -25,14 +21,6 @@ public abstract class MixinGuiNewChat {
         if (!CleanGUI.INSTANCE.isEnabled() || !CleanGUI.INSTANCE.getChatGlobal().getValue()) {
             Gui.drawRect(left, top, right, bottom, color);
         }
-    }
-
-    @Redirect(method = "drawChat", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/FontRenderer;drawStringWithShadow(Ljava/lang/String;FFI)I"))
-    private int drawStringWithShadowClean(FontRenderer fontRenderer, String text, float x, float y, int color) {
-        if (!CleanGUI.INSTANCE.isEnabled() || !CleanGUI.INSTANCE.getChatGlobal().getValue()) {
-            return fontRenderer.drawStringWithShadow(text, x, y, color);
-        }
-        return fontRenderer.drawString(text, (int) x, (int) y, color);
     }
 
     @Inject(method = "printChatMessage", at = @At("HEAD"))
