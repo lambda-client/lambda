@@ -33,7 +33,7 @@ public class EnumConverter extends Converter<Enum, JsonElement> {
                 for (Enum enumConstant : clazz.getEnumConstants()) {
                     if (enumConstant.name().equalsIgnoreCase(jsonElement.getAsString())) return enumConstant;
                 }
-                return Enum.valueOf(clazz, "null");
+                return clazz.getEnumConstants()[0];
             }
         } else {
             try {
@@ -42,7 +42,7 @@ public class EnumConverter extends Converter<Enum, JsonElement> {
                 for (Enum enumConstant : clazz.getEnumConstants()) {
                     if (enumConstant.name().equalsIgnoreCase(jsonElement.getAsString())) return enumConstant;
                 }
-                return Enum.valueOf(clazz, "null");
+                return clazz.getEnumConstants()[0];
             }
         }
     }
