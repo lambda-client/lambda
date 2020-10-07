@@ -5,24 +5,20 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.InfoCalculator
+import me.zeroeightsix.kami.util.InfoCalculator.memory
+import me.zeroeightsix.kami.util.InfoCalculator.ping
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.TimeUtils
 import me.zeroeightsix.kami.util.TimeUtils.getFinalTime
 import me.zeroeightsix.kami.util.color.ColorTextFormatting
 import me.zeroeightsix.kami.util.color.ColorTextFormatting.ColourCode
 import me.zeroeightsix.kami.util.math.MathUtils
+import me.zeroeightsix.kami.util.math.MathUtils.round
 import net.minecraft.client.Minecraft
 import net.minecraft.util.text.TextFormatting
 import java.util.*
 import kotlin.math.max
 
-/**
- * @author l1ving
- * Created by l1ving on 04/12/19
- * PVP Information by Polymer on 04/03/20
- * Updated by l1ving on 25/03/20
- * Updated by Xiaro on 10/09/20
- */
 @Module.Info(
         name = "InfoOverlay",
         category = Module.Category.CLIENT,
@@ -62,12 +58,14 @@ object InfoOverlay : Module() {
     val timeTypeSetting = register(Settings.enumBuilder(TimeUtils.TimeType::class.java).withName("TimeFormat").withValue(TimeUtils.TimeType.HHMMSS).withVisibility { page.value == Page.THREE && time.value }.build()) as Setting<TimeUtils.TimeType>
     val timeUnitSetting = register(Settings.enumBuilder(TimeUtils.TimeUnit::class.java).withName("TimeUnit").withValue(TimeUtils.TimeUnit.H12).withVisibility { page.value == Page.THREE && time.value }.build()) as Setting<TimeUtils.TimeUnit>
     val doLocale = register(Settings.booleanBuilder("TimeShowAM/PM").withValue(true).withVisibility { page.value == Page.THREE && time.value && timeUnitSetting.value == TimeUtils.TimeUnit.H12 }.build())
-    val firstColour = register(Settings.enumBuilder(ColourCode::class.java).withName("FirstColour").withValue(ColourCode.WHITE).withVisibility { page.value == Page.THREE }.build()) as Setting<ColourCode>
-    val secondColour = register(Settings.enumBuilder(ColourCode::class.java).withName("SecondColour").withValue(ColourCode.BLUE).withVisibility { page.value == Page.THREE }.build()) as Setting<ColourCode>
+    val firstColor = register(Settings.enumBuilder(ColourCode::class.java).withName("FirstColour").withValue(ColourCode.WHITE).withVisibility { page.value == Page.THREE }.build()) as Setting<ColourCode>
+    val secondColor = register(Settings.enumBuilder(ColourCode::class.java).withName("SecondColour").withValue(ColourCode.BLUE).withVisibility { page.value == Page.THREE }.build()) as Setting<ColourCode>
 
     private enum class Page {
         ONE, TWO, THREE
     }
+
+    private val s = "\ud83d\uddff"
 
     @Suppress("UNUSED")
     private enum class SpeedUnit(val displayName: String) {
@@ -84,55 +82,42 @@ object InfoOverlay : Module() {
 
     fun infoContents(): ArrayList<String> {
         val infoContents = ArrayList<String>()
-        if (version.value) {
-            infoContents.add(setToText(firstColour.value).toString() + KamiMod.KAMI_KANJI + setToText(secondColour.value).toString() + " " + KamiMod.VER_SMALL)
-        }
-        if (username.value) {
-            infoContents.add(setToText(firstColour.value).toString() + "Welcome" + setToText(secondColour.value).toString() + " " + mc.getSession().username + "!")
-        }
-        if (time.value) {
-            infoContents.add(setToText(firstColour.value).toString() + getFinalTime(setToText(secondColour.value), setToText(firstColour.value), timeUnitSetting.value, timeTypeSetting.value, doLocale.value))
-        }
-        if (tps.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InfoCalculator.tps(decimalPlaces.value) + setToText(secondColour.value).toString() + " tps")
-        }
-        if (fps.value) {
-            infoContents.add(setToText(firstColour.value).toString() + Minecraft.debugFPS + setToText(secondColour.value).toString() + " fps")
-        }
-        if (speed.value) {
-            infoContents.add(setToText(firstColour.value).toString() + calcSpeed(decimalPlaces.value) + setToText(secondColour.value).toString() + " " + speedUnit.value.displayName)
-        }
-        if (timerSpeed.value) {
-            infoContents.add(setToText(firstColour.value).toString() + 50f / mc.timer.tickLength + setToText(secondColour.value).toString() + " x")
-        }
-        if (ping.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InfoCalculator.ping() + setToText(secondColour.value).toString() + " ms")
-        }
-        if (server.value) {
-            infoContents.add(setToText(firstColour.value).toString() + mc.player.serverBrand)
-        }
-        if (durability.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InfoCalculator.heldItemDurability() + setToText(secondColour.value).toString() + " heldItemDurability")
-        }
-        if (biome.value) {
-            infoContents.add(setToText(firstColour.value).toString() + mc.world.getBiome(mc.player.position).biomeName + setToText(secondColour.value).toString() + " biome")
-        }
-        if (memory.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InfoCalculator.memory() + setToText(secondColour.value).toString() + " mB free")
-        }
-        if (totems.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InventoryUtils.countItemAll(449) + setToText(secondColour.value).toString() + " Totems")
-        }
-        if (endCrystals.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InventoryUtils.countItemAll(426) + setToText(secondColour.value).toString() + " Crystals")
-        }
-        if (expBottles.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InventoryUtils.countItemAll(384) + setToText(secondColour.value).toString() + " EXP Bottles")
-        }
-        if (godApples.value) {
-            infoContents.add(setToText(firstColour.value).toString() + InventoryUtils.countItemAll(322) + setToText(secondColour.value).toString() + " God Apples")
+        for (setting in settingList) {
+            if (setting.value != true) continue // make sure it is a Boolean setting and enabled
+
+            setting.infoMap()?.let {
+                infoContents.add(first() + it.replace(s, second()))
+            }
         }
         return infoContents
+    }
+
+    private fun Setting<*>.infoMap() = when (this) {
+        version -> "${KamiMod.KAMI_KANJI} ${s}${KamiMod.VER_SMALL}"
+        username -> "Welcome ${mc.session.username}!"
+        time -> getFinalTime(setToText(secondColor.value), setToText(firstColor.value), timeUnitSetting.value, timeTypeSetting.value, doLocale.value)
+        tps -> "${InfoCalculator.tps(decimalPlaces.value)} ${s}tps"
+        fps -> "${Minecraft.debugFPS} ${s}fps"
+        speed -> "${calcSpeed(decimalPlaces.value)} ${s}${speedUnit.value.displayName}"
+        timerSpeed -> "${round(50f / mc.timer.tickLength, decimalPlaces.value)} ${s}x"
+        ping -> "${ping()} ${s}ms"
+        server -> mc.player.serverBrand
+        durability -> "${InfoCalculator.heldItemDurability()} ${s}dura"
+        biome -> "${mc.world.getBiome(mc.player.position).biomeName} ${s}biome"
+        memory -> "${memory()} ${s}mB free"
+        totems -> "${InventoryUtils.countItemAll(449)} ${s}totems"
+        endCrystals -> "${InventoryUtils.countItemAll(426)} ${s}crystals"
+        expBottles -> "${InventoryUtils.countItemAll(384)} ${s}exp"
+        godApples -> "${InventoryUtils.countItemAll(322)} ${s}gaps"
+        else -> null
+    }
+
+    private fun first(): String {
+        return setToText(firstColor.value).toString()
+    }
+
+    private fun second(): String {
+        return setToText(secondColor.value).toString()
     }
 
     private fun setToText(colourCode: ColourCode): TextFormatting {

@@ -84,7 +84,7 @@ object ActiveModules : Module() {
     }
 
     private fun infoGetSetting(isOne: Boolean): TextFormatting {
-        return if (isOne) setToText(InfoOverlay.firstColour.value) else setToText(InfoOverlay.secondColour.value)
+        return if (isOne) setToText(InfoOverlay.firstColor.value) else setToText(InfoOverlay.secondColor.value)
     }
 
     private fun setToText(colourCode: ColourCode): TextFormatting {
