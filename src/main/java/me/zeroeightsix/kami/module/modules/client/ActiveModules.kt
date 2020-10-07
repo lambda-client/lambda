@@ -5,7 +5,6 @@ import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.color.ColorConverter.rgbToInt
 import me.zeroeightsix.kami.util.color.ColorTextFormatting
-import me.zeroeightsix.kami.util.color.ColorTextFormatting.ColourCode
 import me.zeroeightsix.kami.util.math.MathUtils.isNumberEven
 import me.zeroeightsix.kami.util.math.MathUtils.reverseNumber
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
@@ -24,13 +23,13 @@ object ActiveModules : Module() {
     val potion = register(Settings.b("PotionsMove", false))
     val hidden = register(Settings.b("ShowHidden", false))
     val mode = register(Settings.e<Mode>("Mode", Mode.RAINBOW))
-    private val rainbowSpeed = register(Settings.integerBuilder("SpeedR").withValue(30).withMinimum(0).withMaximum(100).withVisibility { mode.value == Mode.RAINBOW }.build())
-    val saturationR = register(Settings.integerBuilder("SaturationR").withValue(117).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.RAINBOW }.build())
-    val brightnessR = register(Settings.integerBuilder("BrightnessR").withValue(255).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.RAINBOW }.build())
-    val hueC = register(Settings.integerBuilder("HueC").withValue(178).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.CUSTOM }.build())
-    val saturationC = register(Settings.integerBuilder("SaturationC").withValue(156).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.CUSTOM }.build())
-    val brightnessC = register(Settings.integerBuilder("BrightnessC").withValue(255).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.CUSTOM }.build())
-    private val alternate = register(Settings.booleanBuilder("Alternate").withValue(true).withVisibility { mode.value == Mode.INFO_OVERLAY }.build())
+    private val rainbowSpeed = register(Settings.integerBuilder("SpeedR").withValue(30).withMinimum(0).withMaximum(100).withVisibility { mode.value == Mode.RAINBOW })
+    val saturationR = register(Settings.integerBuilder("SaturationR").withValue(117).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.RAINBOW })
+    val brightnessR = register(Settings.integerBuilder("BrightnessR").withValue(255).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.RAINBOW })
+    val hueC = register(Settings.integerBuilder("HueC").withValue(178).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.CUSTOM })
+    val saturationC = register(Settings.integerBuilder("SaturationC").withValue(156).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.CUSTOM })
+    val brightnessC = register(Settings.integerBuilder("BrightnessC").withValue(255).withMinimum(0).withMaximum(255).withVisibility { mode.value == Mode.CUSTOM })
+    private val alternate = register(Settings.booleanBuilder("Alternate").withValue(true).withVisibility { mode.value == Mode.INFO_OVERLAY })
 
     private val chat = register(Settings.s("Chat", "162,136,227"))
     private val combat = register(Settings.s("Combat", "229,68,109"))
@@ -83,13 +82,7 @@ object ActiveModules : Module() {
         return rgbToInt(localColor.red, localColor.green, localColor.blue)
     }
 
-    private fun infoGetSetting(isOne: Boolean): TextFormatting {
-        return if (isOne) setToText(InfoOverlay.firstColor.value) else setToText(InfoOverlay.secondColor.value)
-    }
-
-    private fun setToText(colourCode: ColourCode): TextFormatting {
-        return ColorTextFormatting.toTextMap[colourCode] ?: TextFormatting.RESET
-    }
+    private fun infoGetSetting(isOne: Boolean) = if (isOne) InfoOverlay.first() else InfoOverlay.second()
 
     fun getCategoryColour(module: Module): Int {
         return when (module.category) {
