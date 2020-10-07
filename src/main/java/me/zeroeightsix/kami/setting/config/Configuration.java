@@ -73,7 +73,7 @@ public class Configuration {
             } else {
                 Setting setting = register.getSetting(key);
                 if (setting == null) continue;
-                setting.setValue(((Convertable) setting).converter().reverse().convert(element));
+                setting.setValue(setting.converter().reverse().convert(element));
             }
         }
     }

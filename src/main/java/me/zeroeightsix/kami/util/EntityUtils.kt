@@ -201,7 +201,7 @@ object EntityUtils {
         DISTANCE, HEALTH
     }
 
-    fun getPrioritizedTarget(targetList: Array<Entity>, priority: EntityPriority): Entity {
+    fun getPrioritizedTarget(targetList: ArrayList<EntityLivingBase>, priority: EntityPriority): EntityLivingBase {
         var entity = targetList[0]
         when (priority) {
             EntityPriority.DISTANCE -> {
@@ -215,9 +215,9 @@ object EntityUtils {
                 }
             }
             EntityPriority.HEALTH -> {
-                var health = (targetList[0] as EntityLivingBase).health
+                var health = targetList[0].health
                 for (i in targetList.indices) {
-                    val currentHealth = (targetList[i] as EntityLivingBase).health
+                    val currentHealth = targetList[i].health
                     if (currentHealth < health) {
                         health = currentHealth
                         entity = targetList[i]
@@ -228,12 +228,12 @@ object EntityUtils {
         return entity
     }
 
-    fun getTargetList(player: Array<Boolean>, mobs: Array<Boolean>, ignoreWalls: Boolean, invisible: Boolean, range: Float): Array<Entity> {
-        if (mc.world.loadedEntityList == null) return emptyArray()
-        val entityList = ArrayList<Entity>()
+    fun getTargetList(player: Array<Boolean>, mobs: Array<Boolean>, invisible: Boolean, range: Float): ArrayList<EntityLivingBase> {
+        if (mc.world.loadedEntityList == null) return ArrayList()
+        val entityList = ArrayList<EntityLivingBase>()
         for (entity in mc.world.loadedEntityList) {
             /* Entity type check */
-            if (!isLiving(entity)) continue
+            if (entity !is EntityLivingBase) continue
             if (entity.name == mc.player.name) continue
             if (entity is EntityPlayer) {
                 if (!player[0]) continue
@@ -242,12 +242,11 @@ object EntityUtils {
 
             if (mc.player.isRiding && entity == mc.player.ridingEntity) continue // Riding entity check
             if (mc.player.getDistance(entity) > range) continue // Distance check
-            if ((entity as EntityLivingBase).health <= 0) continue // HP check
-            if (!ignoreWalls && !mc.player.canEntityBeSeen(entity) && !canEntityFeetBeSeen(entity)) continue  // If walls is on & you can't see the feet or head of the target, skip. 2 raytraces needed
+            if (entity.health <= 0) continue // HP check
             if (!invisible && entity.isInvisible) continue
             entityList.add(entity)
         }
-        return entityList.toTypedArray()
+        return entityList
     }
 
     @JvmStatic
@@ -263,9 +262,9 @@ object EntityUtils {
     fun canEntityHitboxBeSeen(entity: Entity): Vec3d? {
         val playerPos = mc.player.positionVector.add(0.0, mc.player.eyeHeight.toDouble(), 0.0)
         val box = entity.boundingBox
-        val xArray = arrayOf(box.minX, box.maxX)
-        val yArray = arrayOf(box.minY, box.maxY)
-        val zArray = arrayOf(box.minZ, box.maxZ)
+        val xArray = arrayOf(box.minX + 0.1, box.maxX - 0.1)
+        val yArray = arrayOf(box.minY + 0.1, box.maxY - 0.1)
+        val zArray = arrayOf(box.minZ + 0.1, box.maxZ - 0.1)
 
         for (x in xArray) for (y in yArray) for (z in zArray) {
             val vertex = Vec3d(x, y, z)

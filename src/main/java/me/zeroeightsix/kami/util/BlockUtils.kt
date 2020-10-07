@@ -1,18 +1,17 @@
 package me.zeroeightsix.kami.util
 
-import net.minecraft.block.Block
-import net.minecraft.block.state.IBlockState
+import me.zeroeightsix.kami.util.math.RotationUtils
 import net.minecraft.client.Minecraft
 import net.minecraft.init.Blocks
 import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
-import kotlin.math.atan2
 import kotlin.math.floor
-import kotlin.math.sqrt
 
 /**
  * Created by hub on 15/06/19
@@ -20,7 +19,6 @@ import kotlin.math.sqrt
  * Updated by Xiaro on 22/08/20
  */
 object BlockUtils {
-    @JvmField
     val blackList = listOf(
             Blocks.ENDER_CHEST,
             Blocks.CHEST,
@@ -35,7 +33,6 @@ object BlockUtils {
             Blocks.ENCHANTING_TABLE
     )
 
-    @JvmField
     val shulkerList = listOf(
             Blocks.WHITE_SHULKER_BOX,
             Blocks.ORANGE_SHULKER_BOX,
@@ -55,100 +52,22 @@ object BlockUtils {
             Blocks.BLACK_SHULKER_BOX
     )
 
-    @JvmField
-    val surroundOffset = arrayOf(
-            BlockPos(0, -1, 0),  // down
-            BlockPos(0, 0, -1),  // north
-            BlockPos(1, 0, 0),  // east
-            BlockPos(0, 0, 1),  // south
-            BlockPos(-1, 0, 0) // west
-    )
-
     private val mc = Minecraft.getMinecraft()
 
-    fun placeBlockScaffold(pos: BlockPos) {
-        val eyesPos = Vec3d(mc.player.posX,
-                mc.player.posY + mc.player.getEyeHeight(),
-                mc.player.posZ)
-        for (side in EnumFacing.values()) {
-            val neighbor = pos.offset(side)
-            val side2 = side.opposite
-
-            // check if neighbor can be right clicked
-            if (!canBeClicked(neighbor)) {
-                continue
-            }
-            val hitVec = Vec3d(neighbor).add(0.5, 0.5, 0.5)
-                    .add(Vec3d(side2.directionVec).scale(0.5))
-
-            // check if hitVec is within range (4.25 blocks)
-            if (eyesPos.squareDistanceTo(hitVec) > 18.0625) {
-                continue
-            }
-
-            // place block
-            faceVectorPacketInstant(hitVec)
-            processRightClickBlock(neighbor, side2, hitVec)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-            mc.rightClickDelayTimer = 4
-            return
-        }
+    fun placeBlock(pos: BlockPos, facing: EnumFacing) {
+        val hitVecOffset = getHitVecOffset(facing)
+        val rotation = RotationUtils.getRotationTo(Vec3d(pos).add(hitVecOffset), true)
+        val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
+        val placePacket = CPacketPlayerTryUseItemOnBlock(pos, facing, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+        mc.connection!!.sendPacket(rotationPacket)
+        mc.connection!!.sendPacket(placePacket)
+        mc.player.swingArm(EnumHand.MAIN_HAND)
     }
-
-    private fun getLegitRotations(vec: Vec3d): FloatArray {
-        val eyesPos = eyesPos
-        val diffX = vec.x - eyesPos.x
-        val diffY = vec.y - eyesPos.y
-        val diffZ = vec.z - eyesPos.z
-        val diffXZ = sqrt(diffX * diffX + diffZ * diffZ)
-        val yaw = Math.toDegrees(atan2(diffZ, diffX)).toFloat() - 90f
-        val pitch = (-Math.toDegrees(atan2(diffY, diffXZ))).toFloat()
-        return floatArrayOf(mc.player.rotationYaw
-                + MathHelper.wrapDegrees(yaw - mc.player.rotationYaw),
-                mc.player.rotationPitch + MathHelper
-                        .wrapDegrees(pitch - mc.player.rotationPitch))
-    }
-
-    private val eyesPos = Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ)
 
     @JvmStatic
     fun faceVectorPacketInstant(vec: Vec3d) {
-        val rotations = getLegitRotations(vec)
-        mc.player.connection.sendPacket(CPacketPlayer.Rotation(rotations[0],
-                rotations[1], mc.player.onGround))
-    }
-
-    private fun processRightClickBlock(pos: BlockPos, side: EnumFacing, hitVec: Vec3d) {
-        mc.playerController.processRightClickBlock(mc.player,
-                mc.world, pos, side, hitVec, EnumHand.MAIN_HAND)
-    }
-
-    @JvmStatic
-    fun canBeClicked(pos: BlockPos): Boolean {
-        return getBlock(pos).canCollideCheck(getState(pos), false)
-    }
-
-    private fun getBlock(pos: BlockPos): Block {
-        return getState(pos).block
-    }
-
-    private fun getState(pos: BlockPos): IBlockState {
-        return mc.world.getBlockState(pos)
-    }
-
-    fun checkForNeighbours(blockPos: BlockPos): Boolean {
-        // check if we don't have a block adjacent to blockpos
-        if (!hasNeighbour(blockPos)) {
-            // find air adjacent to blockpos that does have a block adjacent to it, let's fill this first as to form a bridge between the player and the original blockpos. necessary if the player is going diagonal.
-            for (side in EnumFacing.values()) {
-                val neighbour = blockPos.offset(side)
-                if (hasNeighbour(neighbour)) {
-                    return true
-                }
-            }
-            return false
-        }
-        return true
+        val rotation = RotationUtils.getRotationTo(vec, true)
+        mc.player.connection.sendPacket(CPacketPlayer.Rotation(rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround))
     }
 
     fun hasNeighbour(blockPos: BlockPos): Boolean {
@@ -161,6 +80,13 @@ object BlockUtils {
         return false
     }
 
+    fun getHitSide(blockPos: BlockPos): EnumFacing {
+        return rayTraceTo(blockPos)?.sideHit ?: EnumFacing.UP
+    }
+
+    fun getHitVecOffset(facing: EnumFacing): Vec3d {
+        return Vec3d(facing.directionVec).scale(0.5).add(0.5, 0.5, 0.5)
+    }
 
     /**
      * @return true if there is liquid below
@@ -201,21 +127,16 @@ object BlockUtils {
         return mc.world.getBlockState(pos).block == Blocks.WATER
     }
 
+    fun rayTraceTo(blockPos: BlockPos): RayTraceResult? {
+        return mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(blockPos).add(0.5, 0.5, 0.5))
+    }
+
     /**
      * Checks if given [pos] is able to place block in it
      *
      * @return true playing is not colliding with [pos] and there is block below it
      */
-    fun isPlaceable(pos: BlockPos): Boolean {
-        val bBox = mc.player.boundingBox
-        val xArray = arrayOf(floor(bBox.minX).toInt(), floor(bBox.maxX).toInt())
-        val yArray = arrayOf(floor(bBox.minY).toInt(), floor(bBox.maxY).toInt())
-        val zArray = arrayOf(floor(bBox.minZ).toInt(), floor(bBox.maxZ).toInt())
-        for (x in 0..1) for (y in 0..1) for (z in 0..1) {
-            if (pos == BlockPos(xArray[x], yArray[y], zArray[z])) return false
-        }
-        return mc.world.isAirBlock(pos) && !mc.world.isAirBlock(pos.down())
-    }
+    fun isPlaceable(pos: BlockPos) = mc.world.getBlockState(pos).material.isReplaceable && mc.world.checkNoEntityCollision(AxisAlignedBB(pos))
 
     /**
      * Checks if given [pos] is able to chest (air above) block in it
@@ -223,6 +144,70 @@ object BlockUtils {
      * @return true playing is not colliding with [pos] and there is block below it
      */
     fun isPlaceableForChest(pos: BlockPos): Boolean {
-        return isPlaceable(pos) && mc.world.isAirBlock(pos.up())
+        return isPlaceable(pos) && !mc.world.getBlockState(pos.down()).material.isReplaceable && mc.world.isAirBlock(pos.up())
+    }
+
+    fun buildStructure(placeSpeed: Float, getPlaceInfo: (HashSet<BlockPos>) -> Pair<EnumFacing, BlockPos>?) {
+        val emptyHashSet = HashSet<BlockPos>()
+        val placed = HashSet<BlockPos>()
+        var placeCount = 0
+        while (getPlaceInfo(emptyHashSet) != null) {
+            val placingInfo = getPlaceInfo(placed) ?: getPlaceInfo(emptyHashSet)?: break
+            placeCount++
+            placed.add(placingInfo.second.offset(placingInfo.first))
+            doPlace(placingInfo.second, placingInfo.first, placeSpeed)
+            if (placeCount >= 4) {
+                Thread.sleep(100L)
+                placeCount = 0
+                placed.clear()
+            }
+        }
+    }
+
+    fun getPlaceInfo(center: BlockPos?, structureOffset: Array<BlockPos>, toIgnore: HashSet<BlockPos>, maxAttempts: Int, attempts: Int = 1): Pair<EnumFacing, BlockPos>? {
+        center?.let {
+            for (offset in structureOffset) {
+                val pos = it.add(offset)
+                if (toIgnore.contains(pos)) continue
+                if (!isPlaceable(pos)) continue
+                return getNeighbour(pos, attempts) ?: continue
+            }
+            if (attempts <= maxAttempts) return getPlaceInfo(it, structureOffset, toIgnore, maxAttempts, attempts + 1)
+        }
+        return null
+    }
+
+    fun getNeighbour(blockPos: BlockPos, attempts: Int = 3, range: Float = 4.25f, toIgnore: HashSet<BlockPos> = HashSet()): Pair<EnumFacing, BlockPos>? {
+        for (side in EnumFacing.values()) {
+            val pos = blockPos.offset(side)
+            if (!toIgnore.add(pos)) continue
+            if (mc.world.getBlockState(pos).material.isReplaceable) continue
+            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(pos).add(getHitVecOffset(side))) > range) continue
+            return Pair(side.opposite, pos)
+        }
+        if (attempts > 1) {
+            toIgnore.add(blockPos)
+            for (side in EnumFacing.values()) {
+                val pos = blockPos.offset(side)
+                if (!isPlaceable(pos)) continue
+                return getNeighbour(pos, attempts - 1, range, toIgnore) ?: continue
+            }
+        }
+        return null
+    }
+
+    /**
+     * Placing function for multithreading only
+     */
+    fun doPlace(pos: BlockPos, facing: EnumFacing, placeSpeed: Float) {
+        val hitVecOffset = getHitVecOffset(facing)
+        val rotation = RotationUtils.getRotationTo(Vec3d(pos).add(hitVecOffset), true)
+        val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
+        val placePacket = CPacketPlayerTryUseItemOnBlock(pos, facing, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+        mc.connection!!.sendPacket(rotationPacket)
+        Thread.sleep((40f / placeSpeed).toLong())
+        mc.connection!!.sendPacket(placePacket)
+        mc.player.swingArm(EnumHand.MAIN_HAND)
+        Thread.sleep((10f / placeSpeed).toLong())
     }
 }

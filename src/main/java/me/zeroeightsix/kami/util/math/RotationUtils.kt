@@ -2,11 +2,10 @@ package me.zeroeightsix.kami.util.math
 
 import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.Wrapper
-import me.zeroeightsix.kami.util.graphics.KamiTessellator
 import net.minecraft.entity.Entity
+import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
-import kotlin.math.atan2
-import kotlin.math.sqrt
+import kotlin.math.*
 
 /**
  * Utils for calculating angles and rotations
@@ -14,14 +13,50 @@ import kotlin.math.sqrt
 object RotationUtils {
     val mc = Wrapper.minecraft
 
-    fun faceEntity(entity: Entity) {
-        val rotation = getRotationToEntity(entity)
+    fun faceEntityClosest(entity: Entity, pTicks: Float = 1f) {
+        val rotation = getRotationToEntityClosest(entity, pTicks)
         mc.player.rotationYaw = rotation.x.toFloat()
         mc.player.rotationPitch = rotation.y.toFloat()
     }
 
-    fun getRotationToEntity(entity: Entity): Vec2d {
-        val posTo = EntityUtils.getInterpolatedPos(entity, KamiTessellator.pTicks())
+    fun faceEntity(entity: Entity, pTicks: Float = 1f) {
+        val rotation = getRotationToEntity(entity, pTicks)
+        mc.player.rotationYaw = rotation.x.toFloat()
+        mc.player.rotationPitch = rotation.y.toFloat()
+    }
+
+    fun getRelativeRotation(entity: Entity, pTicks: Float = 1f): Double {
+        return getRotationDiff(getRotationToEntity(entity, pTicks), getPlayerRotation())
+    }
+
+    fun getRelativeRotation(posTo: Vec3d, pTicks: Float = 1f): Double {
+        return getRotationDiff(getRotationTo(posTo, true, pTicks), getPlayerRotation())
+    }
+
+    fun getPlayerRotation(pTicks: Float = 1f): Vec2d {
+        val rotation = Vec2d(mc.player.rotationYaw.toDouble(), mc.player.rotationPitch.toDouble())
+        val prevRotation = Vec2d(mc.player.rotationYaw.toDouble(), mc.player.rotationPitch.toDouble())
+        return prevRotation.add(rotation.subtract(prevRotation).multiply(pTicks.toDouble()))
+    }
+
+    fun getRotationDiff(r1: Vec2d, r2: Vec2d): Double {
+        val r1Radians = r1.toRadians()
+        val r2Radians = r2.toRadians()
+        return Math.toDegrees(acos(cos(r1Radians.y) * cos(r2Radians.y) * cos(r1Radians.x - r2Radians.x) + sin(r1Radians.y) * sin(r2Radians.y)))
+    }
+
+    fun getRotationToEntityClosest(entity: Entity, pTicks: Float = 1f): Vec2d {
+        val box = entity.boundingBox
+        val eyePos = mc.player.getPositionEyes(1f)
+        val x = MathHelper.clamp(eyePos.x, box.minX + 0.1, box.maxX - 0.1)
+        val y = MathHelper.clamp(eyePos.y, box.minY + 0.1, box.maxY - 0.1)
+        val z = MathHelper.clamp(eyePos.z, box.minZ + 0.1, box.maxZ - 0.1)
+        val hitVec = Vec3d(x, y, z)
+        return getRotationTo(hitVec, true, pTicks)
+    }
+
+    fun getRotationToEntity(entity: Entity, pTicks: Float = 1f): Vec2d {
+        val posTo = EntityUtils.getInterpolatedPos(entity, pTicks)
         return getRotationTo(posTo, true)
     }
 
@@ -33,10 +68,10 @@ object RotationUtils {
      * @return [Pair]<Yaw, Pitch>
      */
     @JvmStatic
-    fun getRotationTo(posTo: Vec3d, eyeHeight: Boolean): Vec2d {
+    fun getRotationTo(posTo: Vec3d, eyeHeight: Boolean, pTicks: Float = 1f): Vec2d {
         val player = mc.player
-        val posFrom = if (eyeHeight) player.getPositionEyes(KamiTessellator.pTicks())
-        else EntityUtils.getInterpolatedPos(player, KamiTessellator.pTicks())
+        val posFrom = if (eyeHeight) player.getPositionEyes(pTicks)
+        else EntityUtils.getInterpolatedPos(player, pTicks)
         return getRotationTo(posFrom, posTo)
     }
 

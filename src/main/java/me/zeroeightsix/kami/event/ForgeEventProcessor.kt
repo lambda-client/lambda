@@ -3,17 +3,16 @@ package me.zeroeightsix.kami.event
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.Command
 import me.zeroeightsix.kami.event.events.ConnectionEvent
+import me.zeroeightsix.kami.event.events.ResolutionUpdateEvent
 import me.zeroeightsix.kami.gui.UIRenderer
 import me.zeroeightsix.kami.gui.kami.KamiGUI
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.module.modules.client.CommandConfig
 import me.zeroeightsix.kami.util.Wrapper
-import me.zeroeightsix.kami.util.graphics.GlStateUtils
 import me.zeroeightsix.kami.util.graphics.ProjectionUtils
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.client.gui.GuiChat
-import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraftforge.client.event.*
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
@@ -29,24 +28,30 @@ import org.lwjgl.input.Keyboard
 
 object ForgeEventProcessor {
     private val mc = Wrapper.minecraft
-    private var displayWidth = 0
-    private var displayHeight = 0
+    private var prevWidth = mc.displayWidth
+    private var prevHeight = mc.displayHeight
 
     @SubscribeEvent
     fun onTick(event: TickEvent.ClientTickEvent) {
-        if (mc.displayWidth != displayWidth || mc.displayHeight != displayHeight) {
-            displayWidth = mc.displayWidth
-            displayHeight = mc.displayHeight
-            for (component in KamiMod.getInstance().guiManager.children) {
-                if (component !is Frame) continue
-                KamiGUI.dock(component)
+        KamiMod.EVENT_BUS.post(event)
+
+        if (event.phase == TickEvent.Phase.END) {
+            if (prevWidth != mc.displayWidth || prevHeight != mc.displayHeight) {
+                prevWidth = mc.displayWidth
+                prevHeight = mc.displayHeight
+                val resolutionUpdateEvent = ResolutionUpdateEvent(mc.displayWidth, mc.displayHeight)
+                KamiMod.EVENT_BUS.post(resolutionUpdateEvent)
+                for (component in KamiMod.getInstance().guiManager.children) {
+                    if (component !is Frame) continue
+                    KamiGUI.dock(component)
+                }
             }
         }
 
-        if (mc.world == null || mc.player == null) return
-
-        ModuleManager.onUpdate()
-        KamiMod.getInstance().guiManager.callTick(KamiMod.getInstance().guiManager)
+        if (mc.world != null && mc.player != null) {
+            ModuleManager.onUpdate()
+            KamiMod.getInstance().guiManager.callTick(KamiMod.getInstance().guiManager)
+        }
     }
 
     @SubscribeEvent

@@ -13,7 +13,6 @@ object InfoCalculator {
     @JvmStatic
     fun ping() = mc.player?.let { mc.connection?.getPlayerInfo(it.uniqueID)?.responseTime ?: 1 } ?: -1
 
-
     fun speed(useUnitKmH: Boolean): Double {
         val tps = 1000.0 / mc.timer.tickLength
         val multiply = if (useUnitKmH) 3.6 else 1.0 // convert mps to kmh
@@ -22,7 +21,7 @@ object InfoCalculator {
 
     fun heldItemDurability() = with(mc.player.heldItemMainhand) { maxDamage - getItemDamage() }
 
-    fun memory() = (Runtime.getRuntime().freeMemory() / 1000000L)
+    fun memory() = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1048576L
 
     @JvmStatic
     fun tps(places: Int) = round(tickRate, places)
