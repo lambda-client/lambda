@@ -42,6 +42,7 @@ object InfoCalculator {
      * Ported from Forgehax under MIT: https://github.com/fr1kin/ForgeHax/blob/2011740/src/main/java/com/matt/forgehax/mods/ClientChunkSize.java
      * @return current chunk size in bytes
      */
+    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
     fun chunkSize(): Int {
         if (mc.world == null) return 0
 
@@ -57,8 +58,7 @@ object InfoCalculator {
         try {
             val loader = AnvilChunkLoader(File("kamiblue"), null)
             loader.writeChunkToNBT(chunk, mc.world, level)
-        } catch (e: Throwable) {
-            e.printStackTrace()
+        } catch (ignored: Throwable) {
             return 0 // couldn't save
         }
 
@@ -67,7 +67,7 @@ object InfoCalculator {
         return try {
             CompressedStreamTools.write(root, compressed)
             compressed.size()
-        } catch (e: IOException) {
+        } catch (ignored: IOException) {
             0 // couldn't save
         }
     }
