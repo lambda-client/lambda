@@ -3,9 +3,9 @@ package me.zeroeightsix.kami.module.modules.render
 import me.zero.alpine.listener.EventHandler
 import me.zero.alpine.listener.EventHook
 import me.zero.alpine.listener.Listener
-import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.RenderEntityEvent
 import me.zeroeightsix.kami.event.events.RenderEvent
+import me.zeroeightsix.kami.event.events.RenderShaderEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
@@ -13,13 +13,9 @@ import me.zeroeightsix.kami.util.EntityUtils.getTargetList
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
-import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.graphics.ShaderHelper
 import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.client.renderer.OpenGlHelper
-import net.minecraft.client.shader.Framebuffer
 import net.minecraft.client.shader.Shader
-import net.minecraft.client.shader.ShaderGroup
-import net.minecraft.client.shader.ShaderLinkHelper
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
@@ -76,35 +72,14 @@ object ESP : Module() {
 
     var drawingOutline = false; private set
     var drawNametag = false; private set
-    private val shader: ShaderGroup?
-    val frameBuffer: Framebuffer?
-    private var prevWidth = mc.displayWidth
-    private var prevHeight = mc.displayHeight
+    private val shaderHelper = ShaderHelper(ResourceLocation("shaders/post/esp_outline.json"), "final")
+    val frameBuffer = shaderHelper.getFrameBuffer("final")
 
     init {
         mode.settingListener = Setting.SettingListeners {
             drawingOutline = false
             drawNametag = false
             resetGlow()
-        }
-
-        shader = if (OpenGlHelper.shadersSupported) {
-            try {
-                val resourceLocation = ResourceLocation("shaders/post/esp_outline.json")
-                ShaderLinkHelper.setNewStaticShaderLinkHelper()
-                ShaderGroup(mc.textureManager, mc.resourceManager, mc.framebuffer, resourceLocation).also {
-                    it.createBindFramebuffers(mc.displayWidth, mc.displayHeight)
-                }
-            } catch (e: Exception) {
-                KamiMod.log.warn("$chatName Failed loading Shader")
-                e.printStackTrace()
-                null
-            }.also {
-                frameBuffer = it?.getFramebufferRaw("final")
-            }
-        } else {
-            frameBuffer = null
-            null
         }
     }
 
@@ -140,6 +115,27 @@ object ESP : Module() {
         frameBuffer?.bindFramebuffer(false)
     }
 
+    @EventHandler
+    private val preRenderShaderListener = Listener(EventHook { event: RenderShaderEvent ->
+        if (mode.value != ESPMode.SHADER || event.phase != RenderShaderEvent.Phase.PRE) return@EventHook
+        // Apply shader on the frame buffer
+        frameBuffer?.bindFramebuffer(false)
+        shaderHelper.shader?.render(KamiTessellator.pTicks())
+
+        // Draw it on the main frame buffer
+        mc.framebuffer.bindFramebuffer(false)
+        GlStateManager.disableDepth()
+        // Re-enable blend because shader rendering will disable it at the end
+        GlStateManager.enableBlend()
+        frameBuffer?.framebufferRenderExt(mc.displayWidth, mc.displayHeight, false)
+        GlStateManager.disableBlend()
+        GlStateManager.enableDepth()
+
+        // Clean up the frame buffer
+        frameBuffer?.framebufferClear()
+        mc.framebuffer.bindFramebuffer(true)
+    })
+
     override fun onWorldRender(event: RenderEvent) {
         if (mc.renderManager.options == null) return
         when (mode.value) {
@@ -155,25 +151,6 @@ object ESP : Module() {
                 renderer.render(true)
             }
 
-            ESPMode.SHADER -> {
-                // Apply shader on the frame buffer
-                frameBuffer?.bindFramebuffer(false)
-                shader?.render(KamiTessellator.pTicks())
-
-                // Draw it on the main frame buffer
-                mc.framebuffer.bindFramebuffer(false)
-                GlStateManager.disableDepth()
-                // Re-enable blend because shader rendering will disable it at the end
-                GlStateManager.enableBlend()
-                frameBuffer?.framebufferRenderExt(mc.displayWidth, mc.displayHeight, false)
-                GlStateManager.disableBlend()
-                GlStateManager.enableDepth()
-
-                // Clean up the frame buffer
-                frameBuffer?.framebufferClear()
-                mc.framebuffer.bindFramebuffer(false)
-            }
-
             else -> {
                 // other modes, such as GLOW, use onUpdate()
             }
@@ -181,9 +158,6 @@ object ESP : Module() {
     }
 
     override fun onUpdate() {
-        // Refresh frame buffer on resolution change
-        refreshFrameBuffers()
-
         entityList.clear()
         entityList.addAll(getEntityList())
 
@@ -200,7 +174,7 @@ object ESP : Module() {
                 resetGlow()
             }
         } else if (mode.value == ESPMode.SHADER) {
-            shader?.let {
+            shaderHelper.shader?.let {
                 for (shader in it.listShaders) {
                     setShaderSettings(shader)
                 }
@@ -232,14 +206,6 @@ object ESP : Module() {
             }
         }
         return entityList
-    }
-
-    private fun refreshFrameBuffers() {
-        if (prevWidth != mc.displayWidth || prevHeight != mc.displayHeight) {
-            prevWidth = mc.displayWidth
-            prevHeight = mc.displayHeight
-            shader?.createBindFramebuffers(mc.displayWidth, mc.displayHeight)
-        }
     }
 
     private fun setShaderSettings(shader: Shader) {
