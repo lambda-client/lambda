@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.EntityUtils.getInterpolatedAmount
 import me.zeroeightsix.kami.util.EntityUtils.getTargetList
 import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
 import net.minecraft.client.Minecraft
@@ -50,36 +51,38 @@ object EyeFinder : Module() {
 
     private val resultMap = HashMap<Entity, Pair<RayTraceResult, Float>>()
 
-    override fun onWorldRender(event: RenderWorldEvent) {
-        if (resultMap.isEmpty()) return
-        for ((entity, pair) in resultMap) {
-            drawLine(entity, pair)
+    init {
+        listener<RenderWorldEvent> {
+            if (resultMap.isEmpty()) return@listener
+            for ((entity, pair) in resultMap) {
+                drawLine(entity, pair)
+            }
         }
-    }
 
-    override fun onUpdate(event: SafeTickEvent) {
-        alwaysListening = resultMap.isNotEmpty()
+        listener<SafeTickEvent> {
+            alwaysListening = resultMap.isNotEmpty()
 
-        val player = arrayOf(players.value, friends.value, sleeping.value)
-        val mob = arrayOf(mobs.value, passive.value, neutral.value, hostile.value)
-        val entityList = if (isEnabled) {
-            getTargetList(player, mob, invisible.value, range.value.toFloat())
-        } else {
-            ArrayList()
+            val player = arrayOf(players.value, friends.value, sleeping.value)
+            val mob = arrayOf(mobs.value, passive.value, neutral.value, hostile.value)
+            val entityList = if (isEnabled) {
+                getTargetList(player, mob, invisible.value, range.value.toFloat(), ignoreSelf = false)
+            } else {
+                ArrayList()
+            }
+            val cacheMap = HashMap<Entity, Pair<RayTraceResult, Float>>()
+            for (entity in entityList) {
+                val result = getRaytraceResult(entity) ?: continue
+                cacheMap[entity] = Pair(result, 0.0f)
+            }
+            for ((entity, pair) in resultMap) {
+                val result = getRaytraceResult(entity) ?: continue
+                cacheMap.computeIfPresent(entity) { _, cachePair -> Pair(cachePair.first, min(pair.second + 0.07f, 1f)) }
+                cacheMap.computeIfAbsent(entity) { Pair(result, pair.second - 0.05f) }
+                if (pair.second < 0f) cacheMap.remove(entity)
+            }
+            resultMap.clear()
+            resultMap.putAll(cacheMap)
         }
-        val cacheMap = HashMap<Entity, Pair<RayTraceResult, Float>>()
-        for (entity in entityList) {
-            val result = getRaytraceResult(entity) ?: continue
-            cacheMap[entity] = Pair(result, 0.0f)
-        }
-        for ((entity, pair) in resultMap) {
-            val result = getRaytraceResult(entity) ?: continue
-            cacheMap.computeIfPresent(entity) { _, cachePair -> Pair(cachePair.first, min(pair.second + 0.07f, 1f)) }
-            cacheMap.computeIfAbsent(entity) { Pair(result, pair.second - 0.05f) }
-            if (pair.second < 0f) cacheMap.remove(entity)
-        }
-        resultMap.clear()
-        resultMap.putAll(cacheMap)
     }
 
     private fun getRaytraceResult(entity: Entity): RayTraceResult? {

@@ -10,6 +10,7 @@ import me.zeroeightsix.kami.util.Friends
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.color.DyeColors
 import me.zeroeightsix.kami.util.color.HueCycler
+import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.MathUtils.convertRange
 import net.minecraft.entity.Entity
@@ -37,20 +38,20 @@ object Tracers : Module() {
     private val range = register(Settings.integerBuilder("Range").withValue(64).withRange(1, 256).withVisibility { page.value == Page.ENTITY_TYPE }.build())
 
     /* Color settings */
-    private val colorPlayer = register(Settings.enumBuilder(DyeColors::class.java).withName("PlayerColor").withValue(DyeColors.KAMI).withVisibility { page.value == Page.COLOR }.build())
-    private val colorFriend = register(Settings.enumBuilder(DyeColors::class.java).withName("FriendColor").withValue(DyeColors.RAINBOW).withVisibility { page.value == Page.COLOR }.build())
-    private val colorPassive = register(Settings.enumBuilder(DyeColors::class.java).withName("PassiveMobColor").withValue(DyeColors.GREEN).withVisibility { page.value == Page.COLOR }.build())
-    private val colorNeutral = register(Settings.enumBuilder(DyeColors::class.java).withName("NeutralMobColor").withValue(DyeColors.YELLOW).withVisibility { page.value == Page.COLOR }.build())
-    private val colorHostile = register(Settings.enumBuilder(DyeColors::class.java).withName("HostileMobColor").withValue(DyeColors.RED).withVisibility { page.value == Page.COLOR }.build())
+    private val colorPlayer = register(Settings.enumBuilder(DyeColors::class.java, "PlayerColor").withValue(DyeColors.KAMI).withVisibility { page.value == Page.COLOR }.build())
+    private val colorFriend = register(Settings.enumBuilder(DyeColors::class.java, "FriendColor").withValue(DyeColors.RAINBOW).withVisibility { page.value == Page.COLOR }.build())
+    private val colorPassive = register(Settings.enumBuilder(DyeColors::class.java, "PassiveMobColor").withValue(DyeColors.GREEN).withVisibility { page.value == Page.COLOR }.build())
+    private val colorNeutral = register(Settings.enumBuilder(DyeColors::class.java, "NeutralMobColor").withValue(DyeColors.YELLOW).withVisibility { page.value == Page.COLOR }.build())
+    private val colorHostile = register(Settings.enumBuilder(DyeColors::class.java, "HostileMobColor").withValue(DyeColors.RED).withVisibility { page.value == Page.COLOR }.build())
 
     /* General rendering settings */
     private val rangedColor = register(Settings.booleanBuilder("RangedColor").withValue(true).withVisibility { page.value == Page.RENDERING }.build())
     private val playerOnly = register(Settings.booleanBuilder("PlayerOnly").withValue(true).withVisibility { page.value == Page.RENDERING && rangedColor.value }.build())
-    private val colorFar = register(Settings.enumBuilder(DyeColors::class.java).withName("FarColor").withValue(DyeColors.WHITE).withVisibility { page.value == Page.COLOR }.build())
-    private val aFar = register(Settings.integerBuilder("FarAlpha").withValue(127).withRange(0, 255).withVisibility { page.value == Page.RENDERING && rangedColor.value }.build())
-    private val a = register(Settings.integerBuilder("TracerAlpha").withValue(200).withRange(0, 255).withVisibility { page.value == Page.RENDERING }.build())
-    private val yOffset = register(Settings.integerBuilder("yOffsetPercentage").withValue(0).withRange(0, 100).withVisibility { page.value == Page.RENDERING }.build())
-    private val thickness = register(Settings.floatBuilder("LineThickness").withValue(2.0f).withRange(0.0f, 8.0f).withVisibility { page.value == Page.RENDERING }.build())
+    private val colorFar = register(Settings.enumBuilder(DyeColors::class.java, "FarColor").withValue(DyeColors.WHITE).withVisibility { page.value == Page.COLOR }.build())
+    private val aFar = register(Settings.integerBuilder("FarAlpha").withValue(127).withRange(0, 255).withStep(1).withVisibility { page.value == Page.RENDERING && rangedColor.value }.build())
+    private val a = register(Settings.integerBuilder("TracerAlpha").withValue(255).withRange(0, 255).withStep(1).withVisibility { page.value == Page.RENDERING }.build())
+    private val yOffset = register(Settings.integerBuilder("yOffsetPercentage").withValue(0).withRange(0, 100).withStep(5).withVisibility { page.value == Page.RENDERING }.build())
+    private val thickness = register(Settings.floatBuilder("LineThickness").withValue(2.0f).withRange(0.0f, 8.0f).withStep(0.25f).withVisibility { page.value == Page.RENDERING }.build())
 
     private enum class Page {
         ENTITY_TYPE, COLOR, RENDERING
@@ -58,44 +59,47 @@ object Tracers : Module() {
 
     private var renderList = ConcurrentHashMap<Entity, Pair<ColorHolder, Float>>() /* <Entity, <RGBAColor, AlphaMultiplier>> */
     private var cycler = HueCycler(600)
+    private val renderer = ESPRenderer()
 
-    override fun onWorldRender(event: RenderWorldEvent) {
-        val renderer = ESPRenderer()
-        renderer.aTracer = a.value
-        renderer.thickness = thickness.value
-        renderer.tracerOffset = yOffset.value
-        for ((entity, pair) in renderList) {
-            val rgba = pair.first.clone()
-            rgba.a = (rgba.a * pair.second).toInt()
-            renderer.add(entity, rgba)
-        }
-        renderer.render(true)
-    }
-
-    override fun onUpdate(event: SafeTickEvent) {
-        cycler++
-        alwaysListening = renderList.isNotEmpty()
-
-        val player = arrayOf(players.value, friends.value, sleeping.value)
-        val mob = arrayOf(mobs.value, passive.value, neutral.value, hostile.value)
-        val entityList = if (isEnabled) {
-            getTargetList(player, mob, invisible.value, range.value.toFloat())
-        } else {
-            ArrayList()
+    init {
+        listener<RenderWorldEvent> {
+            val renderer = ESPRenderer()
+            renderer.aTracer = a.value
+            renderer.thickness = thickness.value
+            renderer.tracerOffset = yOffset.value
+            for ((entity, pair) in renderList) {
+                val rgba = pair.first.clone()
+                rgba.a = (rgba.a * pair.second).toInt()
+                renderer.add(entity, rgba)
+            }
+            renderer.render(true)
         }
 
-        val cacheMap = HashMap<Entity, Pair<ColorHolder, Float>>()
-        for (entity in entityList) {
-            cacheMap[entity] = Pair(getColor(entity), 0f)
-        }
+        listener<SafeTickEvent> {
+            cycler++
+            alwaysListening = renderList.isNotEmpty()
 
-        for ((entity, pair) in renderList) {
-            cacheMap.computeIfPresent(entity) { _, cachePair -> Pair(cachePair.first, min(pair.second + 0.07f, 1f)) }
-            cacheMap.computeIfAbsent(entity) { Pair(getColor(entity), pair.second - 0.05f) }
-            if (pair.second < 0f) cacheMap.remove(entity)
+            val player = arrayOf(players.value, friends.value, sleeping.value)
+            val mob = arrayOf(mobs.value, passive.value, neutral.value, hostile.value)
+            val entityList = if (isEnabled) {
+                getTargetList(player, mob, invisible.value, range.value.toFloat(), ignoreSelf = false)
+            } else {
+                ArrayList()
+            }
+
+            val cacheMap = HashMap<Entity, Pair<ColorHolder, Float>>()
+            for (entity in entityList) {
+                cacheMap[entity] = Pair(getColor(entity), 0f)
+            }
+
+            for ((entity, pair) in renderList) {
+                cacheMap.computeIfPresent(entity) { _, cachePair -> Pair(cachePair.first, min(pair.second + 0.075f, 1f)) }
+                cacheMap.computeIfAbsent(entity) { Pair(getColor(entity), pair.second - 0.05f) }
+                if (pair.second < 0f) cacheMap.remove(entity)
+            }
+            renderList.clear()
+            renderList.putAll(cacheMap)
         }
-        renderList.clear()
-        renderList.putAll(cacheMap)
     }
 
     private fun getColor(entity: Entity): ColorHolder {

@@ -132,47 +132,49 @@ object ESP : Module() {
         frameBuffer?.bindFramebuffer(false)
     }
 
-    override fun onWorldRender(event: RenderWorldEvent) {
-        if (mc.renderManager.options == null) return
-        when (mode.value) {
-            ESPMode.BOX -> {
-                val colour = ColorHolder(r.value, g.value, b.value)
-                val renderer = ESPRenderer()
-                renderer.aFilled = if (filled.value) aFilled.value else 0
-                renderer.aOutline = if (outline.value) aOutline.value else 0
-                renderer.thickness = width.value
-                for (entity in entityList) {
-                    renderer.add(entity, colour)
+    init {
+        listener<RenderWorldEvent> {
+            if (mc.renderManager.options == null) return@listener
+            when (mode.value) {
+                ESPMode.BOX -> {
+                    val colour = ColorHolder(r.value, g.value, b.value)
+                    val renderer = ESPRenderer()
+                    renderer.aFilled = if (filled.value) aFilled.value else 0
+                    renderer.aOutline = if (outline.value) aOutline.value else 0
+                    renderer.thickness = width.value
+                    for (entity in entityList) {
+                        renderer.add(entity, colour)
+                    }
+                    renderer.render(true)
                 }
-                renderer.render(true)
-            }
 
-            else -> {
-                // other modes, such as GLOW, use onUpdate()
+                else -> {
+                    // other modes, such as GLOW, use onUpdate()
+                }
             }
         }
-    }
 
-    override fun onUpdate(event: SafeTickEvent) {
-        entityList.clear()
-        entityList.addAll(getEntityList())
+        listener<SafeTickEvent> {
+            entityList.clear()
+            entityList.addAll(getEntityList())
 
-        if (mode.value == ESPMode.GLOW) {
-            if (entityList.isNotEmpty()) {
-                for (shader in mc.renderGlobal.entityOutlineShader.listShaders) {
-                    shader.shaderManager.getShaderUniform("Radius")?.set(width.value)
+            if (mode.value == ESPMode.GLOW) {
+                if (entityList.isNotEmpty()) {
+                    for (shader in mc.renderGlobal.entityOutlineShader.listShaders) {
+                        shader.shaderManager.getShaderUniform("Radius")?.set(width.value)
+                    }
+
+                    for (entity in mc.world.loadedEntityList) { // Set glow for entities in the list. Remove glow for entities not in the list
+                        entity.isGlowing = entityList.contains(entity)
+                    }
+                } else {
+                    resetGlow()
                 }
-
-                for (entity in mc.world.loadedEntityList) { // Set glow for entities in the list. Remove glow for entities not in the list
-                    entity.isGlowing = entityList.contains(entity)
-                }
-            } else {
-                resetGlow()
-            }
-        } else if (mode.value == ESPMode.SHADER) {
-            shaderHelper.shader?.let {
-                for (shader in it.listShaders) {
-                    setShaderSettings(shader)
+            } else if (mode.value == ESPMode.SHADER) {
+                shaderHelper.shader?.let {
+                    for (shader in it.listShaders) {
+                        setShaderSettings(shader)
+                    }
                 }
             }
         }
@@ -184,12 +186,12 @@ object ESP : Module() {
         val entityList = ArrayList<Entity>()
         if (all.value) {
             for (entity in mc.world.loadedEntityList) {
-                if (entity == mc.player) continue
+                if (entity == mc.renderViewEntity) continue
                 if (mc.player.getDistance(entity) > range.value) continue
                 entityList.add(entity)
             }
         } else {
-            entityList.addAll(getTargetList(player, mob, invisible.value, range.value.toFloat()))
+            entityList.addAll(getTargetList(player, mob, invisible.value, range.value.toFloat(), ignoreSelf = false))
             for (entity in mc.world.loadedEntityList) {
                 if (entity == mc.player) continue
                 if (mc.player.getDistance(entity) > range.value) continue

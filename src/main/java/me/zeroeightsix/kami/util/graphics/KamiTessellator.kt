@@ -96,7 +96,9 @@ object KamiTessellator : Tessellator(0x200000) {
         return if (mc.isGamePaused) mc.renderPartialTicksPaused else mc.renderPartialTicks
     }
 
-    val camPos: Vec3d get() = EntityUtils.getInterpolatedPos(mc.player, pTicks()).add(ActiveRenderInfo.getCameraPosition())
+    val camPos: Vec3d
+        get() = EntityUtils.getInterpolatedPos(mc.renderViewEntity
+                ?: mc.player, pTicks()).add(ActiveRenderInfo.getCameraPosition())
 
     /**
      * @author Xiaro

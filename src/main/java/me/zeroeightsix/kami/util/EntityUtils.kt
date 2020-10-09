@@ -228,13 +228,14 @@ object EntityUtils {
         return entity
     }
 
-    fun getTargetList(player: Array<Boolean>, mobs: Array<Boolean>, invisible: Boolean, range: Float): ArrayList<EntityLivingBase> {
+    fun getTargetList(player: Array<Boolean>, mobs: Array<Boolean>, invisible: Boolean, range: Float, ignoreSelf: Boolean = true): ArrayList<EntityLivingBase> {
         if (mc.world.loadedEntityList == null) return ArrayList()
         val entityList = ArrayList<EntityLivingBase>()
         for (entity in mc.world.loadedEntityList) {
             /* Entity type check */
             if (entity !is EntityLivingBase) continue
-            if (entity.name == mc.player.name) continue
+            if (ignoreSelf && entity.name == mc.player.name) continue
+            if (entity == mc.renderViewEntity) continue
             if (entity is EntityPlayer) {
                 if (!player[0]) continue
                 if (!playerTypeCheck(entity, player[1], player[2])) continue
