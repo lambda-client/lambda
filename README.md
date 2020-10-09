@@ -26,8 +26,6 @@ Please go to [https://kamiblue.org](https://kamiblue.org) for documentation and 
 
 [zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
 
-[ZeroMemes](https://github.com/ZeroMemes) for [Alpine](https://github.com/ZeroMemes/Alpine)
-
 [Raion Client](https://raionclient.com/) for `;teleport` and `;vanish` commands
 
 [ronmamo](https://github.com/ronmamo/) for [Reflections](https://github.com/ronmamo/reflections)
