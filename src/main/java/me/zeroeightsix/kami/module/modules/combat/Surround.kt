@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.combat
 
+import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.manager.mangers.CombatManager
 import me.zeroeightsix.kami.manager.mangers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
@@ -93,7 +94,7 @@ object Surround : Module() {
         if (future?.isDone != false) future = threadPool.submit(placeThread)
     }
 
-    override fun onUpdate() {
+    override fun onUpdate(event: SafeTickEvent) {
         if (isEnabled && holePos == null && centerPlayer()) holePos = mc.player.positionVector.toBlockPos()
         if (future?.isDone == false && future?.isCancelled == false) {
             val slot = getObby()
@@ -153,33 +154,8 @@ object Surround : Module() {
                 strafeEnabled = Strafe.isEnabled
                 Strafe.disable()
             }
-            val centerDiff = getCenterDiff()
-            val centered = isCentered()
-            if (!centered) {
-                mc.player.setVelocity(0.0, -5.0, 0.0)
-                if (autoCenter.value == AutoCenterMode.TP) {
-                    val posX = mc.player.posX + MathHelper.clamp(centerDiff.x, -0.2, 0.2)
-                    val posZ = mc.player.posZ + MathHelper.clamp(centerDiff.z, -0.2, 0.2)
-                    mc.player.setPosition(posX, mc.player.posY, posZ)
-                } else {
-                    mc.player.motionX = MathHelper.clamp(centerDiff.x / 2.0, -0.2, 0.2)
-                    mc.player.motionZ = MathHelper.clamp(centerDiff.z / 2.0, -0.2, 0.2)
-                }
-            }
-            centered
+            SurroundUtils.centerPlayer(autoCenter.value == AutoCenterMode.TP)
         }
-    }
-
-    private fun isCentered(): Boolean {
-        return getCenterDiff().length() < 0.2
-    }
-
-    private fun getCenterDiff(): Vec3d {
-        return Vec3d(roundToCenter(mc.player.posX), mc.player.posY, roundToCenter(mc.player.posZ)).subtract(mc.player.positionVector)
-    }
-
-    private fun roundToCenter(doubleIn: Double): Double {
-        return round(doubleIn + 0.5) - 0.5
     }
 
     private fun runSurround() {

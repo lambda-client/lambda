@@ -37,6 +37,7 @@ object KamiTessellator : Tessellator(0x200000) {
     @JvmStatic
     fun prepareGL() {
         GlStateManager.pushMatrix()
+        glLineWidth(1f)
         glEnable(GL_LINE_SMOOTH)
         glEnable(GL32.GL_DEPTH_CLAMP)
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
@@ -65,6 +66,7 @@ object KamiTessellator : Tessellator(0x200000) {
         glDisable(GL32.GL_DEPTH_CLAMP)
         glDisable(GL_LINE_SMOOTH)
         GlStateManager.color(1f, 1f, 1f)
+        glLineWidth(1f)
         GlStateManager.popMatrix()
     }
 
@@ -94,7 +96,9 @@ object KamiTessellator : Tessellator(0x200000) {
         return if (mc.isGamePaused) mc.renderPartialTicksPaused else mc.renderPartialTicks
     }
 
-    val camPos: Vec3d get() = EntityUtils.getInterpolatedPos(mc.player, pTicks()).add(ActiveRenderInfo.getCameraPosition())
+    val camPos: Vec3d
+        get() = EntityUtils.getInterpolatedPos(mc.renderViewEntity
+                ?: mc.player, pTicks()).add(ActiveRenderInfo.getCameraPosition())
 
     /**
      * @author Xiaro

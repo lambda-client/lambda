@@ -4,9 +4,7 @@ import baritone.api.BaritoneAPI
 import baritone.api.event.events.ChatEvent
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.Command
-import me.zeroeightsix.kami.util.Wrapper.minecraft
-import me.zeroeightsix.kami.util.Wrapper.player
-import net.minecraft.client.Minecraft
+import me.zeroeightsix.kami.util.Wrapper
 import net.minecraft.launchwrapper.LogWrapper
 import net.minecraft.network.play.client.CPacketChatMessage
 import net.minecraft.util.text.ITextComponent
@@ -15,6 +13,8 @@ import net.minecraft.util.text.TextFormatting
 import java.util.regex.Pattern
 
 object MessageSendHelper {
+    private val mc = Wrapper.minecraft
+
     @JvmStatic
     fun sendChatMessage(message: String) {
         sendRawChatMessage("&7[&9" + KamiMod.KAMI_KANJI + "&7] &r" + message)
@@ -34,7 +34,7 @@ object MessageSendHelper {
     fun sendKamiCommand(command: String, addToHistory: Boolean) {
         try {
             if (addToHistory) {
-                minecraft.ingameGUI.chatGUI.addToSentMessages(command)
+                mc.ingameGUI.chatGUI.addToSentMessages(command)
             }
             if (command.length > 1) KamiMod.getInstance().commandManager.callCommand(command.substring(Command.getCommandPrefix().length - 1)) else sendChatMessage("Please enter a command!")
         } catch (e: Exception) {
@@ -72,25 +72,18 @@ object MessageSendHelper {
     @JvmStatic
     fun sendRawChatMessage(message: String?) {
         if (message == null) return
-        if (Minecraft.getMinecraft().player != null) {
-            player!!.sendMessage(ChatMessage(message))
-        } else {
-            LogWrapper.info(message)
-        }
+        mc.player?.sendMessage(ChatMessage(message))
     }
 
     @JvmStatic
     fun sendServerMessage(message: String?) {
         if (message.isNullOrBlank()) return
-        if (Minecraft.getMinecraft().player != null) {
-            player!!.connection.sendPacket(CPacketChatMessage(message))
-        } else {
-            LogWrapper.warning("Could not send server message: \"$message\"")
-        }
+        mc.player?.connection?.sendPacket(CPacketChatMessage(message))
+                ?: LogWrapper.warning("Could not send server message: \"$message\"")
     }
 
     class ChatMessage internal constructor(text: String) : TextComponentBase() {
-        var text: String
+        val text: String
         override fun getUnformattedComponentText(): String {
             return text
         }

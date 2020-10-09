@@ -3,11 +3,10 @@ package me.zeroeightsix.kami;
 import com.google.common.base.Converter;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import me.zero.alpine.EventBus;
-import me.zero.alpine.EventManager;
 import me.zeroeightsix.kami.command.Command;
 import me.zeroeightsix.kami.command.CommandManager;
 import me.zeroeightsix.kami.event.ForgeEventProcessor;
+import me.zeroeightsix.kami.event.KamiEventBus;
 import me.zeroeightsix.kami.gui.kami.KamiGUI;
 import me.zeroeightsix.kami.manager.ManagerLoader;
 import me.zeroeightsix.kami.manager.mangers.FileInstanceManager;
@@ -18,6 +17,7 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.util.ConfigUtils;
+import me.zeroeightsix.kami.util.graphics.font.KamiFontRenderer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -63,11 +63,9 @@ public class KamiMod {
     public static final char colour = '\u00A7';
     public static final char separator = '|';
 
-    private static final String KAMI_CONFIG_NAME_DEFAULT = "KAMIBlueConfig.json";
-
     public static final Logger log = LogManager.getLogger("KAMI Blue");
 
-    public static final EventBus EVENT_BUS = new EventManager();
+    public static Thread MAIN_THREAD;
 
     public static String latest; // latest version (null if no internet or exception occurred)
     public static boolean isLatest;
@@ -92,6 +90,7 @@ public class KamiMod {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        MAIN_THREAD = Thread.currentThread();
         updateCheck();
         ModuleManager.preLoad();
         ManagerLoader.preLoad();
@@ -124,11 +123,15 @@ public class KamiMod {
         ConfigUtils.INSTANCE.loadAll();
 
         // After settings loaded, we want to let the enabled modules know they've been enabled (since the setting is done through reflection)
-        Module[] modules = ModuleManager.getModules();
-        for (Module module : modules) {
-            if (module.alwaysListening) EVENT_BUS.subscribe(module);
+        for (Module module : ModuleManager.getModules()) {
+            if (module.alwaysListening) {
+                KamiEventBus.INSTANCE.subscribe(module);
+            }
             if (module.isEnabled()) module.enable();
         }
+
+        // Need to reload the font after the settings were loaded
+        KamiFontRenderer.INSTANCE.reloadFonts();
 
         log.info(MODNAME + " Mod initialized!\n");
     }

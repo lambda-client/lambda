@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules
 
+import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
@@ -17,7 +18,6 @@ import kotlin.math.round
 )
 object ClickGUI : Module() {
     private val scaleSetting = register(Settings.integerBuilder("Scale").withValue(100).withRange(10, 400).build())
-    val customFont = register(Settings.b("CustomFont", true)) // For the sake of dumb Minecraftia simps
 
     private var prevScale = scaleSetting.value / 100.0
     private var scale = prevScale
@@ -33,7 +33,7 @@ object ClickGUI : Module() {
         return (prevScale + (scale - prevScale) * mc.renderPartialTicks) * 2.0
     }
 
-    override fun onUpdate() {
+    override fun onUpdate(event: SafeTickEvent) {
         prevScale = scale
         if (settingTimer.stop() > 500L) {
             val diff = scale - getRoundedScale()

@@ -5,11 +5,13 @@
   "refmap": "mixins.kami.refmap.json",
   "client": [
     "MixinAbstractClientPlayer",
+    "MixinAnvilChunkLoader",
     "MixinBlockLiquid",
     "MixinBlockSoulSand",
     "MixinBlockWeb",
     "MixinC00Handshake",
     "MixinChunkCache",
+    "MixinConfig",
     "MixinElytraSound",
     "MixinEntity",
     "MixinEntityLlama",
@@ -44,5 +46,7 @@
     "MixinTileEntityBeacon",
     "MixinVisGraph",
     "MixinWorld"
+  ],
+  "mixins": [
   ]
 }

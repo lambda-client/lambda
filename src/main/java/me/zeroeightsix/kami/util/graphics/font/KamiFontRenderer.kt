@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.util.graphics.font
 
 import me.zeroeightsix.kami.KamiMod
+import me.zeroeightsix.kami.module.modules.client.CustomFont
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.color.DyeColors
 import me.zeroeightsix.kami.util.graphics.GlStateUtils
@@ -76,7 +77,7 @@ object KamiFontRenderer {
     private var currentColor = ColorHolder(255, 255, 255)
 
     /** Available fonts on in the system */
-    private val availableFonts = GraphicsEnvironment.getLocalGraphicsEnvironment().allFonts.map { it.name }.toHashSet()
+    val availableFonts = GraphicsEnvironment.getLocalGraphicsEnvironment().allFonts.map { it.name }.toHashSet()
 
     /** All for the KAMI Blue kanji */
     private val fallbackFonts = arrayOf(
@@ -124,29 +125,43 @@ object KamiFontRenderer {
         """.trimIndent())
 
         glyphArray = Array(3) {
-            val style = TextProperties.Style.values()[it]
-
-            // Load main font
-            val font = try {
-                val inputStream = KamiFontRenderer::class.java.getResourceAsStream(style.fontPath)
-                Font.createFont(Font.TRUETYPE_FONT, inputStream).deriveFont(32f)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                KamiMod.log.error("Failed loading main font. Using Sans Serif font.")
-                getSansSerifFont(style.styleConst)
-            }
-
-            // Load fallback font
-            val fallbackFont = try {
-                Font(getFallbackFont(), style.styleConst, 32)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                KamiMod.log.error("Failed loading fallback font. Using Sans Serif font")
-                getSansSerifFont(style.styleConst)
-            }
-            FontGlyphs(style, font, fallbackFont)
+            loadFont(it)
         }
         currentVariant = glyphArray[0]
+    }
+
+    fun reloadFonts() {
+        for (i in glyphArray.indices) {
+            glyphArray[i] = loadFont(i)
+        }
+    }
+
+    private fun loadFont(index: Int): FontGlyphs {
+        val style = TextProperties.Style.values()[index]
+
+        // Load main font
+        val font = try {
+            if (CustomFont.isDefaultFont) {
+                val inputStream = this.javaClass.getResourceAsStream(style.fontPath)
+                Font.createFont(Font.TRUETYPE_FONT, inputStream).deriveFont(32f)
+            } else {
+                Font(CustomFont.fontName.value, style.styleConst, 32)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            KamiMod.log.error("Failed loading main font. Using Sans Serif font.")
+            getSansSerifFont(style.styleConst)
+        }
+
+        // Load fallback font
+        val fallbackFont = try {
+            Font(getFallbackFont(), style.styleConst, 32)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            KamiMod.log.error("Failed loading fallback font. Using Sans Serif font")
+            getSansSerifFont(style.styleConst)
+        }
+        return FontGlyphs(style, font, fallbackFont)
     }
 
     private fun getFallbackFont() = fallbackFonts.firstOrNull { availableFonts.contains(it) }
@@ -172,7 +187,8 @@ object KamiFontRenderer {
         GlStateUtils.blend(true)
         glPushMatrix()
         glTranslatef(posXIn, posYIn, 0.0f)
-        glScalef(0.28f * scale, 0.28f * scale, 1.0f)
+        glScalef(CustomFont.size.value * 0.28f * scale, CustomFont.size.value * 0.28f * scale, 1.0f)
+        glTranslatef(0f, -1f, 0f)
 
         resetStyle()
 
@@ -192,7 +208,7 @@ object KamiFontRenderer {
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.333f)
 
             if (char == '\n') {
-                posY += currentVariant.fontHeight * 0.8
+                posY += currentVariant.fontHeight * CustomFont.size.value * 0.28f
                 posX = 0.0
             } else {
                 val pos1 = Vec2d(posX, posY)
@@ -201,7 +217,7 @@ object KamiFontRenderer {
                 val texPos2 = texPos1.add(Vec2d(charInfo.width.toDouble(), charInfo.height.toDouble()).divide(TEXTURE_WIDTH.toDouble(), chunk.textureHeight.toDouble()))
 
                 drawQuad(pos1, pos2, texPos1, texPos2)
-                posX += charInfo.width - 1f
+                posX += charInfo.width + CustomFont.gap.value - 1f
             }
         }
         resetStyle()
@@ -228,7 +244,7 @@ object KamiFontRenderer {
 
     @JvmOverloads
     fun getFontHeight(scale: Float = 1f): Float {
-        return glyphArray[0].fontHeight * 0.25f * scale
+        return glyphArray[0].fontHeight * (CustomFont.size.value * (CustomFont.lineSpace.value * 0.01f + 0.28f)) * scale
     }
 
     @JvmOverloads
@@ -237,10 +253,10 @@ object KamiFontRenderer {
         resetStyle()
         for ((index, char) in text.withIndex()) {
             if (checkStyleCode(text, index)) continue
-            width += currentVariant.getCharInfo(char).width.minus(1f)
+            width += currentVariant.getCharInfo(char).width + CustomFont.gap.value - 1f
         }
         resetStyle()
-        return width * 0.28f * scale
+        return width * CustomFont.size.value * 0.28f * scale
     }
 
     private fun resetStyle() {
@@ -273,8 +289,8 @@ object KamiFontRenderer {
                 TextFormatting.RED.toString()[1] -> ColorHolder(255, 85, 85)
                 TextFormatting.LIGHT_PURPLE.toString()[1] -> ColorHolder(255, 85, 255)
                 TextFormatting.YELLOW.toString()[1] -> ColorHolder(255, 255, 85)
-                TextFormatting.WHITE.toString()[1] -> ColorHolder(255, 255, 255)
-                TextFormatting.RESET.toString()[1] -> ColorHolder(255, 255, 255)
+                TextFormatting.WHITE.toString()[1] -> DyeColors.WHITE.color
+                TextFormatting.RESET.toString()[1] -> DyeColors.WHITE.color
                 else -> currentColor
             }
             return true

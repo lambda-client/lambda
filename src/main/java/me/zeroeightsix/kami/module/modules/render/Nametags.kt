@@ -1,11 +1,14 @@
 package me.zeroeightsix.kami.module.modules.render
 
+import me.zeroeightsix.kami.event.events.RenderOverlayEvent
+import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.EnchantmentUtils
 import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.color.ColorGradient
 import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import me.zeroeightsix.kami.util.graphics.font.TextComponent
@@ -13,7 +16,6 @@ import me.zeroeightsix.kami.util.graphics.font.TextProperties
 import me.zeroeightsix.kami.util.math.MathUtils
 import me.zeroeightsix.kami.util.math.Vec2d
 import net.minecraft.client.entity.EntityOtherPlayerMP
-import net.minecraft.client.renderer.ActiveRenderInfo
 import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
@@ -96,6 +98,7 @@ object Nametags : Module() {
     private val gText = register(Settings.integerBuilder("TextGreen").withValue(229).withRange(0, 255).withStep(1).withVisibility { page.value == Page.RENDERING })
     private val bText = register(Settings.integerBuilder("TextBlue").withValue(255).withRange(0, 255).withStep(1).withVisibility { page.value == Page.RENDERING })
     private val aText = register(Settings.integerBuilder("TextAlpha").withValue(255).withRange(0, 255).withStep(1).withVisibility { page.value == Page.RENDERING })
+    private val customFont = register(Settings.booleanBuilder("CustomFont").withValue(true).withVisibility { page.value == Page.RENDERING })
     private val textShadow = register(Settings.booleanBuilder("TextShadow").withValue(true).withVisibility { page.value == Page.RENDERING })
     private val yOffset = register(Settings.floatBuilder("YOffset").withValue(0.5f).withRange(-2.5f, 2.5f).withStep(0.05f).withVisibility { page.value == Page.RENDERING })
     private val scale = register(Settings.floatBuilder("Scale").withValue(1f).withRange(0.25f, 5f).withStep(0.25f).withVisibility { page.value == Page.RENDERING })
@@ -131,43 +134,39 @@ object Nametags : Module() {
 
     private var updateTick = 0
 
-    override fun onRender() {
-        if (entityMap.isEmpty() && itemMap.isEmpty()) return
-        GlStateUtils.rescaleActual()
-        val camPos = getCamPos()
-        val vertexHelper = VertexHelper(GlStateUtils.useVbo())
-        for ((entity, textComponent) in entityMap) {
-            val pos = EntityUtils.getInterpolatedPos(entity, KamiTessellator.pTicks()).add(0.0, (entity.height + yOffset.value).toDouble(), 0.0)
-            val screenPos = ProjectionUtils.toScreenPos(pos)
-            val dist = camPos.distanceTo(pos).toFloat() * 0.2f
-            val distFactor = if (distScaleFactor.value == 0f) 1f else max(1f / (dist * distScaleFactor.value + 1f), minDistScale.value)
-            drawNametag(screenPos, (scale.value * 2f) * distFactor, vertexHelper, nameFrame.value, textComponent)
-            drawItems(screenPos, (scale.value * 2f) * distFactor, vertexHelper, entity, textComponent)
+    init {
+        listener<RenderOverlayEvent> {
+            if (entityMap.isEmpty() && itemMap.isEmpty()) return@listener
+            GlStateUtils.rescaleActual()
+            val camPos = KamiTessellator.camPos
+            val vertexHelper = VertexHelper(GlStateUtils.useVbo())
+            for ((entity, textComponent) in entityMap) {
+                val pos = EntityUtils.getInterpolatedPos(entity, KamiTessellator.pTicks()).add(0.0, (entity.height + yOffset.value).toDouble(), 0.0)
+                val screenPos = ProjectionUtils.toScreenPos(pos)
+                val dist = camPos.distanceTo(pos).toFloat() * 0.2f
+                val distFactor = if (distScaleFactor.value == 0f) 1f else max(1f / (dist * distScaleFactor.value + 1f), minDistScale.value)
+                drawNametag(screenPos, (scale.value * 2f) * distFactor, vertexHelper, nameFrame.value, textComponent)
+                drawItems(screenPos, (scale.value * 2f) * distFactor, vertexHelper, entity, textComponent)
+            }
+            for (itemGroup in itemMap) {
+                val pos = itemGroup.getCenter(KamiTessellator.pTicks()).add(0.0, yOffset.value.toDouble(), 0.0)
+                val screenPos = ProjectionUtils.toScreenPos(pos)
+                val dist = camPos.distanceTo(pos).toFloat() * 0.2f
+                val distFactor = if (distScaleFactor.value == 0f) 1f else max(1f / (dist * distScaleFactor.value + 1f), minDistScale.value)
+                drawNametag(screenPos, (scale.value * 2f) * distFactor, vertexHelper, dropItemFrame.value, itemGroup.textComponent)
+            }
+            GlStateUtils.rescaleMc()
         }
-        for (itemGroup in itemMap) {
-            val pos = itemGroup.getCenter(KamiTessellator.pTicks()).add(0.0, yOffset.value.toDouble(), 0.0)
-            val screenPos = ProjectionUtils.toScreenPos(pos)
-            val dist = camPos.distanceTo(pos).toFloat() * 0.2f
-            val distFactor = if (distScaleFactor.value == 0f) 1f else max(1f / (dist * distScaleFactor.value + 1f), minDistScale.value)
-            drawNametag(screenPos, (scale.value * 2f) * distFactor, vertexHelper, dropItemFrame.value, itemGroup.textComponent)
-        }
-        GlStateUtils.rescaleMc()
-    }
-
-    private fun getCamPos(): Vec3d {
-        return EntityUtils.getInterpolatedPos(mc.renderViewEntity
-                ?: mc.player, KamiTessellator.pTicks()).add(ActiveRenderInfo.getCameraPosition())
     }
 
     private fun drawNametag(screenPos: Vec3d, scale: Float, vertexHelper: VertexHelper, drawFrame: Boolean, textComponent: TextComponent) {
         glPushMatrix()
         glTranslatef(screenPos.x.toFloat(), screenPos.y.toFloat(), 0f)
         glScalef(scale, scale, 1f)
-        val halfWidth = textComponent.getWidth() / 2.0 + margins.value + 2.0
-        val halfHeight = textComponent.getHeight(2, true) / 2.0 + margins.value + 2.0
+        val halfWidth = textComponent.getWidth(customFont.value) / 2.0 + margins.value + 2.0
+        val halfHeight = textComponent.getHeight(2, true, customFont.value) / 2.0 + margins.value + 2.0
         if (drawFrame) drawFrame(vertexHelper, Vec2d(-halfWidth, -halfHeight), Vec2d(halfWidth, halfHeight))
-        textComponent.draw(drawShadow = textShadow.value, skipEmptyLine = true, horizontalAlign = TextProperties.HAlign.CENTER, verticalAlign = TextProperties.VAlign.CENTER)
-        textComponent.draw(drawShadow = textShadow.value, skipEmptyLine = true, horizontalAlign = TextProperties.HAlign.CENTER, verticalAlign = TextProperties.VAlign.CENTER)
+        textComponent.draw(drawShadow = textShadow.value, skipEmptyLine = true, horizontalAlign = TextProperties.HAlign.CENTER, verticalAlign = TextProperties.VAlign.CENTER, customFont = customFont.value)
         glPopMatrix()
     }
 
@@ -188,7 +187,7 @@ object Nametags : Module() {
         }
 
         if (itemList.isEmpty() || itemList.count { !it.first.isEmpty() } == 0) return
-        val halfHeight = textComponent.getHeight(2, true) / 2.0 + margins.value + 2.0
+        val halfHeight = textComponent.getHeight(2, true, customFont.value) / 2.0 + margins.value + 2.0
         val halfWidth = (itemList.count { !it.first.isEmpty() } * 28) / 2f
 
         glPushMatrix()
@@ -202,8 +201,8 @@ object Nametags : Module() {
 
         if (itemFrame.value) {
             glTranslatef(0f, -margins.value, 0f)
-            val duraHeight = if (drawDura) FontRenderAdapter.getFontHeight() + 2f else 0f
-            val enchantmentHeight = if (enchantment.value) (itemList.map { it.second.getHeight(2) }.max()
+            val duraHeight = if (drawDura) FontRenderAdapter.getFontHeight(customFont = customFont.value) + 2f else 0f
+            val enchantmentHeight = if (enchantment.value) (itemList.map { it.second.getHeight(2, customFont = customFont.value) }.max()
                     ?: 0f) + 4f else 0f
             val height = 16 + duraHeight + enchantmentHeight * 0.6f
             val posBegin = Vec2d(-halfWidth - margins.value.toDouble(), -height - margins.value.toDouble())
@@ -212,49 +211,59 @@ object Nametags : Module() {
         }
 
         glTranslatef(-halfWidth + 4f, -16f, 0f)
-        if (drawDura) glTranslatef(0f, -FontRenderAdapter.getFontHeight() - 2f, 0f)
-        RenderHelper.enableGUIStandardItemLighting()
+        if (drawDura) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = customFont.value) - 2f, 0f)
 
         for ((itemStack, enchantmentText) in itemList) {
             if (itemStack.isEmpty()) continue
-            GlStateUtils.blend(true)
-            mc.renderItem.zLevel = -100f
-            mc.renderItem.renderItemAndEffectIntoGUI(itemStack, 0, 0)
-            mc.renderItem.zLevel = 0f
-            glColor4f(1f, 1f, 1f, 1f)
-
-            if (drawDura && itemStack.isItemStackDamageable) {
-                val duraPercentage = 100f - (itemStack.itemDamage.toFloat() / itemStack.maxDamage.toFloat()) * 100f
-                val color = healthColorGradient.get(duraPercentage)
-                val text = duraPercentage.roundToInt().toString()
-                val textWidth = FontRenderAdapter.getStringWidth(text)
-                FontRenderAdapter.drawString(text, 8f - textWidth / 2f, 17f, textShadow.value, color)
-            }
-
-            if (count.value && itemStack.count > 1) {
-                val itemCount = itemStack.count.toString()
-                glTranslatef(0f, 0f, 60f)
-                FontRenderAdapter.drawString(itemCount, 17f - FontRenderAdapter.getStringWidth(itemCount), 9f, textShadow.value)
-                glTranslatef(0f, 0f, -60f)
-            }
-
-            glTranslatef(0f, -2f, 0f)
-            if (enchantment.value) enchantmentText.draw(lineSpace = 2, scale = 0.6f, drawShadow = textShadow.value, verticalAlign = TextProperties.VAlign.BOTTOM)
-
-            glTranslatef(28f, 2f, 0f)
+            drawItem(itemStack, enchantmentText, drawDura)
         }
         glColor4f(1f, 1f, 1f, 1f)
 
-        RenderHelper.disableStandardItemLighting()
         glPopMatrix()
+    }
+
+    private fun drawItem(itemStack: ItemStack, enchantmentText: TextComponent, drawDura: Boolean) {
+        GlStateUtils.blend(true)
+        GlStateUtils.depth(true)
+        mc.renderItem.zLevel = -100f
+        RenderHelper.enableGUIStandardItemLighting()
+        mc.renderItem.renderItemAndEffectIntoGUI(itemStack, 0, 0)
+        RenderHelper.disableStandardItemLighting()
+        mc.renderItem.zLevel = 0f
+        glColor4f(1f, 1f, 1f, 1f)
+
+        if (drawDura && itemStack.isItemStackDamageable) {
+            val duraPercentage = 100f - (itemStack.itemDamage.toFloat() / itemStack.maxDamage.toFloat()) * 100f
+            val color = healthColorGradient.get(duraPercentage)
+            val text = duraPercentage.roundToInt().toString()
+            val textWidth = FontRenderAdapter.getStringWidth(text, customFont = customFont.value)
+            FontRenderAdapter.drawString(text, 8f - textWidth / 2f, 17f, textShadow.value, color, customFont = customFont.value)
+        }
+
+        if (count.value && itemStack.count > 1) {
+            val itemCount = itemStack.count.toString()
+            glTranslatef(0f, 0f, 60f)
+            val stringWidth = 17f - FontRenderAdapter.getStringWidth(itemCount, customFont = customFont.value)
+            FontRenderAdapter.drawString(itemCount, stringWidth, 9f, textShadow.value, customFont = customFont.value)
+            glTranslatef(0f, 0f, -60f)
+        }
+
+        glTranslatef(0f, -2f, 0f)
+        if (enchantment.value) {
+            val scale = if (customFont.value) 0.6f else 0.5f
+            enchantmentText.draw(lineSpace = 2, scale = scale, drawShadow = textShadow.value, verticalAlign = TextProperties.VAlign.BOTTOM, customFont = customFont.value)
+        }
+
+        glTranslatef(28f, 2f, 0f)
     }
 
     private fun getEnchantmentText(itemStack: ItemStack): TextComponent {
         val textComponent = TextComponent()
         val enchantmentList = EnchantmentUtils.getAllEnchantments(itemStack)
+        val style = if (customFont.value) TextProperties.Style.BOLD else TextProperties.Style.REGULAR
         for (leveledEnchantment in enchantmentList) {
-            textComponent.add(leveledEnchantment.alias, ColorHolder(255, 255, 255, aText.value), style = TextProperties.Style.BOLD)
-            textComponent.addLine(leveledEnchantment.levelText, ColorHolder(155, 144, 255, aText.value), TextProperties.Style.BOLD)
+            textComponent.add(leveledEnchantment.alias, ColorHolder(255, 255, 255, aText.value), style)
+            textComponent.addLine(leveledEnchantment.levelText, ColorHolder(155, 144, 255, aText.value), style)
         }
         return textComponent
     }
@@ -278,75 +287,77 @@ object Nametags : Module() {
         }
     }
 
-    override fun onUpdate() {
-        // Updating stuff in different ticks to avoid overloading
-        when (updateTick) {
-            0 -> { // Adding items
-                if (!items.value) {
-                    itemMap.clear()
-                } else {
-                    loop@ for (entity in mc.world.loadedEntityList) {
-                        if (entity !is EntityItem) continue
+    init {
+        listener<SafeTickEvent> {
+            // Updating stuff in different ticks to avoid overloading
+            when (updateTick) {
+                0 -> { // Adding items
+                    if (!items.value) {
+                        itemMap.clear()
+                    } else {
+                        loop@ for (entity in mc.world.loadedEntityList) {
+                            if (entity !is EntityItem) continue
+                            if (mc.player.getDistance(entity) > range.value) continue
+                            for (itemGroup in itemMap) {
+                                if (itemGroup.contains(entity)) continue@loop // If we have this item already in the groups then we skip it
+                            }
+                            for (itemGroup in itemMap) {
+                                if (itemGroup.add(entity)) continue@loop // If we add the item to any of the group successfully then we continue
+                            }
+                            ItemGroup().apply { add(entity) }.also { itemMap.add(it) } // If we can't find an existing group then we make a new one and add it to the map
+                        }
+                    }
+                }
+                1 -> { // Updating Entity
+                    entityMap.clear()
+                    for (entity in mc.world.loadedEntityList) {
+                        if (!checkEntityType(entity)) continue
+                        if (entity is EntityItem) continue
                         if (mc.player.getDistance(entity) > range.value) continue
-                        for (itemGroup in itemMap) {
-                            if (itemGroup.contains(entity)) continue@loop // If we have this item already in the groups then we skip it
-                        }
-                        for (itemGroup in itemMap) {
-                            if (itemGroup.add(entity)) continue@loop // If we add the item to any of the group successfully then we continue
-                        }
-                        ItemGroup().apply { add(entity) }.also { itemMap.add(it) } // If we can't find an existing group then we make a new one and add it to the map
+                        entityMap[entity] = TextComponent()
                     }
                 }
-            }
-            1 -> { // Updating Entity
-                entityMap.clear()
-                for (entity in mc.world.loadedEntityList) {
-                    if (!checkEntityType(entity)) continue
-                    if (entity is EntityItem) continue
-                    if (mc.player.getDistance(entity) > range.value) continue
-                    entityMap[entity] = TextComponent()
-                }
-            }
-            2 -> { // Removing items
-                val loadEntitySet = mc.world.loadedEntityList.toHashSet()
-                for (itemGroup in itemMap) {
-                    itemGroup.updateItems(loadEntitySet)
-                }
-                itemMap.removeIf { it.isEmpty() }
-            }
-            3 -> { // Merging Items
-                for (itemGroup in itemMap) for (otherGroup in itemMap) {
-                    if (itemGroup == otherGroup) continue
-                    itemGroup.merge(otherGroup)
-                }
-                itemMap.removeIf { it.isEmpty() }
-            }
-        }
-        updateTick = (updateTick + 1) % 4
-
-        // Update item nametags tick by tick
-        for (itemGroup in itemMap) {
-            itemGroup.updateText()
-        }
-
-        // Update entity nametags tick by tick
-        for ((entity, textComponent) in entityMap) {
-            textComponent.clear()
-            if (entity is EntityXPOrb) {
-                textComponent.add(entity.name)
-                textComponent.add(" x${entity.xpValue}")
-            } else {
-                var isLine1Empty = true
-                for (contentType in line1Settings) {
-                    getContent(contentType.value, entity)?.let {
-                        textComponent.add(it)
-                        isLine1Empty = false
+                2 -> { // Removing items
+                    val loadEntitySet = mc.world.loadedEntityList.toHashSet()
+                    for (itemGroup in itemMap) {
+                        itemGroup.updateItems(loadEntitySet)
                     }
+                    itemMap.removeIf { it.isEmpty() }
                 }
-                if (!isLine1Empty) textComponent.currentLine++
-                for (contentType in line2Settings) {
-                    getContent(contentType.value, entity)?.let {
-                        textComponent.add(it)
+                3 -> { // Merging Items
+                    for (itemGroup in itemMap) for (otherGroup in itemMap) {
+                        if (itemGroup == otherGroup) continue
+                        itemGroup.merge(otherGroup)
+                    }
+                    itemMap.removeIf { it.isEmpty() }
+                }
+            }
+            updateTick = (updateTick + 1) % 4
+
+            // Update item nametags tick by tick
+            for (itemGroup in itemMap) {
+                itemGroup.updateText()
+            }
+
+            // Update entity nametags tick by tick
+            for ((entity, textComponent) in entityMap) {
+                textComponent.clear()
+                if (entity is EntityXPOrb) {
+                    textComponent.add(entity.name)
+                    textComponent.add(" x${entity.xpValue}")
+                } else {
+                    var isLine1Empty = true
+                    for (contentType in line1Settings) {
+                        getContent(contentType.value, entity)?.let {
+                            textComponent.add(it)
+                            isLine1Empty = false
+                        }
+                    }
+                    if (!isLine1Empty) textComponent.currentLine++
+                    for (contentType in line2Settings) {
+                        getContent(contentType.value, entity)?.let {
+                            textComponent.add(it)
+                        }
                     }
                 }
             }
@@ -415,7 +426,7 @@ object Nametags : Module() {
 
     private fun getHpColor(entity: EntityLivingBase) = healthColorGradient.get((entity.health / entity.maxHealth) * 100f).apply { a = aText.value }
 
-    fun checkEntityType(entity: Entity) = (self.value || entity != mc.player)
+    fun checkEntityType(entity: Entity) = (self.value || entity != mc.renderViewEntity)
             && (!entity.isInvisible || invisible.value)
             && (entity is EntityXPOrb && experience.value
             || entity is EntityPlayer && players.value && EntityUtils.playerTypeCheck(entity, true, true)
