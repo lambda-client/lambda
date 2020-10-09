@@ -96,6 +96,14 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
         loadGlyphChunk(chunk) ?: return chunkMap[0]!!
     }
 
+    /** Delete all textures */
+    fun destroy() {
+        for (chunk in chunkMap.values) {
+            chunk.dynamicTexture.deleteGlTexture()
+        }
+        chunkMap.clear()
+    }
+
     private fun loadGlyphChunk(chunk: Int): GlyphChunk? {
         return try {
             val chunkStart = chunk shl 8
@@ -129,8 +137,8 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
             val textureImage = BufferedImage(TEXTURE_WIDTH, textureHeight, BufferedImage.TYPE_INT_ARGB)
             (textureImage.graphics as Graphics2D).drawImage(bufferedImage, 0, 0, null)
 
-            val textureID = createTexture(textureImage) ?: throw Exception()
-            GlyphChunk(chunk, textureID, textureHeight, charInfoArray)
+            val dynamicTexture = createTexture(textureImage) ?: throw Exception()
+            GlyphChunk(chunk, dynamicTexture.glTextureId, dynamicTexture, textureHeight, charInfoArray)
         } catch (e: Exception) {
             KamiMod.log.error("Failed to load glyph chunk $chunk.")
             e.printStackTrace()
@@ -166,7 +174,7 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
         return charImage
     }
 
-    private fun createTexture(bufferedImage: BufferedImage): Int? {
+    private fun createTexture(bufferedImage: BufferedImage): DynamicTexture? {
         return try {
             val dynamicTexture = DynamicTexture(bufferedImage)
             dynamicTexture.loadTexture(Wrapper.minecraft.getResourceManager())
@@ -198,7 +206,7 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
 
             glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, 1)
             TextureUtil.uploadTextureImageSub(textureId, bufferedImage, 0, 0, true, true)
-            textureId
+            dynamicTexture
         } catch (e: Exception) {
             KamiMod.log.error("Failed to create font texture.")
             e.printStackTrace()
@@ -226,6 +234,9 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
 
             /** Texture id of the chunk texture */
             val textureId: Int,
+
+            /** Dynamic texture object */
+            val dynamicTexture: DynamicTexture,
 
             /** Texture height of this chunk texture */
             val textureHeight: Int,

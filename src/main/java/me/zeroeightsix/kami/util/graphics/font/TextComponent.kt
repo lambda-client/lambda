@@ -91,7 +91,7 @@ class TextComponent(val separator: String = "  ") {
              skipEmptyLine: Boolean = true,
              horizontalAlign: TextProperties.HAlign = TextProperties.HAlign.LEFT,
              verticalAlign: TextProperties.VAlign = TextProperties.VAlign.TOP,
-             customFont: Boolean = ClickGUI.customFont.value
+             customFont: Boolean = FontRenderAdapter.useCustomFont
     ) {
         if (isEmpty()) return
         glPushMatrix()
