@@ -11,6 +11,7 @@
     "MixinBlockWeb",
     "MixinC00Handshake",
     "MixinChunkCache",
+    "MixinConfig",
     "MixinElytraSound",
     "MixinEntity",
     "MixinEntityLlama",
@@ -45,5 +46,7 @@
     "MixinTileEntityBeacon",
     "MixinVisGraph",
     "MixinWorld"
+  ],
+  "mixins": [
   ]
 }
