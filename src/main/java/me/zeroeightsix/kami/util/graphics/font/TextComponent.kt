@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.util.graphics.font
 
+import me.zeroeightsix.kami.module.modules.ClickGUI
 import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.math.Vec2d
@@ -89,30 +90,34 @@ class TextComponent(val separator: String = "  ") {
              drawShadow: Boolean = true,
              skipEmptyLine: Boolean = true,
              horizontalAlign: TextProperties.HAlign = TextProperties.HAlign.LEFT,
-             verticalAlign: TextProperties.VAlign = TextProperties.VAlign.TOP
+             verticalAlign: TextProperties.VAlign = TextProperties.VAlign.TOP,
+             customFont: Boolean = ClickGUI.customFont.value
     ) {
         if (isEmpty()) return
         glPushMatrix()
         glTranslated(pos.x, pos.y, 0.0) // Rounding it to int so stupid Minecraftia doesn't fucked up
         glScalef(scale, scale, 1f)
         if (verticalAlign != TextProperties.VAlign.TOP) {
-            var height = getHeight(lineSpace)
+            var height = getHeight(lineSpace, customFont)
             if (verticalAlign == TextProperties.VAlign.CENTER) height /= 2
             glTranslatef(0f, -height, 0f)
         }
         for (line in textLines) {
             if (skipEmptyLine && (line == null || line.isEmpty())) continue
-            line?.drawLine(drawShadow, horizontalAlign)
-            glTranslatef(0f, (FontRenderAdapter.getFontHeight() + lineSpace), 0f)
+            line?.drawLine(drawShadow, horizontalAlign, customFont)
+            glTranslatef(0f, (FontRenderAdapter.getFontHeight(customFont = customFont) + lineSpace), 0f)
         }
         glPopMatrix()
     }
 
     fun isEmpty() = textLines.firstOrNull { it?.isEmpty() == false } == null
 
-    fun getWidth() = textLines.map { it?.getWidth() ?: 0f }.max() ?: 0f
+    fun getWidth(customFont: Boolean = FontRenderAdapter.useCustomFont) = textLines.map {
+        it?.getWidth(customFont) ?: 0f
+    }.max() ?: 0f
 
-    fun getHeight(lineSpace: Int, skipEmptyLines: Boolean = false) = FontRenderAdapter.getFontHeight() * getLines(skipEmptyLines) + lineSpace * (getLines(skipEmptyLines) - 1)
+    fun getHeight(lineSpace: Int, skipEmptyLines: Boolean = false, customFont: Boolean = FontRenderAdapter.useCustomFont) =
+            FontRenderAdapter.getFontHeight(customFont = customFont) * getLines(skipEmptyLines) + lineSpace * (getLines(skipEmptyLines) - 1)
 
     fun getLines(skipEmptyLines: Boolean = true) = textLines.count { !skipEmptyLines || (it != null && !it.isEmpty()) }
 
@@ -127,22 +132,21 @@ class TextComponent(val separator: String = "  ") {
             textElementList.add(textElement)
         }
 
-        fun drawLine(drawShadow: Boolean, horizontalAlign: TextProperties.HAlign) {
+        fun drawLine(drawShadow: Boolean, horizontalAlign: TextProperties.HAlign, customFont: Boolean) {
             glPushMatrix()
             if (horizontalAlign != TextProperties.HAlign.LEFT) {
-                var width = getWidth()
+                var width = getWidth(customFont)
                 if (horizontalAlign == TextProperties.HAlign.CENTER) width /= 2
                 glTranslatef(-width, 0f, 0f)
             }
             for (textElement in textElementList) {
-                val width = FontRenderAdapter.getStringWidth(textElement.text + separator)
-                FontRenderAdapter.drawString(textElement.text, drawShadow = drawShadow, color = textElement.color)
-                glTranslatef(width, 0f, 0f)
+                FontRenderAdapter.drawString(textElement.text, drawShadow = drawShadow, color = textElement.color, customFont = customFont)
+                glTranslatef(FontRenderAdapter.getStringWidth(textElement.text + separator, customFont = customFont), 0f, 0f)
             }
             glPopMatrix()
         }
 
-        fun getWidth() = FontRenderAdapter.getStringWidth(toString())
+        fun getWidth(customFont: Boolean = FontRenderAdapter.useCustomFont) = FontRenderAdapter.getStringWidth(toString(), customFont = customFont)
 
         override fun toString() = textElementList.joinToString(separator = separator)
     }

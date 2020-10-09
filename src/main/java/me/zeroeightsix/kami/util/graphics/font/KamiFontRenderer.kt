@@ -273,8 +273,8 @@ object KamiFontRenderer {
                 TextFormatting.RED.toString()[1] -> ColorHolder(255, 85, 85)
                 TextFormatting.LIGHT_PURPLE.toString()[1] -> ColorHolder(255, 85, 255)
                 TextFormatting.YELLOW.toString()[1] -> ColorHolder(255, 255, 85)
-                TextFormatting.WHITE.toString()[1] -> ColorHolder(255, 255, 255)
-                TextFormatting.RESET.toString()[1] -> ColorHolder(255, 255, 255)
+                TextFormatting.WHITE.toString()[1] -> DyeColors.WHITE.color
+                TextFormatting.RESET.toString()[1] -> DyeColors.WHITE.color
                 else -> currentColor
             }
             return true
