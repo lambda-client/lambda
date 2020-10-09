@@ -17,6 +17,7 @@ import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.setting.Settings;
 import me.zeroeightsix.kami.setting.SettingsRegister;
 import me.zeroeightsix.kami.util.ConfigUtils;
+import me.zeroeightsix.kami.util.graphics.font.KamiFontRenderer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -128,6 +129,9 @@ public class KamiMod {
             }
             if (module.isEnabled()) module.enable();
         }
+
+        // Need to reload the font after the settings were loaded
+        KamiFontRenderer.INSTANCE.reloadFonts();
 
         log.info(MODNAME + " Mod initialized!\n");
     }
