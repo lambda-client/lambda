@@ -80,15 +80,11 @@ public class MixinEntityRenderer {
         }
     }
 
-    @Inject(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderGlobal;renderEntityOutlineFramebuffer()V"))
-    public void renderShaderPre(float partialTicks, long nanoTime, CallbackInfo ci) {
-        RenderShaderEvent event = new RenderShaderEvent(RenderShaderEvent.Phase.PRE);
-        KamiEventBus.INSTANCE.post(event);
-    }
-
-    @Inject(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/shader/Framebuffer;bindFramebuffer(Z)V"))
-    public void renderShaderPost(float partialTicks, long nanoTime, CallbackInfo ci) {
-        RenderShaderEvent event = new RenderShaderEvent(RenderShaderEvent.Phase.POST);
-        KamiEventBus.INSTANCE.post(event);
+    @Inject(method = "renderWorldPass", at = @At("RETURN"))
+    public void renderShaderPre(int pass, float partialTicks, long finishTimeNano, CallbackInfo ci) {
+        RenderShaderEvent eventPre = new RenderShaderEvent(RenderShaderEvent.Phase.PRE);
+        KamiEventBus.INSTANCE.post(eventPre);
+        RenderShaderEvent eventPost = new RenderShaderEvent(RenderShaderEvent.Phase.POST);
+        KamiEventBus.INSTANCE.post(eventPost);
     }
 }
