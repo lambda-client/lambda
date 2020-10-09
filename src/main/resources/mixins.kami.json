@@ -46,7 +46,5 @@
     "MixinTileEntityBeacon",
     "MixinVisGraph",
     "MixinWorld"
-  ],
-  "mixins": [
   ]
 }
