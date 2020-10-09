@@ -2,9 +2,8 @@ package me.zeroeightsix.kami.util
 
 import net.minecraft.client.Minecraft
 import kotlin.math.cos
-import kotlin.math.pow
+import kotlin.math.hypot
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 object MovementUtils {
     private val mc = Minecraft.getMinecraft()
@@ -35,9 +34,11 @@ object MovementUtils {
         }
     }
 
+    val isMoving get() = getSpeed() > 0.0001
+
     /* triangle math tho */
     fun getSpeed(): Double {
-        return sqrt(mc.player.motionX.pow(2) + mc.player.motionZ.pow(2))
+        return hypot(mc.player.motionX, mc.player.motionZ)
     }
 
     fun setSpeed(speed: Double) {
