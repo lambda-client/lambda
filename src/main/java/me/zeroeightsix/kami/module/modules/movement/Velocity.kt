@@ -24,11 +24,12 @@ object Velocity : Module() {
     init {
         listener<PacketEvent.Receive> {
             if (it.packet !is SPacketEntityVelocity && it.packet !is SPacketExplosion) return@listener
-            if (horizontal.value == 0f && vertical.value == 0f) {
-                it.cancel()
-            } else if (it.packet is SPacketEntityVelocity) {
+            if (it.packet is SPacketEntityVelocity) {
                 with(it.packet) {
-                    if (entityID == mc.player.entityId) {
+                    if (entityID != mc.player.entityId) return@listener
+                    if (isZero) {
+                        it.cancel()
+                    } else {
                         motionX = (motionX * horizontal.value).toInt()
                         motionY = (motionY * vertical.value).toInt()
                         motionZ = (motionZ * horizontal.value).toInt()
@@ -36,16 +37,20 @@ object Velocity : Module() {
                 }
             } else if (it.packet is SPacketExplosion) {
                 with(it.packet) {
-                    motionX *= horizontal.value
-                    motionY *= vertical.value
-                    motionZ *= horizontal.value
+                    if (isZero) {
+                        it.cancel()
+                    } else {
+                        motionX *= horizontal.value
+                        motionY *= vertical.value
+                        motionZ *= horizontal.value
+                    }
                 }
             }
         }
 
         listener<EntityCollision> {
             if (it.entity != mc.player) return@listener
-            if (noPush.value || horizontal.value == 0f && vertical.value == 0f) {
+            if (noPush.value || isZero) {
                 it.cancel()
             } else {
                 it.x = it.x * horizontal.value
@@ -54,4 +59,6 @@ object Velocity : Module() {
             }
         }
     }
+
+    private val isZero get() = horizontal.value == 0f && vertical.value == 0f
 }
