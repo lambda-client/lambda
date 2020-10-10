@@ -105,7 +105,7 @@ public class KamiMod {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        log.info("\n\nInitializing " + MODNAME + " " + VER_FULL_BETA);
+        log.info("Initializing " + MODNAME + " " + VER_FULL_BETA);
 
         ModuleManager.load();
         ManagerLoader.load();
@@ -133,7 +133,7 @@ public class KamiMod {
         // Need to reload the font after the settings were loaded
         KamiFontRenderer.INSTANCE.reloadFonts();
 
-        log.info(MODNAME + " Mod initialized!\n");
+        log.info(MODNAME + " Mod initialized!");
     }
 
     public static KamiMod getInstance() {
