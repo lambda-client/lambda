@@ -167,7 +167,7 @@ open class Module {
     /* End of setting registering */
 
     /* Key binding */
-    private class BindConverter : Converter<Bind, JsonElement>() {
+    protected class BindConverter : Converter<Bind, JsonElement>() {
         override fun doForward(bind: Bind): JsonElement {
             return JsonPrimitive(bind.toString())
         }

@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.manager.mangers.CombatManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.Bind
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.TimerUtils
 import me.zeroeightsix.kami.util.combat.CombatUtils
@@ -19,6 +20,8 @@ import net.minecraft.item.ItemAxe
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemSword
 import net.minecraft.network.play.server.SPacketConfirmTransaction
+import net.minecraftforge.fml.common.gameevent.InputEvent
+import org.lwjgl.input.Keyboard
 import kotlin.math.ceil
 import kotlin.math.max
 
@@ -33,6 +36,7 @@ object AutoOffhand : Module() {
 
     // Totem
     private val hpThreshold = register(Settings.floatBuilder("HpThreshold").withValue(5f).withRange(1f, 20f).withVisibility { type.value == Type.TOTEM })
+    private val bindTotem = register(Settings.custom("BindTotem", Bind.none(), BindConverter()).withVisibility { type.value == Type.TOTEM })
     private val checkDamage = register(Settings.booleanBuilder("CheckDamage").withValue(true).withVisibility { type.value == Type.TOTEM })
     private val mob = register(Settings.booleanBuilder("Mob").withValue(true).withVisibility { type.value == Type.TOTEM && checkDamage.value })
     private val player = register(Settings.booleanBuilder("Player").withValue(true).withVisibility { type.value == Type.TOTEM && checkDamage.value })
@@ -41,12 +45,14 @@ object AutoOffhand : Module() {
 
     // Gapple
     private val offhandGapple = register(Settings.booleanBuilder("OffhandGapple").withValue(false).withVisibility { type.value == Type.GAPPLE })
+    private val bindGapple = register(Settings.custom("BindGapple", Bind.none(), BindConverter()).withVisibility { type.value == Type.GAPPLE && offhandGapple.value })
     private val checkAura = register(Settings.booleanBuilder("CheckAura").withValue(true).withVisibility { type.value == Type.GAPPLE && offhandGapple.value })
     private val checkWeapon = register(Settings.booleanBuilder("CheckWeapon").withValue(false).withVisibility { type.value == Type.GAPPLE && offhandGapple.value })
     private val checkCAGapple = register(Settings.booleanBuilder("CheckCrystalAura").withValue(true).withVisibility { type.value == Type.GAPPLE && offhandGapple.value && !offhandCrystal.value })
 
     // Crystal
     private val offhandCrystal = register(Settings.booleanBuilder("OffhandCrystal").withValue(false).withVisibility { type.value == Type.CRYSTAL })
+    private val bindCrystal = register(Settings.custom("BindCrystal", Bind.none(), BindConverter()).withVisibility { type.value == Type.CRYSTAL && offhandCrystal.value })
     private val checkCACrystal = register(Settings.booleanBuilder("CheckCrystalAura").withValue(false).withVisibility { type.value == Type.CRYSTAL && offhandCrystal.value })
 
     private enum class Type(val itemId: Int) {
@@ -65,6 +71,14 @@ object AutoOffhand : Module() {
     private var maxDamage = 0f
 
     init {
+        listener<InputEvent.KeyInputEvent> {
+            when {
+                bindTotem.value.isDown(Keyboard.getEventKey()) -> switchToType(Type.TOTEM)
+                bindGapple.value.isDown(Keyboard.getEventKey()) -> switchToType(Type.GAPPLE)
+                bindCrystal.value.isDown(Keyboard.getEventKey()) -> switchToType(Type.CRYSTAL)
+            }
+        }
+
         listener<PacketEvent.Receive> {
             if (mc.player == null || it.packet !is SPacketConfirmTransaction || it.packet.windowId != 0 || !transactionLog.containsKey(it.packet.actionNumber)) return@listener
             transactionLog[it.packet.actionNumber] = it.packet.wasAccepted()
@@ -80,16 +94,7 @@ object AutoOffhand : Module() {
                     InventoryUtils.removeHoldingItem()
                 }
             } else { // If player is not holding an item in inventory
-                val type1 = getType()
-                // First check for whether player is holding the right item already or not
-                if (type1 != null && !checkOffhandItem(type1)) getItemSlot(type1)?.let { (slot, type2) ->
-                    // Second check is for case of when player ran out of the original type of item
-                    if (slot == 45 || checkOffhandItem(type2)) return@let
-                    transactionLog.clear()
-                    transactionLog.putAll(InventoryUtils.moveToSlot(0, slot, 45).associate { it to false })
-                    mc.playerController.updateController()
-                    movingTimer.reset()
-                }
+                switchToType(getType(), true)
             }
             updateDamage()
         }
@@ -101,6 +106,18 @@ object AutoOffhand : Module() {
         checkCrystal() -> Type.CRYSTAL
         mc.player.heldItemOffhand.isEmpty() -> Type.TOTEM
         else -> null
+    }
+
+    private fun switchToType(type1: Type?, alternativeType: Boolean = false) {
+        // First check for whether player is holding the right item already or not
+        if (type1 != null && !checkOffhandItem(type1)) getItemSlot(type1)?.let { (slot, type2) ->
+            // Second check is for case of when player ran out of the original type of item
+            if ((!alternativeType && type2 != type1) || slot == 45 || checkOffhandItem(type2)) return@let
+            transactionLog.clear()
+            transactionLog.putAll(InventoryUtils.moveToSlot(0, slot, 45).associate { it to false })
+            mc.playerController.updateController()
+            movingTimer.reset()
+        }
     }
 
     private fun checkTotem() = CombatUtils.getHealthSmart(mc.player) < hpThreshold.value

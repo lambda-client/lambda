@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.gui.kami.component;
 import me.zeroeightsix.kami.gui.rgui.component.listen.KeyListener;
 import me.zeroeightsix.kami.gui.rgui.component.listen.MouseListener;
 import me.zeroeightsix.kami.module.Module;
+import me.zeroeightsix.kami.setting.Setting;
 import me.zeroeightsix.kami.util.Bind;
 import org.lwjgl.input.Keyboard;
 
@@ -18,11 +19,11 @@ public class BindButton extends EnumButton {
 
     boolean ctrl = false, shift = false, alt = false;
 
-    public BindButton(String name, String description, Module m) {
+    public BindButton(String name, String description, Module m, Setting<Bind> bindSetting) {
         super(name, description, none);
         this.m = m;
 
-        Bind bind = m.bind.getValue();
+        Bind bind = bindSetting.getValue();
         modes = new String[]{bind.toString()};
 
         addKeyListener(new KeyListener() {
@@ -41,18 +42,18 @@ public class BindButton extends EnumButton {
                     alt = true;
                     modes = new String[]{(ctrl ? "Ctrl+" : "") + "Alt+" + (shift ? "Shift+" : "")};
                 } else if (key == Keyboard.KEY_BACK || key == Keyboard.KEY_DELETE) {
-                    m.bind.getValue().setCtrl(false);
-                    m.bind.getValue().setShift(false);
-                    m.bind.getValue().setAlt(false);
-                    m.bind.getValue().setKey(-1);
-                    modes = new String[]{m.getBindName()};
+                    bindSetting.getValue().setCtrl(false);
+                    bindSetting.getValue().setShift(false);
+                    bindSetting.getValue().setAlt(false);
+                    bindSetting.getValue().setKey(-1);
+                    modes = new String[]{bindSetting.getValue().toString()};
                     waiting = false;
                 } else {
-                    m.bind.getValue().setCtrl(ctrl);
-                    m.bind.getValue().setShift(shift);
-                    m.bind.getValue().setAlt(alt);
-                    m.bind.getValue().setKey(key);
-                    modes = new String[]{m.getBindName()};
+                    bindSetting.getValue().setCtrl(ctrl);
+                    bindSetting.getValue().setShift(shift);
+                    bindSetting.getValue().setAlt(alt);
+                    bindSetting.getValue().setKey(key);
+                    modes = new String[]{bindSetting.getValue().toString()};
                     ctrl = alt = shift = false;
                     waiting = false;
                 }
