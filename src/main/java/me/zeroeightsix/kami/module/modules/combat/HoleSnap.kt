@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.movement.Strafe
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.combat.SurroundUtils
+import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
@@ -25,20 +26,21 @@ object HoleSnap : Module() {
         if (mc.player == null) disable()
     }
 
-    override fun onUpdate(event: SafeTickEvent) {
-        if (SurroundUtils.checkHole(mc.player) != SurroundUtils.HoleType.NONE) {
-            disable()
-            return
-        }
-        findHole()?.toVec3d()?.let {
-            if (disableStrafe.value) Strafe.disable()
-            if (mc.player.onGround) {
-                val yawRad = Math.toRadians(RotationUtils.getRotationTo(mc.player.positionVector, it).x)
-                val speed = min(0.25, mc.player.positionVector.distanceTo(it) / 4.0)
-                mc.player.motionX = -sin(yawRad) * speed
-                mc.player.motionZ = cos(yawRad) * speed
+    init {
+        listener<SafeTickEvent> {
+            if (SurroundUtils.checkHole(mc.player) != SurroundUtils.HoleType.NONE) {
+                disable()
+                return@listener
             }
-            if (mc.player.motionY <= 0.01) mc.player.motionY = -0.5
+            findHole()?.toVec3d()?.let {
+                if (disableStrafe.value) Strafe.disable()
+                if (mc.player.onGround) {
+                    val yawRad = Math.toRadians(RotationUtils.getRotationTo(mc.player.positionVector, it).x)
+                    val speed = min(0.25, mc.player.positionVector.distanceTo(it) / 4.0)
+                    mc.player.motionX = -sin(yawRad) * speed
+                    mc.player.motionZ = cos(yawRad) * speed
+                }
+            }
         }
     }
 
