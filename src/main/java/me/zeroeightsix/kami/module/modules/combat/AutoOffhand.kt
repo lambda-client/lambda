@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.util.TimerUtils
 import me.zeroeightsix.kami.util.combat.CombatUtils
 import me.zeroeightsix.kami.util.combat.CrystalUtils
 import me.zeroeightsix.kami.util.event.listener
+import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityMob
@@ -22,6 +23,8 @@ import net.minecraft.item.ItemSword
 import net.minecraft.network.play.server.SPacketConfirmTransaction
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Keyboard
+import java.util.*
+import kotlin.collections.HashMap
 import kotlin.math.ceil
 import kotlin.math.max
 
@@ -32,7 +35,6 @@ import kotlin.math.max
 )
 object AutoOffhand : Module() {
     private val type = register(Settings.enumBuilder(Type::class.java, "Type").withValue(Type.TOTEM))
-    private val priority = register(Settings.enumBuilder(Priority::class.java, "Priority").withValue(Priority.HOTBAR))
 
     // Totem
     private val hpThreshold = register(Settings.floatBuilder("HpThreshold").withValue(5f).withRange(1f, 20f).withVisibility { type.value == Type.TOTEM })
@@ -54,6 +56,10 @@ object AutoOffhand : Module() {
     private val offhandCrystal = register(Settings.booleanBuilder("OffhandCrystal").withValue(false).withVisibility { type.value == Type.CRYSTAL })
     private val bindCrystal = register(Settings.custom("BindCrystal", Bind.none(), BindConverter()).withVisibility { type.value == Type.CRYSTAL && offhandCrystal.value })
     private val checkCACrystal = register(Settings.booleanBuilder("CheckCrystalAura").withValue(false).withVisibility { type.value == Type.CRYSTAL && offhandCrystal.value })
+
+    // General
+    private val priority = register(Settings.enumBuilder(Priority::class.java, "Priority").withValue(Priority.HOTBAR))
+    private val switchMessage = register(Settings.b("SwitchMessage", true))
 
     private enum class Type(val itemId: Int) {
         TOTEM(449),
@@ -117,6 +123,7 @@ object AutoOffhand : Module() {
             transactionLog.putAll(InventoryUtils.moveToSlot(0, slot, 45).associate { it to false })
             mc.playerController.updateController()
             movingTimer.reset()
+            if (switchMessage.value) MessageSendHelper.sendChatMessage("$chatName Offhand now has a ${type2.toString().toLowerCase()}")
         }
     }
 
