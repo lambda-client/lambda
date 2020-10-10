@@ -136,7 +136,8 @@ object BlockUtils {
      *
      * @return true playing is not colliding with [pos] and there is block below it
      */
-    fun isPlaceable(pos: BlockPos) = mc.world.getBlockState(pos).material.isReplaceable && mc.world.checkNoEntityCollision(AxisAlignedBB(pos))
+    fun isPlaceable(pos: BlockPos, ignoreSelfCollide: Boolean = false) = mc.world.getBlockState(pos).material.isReplaceable
+            && mc.world.checkNoEntityCollision(AxisAlignedBB(pos), if (ignoreSelfCollide) mc.player else null)
 
     /**
      * Checks if given [pos] is able to chest (air above) block in it

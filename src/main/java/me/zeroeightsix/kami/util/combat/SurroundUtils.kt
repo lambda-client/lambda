@@ -67,7 +67,6 @@ object SurroundUtils {
         val centerDiff = getCenterDiff()
         val centered = isCentered()
         if (!centered) {
-            mc.player.setVelocity(0.0, -5.0, 0.0)
             if (tp) {
                 val posX = mc.player.posX + MathHelper.clamp(centerDiff.x, -0.2, 0.2)
                 val posZ = mc.player.posZ + MathHelper.clamp(centerDiff.z, -0.2, 0.2)

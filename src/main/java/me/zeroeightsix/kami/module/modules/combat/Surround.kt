@@ -12,15 +12,12 @@ import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.MovementUtils
 import me.zeroeightsix.kami.util.TimerUtils
 import me.zeroeightsix.kami.util.combat.SurroundUtils
+import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.text.MessageSendHelper
-import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.MathHelper
-import net.minecraft.util.math.Vec3d
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import kotlin.math.round
 
 @Module.Info(
         name = "Surround",
@@ -32,7 +29,7 @@ object Surround : Module() {
     private val autoCenter = register(Settings.e<AutoCenterMode>("AutoCenter", AutoCenterMode.MOTION))
     private val placeSpeed = register(Settings.floatBuilder("PlacesPerTick").withValue(4f).withRange(0.25f, 5f).withStep(0.25f))
     private val autoDisable = register(Settings.e<AutoDisableMode>("AutoDisable", AutoDisableMode.OUT_OF_HOLE))
-    private val outOfHoleTimeout = register(Settings.integerBuilder("OutOfHoleTimeout(t)").withValue(20).withRange(1, 50).withVisibility { autoDisable.value == AutoDisableMode.OUT_OF_HOLE })
+    private val outOfHoleTimeout = register(Settings.integerBuilder("OutOfHoleTimeout(t)").withValue(10).withRange(1, 50).withVisibility { autoDisable.value == AutoDisableMode.OUT_OF_HOLE })
     private val enableInHole = register(Settings.b("EnableInHole", true))
     private val inHoleTimeout = register(Settings.integerBuilder("InHoleTimeout(t)").withValue(50).withRange(1, 100).withVisibility { enableInHole.value })
     private val disableStrafe = register(Settings.b("DisableStrafe", true))
@@ -50,63 +47,64 @@ object Surround : Module() {
     private val placeThread = Thread { runSurround() }.apply { name = "Surround" }
     private val threadPool = Executors.newSingleThreadExecutor()
     private var future: Future<*>? = null
-    private var strafeEnabled = false
 
     override fun onEnable() {
         toggleTimer.reset()
-        mc.player?.setVelocity(0.0, -5.0, 0.0)
     }
 
     override fun onDisable() {
         PlayerPacketManager.resetHotbar()
         toggleTimer.reset()
         holePos = null
-        if (strafeEnabled && disableStrafe.value) {
-            Strafe.enable()
-            strafeEnabled = false
-        }
     }
 
     override fun isActive(): Boolean {
         return isEnabled && future?.isDone == false
     }
 
-    // Runs the codes on rendering for more immediate reaction
-    override fun onRender() {
-        if (mc.world == null || mc.player == null) return
-        if (getObby() == -1) return
-        if (isDisabled) {
-            enableInHoleCheck()
-            return
-        }
+    init {
+        listener<SafeTickEvent> {
+            if (getObby() == -1) return@listener
+            if (isDisabled) {
+                enableInHoleCheck()
+                return@listener
+            }
 
-        // Following codes will not run if disabled
-        if (!mc.player.onGround || mc.player.positionVector.toBlockPos() != holePos) { // Out of hole check
-            outOfHoleCheck()
-            return
-        } else {
-            toggleTimer.reset()
-        }
-        if (!isPlaceable() || !centerPlayer()) { // Placeable & Centered check
-            if (!isPlaceable() && autoDisable.value == AutoDisableMode.ONE_TIME) disable()
-            return
-        }
-        if (future?.isDone != false) future = threadPool.submit(placeThread)
-    }
+            // Following codes will not run if disabled
 
-    override fun onUpdate(event: SafeTickEvent) {
-        if (isEnabled && holePos == null && centerPlayer()) holePos = mc.player.positionVector.toBlockPos()
-        if (future?.isDone == false && future?.isCancelled == false) {
-            val slot = getObby()
-            if (slot != -1) PlayerPacketManager.spoofHotbar(getObby())
-            PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = false))
-        } else if (isEnabled && CombatManager.isOnTopPriority(this)) {
-            PlayerPacketManager.resetHotbar()
+            // Update hole pos
+            if (holePos == null || inHoleCheck()) {
+                holePos = mc.player.positionVector.toBlockPos()
+            }
+
+            // Out of hole check
+            if (mc.player.positionVector.toBlockPos() != holePos) {
+                outOfHoleCheck()
+                return@listener
+            } else {
+                toggleTimer.reset()
+            }
+
+            // Placeable & Centered check
+            if (!isPlaceable() || !centerPlayer()) {
+                if (autoDisable.value == AutoDisableMode.ONE_TIME) disable()
+                return@listener
+            }
+
+            // The actual job
+            if (future?.isDone != false) {
+                future = threadPool.submit(placeThread)
+            } else if (future?.isDone == false && future?.isCancelled == false) {
+                spoofHotbar()
+                PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = false))
+            } else if (isEnabled && CombatManager.isOnTopPriority(this)) {
+                PlayerPacketManager.resetHotbar()
+            }
         }
     }
 
     private fun enableInHoleCheck() {
-        if (enableInHole.value && mc.player.onGround && MovementUtils.getSpeed() < 0.15 && SurroundUtils.checkHole(mc.player) != SurroundUtils.HoleType.NONE) {
+        if (enableInHole.value && inHoleCheck()) {
             if (toggleTimer.stop() > inHoleTimeout.value) {
                 MessageSendHelper.sendChatMessage("$chatName You are in hole for longer than ${inHoleTimeout.value} ticks, enabling")
                 enable()
@@ -116,6 +114,8 @@ object Surround : Module() {
         }
     }
 
+    private fun inHoleCheck() = mc.player.onGround && MovementUtils.getSpeed() < 0.15 && SurroundUtils.checkHole(mc.player) == SurroundUtils.HoleType.OBBY
+
     private fun outOfHoleCheck() {
         if (autoDisable.value == AutoDisableMode.OUT_OF_HOLE) {
             if (toggleTimer.stop() > outOfHoleTimeout.value) {
@@ -123,6 +123,11 @@ object Surround : Module() {
                 disable()
             }
         }
+    }
+
+    private fun spoofHotbar() {
+        val slot = getObby()
+        if (slot != -1) PlayerPacketManager.spoofHotbar(getObby())
     }
 
     private fun getObby(): Int {
@@ -141,7 +146,7 @@ object Surround : Module() {
         val playerPos = mc.player.positionVector.toBlockPos()
         for (offset in SurroundUtils.surroundOffset) {
             val pos = playerPos.add(offset)
-            if (BlockUtils.isPlaceable(pos)) return true
+            if (BlockUtils.isPlaceable(pos, true)) return true
         }
         return false
     }
@@ -150,15 +155,13 @@ object Surround : Module() {
         return if (autoCenter.value == AutoCenterMode.OFF) {
             true
         } else {
-            if (disableStrafe.value) {
-                strafeEnabled = Strafe.isEnabled
-                Strafe.disable()
-            }
+            if (disableStrafe.value) Strafe.disable()
             SurroundUtils.centerPlayer(autoCenter.value == AutoCenterMode.TP)
         }
     }
 
     private fun runSurround() {
+        spoofHotbar()
         BlockUtils.buildStructure(placeSpeed.value) {
             if (isEnabled && CombatManager.isOnTopPriority(this)) {
                 BlockUtils.getPlaceInfo(mc.player.positionVector.toBlockPos(), SurroundUtils.surroundOffset, it, 2)
@@ -166,20 +169,6 @@ object Surround : Module() {
                 null
             }
         }
-    }
-
-    private fun getPlaceInfo(toIgnore: List<BlockPos>, attempts: Int = 1): Pair<EnumFacing, BlockPos>? {
-        val playerPos = mc.player.positionVector.toBlockPos()
-        for (offset in SurroundUtils.surroundOffset) {
-            val pos = playerPos.add(offset)
-            if (toIgnore.contains(pos)) continue
-            if (!BlockUtils.isPlaceable(pos)) continue
-            return BlockUtils.getNeighbour(pos, attempts) ?: continue
-        }
-        if (attempts <= 2) {
-            return getPlaceInfo(toIgnore, attempts + 1)
-        }
-        return null
     }
 
     init {
