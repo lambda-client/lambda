@@ -47,8 +47,9 @@ object CrystalAura : Module() {
     private val page = register(Settings.e<Page>("Page", Page.GENERAL))
 
     /* General */
-    private val facePlaceThreshold = register(Settings.floatBuilder("FacePlace").withValue(5.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
-    private val noSuicideThreshold = register(Settings.floatBuilder("NoSuicide").withValue(5.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
+    private val facePlace = register(Settings.booleanBuilder("LeftClickFacePlace").withValue(true).withVisibility { page.value == Page.GENERAL })
+    private val facePlaceThreshold = register(Settings.floatBuilder("FacePlace").withValue(6.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
+    private val noSuicideThreshold = register(Settings.floatBuilder("NoSuicide").withValue(8.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
     private val maxYawRate = register(Settings.integerBuilder("MaxYawRate").withValue(50).withRange(10, 100).withVisibility { page.value == Page.GENERAL })
     private val motionPrediction = register(Settings.booleanBuilder("MotionPrediction").withValue(true).withVisibility { page.value == Page.GENERAL })
     private val pingSync = register(Settings.booleanBuilder("PingSync").withValue(true).withVisibility { page.value == Page.GENERAL && motionPrediction.value })
@@ -56,7 +57,6 @@ object CrystalAura : Module() {
 
     /* Place page one */
     private val doPlace = register(Settings.booleanBuilder("Place").withValue(true).withVisibility { page.value == Page.PLACE_ONE })
-    private val forcePlace = register(Settings.booleanBuilder("RightClickForcePlace").withValue(false).withVisibility { page.value == Page.PLACE_ONE })
     private val autoSwap = register(Settings.booleanBuilder("AutoSwap").withValue(true).withVisibility { page.value == Page.PLACE_ONE })
     private val spoofHotbar = register(Settings.booleanBuilder("SpoofHotbar").withValue(true).withVisibility { page.value == Page.PLACE_ONE && autoSwap.value })
     private val placeSwing = register(Settings.booleanBuilder("PlaceSwing").withValue(false).withVisibility { page.value == Page.PLACE_ONE })
@@ -72,7 +72,6 @@ object CrystalAura : Module() {
 
     /* Explode page one */
     private val doExplode = register(Settings.booleanBuilder("Explode").withValue(true).withVisibility { page.value == Page.EXPLODE_ONE })
-    private val forceExplode = register(Settings.booleanBuilder("LeftClickForceExplode").withValue(false).withVisibility { page.value == Page.EXPLODE_ONE })
     private val autoForceExplode = register(Settings.booleanBuilder("AutoForceExplode").withValue(true).withVisibility { page.value == Page.EXPLODE_ONE })
     private val antiWeakness = register(Settings.booleanBuilder("AntiWeakness").withValue(true).withVisibility { page.value == Page.EXPLODE_ONE })
 
@@ -234,21 +233,14 @@ object CrystalAura : Module() {
             if (dist > placeRange.value) continue
             if (!CrystalUtils.canPlaceCollide(pos)) continue
             if (BlockUtils.rayTraceTo(pos) == null && dist > wallPlaceRange.value) continue
-            if (!shouldForcePlace()) {
-                val rotation = RotationUtils.getRotationTo(hitVec, true)
-                if (abs(rotation.x - getLastRotation().x) > maxYawRate.value + (inactiveTicks * 10f)) continue
-                val selfDamage = CrystalUtils.calcDamage(pos, mc.player)
-                if (!noSuicideCheck(selfDamage)) continue
-                if (!checkDamagePlace(damage, selfDamage)) continue
-            }
+            val rotation = RotationUtils.getRotationTo(hitVec, true)
+            if (abs(rotation.x - getLastRotation().x) > maxYawRate.value + (inactiveTicks * 10f)) continue
+            val selfDamage = CrystalUtils.calcDamage(pos, mc.player)
+            if (!noSuicideCheck(selfDamage)) continue
+            if (!checkDamagePlace(damage, selfDamage)) continue
             return pos
         }
         return null
-    }
-
-    private fun shouldForcePlace(): Boolean {
-        return forcePlace.value && mc.gameSettings.keyBindUseItem.isKeyDown
-                && mc.player.heldItemMainhand.getItem() == Items.END_CRYSTAL
     }
 
     /**
@@ -265,7 +257,7 @@ object CrystalAura : Module() {
                 && hitTimer >= hitDelay.value
                 && getExplodingCrystal() != null
                 && CombatManager.target?.let { target ->
-            if (checkDamage.value && !shouldForceExplode()) {
+            if (checkDamage.value) {
                 var maxDamage = 0f
                 var maxSelfDamage = 0f
                 setPosition()
@@ -295,16 +287,9 @@ object CrystalAura : Module() {
         }
     }
 
-    private fun shouldForceExplode(): Boolean {
-        return (autoForceExplode.value && placeMap.isNotEmpty() && placeMap.firstKey() > minDamageE.value)
-                || (forceExplode.value && mc.gameSettings.keyBindAttack.isKeyDown
-                && mc.player.heldItemMainhand.getItem() != Items.DIAMOND_PICKAXE
-                && mc.player.heldItemMainhand.getItem() != Items.GOLDEN_APPLE)
-    }
+    private fun checkDamageExplode(damage: Float, selfDamage: Float) = (shouldFacePlace() || shouldForceExplode() || damage >= minDamageE.value) && selfDamage <= maxSelfDamageE.value
 
-    private fun checkDamageExplode(damage: Float, selfDamage: Float): Boolean {
-        return (damage >= minDamageE.value || shouldFacePlace()) && (selfDamage <= maxSelfDamageE.value)
-    }
+    private fun shouldForceExplode() = autoForceExplode.value && placeMap.isNotEmpty() && placeMap.firstKey() > minDamageE.value
     /* End of exploding */
 
     /* General */
@@ -325,7 +310,8 @@ object CrystalAura : Module() {
         return item is ItemTool || item is ItemSword
     }
 
-    private fun shouldFacePlace() = facePlaceThreshold.value > 0f && CombatManager.target?.let { CombatUtils.getHealthSmart(it) <= facePlaceThreshold.value } ?: false
+    private fun shouldFacePlace() = facePlace.value && mc.gameSettings.keyBindAttack.isKeyDown && (mc.player.heldItemMainhand.getItem() !is ItemTool || mc.player.heldItemMainhand.getItem() !is ItemSword)
+            || facePlaceThreshold.value > 0f && CombatManager.target?.let { CombatUtils.getHealthSmart(it) <= facePlaceThreshold.value } ?: false
 
     private fun countValidCrystal(): Int {
         var count = 0
