@@ -70,9 +70,11 @@ object Freecam : Module() {
         listener<SafeTickEvent> {
             if (cameraGuy == null && mc.player.ticksExisted > 20) spawnCameraGuy()
 
-            if (autoRotate.value) updatePlayerRotation()
+            if (!BaritoneUtils.isPathing) {
+                if (autoRotate.value) updatePlayerRotation()
 
-            if (arrowKeyMove.value && !BaritoneUtils.isPathing) updatePlayerMovement()
+                if (arrowKeyMove.value) updatePlayerMovement()
+            }
         }
     }
 
