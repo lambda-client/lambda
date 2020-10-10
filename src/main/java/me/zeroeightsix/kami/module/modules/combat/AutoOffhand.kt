@@ -16,6 +16,7 @@ import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.Item
 import net.minecraft.item.ItemAxe
+import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemSword
 import net.minecraft.network.play.server.SPacketConfirmTransaction
 import kotlin.math.max
@@ -27,6 +28,7 @@ import kotlin.math.max
 )
 object AutoOffhand : Module() {
     private val type = register(Settings.enumBuilder(Type::class.java, "Type").withValue(Type.TOTEM))
+    private val priority = register(Settings.enumBuilder(Priority::class.java, "Priority").withValue(Priority.HOTBAR))
 
     // Totem
     private val hpThreshold = register(Settings.floatBuilder("HpThreshold").withValue(5f).withRange(1f, 20f).withVisibility { type.value == Type.TOTEM })
@@ -49,6 +51,11 @@ object AutoOffhand : Module() {
         TOTEM(449),
         GAPPLE(322),
         CRYSTAL(426)
+    }
+
+    @Suppress("UNUSED")
+    private enum class Priority {
+        HOTBAR, INVENTORY
     }
 
     private val transactionLog = HashMap<Short, Boolean>()
@@ -114,9 +121,15 @@ object AutoOffhand : Module() {
             else null
 
     private fun getSlot(itemId: Int): Int? {
-        val slot = mc.player.inventoryContainer.inventory.subList(9, 46).indexOfFirst { Item.getIdFromItem(it.getItem()) == itemId }
+        val sublist = mc.player.inventoryContainer.inventory.subList(9, 46)
+        val filter = getFilter(itemId)
+        // 9 - 35 are main inventory, 36 - 44 are hotbar. So finding last one will result in prioritize hotbar
+        val slot = if (priority.value == Priority.HOTBAR) sublist.indexOfLast(filter) else sublist.indexOfFirst(filter)
+        // Add 9 to it because it is the sub list's index
         return if (slot != -1) slot + 9 else null
     }
+
+    private fun getFilter(itemId: Int): (ItemStack) -> Boolean = { Item.getIdFromItem(it.getItem()) == itemId }
 
     private fun getNextType(type: Type) = with(Type.values()) { this[(type.ordinal + 1) % this.size] }
 
