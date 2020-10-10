@@ -103,8 +103,8 @@ object AutoOffhand : Module() {
         else -> null
     }
 
-    private fun checkTotem() = mc.player.health < hpThreshold.value
-            || (checkDamage.value && mc.player.absorptionAmount + mc.player.health - maxDamage < hpThreshold.value)
+    private fun checkTotem() = CombatUtils.getHealthSmart(mc.player) < hpThreshold.value
+            || (checkDamage.value && CombatUtils.getHealthSmart(mc.player) - maxDamage < hpThreshold.value)
 
     private fun checkGapple(): Boolean {
         val item = mc.player.heldItemMainhand.getItem()

@@ -318,14 +318,14 @@ object CrystalAura : Module() {
         }
     }
 
-    private fun noSuicideCheck(selfDamage: Float) = mc.player.health - selfDamage > noSuicideThreshold.value
+    private fun noSuicideCheck(selfDamage: Float) = CombatUtils.getHealthSmart(mc.player) - selfDamage > noSuicideThreshold.value
 
     private fun isHoldingTool(): Boolean {
         val item = mc.player.heldItemMainhand.getItem()
         return item is ItemTool || item is ItemSword
     }
 
-    private fun shouldFacePlace() = facePlaceThreshold.value > 0f && CombatManager.target?.let { it.health <= facePlaceThreshold.value } ?: false
+    private fun shouldFacePlace() = facePlaceThreshold.value > 0f && CombatManager.target?.let { CombatUtils.getHealthSmart(it) <= facePlaceThreshold.value } ?: false
 
     private fun countValidCrystal(): Int {
         var count = 0
