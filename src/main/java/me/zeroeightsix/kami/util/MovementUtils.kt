@@ -9,29 +9,23 @@ object MovementUtils {
     private val mc = Minecraft.getMinecraft()
 
     /* totally not taken from elytrafly */
-    fun getMoveYaw(): Double {
-        var strafe = 90 * getRoundedStrafing()
-        strafe *= if (mc.player.moveForward != 0F) getRoundedForward() * 0.5F else 1F
-        var yaw = mc.player.rotationYaw - strafe
-        yaw -= if (mc.player.moveForward < 0F) 180 else 0
+    fun calcMoveYaw(yawIn: Float = mc.player.rotationYaw, moveForward: Float = roundedForward, moveString: Float = roundedStrafing): Double {
+        var strafe = 90 * moveString
+        strafe *= if (moveForward != 0F) moveForward * 0.5F else 1F
+        var yaw = yawIn - strafe
+        yaw -= if (moveForward < 0F) 180 else 0
 
         return Math.toRadians(yaw.toDouble())
     }
 
-    private fun getRoundedForward(): Float {
-        return getRoundedMovementInput(mc.player.moveForward)
-    }
+    private val roundedForward get() = getRoundedMovementInput(mc.player.moveForward)
 
-    private fun getRoundedStrafing(): Float {
-        return getRoundedMovementInput(mc.player.moveStrafing)
-    }
+    private val roundedStrafing get() = getRoundedMovementInput(mc.player.moveStrafing)
 
-    private fun getRoundedMovementInput(input: Float): Float {
-        return when {
-            input > 0f -> 1f
-            input < 0f -> -1f
-            else -> 0f
-        }
+    private fun getRoundedMovementInput(input: Float) = when {
+        input > 0f -> 1f
+        input < 0f -> -1f
+        else -> 0f
     }
 
     val isMoving get() = getSpeed() > 0.0001
@@ -42,7 +36,8 @@ object MovementUtils {
     }
 
     fun setSpeed(speed: Double) {
-        mc.player.motionX = -sin(getMoveYaw()) * speed
-        mc.player.motionZ = cos(getMoveYaw()) * speed
+        val yaw = calcMoveYaw()
+        mc.player.motionX = -sin(yaw) * speed
+        mc.player.motionZ = cos(yaw) * speed
     }
 }

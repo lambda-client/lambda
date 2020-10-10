@@ -6,8 +6,10 @@ import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils
+import me.zeroeightsix.kami.util.MovementUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.RotationUtils
+import me.zeroeightsix.kami.util.math.Vec2f
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.MoverType
@@ -29,13 +31,21 @@ import kotlin.math.sin
 object Freecam : Module() {
     private val horizontalSpeed = register(Settings.floatBuilder("HorizontalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
     private val verticalSpeed = register(Settings.floatBuilder("VerticalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
+    private val autoRotate = register(Settings.b("AutoRotate", true))
     private val arrowKeyMove = register(Settings.b("ArrowKeyMove", true))
     private val disableOnDisconnect = register(Settings.b("DisconnectDisable", true))
 
     private var prevThirdPersonViewSetting = -1
-    var cameraGuy: EntityPlayer? = null
-        private set
+    var cameraGuy: EntityPlayer? = null; private set
     var resetInput = false
+
+    override fun onDisable() {
+        if (mc.player == null) return
+        mc.world.removeEntityFromWorld(-6969420)
+        mc.setRenderViewEntity(mc.player)
+        cameraGuy = null
+        if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
+    }
 
     init {
         listener<ConnectionEvent.Disconnect> {
@@ -56,54 +66,61 @@ object Freecam : Module() {
             // Force it to stay in first person lol
             if (mc.gameSettings.keyBindTogglePerspective.isKeyDown) mc.gameSettings.thirdPersonView = 2
         }
-    }
 
-    override fun onDisable() {
-        if (mc.player == null) return
-        mc.world.removeEntityFromWorld(-6969420)
-        mc.setRenderViewEntity(mc.player)
-        cameraGuy = null
-        mc.player.rotationYawHead
-        if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
-    }
+        listener<SafeTickEvent> {
+            if (cameraGuy == null && mc.player.ticksExisted > 20) spawnCameraGuy()
 
-    override fun onUpdate(event: SafeTickEvent) {
-        if (cameraGuy == null && mc.player.ticksExisted > 20) {
-            // Create a cloned player
-            cameraGuy = FakeCamera(mc.player).also {
-                // Add it to the world
-                mc.world.addEntityToWorld(-6969420, it)
+            if (autoRotate.value) updatePlayerRotation()
 
-                // Set the render view entity to our camera guy
-                mc.setRenderViewEntity(it)
-
-                // Reset player movement input
-                resetInput = true
-
-                // Stores prev third person view setting
-                prevThirdPersonViewSetting = mc.gameSettings.thirdPersonView
-                mc.gameSettings.thirdPersonView = 0
-            }
+            if (arrowKeyMove.value && !BaritoneUtils.isPathing) updatePlayerMovement()
         }
+    }
 
-        if (arrowKeyMove.value && !BaritoneUtils.isPathing) {
-            cameraGuy?.let {
-                val forward = Keyboard.isKeyDown(Keyboard.KEY_UP) to Keyboard.isKeyDown(Keyboard.KEY_DOWN)
-                val strafe = Keyboard.isKeyDown(Keyboard.KEY_LEFT) to Keyboard.isKeyDown(Keyboard.KEY_RIGHT)
-                val movementInput = calcMovementInput(forward, strafe, false to false)
+    private fun spawnCameraGuy() {
+        // Create a cloned player
+        cameraGuy = FakeCamera(mc.player).also {
+            // Add it to the world
+            mc.world.addEntityToWorld(-6969420, it)
 
-                if (movementInput.first != 0f || movementInput.second != 0f) mc.player.rotationYaw = it.rotationYaw
+            // Set the render view entity to our camera guy
+            mc.setRenderViewEntity(it)
 
-                mc.player.movementInput.moveForward = movementInput.first
-                mc.player.movementInput.moveStrafe = -movementInput.second
+            // Reset player movement input
+            resetInput = true
 
-                mc.player.movementInput.forwardKeyDown = forward.first
-                mc.player.movementInput.backKeyDown = forward.second
-                mc.player.movementInput.leftKeyDown = strafe.first
-                mc.player.movementInput.rightKeyDown = strafe.second
+            // Stores prev third person view setting
+            prevThirdPersonViewSetting = mc.gameSettings.thirdPersonView
+            mc.gameSettings.thirdPersonView = 0
+        }
+    }
 
-                mc.player.movementInput.jump = Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)
-            }
+    private fun updatePlayerRotation() {
+        mc.objectMouseOver?.hitVec?.let {
+            val rotation = Vec2f(RotationUtils.getRotationTo(it, true))
+            mc.player.rotationYaw = rotation.x
+            mc.player.rotationPitch = rotation.y
+        }
+    }
+
+    private fun updatePlayerMovement() {
+        cameraGuy?.let {
+            val forward = Keyboard.isKeyDown(Keyboard.KEY_UP) to Keyboard.isKeyDown(Keyboard.KEY_DOWN)
+            val strafe = Keyboard.isKeyDown(Keyboard.KEY_LEFT) to Keyboard.isKeyDown(Keyboard.KEY_RIGHT)
+            val movementInput = calcMovementInput(forward, strafe, false to false)
+
+            val yawDiff = mc.player.rotationYaw - it.rotationYaw
+            val yawRad = MovementUtils.calcMoveYaw(yawDiff, movementInput.first, movementInput.second).toFloat()
+            val inputTotal = min(abs(movementInput.first) + abs(movementInput.second), 1f)
+
+            mc.player.movementInput.moveForward = cos(yawRad) * inputTotal
+            mc.player.movementInput.moveStrafe = sin(yawRad) * inputTotal
+
+            mc.player.movementInput.forwardKeyDown = mc.player.movementInput.moveForward > 0f
+            mc.player.movementInput.backKeyDown = mc.player.movementInput.moveForward < 0f
+            mc.player.movementInput.leftKeyDown = mc.player.movementInput.moveStrafe < 0f
+            mc.player.movementInput.rightKeyDown = mc.player.movementInput.moveStrafe > 0f
+
+            mc.player.movementInput.jump = Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)
         }
     }
 
