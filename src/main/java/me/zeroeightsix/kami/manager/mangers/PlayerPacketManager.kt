@@ -20,14 +20,11 @@ object PlayerPacketManager : Manager() {
     /** TreeMap for all packets to be sent, sorted by their callers' priority */
     private val packetList = TreeMap<Module, PlayerPacket>(compareByDescending { it.modulePriority })
 
-    var serverSidePosition = Vec3d(0.0, 0.0, 0.0)
-        private set
-    var prevServerSideRotation = Vec2f(0f, 0f)
-        private set
-    var serverSideRotation = Vec2f(0f, 0f)
-    private var clientSidePitch = Vec2f(0f, 0f)
-    var serverSideHotbar = 0
-        private set
+    var serverSidePosition: Vec3d = Vec3d.ZERO; private set
+    var prevServerSideRotation = Vec2f.ZERO; private set
+    var serverSideRotation = Vec2f.ZERO; private set
+    var clientSidePitch = Vec2f.ZERO; private set
+    var serverSideHotbar = 0; private set
 
     private var spoofingHotbar = false
     private var hotbarResetTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.SECONDS)
@@ -44,6 +41,7 @@ object PlayerPacketManager : Manager() {
 
         listener<PacketEvent.Send> {
             with(it.packet) {
+
                 if (this is CPacketPlayer) {
                     if (this.moving) serverSidePosition = Vec3d(this.x, this.y, this.z)
                     if (this.rotating) {
@@ -51,6 +49,7 @@ object PlayerPacketManager : Manager() {
                         Wrapper.player?.let { player -> player.rotationYawHead = this.yaw }
                     }
                 }
+
                 if (this is CPacketHeldItemChange) {
                     if (spoofingHotbar && this.slotId != serverSideHotbar) {
                         if (hotbarResetTimer.tick(1L)) {
@@ -63,11 +62,12 @@ object PlayerPacketManager : Manager() {
                         serverSideHotbar = this.slotId
                     }
                 }
+
             }
         }
 
         listener<RenderEntityEvent.Pre> {
-            if (it.entity == null || it.entity != Wrapper.player) return@listener
+            if (it.entity == null || it.entity != Wrapper.player || it.entity.isRiding) return@listener
             with(it.entity) {
                 clientSidePitch = Vec2f(prevRotationPitch, rotationPitch)
                 prevRotationPitch = prevServerSideRotation.y
@@ -76,7 +76,7 @@ object PlayerPacketManager : Manager() {
         }
 
         listener<RenderEntityEvent.Final> {
-            if (it.entity == null || it.entity != Wrapper.player) return@listener
+            if (it.entity == null || it.entity != Wrapper.player || it.entity.isRiding) return@listener
             with(it.entity) {
                 prevRotationPitch = clientSidePitch.x
                 rotationPitch = clientSidePitch.y
