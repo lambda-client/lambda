@@ -19,6 +19,7 @@ import net.minecraft.item.ItemAxe
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemSword
 import net.minecraft.network.play.server.SPacketConfirmTransaction
+import kotlin.math.ceil
 import kotlin.math.max
 
 @Module.Info(
@@ -36,6 +37,7 @@ object AutoOffhand : Module() {
     private val mob = register(Settings.booleanBuilder("Mob").withValue(true).withVisibility { type.value == Type.TOTEM && checkDamage.value })
     private val player = register(Settings.booleanBuilder("Player").withValue(true).withVisibility { type.value == Type.TOTEM && checkDamage.value })
     private val crystal = register(Settings.booleanBuilder("Crystal").withValue(true).withVisibility { type.value == Type.TOTEM && checkDamage.value })
+    private val falling = register(Settings.booleanBuilder("Falling").withValue(true).withVisibility { type.value == Type.TOTEM && checkDamage.value })
 
     // Gapple
     private val offhandGapple = register(Settings.booleanBuilder("OffhandGapple").withValue(false).withVisibility { type.value == Type.GAPPLE })
@@ -150,5 +152,8 @@ object AutoOffhand : Module() {
                 maxDamage = max(CrystalUtils.calcDamage(entity, mc.player), maxDamage)
             }
         }
+        if (falling.value && nextFallDist > 3.0f) maxDamage = max(ceil(nextFallDist - 3.0f), maxDamage)
     }
+
+    private val nextFallDist get() = mc.player.fallDistance - mc.player.motionY.toFloat()
 }
