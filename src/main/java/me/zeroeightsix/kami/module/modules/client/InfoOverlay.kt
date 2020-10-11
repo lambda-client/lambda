@@ -74,7 +74,7 @@ object InfoOverlay : Module() {
 
     override fun onUpdate(event: SafeTickEvent) {
         updateSpeedList()
-        updateChunkSize()
+        if (chunkSize.value) updateChunkSize()
     }
 
     fun infoContents(): ArrayList<String> {
