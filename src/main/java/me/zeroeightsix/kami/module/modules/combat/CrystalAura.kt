@@ -79,6 +79,7 @@ object CrystalAura : Module() {
     private val checkDamage = register(Settings.booleanBuilder("CheckDamage").withValue(true).withVisibility { page.value == Page.EXPLODE_TWO })
     private val minDamageE = register(Settings.integerBuilder("MinDamageExplode").withValue(6).withRange(0, 20).withVisibility { page.value == Page.EXPLODE_TWO && checkDamage.value })
     private val maxSelfDamageE = register(Settings.integerBuilder("MaxSelfDamageExplode").withValue(3).withRange(0, 20).withVisibility { page.value == Page.EXPLODE_TWO && checkDamage.value })
+    private val swapDelay = register(Settings.integerBuilder("SwapDelay").withValue(12).withRange(1, 50).withStep(2).withVisibility { page.value == Page.EXPLODE_TWO })
     private val hitDelay = register(Settings.integerBuilder("HitDelay").withValue(2).withRange(1, 10).withVisibility { page.value == Page.EXPLODE_TWO })
     private val hitAttempts = register(Settings.integerBuilder("HitAttempts").withValue(4).withRange(0, 8).withStep(1).withVisibility { page.value == Page.EXPLODE_TWO })
     private val explodeRange = register(Settings.floatBuilder("ExplodeRange").withValue(4.0f).withRange(0.0f, 5.0f).withVisibility { page.value == Page.EXPLODE_TWO })
@@ -195,7 +196,14 @@ object CrystalAura : Module() {
         if (antiWeakness.value && mc.player.isPotionActive(MobEffects.WEAKNESS) && !isHoldingTool()) {
             CombatUtils.equipBestWeapon()
             PlayerPacketManager.resetHotbar()
+            return
         }
+
+        // Anticheat doesn't allow you attack right after changing item
+        if (System.currentTimeMillis() - PlayerPacketManager.lastSwapTime < swapDelay.value * 50) {
+            return
+        }
+
         getExplodingCrystal()?.let {
             hitTimer = 0
             inactiveTicks = 0

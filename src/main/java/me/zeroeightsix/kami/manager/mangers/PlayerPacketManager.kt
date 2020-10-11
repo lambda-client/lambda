@@ -25,6 +25,7 @@ object PlayerPacketManager : Manager() {
     var serverSideRotation = Vec2f.ZERO; private set
     var clientSidePitch = Vec2f.ZERO; private set
     var serverSideHotbar = 0; private set
+    var lastSwapTime = 0L; private set
 
     private var spoofingHotbar = false
     private var hotbarResetTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.SECONDS)
@@ -40,30 +41,27 @@ object PlayerPacketManager : Manager() {
         }
 
         listener<PacketEvent.Send> {
-            with(it.packet) {
-
-                if (this is CPacketPlayer) {
-                    if (this.moving) serverSidePosition = Vec3d(this.x, this.y, this.z)
-                    if (this.rotating) {
-                        serverSideRotation = Vec2f(this.yaw, this.pitch)
-                        Wrapper.player?.let { player -> player.rotationYawHead = this.yaw }
+                if (it.packet is CPacketPlayer) {
+                    if (it.packet.moving) serverSidePosition = Vec3d(it.packet.x, it.packet.y, it.packet.z)
+                    if (it.packet.rotating) {
+                        serverSideRotation = Vec2f(it.packet.yaw, it.packet.pitch)
+                        Wrapper.player?.let { player -> player.rotationYawHead = it.packet.yaw }
                     }
                 }
 
-                if (this is CPacketHeldItemChange) {
-                    if (spoofingHotbar && this.slotId != serverSideHotbar) {
-                        if (hotbarResetTimer.tick(1L)) {
+                if (it.packet is CPacketHeldItemChange) {
+                    if (spoofingHotbar && it.packet.slotId != serverSideHotbar) {
+                        if (hotbarResetTimer.tick(2L)) {
                             spoofingHotbar = false
-                            serverSideHotbar = this.slotId
                         } else {
                             it.cancel()
                         }
-                    } else {
-                        serverSideHotbar = this.slotId
+                    }
+                    if (!it.isCancelled) {
+                        serverSideHotbar = it.packet.slotId
+                        lastSwapTime = System.currentTimeMillis()
                     }
                 }
-
-            }
         }
 
         listener<RenderEntityEvent.Pre> {
@@ -96,9 +94,12 @@ object PlayerPacketManager : Manager() {
 
     fun spoofHotbar(slot: Int) {
         Wrapper.minecraft.connection?.let {
-            it.sendPacket(CPacketHeldItemChange(slot))
-            serverSideHotbar = slot
-            spoofingHotbar = true
+            if (serverSideHotbar != slot) {
+                it.sendPacket(CPacketHeldItemChange(slot))
+                serverSideHotbar = slot
+                spoofingHotbar = true
+            }
+            hotbarResetTimer.reset()
         }
     }
 
