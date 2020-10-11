@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.mixin.client;
 
 import me.zeroeightsix.kami.event.KamiEventBus;
 import me.zeroeightsix.kami.event.events.PrintChatMessageEvent;
+import me.zeroeightsix.kami.module.modules.chat.ExtraChatHistory;
 import me.zeroeightsix.kami.module.modules.render.CleanGUI;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiNewChat;
@@ -11,6 +12,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.List;
 
 @Mixin(GuiNewChat.class)
 public abstract class MixinGuiNewChat {
@@ -27,4 +30,21 @@ public abstract class MixinGuiNewChat {
         KamiEventBus.INSTANCE.post(new PrintChatMessageEvent(chatComponent, chatComponent.getUnformattedComponentText()));
     }
 
+    @Redirect(method = "setChatLine", at = @At(value = "INVOKE", target = "Ljava/util/List;size()I", ordinal = 0), remap = false)
+    public <E> int drawnChatLinesSize(List<E> list) {
+        return getModifiedSize(list);
+    }
+
+    @Redirect(method = "setChatLine", at = @At(value = "INVOKE", target = "Ljava/util/List;size()I", ordinal = 2), remap = false)
+    public <E> int chatLinesSize(List<E> list) {
+        return getModifiedSize(list);
+    }
+
+    public <E> int getModifiedSize(List<E> list) {
+        if (ExtraChatHistory.INSTANCE.isEnabled()) {
+            return list.size() - ExtraChatHistory.INSTANCE.getMaxMessages().getValue() - 100;
+        } else {
+            return list.size();
+        }
+    }
 }
