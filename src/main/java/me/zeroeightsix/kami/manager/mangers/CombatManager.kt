@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.manager.mangers
 
+import me.zeroeightsix.kami.manager.Manager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.util.MotionTracker
@@ -7,12 +8,7 @@ import net.minecraft.entity.EntityLivingBase
 import java.util.*
 import kotlin.collections.ArrayList
 
-/**
- * @author Xiaro
- *
- * Created by Xiaro on 06/08/20
- */
-object CombatManager {
+object CombatManager : Manager() {
     private val combatModules = ArrayList<Module>()
 
     var targetList = LinkedList<EntityLivingBase>()
