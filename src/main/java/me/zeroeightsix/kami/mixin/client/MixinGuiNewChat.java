@@ -30,12 +30,12 @@ public abstract class MixinGuiNewChat {
         KamiEventBus.INSTANCE.post(new PrintChatMessageEvent(chatComponent, chatComponent.getUnformattedComponentText()));
     }
 
-    @Redirect(method = "setChatLine", at = @At(value = "INVOKE", target = "Ljava/util/List;size()I", ordinal = 0), remap = false)
+    @Redirect(method = "setChatLine", at = @At(value = "INVOKE", target = "Ljava/util/List;size()I", ordinal = 0, remap = false))
     public <E> int drawnChatLinesSize(List<E> list) {
         return getModifiedSize(list);
     }
 
-    @Redirect(method = "setChatLine", at = @At(value = "INVOKE", target = "Ljava/util/List;size()I", ordinal = 2), remap = false)
+    @Redirect(method = "setChatLine", at = @At(value = "INVOKE", target = "Ljava/util/List;size()I", ordinal = 2, remap = false))
     public <E> int chatLinesSize(List<E> list) {
         return getModifiedSize(list);
     }
