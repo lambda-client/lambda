@@ -51,7 +51,7 @@ object ArmourHUD : Module() {
                 val green = (`is`.maxDamage.toFloat() - `is`.getItemDamage().toFloat()) / `is`.maxDamage.toFloat()
                 val red = 1 - green
                 val dmg = 100 - (red * 100).toInt()
-                mc.fontRenderer.drawStringWithShadow(dmg.toString() + "", x + 8 - mc.fontRenderer.getStringWidth(dmg.toString() + "") / 2.toFloat(), y - 11.toFloat(), ColorConverter.rgbToInt((red * 255).toInt(), (green * 255).toInt(), 0))
+                mc.fontRenderer.drawStringWithShadow(dmg.toString() + "", x + 8 - mc.fontRenderer.getStringWidth(dmg.toString() + "") / 2.toFloat(), y - 11.toFloat(), ColorConverter.rgbToHex((red * 255).toInt(), (green * 255).toInt(), 0))
             }
         }
         GlStateManager.enableDepth()

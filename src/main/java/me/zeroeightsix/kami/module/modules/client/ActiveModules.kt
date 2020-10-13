@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.client
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.color.ColorConverter.rgbToInt
+import me.zeroeightsix.kami.util.color.ColorConverter.rgbToHex
 import me.zeroeightsix.kami.util.color.ColorTextFormatting
 import me.zeroeightsix.kami.util.math.MathUtils.isNumberEven
 import me.zeroeightsix.kami.util.math.MathUtils.reverseNumber
@@ -79,22 +79,22 @@ object ActiveModules : Module() {
                     ?: Color.WHITE
             else -> ColorTextFormatting.colourEnumMap[infoGetSetting(isOne)]?.colorLocal ?: Color.WHITE
         }
-        return rgbToInt(localColor.red, localColor.green, localColor.blue)
+        return rgbToHex(localColor.red, localColor.green, localColor.blue)
     }
 
     private fun infoGetSetting(isOne: Boolean) = if (isOne) InfoOverlay.first() else InfoOverlay.second()
 
     fun getCategoryColour(module: Module): Int {
         return when (module.category) {
-            Category.CHAT -> rgbToInt(getRgb(chat.value, 0), getRgb(chat.value, 1), getRgb(chat.value, 2))
-            Category.COMBAT -> rgbToInt(getRgb(combat.value, 0), getRgb(combat.value, 1), getRgb(combat.value, 2))
-            Category.EXPERIMENTAL -> rgbToInt(getRgb(experimental.value, 0), getRgb(experimental.value, 1), getRgb(experimental.value, 2))
-            Category.CLIENT -> rgbToInt(getRgb(client.value, 0), getRgb(client.value, 1), getRgb(client.value, 2))
-            Category.RENDER -> rgbToInt(getRgb(render.value, 0), getRgb(render.value, 1), getRgb(render.value, 2))
-            Category.PLAYER -> rgbToInt(getRgb(player.value, 0), getRgb(player.value, 1), getRgb(player.value, 2))
-            Category.MOVEMENT -> rgbToInt(getRgb(movement.value, 0), getRgb(movement.value, 1), getRgb(movement.value, 2))
-            Category.MISC -> rgbToInt(getRgb(misc.value, 0), getRgb(misc.value, 1), getRgb(misc.value, 2))
-            else -> rgbToInt(1, 1, 1)
+            Category.CHAT -> rgbToHex(getRgb(chat.value, 0), getRgb(chat.value, 1), getRgb(chat.value, 2))
+            Category.COMBAT -> rgbToHex(getRgb(combat.value, 0), getRgb(combat.value, 1), getRgb(combat.value, 2))
+            Category.EXPERIMENTAL -> rgbToHex(getRgb(experimental.value, 0), getRgb(experimental.value, 1), getRgb(experimental.value, 2))
+            Category.CLIENT -> rgbToHex(getRgb(client.value, 0), getRgb(client.value, 1), getRgb(client.value, 2))
+            Category.RENDER -> rgbToHex(getRgb(render.value, 0), getRgb(render.value, 1), getRgb(render.value, 2))
+            Category.PLAYER -> rgbToHex(getRgb(player.value, 0), getRgb(player.value, 1), getRgb(player.value, 2))
+            Category.MOVEMENT -> rgbToHex(getRgb(movement.value, 0), getRgb(movement.value, 1), getRgb(movement.value, 2))
+            Category.MISC -> rgbToHex(getRgb(misc.value, 0), getRgb(misc.value, 1), getRgb(misc.value, 2))
+            else -> rgbToHex(1, 1, 1)
         }
     }
 
