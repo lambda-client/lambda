@@ -90,7 +90,8 @@ object KamiFontRenderer {
 
     init {
         // Prints Slick2D's license to log as required
-        KamiMod.log.info("""Slick2D's TrueTypeFont renderer code was used in this mod
+        KamiMod.log.info("""
+            Slick2D's TrueTypeFont renderer code was used in this mod
             
             License
             Copyright (c) 2013, Slick2D
@@ -186,7 +187,7 @@ object KamiFontRenderer {
         GlStateUtils.blend(true)
         glPushMatrix()
         glTranslatef(posXIn, posYIn, 0.0f)
-        glScalef(CustomFont.size.value * 0.28f * scale, CustomFont.size.value * 0.28f * scale, 1.0f)
+        glScalef(CustomFont.size * scale, CustomFont.size * scale, 1.0f)
         glTranslatef(0f, -1f, 0f)
 
         resetStyle()
@@ -207,7 +208,7 @@ object KamiFontRenderer {
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.333f)
 
             if (char == '\n') {
-                posY += currentVariant.fontHeight * CustomFont.size.value * 0.28f
+                posY += currentVariant.fontHeight * CustomFont.lineSpace
                 posX = 0.0
             } else {
                 val pos1 = Vec2d(posX, posY)
@@ -216,7 +217,7 @@ object KamiFontRenderer {
                 val texPos2 = texPos1.add(Vec2d(charInfo.width.toDouble(), charInfo.height.toDouble()).divide(TEXTURE_WIDTH.toDouble(), chunk.textureHeight.toDouble()))
 
                 drawQuad(pos1, pos2, texPos1, texPos2)
-                posX += charInfo.width + CustomFont.gap.value - 1f
+                posX += charInfo.width + CustomFont.gap
             }
         }
         resetStyle()
@@ -243,19 +244,19 @@ object KamiFontRenderer {
 
     @JvmOverloads
     fun getFontHeight(scale: Float = 1f): Float {
-        return glyphArray[0].fontHeight * (CustomFont.size.value * (CustomFont.lineSpace.value * 0.01f + 0.28f)) * scale
+        return (glyphArray[0].fontHeight * CustomFont.lineSpace * scale).toFloat()
     }
 
     @JvmOverloads
     fun getStringWidth(text: String, scale: Float = 1f): Float {
-        var width = 0f
+        var width = 0.0
         resetStyle()
         for ((index, char) in text.withIndex()) {
             if (checkStyleCode(text, index)) continue
-            width += currentVariant.getCharInfo(char).width + CustomFont.gap.value - 1f
+            width += currentVariant.getCharInfo(char).width + CustomFont.gap
         }
         resetStyle()
-        return width * CustomFont.size.value * 0.28f * scale
+        return (width * CustomFont.size * scale).toFloat()
     }
 
     private fun resetStyle() {
