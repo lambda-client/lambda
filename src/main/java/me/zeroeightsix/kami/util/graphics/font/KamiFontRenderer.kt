@@ -181,9 +181,8 @@ object KamiFontRenderer {
         var posY = 0.0
 
         GlStateManager.disableOutlineMode() // Weird fix for black text
-        glEnable(GL_TEXTURE_2D)
-        glDisable(GL_LIGHTING)
-        glDisable(GL_ALPHA_TEST)
+        GlStateUtils.texture2d(true)
+        GlStateUtils.alpha(false)
         GlStateUtils.blend(true)
         glPushMatrix()
         glTranslatef(posXIn, posYIn, 0.0f)
@@ -223,7 +222,7 @@ object KamiFontRenderer {
         resetStyle()
 
         glPopMatrix()
-        glEnable(GL_ALPHA_TEST)
+        GlStateUtils.alpha(true)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
