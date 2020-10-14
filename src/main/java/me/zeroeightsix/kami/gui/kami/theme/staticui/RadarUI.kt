@@ -57,13 +57,13 @@ class RadarUI : AbstractComponentUI<Radar?>() {
             drawCircleFilled(vertexHelper, Vec2d(dX / scale, dZ / scale), 2.5 / scale, color = color)
         }
 
-        FontRenderAdapter.drawString("\u00A77z+", -FontRenderAdapter.getStringWidth("+z") / 2f, radius - FontRenderAdapter.getFontHeight())
+        FontRenderAdapter.drawString("\u00A77z+", -FontRenderAdapter.getStringWidth("+z") / 2f, radius - FontRenderAdapter.getFontHeight(), drawShadow = false)
         glRotatef(90f, 0f, 0f, 1f)
-        FontRenderAdapter.drawString("\u00A77x-", -FontRenderAdapter.getStringWidth("+x") / 2f, radius - FontRenderAdapter.getFontHeight())
+        FontRenderAdapter.drawString("\u00A77x-", -FontRenderAdapter.getStringWidth("+x") / 2f, radius - FontRenderAdapter.getFontHeight(), drawShadow = false)
         glRotatef(90f, 0f, 0f, 1f)
-        FontRenderAdapter.drawString("\u00A77z-", -FontRenderAdapter.getStringWidth("-z") / 2f, radius - FontRenderAdapter.getFontHeight())
+        FontRenderAdapter.drawString("\u00A77z-", -FontRenderAdapter.getStringWidth("-z") / 2f, radius - FontRenderAdapter.getFontHeight(), drawShadow = false)
         glRotatef(90f, 0f, 0f, 1f)
-        FontRenderAdapter.drawString("\u00A77x+", -FontRenderAdapter.getStringWidth("+x") / 2f, radius - FontRenderAdapter.getFontHeight())
+        FontRenderAdapter.drawString("\u00A77x+", -FontRenderAdapter.getStringWidth("+x") / 2f, radius - FontRenderAdapter.getFontHeight(), drawShadow = false)
 
         glPopMatrix()
     }

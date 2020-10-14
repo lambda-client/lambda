@@ -32,6 +32,6 @@ public class RootColorizedCheckButtonUI extends RootCheckButtonUI<ColorizedCheck
         ColorHolder idleColour = new ColorHolder(component.isToggled() ? GuiC.buttonIdleT.color : GuiC.buttonIdleN.color);
         ColorHolder downColour = new ColorHolder(component.isToggled() ? GuiC.buttonHoveredT.color : GuiC.buttonHoveredN.color);
 
-        FontRenderAdapter.INSTANCE.drawString(component.getName(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getName(), 0.75f) / 2f, 0, true, component.isPressed() ? downColour : idleColour, 0.75f);
+        FontRenderAdapter.INSTANCE.drawString(component.getName(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getName(), 0.75f) / 2f, 0, false, component.isPressed() ? downColour : idleColour, 0.75f);
     }
 }

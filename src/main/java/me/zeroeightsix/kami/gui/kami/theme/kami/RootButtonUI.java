@@ -29,7 +29,7 @@ public class RootButtonUI<T extends Button> extends AbstractComponentUI<Button> 
 
         RenderUtils2D.drawRoundedRectFilled(vertexHelper, new Vec2d(0, 0), new Vec2d(component.getWidth(), component.getHeight()), 3, 8, color);
 
-        FontRenderAdapter.INSTANCE.drawString(component.getName(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getName()) / 2f, 0, true, component.isPressed() ? downColour : idleColour);
+        FontRenderAdapter.INSTANCE.drawString(component.getName(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getName()) / 2f, 0, false, component.isPressed() ? downColour : idleColour);
     }
 
     @Override
