@@ -7,6 +7,7 @@ object BaritoneUtils {
     var paused = false
         private set
     val isPathing get() = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
+    val isCustomGoalActive get() = BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.isActive
 
     fun pause() {
         if (!paused) {

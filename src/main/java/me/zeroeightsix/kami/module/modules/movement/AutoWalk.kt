@@ -31,7 +31,7 @@ object AutoWalk : Module() {
 
     private var disableBaritone = false
     private const val border = 30000000
-    private var direction: String? = null
+    var direction: String? = null
     private var toggleTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.SECONDS)
 
     init {
@@ -58,7 +58,7 @@ object AutoWalk : Module() {
         }
 
         listener<SafeTickEvent> {
-            if (mode.value == AutoWalkMode.BARITONE && !BaritoneUtils.isPathing && toggleTimer.tick(3L, false)) {
+            if (mode.value == AutoWalkMode.BARITONE && !BaritoneUtils.isCustomGoalActive && toggleTimer.tick(3L, false)) {
                 disable()
             }
         }
