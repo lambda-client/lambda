@@ -83,11 +83,14 @@ object CrystalUtils {
     fun canPlaceOn(blockPos: BlockPos) = mc.world.getBlockState(blockPos.down()).block == Blocks.BEDROCK || mc.world.getBlockState(blockPos.down()).block == Blocks.OBSIDIAN
 
     @JvmStatic
-    private fun getCrystalPlacingBB(blockPos: BlockPos): AxisAlignedBB {
-        return crystalPlacingBB.offset(Vec3d(blockPos).add(0.5, 0.0, 0.5))
-    }
+    private fun getCrystalPlacingBB(blockPos: BlockPos) = crystalPlacingBB.offset(Vec3d(blockPos).add(0.5, 0.0, 0.5))
+
+    @JvmStatic
+    fun getCrystalBB(blockPos: BlockPos): AxisAlignedBB = crystalBB.offset(Vec3d(blockPos).add(0.5, 0.0, 0.5))
 
     private val crystalPlacingBB: AxisAlignedBB get() = AxisAlignedBB(-0.5, 0.0, -0.5, 0.5, 2.0, 0.5)
+
+    private val crystalBB: AxisAlignedBB get() = AxisAlignedBB(-1.0, 0.0, -1.0, 1.0, 2.0, 1.0)
 
     /* Checks colliding with all entity */
     @JvmStatic
