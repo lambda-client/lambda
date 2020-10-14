@@ -11,8 +11,10 @@ import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.TimeUtils
 import me.zeroeightsix.kami.util.color.ColorTextFormatting
 import me.zeroeightsix.kami.util.color.ColorTextFormatting.ColourCode
+import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.MathUtils.round
 import net.minecraft.client.Minecraft
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.max
 
@@ -72,9 +74,12 @@ object InfoOverlay : Module() {
     private val speedList = LinkedList<Double>()
     private var currentChunkSize = 0
 
-    override fun onUpdate(event: SafeTickEvent) {
-        updateSpeedList()
-        if (chunkSize.value) updateChunkSize()
+    init {
+        listener<SafeTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@listener
+            updateSpeedList()
+            if (chunkSize.value) updateChunkSize()
+        }
     }
 
     fun infoContents(): ArrayList<String> {
