@@ -22,14 +22,15 @@ class Listener<T : Any>(val event: Class<T>, private val function: (T) -> Unit) 
         /**
          * Create and register a new listener for this object
          *
+         * @param object the object of this listener belongs to
          * @param T target event type
          * @param event target event
          * @param function action to perform when this listener gets called by the event bus
          */
         @JvmStatic
         @Deprecated("For Java use only", ReplaceWith("Any.register(this, Listener(event, function))", "me.zeroeightsix.kami.util.event.listener"))
-        fun <T : Any> listener(event: Class<T>, function: (event: T) -> Unit) {
-            ListenerManager.register(this, Listener(event, function))
+        fun <T : Any> listener(`object`: Any, event: Class<T>, function: (event: T) -> Unit) {
+            ListenerManager.register(`object`, Listener(event, function))
         }
     }
 }
