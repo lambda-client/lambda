@@ -4,9 +4,12 @@ import baritone.api.BaritoneAPI
 import baritone.api.pathing.goals.GoalXZ
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.ConnectionEvent
+import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
+import me.zeroeightsix.kami.util.TimerUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.MathUtils
 import me.zeroeightsix.kami.util.math.MathUtils.Cardinal
@@ -28,7 +31,8 @@ object AutoWalk : Module() {
 
     private var disableBaritone = false
     private const val border = 30000000
-    var direction: String? = null
+    private var direction: String? = null
+    private var toggleTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.SECONDS)
 
     init {
         listener<InputUpdateEvent> {
@@ -51,6 +55,12 @@ object AutoWalk : Module() {
 
         listener<ConnectionEvent.Disconnect> {
             disable()
+        }
+
+        listener<SafeTickEvent> {
+            if (mode.value == AutoWalkMode.BARITONE && !BaritoneUtils.isPathing && toggleTimer.tick(3L, false)) {
+                disable()
+            }
         }
     }
 
@@ -88,6 +98,7 @@ object AutoWalk : Module() {
         }
 
         direction = MathUtils.getPlayerCardinal(mc.getRenderViewEntity() as? EntityPlayer? ?: mc.player).cardinalName
+        toggleTimer.reset()
     }
 
     override fun getHudInfo(): String {
