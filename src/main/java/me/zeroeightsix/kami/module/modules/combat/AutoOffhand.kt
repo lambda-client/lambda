@@ -23,8 +23,6 @@ import net.minecraft.item.ItemSword
 import net.minecraft.network.play.server.SPacketConfirmTransaction
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Keyboard
-import java.util.*
-import kotlin.collections.HashMap
 import kotlin.math.ceil
 import kotlin.math.max
 
@@ -91,7 +89,7 @@ object AutoOffhand : Module() {
             if (!transactionLog.containsValue(false)) movingTimer.reset(-175L) // If all the click packets were accepted then we reset the timer for next moving
         }
 
-        listener<SafeTickEvent> {
+        listener<SafeTickEvent>(1100) {
             if (mc.player.isDead || !movingTimer.tick(200L, false)) return@listener // Delays 4 ticks by default
             if (!mc.player.inventory.getItemStack().isEmpty()) { // If player is holding an in inventory
                 if (mc.currentScreen is GuiContainer) {// If inventory is open (playing moving item)
@@ -135,7 +133,7 @@ object AutoOffhand : Module() {
         return offhandGapple.value
                 && (checkAura.value && CombatManager.isActiveAndTopPriority(Aura)
                 || checkWeapon.value && (item is ItemSword || item is ItemAxe)
-                || (checkCAGapple.value && !offhandCrystal.value) && CombatManager.isActiveAndTopPriority(CrystalAura))
+                || (checkCAGapple.value && !offhandCrystal.value) && CombatManager.isOnTopPriority(CrystalAura))
     }
 
     private fun checkCrystal() = offhandCrystal.value && checkCACrystal.value && CrystalAura.isEnabled && CombatManager.isOnTopPriority(CrystalAura)

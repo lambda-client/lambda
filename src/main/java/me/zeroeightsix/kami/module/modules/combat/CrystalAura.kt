@@ -165,7 +165,7 @@ object CrystalAura : Module() {
             PlayerPacketManager.addPacket(this, packet)
         }
 
-        listener<SafeTickEvent> {
+        listener<SafeTickEvent>(2000) {
             if (!CombatManager.isOnTopPriority(this) || CombatSetting.pause) return@listener
             inactiveTicks++
             hitTimer++
