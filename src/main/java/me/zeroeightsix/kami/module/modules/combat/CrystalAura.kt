@@ -32,13 +32,9 @@ import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.math.min
 
 @Module.Info(
         name = "CrystalAura",
@@ -56,9 +52,6 @@ object CrystalAura : Module() {
     private val minDamageFacePlace = register(Settings.floatBuilder("MinDamageFacePlace").withValue(1.5f).withRange(0.0f, 10.0f).withStep(0.25f).withVisibility { page.value == Page.GENERAL })
     private val noSuicideThreshold = register(Settings.floatBuilder("NoSuicide").withValue(8.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
     private val maxYawRate = register(Settings.integerBuilder("MaxYawRate").withValue(50).withRange(10, 100).withStep(5).withVisibility { page.value == Page.GENERAL })
-    private val motionPrediction = register(Settings.booleanBuilder("MotionPrediction").withValue(true).withVisibility { page.value == Page.GENERAL })
-    private val pingSync = register(Settings.booleanBuilder("PingSync").withValue(true).withVisibility { page.value == Page.GENERAL && motionPrediction.value })
-    private val ticksAhead = register(Settings.integerBuilder("TicksAhead").withValue(5).withRange(0, 20).withVisibility { page.value == Page.GENERAL && motionPrediction.value && !pingSync.value })
 
     /* Place page one */
     private val doPlace = register(Settings.booleanBuilder("Place").withValue(true).withVisibility { page.value == Page.PLACE_ONE })
@@ -98,9 +91,9 @@ object CrystalAura : Module() {
     }
 
     /* Variables */
-    private val placeMap = TreeMap<Float, BlockPos>(Comparator.reverseOrder()) // <Target Damage, BlockPos>
+    private var placeList = emptyList<Triple<BlockPos, Float, Float>>() // <BlockPos, Target Damage, Self Damage>
     private val placedBBMap = HashMap<AxisAlignedBB, Long>() // <CrystalBoundingBox, Added Time>
-    private val crystalList = HashSet<EntityEnderCrystal>()
+    private var crystalMap = emptyMap<EntityEnderCrystal, Triple<Float, Float, Double>>() // <Crystal, <Target Damage, Self Damage>>
     private val ignoredList = HashSet<EntityEnderCrystal>()
     private var lastCrystal: EntityEnderCrystal? = null
     private var lastLookAt = Vec3d.ZERO
@@ -108,7 +101,10 @@ object CrystalAura : Module() {
     private var placeTimer = 0
     private var hitTimer = 0
     private var hitCount = 0
-    private var inactiveTicks = 40
+    private val lockObject = Any()
+    var inactiveTicks = 20
+    val minDamage get() = max(minDamageP.value, minDamageE.value)
+    val maxSelfDamage get() = min(maxSelfDamageP.value, maxSelfDamageE.value)
 
     override fun isActive(): Boolean {
         return isEnabled && InventoryUtils.countItemAll(426) > 0 && inactiveTicks <= 40
@@ -120,9 +116,7 @@ object CrystalAura : Module() {
     }
 
     override fun onDisable() {
-        placeMap.clear()
         placedBBMap.clear()
-        crystalList.clear()
         ignoredList.clear()
         lastCrystal = null
         lastLookAt = Vec3d.ZERO
@@ -138,24 +132,26 @@ object CrystalAura : Module() {
         listener<PacketEvent.Receive> {
             if (mc.player == null) return@listener
 
-            if (it.packet is SPacketSpawnObject) {
-                if (it.packet.type == 51) {
-                    val pos = Vec3d(it.packet.x, it.packet.y + 1.0, it.packet.z)
+            if (it.packet is SPacketSpawnObject && it.packet.type == 51) {
+                val pos = Vec3d(it.packet.x, it.packet.y + 1.0, it.packet.z)
+                synchronized(lockObject) {
                     placedBBMap.keys.removeIf { bb -> bb.contains(pos) }
                 }
             }
 
             // Minecraft sends sounds packets a tick before removing the crystal lol
-            if (it.packet is SPacketSoundEffect) {
-                if (it.packet.getCategory() == SoundCategory.BLOCKS && it.packet.getSound() == SoundEvents.ENTITY_GENERIC_EXPLODE) {
-                    val crystalList = CrystalUtils.getCrystalList(Vec3d(it.packet.x, it.packet.y, it.packet.z), 5f)
-                    for (crystal in crystalList) {
-                        crystal.setDead()
-                        mc.world.removeEntityFromWorld(crystal.entityId)
-                    }
-                    ignoredList.clear()
-                    hitCount = 0
+            if (it.packet is SPacketSoundEffect
+                    && it.packet.getCategory() == SoundCategory.BLOCKS
+                    && it.packet.getSound() == SoundEvents.ENTITY_GENERIC_EXPLODE) {
+                val crystalList = CrystalUtils.getCrystalList(Vec3d(it.packet.x, it.packet.y, it.packet.z), 5f)
+
+                for (crystal in crystalList) {
+                    crystal.setDead()
+                    mc.world.removeEntityFromWorld(crystal.entityId)
                 }
+
+                ignoredList.clear()
+                hitCount = 0
             }
         }
 
@@ -179,13 +175,8 @@ object CrystalAura : Module() {
     }
 
     private fun updateMap() {
-        setPosition()
-        placeMap.clear()
-        placeMap.putAll(CrystalUtils.getPlacePos(CombatManager.target, mc.player, placeRange.value + 1f))
-        resetPosition()
-
-        crystalList.clear()
-        crystalList.addAll(CrystalUtils.getCrystalList(max(placeRange.value, explodeRange.value)))
+        placeList = CombatManager.crystalPlaceList
+        crystalMap = CombatManager.crystalMap
 
         placedBBMap.values.removeIf { System.currentTimeMillis() - it > max(InfoCalculator.ping(), 100) }
 
@@ -246,7 +237,7 @@ object CrystalAura : Module() {
             }
             mc.connection!!.sendPacket(CPacketUseEntity(it))
             mc.player.swingArm(getHand() ?: EnumHand.OFF_HAND)
-            mc.player.setLastAttackedEntity(CombatManager.target!!)
+            CombatManager.target?.let { target -> mc.player.setLastAttackedEntity(target) }
             lastCrystal = it
         }
     }
@@ -263,21 +254,35 @@ object CrystalAura : Module() {
 
     @Suppress("UnconditionalJumpStatementInLoop") // The linter is wrong here, it will continue until it's supposed to return
     private fun getPlacingPos(): BlockPos? {
-        if (placeMap.isEmpty()) return null
+        if (CombatManager.crystalPlaceList.isEmpty()) return null
         val eyePos = mc.player.getPositionEyes(1f)
-        for ((damage, pos) in placeMap) {
+        for ((pos, damage, selfDamage) in CombatManager.crystalPlaceList) {
+
+            // Damage check
+            if (!noSuicideCheck(selfDamage)) continue
+            if (!checkDamagePlace(damage, selfDamage)) continue
+
+            // Distance check
             val hitVec = Vec3d(pos).add(0.5, placeOffset.value.toDouble(), 0.5)
             val dist = eyePos.distanceTo(hitVec)
             if (dist > placeRange.value) continue
+
+            // Wall distance check
+            val rayTraceResult = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5))
+            val hitBlockPos = rayTraceResult?.blockPos ?: pos
+            if (hitBlockPos.distanceSq(pos) > 2.0 && dist > wallPlaceRange.value) continue
+
+            // Collide check
+            if (!CrystalUtils.canPlaceCollide(pos)) continue
+
+            // Place sync
             val bb = CrystalUtils.getCrystalBB(pos.up())
             if (placeSync.value && placedBBMap.keys.firstOrNull { it.intersects(bb) } != null) continue
-            if (!CrystalUtils.canPlaceCollide(pos)) continue
-            if (BlockUtils.rayTraceTo(pos) == null && dist > wallPlaceRange.value) continue
+
+            // Yaw rate check
             val rotation = RotationUtils.getRotationTo(hitVec, true)
             if (abs(rotation.x - getLastRotation().x) > maxYawRate.value + (inactiveTicks * 5f)) continue
-            val selfDamage = CrystalUtils.calcDamage(pos, mc.player)
-            if (!noSuicideCheck(selfDamage)) continue
-            if (!checkDamagePlace(damage, selfDamage)) continue
+
             return pos
         }
         return null
@@ -300,16 +305,10 @@ object CrystalAura : Module() {
         return doExplode.value
                 && hitTimer >= hitDelay.value
                 && getExplodingCrystal() != null
-                && CombatManager.target?.let { target ->
+                && CombatManager.target?.let {
             if (checkDamage.value) {
-                var maxDamage = 0f
-                var maxSelfDamage = 0f
-                setPosition()
-                for (crystal in crystalList) {
-                    maxDamage = max(maxDamage, CrystalUtils.calcDamage(crystal, target))
-                    maxSelfDamage = max(maxSelfDamage, CrystalUtils.calcDamage(crystal, mc.player))
-                }
-                resetPosition()
+                val maxDamage = crystalMap.values.maxBy { it.first }?.first ?: 0.0f
+                val maxSelfDamage = crystalMap.values.maxBy { it.second }?.second ?: 0.0f
                 if (!noSuicideCheck(maxSelfDamage)) return false
                 if (!checkDamageExplode(maxDamage, maxSelfDamage)) return false
             }
@@ -318,22 +317,24 @@ object CrystalAura : Module() {
     }
 
     private fun getExplodingCrystal(): EntityEnderCrystal? {
-        if (crystalList.isEmpty()) return null
-        return crystalList.firstOrNull {
+        if (crystalMap.isEmpty()) return null
+        return crystalMap.keys.firstOrNull {
             !ignoredList.contains(it)
+                    && !it.isDead
                     && (mc.player.canEntityBeSeen(it) || EntityUtils.canEntityFeetBeSeen(it))
-                    && mc.player.getPositionEyes(1f).distanceTo(it.positionVector) < explodeRange.value
+                    && mc.player.getPositionEyes(1f).distanceTo(it.positionVector) <= explodeRange.value
                     && abs(RotationUtils.getRotationToEntity(it).x - getLastRotation().x) <= maxYawRate.value + (inactiveTicks * 5f)
-        } ?: crystalList.firstOrNull {
+        } ?: crystalMap.keys.firstOrNull {
             !ignoredList.contains(it)
+                    && !it.isDead
                     && EntityUtils.canEntityHitboxBeSeen(it) != null
-                    && mc.player.getPositionEyes(1f).distanceTo(it.positionVector) < wallExplodeRange.value
+                    && mc.player.getPositionEyes(1f).distanceTo(it.positionVector) <= wallExplodeRange.value
         }
     }
 
     private fun checkDamageExplode(damage: Float, selfDamage: Float) = (shouldFacePlace(damage) || shouldForceExplode() || damage >= minDamageE.value) && selfDamage <= maxSelfDamageE.value
 
-    private fun shouldForceExplode() = autoForceExplode.value && placeMap.isNotEmpty() && placeMap.firstKey() > minDamageE.value
+    private fun shouldForceExplode() = autoForceExplode.value && CombatManager.crystalPlaceList.isNotEmpty() && CombatManager.crystalPlaceList.first().second > minDamageE.value
     /* End of exploding */
 
     /* General */
@@ -363,7 +364,6 @@ object CrystalAura : Module() {
     private fun countValidCrystal(): Int {
         var count = 0
         CombatManager.target?.let { target ->
-            setPosition()
             val eyePos = mc.player.getPositionEyes(1f)
 
             if (placeSync.value) {
@@ -371,47 +371,35 @@ object CrystalAura : Module() {
                 val bbList = ArrayList(placedBBMap.keys)
                 for (bb in bbList) {
                     val pos = bb.center.subtract(0.0, 1.0, 0.0)
+
                     if (pos.distanceTo(eyePos) > placeRange.value) continue
                     val damage = CrystalUtils.calcDamage(pos, target)
                     val selfDamage = CrystalUtils.calcDamage(pos, mc.player)
+
                     if (!checkDamagePlace(damage, selfDamage)) continue
                     count++
                 }
             }
 
-            for (crystal in crystalList) {
-                if (ignoredList.contains(crystal)) continue
-                if (crystal.positionVector.distanceTo(eyePos) > placeRange.value) continue
-                val rotation = RotationUtils.getRotationToEntity(crystal)
-                if (abs(rotation.x - getLastRotation().x) > maxYawRate.value) continue
-                val damage = CrystalUtils.calcDamage(crystal, target)
-                val selfDamage = CrystalUtils.calcDamage(crystal, mc.player)
-                if (!checkDamagePlace(damage, selfDamage)) continue
-                count++
-            }
-            resetPosition()
+            count += countWithoutSync(eyePos)
         }
         return count
     }
-    /* End of general */
 
-    /* Motion prediction */
-    private fun setPosition() {
-        if (!motionPrediction.value) return
-        val ticks = if (pingSync.value) ceil(InfoCalculator.ping() / 25f).toInt() else ticksAhead.value
-        val posAhead = CombatManager.motionTracker.calcPositionAhead(ticks, true) ?: return
-        CombatManager.target?.let {
-            targetPosition = it.positionVector
-            it.setPosition(posAhead.x, posAhead.y, posAhead.z)
+    private fun countWithoutSync(eyePos: Vec3d): Int {
+        var count = 0
+        for ((crystal, pair) in crystalMap) {
+            if (ignoredList.contains(crystal)) continue
+            if (!checkDamagePlace(pair.first, pair.second)) continue
+            if (crystal.positionVector.distanceTo(eyePos) > placeRange.value) continue
+            val rotation = RotationUtils.getRotationToEntity(crystal)
+            if (abs(rotation.x - getLastRotation().x) > maxYawRate.value) continue
+            count++
         }
+        return count
     }
 
-    private fun resetPosition() {
-        if (!motionPrediction.value) return
-        if (targetPosition == Vec3d.ZERO) return
-        CombatManager.target?.setPosition(targetPosition.x, targetPosition.y, targetPosition.z)
-    }
-    /* End of Motion prediction */
+    /* End of general */
 
     /* Rotation spoofing */
     private fun getLastRotation() = RotationUtils.getRotationTo(lastLookAt, true)
