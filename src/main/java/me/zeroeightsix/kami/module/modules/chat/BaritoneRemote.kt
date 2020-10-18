@@ -32,9 +32,9 @@ object BaritoneRemote : Module() {
         allow.settingListener = Setting.SettingListeners {
             mc.player?.let {
                 if ((allow.value == Allow.CUSTOM || allow.value == Allow.FRIENDS_AND_CUSTOM) && custom.value == "unchanged") {
-                    MessageSendHelper.sendChatMessage("$chatName Use the &7" + Command.getCommandPrefix()
+                    MessageSendHelper.sendChatMessage("$chatName Use the &7" + Command.getCommandPrefix().value
                             + "set $name Custom names&f command to change the custom users list. Use , to separate players, for example &7"
-                            + Command.getCommandPrefix()
+                            + Command.getCommandPrefix().value
                             + "set $name Custom dominika,Dewy,086&f")
                 }
             }
