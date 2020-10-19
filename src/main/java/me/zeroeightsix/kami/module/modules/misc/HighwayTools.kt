@@ -34,6 +34,7 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.*
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
@@ -68,8 +69,8 @@ object HighwayTools : Module() {
     // behavior settings
     val baritoneMode = register(Settings.booleanBuilder("AutoMode").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withMinimum(1).withValue(1).withMaximum(10).withVisibility { page.value == Page.BEHAVIOR })
-    private val tickDelayPlace = register(Settings.integerBuilder("TickDelayPlace").withMinimum(0).withValue(1).withMaximum(32).withVisibility { page.value == Page.BEHAVIOR })
-    private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withMinimum(0).withValue(1).withMaximum(32).withVisibility { page.value == Page.BEHAVIOR })
+    private val tickDelayPlace = register(Settings.integerBuilder("TickDelayPlace").withMinimum(0).withValue(1).withMaximum(16).withVisibility { page.value == Page.BEHAVIOR })
+    private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withMinimum(0).withValue(1).withMaximum(16).withVisibility { page.value == Page.BEHAVIOR })
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION).withVisibility { page.value == Page.BEHAVIOR })
     private val stuckDelay = register(Settings.integerBuilder("TickDelayStuck").withMinimum(1).withValue(250).withMaximum(1000).withVisibility { page.value == Page.BEHAVIOR })
@@ -123,7 +124,7 @@ object HighwayTools : Module() {
                         if (!pathing && !LagNotifier.paused && !AutoObsidian.active) {
                             stuckBuilding += 1
                             shuffleTasks()
-                            if (debugMessages.value == DebugMessages.ALL) MessageSendHelper.sendChatMessage("$chatName Shuffled tasks (x$stuckBuilding)")
+                            if (debugMessages.value == DebugMessages.ALL) MessageSendHelper.sendChatMessage("$chatName Shuffled tasks (${stuckBuilding}x)")
                             if (stuckBuilding > blockOffsets.size) {
                                 refreshData()
                                 if (debugMessages.value == DebugMessages.IMPORTANT) MessageSendHelper.sendChatMessage("$chatName You got stuck, retry")
@@ -376,9 +377,10 @@ object HighwayTools : Module() {
             else -> {
 
                 // ToDo: inventory management function
-                //if (!placeBlock(blockTask.blockPos, blockTask.block)) return false
+
                 if (!BlockUtils.isPlaceable(blockTask.blockPos)) {
-                    if (debugMessages.value == DebugMessages.ALL) MessageSendHelper.sendChatMessage("Error: " + blockTask.blockPos + " is not a valid position to place a block.")
+                    if (debugMessages.value != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Error: " + blockTask.blockPos + " is not a valid position to place a block, removing task.")
+                    blockQueue.remove(blockTask)
                     return false
                 }
 
