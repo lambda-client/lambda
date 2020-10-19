@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.client
 
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.color.ColorConverter.rgbToInt
+import me.zeroeightsix.kami.util.color.ColorConverter.rgbToHex
 import me.zeroeightsix.kami.util.graphics.GlStateUtils.rescaleKami
 import me.zeroeightsix.kami.util.graphics.GlStateUtils.rescaleMc
 import me.zeroeightsix.kami.util.graphics.GuiFrameUtil.getFrameByName
@@ -14,11 +14,6 @@ import net.minecraft.util.NonNullList
 import net.minecraft.util.ResourceLocation
 import org.lwjgl.opengl.GL11
 
-/**
- * Updated by l1ving on 21/02/20
- * Slight updates by 20kdc, 19/02/20
- * Everything except somethingRender() methods was written by l1ving
- */
 @Module.Info(
         name = "InventoryViewer",
         category = Module.Category.CLIENT,
@@ -65,7 +60,7 @@ object InventoryViewer : Module() {
         GlStateManager.disableDepth()
         // }
         if (coloredBackground.value) { // 1 == 2 px in game
-            Gui.drawRect(x, y, x + 162, y + 54, rgbToInt(r.value, g.value, b.value, a.value))
+            Gui.drawRect(x, y, x + 162, y + 54, rgbToHex(r.value, g.value, b.value, a.value))
         }
         mc.renderEngine.bindTexture(box)
         GlStateManager.color(1f, 1f, 1f, 1f)

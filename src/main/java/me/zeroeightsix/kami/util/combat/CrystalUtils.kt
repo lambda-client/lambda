@@ -21,16 +21,10 @@ object CrystalUtils {
 
     /* Position Finding */
     @JvmStatic
-    fun getPlacePos(target: EntityLivingBase?, center: Entity?, radius: Float): Map<Float, BlockPos> {
-        if (target == null || center == null) return emptyMap()
+    fun getPlacePos(target: EntityLivingBase?, center: Entity?, radius: Float): List<BlockPos> {
+        if (target == null || center == null) return emptyList()
         val centerPos = if (center == mc.player) center.getPositionEyes(1f) else center.positionVector
-        val posList = VectorUtils.getBlockPosInSphere(centerPos, radius)
-        val damagePosMap = HashMap<Float, BlockPos>()
-        for (pos in posList) {
-            if (!canPlace(pos, target)) continue
-            damagePosMap[calcDamage(pos, target)] = pos
-        }
-        return damagePosMap
+        return VectorUtils.getBlockPosInSphere(centerPos, radius).filter { canPlace(it, target) }
     }
 
     fun getAxisRange(d1: Double, d2: Float): IntRange {
@@ -83,11 +77,14 @@ object CrystalUtils {
     fun canPlaceOn(blockPos: BlockPos) = mc.world.getBlockState(blockPos.down()).block == Blocks.BEDROCK || mc.world.getBlockState(blockPos.down()).block == Blocks.OBSIDIAN
 
     @JvmStatic
-    private fun getCrystalPlacingBB(blockPos: BlockPos): AxisAlignedBB {
-        return crystalPlacingBB.offset(Vec3d(blockPos).add(0.5, 0.0, 0.5))
-    }
+    private fun getCrystalPlacingBB(blockPos: BlockPos) = crystalPlacingBB.offset(Vec3d(blockPos).add(0.5, 0.0, 0.5))
+
+    @JvmStatic
+    fun getCrystalBB(blockPos: BlockPos): AxisAlignedBB = crystalBB.offset(Vec3d(blockPos).add(0.5, 0.0, 0.5))
 
     private val crystalPlacingBB: AxisAlignedBB get() = AxisAlignedBB(-0.5, 0.0, -0.5, 0.5, 2.0, 0.5)
+
+    private val crystalBB: AxisAlignedBB get() = AxisAlignedBB(-1.0, 0.0, -1.0, 1.0, 2.0, 1.0)
 
     /* Checks colliding with all entity */
     @JvmStatic
@@ -99,28 +96,28 @@ object CrystalUtils {
 
     /* Damage calculation */
     @JvmStatic
-    fun calcDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase, calcBlastReduction: Boolean = true): Float {
-        return calcDamage(crystal.positionVector, entity, calcBlastReduction)
+    fun calcDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.boundingBox, calcBlastReduction: Boolean = true): Float {
+        return calcDamage(crystal.positionVector, entity, entityPos, entityBB, calcBlastReduction)
     }
 
     @JvmStatic
-    fun calcDamage(blockPos: BlockPos, entity: EntityLivingBase, calcBlastReduction: Boolean = true): Float {
-        return calcDamage(Vec3d(blockPos).add(0.5, 1.0, 0.5), entity, calcBlastReduction)
+    fun calcDamage(blockPos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.boundingBox, calcBlastReduction: Boolean = true): Float {
+        return calcDamage(Vec3d(blockPos).add(0.5, 1.0, 0.5), entity, entityPos, entityBB, calcBlastReduction)
     }
 
     @JvmStatic
-    fun calcDamage(pos: Vec3d, entity: EntityLivingBase, calcBlastReduction: Boolean = true): Float {
+    fun calcDamage(pos: Vec3d, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.boundingBox, calcBlastReduction: Boolean = true): Float {
         if (entity is EntityPlayer && entity.isCreative) return 0.0f // Return 0 directly if entity is a player and in creative mode
-        var damage = calcRawDamage(pos, entity)
+        var damage = calcRawDamage(pos, entity, entityPos, entityBB)
         if (calcBlastReduction) damage = CombatUtils.calcDamage(entity, damage, getDamageSource(pos))
         if (entity is EntityPlayer) damage *= getDamageMultiplier()
         return max(damage, 0f)
     }
 
     @JvmStatic
-    private fun calcRawDamage(pos: Vec3d, entity: Entity): Float {
-        val distance = pos.distanceTo(entity.positionVector)
-        val v = (1.0 - (distance / 12.0)) * entity.world.getBlockDensity(pos, entity.boundingBox)
+    private fun calcRawDamage(pos: Vec3d, entity: Entity, entityPos: Vec3d, entityBB: AxisAlignedBB): Float {
+        val distance = pos.distanceTo(entityPos)
+        val v = (1.0 - (distance / 12.0)) * entity.world.getBlockDensity(pos, entityBB)
         return ((v * v + v) / 2.0 * 84.0 + 1.0).toFloat()
     }
 

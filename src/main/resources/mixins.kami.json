@@ -30,6 +30,7 @@
     "MixinGuiNewChat",
     "MixinGuiPlayerTabOverlay",
     "MixinGuiScreen",
+    "MixinItemRenderer",
     "MixinLayerArmorBase",
     "MixinMinecraft",
     "MixinModelBiped",
@@ -46,7 +47,5 @@
     "MixinTileEntityBeacon",
     "MixinVisGraph",
     "MixinWorld"
-  ],
-  "mixins": [
   ]
 }

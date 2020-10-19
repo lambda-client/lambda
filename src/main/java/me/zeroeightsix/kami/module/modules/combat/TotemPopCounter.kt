@@ -77,6 +77,7 @@ object TotemPopCounter : Module() {
             sendMessage("${formatName(player)} died after popping ${formatNumber(count)} ${plural(count)}${ending()}")
             toRemove.add(player)
         }
+        playerList.keys.removeAll(toRemove)
 
         wasDead = mc.player.isDead
     }

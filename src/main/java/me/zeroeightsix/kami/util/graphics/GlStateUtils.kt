@@ -14,21 +14,30 @@ object GlStateUtils {
     }
 
     @JvmStatic
+    fun alpha(state: Boolean) {
+        if (state) {
+            GlStateManager.enableAlpha()
+        } else {
+            GlStateManager.disableAlpha()
+        }
+    }
+
+    @JvmStatic
     fun blend(state: Boolean) {
         if (state) {
-            glEnable(GL_BLEND)
+            GlStateManager.enableBlend()
             GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO)
         } else {
-            glDisable(GL_BLEND)
+            GlStateManager.disableBlend()
         }
     }
 
     @JvmStatic
     fun smooth(state: Boolean) {
         if (state) {
-            glShadeModel(GL_SMOOTH)
+            GlStateManager.shadeModel(GL_SMOOTH)
         } else {
-            glShadeModel(GL_FLAT)
+            GlStateManager.shadeModel(GL_FLAT)
         }
     }
 
@@ -45,27 +54,27 @@ object GlStateUtils {
     @JvmStatic
     fun depth(state: Boolean) {
         if (state) {
-            glEnable(GL_DEPTH_TEST)
+            GlStateManager.enableDepth()
         } else {
-            glDisable(GL_DEPTH_TEST)
+            GlStateManager.disableDepth()
         }
     }
 
     @JvmStatic
     fun texture2d(state: Boolean) {
         if (state) {
-            glEnable(GL_TEXTURE_2D)
+            GlStateManager.enableTexture2D()
         } else {
-            glDisable(GL_TEXTURE_2D)
+            GlStateManager.disableTexture2D()
         }
     }
 
     @JvmStatic
     fun cull(state: Boolean) {
         if (state) {
-            glEnable(GL_CULL_FACE)
+            GlStateManager.enableCull()
         } else {
-            glDisable(GL_CULL_FACE)
+            GlStateManager.disableCull()
         }
     }
 

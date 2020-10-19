@@ -46,7 +46,7 @@ public class KamiPotionUi extends AbstractComponentUI<Potions> {
 
 
         for (PotionInfo potion : potions) {
-            ColorHolder color = ColorConverter.intToRgb(potion.getPotionEffect().getPotion().getLiquidColor());
+            ColorHolder color = ColorConverter.hexToRgb(potion.getPotionEffect().getPotion().getLiquidColor());
             String text = potion.formattedName(component.getAlignment().equals(AlignedComponent.Alignment.RIGHT));
             float textWidth = FontRenderAdapter.INSTANCE.getStringWidth(text);
             float textHeight = FontRenderAdapter.INSTANCE.getFontHeight() + 1;

@@ -207,6 +207,7 @@ object RenderUtils2D {
     }
 
     private fun prepareGl() {
+        GlStateUtils.alpha(false)
         GlStateUtils.texture2d(false)
         GlStateUtils.blend(true)
         GlStateUtils.smooth(true)
@@ -215,8 +216,8 @@ object RenderUtils2D {
     }
 
     private fun releaseGl() {
+        GlStateUtils.alpha(true)
         GlStateUtils.texture2d(true)
-        GlStateUtils.blend(false)
         GlStateUtils.smooth(false)
         GlStateUtils.lineSmooth(false)
         GlStateUtils.cull(true)

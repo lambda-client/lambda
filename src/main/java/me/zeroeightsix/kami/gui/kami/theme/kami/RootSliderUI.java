@@ -36,10 +36,10 @@ public class RootSliderUI extends AbstractComponentUI<Slider> {
         if (component.isPressed()) {
             width -= FontRenderAdapter.INSTANCE.getStringWidth(s, 0.75f) / 2f;
             width = Math.max(0, Math.min(width, component.getWidth() - FontRenderAdapter.INSTANCE.getStringWidth(s, 0.75f)));
-            FontRenderAdapter.INSTANCE.drawString(s, (float) width, 0, true, new ColorHolder(255, 255, 255), 0.75f);
+            FontRenderAdapter.INSTANCE.drawString(s, (float) width, 0, false, new ColorHolder(255, 255, 255), 0.75f);
         } else {
-            FontRenderAdapter.INSTANCE.drawString(component.getText(), 0, 0, true, new ColorHolder(255, 255, 255), 0.75f);
-            FontRenderAdapter.INSTANCE.drawString(s, component.getWidth() - FontRenderAdapter.INSTANCE.getStringWidth(s, 0.75f), 0, true, new ColorHolder(255, 255, 255), 0.75f);
+            FontRenderAdapter.INSTANCE.drawString(component.getText(), 0, 0, false, new ColorHolder(255, 255, 255), 0.75f);
+            FontRenderAdapter.INSTANCE.drawString(s, component.getWidth() - FontRenderAdapter.INSTANCE.getStringWidth(s, 0.75f), 0, false, new ColorHolder(255, 255, 255), 0.75f);
         }
     }
 

@@ -46,7 +46,7 @@ public class KamiFrameUI<T extends Frame> extends AbstractComponentUI<Frame> {
         RenderUtils2D.drawRectFilled(vertexHelper, new Vec2d(component.getWidth(), component.getHeight()), new ColorHolder(GuiC.windowFilled.color));
         RenderUtils2D.drawRectOutline(vertexHelper, new Vec2d(0.0, 0.0), new Vec2d(component.getWidth(), component.getHeight()), 1.8f, new ColorHolder(GuiC.windowOutline.color));
 
-        FontRenderAdapter.INSTANCE.drawString(component.getTitle(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getTitle()) / 2f, 1f);
+        FontRenderAdapter.INSTANCE.drawString(component.getTitle(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getTitle()) / 2f, 1f, false);
 
         int top_y = 5;
         float bottom_y = FontRenderAdapter.INSTANCE.getFontHeight() - 9f;

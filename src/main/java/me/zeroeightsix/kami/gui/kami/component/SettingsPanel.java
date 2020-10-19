@@ -56,7 +56,7 @@ public class SettingsPanel extends OrganisedContainer {
                 boolean isEnum = setting instanceof EnumSetting;
 
                 if (setting.getValue() instanceof Bind) {
-                    addChild(new BindButton("Bind", null, module));
+                    addChild(new BindButton(setting.getName(), null, module, setting));
                 }
 
                 if (isNumber) {

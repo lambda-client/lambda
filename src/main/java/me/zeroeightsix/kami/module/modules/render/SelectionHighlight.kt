@@ -1,15 +1,16 @@
 package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
+import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.graphics.GeometryMasks
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
-import net.minecraft.util.math.BlockPos
+import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import net.minecraft.util.math.RayTraceResult.Type
-import kotlin.math.floor
 
 @Module.Info(
         name = "SelectionHighlight",
@@ -30,34 +31,39 @@ object SelectionHighlight : Module() {
     private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withValue(200).withRange(0, 255).withVisibility { outline.value }.build())
     private val thickness = register(Settings.floatBuilder("LineThickness").withValue(2.0f).withRange(0.0f, 8.0f).build())
 
-    override fun onWorldRender(event: RenderWorldEvent) {
-        val eyePos = mc.player.getPositionEyes(KamiTessellator.pTicks())
-        val eyeBlockPos = BlockPos(floor(eyePos.x), floor(eyePos.y), floor(eyePos.z))
-        if (!mc.world.isAirBlock(eyeBlockPos) && !mc.player.isInLava && !mc.player.isInWater) return
-        val colour = ColorHolder(r.value, g.value, b.value)
-        val hitObject = mc.objectMouseOver ?: return
-        val renderer = ESPRenderer()
+    private val renderer = ESPRenderer()
 
-        renderer.aFilled = if (filled.value) aFilled.value else 0
-        renderer.aOutline = if (outline.value) aOutline.value else 0
-        renderer.through = throughBlocks.value
-        renderer.thickness = thickness.value
-        renderer.fullOutline = true
+    init {
+        listener<RenderWorldEvent> {
+            val viewEntity = mc.renderViewEntity ?: mc.player ?: return@listener
+            val eyePos = viewEntity.getPositionEyes(KamiTessellator.pTicks())
+            if (!mc.world.isAirBlock(eyePos.toBlockPos())) return@listener
+            val colour = ColorHolder(r.value, g.value, b.value)
+            val hitObject = mc.objectMouseOver ?: return@listener
 
-        if (entity.value && hitObject.typeOfHit == Type.ENTITY) {
-            val lookVec = mc.player.lookVec
-            val sightEnd = eyePos.add(lookVec.scale(6.0))
-            val hitSide = hitObject.entityHit.boundingBox.calculateIntercept(eyePos, sightEnd)!!.sideHit
-            val side = if (hitSideOnly.value) GeometryMasks.FACEMAP[hitSide]!! else GeometryMasks.Quad.ALL
-            renderer.add(hitObject.entityHit, colour, side)
+            if (entity.value && hitObject.typeOfHit == Type.ENTITY) {
+                val lookVec = mc.player.lookVec
+                val sightEnd = eyePos.add(lookVec.scale(6.0))
+                val hitSide = hitObject.entityHit.boundingBox.calculateIntercept(eyePos, sightEnd)!!.sideHit
+                val side = if (hitSideOnly.value) GeometryMasks.FACEMAP[hitSide]!! else GeometryMasks.Quad.ALL
+                renderer.add(hitObject.entityHit, colour, side)
+            }
+
+            if (block.value && hitObject.typeOfHit == Type.BLOCK) {
+                val box = mc.world.getBlockState(hitObject.blockPos).getSelectedBoundingBox(mc.world, hitObject.blockPos)
+                        ?: return@listener
+                val side = if (hitSideOnly.value) GeometryMasks.FACEMAP[hitObject.sideHit]!! else GeometryMasks.Quad.ALL
+                renderer.add(box.grow(0.002), colour, side)
+            }
+            renderer.render(true)
         }
 
-        if (block.value && hitObject.typeOfHit == Type.BLOCK) {
-            val box = mc.world.getBlockState(hitObject.blockPos).getSelectedBoundingBox(mc.world, hitObject.blockPos)
-                    ?: return
-            val side = if (hitSideOnly.value) GeometryMasks.FACEMAP[hitObject.sideHit]!! else GeometryMasks.Quad.ALL
-            renderer.add(box.grow(0.002), colour, side)
+        listener<SafeTickEvent> {
+            renderer.aFilled = if (filled.value) aFilled.value else 0
+            renderer.aOutline = if (outline.value) aOutline.value else 0
+            renderer.through = throughBlocks.value
+            renderer.thickness = thickness.value
+            renderer.fullOutline = true
         }
-        renderer.render(true)
     }
 }

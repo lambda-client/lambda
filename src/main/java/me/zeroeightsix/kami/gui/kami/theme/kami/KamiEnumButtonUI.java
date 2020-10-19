@@ -42,10 +42,10 @@ public class KamiEnumButtonUI extends AbstractComponentUI<EnumButton> {
         RenderUtils2D.drawLine(vertexHelper, new Vec2d(startX, height - 1), new Vec2d(endX, height - 1), 1.5f, new ColorHolder(GuiC.sliderColour.color));
 
         if (modeComponent == null || !modeComponent.equals(component)) {
-            FontRenderAdapter.INSTANCE.drawString(component.getName(), 0, 1f, true, color, 0.75f);
-            FontRenderAdapter.INSTANCE.drawString(component.getIndexMode(), component.getWidth() - FontRenderAdapter.INSTANCE.getStringWidth(component.getIndexMode(), 0.75f), 1f, true, color, 0.75f);
+            FontRenderAdapter.INSTANCE.drawString(component.getName(), 0, 1f, false, color, 0.75f);
+            FontRenderAdapter.INSTANCE.drawString(component.getIndexMode(), component.getWidth() - FontRenderAdapter.INSTANCE.getStringWidth(component.getIndexMode(), 0.75f), 1f, false, color, 0.75f);
         } else {
-            FontRenderAdapter.INSTANCE.drawString(component.getIndexMode(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getIndexMode(), 0.75f) / 2f, 1f, true, color, 0.75f);
+            FontRenderAdapter.INSTANCE.drawString(component.getIndexMode(), component.getWidth() / 2f - FontRenderAdapter.INSTANCE.getStringWidth(component.getIndexMode(), 0.75f) / 2f, 1f, false, color, 0.75f);
         }
     }
 

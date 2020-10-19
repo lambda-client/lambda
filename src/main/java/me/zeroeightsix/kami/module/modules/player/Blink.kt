@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.player
 
+import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
@@ -8,6 +9,7 @@ import me.zeroeightsix.kami.util.event.listener
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
 import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 
 @Module.Info(
@@ -15,7 +17,7 @@ import java.util.*
         category = Module.Category.PLAYER,
         description = "Cancels server side packets"
 )
-object Blink : Module() {
+object  Blink : Module() {
     private val cancelPacket = register(Settings.b("CancelPackets", false))
     private val autoReset = register(Settings.b("AutoReset", true))
     private val resetThreshold = register(Settings.integerBuilder("ResetThreshold").withValue(20).withRange(1, 100).withVisibility { autoReset.value })
@@ -25,18 +27,24 @@ object Blink : Module() {
     private var sending = false
 
     init {
-        listener<PacketEvent.Receive> {
+        listener<PacketEvent.Send> {
             if (!sending && it.packet is CPacketPlayer) {
                 it.cancel()
                 packets.add(it.packet)
             }
         }
-    }
 
-    override fun onUpdate(event: SafeTickEvent) {
-        if (autoReset.value && packets.size >= resetThreshold.value) {
-            end()
-            begin()
+        listener<SafeTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@listener
+            if (autoReset.value && packets.size >= resetThreshold.value) {
+                end()
+                begin()
+            }
+        }
+
+        listener<ConnectionEvent.Disconnect> {
+            packets.clear()
+            clonedPlayer = null
         }
     }
 

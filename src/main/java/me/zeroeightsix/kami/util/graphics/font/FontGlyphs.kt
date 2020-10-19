@@ -67,14 +67,14 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
     private val chunkMap = HashMap<Int, GlyphChunk>()
 
     /** Font height */
-    val fontHeight: Int
+    val fontHeight: Float
 
     init {
         // Loads the basic 256 characters on init
-        fontHeight = loadGlyphChunk(0)?.let { glyphChunk ->
-            chunkMap[0] = glyphChunk
-            glyphChunk.charInfoArray.maxBy { it.height }?.height ?: 32
-        } ?: 32
+        fontHeight = loadGlyphChunk(0)?.let { chunk ->
+            chunkMap[0] = chunk
+            chunk.charInfoArray.maxBy { it.height }?.height?.toFloat() ?: 32.0f
+        } ?: 32.0f
     }
 
     /** @return CharInfo of [char] */
@@ -115,7 +115,7 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
             var positionX = 1
             var positionY = 1
 
-            val charInfoArray = Array(256) {
+            val builderArray = Array(256) {
                 val char = (chunkStart + it).toChar() // Plus 1 because char starts at 1 not 0
                 val charImage = getCharImage(char) // Get image for this character
 
@@ -125,12 +125,12 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
                     rowHeight = 0
                 }
 
-                val charInfo = CharInfo(positionX, positionY, charImage.width, charImage.height) // Create char info for this character
+                val builder = CharInfoBuilder(positionX, positionY, charImage.width, charImage.height) // Create char info for this character
                 rowHeight = max(charImage.height, rowHeight) // Update row height
                 graphics2D.drawImage(charImage, positionX, positionY, null) // Draw it here
 
                 positionX += charImage.width + 2 // Move right for next character
-                charInfo // Return the char info to lambda
+                builder // Return the char info builder to lambda
             }
 
             val textureHeight = min(MathUtils.ceilToPOT(positionY + rowHeight), MAX_TEXTURE_HEIGHT)
@@ -138,7 +138,8 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
             (textureImage.graphics as Graphics2D).drawImage(bufferedImage, 0, 0, null)
 
             val dynamicTexture = createTexture(textureImage) ?: throw Exception()
-            GlyphChunk(chunk, dynamicTexture.glTextureId, dynamicTexture, textureHeight, charInfoArray)
+            val charInfoArray = builderArray.map { it.build(textureHeight.toDouble()) }.toTypedArray()
+            GlyphChunk(chunk, dynamicTexture.glTextureId, dynamicTexture, charInfoArray)
         } catch (e: Exception) {
             KamiMod.log.error("Failed to load glyph chunk $chunk.")
             e.printStackTrace()
@@ -214,18 +215,45 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
         }
     }
 
+    class CharInfoBuilder(val posX: Int, val posY: Int, val width: Int, val height: Int) {
+        fun build(textureHeight: Double): CharInfo {
+            return CharInfo(
+                    posX.toDouble(),
+                    posY.toDouble(),
+                    width.toDouble(),
+                    height.toDouble(),
+                    posX / TEXTURE_WIDTH_DOUBLE,
+                    posY / textureHeight,
+                    (posX + width) / TEXTURE_WIDTH_DOUBLE,
+                    (posY + height) / textureHeight
+            )
+        }
+    }
+
     data class CharInfo(
             /** Character's stored x position  */
-            val posX: Int,
+            val posX1: Double,
 
             /** Character's stored y position  */
-            val posY: Int,
+            val posY1: Double,
 
             /** Character's width  */
-            val width: Int,
+            val width: Double,
 
             /** Character's height  */
-            val height: Int
+            val height: Double,
+
+            /** Upper left u */
+            val u1: Double,
+
+            /** Upper left v */
+            val v1: Double,
+
+            /** Lower right u */
+            val u2: Double,
+
+            /** Lower right v */
+            val v2: Double
     )
 
     data class GlyphChunk(
@@ -238,17 +266,12 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
             /** Dynamic texture object */
             val dynamicTexture: DynamicTexture,
 
-            /** Texture height of this chunk texture */
-            val textureHeight: Int,
-
             /** Array for all characters' info in this chunk */
             val charInfoArray: Array<CharInfo>
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as GlyphChunk
+            if (other !is GlyphChunk) return false
 
             if (chunk != other.chunk) return false
             if (textureId != other.textureId) return false
@@ -268,6 +291,9 @@ class FontGlyphs(val style: TextProperties.Style, private val font: Font, privat
     companion object {
         /** Default font texture width */
         const val TEXTURE_WIDTH = 1024
+
+        /** Default font texture width */
+        const val TEXTURE_WIDTH_DOUBLE = 1024.0
 
         /** Max font texture height */
         const val MAX_TEXTURE_HEIGHT = 1024

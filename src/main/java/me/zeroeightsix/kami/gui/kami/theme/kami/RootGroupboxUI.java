@@ -17,7 +17,7 @@ public class RootGroupboxUI extends AbstractComponentUI<Groupbox> {
 
     @Override
     public void renderComponent(Groupbox component) {
-        FontRenderAdapter.INSTANCE.drawString(component.getName(), 1, 1);
+        FontRenderAdapter.INSTANCE.drawString(component.getName(), 1, 1, false);
 
         VertexHelper vertexHelper = new VertexHelper(GlStateUtils.useVbo());
         RenderUtils2D.drawRectOutline(vertexHelper, new Vec2d(0, 0), new Vec2d(component.getWidth(), component.getHeight()), 1f, new ColorHolder(255, 0, 0));

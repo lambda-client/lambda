@@ -77,4 +77,8 @@ class Vec2f(@JvmField var x: Float, @JvmField var y: Float) {
     fun add(x: Float, y: Float): Vec2f {
         return Vec2f(this.x + x, this.y + y)
     }
+
+    companion object {
+        val ZERO get() = Vec2f(0f, 0f)
+    }
 }

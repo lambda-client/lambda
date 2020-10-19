@@ -5,8 +5,6 @@ import me.zeroeightsix.kami.module.modules.client.CustomFont
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.color.DyeColors
 import me.zeroeightsix.kami.util.graphics.GlStateUtils
-import me.zeroeightsix.kami.util.graphics.font.FontGlyphs.Companion.TEXTURE_WIDTH
-import me.zeroeightsix.kami.util.math.Vec2d
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
@@ -90,7 +88,8 @@ object KamiFontRenderer {
 
     init {
         // Prints Slick2D's license to log as required
-        KamiMod.log.info("""Slick2D's TrueTypeFont renderer code was used in this mod
+        KamiMod.log.info("""
+            Slick2D's TrueTypeFont renderer code was used in this mod
             
             License
             Copyright (c) 2013, Slick2D
@@ -132,6 +131,7 @@ object KamiFontRenderer {
 
     fun reloadFonts() {
         for (i in glyphArray.indices) {
+            glyphArray[i].destroy()
             glyphArray[i] = loadFont(i)
         }
     }
@@ -168,37 +168,26 @@ object KamiFontRenderer {
 
     private fun getSansSerifFont(style: Int) = Font("SansSerif", style, 32)
 
-    @JvmOverloads
-    fun drawString(text: String, posXIn: Float = 0f, posYIn: Float = 0f, drawShadow: Boolean = true, color: ColorHolder = ColorHolder(255, 255, 255), scale: Float = 1f) {
-        if (drawShadow) {
-            drawString(text, posXIn + 0.7f, posYIn + 0.7f, color, scale, true)
-        }
-        drawString(text, posXIn, posYIn, color, scale, false)
-    }
-
-    private fun drawString(text: String, posXIn: Float, posYIn: Float, colorIn: ColorHolder, scale: Float, isShadow: Boolean) {
+    fun drawString(text: String, posXIn: Float = 0f, posYIn: Float = 0f, drawShadow: Boolean = true, colorIn: ColorHolder = ColorHolder(255, 255, 255), scale: Float = 1f) {
         var posX = 0.0
         var posY = 0.0
 
         GlStateManager.disableOutlineMode() // Weird fix for black text
-        glEnable(GL_TEXTURE_2D)
-        glDisable(GL_LIGHTING)
-        glDisable(GL_ALPHA_TEST)
+        GlStateUtils.texture2d(true)
+        GlStateUtils.alpha(false)
         GlStateUtils.blend(true)
         glPushMatrix()
         glTranslatef(posXIn, posYIn, 0.0f)
-        glScalef(CustomFont.size.value * 0.28f * scale, CustomFont.size.value * 0.28f * scale, 1.0f)
-        glTranslatef(0f, -1f, 0f)
+        glScalef(CustomFont.size * scale, CustomFont.size * scale, 1.0f)
+        glTranslatef(0f, -4f, 0f)
 
         resetStyle()
 
         for ((index, char) in text.withIndex()) {
             if (checkStyleCode(text, index)) continue
-            val charInfo = currentVariant.getCharInfo(char)
             val chunk = currentVariant.getChunk(char)
-
+            val charInfo = currentVariant.getCharInfo(char)
             val color = if (currentColor == DyeColors.WHITE.color) colorIn else currentColor
-            if (isShadow) getShadowColor(color).setGLColor() else color.setGLColor()
 
             GlStateManager.bindTexture(chunk.textureId)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
@@ -208,55 +197,56 @@ object KamiFontRenderer {
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.333f)
 
             if (char == '\n') {
-                posY += currentVariant.fontHeight * CustomFont.size.value * 0.28f
+                posY += currentVariant.fontHeight * CustomFont.lineSpace
                 posX = 0.0
             } else {
-                val pos1 = Vec2d(posX, posY)
-                val pos2 = pos1.add(charInfo.width.toDouble(), charInfo.height.toDouble())
-                val texPos1 = Vec2d(charInfo.posX.toDouble(), charInfo.posY.toDouble()).divide(TEXTURE_WIDTH.toDouble(), chunk.textureHeight.toDouble())
-                val texPos2 = texPos1.add(Vec2d(charInfo.width.toDouble(), charInfo.height.toDouble()).divide(TEXTURE_WIDTH.toDouble(), chunk.textureHeight.toDouble()))
+                if (drawShadow) {
+                    getShadowColor(color).setGLColor()
+                    drawQuad(posX + 2.2, posY + 2.2, charInfo)
+                }
 
-                drawQuad(pos1, pos2, texPos1, texPos2)
-                posX += charInfo.width + CustomFont.gap.value - 1f
+                color.setGLColor()
+                drawQuad(posX, posY, charInfo)
+                posX += charInfo.width + CustomFont.gap
             }
         }
         resetStyle()
 
         glPopMatrix()
-        glEnable(GL_ALPHA_TEST)
+        GlStateUtils.alpha(true)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f)
-        glColor4f(1f, 1f, 1f, 1f)
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f)
     }
 
     private fun getShadowColor(color: ColorHolder) = ColorHolder((color.r * 0.2f).toInt(), (color.g * 0.2f).toInt(), (color.b * 0.2f).toInt(), (color.a * 0.9f).toInt())
 
-    private fun drawQuad(pos1: Vec2d, pos2: Vec2d, texPos1: Vec2d, texPos2: Vec2d) {
+    private fun drawQuad(posX: Double, posY: Double, charInfo: FontGlyphs.CharInfo) {
         buffer.begin(GL_TRIANGLE_STRIP, DefaultVertexFormats.POSITION_TEX)
-        buffer.pos(pos1.x, pos1.y, 0.0).tex(texPos1.x, texPos1.y).endVertex()
-        buffer.pos(pos1.x, pos2.y, 0.0).tex(texPos1.x, texPos2.y).endVertex()
-        buffer.pos(pos2.x, pos1.y, 0.0).tex(texPos2.x, texPos1.y).endVertex()
-        buffer.pos(pos2.x, pos2.y, 0.0).tex(texPos2.x, texPos2.y).endVertex()
+        buffer.pos(posX, posY, 0.0).tex(charInfo.u1, charInfo.v1).endVertex()
+        buffer.pos(posX, posY + charInfo.height, 0.0).tex(charInfo.u1, charInfo.v2).endVertex()
+        buffer.pos(posX + charInfo.width, posY, 0.0).tex(charInfo.u2, charInfo.v1).endVertex()
+        buffer.pos(posX + charInfo.width, charInfo.height, 0.0).tex(charInfo.u2, charInfo.v2).endVertex()
         tessellator.draw()
     }
 
     @JvmOverloads
     fun getFontHeight(scale: Float = 1f): Float {
-        return glyphArray[0].fontHeight * (CustomFont.size.value * (CustomFont.lineSpace.value * 0.01f + 0.28f)) * scale
+        return (glyphArray[0].fontHeight * CustomFont.lineSpace * scale)
     }
 
     @JvmOverloads
     fun getStringWidth(text: String, scale: Float = 1f): Float {
-        var width = 0f
+        var width = 0.0
         resetStyle()
         for ((index, char) in text.withIndex()) {
             if (checkStyleCode(text, index)) continue
-            width += currentVariant.getCharInfo(char).width + CustomFont.gap.value - 1f
+            width += currentVariant.getCharInfo(char).width + CustomFont.gap
         }
         resetStyle()
-        return width * CustomFont.size.value * 0.28f * scale
+        return (width * CustomFont.size * scale).toFloat()
     }
 
     private fun resetStyle() {

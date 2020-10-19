@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module
 
 import me.zeroeightsix.kami.KamiMod
-import me.zeroeightsix.kami.event.events.RenderOverlayEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.modules.ClickGUI
@@ -23,6 +22,9 @@ object ModuleManager {
 
     /** HashMap for the registered Modules */
     private val moduleMap = HashMap<Class<out Module>, Module>()
+
+    /** Thread for sorting the modules */
+    private var sortingThread: Thread? = null
 
     /** Array for the registered Modules (sorted) */
     private lateinit var moduleList: Array<Module>
@@ -74,23 +76,27 @@ object ModuleManager {
     }
 
     private fun initSortedList() {
-        Thread {
+        sortingThread = Thread {
             moduleList = moduleMap.values.stream().sorted(Comparator.comparing { module: Module ->
                 module.javaClass.simpleName
             }).toArray { size -> arrayOfNulls<Module>(size) }
-        }.start()
+            sortingThread = null
+        }.also {
+            it.name = "Modules Sorting Thread"
+            it.start()
+        }
     }
 
     @Deprecated ("Use event listener for SafeTickEvent instead")
     fun onUpdate(event: SafeTickEvent) {
-        for (module in moduleList) {
+        for (module in getModules()) {
             if (isModuleListening(module) && inGame()) module.onUpdate(event)
         }
     }
 
     @Deprecated ("Use event listener for RenderOverlayEvent instead")
     fun onRender() {
-        for (module in moduleList) {
+        for (module in getModules()) {
             if (isModuleListening(module)) {
                 module.onRender()
             }
@@ -99,7 +105,7 @@ object ModuleManager {
 
     @Deprecated ("Use event listener for RenderWorldEvent instead")
     fun onWorldRender(event: RenderWorldEvent) {
-        for (module in moduleList) {
+        for (module in getModules()) {
             if (isModuleListening(module)) {
                 KamiTessellator.prepareGL()
                 module.onWorldRender(event)
@@ -110,13 +116,16 @@ object ModuleManager {
 
     fun onBind(eventKey: Int) {
         if (eventKey == 0) return  // if key is the 'none' key (stuff like mod key in i3 might return 0)
-        for (module in moduleList) {
+        for (module in getModules()) {
             if (module.bind.value.isDown(eventKey)) module.toggle()
         }
     }
 
     @JvmStatic
-    fun getModules() = moduleList
+    fun getModules(): Array<Module> {
+        sortingThread?.join()
+        return moduleList
+    }
 
     @JvmStatic
     fun getModule(name: String?): Module? {

@@ -44,8 +44,8 @@ public class BindCommand extends Command {
 
             sendChatMessage("You have the following binds: ");
             for (Module module1 : modules) {
-                if (module1.getBindName().equals("None")) continue;
-                sendRawChatMessage(module1.getBindName() + ": " + module1.name.getValue());
+                if (module1.bind.getValue().toString().equals("None")) continue;
+                sendRawChatMessage(module1.bind.getValue().toString() + ": " + module1.name.getValue());
             }
             return;
         } else if (module.equalsIgnoreCase("modifiers")) {
@@ -69,7 +69,7 @@ public class BindCommand extends Command {
         try {
             Module m = ModuleManager.getModule(module);
             if (rkey == null) {
-                sendChatMessage(m.name.getValue() + " is bound to &b" + m.getBindName());
+                sendChatMessage(m.bind.getValue().toString() + " is bound to &b" + m.getBindName());
                 return;
             }
             int key = Wrapper.getKey(rkey);

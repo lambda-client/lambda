@@ -119,6 +119,9 @@ object CombatUtils {
         if (bestSlot != -1) InventoryUtils.swapSlot(bestSlot)
     }
 
+    @JvmStatic
+    fun getHealthSmart(entity: EntityLivingBase) = entity.health + entity.absorptionAmount * (entity.health / entity.maxHealth)
+
     enum class PreferWeapon {
         SWORD, AXE, NONE
     }

@@ -1,10 +1,5 @@
 package me.zeroeightsix.kami.util.color
 
-/**
- * @author l1ving
- * Updated by l1ving on 04/03/20
- * Updated by Xiaro on 09/08/20
- */
 object ColorConverter {
     @JvmStatic
     fun toF(i: Int): Float {
@@ -17,21 +12,20 @@ object ColorConverter {
     }
 
     @JvmStatic
-    fun rgbToInt(r: Int, g: Int, b: Int, a: Int): Int {
+    fun rgbToHex(r: Int, g: Int, b: Int, a: Int): Int {
         return r shl 16 or (g shl 8) or b or (a shl 24)
     }
 
     @JvmStatic
-    fun rgbToInt(r: Int, g: Int, b: Int): Int {
+    fun rgbToHex(r: Int, g: Int, b: Int): Int {
         return r shl 16 or (g shl 8) or b
     }
 
     @JvmStatic
-    fun intToRgb(intColor: Int): ColorHolder {
-        val r = intColor shr 16 and 255
-        val g = intColor shr 8 and 255
-        val b = intColor and 255
-        val a = intColor shr 24 and 255
-        return ColorHolder(r, g, b, a)
+    fun hexToRgb(hexColor: Int): ColorHolder {
+        val r = hexColor shr 16 and 255
+        val g = hexColor shr 8 and 255
+        val b = hexColor and 255
+        return ColorHolder(r, g, b)
     }
 }

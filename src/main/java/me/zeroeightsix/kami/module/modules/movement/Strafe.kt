@@ -40,8 +40,9 @@ object Strafe : Module() {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.keyCode, false)
             mc.player.motionY = 0.41
             if (mc.player.isSprinting) {
-                mc.player.motionX -= sin(MovementUtils.getMoveYaw()) * 0.2
-                mc.player.motionZ += cos(MovementUtils.getMoveYaw()) * 0.2
+                val yaw = MovementUtils.calcMoveYaw()
+                mc.player.motionX -= sin(yaw) * 0.2
+                mc.player.motionZ += cos(yaw) * 0.2
             }
             mc.player.isAirBorne = true
             jumpTicks = 5

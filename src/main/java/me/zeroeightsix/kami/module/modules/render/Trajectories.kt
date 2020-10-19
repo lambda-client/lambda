@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.FastUse
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
@@ -12,6 +13,7 @@ import me.zeroeightsix.kami.util.graphics.GeometryMasks
 import me.zeroeightsix.kami.util.graphics.GlStateUtils
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
 import net.minecraft.block.material.Material
+import net.minecraft.client.renderer.ActiveRenderInfo
 import net.minecraft.init.Items
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumFacing
@@ -54,56 +56,54 @@ object Trajectories : Module() {
         listener<LivingEntityUseItemEvent.Tick> {
             prevItemUseCount = mc.player.itemInUseCount
         }
-    }
 
-    override fun onWorldRender(event: RenderWorldEvent) {
-        val type = getThrowingType(mc.player?.heldItemMainhand) ?: getThrowingType(mc.player?.heldItemOffhand) ?: return
-        val path = ArrayList<Vec3d>()
-        val flightPath = FlightPath(type)
-        var simulationTicks = 0 // Prevent over calculating in some special cases
-        path.add(flightPath.position)
-        while (flightPath.collision == null && simulationTicks < 500) {
-            flightPath.simulateTick()
+        listener<RenderWorldEvent> {
+            val type = getThrowingType(mc.player?.heldItemMainhand) ?: getThrowingType(mc.player?.heldItemOffhand) ?: return@listener
+            val path = ArrayList<Vec3d>()
+            val flightPath = FlightPath(type)
             path.add(flightPath.position)
-            simulationTicks++
+            while (flightPath.collision == null && path.size < 500) {
+                flightPath.simulateTick()
+                path.add(flightPath.position)
+            }
+
+            val offset = getPathOffset()
+            val buffer = KamiTessellator.buffer
+            glLineWidth(thickness.value)
+            GlStateUtils.depth(false)
+            KamiTessellator.begin(GL_LINE_STRIP)
+            for ((index, pos) in path.withIndex()) {
+                val scale = ((path.size - 1) - index) * (1.0 / (path.size - 1))
+                val offsetPos = pos.add(offset.scale(scale))
+                buffer.pos(offsetPos.x, offsetPos.y, offsetPos.z).color(r.value, g.value, b.value, aOutline.value).endVertex()
+            }
+            KamiTessellator.render()
+
+            flightPath.collision?.let {
+                val box = (when (it.sideHit.axis) {
+                    EnumFacing.Axis.X -> AxisAlignedBB(0.0, -0.25, -0.25, 0.0, 0.25, 0.25)
+                    EnumFacing.Axis.Y -> AxisAlignedBB(-0.25, 0.0, -0.25, 0.25, 0.0, 0.25)
+                    else -> AxisAlignedBB(-0.25, -0.25, 0.0, 0.25, 0.25, 0.0)
+                }).offset(it.hitVec)
+
+                val color = ColorHolder(r.value, g.value, b.value)
+                val quadSide = GeometryMasks.FACEMAP[it.sideHit]!!
+                val renderer = ESPRenderer()
+                renderer.aFilled = aFilled.value
+                renderer.aOutline = aOutline.value
+                renderer.thickness = thickness.value
+                renderer.add(box, color, quadSide)
+                renderer.render(true)
+
+                renderer.aFilled = 0
+                if (showEntity.value && it.entityHit != null) renderer.add(it.entityHit, color)
+                else if (showBlock.value) renderer.add(it.blockPos, color)
+                renderer.render(true)
+            }
+
+            glLineWidth(1f)
+            GlStateUtils.depth(true)
         }
-
-        val offset = getPathOffset()
-        val buffer = KamiTessellator.buffer
-        glLineWidth(thickness.value)
-        GlStateUtils.depth(false)
-        KamiTessellator.begin(GL_LINE_STRIP)
-        for ((index, pos) in path.withIndex()) {
-            val scale = ((path.size - 1) - index) * (1.0 / (path.size - 1))
-            val offsetPos = pos.add(offset.scale(scale))
-            buffer.pos(offsetPos.x, offsetPos.y, offsetPos.z).color(r.value, g.value, b.value, aOutline.value).endVertex()
-        }
-        KamiTessellator.render()
-
-        flightPath.collision?.let {
-            val box = (when (it.sideHit.axis) {
-                EnumFacing.Axis.X -> AxisAlignedBB(0.0, -0.25, -0.25, 0.0, 0.25, 0.25)
-                EnumFacing.Axis.Y -> AxisAlignedBB(-0.25, 0.0, -0.25, 0.25, 0.0, 0.25)
-                else -> AxisAlignedBB(-0.25, -0.25, 0.0, 0.25, 0.25, 0.0)
-            }).offset(it.hitVec)
-
-            val color = ColorHolder(r.value, g.value, b.value)
-            val quadSide = GeometryMasks.FACEMAP[it.sideHit]!!
-            val renderer = ESPRenderer()
-            renderer.aFilled = aFilled.value
-            renderer.aOutline = aOutline.value
-            renderer.thickness = thickness.value
-            renderer.add(box, color, quadSide)
-            renderer.render(true)
-
-            renderer.aFilled = 0
-            if (showEntity.value && it.entityHit != null) renderer.add(it.entityHit, color)
-            else if (showBlock.value) renderer.add(it.blockPos, color)
-            renderer.render(true)
-        }
-
-        glLineWidth(1f)
-        GlStateUtils.depth(true)
     }
 
     private fun getPathOffset(): Vec3d {
@@ -111,10 +111,11 @@ object Trajectories : Module() {
         var multiplier = if (getThrowingType(mc.player.heldItemMainhand) != null) 1.0 else -1.0
         if (mc.gameSettings.mainHand != EnumHandSide.RIGHT) multiplier *= -1.0
         val eyePos = mc.player.getPositionEyes(KamiTessellator.pTicks())
+        val camPos = EntityUtils.getInterpolatedPos(mc.player, KamiTessellator.pTicks()).add(ActiveRenderInfo.getCameraPosition())
         val yawRad = Math.toRadians(mc.player.rotationYaw.toDouble())
         val pitchRad = Math.toRadians(mc.player.rotationPitch.toDouble())
         val offset = Vec3d(cos(yawRad) * 0.2 + sin(pitchRad) * -sin(yawRad) * 0.15, 0.0, sin(yawRad) * 0.2 + sin(pitchRad) * cos(yawRad) * 0.15)
-        return KamiTessellator.camPos.subtract(offset.scale(multiplier).add(0.0, cos(pitchRad) * 0.1, 0.0)).subtract(eyePos)
+        return camPos.subtract(offset.scale(multiplier).add(0.0, cos(pitchRad) * 0.1, 0.0)).subtract(eyePos)
     }
 
     private class FlightPath(val throwingType: ThrowingType) {

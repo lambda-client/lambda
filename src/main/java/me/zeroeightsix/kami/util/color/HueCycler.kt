@@ -1,13 +1,9 @@
 package me.zeroeightsix.kami.util.color
 
-import me.zeroeightsix.kami.util.color.ColorConverter.intToRgb
+import me.zeroeightsix.kami.util.color.ColorConverter.hexToRgb
 import org.lwjgl.opengl.GL11
 import java.awt.Color
 
-/**
- * Created by 086 on 22/01/2018.
- * Updated by Xiaro on 09/08/20
- */
 class HueCycler(val cycles: Int) {
     private val hueMultiplier = 1f / cycles.toFloat()
     private val colorCycle: Array<Int> = Array(cycles) { i ->
@@ -55,7 +51,7 @@ class HueCycler(val cycles: Int) {
     }
 
     fun currentRgb(): ColorHolder {
-        return intToRgb(currentInt())
+        return hexToRgb(currentInt())
     }
 
     operator fun plus(plus: Int) {
