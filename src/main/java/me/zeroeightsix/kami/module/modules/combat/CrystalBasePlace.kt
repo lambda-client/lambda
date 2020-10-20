@@ -83,6 +83,7 @@ object CrystalBasePlace : Module() {
 
             placePacket?.let { packet ->
                 if (inactiveTicks > 1) {
+                    if (!isHoldingObby) PlayerPacketManager.spoofHotbar(slot)
                     mc.player.swingArm(EnumHand.MAIN_HAND)
                     mc.connection!!.sendPacket(packet)
                     PlayerPacketManager.resetHotbar()
@@ -94,9 +95,6 @@ object CrystalBasePlace : Module() {
 
             if (isActive()) {
                 rotationTo?.let { hitVec ->
-                    if (!isHoldingObby(mc.player.heldItemMainhand) && !isHoldingObby(mc.player.inventory.getStackInSlot(PlayerPacketManager.serverSideHotbar))) {
-                        PlayerPacketManager.spoofHotbar(slot)
-                    }
                     val rotation = RotationUtils.getRotationTo(hitVec, true)
                     PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = true, rotation = Vec2f(rotation)))
                 }
@@ -106,7 +104,9 @@ object CrystalBasePlace : Module() {
         }
     }
 
-    private fun isHoldingObby(itemStack: ItemStack) = Block.getBlockFromItem(itemStack.getItem()) == Blocks.OBSIDIAN
+    private val isHoldingObby get() = isObby(mc.player.heldItemMainhand) || isObby(mc.player.inventory.getStackInSlot(PlayerPacketManager.serverSideHotbar))
+
+    private fun isObby(itemStack: ItemStack) = Block.getBlockFromItem(itemStack.getItem()) == Blocks.OBSIDIAN
 
     private fun getObby(): Int? {
         val slots = InventoryUtils.getSlotsHotbar(49)
