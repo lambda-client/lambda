@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.module.modules.movement
 
-import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.PacketHelper
 import me.zeroeightsix.kami.util.event.listener
 import net.minecraft.entity.player.EntityPlayer
@@ -42,7 +42,7 @@ object Step : Module() {
     }
 
     override fun onToggle() {
-        if (mc.player != null) BaritoneAPI.getSettings().assumeStep.value = isEnabled
+        BaritoneUtils.settings()?.assumeStep?.value = isEnabled
     }
 
     init {
@@ -51,13 +51,15 @@ object Step : Module() {
          */
         listener<SafeTickEvent> {
             if (mc.player.isElytraFlying || mc.player.capabilities.isFlying) return@listener
-            if (mode.value == Mode.VANILLA) {
-                if (mc.player.onGround && !mc.player.isOnLadder && !mc.player.isInWater && !mc.player.isInLava) {
-                    if (mc.player.collidedHorizontally) {
-                        mc.player.motionY = speed.value / 100.0
-                    } else if (downStep.value) {
-                        mc.player.motionY = -(speed.value / 100.0)
-                    }
+            if (mode.value == Mode.VANILLA
+                    && mc.player.onGround
+                    && !mc.player.isOnLadder
+                    && !mc.player.isInWater
+                    && !mc.player.isInLava) {
+                if (mc.player.collidedHorizontally) {
+                    mc.player.motionY = speed.value / 100.0
+                } else if (downStep.value) {
+                    mc.player.motionY = -(speed.value / 100.0)
                 }
             }
             if (mode.value == Mode.PACKET) {
