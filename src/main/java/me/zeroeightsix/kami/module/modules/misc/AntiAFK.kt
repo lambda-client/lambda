@@ -49,6 +49,7 @@ object AntiAFK : Module() {
     }
 
     override fun onEnable() {
+        if (mc.player == null) return
         with(BaritoneAPI.getSettings().disconnectOnArrival) {
             baritoneDisconnectOnArrival = value
             value = false
