@@ -25,24 +25,33 @@ import kotlin.math.floor
 )
 object ArmorHUD : Module() {
     private val damage = register(Settings.b("Damage", false))
+    private val scale = register(Settings.floatBuilder("Scale").withValue(1.0f).withRange(0.25f, 2.0f).withStep(0.05f))
 
     init {
         listener<RenderOverlayEvent> {
             if (mc.player.isCreative || mc.player.isSpectator) return@listener
+
             val resolution = ScaledResolution(mc)
-            val width = resolution.scaledWidth / 2 + 92
-            val height = resolution.scaledHeight - 55 - if (isEyeInWater()) 10 else 0
+            val width = resolution.scaledWidth / 2.0f + 50.0f
+            val height = resolution.scaledHeight - 39 - (16 * scale.value) - if (isEyeInWater()) 10 else 0
 
-            for ((index, itemStack) in mc.player.inventory.armorInventory.withIndex()) {
+            GlStateManager.pushMatrix()
+            GlStateManager.translate(width, height, 0.0f)
+            GlStateManager.scale(scale.value, scale.value, 1.0f)
+
+            for ((index, itemStack) in mc.player.inventory.armorInventory.reversed().withIndex()) {
                 if (itemStack.isEmpty()) continue
-                val x = width - (index + 1) * 20
+                val x = (index - 2) * 20.0f
 
+                GlStateManager.pushMatrix()
+                GlStateManager.translate(x, 0.0f, 0.0f)
                 GlStateManager.enableDepth()
                 GlStateManager.enableTexture2D()
+
                 RenderHelper.enableGUIStandardItemLighting()
                 mc.renderItem.zLevel = 200f
-                mc.renderItem.renderItemAndEffectIntoGUI(itemStack, x, height)
-                mc.renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, itemStack, x, height, "")
+                mc.renderItem.renderItemAndEffectIntoGUI(itemStack, 2, 0)
+                mc.renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, itemStack, 2, 0, "")
                 mc.renderItem.zLevel = 0f
                 RenderHelper.disableStandardItemLighting()
 
@@ -51,11 +60,14 @@ object ArmorHUD : Module() {
                     val duraText = (dura * 100.0f).toInt().toString()
                     val green = (dura * 255.0f).toInt()
                     val red = 255 - green
-                    FontRenderAdapter.drawString(duraText, x + 8 - FontRenderAdapter.getStringWidth(duraText) / 2.0f, height - 11.0f, color = ColorHolder(red, green, 0))
+                    FontRenderAdapter.drawString(duraText, 10.0f - FontRenderAdapter.getStringWidth(duraText) / 2.0f, -11.0f, color = ColorHolder(red, green, 0))
                 }
+
+                GlStateManager.popMatrix()
             }
             GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f)
             GlStateManager.enableDepth()
+            GlStateManager.popMatrix()
         }
     }
 
