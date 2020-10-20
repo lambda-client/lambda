@@ -4,9 +4,12 @@ import me.zeroeightsix.kami.event.events.RenderOverlayEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.color.ColorConverter
+import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.event.listener
+import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.util.NonNullList
@@ -15,49 +18,43 @@ import net.minecraft.world.GameType
 import kotlin.math.floor
 
 @Module.Info(
-        name = "ArmourHUD",
+        name = "ArmorHUD",
         category = Module.Category.RENDER,
-        description = "Displays your armour and it's durability on screen",
+        description = "Displays your armor and it's durability on screen",
         showOnArray = Module.ShowOnArray.OFF
 )
-object ArmourHUD : Module() {
+object ArmorHUD : Module() {
     private val damage = register(Settings.b("Damage", false))
-    private val armour: NonNullList<ItemStack>
-        get() = if (mc.playerController.getCurrentGameType() == GameType.CREATIVE || mc.playerController.getCurrentGameType() == GameType.SPECTATOR) {
-            NonNullList.withSize(4, ItemStack.EMPTY)
-        } else {
-            mc.player.inventory.armorInventory
-        }
 
     init {
         listener<RenderOverlayEvent> {
+            if (mc.player.isCreative || mc.player.isSpectator) return@listener
             val resolution = ScaledResolution(mc)
-            val width = resolution.scaledWidth / 2
+            val width = resolution.scaledWidth / 2 + 92
             val height = resolution.scaledHeight - 55 - if (isEyeInWater()) 10 else 0
 
-            for ((index, itemStack) in armour.withIndex()) {
+            for ((index, itemStack) in mc.player.inventory.armorInventory.withIndex()) {
                 if (itemStack.isEmpty()) continue
-                val x = width - (9 - index) * 20 + 92
+                val x = width - (index + 1) * 20
 
                 GlStateManager.enableDepth()
                 GlStateManager.enableTexture2D()
+                RenderHelper.enableGUIStandardItemLighting()
                 mc.renderItem.zLevel = 200f
                 mc.renderItem.renderItemAndEffectIntoGUI(itemStack, x, height)
                 mc.renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, itemStack, x, height, "")
                 mc.renderItem.zLevel = 0f
-                GlStateManager.enableTexture2D()
-                GlStateManager.disableLighting()
-                GlStateManager.disableDepth()
+                RenderHelper.disableStandardItemLighting()
 
                 if (damage.value) {
                     val dura = (itemStack.maxDamage - itemStack.itemDamage) / itemStack.maxDamage.toFloat()
-                    val duraText = dura.toInt().toString()
+                    val duraText = (dura * 100.0f).toInt().toString()
                     val green = (dura * 255.0f).toInt()
                     val red = 255 - green
-                    mc.fontRenderer.drawStringWithShadow(duraText, x + 8 - mc.fontRenderer.getStringWidth(duraText) / 2.0f, height - 11.0f, ColorConverter.rgbToHex(red, green, 0))
+                    FontRenderAdapter.drawString(duraText, x + 8 - FontRenderAdapter.getStringWidth(duraText) / 2.0f, height - 11.0f, color = ColorHolder(red, green, 0))
                 }
             }
-
+            GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f)
             GlStateManager.enableDepth()
         }
     }
