@@ -241,13 +241,6 @@ object AutoObsidian : Module() {
         return BlockPos(0, -1, 0)
     }
 
-    private fun lookAtBlock(pos: BlockPos) {
-        val vec3d = Vec3d(pos).add(0.5, 0.0, 0.5)
-        val lookAt = getRotationTo(vec3d, true)
-        mc.player.rotationYaw = lookAt.x.toFloat()
-        mc.player.rotationPitch = lookAt.y.toFloat()
-    }
-
     /* Tasks */
     private fun placeShulker(pos: BlockPos) {
         for (i in 219..234) {
@@ -290,12 +283,47 @@ object AutoObsidian : Module() {
 
 
     private fun openShulker(pos: BlockPos) {
-        lookAtBlock(pos)
+        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return
+        if (rayTrace.blockPos != pos) {
+            var found = false
+            for (side in EnumFacing.values()) {
+                if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
+                    rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))?: continue
+                    if (rayTrace.blockPos == pos) {
+                        found = true
+                        break
+                    }
+                }
+            }
+            if (!found) {
+                return
+            }
+        }
+        val facing = rayTrace.sideHit ?: return
+        val hitVecOffset = rayTrace.hitVec
+        val rotation = getRotationTo(Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(facing.directionVec).scale(0.499)), true)
+        when (interacting.value) {
+            InteractMode.SPOOF -> {
+                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
+                mc.connection!!.sendPacket(rotationPacket)
+            }
+            InteractMode.VIEWLOCK -> {
+                mc.player.rotationYaw = rotation.x.toFloat()
+                mc.player.rotationPitch = rotation.y.toFloat()
+            }
+        }
+
         if (mc.currentScreen !is GuiShulkerBox) {
             /* Added a delay here so it doesn't spam right click and get you kicked */
             if (System.currentTimeMillis() >= openTime + 2000L) {
                 openTime = System.currentTimeMillis()
-                mc.playerController.processRightClickBlock(mc.player, mc.world, pos, mc.objectMouseOver.sideHit, mc.objectMouseOver.hitVec, EnumHand.MAIN_HAND)
+                Thread{
+                    Thread.sleep(25L)
+                    val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+                    mc.connection!!.sendPacket(placePacket)
+                    mc.player.swingArm(EnumHand.MAIN_HAND)
+                    if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
+                }.start()
             }
         } else {
             /* Extra delay here to wait for the item list to be loaded */
