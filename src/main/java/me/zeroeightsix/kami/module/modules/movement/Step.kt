@@ -1,12 +1,11 @@
 package me.zeroeightsix.kami.module.modules.movement
 
-import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.EntityUtils.getRidingEntity
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.PacketHelper
 import me.zeroeightsix.kami.util.event.listener
 import net.minecraft.entity.player.EntityPlayer
@@ -43,33 +42,30 @@ object Step : Module() {
     }
 
     override fun onToggle() {
-        if (mc.player != null) BaritoneAPI.getSettings().assumeStep.value = isEnabled
+        BaritoneUtils.settings()?.assumeStep?.value = isEnabled
     }
 
-    /**
-     * Vanilla mode.
-     */
-    override fun onUpdate(event: SafeTickEvent) {
-        if (mc.player.isElytraFlying || mc.player.capabilities.isFlying) return
-        if (mode.value == Mode.VANILLA) {
-            if (mc.player.onGround && !mc.player.isOnLadder && !mc.player.isInWater && !mc.player.isInLava) {
+    init {
+        /**
+         * Vanilla mode.
+         */
+        listener<SafeTickEvent> {
+            if (mc.player.isElytraFlying || mc.player.capabilities.isFlying) return@listener
+            if (mode.value == Mode.VANILLA
+                    && mc.player.onGround
+                    && !mc.player.isOnLadder
+                    && !mc.player.isInWater
+                    && !mc.player.isInLava) {
                 if (mc.player.collidedHorizontally) {
                     mc.player.motionY = speed.value / 100.0
                 } else if (downStep.value) {
                     mc.player.motionY = -(speed.value / 100.0)
                 }
             }
-        }
-        if (mode.value == Mode.PACKET) {
-            updateStepHeight(mc.player)
-            updateUnStep(mc.player)
-
-            if (getRidingEntity() != null) {
-                if (entityStep.value) {
-                    getRidingEntity()?.stepHeight = 256f
-                } else {
-                    getRidingEntity()?.stepHeight = 1f
-                }
+            if (mode.value == Mode.PACKET) {
+                updateStepHeight(mc.player)
+                updateUnStep(mc.player)
+                mc.player.ridingEntity?.stepHeight = if (entityStep.value) 256f else 1f
             }
         }
     }
@@ -84,11 +80,9 @@ object Step : Module() {
     }
 
     override fun onDisable() {
-        if (mc.player != null) {
-            mc.player.stepHeight = defaultHeight
-        }
-        if (getRidingEntity() != null) {
-            getRidingEntity()?.stepHeight = 1f
+        mc.player?.let {
+            it.stepHeight = defaultHeight
+            it.ridingEntity?.stepHeight = 1f
         }
     }
 
