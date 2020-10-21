@@ -119,28 +119,31 @@ object HighwayTools : Module() {
 
             if (baritoneMode.value) {
                 pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
-                if (!isDone()) {
-                    if (!doTask()) {
-                        if (!pathing && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
-                            stuckBuilding += 1
-                            shuffleTasks()
-                            if (debugMessages.value == DebugMessages.ALL) MessageSendHelper.sendChatMessage("$chatName Shuffled tasks (${stuckBuilding}x)")
-                            if (stuckBuilding > blockOffsets.size) {
+
+                if (relativeDirection(currentBlockPos, 1, 0) == mc.player.positionVector.toBlockPos()) {
+                    if (!isDone()) {
+                        if (!doTask()) {
+                            if (!pathing && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
+                                stuckBuilding += 1
+                                shuffleTasks()
+                                if (debugMessages.value == DebugMessages.ALL) MessageSendHelper.sendChatMessage("$chatName Shuffled tasks (${stuckBuilding}x)")
+                                if (stuckBuilding > blockOffsets.size) {
+                                    refreshData()
+                                    if (debugMessages.value == DebugMessages.IMPORTANT) MessageSendHelper.sendChatMessage("$chatName You got stuck, retry")
+                                }
+                            } else {
                                 refreshData()
-                                if (debugMessages.value == DebugMessages.IMPORTANT) MessageSendHelper.sendChatMessage("$chatName You got stuck, retry")
                             }
                         } else {
-                            refreshData()
+                            stuckBuilding = 0
                         }
                     } else {
-                        stuckBuilding = 0
-                    }
-                } else {
-                    refreshData()
-                    if (checkTasks() && !pathing) {
-                        currentBlockPos = getNextBlock()
-                        doneQueue.clear()
-                        updateTasks()
+                        refreshData()
+                        if (checkTasks() && !pathing) {
+                            currentBlockPos = getNextBlock()
+                            doneQueue.clear()
+                            updateTasks()
+                        }
                     }
                 }
             } else {
