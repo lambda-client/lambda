@@ -112,7 +112,7 @@ object HoleMiner : Module() {
     }
 
     private fun checkPos(pos: BlockPos, facingIn: EnumFacing): Boolean {
-        if (CrystalUtils.canPlaceOn(pos) && mc.world.isAirBlock(pos.up())) return true
+        if (CrystalUtils.canPlaceOn(pos.down()) && mc.world.isAirBlock(pos.up())) return true
         for (facing in EnumFacing.HORIZONTALS) {
             if (facing == facingIn.opposite) continue
             if (!CrystalUtils.canPlace(pos.offset(facing))) continue
