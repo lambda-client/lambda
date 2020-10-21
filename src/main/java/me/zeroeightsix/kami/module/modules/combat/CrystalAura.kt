@@ -8,15 +8,13 @@ import me.zeroeightsix.kami.manager.mangers.CombatManager
 import me.zeroeightsix.kami.manager.mangers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.BlockUtils
-import me.zeroeightsix.kami.util.EntityUtils
-import me.zeroeightsix.kami.util.InfoCalculator
-import me.zeroeightsix.kami.util.InventoryUtils
+import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.combat.CombatUtils
 import me.zeroeightsix.kami.util.combat.CrystalUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.Vec2f
+import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
@@ -34,7 +32,9 @@ import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.lwjgl.input.Keyboard
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -50,13 +50,16 @@ object CrystalAura : Module() {
     private val page = register(Settings.e<Page>("Page", Page.GENERAL))
 
     /* General */
-    private val facePlace = register(Settings.booleanBuilder("LeftClickFacePlace").withValue(true).withVisibility { page.value == Page.GENERAL })
-    private val facePlaceThreshold = register(Settings.floatBuilder("FacePlace").withValue(6.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
-    private val minDamageFacePlace = register(Settings.floatBuilder("MinDamageFacePlace").withValue(1.5f).withRange(0.0f, 10.0f).withStep(0.25f).withVisibility { page.value == Page.GENERAL })
     private val noSuicideThreshold = register(Settings.floatBuilder("NoSuicide").withValue(8.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
     private val rotationTolerance = register(Settings.integerBuilder("RotationTolerance").withValue(15).withRange(5, 50).withStep(5).withVisibility { page.value == Page.GENERAL })
     private val maxYawSpeed = register(Settings.integerBuilder("MaxYawSpeed").withValue(50).withRange(10, 100).withStep(5).withVisibility { page.value == Page.GENERAL })
     private val swingMode = register(Settings.enumBuilder(SwingMode::class.java, "SwingMode").withValue(SwingMode.CLIENT).withVisibility { page.value == Page.GENERAL })
+
+    /* Force place */
+    private val bindForcePlace = register(Settings.custom("BindForcePlace", Bind.none(), BindConverter()).withVisibility { page.value == Page.FORCE_PLACE })
+    private val forcePlaceHealth = register(Settings.floatBuilder("ForcePlaceHealth").withValue(6.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.FORCE_PLACE })
+    private val forcePlaceArmorDura = register(Settings.integerBuilder("ForcePlaceArmorDura").withValue(10).withRange(0, 50).withStep(1).withVisibility { page.value == Page.FORCE_PLACE })
+    private val minDamageForcePlace = register(Settings.floatBuilder("MinDamageForcePlace").withValue(1.5f).withRange(0.0f, 10.0f).withStep(0.25f).withVisibility { page.value == Page.FORCE_PLACE })
 
     /* Place page one */
     private val doPlace = register(Settings.booleanBuilder("Place").withValue(true).withVisibility { page.value == Page.PLACE_ONE })
@@ -92,7 +95,7 @@ object CrystalAura : Module() {
     /* End of settings */
 
     private enum class Page {
-        GENERAL, PLACE_ONE, PLACE_TWO, EXPLODE_ONE, EXPLODE_TWO
+        GENERAL, FORCE_PLACE, PLACE_ONE, PLACE_TWO, EXPLODE_ONE, EXPLODE_TWO
     }
 
     @Suppress("UNUSED")
@@ -110,7 +113,7 @@ object CrystalAura : Module() {
     private var crystalMap = emptyMap<EntityEnderCrystal, Triple<Float, Float, Double>>() // <Crystal, <Target Damage, Self Damage>>
     private var lastCrystal: EntityEnderCrystal? = null
     private var lastLookAt = Vec3d.ZERO
-    private var targetPosition = Vec3d.ZERO
+    private var forcePlacing = false
     private var placeTimer = 0
     private var hitTimer = 0
     private var hitCount = 0
@@ -119,9 +122,7 @@ object CrystalAura : Module() {
     val minDamage get() = max(minDamageP.value, minDamageE.value)
     val maxSelfDamage get() = min(maxSelfDamageP.value, maxSelfDamageE.value)
 
-    override fun isActive(): Boolean {
-        return isEnabled && InventoryUtils.countItemAll(426) > 0 && inactiveTicks <= 20
-    }
+    override fun isActive() = isEnabled && InventoryUtils.countItemAll(426) > 0 && inactiveTicks <= 20
 
     override fun onEnable() {
         if (mc.player == null) disable()
@@ -131,9 +132,10 @@ object CrystalAura : Module() {
     override fun onDisable() {
         placedBBMap.clear()
         ignoredList.clear()
+        packetList.clear()
+
         lastCrystal = null
-        lastLookAt = Vec3d.ZERO
-        targetPosition = Vec3d.ZERO
+        forcePlacing = false
         placeTimer = 0
         hitTimer = 0
         hitCount = 0
@@ -142,6 +144,13 @@ object CrystalAura : Module() {
     }
 
     init {
+        listener<InputEvent.KeyInputEvent> {
+            if (bindForcePlace.value.isDown(Keyboard.getEventKey())){
+                forcePlacing = !forcePlacing
+                MessageSendHelper.sendChatMessage("$chatName Force placing" + if (forcePlacing) " &aenabled" else " &cdisabled")
+            }
+        }
+
         listener<PacketEvent.Receive> {
             if (mc.player == null) return@listener
 
@@ -276,7 +285,7 @@ object CrystalAura : Module() {
             CPacketPlayerTryUseItemOnBlock(pos, BlockUtils.getHitSide(pos), hand, 0.5f, placeOffset.value, 0.5f)
 
     private fun sendOrQueuePacket(packet: Packet<*>) {
-        val yawDiff = abs(PlayerPacketManager.serverSideRotation.x - getLastRotation().x)
+        val yawDiff = abs(RotationUtils.normalizeAngle(PlayerPacketManager.serverSideRotation.x - getLastRotation().x))
         if (yawDiff < rotationTolerance.value) sendPacketDirect(packet)
         else packetList.add(packet)
     }
@@ -336,40 +345,41 @@ object CrystalAura : Module() {
     /**
      * @return True if passed placing damage check
      */
-    private fun checkDamagePlace(damage: Float, selfDamage: Float): Boolean {
-        return (shouldFacePlace(damage) || damage >= minDamageP.value) && (selfDamage <= maxSelfDamageP.value)
-    }
+    private fun checkDamagePlace(damage: Float, selfDamage: Float) =
+            (shouldFacePlace(damage) || damage >= minDamageP.value) && (selfDamage <= maxSelfDamageP.value)
     /* End of placing */
 
     /* Exploding */
-    private fun canExplode(): Boolean {
-        return doExplode.value
-                && hitTimer > hitDelay.value
-                && getExplodingCrystal() != null
-                && CombatManager.target?.let {
-            if (checkDamage.value) {
-                val maxDamage = crystalMap.values.maxBy { it.first }?.first ?: 0.0f
-                val maxSelfDamage = crystalMap.values.maxBy { it.second }?.second ?: 0.0f
-                if (!noSuicideCheck(maxSelfDamage)) return false
-                if (!checkDamageExplode(maxDamage, maxSelfDamage)) return false
-            }
-            return true
-        } ?: false
+    private fun canExplode() =
+            doExplode.value
+                    && hitTimer > hitDelay.value
+                    && getExplodingCrystal() != null
+                    && CombatManager.target?.let {
+                if (checkDamage.value) {
+                    val maxDamage = crystalMap.values.maxBy { it.first }?.first ?: 0.0f
+                    val maxSelfDamage = crystalMap.values.maxBy { it.second }?.second ?: 0.0f
+                    if (!noSuicideCheck(maxSelfDamage)) return false
+                    if (!checkDamageExplode(maxDamage, maxSelfDamage)) return false
+                }
+                return true
+            } ?: false
+
+    private fun getExplodingCrystal(): EntityEnderCrystal? {
+        val eyePos = mc.player.getPositionEyes(1f)
+        return crystalMap.keys.firstOrNull {
+            !ignoredList.contains(it)
+                    && !it.isDead
+                    && (mc.player.canEntityBeSeen(it) || EntityUtils.canEntityFeetBeSeen(it))
+                    && eyePos.distanceTo(it.positionVector) <= explodeRange.value
+                        && checkYawSpeed(it)
+        } ?: crystalMap.keys.firstOrNull {
+            !ignoredList.contains(it)
+                    && !it.isDead
+                    && EntityUtils.canEntityHitboxBeSeen(it) != null
+                    && eyePos.distanceTo(it.positionVector) <= wallExplodeRange.value
+        }
     }
 
-    private fun getExplodingCrystal() =
-            crystalMap.keys.firstOrNull {
-                !ignoredList.contains(it)
-                        && !it.isDead
-                        && (mc.player.canEntityBeSeen(it) || EntityUtils.canEntityFeetBeSeen(it))
-                        && mc.player.getPositionEyes(1f).distanceTo(it.positionVector) <= explodeRange.value
-                        && checkYawSpeed(it)
-            } ?: crystalMap.keys.firstOrNull {
-                !ignoredList.contains(it)
-                        && !it.isDead
-                        && EntityUtils.canEntityHitboxBeSeen(it) != null
-                        && mc.player.getPositionEyes(1f).distanceTo(it.positionVector) <= wallExplodeRange.value
-            }
 
     private fun checkDamageExplode(damage: Float, selfDamage: Float) = (shouldFacePlace(damage) || shouldForceExplode() || damage >= minDamageE.value) && selfDamage <= maxSelfDamageE.value
 
@@ -394,11 +404,18 @@ object CrystalAura : Module() {
         return item is ItemTool || item is ItemSword
     }
 
-    private fun shouldFacePlace(damage: Float) = damage >= minDamageFacePlace.value
-            // Left click
-            && (facePlace.value && mc.gameSettings.keyBindAttack.isKeyDown && isHoldingTool()
-            // Health threshold
-            || facePlaceThreshold.value > 0f && CombatManager.target?.let { CombatUtils.getHealthSmart(it) <= facePlaceThreshold.value } ?: false)
+    private fun shouldFacePlace(damage: Float) =
+            damage >= minDamageForcePlace.value
+                    && (forcePlacing
+                    || forcePlaceHealth.value > 0.0f && CombatManager.target?.let { CombatUtils.getHealthSmart(it) <= forcePlaceHealth.value } ?: false
+                    || forcePlaceArmorDura.value > 0.0f && getMinArmorDura() <= forcePlaceArmorDura.value)
+
+    private fun getMinArmorDura() =
+            (CombatManager.target?.let { target ->
+                target.armorInventoryList.maxBy { it.itemDamage }?.let {
+                    (it.maxDamage - it.itemDamage) * 100 / it.maxDamage
+                }
+            }) ?: 100
 
     private fun countValidCrystal(): Int {
         var count = 0
