@@ -334,8 +334,7 @@ object CrystalAura : Module() {
             }
 
             // Yaw rate check
-            val rotation = RotationUtils.getRotationTo(hitVec, true)
-            if (abs(rotation.x - getLastRotation().x) > maxYawSpeed.value + (inactiveTicks * 8f)) continue
+            if (!checkYawSpeed(RotationUtils.getRotationTo(hitVec, true).x)) continue
 
             return pos
         }
@@ -371,12 +370,13 @@ object CrystalAura : Module() {
                     && !it.isDead
                     && (mc.player.canEntityBeSeen(it) || EntityUtils.canEntityFeetBeSeen(it))
                     && eyePos.distanceTo(it.positionVector) <= explodeRange.value
-                        && checkYawSpeed(it)
+                    && checkYawSpeed(RotationUtils.getRotationToEntity(it).x)
         } ?: crystalMap.keys.firstOrNull {
             !ignoredList.contains(it)
                     && !it.isDead
                     && EntityUtils.canEntityHitboxBeSeen(it) != null
                     && eyePos.distanceTo(it.positionVector) <= wallExplodeRange.value
+                    && checkYawSpeed(RotationUtils.getRotationToEntity(it).x)
         }
     }
 
@@ -438,7 +438,7 @@ object CrystalAura : Module() {
                 if (!checkDamagePlace(pair.first, pair.second)) continue
                 if (ignoredList.contains(crystal)) continue
                 if (crystal.positionVector.distanceTo(eyePos) > placeRange.value) continue
-                if (!checkYawSpeed(crystal)) continue
+                if (!checkYawSpeed(RotationUtils.getRotationToEntity(crystal).x)) continue
                 count++
             }
         }
@@ -447,10 +447,11 @@ object CrystalAura : Module() {
     /* End of general */
 
     /* Rotation */
-    private fun checkYawSpeed(crystal: EntityEnderCrystal) =
-            abs(RotationUtils.getRotationToEntity(crystal).x - getLastRotation().x) <= maxYawSpeed.value + (inactiveTicks * 8f)
+    private fun checkYawSpeed(yaw: Double) =
+            abs(RotationUtils.normalizeAngle(yaw - getLastRotation().x)) <= maxYawSpeed.value + (inactiveTicks * 8f)
 
-    private fun getLastRotation() = RotationUtils.getRotationTo(lastLookAt, true)
+    private fun getLastRotation() =
+            RotationUtils.getRotationTo(lastLookAt, true)
 
     private fun resetRotation() {
         lastLookAt = CombatManager.target?.positionVector ?: Vec3d.ZERO
