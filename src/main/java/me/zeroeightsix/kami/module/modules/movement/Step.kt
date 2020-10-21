@@ -1,19 +1,22 @@
 package me.zeroeightsix.kami.module.modules.movement
 
-import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.EntityUtils.getRidingEntity
+import me.zeroeightsix.kami.util.BaritoneUtils
+import me.zeroeightsix.kami.util.Bind
 import me.zeroeightsix.kami.util.PacketHelper
 import me.zeroeightsix.kami.util.event.listener
+import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayer.PositionRotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraftforge.fml.client.FMLClientHandler
+import net.minecraftforge.fml.common.gameevent.InputEvent
+import org.lwjgl.input.Keyboard
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 import kotlin.math.max
@@ -31,7 +34,11 @@ object Step : Module() {
     private val mode: Setting<Mode> = register(Settings.e("Mode", Mode.PACKET))
     private val speed = register(Settings.integerBuilder("Speed").withMinimum(1).withMaximum(100).withValue(40).withVisibility { mode.value == Mode.VANILLA }.build())
     private val height = register(Settings.floatBuilder("Height").withRange(0.0f, 10.0f).withValue(1.0f).withVisibility { mode.value == Mode.PACKET }.build())
-    private val downStep = register(Settings.booleanBuilder("DownStep").withValue(false).build())
+    private val upStep = register(Settings.b("UpStep", true))
+    private val downStep = register(Settings.b("DownStep", false))
+    private val bindUpStep = register(Settings.custom("BindUpStep", Bind.none(), BindConverter()))
+    private val bindDownStep = register(Settings.custom("BindDownStep", Bind.none(), BindConverter()))
+
     private val entityStep = register(Settings.booleanBuilder("Entities").withValue(true).withVisibility { mode.value == Mode.PACKET }.build())
 
     private var previousPositionPacket: CPacketPlayer? = null
@@ -43,36 +50,47 @@ object Step : Module() {
     }
 
     override fun onToggle() {
-        if (mc.player != null) BaritoneAPI.getSettings().assumeStep.value = isEnabled
+        BaritoneUtils.settings()?.assumeStep?.value = isEnabled
     }
 
-    /**
-     * Vanilla mode.
-     */
-    override fun onUpdate(event: SafeTickEvent) {
-        if (mc.player.isElytraFlying || mc.player.capabilities.isFlying) return
-        if (mode.value == Mode.VANILLA) {
-            if (mc.player.onGround && !mc.player.isOnLadder && !mc.player.isInWater && !mc.player.isInLava) {
-                if (mc.player.collidedHorizontally) {
+    init {
+        /**
+         * Vanilla mode.
+         */
+        listener<SafeTickEvent> {
+            if (mc.player.isElytraFlying || mc.player.capabilities.isFlying) return@listener
+            if (mode.value == Mode.VANILLA
+                    && mc.player.onGround
+                    && !mc.player.isOnLadder
+                    && !mc.player.isInWater
+                    && !mc.player.isInLava) {
+                if (upStep.value && mc.player.collidedHorizontally) {
                     mc.player.motionY = speed.value / 100.0
-                } else if (downStep.value) {
+                } else if (downStep.value && !mc.player.collidedHorizontally) {
                     mc.player.motionY = -(speed.value / 100.0)
                 }
             }
+            if (mode.value == Mode.PACKET) {
+                updateStepHeight(mc.player)
+                updateUnStep(mc.player)
+                mc.player.ridingEntity?.stepHeight = if (entityStep.value) 256f else 1f
+            }
         }
-        if (mode.value == Mode.PACKET) {
-            updateStepHeight(mc.player)
-            updateUnStep(mc.player)
 
-            if (getRidingEntity() != null) {
-                if (entityStep.value) {
-                    getRidingEntity()?.stepHeight = 256f
-                } else {
-                    getRidingEntity()?.stepHeight = 1f
-                }
+        listener<InputEvent.KeyInputEvent> {
+            if (bindUpStep.value.isDown(Keyboard.getEventKey())) {
+                upStep.value = !upStep.value
+                MessageSendHelper.sendChatMessage(upStep.toggleMsg())
+            }
+
+            if (bindDownStep.value.isDown(Keyboard.getEventKey())) {
+                downStep.value = !downStep.value
+                MessageSendHelper.sendChatMessage(downStep.toggleMsg())
             }
         }
     }
+
+    private fun Setting<Boolean>.toggleMsg() = "$chatName Turned ${this.name} ${if (this.value) "&aon" else "&coff"}&f!"
 
     /**
      * Disable states to reset whatever was done in Packet mode
@@ -84,11 +102,9 @@ object Step : Module() {
     }
 
     override fun onDisable() {
-        if (mc.player != null) {
-            mc.player.stepHeight = defaultHeight
-        }
-        if (getRidingEntity() != null) {
-            getRidingEntity()?.stepHeight = 1f
+        mc.player?.let {
+            it.stepHeight = defaultHeight
+            it.ridingEntity?.stepHeight = 1f
         }
     }
 
@@ -137,7 +153,7 @@ object Step : Module() {
      * Update player step height to the height setting
      */
     private fun updateStepHeight(player: EntityPlayer) {
-        player.stepHeight = if (player.onGround) height.value else defaultHeight
+        player.stepHeight = if (upStep.value && player.onGround) height.value else defaultHeight
     }
 
     /**

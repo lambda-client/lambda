@@ -1,11 +1,10 @@
 package me.zeroeightsix.kami.module.modules.movement
 
-import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.AddCollisionBoxToListEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.event.listener
 import net.minecraft.block.BlockLiquid
@@ -22,19 +21,17 @@ import net.minecraft.util.math.MathHelper
         category = Module.Category.MOVEMENT
 )
 object Jesus : Module() {
-    private val baritoneCompat = register(Settings.b("BaritoneCompatibility", true))
-
     override fun onToggle() {
-        if (mc.player != null && baritoneCompat.value) {
-            BaritoneAPI.getSettings().assumeWalkOnWater.value = isEnabled
-        }
+        BaritoneUtils.settings()?.assumeWalkOnWater?.value = isEnabled
     }
 
-    override fun onUpdate(event: SafeTickEvent) {
-        if (EntityUtils.isInWater(mc.player) && !mc.player.isSneaking) {
-            mc.player.motionY = 0.1
-            if (mc.player.getRidingEntity() != null && mc.player.getRidingEntity() !is EntityBoat) {
-                mc.player.getRidingEntity()!!.motionY = 0.3
+    init {
+        listener<SafeTickEvent> {
+            if (EntityUtils.isInWater(mc.player) && !mc.player.isSneaking) {
+                mc.player.motionY = 0.1
+                if (mc.player.getRidingEntity() != null && mc.player.getRidingEntity() !is EntityBoat) {
+                    mc.player.getRidingEntity()!!.motionY = 0.3
+                }
             }
         }
     }
@@ -55,11 +52,12 @@ object Jesus : Module() {
         }
 
         listener<PacketEvent.Send> {
-            if (it.packet is CPacketPlayer) {
-                if (EntityUtils.isAboveWater(mc.player, true) && !EntityUtils.isInWater(mc.player) && !isAboveLand(mc.player)) {
-                    val ticks = mc.player.ticksExisted % 2
-                    if (ticks == 0) it.packet.y += 0.02
-                }
+            if (it.packet is CPacketPlayer
+                    && EntityUtils.isAboveWater(mc.player, true)
+                    && !EntityUtils.isInWater(mc.player)
+                    && !isAboveLand(mc.player)) {
+                val ticks = mc.player.ticksExisted % 2
+                if (ticks == 0) it.packet.y += 0.02
             }
         }
     }

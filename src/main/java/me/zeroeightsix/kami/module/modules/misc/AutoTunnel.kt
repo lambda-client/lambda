@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.movement.AutoWalk
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.MathUtils.CardinalMain
 import me.zeroeightsix.kami.util.math.MathUtils.getPlayerMainCardinal
@@ -19,8 +20,8 @@ import net.minecraft.entity.player.EntityPlayer
 )
 object AutoTunnel : Module() {
     private val backfill = register(Settings.b("Backfill", false))
-    private val height = register(Settings.integerBuilder("Height").withRange(1, 10).withValue(2).build())
-    private val width = register(Settings.integerBuilder("Width").withRange(1, 10).withValue(1).build())
+    private val height = register(Settings.integerBuilder("Height").withValue(2).withRange(1, 10))
+    private val width = register(Settings.integerBuilder("Width").withValue(1).withRange(1, 10))
 
     private var lastCommand = arrayOf("")
     private var startingDirection = CardinalMain.POS_X
@@ -37,11 +38,8 @@ object AutoTunnel : Module() {
     }
 
     private fun sendTunnel() {
-        val current: Array<String> = if (height.value == 2 && width.value == 1) {
-            arrayOf("tunnel")
-        } else {
-            arrayOf("tunnel", height.value.toString(), width.value.toString(), "1000000")
-        }
+        val current = if (height.value == 2 && width.value == 1) arrayOf("tunnel")
+        else arrayOf("tunnel", height.value.toString(), width.value.toString(), "1000000")
 
         if (!current.contentEquals(lastCommand)) {
             lastCommand = current
@@ -80,7 +78,8 @@ object AutoTunnel : Module() {
             height.settingListener = this
             width.settingListener = this
         }
-        backfill.settingListener = Setting.SettingListeners { if (mc.player != null) BaritoneAPI.getSettings().backfill.value = backfill.value }
+
+        backfill.settingListener = Setting.SettingListeners { BaritoneUtils.settings()?.backfill?.value = backfill.value }
 
         listener<ConnectionEvent.Disconnect> {
             BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
