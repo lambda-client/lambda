@@ -92,7 +92,7 @@ object CrystalBasePlace : Module() {
                 }
             }
 
-            if (placePacket == null && CrystalAura.isEnabled && CrystalAura.inactiveTicks > 20) prePlace(target)
+            if (placePacket == null && CrystalAura.isEnabled && CrystalAura.inactiveTicks > 15) prePlace(target)
 
             if (isActive()) {
                 rotationTo?.let { hitVec ->
