@@ -412,9 +412,12 @@ object CrystalAura : Module() {
 
     private fun getMinArmorDura() =
             (CombatManager.target?.let { target ->
-                target.armorInventoryList.maxBy { it.itemDamage }?.let {
-                    (it.maxDamage - it.itemDamage) * 100 / it.maxDamage
-                }
+                target.armorInventoryList
+                        .filter { !it.isEmpty() && it.isItemStackDamageable }
+                        .maxBy { it.itemDamage }
+                        ?.let {
+                            (it.maxDamage - it.itemDamage) * 100 / it.maxDamage
+                        }
             }) ?: 100
 
     private fun countValidCrystal(): Int {
