@@ -74,6 +74,7 @@ object AutoObsidian : Module() {
     private var obsidianCount = -1
     private var tickCount = 0
     private var openTime = 0L
+    private var ticks = true
 
     override fun isActive(): Boolean {
         return isEnabled && active
@@ -86,47 +87,52 @@ object AutoObsidian : Module() {
 
     init {
         listener<SafeTickEvent> {
-            if (mc.playerController == null) return@listener
-            /* Just a delay */
-            if (tickCount < delayTicks.value) {
-                tickCount++
-                return@listener
-            } else tickCount = 0
+            if (ticks) {
+                ticks = !ticks
+            } else {
+                ticks = !ticks
+                if (mc.playerController == null) return@listener
+                /* Just a delay */
+                if (tickCount < delayTicks.value) {
+                    tickCount++
+                    return@listener
+                } else tickCount = 0
 
-            updateState()
-            when (state) {
+                updateState()
+                when (state) {
 
-                /* Searching states */
-                State.SEARCHING -> {
-                    if (searchShulker.value) {
-                        when (searchingState) {
-                            SearchingState.PLACING -> placeShulker(placingPos)
-                            SearchingState.OPENING -> openShulker(placingPos)
-                            SearchingState.PRE_MINING -> mineBlock(placingPos, true)
-                            SearchingState.MINING -> mineBlock(placingPos, false)
-                            SearchingState.COLLECTING -> collectDroppedItem(shulkerBoxId)
-                            SearchingState.DONE -> {
-                                /* Positions need to be updated after moving while collecting dropped shulker box */
-                                val currentPos = BlockPos(floor(mc.player.posX).toInt(), floor(mc.player.posY).toInt(), floor(mc.player.posZ).toInt())
-                                playerPos = currentPos
-                                setPlacingPos()
+                    /* Searching states */
+                    State.SEARCHING -> {
+                        if (searchShulker.value) {
+                            when (searchingState) {
+                                SearchingState.PLACING -> placeShulker(placingPos)
+                                SearchingState.OPENING -> openShulker(placingPos)
+                                SearchingState.PRE_MINING -> mineBlock(placingPos, true)
+                                SearchingState.MINING -> mineBlock(placingPos, false)
+                                SearchingState.COLLECTING -> collectDroppedItem(shulkerBoxId)
+                                SearchingState.DONE -> {
+                                    /* Positions need to be updated after moving while collecting dropped shulker box */
+                                    val currentPos = BlockPos(floor(mc.player.posX).toInt(), floor(mc.player.posY).toInt(), floor(mc.player.posZ).toInt())
+                                    playerPos = currentPos
+                                    setPlacingPos()
+                                }
                             }
-                        }
-                    } else searchingState = SearchingState.DONE
-                }
+                        } else searchingState = SearchingState.DONE
+                    }
 
-                /* Main states */
-                State.PLACING -> placeEnderChest(placingPos)
-                State.PRE_MINING -> mineBlock(placingPos, true)
-                State.MINING -> mineBlock(placingPos, false)
-                State.COLLECTING -> collectDroppedItem(49)
-                State.DONE -> {
-                    if (!autoRefill.value) {
-                        sendChatMessage("$chatName Reached target stacks, disabling.")
-                        this.disable()
-                    } else {
-                        if (active) sendChatMessage("$chatName Reached target stacks, stopping.")
-                        reset()
+                    /* Main states */
+                    State.PLACING -> placeEnderChest(placingPos)
+                    State.PRE_MINING -> mineBlock(placingPos, true)
+                    State.MINING -> mineBlock(placingPos, false)
+                    State.COLLECTING -> collectDroppedItem(49)
+                    State.DONE -> {
+                        if (!autoRefill.value) {
+                            sendChatMessage("$chatName Reached target stacks, disabling.")
+                            this.disable()
+                        } else {
+                            if (active) sendChatMessage("$chatName Reached target stacks, stopping.")
+                            reset()
+                        }
                     }
                 }
             }
