@@ -34,11 +34,6 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 
-/**
- * @author Xiaro?
- * @updated by Avanatiker
- * @since 19/10/2020
- */
 @Module.Info(
         name = "AutoObsidian",
         category = Module.Category.MISC,
@@ -333,7 +328,8 @@ object AutoObsidian : Module() {
             }
         } else {
             /* Extra delay here to wait for the item list to be loaded */
-            Executors.newSingleThreadScheduledExecutor().schedule({
+            Thread{
+                Thread.sleep(delayTicks.value * 50L)
                 val currentContainer = mc.player.openContainer
                 var enderChestSlot = -1
                 for (i in 0..26) {
@@ -348,7 +344,7 @@ object AutoObsidian : Module() {
                     mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     this.disable()
                 }
-            }, delayTicks.value * 50L, TimeUnit.MILLISECONDS)
+            }.start()
         }
     }
 
