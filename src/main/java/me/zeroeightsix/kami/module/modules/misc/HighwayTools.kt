@@ -9,6 +9,7 @@ import me.zeroeightsix.kami.module.modules.player.LagNotifier
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
@@ -34,7 +35,6 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.*
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
@@ -121,7 +121,7 @@ object HighwayTools : Module() {
                 pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
                 if (!isDone()) {
                     if (!doTask()) {
-                        if (!pathing && !LagNotifier.paused && !AutoObsidian.active) {
+                        if (!pathing && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
                             stuckBuilding += 1
                             shuffleTasks()
                             if (debugMessages.value == DebugMessages.ALL) MessageSendHelper.sendChatMessage("$chatName Shuffled tasks (${stuckBuilding}x)")
@@ -439,8 +439,9 @@ object HighwayTools : Module() {
                             }
                         }
                         fillerMat -> {
+                            val blockUp = mc.world.getBlockState(blockPos.up()).block
                             when {
-                                getPlaceableSide(blockPos.up()) == null -> addTask(blockPos, TaskState.PLACE, fillerMat)
+                                getPlaceableSide(blockPos.up()) == null && blockUp != material -> addTask(blockPos, TaskState.PLACE, fillerMat)
                                 getPlaceableSide(blockPos.up()) != null -> addTask(blockPos, fillerMat)
                             }
                         }
