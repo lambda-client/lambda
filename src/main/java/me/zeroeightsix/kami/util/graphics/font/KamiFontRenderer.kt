@@ -194,7 +194,7 @@ object KamiFontRenderer {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.333f)
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, CustomFont.lodBias)
 
             if (char == '\n') {
                 posY += currentVariant.fontHeight * CustomFont.lineSpace
