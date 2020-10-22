@@ -4,7 +4,6 @@ import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.util.Wrapper
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.client.renderer.OpenGlHelper
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.opengl.GL12.*
 
@@ -91,7 +90,7 @@ object GlStateUtils {
 
     @JvmStatic
     fun resetTexParam() {
-        GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit)
+        GlStateManager.bindTexture(0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
