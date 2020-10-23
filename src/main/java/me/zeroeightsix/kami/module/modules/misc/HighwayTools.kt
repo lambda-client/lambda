@@ -898,6 +898,38 @@ object HighwayTools : Module() {
                     }
                 }
             }
+            Mode.TUNNEL -> {
+                if (baritoneMode.value) {
+                    cursor = relativeDirection(cursor, 1, 0)
+                    blockOffsets.add(Pair(cursor, material))
+                }
+                cursor = relativeDirection(cursor, 1, 0)
+                blockOffsets.add(Pair(cursor, material))
+                var buildIterationsWidth = buildWidth.value / 2
+                var evenCursor = relativeDirection(cursor, 1, 2)
+                var isOdd = false
+                if (buildWidth.value % 2 == 1) {
+                    isOdd = true
+                    buildIterationsWidth++
+                } else {
+                    blockOffsets.add(Pair(evenCursor, material))
+                }
+                for (i in 1 until clearHeight.value + 2) {
+                    for (j in 1 until buildIterationsWidth) {
+                        var mat = Blocks.AIR
+                        if (i == 1) mat = material
+                        blockOffsets.add(Pair(relativeDirection(cursor, j, -2), mat))
+                        if (isOdd) blockOffsets.add(Pair(relativeDirection(cursor, j, 2), mat))
+                        else blockOffsets.add(Pair(relativeDirection(evenCursor, j, 2), mat))
+                    }
+                    cursor = cursor.up()
+                    evenCursor = evenCursor.up()
+                    if (clearSpace.value && i < clearHeight.value + 1) {
+                        blockOffsets.add(Pair(cursor, Blocks.AIR))
+                        if (!isOdd) blockOffsets.add(Pair(evenCursor, Blocks.AIR))
+                    }
+                }
+            }
             Mode.FLAT -> {
                 for (bp in VectorUtils.getBlockPositionsInArea(cursor.north(buildWidth.value).west(buildWidth.value), cursor.south(buildWidth.value).east(buildWidth.value))) {
                     blockOffsets.add(Pair(bp, material))
@@ -918,7 +950,8 @@ object HighwayTools : Module() {
 
     private enum class Mode {
         HIGHWAY,
-        FLAT
+        FLAT,
+        TUNNEL
     }
 
     private enum class Page {
