@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.module.modules.misc
 import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
-import me.zeroeightsix.kami.manager.mangers.PlayerInventoryManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.combat.Surround
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
@@ -110,7 +109,6 @@ object HighwayTools : Module() {
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
     private var lastViewVec: RayTraceResult? = null
-    private var lastTask = PlayerInventoryManager.TaskState(true)
 
     // stats
     private var totalBlocksPlaced = 0
