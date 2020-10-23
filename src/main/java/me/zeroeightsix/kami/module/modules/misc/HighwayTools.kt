@@ -897,6 +897,7 @@ object HighwayTools : Module() {
                 }
             }
             Mode.TUNNEL -> {
+                material = Blocks.NETHERRACK
                 if (baritoneMode.value) {
                     cursor = relativeDirection(cursor, 1, 0)
                     blockOffsets.add(Pair(cursor, material))
