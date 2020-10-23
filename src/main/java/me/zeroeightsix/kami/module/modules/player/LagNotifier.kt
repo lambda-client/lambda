@@ -39,8 +39,8 @@ object LagNotifier : Module() {
     private val pingTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.SECONDS)
     private var lastPacketTimer = TimerUtils.TickTimer()
     private var lastRubberBandTimer = TimerUtils.TickTimer()
+    private var text = ""
     var paused = false
-    var text = ""
 
     override fun onDisable() {
         unpause()
