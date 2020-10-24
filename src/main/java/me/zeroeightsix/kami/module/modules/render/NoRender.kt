@@ -20,7 +20,6 @@ import net.minecraftforge.client.event.RenderBlockOverlayEvent
 )
 object NoRender : Module() {
     private val mob = register(Settings.b("Mob", false))
-    private val sand = register(Settings.b("Sand", false))
     private val gEntity = register(Settings.b("GEntity", false))
     private val `object` = register(Settings.b("Object", false))
     private val items = register(Settings.b("Items", false))
@@ -41,7 +40,6 @@ object NoRender : Module() {
                     it.packet is SPacketSpawnGlobalEntity && gEntity.value ||
                     it.packet is SPacketSpawnObject && `object`.value ||
                     it.packet is SPacketSpawnExperienceOrb && xp.value ||
-                    it.packet is SPacketSpawnObject && sand.value ||
                     it.packet is SPacketExplosion && explosion.value ||
                     it.packet is SPacketSpawnPainting && paint.value ||
                     it.packet is SPacketParticles && particles.value) it.cancel()
