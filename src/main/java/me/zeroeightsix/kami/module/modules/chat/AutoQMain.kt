@@ -51,7 +51,7 @@ object AutoQMain : Module() {
         val date = Date(System.currentTimeMillis())
 
         MessageSendHelper.sendChatMessage("&7Run &b/queue main&7 at " + formatter.format(date))
-        MessageSendHelper.sendServerMessage("/queue main")
+        MessageSendHelper.sendServerMessage("/queue 2b2t-lobby")
     }
 
     private fun sendMessage(message: String) {
