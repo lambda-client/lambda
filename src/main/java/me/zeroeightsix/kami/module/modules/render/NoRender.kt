@@ -32,7 +32,7 @@ object NoRender : Module() {
     private val particles = register(Settings.b("Particles", false))
     val enchantingTable = register(Settings.b("EnchantingBooks", true))
     private val enchantingTableSnow = register(Settings.b("EnchantBookSnow", false))
-    val signText = register(Settings.b("SignText", true))
+    val signText = register(Settings.b("SignText", false))
 
     init {
         listener<PacketEvent.Receive> {
