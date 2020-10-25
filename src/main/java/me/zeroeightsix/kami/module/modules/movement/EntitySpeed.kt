@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.movement
 
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.MovementUtils
@@ -55,7 +54,7 @@ object EntitySpeed : Module() {
         }
 
         listener<PlayerTravelEvent> {
-            mc.player.ridingEntity?.let {
+            mc.player?.ridingEntity?.let {
                 if (it is EntityPig || it is AbstractHorse || it is EntityBoat && it.controllingPassenger == mc.player) {
                     steerEntity(it)
                     if (flight.value) fly(it)
