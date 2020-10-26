@@ -18,18 +18,15 @@ import java.util.*
 
 open class Module {
     /* Annotations */
+    private val annotation =
+            javaClass.annotations.firstOrNull { it is Info } as? Info
+                    ?: throw IllegalStateException("No Annotation on class " + this.javaClass.canonicalName + "!")
+
     val originalName: String = annotation.name
     val category: Category = annotation.category
     val description: String = annotation.description
     val modulePriority: Int = annotation.modulePriority
     var alwaysListening: Boolean = annotation.alwaysListening
-
-    private val annotation: Info get() {
-            if (javaClass.isAnnotationPresent(Info::class.java)) {
-                return javaClass.getAnnotation(Info::class.java)
-            }
-            throw IllegalStateException("No Annotation on class " + this.javaClass.canonicalName + "!")
-        }
 
     @Retention(AnnotationRetention.RUNTIME)
     annotation class Info(
