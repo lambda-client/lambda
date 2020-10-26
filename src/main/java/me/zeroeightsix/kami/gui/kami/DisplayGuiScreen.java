@@ -97,7 +97,7 @@ public class DisplayGuiScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
-        if (ClickGUI.INSTANCE.isEnabled() && (keyCode == Keyboard.KEY_ESCAPE || ClickGUI.INSTANCE.bind.getValue().isDown(keyCode))) {
+        if (ClickGUI.INSTANCE.isEnabled() && (keyCode == Keyboard.KEY_ESCAPE || ClickGUI.INSTANCE.getBind().getValue().isDown(keyCode))) {
             ClickGUI.INSTANCE.disable();
         } else {
             gui.handleKeyDown(keyCode);
