@@ -109,6 +109,8 @@ object HighwayTools : Module() {
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
     private var lastViewVec: RayTraceResult? = null
+    private var startTime: Long = 0L
+    private var runtimeSec: Double = 0.0
 
     // stats
     private var totalBlocksPlaced = 0
@@ -119,6 +121,7 @@ object HighwayTools : Module() {
             if (it.phase != TickEvent.Phase.END) {
                 if (mc.playerController == null) return@listener
                 BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(HighwayToolsProcess)
+                runtimeSec = ((System.currentTimeMillis() - startTime) / 1000).toDouble()
 
                 if (baritoneMode.value) {
                     pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
@@ -191,6 +194,8 @@ object HighwayTools : Module() {
         playerHotbarSlot = mc.player.inventory.currentItem
         lastHotbarSlot = -1
         buildDirectionSaved = getPlayerCardinal(mc.player)
+        startTime = System.currentTimeMillis()
+        runtimeSec = 0.1
 
         if (baritoneMode.value) {
             baritoneSettingAllowPlace = BaritoneAPI.getSettings().allowPlace.value
@@ -771,6 +776,36 @@ object HighwayTools : Module() {
             message += "$chatName Module stopped."
         }
         sendChatMessage(message)
+    }
+
+    fun gatherStatistics(): List<String> {
+        val currentTask: BlockTask? = if (isDone()) {
+            null
+        } else {
+            blockQueue.peek()
+        }
+
+        val seconds = (runtimeSec % 60).toInt().toString().padStart(2,'0')
+        val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2,'0')
+        val hours = (runtimeSec / 3600).toInt().toString().padStart(2,'0')
+
+        return listOf(
+                "§rStatistics",
+                "    §9> §rRuntime: §7$hours:$minutes:$seconds",
+                "    §9> §rPlacements per second: §7%.2f (%.2f)".format(totalBlocksPlaced / runtimeSec, (totalBlocksPlaced / runtimeSec) * 2),
+                "    §9> §rBreaks per second: §7%.2f (%.2f)".format(totalBlocksDestroyed / runtimeSec, (totalBlocksDestroyed / runtimeSec) * 2),
+                "    §9> §rDistance per hour: §7%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
+                "§rInfo",
+                "    §9> §rStatus: §7${currentTask?.taskState}",
+                "    §9> §rTarget state: §7${currentTask?.block}",
+                "    §9> §rPosition: §7${currentTask?.blockPos}",
+                "§rEstimations",
+                "    §9> §rTheoretical material left: §7${12345} ${material.localizedName}",
+                "    §9> §rTheoretical block breakings left: §7${232344}",
+                "    §9> §rTheoretical distance left: §7${62944}",
+                "    §9> §rEstimated time left: §704:13:11",
+                "    §9> §rEstimated destination: §7BlockPos{x=-125533, y=119, z=125533}"
+        )
     }
 
     fun getNextBlock(): BlockPos {
