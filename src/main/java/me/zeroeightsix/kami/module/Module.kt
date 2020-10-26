@@ -59,7 +59,6 @@ open class Module {
     enum class Category(val categoryName: String, val isHidden: Boolean) {
         CHAT("Chat", false),
         COMBAT("Combat", false),
-        EXPERIMENTAL("Experimental", false),
         CLIENT("Client", false),
         HIDDEN("Hidden", true),
         MISC("Misc", false),
@@ -82,7 +81,7 @@ open class Module {
     val bindName: String get() = bind.value.toString()
     val chatName: String get() = "[${name.value}]"
     val isOnArray: Boolean get() = showOnArray.value == ShowOnArray.ON
-    val isProduction: Boolean get() = name.value == "clickGUI" || category != Category.EXPERIMENTAL && category != Category.HIDDEN
+    val isProduction: Boolean get() = category != Category.HIDDEN
     /* End of properties */
 
 

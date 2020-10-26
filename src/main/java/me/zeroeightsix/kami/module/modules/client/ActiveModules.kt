@@ -53,7 +53,6 @@ object ActiveModules : Module() {
         return when (category) {
             Category.CHAT -> chat
             Category.COMBAT -> combat
-            Category.EXPERIMENTAL -> experimental
             Category.CLIENT -> client
             Category.HIDDEN -> null // This should never be reached
             Category.MISC -> misc
