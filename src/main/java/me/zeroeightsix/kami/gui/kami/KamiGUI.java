@@ -120,8 +120,8 @@ public class KamiGUI extends GUI {
     public void initializeGUI() {
         HashMap<Module.Category, Pair<Scrollpane, SettingsPanel>> categoryScrollpaneHashMap = new HashMap<>();
         for (Module module : ModuleManager.getModules()) {
-            if (module.category.isHidden()) continue;
-            Module.Category moduleCategory = module.category;
+            if (module.getCategory().isHidden()) continue;
+            Module.Category moduleCategory = module.getCategory();
             if (!categoryScrollpaneHashMap.containsKey(moduleCategory)) {
                 Stretcherlayout stretcherlayout = new Stretcherlayout(1);
                 stretcherlayout.setComponentOffsetWidth(0);
@@ -132,14 +132,14 @@ public class KamiGUI extends GUI {
 
             Pair<Scrollpane, SettingsPanel> pair = categoryScrollpaneHashMap.get(moduleCategory);
             Scrollpane scrollpane = pair.getFirst();
-            CheckButton checkButton = new CheckButton(module.name.getValue(), module.description);
+            CheckButton checkButton = new CheckButton(module.getName().getValue(), module.getDescription());
             checkButton.setToggled(module.isEnabled());
 
             /* descriptions aren't changed ever, so you don't need a tick listener */
-            checkButton.setDescription(module.description);
+            checkButton.setDescription(module.getDescription());
             checkButton.addTickListener(() -> { // dear god
                 checkButton.setToggled(module.isEnabled());
-                checkButton.setName(module.name.getValue());
+                checkButton.setName(module.getName().getValue());
             });
 
             checkButton.addMouseListener(new MouseListener() {
