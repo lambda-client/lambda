@@ -540,8 +540,8 @@ public class KamiGUI extends GUI {
         });
         ht.addChild(htLabel);
         htLabel.setShadow(true);
-        ht.setMinimumHeight(60);
-        ht.setMinimumWidth(100);
+        ht.setMinimumHeight(20);
+        ht.setMinimumWidth(80);
         frames.add(ht);
 
         /*
