@@ -8,6 +8,8 @@ import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.mobTypeSettings
 import me.zeroeightsix.kami.util.color.HueCycler
 import me.zeroeightsix.kami.util.event.listener
+import me.zeroeightsix.kami.util.graphics.GlStateUtils
+import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
@@ -49,6 +51,7 @@ object Chams : Module() {
     private val r = register(Settings.integerBuilder("Red").withValue(255).withRange(0, 255).withVisibility { page.value == Page.RENDERING && customColor.value && !rainbow.value })
     private val g = register(Settings.integerBuilder("Green").withValue(255).withRange(0, 255).withVisibility { page.value == Page.RENDERING && customColor.value && !rainbow.value })
     private val b = register(Settings.integerBuilder("Blue").withValue(255).withRange(0, 255).withVisibility { page.value == Page.RENDERING && customColor.value && !rainbow.value })
+    private val a = register(Settings.integerBuilder("Alpha").withValue(127).withRange(0, 255).withVisibility { page.value == Page.RENDERING && customColor.value })
 
     private enum class Page {
         ENTITY_TYPE, RENDERING
@@ -62,8 +65,11 @@ object Chams : Module() {
             if (!texture.value) glDisable(GL_TEXTURE_2D)
             if (!lightning.value) glDisable(GL_LIGHTING)
             if (customColor.value) {
-                if (rainbow.value) cycler.setCurrent()
-                else glColor3f(r.value / 255f, g.value / 255f, b.value / 255f)
+                if (rainbow.value) cycler.currentRgba(a.value).setGLColor()
+                else glColor4f(r.value / 255.0f, g.value / 255.0f, b.value / 255.0f, a.value / 255.0f)
+                GlStateUtils.colorLock(true)
+                GlStateUtils.blend(true)
+                GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO)
             }
             if (throughWall.value) {
                 glDepthRange(0.0, 0.01)
@@ -75,6 +81,8 @@ object Chams : Module() {
             if (!texture.value) glEnable(GL_TEXTURE_2D)
             if (!lightning.value) glEnable(GL_LIGHTING)
             if (customColor.value) {
+                GlStateUtils.blend(false)
+                GlStateUtils.colorLock(false)
                 glColor4f(1f, 1f, 1f, 1f)
             }
             if (throughWall.value) {
