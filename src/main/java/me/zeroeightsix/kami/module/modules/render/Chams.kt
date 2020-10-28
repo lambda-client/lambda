@@ -1,8 +1,6 @@
 package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.event.events.RenderEntityEvent
-import me.zeroeightsix.kami.event.events.RenderWorldEvent
-import me.zeroeightsix.kami.event.events.ResolutionUpdateEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
@@ -10,9 +8,6 @@ import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.mobTypeSettings
 import me.zeroeightsix.kami.util.color.HueCycler
 import me.zeroeightsix.kami.util.event.listener
-import me.zeroeightsix.kami.util.graphics.GlStateUtils
-import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.client.shader.Framebuffer
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
@@ -60,7 +55,6 @@ object Chams : Module() {
     }
 
     private var cycler = HueCycler(600)
-    private val frameBuffer = Framebuffer(mc.displayWidth, mc.displayHeight, true)
 
     init {
         listener<RenderEntityEvent.Pre>(2000) {
@@ -72,8 +66,7 @@ object Chams : Module() {
                 else glColor3f(r.value / 255f, g.value / 255f, b.value / 255f)
             }
             if (throughWall.value) {
-                glPushMatrix()
-                frameBuffer.bindFramebuffer(false)
+                glDepthRange(0.0, 0.01)
             }
         }
 
@@ -85,28 +78,12 @@ object Chams : Module() {
                 glColor4f(1f, 1f, 1f, 1f)
             }
             if (throughWall.value) {
-                mc.framebuffer.bindFramebuffer(false)
-                glPopMatrix()
+                glDepthRange(0.0, 1.0)
             }
-        }
-
-        listener<RenderWorldEvent> {
-            if (!throughWall.value) return@listener
-            GlStateUtils.depth(false)
-            glPushMatrix()
-            frameBuffer.framebufferRenderExt(mc.displayWidth, mc.displayHeight, false)
-            frameBuffer.framebufferClear()
-            mc.framebuffer.bindFramebuffer(false)
-            glPopMatrix()
-            GlStateUtils.depth(true)
         }
 
         listener<SafeTickEvent> {
             if (it.phase == TickEvent.Phase.START) cycler++
-        }
-
-        listener<ResolutionUpdateEvent> {
-            frameBuffer.createFramebuffer(mc.displayWidth, mc.displayHeight)
         }
     }
 
