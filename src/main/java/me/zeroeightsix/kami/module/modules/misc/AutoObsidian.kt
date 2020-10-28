@@ -10,6 +10,7 @@ import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.InventoryUtils
+import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
@@ -28,8 +29,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -46,6 +46,7 @@ object AutoObsidian : Module() {
     private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20))
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
+    private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withMinimum(2.0F).withValue(5.4F))
 
     enum class State {
@@ -54,6 +55,14 @@ object AutoObsidian : Module() {
 
     enum class SearchingState {
         PLACING, OPENING, PRE_MINING, MINING, COLLECTING, DONE
+    }
+
+    private enum class InteractMode {
+        OFF, SPOOF, VIEWLOCK
+    }
+
+    enum class AutoCenterMode {
+        OFF, TP, MOTION
     }
 
     var pathing = false
@@ -69,7 +78,6 @@ object AutoObsidian : Module() {
     private var obsidianCount = -1
     private var tickCount = 0
     private var openTime = 0L
-    private var ticks = true
 
     override fun isActive(): Boolean {
         return isEnabled && active
@@ -82,12 +90,9 @@ object AutoObsidian : Module() {
 
     init {
         listener<SafeTickEvent> {
-            if (ticks) {
-                ticks = !ticks
-            } else {
-                ticks = !ticks
+            if (it.phase != TickEvent.Phase.END) {
                 if (mc.playerController == null) return@listener
-                /* Just a delay */
+
                 if (tickCount < delayTicks.value) {
                     tickCount++
                     return@listener
@@ -109,6 +114,7 @@ object AutoObsidian : Module() {
                                     /* Positions need to be updated after moving while collecting dropped shulker box */
                                     val currentPos = BlockPos(floor(mc.player.posX).toInt(), floor(mc.player.posY).toInt(), floor(mc.player.posZ).toInt())
                                     playerPos = currentPos
+                                    centerPlayer()
                                     setPlacingPos()
                                 }
                             }
@@ -130,6 +136,8 @@ object AutoObsidian : Module() {
                         }
                     }
                 }
+            } else {
+                return@listener
             }
         }
     }
@@ -319,7 +327,7 @@ object AutoObsidian : Module() {
             if (System.currentTimeMillis() >= openTime + 2000L) {
                 openTime = System.currentTimeMillis()
                 Thread{
-                    Thread.sleep(25L)
+                    Thread.sleep(delayTicks.value * 25L)
                     val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
                     mc.connection!!.sendPacket(placePacket)
                     mc.player.swingArm(EnumHand.MAIN_HAND)
@@ -362,7 +370,7 @@ object AutoObsidian : Module() {
             }
         }
         if (rayTraces.size == 0) {
-            sendChatMessage("Trying to place through wall $pos")
+            sendChatMessage("Position: $pos not available")
             // placeBlockWall(pos, mat)
             return
         }
@@ -394,7 +402,7 @@ object AutoObsidian : Module() {
         }
 
         Thread{
-            Thread.sleep(25L)
+            Thread.sleep(delayTicks.value * 25L)
             val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
             mc.connection!!.sendPacket(placePacket)
             mc.player.swingArm(EnumHand.MAIN_HAND)
@@ -445,7 +453,7 @@ object AutoObsidian : Module() {
         }
 
         Thread {
-            Thread.sleep(25L)
+            Thread.sleep(delayTicks.value * 25L)
             if (pre) {
                 mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, facing))
                 if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
@@ -464,6 +472,14 @@ object AutoObsidian : Module() {
         } else false
     }
 
+    private fun centerPlayer(): Boolean {
+        return if (autoCenter.value == AutoCenterMode.OFF) {
+            true
+        } else {
+            SurroundUtils.centerPlayer(autoCenter.value == AutoCenterMode.TP)
+        }
+    }
+
     private fun reset() {
         active = false
         pathing = false
@@ -475,10 +491,4 @@ object AutoObsidian : Module() {
         tickCount = 0
     }
     /* End of tasks */
-
-    private enum class InteractMode {
-        OFF,
-        SPOOF,
-        VIEWLOCK
-    }
 }
