@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.event.KamiEventBus;
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent;
 import me.zeroeightsix.kami.event.events.PlayerMoveEvent;
 import me.zeroeightsix.kami.gui.mc.KamiGuiBeacon;
+import me.zeroeightsix.kami.manager.managers.MessageManager;
 import me.zeroeightsix.kami.module.modules.chat.PortalChat;
 import me.zeroeightsix.kami.module.modules.misc.BeaconSelector;
 import me.zeroeightsix.kami.module.modules.movement.Sprint;
@@ -103,6 +104,11 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null) {
             cir.setReturnValue(mc.getRenderViewEntity() == Freecam.INSTANCE.getCameraGuy());
         }
+    }
+
+    @Inject(method = "sendChatMessage", at = @At("HEAD"), cancellable = true)
+    public void sendChatMessage(String message, CallbackInfo ci) {
+        MessageManager.INSTANCE.setLastPlayerMessage(message);
     }
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)

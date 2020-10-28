@@ -1,15 +1,9 @@
 package me.zeroeightsix.kami.module.modules.client
 
-import me.zeroeightsix.kami.event.events.RenderOverlayEvent
-import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.color.ColorHolder
-import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.GlStateUtils
-import me.zeroeightsix.kami.util.graphics.GlStateUtils.rescaleKami
-import me.zeroeightsix.kami.util.graphics.GlStateUtils.rescaleMc
-import me.zeroeightsix.kami.util.graphics.GuiFrameUtil.getFrameByName
 import me.zeroeightsix.kami.util.graphics.RenderUtils2D
 import me.zeroeightsix.kami.util.graphics.VertexHelper
 import me.zeroeightsix.kami.util.math.Vec2d
@@ -19,7 +13,6 @@ import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.util.ResourceLocation
 import org.lwjgl.opengl.GL11.*
-import kotlin.math.roundToInt
 
 @Module.Info(
         name = "InventoryViewer",
@@ -46,6 +39,7 @@ object InventoryViewer : Module() {
         drawFrame()
         drawFrameTexture()
         drawItems()
+        GlStateUtils.depth(true)
     }
 
     private fun drawFrame() {
@@ -98,11 +92,13 @@ object InventoryViewer : Module() {
             GlStateUtils.blend(true)
             GlStateUtils.depth(true)
             RenderHelper.enableGUIStandardItemLighting()
+            mc.renderItem.zLevel = 0.0f
             mc.renderItem.renderItemAndEffectIntoGUI(itemStack, slotX, slotY)
             mc.renderItem.renderItemOverlays(mc.fontRenderer, itemStack, slotX, slotY)
+            mc.renderItem.zLevel = 0.0f
             RenderHelper.disableStandardItemLighting()
             GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f)
-            GlStateUtils.lighting(false)
+            GlStateUtils.depth(false)
         }
     }
 

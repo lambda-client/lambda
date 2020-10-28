@@ -63,7 +63,7 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
 
                 RenderUtils2D.drawRectFilled(vertexHelper, pos1, pos2, new ColorHolder(GuiC.windowFilled.color));
                 RenderUtils2D.drawRectOutline(vertexHelper, pos1, pos2, 1.5f, new ColorHolder(GuiC.windowOutline.color));
-                FontRenderAdapter.INSTANCE.drawString(component.getDescription(), component.getWidth() + tooltipX + 4f, 0f, false);
+                FontRenderAdapter.INSTANCE.drawString(component.getDescription(), component.getWidth() + tooltipX + 4f, -1.0f, false);
 
                 glTranslatef(0, 0, -69);
                 glEnable(GL_SCISSOR_TEST); // stop drawing outside of the container

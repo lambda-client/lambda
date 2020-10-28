@@ -2,8 +2,8 @@ package me.zeroeightsix.kami.module.modules.combat
 
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
-import me.zeroeightsix.kami.manager.mangers.CombatManager
-import me.zeroeightsix.kami.manager.mangers.PlayerPacketManager
+import me.zeroeightsix.kami.manager.managers.CombatManager
+import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.Bind
@@ -34,6 +34,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import java.util.*
 
+@CombatManager.CombatModule
 @Module.Info(
         name = "CrystalBasePlace",
         description = "Places obby for placing crystal on",
@@ -92,7 +93,7 @@ object CrystalBasePlace : Module() {
                 }
             }
 
-            if (placePacket == null && CrystalAura.isEnabled && CrystalAura.inactiveTicks > 20) prePlace(target)
+            if (placePacket == null && CrystalAura.isEnabled && CrystalAura.inactiveTicks > 15) prePlace(target)
 
             if (isActive()) {
                 rotationTo?.let { hitVec ->

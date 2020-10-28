@@ -9,9 +9,9 @@ import me.zeroeightsix.kami.gui.rgui.component.Component
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper
 import me.zeroeightsix.kami.gui.rgui.util.Docking
-import me.zeroeightsix.kami.manager.mangers.FriendManager
-import me.zeroeightsix.kami.manager.mangers.MacroManager
-import me.zeroeightsix.kami.manager.mangers.WaypointManager
+import me.zeroeightsix.kami.manager.managers.FriendManager
+import me.zeroeightsix.kami.manager.managers.MacroManager
+import me.zeroeightsix.kami.manager.managers.WaypointManager
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.setting.config.Configuration
 import java.io.File
@@ -158,14 +158,15 @@ object ConfigUtils {
         }
     }
 
-    /**
-     * Super lazy fix for Windows users sometimes saving empty files
-     */
-    fun fixEmptyFile(file: File) {
-        if (!file.exists()) {
+    fun fixEmptyJson(file: File) {
+        if (!file.exists()) file.createNewFile()
+        var notEmpty = false
+        file.forEachLine { notEmpty = notEmpty || it.trim().isNotBlank() }
+
+        if (!notEmpty) {
             try {
                 val fileWriter = FileWriter(file)
-                fileWriter.write("[]")
+                fileWriter.write("{}")
                 fileWriter.close()
             } catch (exception: IOException) {
                 exception.printStackTrace()

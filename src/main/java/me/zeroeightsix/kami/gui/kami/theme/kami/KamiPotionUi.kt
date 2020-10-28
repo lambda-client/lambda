@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.gui.kami.component.Potions
 import me.zeroeightsix.kami.gui.rgui.component.AlignedComponent
 import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI
-import me.zeroeightsix.kami.util.LagCompensator
+import me.zeroeightsix.kami.util.TpsCalculator
 import me.zeroeightsix.kami.util.color.ColorConverter.hexToRgb
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import me.zeroeightsix.kami.util.text.RomanNumerals
@@ -55,14 +55,14 @@ class KamiPotionUi : AbstractComponentUI<Potions>() {
          * Formats name and time based on UI alignment
          */
         fun formattedName(right: Boolean) =
-                if (right) "${KamiMod.colour}7${formattedTimeLeft()}${KamiMod.colour}r ${formattedName()}"
-                else "${formattedName()} ${KamiMod.colour}7${formattedTimeLeft()}"
+                if (right) "${KamiMod.color}7${formattedTimeLeft()}${KamiMod.color}r ${formattedName()}"
+                else "${formattedName()} ${KamiMod.color}7${formattedTimeLeft()}"
 
         /**
          * (min:secs)
          */
         private fun formattedTimeLeft(): String {
-            val compensatedDuration: Long = (potionEffect.duration / LagCompensator.tickRate).toLong() // Convert type after calculation for more accurate result
+            val compensatedDuration: Long = (potionEffect.duration / TpsCalculator.tickRate).toLong() // Convert type after calculation for more accurate result
             val min = TimeUnit.SECONDS.toMinutes(compensatedDuration)
             val secs = TimeUnit.SECONDS.toSeconds(compensatedDuration) - min * 60
             return String.format("(%d:%02d)", min, secs)

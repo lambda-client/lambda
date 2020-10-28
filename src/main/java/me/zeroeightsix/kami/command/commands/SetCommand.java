@@ -44,9 +44,9 @@ public class SetCommand extends Command {
         }
 
         if (args[1] == null) {
-            String settings = m.settingList.stream().map(Setting::getName).collect(Collectors.joining(", "));
+            String settings = m.getSettingList().stream().map(Setting::getName).collect(Collectors.joining(", "));
             if (settings.isEmpty())
-                sendChatMessage("Module &b" + m.name.getValue() + "&r has no settings.");
+                sendChatMessage("Module &b" + m.getName().getValue() + "&r has no settings.");
             else {
                 sendStringChatMessage(new String[]{
                         "Please specify a setting! Choose one of the following:", settings
@@ -55,16 +55,16 @@ public class SetCommand extends Command {
             return;
         }
 
-        Optional<Setting<?>> optionalSetting = m.settingList.stream().filter(setting1 -> setting1.getName().equalsIgnoreCase(args[1])).findFirst();
+        Optional<Setting<?>> optionalSetting = m.getSettingList().stream().filter(setting1 -> setting1.getName().equalsIgnoreCase(args[1])).findFirst();
         if (!optionalSetting.isPresent()) {
-            sendChatMessage("Unknown setting &b" + args[1] + "&r in &b" + m.name.getValue() + "&r!");
+            sendChatMessage("Unknown setting &b" + args[1] + "&r in &b" + m.getName().getValue() + "&r!");
             return;
         }
 
         ISettingUnknown setting = optionalSetting.get();
 
         if (args[2] == null) {
-            sendChatMessage("&b" + setting.getName() + "&r is a &3" + setting.getValueClass().getSimpleName() + "&r. Its current value is &3" + setting.getValueAsString());
+            sendChatMessage("&b" + setting.getName() + "&r is a &3" + setting.getValueClass().getSimpleName() + "&r. Its current value is &3" + setting.toString());
             return;
         }
 
@@ -75,7 +75,7 @@ public class SetCommand extends Command {
             }
             /* PLEASE MAKE SURE TO USE PROPER NAMING WHEN USING ENUMS */ /* if you use improper lowercase letters it will *not* work with this command ie THIS_IS correct, this_is NOT ~l1ving */
             setting.setValueFromString(arg2, setting.getValueClass().getSimpleName().equals("Boolean"));
-            sendChatMessage("Set &b" + setting.getName() + "&r to &3" + setting.getValueAsString() + "&r.");
+            sendChatMessage("Set &b" + setting.getName() + "&r to &3" + setting.toString() + "&r.");
         } catch (Exception e) {
             e.printStackTrace();
             sendChatMessage("Unable to set value! &6" + e.getMessage());

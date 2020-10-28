@@ -17,13 +17,12 @@ import me.zeroeightsix.kami.gui.rgui.component.use.Label;
 import me.zeroeightsix.kami.gui.rgui.render.theme.Theme;
 import me.zeroeightsix.kami.gui.rgui.util.ContainerHelper;
 import me.zeroeightsix.kami.gui.rgui.util.Docking;
-import me.zeroeightsix.kami.manager.mangers.FriendManager;
+import me.zeroeightsix.kami.manager.managers.FriendManager;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
 import me.zeroeightsix.kami.module.modules.movement.AutoWalk;
 import me.zeroeightsix.kami.process.TemporaryPauseProcess;
-import me.zeroeightsix.kami.util.Friends;
 import me.zeroeightsix.kami.util.Wrapper;
 import me.zeroeightsix.kami.util.math.MathUtils;
 import net.minecraft.client.Minecraft;
@@ -120,8 +119,8 @@ public class KamiGUI extends GUI {
     public void initializeGUI() {
         HashMap<Module.Category, Pair<Scrollpane, SettingsPanel>> categoryScrollpaneHashMap = new HashMap<>();
         for (Module module : ModuleManager.getModules()) {
-            if (module.category.isHidden()) continue;
-            Module.Category moduleCategory = module.category;
+            if (module.getCategory().isHidden()) continue;
+            Module.Category moduleCategory = module.getCategory();
             if (!categoryScrollpaneHashMap.containsKey(moduleCategory)) {
                 Stretcherlayout stretcherlayout = new Stretcherlayout(1);
                 stretcherlayout.setComponentOffsetWidth(0);
@@ -132,14 +131,14 @@ public class KamiGUI extends GUI {
 
             Pair<Scrollpane, SettingsPanel> pair = categoryScrollpaneHashMap.get(moduleCategory);
             Scrollpane scrollpane = pair.getFirst();
-            CheckButton checkButton = new CheckButton(module.name.getValue(), module.description);
+            CheckButton checkButton = new CheckButton(module.getName().getValue(), module.getDescription());
             checkButton.setToggled(module.isEnabled());
 
             /* descriptions aren't changed ever, so you don't need a tick listener */
-            checkButton.setDescription(module.description);
+            checkButton.setDescription(module.getDescription());
             checkButton.addTickListener(() -> { // dear god
                 checkButton.setToggled(module.isEnabled());
-                checkButton.setName(module.name.getValue());
+                checkButton.setName(module.getName().getValue());
             });
 
             checkButton.addMouseListener(new MouseListener() {
@@ -303,20 +302,21 @@ public class KamiGUI extends GUI {
         friendList.setCloseable(false);
         friendList.setPinnable(false);
         friendList.setMinimizeable(true);
-        friendList.setMinimumWidth(80);
+        friendList.setMinimumWidth(50);
         friendList.setMinimumHeight(10);
         Label friends = new Label("");
-        friends.setShadow(true);
+        friends.setShadow(false);
         friends.addTickListener(() -> {
             friends.setText("");
             if (!friendList.isMinimized()) {
-                if (FriendManager.INSTANCE.getFriendFile().enabled) {
-                    for (Friends.Friend friend : FriendManager.INSTANCE.getFriendFile().friends) {
-                        if (friend.getUsername().isEmpty()) continue;
-                        friends.addLine(friend.getUsername());
+                if (FriendManager.INSTANCE.getEnabled()) {
+                    for (FriendManager.Friend friend : FriendManager.INSTANCE.getFriends().values()) {
+                        final String name = friend.getUsername();
+                        if (name.isEmpty()) continue;
+                        friends.addLine(name);
                     }
                 } else {
-                    friends.addLine(KamiMod.colour + "cDisabled");
+                    friends.addLine(KamiMod.color + "cDisabled");
                 }
             }
         });
@@ -382,7 +382,7 @@ public class KamiGUI extends GUI {
 
                 float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
-                healthSB.append(KamiMod.colour);
+                healthSB.append(KamiMod.color);
                 if (hpRaw >= 20) {
                     healthSB.append("a");
                 } else if (hpRaw >= 10) {
@@ -406,7 +406,7 @@ public class KamiGUI extends GUI {
             players = sortByValue(players);
 
             for (Map.Entry<String, Integer> player : players.entrySet()) {
-                list.addLine(KamiMod.colour + "7" + player.getKey() + " " + KamiMod.colour + "8" + player.getValue());
+                list.addLine(KamiMod.color + "7" + player.getKey() + " " + KamiMod.color + "8" + player.getValue());
             }
         });
         textRadar.setCloseable(false);
@@ -489,28 +489,28 @@ public class KamiGUI extends GUI {
             int hposZ = (int) (player.posZ * f);
 
             /* The 7 and f in the string formatter is the color */
-            String colouredSeparator = KamiMod.colour + "7 " + KamiMod.separator + KamiMod.colour + "r";
+            String colouredSeparator = KamiMod.color + "7 " + KamiMod.separator + KamiMod.color + "r";
             String ow = String.format("%sf%,d%s7, %sf%,d%s7, %sf%,d %s7",
-                    KamiMod.colour,
+                    KamiMod.color,
                     posX,
-                    KamiMod.colour,
-                    KamiMod.colour,
+                    KamiMod.color,
+                    KamiMod.color,
                     posY,
-                    KamiMod.colour,
-                    KamiMod.colour,
+                    KamiMod.color,
+                    KamiMod.color,
                     posZ,
-                    KamiMod.colour
+                    KamiMod.color
             );
             String nether = String.format(" (%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
-                    KamiMod.colour,
+                    KamiMod.color,
                     hposX,
-                    KamiMod.colour,
-                    KamiMod.colour,
+                    KamiMod.color,
+                    KamiMod.color,
                     posY,
-                    KamiMod.colour,
-                    KamiMod.colour,
+                    KamiMod.color,
+                    KamiMod.color,
                     hposZ,
-                    KamiMod.colour
+                    KamiMod.color
             );
             coordsLabel.setText("");
             coordsLabel.addLine(ow);

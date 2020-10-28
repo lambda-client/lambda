@@ -4,8 +4,6 @@ import com.google.common.base.Converter
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import me.zeroeightsix.kami.event.KamiEventBus
-import me.zeroeightsix.kami.event.events.RenderWorldEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.module.modules.ClickGUI
 import me.zeroeightsix.kami.module.modules.client.CommandConfig
@@ -20,24 +18,21 @@ import java.util.*
 
 open class Module {
     /* Annotations */
-    @JvmField val originalName: String = annotation.name
-    @JvmField val category: Category = annotation.category
-    @JvmField val description: String = annotation.description
-    @JvmField val modulePriority: Int = annotation.modulePriority
-    @JvmField var alwaysListening: Boolean = annotation.alwaysListening
+    private val annotation =
+            javaClass.annotations.firstOrNull { it is Info } as? Info
+                    ?: throw IllegalStateException("No Annotation on class " + this.javaClass.canonicalName + "!")
 
-    @JvmField var settingList = ArrayList<Setting<*>>()
+    val originalName = annotation.name
+    val alias = arrayOf(originalName, *annotation.alias)
+    val category = annotation.category
+    val description = annotation.description
+    val modulePriority = annotation.modulePriority
+    var alwaysListening = annotation.alwaysListening
 
-    private val annotation: Info get() {
-            if (javaClass.isAnnotationPresent(Info::class.java)) {
-                return javaClass.getAnnotation(Info::class.java)
-            }
-            throw IllegalStateException("No Annotation on class " + this.javaClass.canonicalName + "!")
-        }
-
-    @kotlin.annotation.Retention(AnnotationRetention.RUNTIME)
+    @Retention(AnnotationRetention.RUNTIME)
     annotation class Info(
             val name: String,
+            val alias: Array<String> = [],
             val description: String,
             val category: Category,
             val modulePriority: Int = -1,
@@ -59,7 +54,6 @@ open class Module {
     enum class Category(val categoryName: String, val isHidden: Boolean) {
         CHAT("Chat", false),
         COMBAT("Combat", false),
-        EXPERIMENTAL("Experimental", false),
         CLIENT("Client", false),
         HIDDEN("Hidden", true),
         MISC("Misc", false),
@@ -70,8 +64,9 @@ open class Module {
     /* End of annotations */
 
     /* Settings */
-    @JvmField val name = register(Settings.s("Name", originalName))
-    @JvmField val bind = register(Settings.custom("Bind", Bind.none(), BindConverter()).build())
+    val settingList = ArrayList<Setting<*>>()
+    val name = register(Settings.s("Name", originalName))
+    val bind = register(Settings.custom("Bind", Bind.none(), BindConverter()).build())
     private val enabled = register(Settings.booleanBuilder("Enabled").withVisibility { false }.withValue(annotation.enabledByDefault || annotation.alwaysEnabled).build())
     private val showOnArray = register(Settings.e<ShowOnArray>("Visible", annotation.showOnArray))
     /* End of settings */
@@ -82,7 +77,7 @@ open class Module {
     val bindName: String get() = bind.value.toString()
     val chatName: String get() = "[${name.value}]"
     val isOnArray: Boolean get() = showOnArray.value == ShowOnArray.ON
-    val isProduction: Boolean get() = name.value == "clickGUI" || category != Category.EXPERIMENTAL && category != Category.HIDDEN
+    val isProduction: Boolean get() = category != Category.HIDDEN
     /* End of properties */
 
 
