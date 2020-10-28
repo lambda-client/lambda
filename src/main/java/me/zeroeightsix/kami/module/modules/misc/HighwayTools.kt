@@ -489,7 +489,7 @@ object HighwayTools : Module() {
 
     private fun inventoryManager(blockTask: BlockTask): Boolean {
         when (blockTask.taskState) {
-            TaskState.BREAK -> {
+            TaskState.BREAK, TaskState.LIQUID_BREAK -> {
                 if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
                     InventoryUtils.moveToHotbar(278, 130)
                     return true
@@ -501,7 +501,7 @@ object HighwayTools : Module() {
                 }
                 InventoryUtils.swapSlotToItem(278)
             }
-            TaskState.PLACE -> {
+            TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
                 if (InventoryUtils.getSlotsHotbar(getIdFromBlock(blockTask.block)) == null &&
                         InventoryUtils.getSlotsNoHotbar(getIdFromBlock(blockTask.block)) != null) {
                     for (x in InventoryUtils.getSlotsNoHotbar(getIdFromBlock(blockTask.block))!!) {
@@ -670,7 +670,6 @@ object HighwayTools : Module() {
             if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(BlockUtils.getHitVecOffset(side))) > maxReach.value) continue
             val rotationVector = Vec3d(offPos).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.499))
             val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector, false)?: continue
-            sendChatMessage(rt.toString())
             if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
             if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == blockTask.blockPos) {
                 rayTraces.add(rt)
@@ -739,10 +738,10 @@ object HighwayTools : Module() {
     }
 
     private fun centerPlayer(): Boolean {
-        return if (autoCenter.value == Surround.AutoCenterMode.OFF) {
+        return if (autoCenter.value == AutoCenterMode.OFF) {
             true
         } else {
-            SurroundUtils.centerPlayer(autoCenter.value == Surround.AutoCenterMode.TP)
+            SurroundUtils.centerPlayer(autoCenter.value == AutoCenterMode.TP)
         }
     }
 
@@ -822,15 +821,27 @@ object HighwayTools : Module() {
 
         val statistics = mutableListOf<String>()
 
-        statistics.addAll(listOf("§rStatistic",
+        statistics.addAll(listOf(
+                "§rPerformance",
                 "    §7Runtime: §9$hours:$minutes:$seconds",
                 "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
                 "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
                 "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
-                "§rTask information",
+                "§rEnvironment",
+                "    §7Starting coordinates: §9$startingBlockPos",
+                "    §7Direction: §9${buildDirectionSaved.cardinalName}",
+                "    §7Blocks destroyed: §9$totalBlocksDestroyed",
+                "    §7Blocks placed: §9$totalBlocksPlaced",
+                "    §7Material: §9${material.localizedName}",
+                "    §7Filler: §9${fillerMat.localizedName}",
+                "§rTask",
                 "    §7Status: §9${currentTask?.taskState}",
                 "    §7Target state: §9${currentTask?.block}",
-                "    §7Position: §9${currentTask?.blockPos}"))
+                "    §7Position: §9${currentTask?.blockPos}",
+                "§rDebug",
+                "    §7Mining stuck: §9$stuckMining",
+                "    §7Building stuck: §9$stuckBuilding",
+                "    §7Pathing: §9$pathing"))
 //                "§rEstimation",
 //                "    §9> §rTheoretical material left: §7${12345} ${material.localizedName}",
 //                "    §9> §rTheoretical block breakings left: §7${232344}",
@@ -839,7 +850,7 @@ object HighwayTools : Module() {
 //                "    §9> §rEstimated destination: §7BlockPos{x=-125533, y=119, z=125533}"))
 
         if (printDebug.value) {
-            for (x in getQueue()) sendChatMessage(x)
+            // for (x in getQueue()) sendChatMessage(x)
             statistics.addAll(getQueue())
         }
 
