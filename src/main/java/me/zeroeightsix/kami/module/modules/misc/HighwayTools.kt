@@ -73,7 +73,7 @@ object HighwayTools : Module() {
     private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withMinimum(0).withValue(0).withMaximum(16).withVisibility { page.value == Page.BEHAVIOR })
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
-    private val abundanceBreaking = register(Settings.booleanBuilder("AbundanceBreaking").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
+    // private val abundanceBreaking = register(Settings.booleanBuilder("AbundanceBreaking").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION).withVisibility { page.value == Page.BEHAVIOR })
     private val stuckDelay = register(Settings.integerBuilder("TickDelayStuck").withMinimum(1).withValue(200).withMaximum(500).withVisibility { page.value == Page.BEHAVIOR })
     val maxReach = register(Settings.floatBuilder("MaxReach").withMinimum(2.0F).withValue(5.4F).withVisibility { page.value == Page.BEHAVIOR })
@@ -981,13 +981,12 @@ object HighwayTools : Module() {
                 }
             }
             Mode.TUNNEL -> {
-                material = Blocks.NETHERRACK
                 if (baritoneMode.value) {
                     cursor = relativeDirection(cursor, 1, 0)
-                    blockOffsets.add(Pair(cursor, material))
+                    blockOffsets.add(Pair(cursor, fillerMat))
                 }
                 cursor = relativeDirection(cursor, 1, 0)
-                blockOffsets.add(Pair(cursor, material))
+                blockOffsets.add(Pair(cursor, fillerMat))
                 var buildIterationsWidth = buildWidth.value / 2
                 var evenCursor = relativeDirection(cursor, 1, 2)
                 var isOdd = false
@@ -995,12 +994,12 @@ object HighwayTools : Module() {
                     isOdd = true
                     buildIterationsWidth++
                 } else {
-                    blockOffsets.add(Pair(evenCursor, material))
+                    blockOffsets.add(Pair(evenCursor, fillerMat))
                 }
                 for (i in 1 until clearHeight.value + 2) {
                     for (j in 1 until buildIterationsWidth) {
                         var mat = Blocks.AIR
-                        if (i == 1) mat = material
+                        if (i == 1) mat = fillerMat
                         blockOffsets.add(Pair(relativeDirection(cursor, j, -2), mat))
                         if (isOdd) blockOffsets.add(Pair(relativeDirection(cursor, j, 2), mat))
                         else blockOffsets.add(Pair(relativeDirection(evenCursor, j, 2), mat))
@@ -1015,7 +1014,7 @@ object HighwayTools : Module() {
             }
             Mode.FLAT -> {
                 for (bp in VectorUtils.getBlockPositionsInArea(cursor.north(buildWidth.value).west(buildWidth.value), cursor.south(buildWidth.value).east(buildWidth.value))) {
-                    blockOffsets.add(Pair(bp, material))
+                    blockOffsets.add(Pair(bp, fillerMat))
                 }
             }
             null -> {
