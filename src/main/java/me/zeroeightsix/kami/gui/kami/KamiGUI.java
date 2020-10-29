@@ -531,11 +531,9 @@ public class KamiGUI extends GUI {
         Label htLabel = new Label("");
         htLabel.addTickListener(() -> {
             htLabel.setText("");
-            if (HighwayTools.INSTANCE.isEnabled()) {
-                List<String> statistics = HighwayTools.INSTANCE.gatherStatistics();
-                for (String line: statistics) {
-                    htLabel.addLine(line);
-                }
+            List<String> statistics = HighwayTools.INSTANCE.gatherStatistics();
+            for (String line: statistics) {
+                htLabel.addLine(line);
             }
         });
         ht.addChild(htLabel);

@@ -4,7 +4,6 @@ import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.combat.Surround
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
@@ -59,12 +58,12 @@ object HighwayTools : Module() {
     private val page = register(Settings.e<Page>("Page", Page.BUILD))
 
     // build settings
-    val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD })
-    var clearHeight = register(Settings.integerBuilder("ClearHeight").withMinimum(1).withValue(4).withMaximum(6).withVisibility { page.value == Page.BUILD && clearSpace.value })
-    private var buildWidth = register(Settings.integerBuilder("BuildWidth").withMinimum(1).withValue(5).withMaximum(9).withVisibility { page.value == Page.BUILD })
-    private val railing = register(Settings.booleanBuilder("Railing").withValue(true).withVisibility { page.value == Page.BUILD })
-    private var railingHeight = register(Settings.integerBuilder("RailingHeight").withMinimum(0).withValue(1).withMaximum(clearHeight.value).withVisibility { railing.value && page.value == Page.BUILD })
-    private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(false).withVisibility { page.value == Page.BUILD })
+    val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
+    var clearHeight = register(Settings.integerBuilder("Height").withMinimum(1).withValue(4).withMaximum(6).withVisibility { page.value == Page.BUILD && clearSpace.value })
+    private var buildWidth = register(Settings.integerBuilder("Width").withMinimum(1).withValue(5).withMaximum(9).withVisibility { page.value == Page.BUILD })
+    private val railing = register(Settings.booleanBuilder("Railing").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
+    private var railingHeight = register(Settings.integerBuilder("RailingHeight").withMinimum(0).withValue(1).withMaximum(clearHeight.value).withVisibility { railing.value && page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
+    private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(false).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
 
     // behavior settings
     val baritoneMode = register(Settings.booleanBuilder("AutoMode").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
@@ -74,6 +73,7 @@ object HighwayTools : Module() {
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     // private val abundanceBreaking = register(Settings.booleanBuilder("AbundanceBreaking").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
+    private val sloppyDigging = register(Settings.booleanBuilder("SloppyDigging").withValue(true).withVisibility { page.value == Page.BEHAVIOR && mode.value == Mode.TUNNEL})
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION).withVisibility { page.value == Page.BEHAVIOR })
     private val stuckDelay = register(Settings.integerBuilder("TickDelayStuck").withMinimum(1).withValue(200).withMaximum(500).withVisibility { page.value == Page.BEHAVIOR })
     val maxReach = register(Settings.floatBuilder("MaxReach").withMinimum(2.0F).withValue(5.4F).withVisibility { page.value == Page.BEHAVIOR })
@@ -112,7 +112,9 @@ object HighwayTools : Module() {
     private var lastViewVec: RayTraceResult? = null
     private var startTime: Long = 0L
     private var runtimeSec: Double = 0.0
-
+    private var prevFood: Int = 0
+    private var foodLoss: Int = 1
+    private var lastStats: List<String> = listOf()
     // stats
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
@@ -130,6 +132,11 @@ object HighwayTools : Module() {
                     if (relativeDirection(currentBlockPos, 1, 0) == mc.player.positionVector.toBlockPos()) {
                         if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
                             centerPlayer()
+                            val currentFood = mc.player.getFoodStats().foodLevel
+                            if (currentFood != prevFood) {
+                                prevFood = currentFood
+                                foodLoss++
+                            }
                             if (!doTask()) {
                                 if (!pathing) {
                                     stuckBuilding += 1
@@ -197,6 +204,8 @@ object HighwayTools : Module() {
         buildDirectionSaved = getPlayerCardinal(mc.player)
         startTime = System.currentTimeMillis()
         runtimeSec = 0.1
+        totalBlocksPlaced = 0
+        totalBlocksDestroyed = 0
 
         if (baritoneMode.value) {
             baritoneSettingAllowPlace = BaritoneAPI.getSettings().allowPlace.value
@@ -223,7 +232,6 @@ object HighwayTools : Module() {
         playerHotbarSlot = -1
         lastHotbarSlot = -1
 
-
         if (baritoneMode.value) {
             BaritoneAPI.getSettings().allowPlace.value = baritoneSettingAllowPlace
             if (!goalRender.value) BaritoneAPI.getSettings().renderGoal.value = baritoneSettingRenderGoal
@@ -231,8 +239,6 @@ object HighwayTools : Module() {
             if (baritoneProcess.isPresent && baritoneProcess.get() == HighwayToolsProcess) baritoneProcess.get().onLostControl()
         }
         printDisable()
-        totalBlocksPlaced = 0
-        totalBlocksDestroyed = 0
     }
 
     private fun addTask(blockPos: BlockPos, taskState: TaskState, material: Block) {
@@ -827,6 +833,7 @@ object HighwayTools : Module() {
                 "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
                 "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
                 "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
+                "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks",
                 "§rEnvironment",
                 "    §7Starting coordinates: §9$startingBlockPos",
                 "    §7Direction: §9${buildDirectionSaved.cardinalName}",
@@ -998,11 +1005,11 @@ object HighwayTools : Module() {
                 }
                 for (i in 1 until clearHeight.value + 2) {
                     for (j in 1 until buildIterationsWidth) {
-                        var mat = Blocks.AIR
-                        if (i == 1) mat = fillerMat
-                        blockOffsets.add(Pair(relativeDirection(cursor, j, -2), mat))
-                        if (isOdd) blockOffsets.add(Pair(relativeDirection(cursor, j, 2), mat))
-                        else blockOffsets.add(Pair(relativeDirection(evenCursor, j, 2), mat))
+                        if (i > 1) {
+                            blockOffsets.add(Pair(relativeDirection(cursor, j, -2), Blocks.AIR))
+                            if (isOdd) blockOffsets.add(Pair(relativeDirection(cursor, j, 2), Blocks.AIR))
+                            else blockOffsets.add(Pair(relativeDirection(evenCursor, j, 2), Blocks.AIR))
+                        }
                     }
                     cursor = cursor.up()
                     evenCursor = evenCursor.up()
