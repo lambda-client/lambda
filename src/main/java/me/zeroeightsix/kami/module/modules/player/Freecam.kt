@@ -32,7 +32,7 @@ import kotlin.math.sin
 object Freecam : Module() {
     private val horizontalSpeed = register(Settings.floatBuilder("HorizontalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
     private val verticalSpeed = register(Settings.floatBuilder("VerticalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
-    private val autoRotate = register(Settings.b("AutoRotate", true))
+    private val autoRotate = register(Settings.b("AutoRotate", false))
     private val arrowKeyMove = register(Settings.b("ArrowKeyMove", true))
     private val disableOnDisconnect = register(Settings.b("DisconnectDisable", true))
 
