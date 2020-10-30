@@ -23,6 +23,7 @@ import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.client.InfoOverlay;
 import me.zeroeightsix.kami.module.modules.movement.AutoWalk;
 import me.zeroeightsix.kami.process.TemporaryPauseProcess;
+import me.zeroeightsix.kami.util.BaritoneUtils;
 import me.zeroeightsix.kami.util.Wrapper;
 import me.zeroeightsix.kami.util.math.MathUtils;
 import net.minecraft.client.Minecraft;
@@ -334,6 +335,7 @@ public class KamiGUI extends GUI {
         processes.setShadow(true);
         processes.addTickListener(() -> {
             processes.setText("");
+            if (!BaritoneUtils.INSTANCE.getSettingsInitialized()) return;
             Optional<IBaritoneProcess> process = BaritoneAPI.getProvider().getPrimaryBaritone().getPathingControlManager().mostRecentInControl();
             if (!baritone.isMinimized() && process.isPresent()) {
                 if (process.get() != TemporaryPauseProcess.INSTANCE && AutoWalk.INSTANCE.isEnabled() && AutoWalk.INSTANCE.getMode().getValue() == AutoWalk.AutoWalkMode.BARITONE && AutoWalk.INSTANCE.getDirection() != null) {
