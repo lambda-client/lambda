@@ -10,8 +10,8 @@ object BaritoneUtils {
     var paused = false
         private set
 
-    val isPathing get() = primary?.pathingBehavior!!.isPathing
-    val isCustomGoalActive get() = primary?.customGoalProcess!!.isActive
+    val isPathing get() = primary?.pathingBehavior?.isPathing ?: false
+    val isCustomGoalActive get() = primary?.customGoalProcess?.isActive ?: false
     val isActive get() = primary?.customGoalProcess?.isActive ?: false
 
     val api get() = if (!settingsInitialized) null else BaritoneAPI.getProvider()
