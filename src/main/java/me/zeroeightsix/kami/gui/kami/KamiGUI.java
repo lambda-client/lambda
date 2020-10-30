@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.gui.kami;
 
-import baritone.api.BaritoneAPI;
 import baritone.api.process.IBaritoneProcess;
 import com.mojang.realmsclient.gui.ChatFormatting;
 import kotlin.Pair;
@@ -336,7 +335,7 @@ public class KamiGUI extends GUI {
         processes.addTickListener(() -> {
             processes.setText("");
             if (!BaritoneUtils.INSTANCE.getSettingsInitialized()) return;
-            Optional<IBaritoneProcess> process = BaritoneAPI.getProvider().getPrimaryBaritone().getPathingControlManager().mostRecentInControl();
+            Optional<IBaritoneProcess> process = Objects.requireNonNull(BaritoneUtils.INSTANCE.getPrimary()).getPathingControlManager().mostRecentInControl();
             if (!baritone.isMinimized() && process.isPresent()) {
                 if (process.get() != TemporaryPauseProcess.INSTANCE && AutoWalk.INSTANCE.isEnabled() && AutoWalk.INSTANCE.getMode().getValue() == AutoWalk.AutoWalkMode.BARITONE && AutoWalk.INSTANCE.getDirection() != null) {
                     processes.addLine("Process: AutoWalk (" + AutoWalk.INSTANCE.getDirection() + ")");

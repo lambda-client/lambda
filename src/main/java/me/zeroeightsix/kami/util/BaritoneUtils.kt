@@ -9,25 +9,32 @@ object BaritoneUtils {
 
     var paused = false
         private set
-    val isPathing get() = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
-    val isCustomGoalActive get() = BaritoneAPI.getProvider().primaryBaritone.customGoalProcess.isActive
+
+    val isPathing get() = primary?.pathingBehavior!!.isPathing
+    val isCustomGoalActive get() = primary?.customGoalProcess!!.isActive
+    val isActive get() = primary?.customGoalProcess?.isActive ?: false
+
+    val api get() = if (!settingsInitialized) null else BaritoneAPI.getProvider()
+    val primary get() = if (!settingsInitialized) null else BaritoneAPI.getProvider().primaryBaritone
 
     fun pause() {
         if (!paused) {
-            BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(TemporaryPauseProcess)
+            primary?.pathingControlManager!!.registerProcess(TemporaryPauseProcess)
             paused = true
         }
     }
 
     fun unpause() {
         if (paused) {
-            val process = BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.mostRecentInControl()
+            val process = primary?.pathingControlManager!!.mostRecentInControl()
             if (process.isPresent && process.get() == TemporaryPauseProcess) /* Don't run if not paused lol */ {
                 paused = false
                 process.get().onLostControl()
             }
         }
     }
+
+    fun cancelEverything() = primary?.pathingBehavior?.cancelEverything()
 
     fun settings(): Settings? {
         return if (!settingsInitialized) {
