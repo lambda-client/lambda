@@ -155,11 +155,12 @@ object HighwayTools : Module() {
                             }
                         } else {
                             if (isDone()) {
-                                refreshData()
                                 if (checkTasks() && !pathing) {
                                     currentBlockPos = getNextBlock()
                                     doneQueue.clear()
                                     updateTasks()
+                                } else {
+                                    refreshData()
                                 }
                             }
                         }
@@ -349,7 +350,6 @@ object HighwayTools : Module() {
                 updateTask(blockTask, TaskState.BREAK)
             }
         }
-        doTask()
     }
 
     private fun doPLACED(blockTask: BlockTask) {
@@ -360,7 +360,6 @@ object HighwayTools : Module() {
             blockTask.block == Blocks.AIR && block != Blocks.AIR -> updateTask(blockTask, TaskState.BREAK)
             else -> updateTask(blockTask, TaskState.PLACE)
         }
-        // doTask()
     }
 
     private fun doBREAK(blockTask: BlockTask): Boolean {
@@ -377,7 +376,11 @@ object HighwayTools : Module() {
         // last check before breaking
         when (block) {
             Blocks.AIR -> {
-                updateTask(blockTask, TaskState.DONE)
+                if (blockTask.block == Blocks.AIR) {
+                    updateTask(blockTask, TaskState.DONE)
+                } else {
+                    updateTask(blockTask, TaskState.PLACE)
+                }
                 doTask()
             }
             is BlockLiquid -> {
@@ -394,11 +397,10 @@ object HighwayTools : Module() {
                 if (blockTask.taskState != TaskState.LIQUID_BREAK) {
                     if (liquidHandler(blockTask)) {
                         updateTask(blockTask, TaskState.LIQUID_BREAK)
-                        doTask()
-                        return false
+                        return true
                     }
                 }
-                if (!inventoryManager(blockTask)) return false
+                if (!inventoryProcessor(blockTask)) return false
                 if (!mineBlock(blockTask)) shuffleTasks()
             }
         }
@@ -418,7 +420,7 @@ object HighwayTools : Module() {
                     return false
                 }
 
-                if (!inventoryManager(blockTask)) return false
+                if (!inventoryProcessor(blockTask)) return false
                 if (!placeBlock(blockTask)) return false
                 if (blockTask.taskState != TaskState.PLACE && isInsideBuild(blockTask.blockPos)) updateTask(blockTask, Blocks.AIR)
                 updateTask(blockTask, TaskState.PLACED)
@@ -444,18 +446,9 @@ object HighwayTools : Module() {
                 if (b == block) continue@loop
             }
             when {
-                blockTask.block == material && block == Blocks.AIR -> {
-                    sendChatMessage("1")
-                    return false
-                }
-                mode.value == Mode.TUNNEL && blockTask.block == fillerMat && block == Blocks.AIR -> {
-                    sendChatMessage("2")
-                    return false
-                }
-                blockTask.block == Blocks.AIR && block != Blocks.AIR -> {
-                    sendChatMessage("3")
-                    return false
-                }
+                blockTask.block == material && block != material -> return false
+                mode.value == Mode.TUNNEL && blockTask.block == fillerMat && block != fillerMat -> return false
+                blockTask.block == Blocks.AIR && block != Blocks.AIR -> return false
             }
         }
         return true
@@ -516,7 +509,7 @@ object HighwayTools : Module() {
         blockQueue.addAll(tmpQueue)
     }
 
-    private fun inventoryManager(blockTask: BlockTask): Boolean {
+    private fun inventoryProcessor(blockTask: BlockTask): Boolean {
         when (blockTask.taskState) {
             TaskState.BREAK, TaskState.LIQUID_BREAK -> {
                 if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
@@ -530,17 +523,18 @@ object HighwayTools : Module() {
                 InventoryUtils.swapSlotToItem(278)
             }
             TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
-                if (InventoryUtils.getSlotsHotbar(getIdFromBlock(blockTask.block)) == null &&
-                        InventoryUtils.getSlotsNoHotbar(getIdFromBlock(blockTask.block)) != null) {
-                    for (x in InventoryUtils.getSlotsNoHotbar(getIdFromBlock(blockTask.block))!!) {
+                val blockID = getIdFromBlock(blockTask.block)
+                if (InventoryUtils.getSlotsHotbar(blockID) == null &&
+                        InventoryUtils.getSlotsNoHotbar(blockID) != null) {
+                    for (x in InventoryUtils.getSlotsNoHotbar(blockID)!!) {
                         InventoryUtils.quickMoveSlot(x)
                     }
-                } else if (InventoryUtils.getSlots(0, 35, getIdFromBlock(blockTask.block)) == null) {
+                } else if (InventoryUtils.getSlots(0, 35, blockID) == null) {
                     sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
                     mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     disable()
                 }
-                InventoryUtils.swapSlotToItem(getIdFromBlock(blockTask.block))
+                InventoryUtils.swapSlotToItem(blockID)
             }
             else -> return false
         }
