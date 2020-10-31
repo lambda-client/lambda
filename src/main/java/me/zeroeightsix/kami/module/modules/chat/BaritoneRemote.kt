@@ -11,7 +11,6 @@ import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.text.MessageDetectionHelper
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.network.play.server.SPacketChat
-import net.minecraft.util.text.TextFormatting
 
 @Module.Info(
         name = "BaritoneRemote",
@@ -24,7 +23,7 @@ object BaritoneRemote : Module() {
     private val custom = register(Settings.s("Custom", "unchanged"))
 
     private var sendNextMsg = false
-    private var lastController = "-" /* - is default, ie invalid name */
+    private var lastController: String? = null
 
     init {
         /* instructions for changing custom setting */
@@ -63,8 +62,10 @@ object BaritoneRemote : Module() {
 
         /* forward baritone feedback to controller */
         listener<PrintChatMessageEvent> {
-            if (feedback.value && lastController != "-" && it.chatComponent.formattedText.startsWith(TextFormatting.DARK_PURPLE.toString() + "[")) { /* this took like 30 minutes to figure out, fucking Baritone */
-                MessageSendHelper.sendServerMessage("/msg $lastController " + it.chatComponent.unformattedText)
+            lastController?.let { controller ->
+                if (feedback.value && it.chatComponent.unformattedText.startsWith("[Baritone]")) {
+                    MessageSendHelper.sendServerMessage("/msg $controller " + it.chatComponent.unformattedText)
+                }
             }
         }
     }
