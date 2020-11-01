@@ -16,6 +16,7 @@ object BaritoneUtils {
 
     val api get() = if (!settingsInitialized) null else BaritoneAPI.getProvider()
     val primary get() = if (!settingsInitialized) null else BaritoneAPI.getProvider().primaryBaritone
+    val prefix get() = settings()?.prefix?.value ?: "#"
 
     fun pause() {
         if (!paused) {

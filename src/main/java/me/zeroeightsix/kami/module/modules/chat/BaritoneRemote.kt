@@ -7,9 +7,12 @@ import me.zeroeightsix.kami.manager.managers.FriendManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.text.MessageDetectionHelper
+import me.zeroeightsix.kami.util.text.MessageDetectionHelper.detectAndRemove
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.text.Regexes
 import net.minecraft.network.play.server.SPacketChat
 
 @Module.Info(
@@ -44,15 +47,17 @@ object BaritoneRemote : Module() {
             val message = it.packet.getChatComponent().unformattedText
 
             if (MessageDetectionHelper.isDirect(true, message)) {
-                /* side note: this won't work if some glitched account has spaces in their username, but in all honesty, like 3 people globally have those */
-                val username = message.split("whispers:")[0].split(" ")[0] // mmmm yes good code
-                val command = message.split("whispers:")[1].substring(1)
+                val username = MessageDetectionHelper.getDirectUsername(message) ?: return@listener
+                val command = message.detectAndRemove(Regexes.DIRECT) ?: message.detectAndRemove(Regexes.DIRECT_ALT)
+                ?: return@listener
 
-                if ((!command.startsWith("#") && !command.startsWith(";b ")) || !isValidUser(username)) return@listener
+                val bPrefix = BaritoneUtils.prefix
+                val kbPrefix = "${Command.getCommandPrefix()}b "
+                if ((!command.startsWith(bPrefix) && !command.startsWith(kbPrefix)) || !isValidUser(username)) return@listener
 
                 val baritoneCommand =
-                        if (command.startsWith("#")) command.substring(1).split(" ")
-                        else command.substring(3).split(" ")
+                        if (command.startsWith(bPrefix)) command.substring(bPrefix.length).split(" ")
+                        else command.substring(kbPrefix.length).split(" ")
 
                 MessageSendHelper.sendBaritoneCommand(*baritoneCommand.toTypedArray())
                 sendNextMsg = true

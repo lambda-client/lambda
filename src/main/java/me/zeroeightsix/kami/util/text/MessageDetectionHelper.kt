@@ -32,6 +32,18 @@ object MessageDetectionHelper {
 
     fun isDirect(direct: Boolean, message: String) = message.detect(direct, Regexes.DIRECT, Regexes.DIRECT_ALT, Regexes.DIRECT_SENT)
 
+    fun getDirectUsername(message: String): String? {
+        if (!isDirect(true, message)) return null
+
+        /* side note: this won't work if some glitched account has spaces in their username, but in all honesty, like 3 people globally have those */
+        var username = message.split(" ")[0]
+        if (username.detect(Regexes.DIRECT_ALT) && username.length > 1) {
+            username = username.substring(1)
+        }
+
+        return username
+    }
+
     fun shouldSend(all: Boolean, restart: Boolean, direct: Boolean, queue: Boolean, importantPings: Boolean, message: String): Boolean {
         return all
                 || message.detect(restart, Regexes.RESTART)
