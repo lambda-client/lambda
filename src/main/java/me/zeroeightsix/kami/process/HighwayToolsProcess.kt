@@ -28,7 +28,7 @@ object HighwayToolsProcess : IBaritoneProcess {
         val processName = if (ht.blockQueue.size > 0 && !ht.pathing) {
             "Block: " + ht.blockQueue.peek().block.localizedName + " @ Position: (" + ht.blockQueue.peek().blockPos.asString() + ") Priority: " + ht.blockQueue.peek().taskState.ordinal + " State: " + ht.blockQueue.peek().taskState.toString()
         } else if (ht.pathing) {
-            "Moving to Position: (${ht.getNextBlock().asString()})"
+            "Moving to Position: (${ht.getNextWalkableBlock().asString()})"
         } else {
             "Manual mode"
         }
@@ -42,7 +42,7 @@ object HighwayToolsProcess : IBaritoneProcess {
     override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
         val ht = HighwayTools
         return if (ht.baritoneMode.value) {
-            PathingCommand(GoalNear(ht.getNextBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
+            PathingCommand(GoalNear(ht.getNextWalkableBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
         } else PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
     }
 }

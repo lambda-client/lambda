@@ -26,7 +26,6 @@ import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
-import net.minecraft.block.BlockDynamicLiquid
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
@@ -119,7 +118,8 @@ object HighwayTools : Module() {
     private var runtimeSec: Double = 0.0
     private var prevFood: Int = 0
     private var foodLoss: Int = 1
-    private var lastStats: List<String> = listOf()
+    private var materialLeft = 0
+    private var fillerMatLeft = 0
 
     init {
         listener<SafeTickEvent> {
@@ -130,7 +130,7 @@ object HighwayTools : Module() {
 
                 if (baritoneMode.value) {
                     pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
-                    if (relativeDirection(currentBlockPos, 1, 0) == mc.player.positionVector.toBlockPos()) {
+                    if (getNextWalkableBlock() == mc.player.positionVector.toBlockPos()) {
                         if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
                             centerPlayer()
                             val currentFood = mc.player.getFoodStats().foodLevel
@@ -156,9 +156,9 @@ object HighwayTools : Module() {
                         } else {
                             if (isDone()) {
                                 if (checkTasks() && !pathing) {
-                                    currentBlockPos = getNextBlock()
+                                    currentBlockPos = getNextBlock(getNextBlock())
                                     doneQueue.clear()
-                                    updateTasks()
+                                    updateTasks(currentBlockPos)
                                 } else {
                                     refreshData()
                                 }
@@ -246,11 +246,11 @@ object HighwayTools : Module() {
     }
 
     private fun addTask(blockPos: BlockPos, taskState: TaskState, material: Block) {
-        blockQueue.add(BlockTask(blockPos, taskState, material, 0))
+        blockQueue.add(BlockTask(blockPos, taskState, material))
     }
 
     private fun addTask(blockPos: BlockPos, material: Block) {
-        doneQueue.add(BlockTask(blockPos, TaskState.DONE, material, 0))
+        doneQueue.add(BlockTask(blockPos, TaskState.DONE, material))
     }
 
     private fun updateTask(blockTask: BlockTask, taskState: TaskState) {
@@ -307,7 +307,7 @@ object HighwayTools : Module() {
             if (debugMessages.value == DebugMessages.IMPORTANT) sendChatMessage("Shuffled because of mining issue.")
         }
 
-        when (val block = mc.world.getBlockState(blockTask.blockPos).block) {
+        when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 stuckMining = 0
                 totalBlocksDestroyed++
@@ -320,12 +320,14 @@ object HighwayTools : Module() {
                 }
             }
             is BlockLiquid -> {
-                if (block is BlockDynamicLiquid) {
+                var filler = fillerMat
+                if (isInsideBuild(blockTask.blockPos)) filler = material
+                if (mc.world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     updateTask(blockTask, TaskState.LIQUID_FLOW)
-                    updateTask(blockTask, fillerMat)
+                    updateTask(blockTask, filler)
                 } else {
                     updateTask(blockTask, TaskState.LIQUID_SOURCE)
-                    updateTask(blockTask, fillerMat)
+                    updateTask(blockTask, filler)
                 }
             }
             else -> {
@@ -350,6 +352,7 @@ object HighwayTools : Module() {
                 updateTask(blockTask, TaskState.BREAK)
             }
         }
+        doTask()
     }
 
     private fun doPLACED(blockTask: BlockTask) {
@@ -358,8 +361,10 @@ object HighwayTools : Module() {
         when {
             blockTask.block == block && block != Blocks.AIR -> updateTask(blockTask, TaskState.DONE)
             blockTask.block == Blocks.AIR && block != Blocks.AIR -> updateTask(blockTask, TaskState.BREAK)
+            blockTask.block == block && block == Blocks.AIR -> updateTask(blockTask, TaskState.BREAK)
             else -> updateTask(blockTask, TaskState.PLACE)
         }
+        doTask()
     }
 
     private fun doBREAK(blockTask: BlockTask): Boolean {
@@ -384,12 +389,14 @@ object HighwayTools : Module() {
                 doTask()
             }
             is BlockLiquid -> {
-                if (block is BlockDynamicLiquid) {
+                var filler = fillerMat
+                if (isInsideBuild(blockTask.blockPos)) filler = material
+                if (mc.world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     updateTask(blockTask, TaskState.LIQUID_FLOW)
-                    updateTask(blockTask, fillerMat)
+                    updateTask(blockTask, filler)
                 } else {
                     updateTask(blockTask, TaskState.LIQUID_SOURCE)
-                    updateTask(blockTask, fillerMat)
+                    updateTask(blockTask, filler)
                 }
             }
             else -> {
@@ -422,7 +429,7 @@ object HighwayTools : Module() {
 
                 if (!inventoryProcessor(blockTask)) return false
                 if (!placeBlock(blockTask)) return false
-                if (blockTask.taskState != TaskState.PLACE && isInsideBuild(blockTask.blockPos)) updateTask(blockTask, Blocks.AIR)
+                if (blockTask.taskState != TaskState.PLACE && isInsideSelection(blockTask.blockPos)) updateTask(blockTask, Blocks.AIR)
                 updateTask(blockTask, TaskState.PLACED)
                 if (blocksPerTick.value > blocksPlaced + 1) {
                     blocksPlaced++
@@ -454,15 +461,19 @@ object HighwayTools : Module() {
         return true
     }
 
-    private fun updateTasks() {
-        updateBlockArray()
+    private fun updateTasks(originPos: BlockPos) {
+        blockOffsets.clear()
+        updateBlockArray(originPos)
+        updateBlockArray(getNextBlock(originPos))
         for ((blockPos, blockType) in blockOffsets) {
             val isReplaceable = mc.world.getBlockState(blockPos).material.isReplaceable
             when (val block = mc.world.getBlockState(blockPos).block) {
                 is BlockLiquid -> {
-                    when (block is BlockDynamicLiquid) {
-                        true -> addTask(blockPos, TaskState.LIQUID_FLOW, fillerMat)
-                        false -> addTask(blockPos, TaskState.LIQUID_SOURCE, fillerMat)
+                    var filler = fillerMat
+                    if (isInsideBuild(blockPos)) filler = material
+                    when (mc.world.getBlockState(blockPos).getValue(BlockLiquid.LEVEL) != 0) {
+                        true -> addTask(blockPos, TaskState.LIQUID_FLOW, filler)
+                        false -> addTask(blockPos, TaskState.LIQUID_SOURCE, filler)
                     }
                 }
                 else -> {
@@ -533,6 +544,7 @@ object HighwayTools : Module() {
                     sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
                     mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     disable()
+                    return false
                 }
                 InventoryUtils.swapSlotToItem(blockID)
             }
@@ -546,24 +558,29 @@ object HighwayTools : Module() {
         for (side in EnumFacing.values()) {
             val neighbour = blockTask.blockPos.offset(side)
             val neighbourBlock = mc.world.getBlockState(neighbour).block
-            var flowing = false
             if (neighbourBlock is BlockLiquid) {
-                if (neighbourBlock is BlockDynamicLiquid) flowing = true
+                var flowing = false
+                try {
+                    flowing = mc.world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0
+                } catch (e: Exception) {
+                }
                 if (sqrt(mc.player.getDistanceSqToCenter(neighbour)) > maxReach.value) continue
                 foundLiquid = true
                 val found = mutableListOf<Triple<BlockTask, TaskState, Block>>()
+                var filler = fillerMat
+                if (isInsideBuild(neighbour)) filler = material
                 for (bt in blockQueue) {
                     if (bt.blockPos == neighbour) {
                         when (flowing) {
-                            false -> found.add(Triple(bt, TaskState.LIQUID_SOURCE, fillerMat))
-                            true -> found.add(Triple(bt, TaskState.LIQUID_FLOW, fillerMat))
+                            false -> found.add(Triple(bt, TaskState.LIQUID_SOURCE, filler))
+                            true -> found.add(Triple(bt, TaskState.LIQUID_FLOW, filler))
                         }
                     }
                 }
                 if (found.isEmpty()) {
                     when (flowing) {
-                        false -> addTask(neighbour, TaskState.LIQUID_SOURCE, fillerMat)
-                        true -> addTask(neighbour, TaskState.LIQUID_FLOW, fillerMat)
+                        false -> addTask(neighbour, TaskState.LIQUID_SOURCE, filler)
+                        true -> addTask(neighbour, TaskState.LIQUID_FLOW, filler)
                     }
                 } else {
                     for (x in found) {
@@ -761,9 +778,16 @@ object HighwayTools : Module() {
         return null
     }
 
-    private fun isInsideBuild(blockPos: BlockPos): Boolean {
+    private fun isInsideSelection(blockPos: BlockPos): Boolean {
         for (bt in blockQueue) {
             if (bt.blockPos == blockPos) return true
+        }
+        return false
+    }
+
+    private fun isInsideBuild(blockPos: BlockPos): Boolean {
+        for (bt in blockQueue) {
+            if (bt.blockPos == blockPos && bt.block == material) return true
         }
         return false
     }
@@ -839,6 +863,19 @@ object HighwayTools : Module() {
         sendChatMessage(message)
     }
 
+    fun getBlueprintStats(): Pair<Int, Int> {
+        var materialUsed = 0
+        var fillerMatUsed = 0
+        for ((bp, b) in blockOffsets) {
+            when (b) {
+                material -> materialUsed++
+                fillerMat -> fillerMatUsed++
+            }
+        }
+        // TODO: Make it dynamic for several depth layers
+        return Pair(materialUsed / 2, fillerMatUsed / 2)
+    }
+
     fun gatherStatistics(): MutableList<String> {
         val currentTask: BlockTask? = if (isDone()) {
             null
@@ -846,9 +883,29 @@ object HighwayTools : Module() {
             blockQueue.peek()
         }
 
+        materialLeft = InventoryUtils.countItemAll(getIdFromBlock(material))
+        fillerMatLeft = InventoryUtils.countItemAll(getIdFromBlock(fillerMat))
+        val indirectMaterialLeft = 8 * InventoryUtils.countItemAll(130)
+
+        val blueprintStats = getBlueprintStats()
+
+        val pavingLeft = materialLeft / (blueprintStats.first + 1)
+        val pavingLeftAll = (materialLeft + indirectMaterialLeft) / (blueprintStats.first + 1)
+
         val seconds = (runtimeSec % 60).toInt().toString().padStart(2,'0')
         val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2,'0')
         val hours = (runtimeSec / 3600).toInt().toString().padStart(2,'0')
+
+        val distanceDone = getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()
+
+        val secLeft = runtimeSec / distanceDone * pavingLeftAll
+        val secondsLeft = (secLeft % 60).toInt().toString().padStart(2,'0')
+        val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2,'0')
+        val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2,'0')
+
+
+
+
 
         val statistics = mutableListOf<String>()
 
@@ -860,7 +917,7 @@ object HighwayTools : Module() {
                 "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
                 "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks",
                 "§rEnvironment",
-                "    §7Starting coordinates: §9$startingBlockPos",
+                "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
                 "    §7Direction: §9${buildDirectionSaved.cardinalName}",
                 "    §7Blocks destroyed: §9$totalBlocksDestroyed",
                 "    §7Blocks placed: §9$totalBlocksPlaced",
@@ -868,18 +925,18 @@ object HighwayTools : Module() {
                 "    §7Filler: §9${fillerMat.localizedName}",
                 "§rTask",
                 "    §7Status: §9${currentTask?.taskState}",
-                "    §7Target state: §9${currentTask?.block}",
-                "    §7Position: §9${currentTask?.blockPos}",
+                "    §7Target state: §9${currentTask?.block?.localizedName}",
+                "    §7Position: §9(${currentTask?.blockPos?.asString()})",
                 "§rDebug",
                 "    §7Mining stuck: §9$stuckMining",
                 "    §7Building stuck: §9$stuckBuilding",
-                "    §7Pathing: §9$pathing"))
-//                "§rEstimation",
-//                "    §9> §rTheoretical material left: §7${12345} ${material.localizedName}",
-//                "    §9> §rTheoretical block breakings left: §7${232344}",
-//                "    §9> §rTheoretical distance left: §7${62944}",
-//                "    §9> §rEstimated time left: §704:13:11",
-//                "    §9> §rEstimated destination: §7BlockPos{x=-125533, y=119, z=125533}"))
+                "    §7Pathing: §9$pathing",
+                "§rEstimations",
+                "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
+                "    §7${fillerMat.localizedName} (filler material): §9$fillerMatLeft",
+                "    §7Paving distance left: §9$pavingLeftAll",
+                "    §7Estimated destination: §9(${relativeDirection(currentBlockPos, pavingLeft, 0).asString()})",
+                "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"))
 
         if (printDebug.value) {
             // for (x in getQueue()) sendChatMessage(x)
@@ -889,17 +946,25 @@ object HighwayTools : Module() {
         return statistics
     }
 
-    fun getNextBlock(): BlockPos {
-        return when (buildDirectionSaved) {
-            Cardinal.NEG_Z -> currentBlockPos.north()
-            Cardinal.POS_X_NEG_Z -> currentBlockPos.north().east()
-            Cardinal.POS_X -> currentBlockPos.east()
-            Cardinal.POS_X_POS_Z -> currentBlockPos.south().east()
-            Cardinal.POS_Z -> currentBlockPos.south()
-            Cardinal.NEG_X_POS_Z -> currentBlockPos.south().west()
-            Cardinal.NEG_X -> currentBlockPos.west()
-            else -> currentBlockPos.north().west()
+    fun getNextWalkableBlock(): BlockPos {
+        if (mode.value == Mode.HIGHWAY) {
+            if (mc.world.getBlockState(getNextBlock().down()).block == material) {
+                if (mc.world.getBlockState(getNextBlock(getNextBlock()).down()).block == material) {
+                    if (mc.world.getBlockState(getNextBlock(getNextBlock(getNextBlock())).down()).block == material) return getNextBlock(getNextBlock(getNextBlock()))
+                    return getNextBlock(getNextBlock())
+                }
+                return getNextBlock()
+            }
         }
+        return getNextBlock()
+    }
+
+    private fun getNextBlock(): BlockPos {
+        return getNextBlock(currentBlockPos)
+    }
+
+    private fun getNextBlock(blockPos: BlockPos): BlockPos {
+        return relativeDirection(blockPos, 1, 0)
     }
 
     private fun relativeDirection(curs: BlockPos, steps: Int, turn: Int): BlockPos {
@@ -961,13 +1026,12 @@ object HighwayTools : Module() {
     private fun refreshData() {
         doneQueue.clear()
         blockQueue.clear()
-        updateTasks()
+        updateTasks(currentBlockPos)
         shuffleTasks()
     }
 
-    private fun updateBlockArray() {
-        blockOffsets.clear()
-        var cursor = currentBlockPos.down()
+    private fun updateBlockArray(blockPos: BlockPos) {
+        var cursor = blockPos.down()
 
         when (mode.value) {
             Mode.HIGHWAY -> {
@@ -1091,7 +1155,7 @@ object HighwayTools : Module() {
         MOTION
     }
 
-    data class BlockTask(val blockPos: BlockPos, var taskState: TaskState, var block: Block, var age: Int)
+    data class BlockTask(val blockPos: BlockPos, var taskState: TaskState, var block: Block)
 
     enum class TaskState(val color: ColorHolder) {
         DONE(ColorHolder(50, 50, 50)),
