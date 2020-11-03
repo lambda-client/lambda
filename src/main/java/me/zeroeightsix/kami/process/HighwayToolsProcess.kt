@@ -26,7 +26,7 @@ object HighwayToolsProcess : IBaritoneProcess {
     override fun displayName0(): String {
         val ht = HighwayTools
         val processName = if (ht.blockQueue.size > 0 && !ht.pathing) {
-            "Block: " + ht.blockQueue.peek().block.localizedName + " @ Position: (" + ht.blockQueue.peek().blockPos.asString() + ") Priority: " + ht.blockQueue.peek().taskState.ordinal + " State: " + ht.blockQueue.peek().taskState.toString()
+            ht.blockQueue.peek().toString()
         } else if (ht.pathing) {
             "Moving to Position: (${ht.getNextWalkableBlock().asString()})"
         } else {
