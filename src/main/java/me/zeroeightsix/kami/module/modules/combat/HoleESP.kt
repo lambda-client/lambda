@@ -20,9 +20,10 @@ object HoleESP : Module() {
     private val range = register(Settings.integerBuilder("Range").withValue(8).withRange(4, 16).withStep(1))
     private val filled = register(Settings.b("Filled", true))
     private val outline = register(Settings.b("Outline", true))
-    private val r1 = register(Settings.integerBuilder("Red(Obby)").withValue(208).withRange(0, 255).withStep(1).withVisibility { shouldAddObby() })
-    private val g1 = register(Settings.integerBuilder("Green(Obby)").withValue(144).withRange(0, 255).withStep(1).withVisibility { shouldAddObby() })
-    private val b1 = register(Settings.integerBuilder("Blue(Obby)").withValue(255).withRange(0, 255).withStep(1).withVisibility { shouldAddObby() })
+    private val hideOwn = register(Settings.b("HideOwn", true))
+    private val r1 = register(Settings.integerBuilder("Red(Obby)").withValue(208).withRange(0, 255).withStep(1).withVisibility { shouldAddObsidian() })
+    private val g1 = register(Settings.integerBuilder("Green(Obby)").withValue(144).withRange(0, 255).withStep(1).withVisibility { shouldAddObsidian() })
+    private val b1 = register(Settings.integerBuilder("Blue(Obby)").withValue(255).withRange(0, 255).withStep(1).withVisibility { shouldAddObsidian() })
     private val r2 = register(Settings.integerBuilder("Red(Bedrock)").withValue(144).withRange(0, 255).withStep(1).withVisibility { shouldAddBedrock() })
     private val g2 = register(Settings.integerBuilder("Green(Bedrock)").withValue(144).withRange(0, 255).withStep(1).withVisibility { shouldAddBedrock() })
     private val b2 = register(Settings.integerBuilder("Blue(Bedrock)").withValue(255).withRange(0, 255).withStep(1).withVisibility { shouldAddBedrock() })
@@ -36,7 +37,7 @@ object HoleESP : Module() {
     }
 
     private enum class HoleType {
-        OBBY, BEDROCK, BOTH
+        OBSIDIAN, BEDROCK, BOTH
     }
 
     private val renderer = ESPRenderer()
@@ -55,29 +56,30 @@ object HoleESP : Module() {
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
 
-        val playerPos = mc.player.positionVector.toBlockPos()
-        val colorObby = ColorHolder(r1.value, g1.value, b1.value)
+        val colorObsidian = ColorHolder(r1.value, g1.value, b1.value)
         val colorBedrock = ColorHolder(r2.value, g2.value, b2.value)
+        val playerPos = mc.player.positionVector.toBlockPos()
         val side = if (renderMode.value != Mode.FLAT) GeometryMasks.Quad.ALL
         else GeometryMasks.Quad.DOWN
 
         for (x in -range.value..range.value) for (y in -range.value..range.value) for (z in -range.value..range.value) {
+            if (hideOwn.value && x == 0 && y == 0 && z == 0) continue
             val pos = playerPos.add(x, y, z)
             val holeType = SurroundUtils.checkHole(pos)
             if (holeType == SurroundUtils.HoleType.NONE) continue
-
             val renderPos = if (renderMode.value == Mode.BLOCK_FLOOR) pos.down() else pos
 
-            if (holeType == SurroundUtils.HoleType.OBBY && shouldAddObby()) {
-                renderer.add(renderPos, colorObby, side)
+            if (holeType == SurroundUtils.HoleType.OBBY && shouldAddObsidian()) {
+                renderer.add(renderPos, colorObsidian, side)
             }
+
             if (holeType == SurroundUtils.HoleType.BEDROCK && shouldAddBedrock()) {
                 renderer.add(renderPos, colorBedrock, side)
             }
         }
     }
 
-    private fun shouldAddObby() = holeType.value == HoleType.OBBY || holeType.value == HoleType.BOTH
+    private fun shouldAddObsidian() = holeType.value == HoleType.OBSIDIAN || holeType.value == HoleType.BOTH
 
     private fun shouldAddBedrock() = holeType.value == HoleType.BEDROCK || holeType.value == HoleType.BOTH
 

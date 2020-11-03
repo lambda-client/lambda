@@ -72,5 +72,6 @@ enum class Regexes(val regex: Regex) {
     QUEUE(Regex("^Position in queue: ")),
     QUEUE_IMPORTANT(Regex("^Position in queue: [1-5]$")),
     RESTART(Regex("^\\[SERVER] Server restarting in ")),
-    TPA_REQUEST(Regex("^([0-9A-z_])+ (has requested|wants) to teleport to you\\."))
+    TPA_REQUEST(Regex("^([0-9A-z_])+ (has requested|wants) to teleport to you\\.")),
+    BARITONE(Regex("^\\[B(aritone|)]"))
 }

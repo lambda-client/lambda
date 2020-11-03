@@ -143,9 +143,10 @@ object AutoObsidian : Module() {
     }
 
     override fun onDisable() {
-        val baritoneProcess = BaritoneUtils.primary?.pathingControlManager!!.mostRecentInControl()
-        if (baritoneProcess.isPresent && baritoneProcess.get() == AutoObsidianProcess) {
-            baritoneProcess.get().onLostControl()
+        BaritoneUtils.primary?.pathingControlManager?.mostRecentInControl()?.let {
+            if (it.isPresent && it.get() == AutoObsidianProcess) {
+                it.get().onLostControl()
+            }
         }
         reset()
     }
@@ -159,7 +160,7 @@ object AutoObsidian : Module() {
 
         if (!active && state != State.DONE) {
             active = true
-            BaritoneUtils.primary?.pathingControlManager!!.registerProcess(AutoObsidianProcess)
+            BaritoneUtils.primary?.pathingControlManager?.registerProcess(AutoObsidianProcess)
         }
 
         /* Tell baritone to get you back to position */
