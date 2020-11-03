@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.module.modules.misc
 
-import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
@@ -37,7 +37,7 @@ import kotlin.math.floor
 @Module.Info(
         name = "AutoObsidian",
         category = Module.Category.MISC,
-        description = "Mines ender chest automatically to fill inventory with obsidian"
+        description = "Breaks down Ender Chests to restock obsidian"
 )
 object AutoObsidian : Module() {
     private val searchShulker = register(Settings.b("SearchShulker", false))
@@ -143,7 +143,7 @@ object AutoObsidian : Module() {
     }
 
     override fun onDisable() {
-        val baritoneProcess = BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.mostRecentInControl()
+        val baritoneProcess = BaritoneUtils.primary?.pathingControlManager!!.mostRecentInControl()
         if (baritoneProcess.isPresent && baritoneProcess.get() == AutoObsidianProcess) {
             baritoneProcess.get().onLostControl()
         }
@@ -159,7 +159,7 @@ object AutoObsidian : Module() {
 
         if (!active && state != State.DONE) {
             active = true
-            BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(AutoObsidianProcess)
+            BaritoneUtils.primary?.pathingControlManager!!.registerProcess(AutoObsidianProcess)
         }
 
         /* Tell baritone to get you back to position */
