@@ -34,7 +34,6 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.*
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
@@ -121,7 +120,6 @@ object HighwayTools : Module() {
     private var stuckMining = 0
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
-    private var lastViewVec: RayTraceResult? = null
     // stats
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
@@ -156,16 +154,12 @@ object HighwayTools : Module() {
                                 prevFood = currentFood
                             }
                             if (!doTask()) {
-                                if (!pathing) {
-                                    stuckBuilding += 1
-                                    shuffleTasks()
-                                    if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks (${stuckBuilding}x)")
-                                    if (stuckBuilding > blockOffsets.size) {
-                                        refreshData()
-                                        if (debugMessages.value == DebugMessages.IMPORTANT) sendChatMessage("$chatName You got stuck, retry")
-                                    }
-                                } else {
+                                stuckBuilding += 1
+                                shuffleTasks()
+                                if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks (${stuckBuilding}x)")
+                                if (stuckBuilding > blockOffsets.size) {
                                     refreshData()
+                                    if (debugMessages.value == DebugMessages.IMPORTANT) sendChatMessage("$chatName You got stuck, retry")
                                 }
                             } else {
                                 stuckBuilding = 0
@@ -328,7 +322,7 @@ object HighwayTools : Module() {
             Blocks.AIR -> {
                 stuckMining = 0
                 totalBlocksDestroyed++
-                waitTicks = tickDelayPlace.value
+                waitTicks = tickDelayBreak.value
                 if (blockTask.block == material || blockTask.block == fillerMat) {
                     updateTask(blockTask, TaskState.PLACE)
                 } else {
@@ -622,50 +616,51 @@ object HighwayTools : Module() {
     }
 
     private fun mineBlock(blockTask: BlockTask): Boolean {
-        var rayTrace: RayTraceResult?
+        if (blockTask.blockPos == mc.player.positionVector.toBlockPos().down()) {
+            updateTask(blockTask, TaskState.DONE)
+            return true
+        }
+
+        val directHits = mutableListOf<RayTraceResult>()
         val bb = mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos)
-        rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), bb.center)
-        if (rayTrace == null) {
+        val playerEyeVec = mc.player.getPositionEyes(1f)
+
+        for (side in EnumFacing.values()) {
+            val sideVec = bb.center.add(Vec3d(side.directionVec).scale(getAABBSide(bb, side) - 0.001))
+            if (playerEyeVec.distanceTo(sideVec) > maxReach.value) continue
+            if (mc.world.getBlockState(blockTask.blockPos.offset(side)).block != Blocks.AIR) continue
+            val rt = mc.world.rayTraceBlocks(playerEyeVec, sideVec, false) ?: continue
+            if (rt.blockPos == blockTask.blockPos && rt.sideHit == side) directHits.add(rt)
+        }
+
+        if (directHits.size == 0) {
+            refreshData()
             shuffleTasks()
             doTask()
             return false
         }
-        if (rayTrace.blockPos != blockTask.blockPos) {
-            var found = false
-            for (side in EnumFacing.values()) {
-                if (mc.world.getBlockState(blockTask.blockPos.offset(side)).block == Blocks.AIR) {
-                    rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f),
-                            bb.center.add(Vec3d(side.directionVec).scale(getAABBSide(bb, side))))?: continue
-                    if (rayTrace.blockPos == blockTask.blockPos) {
-                        found = true
-                        break
-                    }
-                }
-            }
-            if (!found) {
-                refreshData()
-                shuffleTasks()
-                doTask()
-                return false
+
+        var rayTrace: RayTraceResult? = null
+        var shortestRT = 999.0
+        for (rt in directHits) {
+            val distance = playerEyeVec.distanceTo(rt.hitVec)
+            if (distance < shortestRT) {
+                shortestRT = distance
+                rayTrace = rt
             }
         }
+
         if (rayTrace == null) return false
-//        if (lastViewVec != null && rayTrace.sideHit != lastViewVec!!.sideHit) {
-//            lastViewVec = rayTrace
-//            updateTask(blockTask, TaskState.BREAK)
-//            return false
-//        }
-        lastViewVec = rayTrace
 
         val facing = rayTrace.sideHit ?: return false
         val rotation = RotationUtils.getRotationTo(rayTrace.hitVec, true)
 
-        lookAtBlock(rotation)
+        setRotation(rotation)
 
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.NETHERRACK -> {
                 updateTask(blockTask, TaskState.BROKEN)
-                waitTicks = tickDelayPlace.value
+                waitTicks = tickDelayBreak.value
                 Thread {
                     Thread.sleep(16L)
                     mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
@@ -689,7 +684,6 @@ object HighwayTools : Module() {
             }
         }
 
-
         return true
     }
 
@@ -700,7 +694,7 @@ object HighwayTools : Module() {
         val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.5))
 
         val rotation = RotationUtils.getRotationTo(hitVec, true)
-        lookAtBlock(rotation)
+        setRotation(rotation)
 
         Thread{
             Thread.sleep(25L)
@@ -761,7 +755,7 @@ object HighwayTools : Module() {
 
         val hitVecOffset = rayTrace.hitVec
         val rotation = RotationUtils.getRotationTo(hitVecOffset, true)
-        lookAtBlock(rotation)
+        setRotation(rotation)
 
         Thread{
             Thread.sleep(25L)
@@ -773,7 +767,7 @@ object HighwayTools : Module() {
         return true
     }
 
-    private fun lookAtBlock(rotation: Vec2d) {
+    private fun setRotation(rotation: Vec2d) {
         when (interacting.value) {
             InteractMode.SPOOF -> {
                 val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
@@ -1010,12 +1004,12 @@ object HighwayTools : Module() {
 
     private fun getAABBSide(bb: AxisAlignedBB, side: EnumFacing): Double {
         return when (side) {
-            EnumFacing.UP -> bb.maxY
-            EnumFacing.NORTH -> bb.minZ
-            EnumFacing.EAST -> bb.maxX
-            EnumFacing.SOUTH -> bb.maxZ
-            EnumFacing.WEST -> bb.minZ
-            EnumFacing.DOWN -> bb.minY
+            EnumFacing.UP -> bb.maxY - bb.center.y
+            EnumFacing.NORTH -> bb.center.z - bb.minZ
+            EnumFacing.EAST -> bb.maxX - bb.center.x
+            EnumFacing.SOUTH -> bb.maxZ - bb.center.z
+            EnumFacing.WEST -> bb.center.x - bb.minX
+            EnumFacing.DOWN -> bb.center.y - bb.minY
         }
     }
 
