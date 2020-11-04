@@ -113,7 +113,7 @@ object CrystalAura : Module() {
     private val ignoredList = HashSet<EntityEnderCrystal>()
     private val packetList = ArrayList<Packet<*>>(3)
 
-    private var placeList = emptyList<Triple<BlockPos, Float, Float>>() // <BlockPos, Target Damage, Self Damage>
+    private var placeMap = emptyMap<BlockPos, Triple<Float, Float, Double>>() // <BlockPos, Target Damage, Self Damage>
     private var crystalMap = emptyMap<EntityEnderCrystal, Triple<Float, Float, Double>>() // <Crystal, <Target Damage, Self Damage>>
     private var lastCrystal: EntityEnderCrystal? = null
     private var lastLookAt = Vec3d.ZERO
@@ -212,7 +212,7 @@ object CrystalAura : Module() {
     }
 
     private fun updateMap() {
-        placeList = CombatManager.crystalPlaceList
+        placeMap = CombatManager.placeMap
         crystalMap = CombatManager.crystalMap
 
         placedBBMap.values.removeIf { System.currentTimeMillis() - it > max(InfoCalculator.ping(), 100) }
@@ -305,22 +305,19 @@ object CrystalAura : Module() {
 
     @Suppress("UnconditionalJumpStatementInLoop") // The linter is wrong here, it will continue until it's supposed to return
     private fun getPlacingPos(): BlockPos? {
-        if (CombatManager.crystalPlaceList.isEmpty()) return null
-        val eyePos = mc.player.getPositionEyes(1f)
-        for ((pos, damage, selfDamage) in CombatManager.crystalPlaceList) {
+        if (placeMap.isEmpty()) return null
+        for ((pos, triple) in placeMap) {
             // Damage check
-            if (!noSuicideCheck(selfDamage)) continue
-            if (!checkDamagePlace(damage, selfDamage)) continue
+            if (!noSuicideCheck(triple.second)) continue
+            if (!checkDamagePlace(triple.first, triple.second)) continue
 
             // Distance check
-            val hitVec = Vec3d(pos).add(0.5, placeOffset.value.toDouble(), 0.5)
-            val dist = eyePos.distanceTo(hitVec)
-            if (dist > placeRange.value) continue
+            if (triple.third > placeRange.value) continue
 
             // Wall distance check
             val rayTraceResult = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5))
             val hitBlockPos = rayTraceResult?.blockPos ?: pos
-            if (hitBlockPos.distanceSq(pos) > 2.0 && dist > wallPlaceRange.value) continue
+            if (hitBlockPos.distanceSq(pos) > 2.0 && triple.third > wallPlaceRange.value) continue
 
             // Collide check
             if (!CrystalUtils.canPlaceCollide(pos)) continue
@@ -332,6 +329,7 @@ object CrystalAura : Module() {
             }
 
             // Yaw rate check
+            val hitVec = Vec3d(pos).add(0.5, placeOffset.value.toDouble(), 0.5)
             if (!checkYawSpeed(RotationUtils.getRotationTo(hitVec, true).x)) continue
 
             return pos
@@ -372,7 +370,7 @@ object CrystalAura : Module() {
 
     private fun checkDamageExplode(damage: Float, selfDamage: Float) = (shouldFacePlace(damage) || shouldForceExplode() || damage >= minDamageE.value) && selfDamage <= maxSelfDamageE.value
 
-    private fun shouldForceExplode() = autoForceExplode.value && CombatManager.crystalPlaceList.isNotEmpty() && CombatManager.crystalPlaceList.first().second > minDamageE.value
+    private fun shouldForceExplode() = autoForceExplode.value && placeMap.isNotEmpty() && placeMap.values.first().second > minDamageE.value
     /* End of exploding */
 
     /* General */
