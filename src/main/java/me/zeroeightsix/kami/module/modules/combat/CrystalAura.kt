@@ -90,9 +90,8 @@ object CrystalAura : Module() {
     private val antiWeakness = register(Settings.booleanBuilder("AntiWeakness").withValue(true).withVisibility { page.value == Page.EXPLODE_ONE })
 
     /* Explode page two */
-    private val checkDamage = register(Settings.booleanBuilder("CheckDamage").withValue(true).withVisibility { page.value == Page.EXPLODE_TWO })
-    private val minDamageE = register(Settings.floatBuilder("MinDamageExplode").withValue(6.0f).withRange(0.0f, 10.0f).withStep(0.25f).withVisibility { page.value == Page.EXPLODE_TWO && checkDamage.value })
-    private val maxSelfDamageE = register(Settings.floatBuilder("MaxSelfDamageExplode").withValue(3.0f).withRange(0.0f, 10.0f).withStep(0.25f).withVisibility { page.value == Page.EXPLODE_TWO && checkDamage.value })
+    private val minDamageE = register(Settings.floatBuilder("MinDamageExplode").withValue(6.0f).withRange(0.0f, 10.0f).withStep(0.25f).withVisibility { page.value == Page.EXPLODE_TWO })
+    private val maxSelfDamageE = register(Settings.floatBuilder("MaxSelfDamageExplode").withValue(3.0f).withRange(0.0f, 10.0f).withStep(0.25f).withVisibility { page.value == Page.EXPLODE_TWO })
     private val swapDelay = register(Settings.integerBuilder("SwapDelay").withValue(10).withRange(1, 50).withStep(2).withVisibility { page.value == Page.EXPLODE_TWO })
     private val hitDelay = register(Settings.integerBuilder("HitDelay").withValue(1).withRange(1, 10).withVisibility { page.value == Page.EXPLODE_TWO })
     private val hitAttempts = register(Settings.integerBuilder("HitAttempts").withValue(4).withRange(0, 8).withStep(1).withVisibility { page.value == Page.EXPLODE_TWO })
@@ -164,7 +163,7 @@ object CrystalAura : Module() {
             if (it.packet is SPacketSoundEffect
                     && it.packet.getCategory() == SoundCategory.BLOCKS
                     && it.packet.getSound() == SoundEvents.ENTITY_GENERIC_EXPLODE) {
-                val crystalList = CrystalUtils.getCrystalList(Vec3d(it.packet.x, it.packet.y, it.packet.z), 5f)
+                val crystalList = CrystalUtils.getCrystalList(Vec3d(it.packet.x, it.packet.y, it.packet.z), 6.0f)
 
                 for (crystal in crystalList) {
                     crystal.setDead()
@@ -352,32 +351,23 @@ object CrystalAura : Module() {
             doExplode.value
                     && hitTimer > hitDelay.value
                     && getExplodingCrystal() != null
-                    && CombatManager.target?.let {
-                if (checkDamage.value) {
-                    val maxDamage = crystalMap.values.maxBy { it.first }?.first ?: 0.0f
-                    val maxSelfDamage = crystalMap.values.maxBy { it.second }?.second ?: 0.0f
-                    if (!noSuicideCheck(maxSelfDamage)) return false
-                    if (!checkDamageExplode(maxDamage, maxSelfDamage)) return false
-                }
-                return true
-            } ?: false
 
-    private fun getExplodingCrystal(): EntityEnderCrystal? {
-        val eyePos = mc.player.getPositionEyes(1f)
-        return crystalMap.keys.firstOrNull {
-            !ignoredList.contains(it)
-                    && !it.isDead
-                    && (mc.player.canEntityBeSeen(it) || EntityUtils.canEntityFeetBeSeen(it))
-                    && eyePos.distanceTo(it.positionVector) <= explodeRange.value
-                    && checkYawSpeed(RotationUtils.getRotationToEntity(it).x)
-        } ?: crystalMap.keys.firstOrNull {
-            !ignoredList.contains(it)
-                    && !it.isDead
-                    && EntityUtils.canEntityHitboxBeSeen(it) != null
-                    && eyePos.distanceTo(it.positionVector) <= wallExplodeRange.value
-                    && checkYawSpeed(RotationUtils.getRotationToEntity(it).x)
-        }
-    }
+    private fun getExplodingCrystal() =
+            (crystalMap.entries.firstOrNull { (crystal, triple) ->
+                !ignoredList.contains(crystal)
+                        && !crystal.isDead
+                        && triple.third <= explodeRange.value
+                        && checkDamageExplode(triple.first, triple.second)
+                        && (mc.player.canEntityBeSeen(crystal) || EntityUtils.canEntityFeetBeSeen(crystal))
+                        && checkYawSpeed(RotationUtils.getRotationToEntity(crystal).x)
+            } ?: crystalMap.entries.firstOrNull { (crystal, triple) ->
+                !ignoredList.contains(crystal)
+                        && !crystal.isDead
+                        && triple.third <= wallExplodeRange.value
+                        && checkDamageExplode(triple.first, triple.second)
+                        && EntityUtils.canEntityHitboxBeSeen(crystal) != null
+                        && checkYawSpeed(RotationUtils.getRotationToEntity(crystal).x)
+            })?.key
 
 
     private fun checkDamageExplode(damage: Float, selfDamage: Float) = (shouldFacePlace(damage) || shouldForceExplode() || damage >= minDamageE.value) && selfDamage <= maxSelfDamageE.value
@@ -425,8 +415,7 @@ object CrystalAura : Module() {
             val eyePos = mc.player.getPositionEyes(1f)
 
             if (placeSync.value) {
-                // For some reasons it causes ConcurrentModificationException here, so we have to make a copy of it
-                for (bb in ArrayList(placedBBMap.keys)) {
+                for ((bb, _) in placedBBMap) {
                     val pos = bb.center.subtract(0.0, 1.0, 0.0)
                     if (pos.distanceTo(eyePos) > placeRange.value) continue
                     val damage = CrystalUtils.calcDamage(pos, it)
@@ -437,8 +426,8 @@ object CrystalAura : Module() {
             }
 
             for ((crystal, pair) in crystalMap) {
-                if (!checkDamagePlace(pair.first, pair.second)) continue
                 if (ignoredList.contains(crystal)) continue
+                if (!checkDamagePlace(pair.first, pair.second)) continue
                 if (crystal.positionVector.distanceTo(eyePos) > placeRange.value) continue
                 if (!checkYawSpeed(RotationUtils.getRotationToEntity(crystal).x)) continue
                 count++

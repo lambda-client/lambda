@@ -184,7 +184,7 @@ object CombatSetting : Module() {
             cacheList.add(entity to Triple(damage, selfDamage, dist))
         }
 
-        cacheMap.putAll(cacheList.sortedBy { pair -> pair.second.third })
+        cacheMap.putAll(cacheList.sortedByDescending { pair -> pair.second.first })
         CombatManager.crystalMap = cacheMap
     }
 
