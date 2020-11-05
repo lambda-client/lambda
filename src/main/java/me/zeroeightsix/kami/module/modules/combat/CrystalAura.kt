@@ -57,8 +57,8 @@ object CrystalAura : Module() {
 
     /* General */
     private val noSuicideThreshold = register(Settings.floatBuilder("NoSuicide").withValue(8.0f).withRange(0.0f, 20.0f).withVisibility { page.value == Page.GENERAL })
-    private val rotationTolerance = register(Settings.integerBuilder("RotationTolerance").withValue(15).withRange(5, 50).withStep(5).withVisibility { page.value == Page.GENERAL })
-    private val maxYawSpeed = register(Settings.integerBuilder("MaxYawSpeed").withValue(50).withRange(10, 100).withStep(5).withVisibility { page.value == Page.GENERAL })
+    private val rotationTolerance = register(Settings.integerBuilder("RotationTolerance").withValue(10).withRange(5, 25).withStep(5).withVisibility { page.value == Page.GENERAL })
+    private val maxYawSpeed = register(Settings.integerBuilder("MaxYawSpeed").withValue(25).withRange(10, 100).withStep(5).withVisibility { page.value == Page.GENERAL })
     private val swingMode = register(Settings.enumBuilder(SwingMode::class.java, "SwingMode").withValue(SwingMode.CLIENT).withVisibility { page.value == Page.GENERAL })
 
     /* Force place */
@@ -112,6 +112,7 @@ object CrystalAura : Module() {
     private val placedBBMap = Collections.synchronizedMap(HashMap<AxisAlignedBB, Long>()) // <CrystalBoundingBox, Added Time>
     private val ignoredList = HashSet<EntityEnderCrystal>()
     private val packetList = ArrayList<Packet<*>>(3)
+    private val yawDiffList = FloatArray(20)
 
     private var placeMap = emptyMap<BlockPos, Triple<Float, Float, Double>>() // <BlockPos, Target Damage, Self Damage>
     private var crystalMap = emptyMap<EntityEnderCrystal, Triple<Float, Float, Double>>() // <Crystal, <Target Damage, Self Damage>>
@@ -121,6 +122,7 @@ object CrystalAura : Module() {
     private var placeTimer = 0
     private var hitTimer = 0
     private var hitCount = 0
+    private var yawDiffIndex = 0
 
     var inactiveTicks = 20; private set
     val minDamage get() = max(minDamageP.value, minDamageE.value)
@@ -194,9 +196,14 @@ object CrystalAura : Module() {
                 inactiveTicks++
                 hitTimer++
                 placeTimer++
+                updateYawSpeed()
             }
 
-            runTick()
+            if (CombatManager.isOnTopPriority(this) && !CombatSetting.pause && packetList.size == 0) {
+                updateMap()
+                if (canExplode()) explode()
+                else if (canPlace()) place()
+            }
 
             if (it.phase == TickEvent.Phase.END) {
                 if (inactiveTicks > 5 || getHand() == EnumHand.OFF_HAND) PlayerPacketManager.resetHotbar()
@@ -205,10 +212,10 @@ object CrystalAura : Module() {
         }
     }
 
-    private fun runTick() {
-        if (!CombatManager.isOnTopPriority(this) || CombatSetting.pause || packetList.size > 0) return
-        updateMap()
-        if (canExplode()) explode() else if (canPlace()) place()
+    private fun updateYawSpeed() {
+        val yawDiff = abs(RotationUtils.normalizeAngle(PlayerPacketManager.prevServerSideRotation.x - PlayerPacketManager.serverSideRotation.x))
+        yawDiffList[yawDiffIndex] = yawDiff
+        yawDiffIndex = (yawDiffIndex + 1) % 20
     }
 
     private fun updateMap() {
@@ -325,10 +332,10 @@ object CrystalAura : Module() {
             // Place sync
             if (placeSync.value) {
                 val bb = CrystalUtils.getCrystalBB(pos.up())
-                if (placedBBMap.keys.firstOrNull { it.intersects(bb) } != null) continue
+                if (placedBBMap.keys.any { it.intersects(bb) }) continue
             }
 
-            // Yaw rate check
+            // Yaw speed check
             val hitVec = Vec3d(pos).add(0.5, placeOffset.value.toDouble(), 0.5)
             if (!checkYawSpeed(RotationUtils.getRotationTo(hitVec, true).x)) continue
 
@@ -436,8 +443,10 @@ object CrystalAura : Module() {
     /* End of general */
 
     /* Rotation */
-    private fun checkYawSpeed(yaw: Double) =
-            abs(RotationUtils.normalizeAngle(yaw - getLastRotation().x)) <= maxYawSpeed.value + (inactiveTicks * 8f)
+    private fun checkYawSpeed(yaw: Double): Boolean {
+        val yawDiff = abs(RotationUtils.normalizeAngle(yaw - PlayerPacketManager.serverSideRotation.x))
+        return yawDiffList.sum() + yawDiff <= maxYawSpeed.value
+    }
 
     private fun getLastRotation() =
             RotationUtils.getRotationTo(lastLookAt, true)
