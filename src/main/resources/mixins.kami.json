@@ -13,6 +13,7 @@
     "MixinC00Handshake",
     "MixinChunkCache",
     "MixinConfig",
+    "MixinDebugRendererChunkBorder",
     "MixinElytraSound",
     "MixinEntity",
     "MixinEntityLlama",
