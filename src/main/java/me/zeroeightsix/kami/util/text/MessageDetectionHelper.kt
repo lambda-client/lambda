@@ -74,8 +74,8 @@ object MessageDetectionHelper {
 enum class Regexes(val regex: Regex) {
     DIRECT(Regex("^([0-9A-z_])+ whispers( to you|): ")),
     DIRECT_ALT_1(Regex("^\\[.*->.*] ")),
-    DIRECT_ALT_2(Regex("^From ([0-9A-z_])+: ")),
-    DIRECT_SENT(Regex("^to ([0-9A-z_])+: ")),
+    DIRECT_ALT_2(Regex("^[Ff]rom ([0-9A-z_])+: ")),
+    DIRECT_SENT(Regex("^[Tt]o ([0-9A-z_])+: ")),
     QUEUE(Regex("^Position in queue: ")),
     QUEUE_IMPORTANT(Regex("^Position in queue: [1-5]$")),
     RESTART(Regex("^\\[SERVER] Server restarting in ")),
