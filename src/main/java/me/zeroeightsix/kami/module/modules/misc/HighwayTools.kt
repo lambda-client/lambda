@@ -147,7 +147,7 @@ object HighwayTools : Module() {
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
-                            centerPlayer()
+                            if (!pathing) centerPlayer()
                             val currentFood = mc.player.getFoodStats().foodLevel
                             if (currentFood != prevFood) {
                                 if (currentFood < prevFood) foodLoss++
@@ -175,6 +175,8 @@ object HighwayTools : Module() {
                                 }
                             }
                         }
+                    } else {
+                        refreshData()
                     }
                 } else {
                     if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
@@ -478,6 +480,7 @@ object HighwayTools : Module() {
         updateBlockArray(getNextBlock(originPos))
         for ((blockPos, blockType) in blockOffsets) {
             val isReplaceable = mc.world.getBlockState(blockPos).material.isReplaceable
+            if (blockPos == mc.player.positionVector.toBlockPos().down()) continue
             when (val block = mc.world.getBlockState(blockPos).block) {
                 is BlockLiquid -> {
                     var filler = fillerMat
@@ -505,10 +508,12 @@ object HighwayTools : Module() {
                         }
                         fillerMat -> {
                             if (mode.value == Mode.HIGHWAY) {
-                                val blockUp = mc.world.getBlockState(blockPos.up()).block
-                                when {
-                                    getPlaceableSide(blockPos.up()) == null && blockUp != material -> addTask(blockPos, TaskState.PLACE, fillerMat)
-                                    getPlaceableSide(blockPos.up()) != null -> addTask(blockPos, fillerMat)
+                                if (buildDirectionSaved.isDiagonal) {
+                                    val blockUp = mc.world.getBlockState(blockPos.up()).block
+                                    when {
+                                        getPlaceableSide(blockPos.up()) == null && blockUp != material -> addTask(blockPos, TaskState.PLACE, fillerMat)
+                                        getPlaceableSide(blockPos.up()) != null -> addTask(blockPos, fillerMat)
+                                    }
                                 }
                             } else {
                                 when {
@@ -622,7 +627,7 @@ object HighwayTools : Module() {
         }
 
         val directHits = mutableListOf<RayTraceResult>()
-        val bb = mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos)
+        val bb = AxisAlignedBB(blockTask.blockPos)
         val playerEyeVec = mc.player.getPositionEyes(1f)
 
         for (side in EnumFacing.values()) {
