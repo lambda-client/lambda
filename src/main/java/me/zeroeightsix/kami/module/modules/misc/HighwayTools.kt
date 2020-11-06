@@ -4,6 +4,7 @@ import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
@@ -14,13 +15,12 @@ import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
-import me.zeroeightsix.kami.util.graphics.GeometryMasks
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.MathUtils.Cardinal
 import me.zeroeightsix.kami.util.math.MathUtils.getPlayerCardinal
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.Vec2d
-import me.zeroeightsix.kami.util.math.VectorUtils
+import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
 import me.zeroeightsix.kami.util.math.VectorUtils.getDistance
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
@@ -81,7 +81,7 @@ object HighwayTools : Module() {
 //    private val gapple = register(Settings.booleanBuilder("GappleLava").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION).withVisibility { page.value == Page.BEHAVIOR })
     private val stuckDelay = register(Settings.integerBuilder("TickDelayStuck").withMinimum(1).withValue(200).withMaximum(500).withVisibility { page.value == Page.BEHAVIOR })
-    val maxReach = register(Settings.floatBuilder("MaxReach").withMinimum(2.0F).withValue(5.4F).withVisibility { page.value == Page.BEHAVIOR })
+    val maxReach = register(Settings.floatBuilder("MaxReach").withMinimum(2.0F).withValue(4.8F).withVisibility { page.value == Page.BEHAVIOR })
 
     // config
     private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.CONFIG })
@@ -146,7 +146,7 @@ object HighwayTools : Module() {
                         if (doneQueue.size > 0) taskDistance = doneQueue.peek().blockPos
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
-                        if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
+                        if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
                             if (!pathing) centerPlayer()
                             val currentFood = mc.player.getFoodStats().foodLevel
                             if (currentFood != prevFood) {
@@ -312,14 +312,6 @@ object HighwayTools : Module() {
     }
 
     private fun doBREAKING(blockTask: BlockTask): Boolean {
-        if (stuckMining > stuckDelay.value) {
-            stuckMining = 0
-            updateTask(blockTask, TaskState.BREAK)
-            refreshData()
-            shuffleTasks()
-            if (debugMessages.value == DebugMessages.IMPORTANT) sendChatMessage("Shuffled because of mining issue.")
-        }
-
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 stuckMining = 0
@@ -621,24 +613,41 @@ object HighwayTools : Module() {
     }
 
     private fun mineBlock(blockTask: BlockTask): Boolean {
+        if (stuckMining > stuckDelay.value) {
+            stuckMining = 0
+            updateTask(blockTask, TaskState.BREAK)
+            return true
+        }
+
         if (blockTask.blockPos == mc.player.positionVector.toBlockPos().down()) {
             updateTask(blockTask, TaskState.DONE)
             return true
         }
 
         val directHits = mutableListOf<RayTraceResult>()
-        val bb = AxisAlignedBB(blockTask.blockPos)
+        val bb = mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos)
         val playerEyeVec = mc.player.getPositionEyes(1f)
 
         for (side in EnumFacing.values()) {
-            val sideVec = bb.center.add(Vec3d(side.directionVec).scale(getAABBSide(bb, side) - 0.001))
-            if (playerEyeVec.distanceTo(sideVec) > maxReach.value) continue
-            if (mc.world.getBlockState(blockTask.blockPos.offset(side)).block != Blocks.AIR) continue
-            val rt = mc.world.rayTraceBlocks(playerEyeVec, sideVec, false) ?: continue
-            if (rt.blockPos == blockTask.blockPos && rt.sideHit == side) directHits.add(rt)
+            loop@ for (direction in EnumFacing.values()) {
+                when (side) {
+                    EnumFacing.UP -> if (direction == EnumFacing.DOWN || direction == EnumFacing.UP) continue@loop
+                    EnumFacing.DOWN -> if (direction == EnumFacing.UP || direction == EnumFacing.DOWN) continue@loop
+                    EnumFacing.NORTH -> if (direction == EnumFacing.SOUTH || direction == EnumFacing.NORTH) continue@loop
+                    EnumFacing.EAST -> if (direction == EnumFacing.WEST || direction == EnumFacing.EAST) continue@loop
+                    EnumFacing.SOUTH -> if (direction == EnumFacing.NORTH || direction == EnumFacing.SOUTH) continue@loop
+                    EnumFacing.WEST -> if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) continue@loop
+                }
+                val sideVec = bb.center.add(Vec3d(side.directionVec).scale(getAABBSide(bb, side) * 0.9).add(Vec3d(direction.directionVec)).scale(getAABBSide(bb, direction) - 0.001))
+                if (playerEyeVec.distanceTo(sideVec) > maxReach.value) continue
+                if (mc.world.getBlockState(blockTask.blockPos.offset(side)).block != Blocks.AIR) continue
+                val rt = mc.world.rayTraceBlocks(playerEyeVec, sideVec, false) ?: continue
+                if (rt.blockPos == blockTask.blockPos && rt.sideHit == side) directHits.add(rt)
+            }
         }
 
         if (directHits.size == 0) {
+            stuckMining++
             refreshData()
             shuffleTasks()
             doTask()
@@ -818,12 +827,11 @@ object HighwayTools : Module() {
     }
 
     private fun updateRenderer(renderer: ESPRenderer): ESPRenderer {
-        val side = GeometryMasks.Quad.ALL
         for (blockTask in blockQueue) {
-            if (blockTask.taskState != TaskState.DONE) renderer.add(blockTask.blockPos, blockTask.taskState.color, side)
+            if (blockTask.taskState != TaskState.DONE) renderer.add(mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos), blockTask.taskState.color)
         }
         for (blockTask in doneQueue) {
-            if (blockTask.block != Blocks.AIR) renderer.add(blockTask.blockPos, blockTask.taskState.color, side)
+            if (blockTask.block != Blocks.AIR) renderer.add(mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos), blockTask.taskState.color)
         }
         return renderer
     }
@@ -932,7 +940,7 @@ object HighwayTools : Module() {
                 "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
                 "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
                 "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
-                "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks",
+                "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
                 "§rEnvironment",
                 "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
                 "    §7Direction: §9${buildDirectionSaved.cardinalName}",
@@ -1148,7 +1156,7 @@ object HighwayTools : Module() {
                 }
             }
             Mode.FLAT -> {
-                for (bp in VectorUtils.getBlockPositionsInArea(cursor.north(buildWidth.value).west(buildWidth.value), cursor.south(buildWidth.value).east(buildWidth.value))) {
+                for (bp in getBlockPositionsInArea(cursor.north(buildWidth.value).west(buildWidth.value), cursor.south(buildWidth.value).east(buildWidth.value))) {
                     blockOffsets.add(Pair(bp, material))
                 }
             }
