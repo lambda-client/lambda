@@ -100,6 +100,8 @@ object HighwayTools : Module() {
             Blocks.STANDING_BANNER,
             Blocks.WALL_BANNER,
             Blocks.BEDROCK,
+            Blocks.END_PORTAL,
+            Blocks.END_PORTAL_FRAME,
             Blocks.PORTAL)
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
