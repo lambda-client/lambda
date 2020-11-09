@@ -95,11 +95,25 @@ object HighwayTools : Module() {
 
     // internal settings
     val ignoreBlocks = mutableListOf(
-            Blocks.STANDING_SIGN,
+          Blocks.STANDING_SIGN,
             Blocks.WALL_SIGN,
             Blocks.STANDING_BANNER,
             Blocks.WALL_BANNER,
             Blocks.BEDROCK,
+            // Added more blocks i hope its good.
+            Blocks.GOLDEN_RAIL,
+            Blocks.DETECTOR_RAIL,
+            Blocks.RAIL,
+            Blocks.ACTIVATOR_RAIL,
+            Blocks.ITEM_FRAME,
+            Blocks.HEAVY_WEIGHTED_PRESSURE_PLATE,
+            Blocks.LIGHT_WEIGHTED_PRESSURE_PLATE,
+            Blocks.LEVER,
+            Blocks.REDSTONE_TORCH,
+            Blocks.STONE_PRESSURE_PLATE,
+            Blocks.WOODEN_PRESSURE_PLATE,
+            Blocks.STONE_BUTTON,
+            Blocks.END_PORTAL_FRAME,
             Blocks.PORTAL)
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
