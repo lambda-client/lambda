@@ -86,17 +86,6 @@ object MathUtils {
     }
 
     @JvmStatic
-    fun getPlayerMainCardinal(player: EntityPlayer): CardinalMain {
-        return when (Character.toUpperCase(player.horizontalFacing.toString()[0])) {
-            'N' -> CardinalMain.NEG_Z
-            'S' -> CardinalMain.POS_Z
-            'E' -> CardinalMain.POS_X
-            'W' -> CardinalMain.NEG_X
-            else -> CardinalMain.NULL
-        }
-    }
-
-    @JvmStatic
     fun convertRange(valueIn: Int, minIn: Int, maxIn: Int, minOut: Int, maxOut: Int): Int {
         return convertRange(valueIn.toDouble(), minIn.toDouble(), maxIn.toDouble(), minOut.toDouble(), maxOut.toDouble()).toInt()
     }
@@ -126,13 +115,5 @@ object MathUtils {
         POS_X("+X"),
         POS_X_POS_Z("+X / +Z"),
         ERROR("ERROR_CALC_DIRECT");
-    }
-
-    enum class CardinalMain(@JvmField var cardinalName: String) {
-        POS_Z("+Z"),
-        NEG_X("-X"),
-        NEG_Z("-Z"),
-        POS_X("+X"),
-        NULL("N/A");
     }
 }
