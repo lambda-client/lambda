@@ -6,7 +6,6 @@
   "client": [
     "MixinAbstractClientPlayer",
     "MixinAnvilChunkLoader",
-    "MixinBaritoneSettings",
     "MixinBlockLiquid",
     "MixinBlockSoulSand",
     "MixinBlockWeb",
@@ -51,6 +50,8 @@
     "MixinTileEntityEnchantmentTableRenderer",
     "MixinTileEntitySignRenderer",
     "MixinVisGraph",
-    "MixinWorld"
+    "MixinWorld",
+    "baritone.MixinBaritoneSettings",
+    "baritone.MixinExecutionWrapper"
   ]
 }

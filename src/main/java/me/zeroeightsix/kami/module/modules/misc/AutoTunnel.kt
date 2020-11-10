@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import me.zeroeightsix.kami.event.events.BaritoneCommandEvent
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
@@ -39,6 +40,12 @@ object AutoTunnel : Module() {
     init {
         listener<SafeTickEvent> {
             if (!isActive()) sendTunnel()
+        }
+
+        listener<BaritoneCommandEvent> { event ->
+            if (event.command.names.any { it.contains("cancel")}) {
+                disable()
+            }
         }
 
         listener<ConnectionEvent.Disconnect> {
