@@ -17,13 +17,13 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @CombatManager.CombatModule
 @Module.Info(
-        name = "Aura",
-        alias = ["KA", "KillAura", "TriggerBot"],
+        name = "KillAura",
+        alias = ["KA", "Aura", "TriggerBot"],
         category = Module.Category.COMBAT,
         description = "Hits entities around you",
         modulePriority = 50
 )
-object Aura : Module() {
+object KillAura : Module() {
     private val delayMode = register(Settings.e<WaitMode>("Mode", WaitMode.DELAY))
     private val multi = register(Settings.b("Multi", false))
     private val lockView = register(Settings.booleanBuilder("LockView").withValue(false).withVisibility { !multi.value })

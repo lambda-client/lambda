@@ -101,7 +101,7 @@ object CombatSetting : Module() {
                 || pauseForEating.value && mc.player.isHandActive && mc.player.activeItemStack.getItem() is ItemFood && (mc.player.activeHand != EnumHand.OFF_HAND || !ignoreOffhandEating.value)
 
 
-    override fun isActive() = Aura.isActive() || BedAura.isActive() || CrystalAura.isActive() || Surround.isActive()
+    override fun isActive() = KillAura.isActive() || BedAura.isActive() || CrystalAura.isActive() || Surround.isActive()
 
     init {
         listener<RenderOverlayEvent> {
@@ -140,7 +140,7 @@ object CombatSetting : Module() {
 
     private fun updateTarget() {
         with(CombatManager.getTopModule()) {
-            overrideRange = if (this is Aura) this.range.value else range.value
+            overrideRange = if (this is KillAura) this.range.value else range.value
         }
 
         getTargetList().let {
@@ -222,7 +222,7 @@ object CombatSetting : Module() {
 
     private fun shouldIgnoreWall(): Boolean {
         val module = CombatManager.getTopModule()
-        return if (module is Aura || module is AimBot) ignoreWalls.value
+        return if (module is KillAura || module is AimBot) ignoreWalls.value
         else true
     }
 
