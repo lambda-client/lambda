@@ -44,10 +44,6 @@ object AutoWalk : Module() {
         }
     }
 
-    override fun onEnable() {
-        startPathing()
-    }
-
     override fun onDisable() {
         if (mc.player != null) BaritoneUtils.cancelEverything()
     }
