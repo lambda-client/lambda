@@ -36,16 +36,11 @@ object AutoWalk : Module() {
         return isEnabled && (mode.value != AutoWalkMode.BARITONE || BaritoneUtils.isActive)
     }
 
-    override fun getHudInfo(): String {
+    override fun getHudInfo(): String? {
         return if (BaritoneUtils.isActive) {
             direction.displayName
         } else {
-            when (mode.value) {
-                AutoWalkMode.BARITONE -> "NONE"
-                AutoWalkMode.FORWARD -> "FORWARD"
-                AutoWalkMode.BACKWARDS -> "BACKWARDS"
-                else -> "N/A"
-            }
+            mode.value.name
         }
     }
 
