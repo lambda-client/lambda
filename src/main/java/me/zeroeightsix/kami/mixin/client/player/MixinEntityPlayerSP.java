@@ -13,7 +13,6 @@ import me.zeroeightsix.kami.module.modules.movement.Sprint;
 import me.zeroeightsix.kami.module.modules.player.Freecam;
 import me.zeroeightsix.kami.util.math.Vec2f;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.network.NetHandlerPlayClient;
@@ -30,6 +29,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -90,12 +90,13 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         if (event.isCancelled()) info.cancel();
     }
 
-    @Redirect(method = "setSprinting", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/AbstractClientPlayer;setSprinting(Z)V"))
-    public void setSprinting(AbstractClientPlayer abstractClientPlayer, boolean sprinting) {
+    @ModifyArg(method = "setSprinting", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/AbstractClientPlayer;setSprinting(Z)V"), index = 0)
+    public boolean modifySprinting(boolean sprinting) {
         if (Sprint.INSTANCE.isEnabled() && Sprint.INSTANCE.shouldSprint()) {
-            sprinting = Sprint.INSTANCE.getSprinting();
+            return Sprint.INSTANCE.getSprinting();
+        } else {
+            return sprinting;
         }
-        super.setSprinting(sprinting);
     }
 
     // We have to return true here so it would still update movement inputs from Baritone and send packets
