@@ -25,7 +25,7 @@ import me.zeroeightsix.kami.module.modules.movement.AutoWalk;
 import me.zeroeightsix.kami.process.TemporaryPauseProcess;
 import me.zeroeightsix.kami.util.BaritoneUtils;
 import me.zeroeightsix.kami.util.Wrapper;
-import me.zeroeightsix.kami.util.math.MathUtils;
+import me.zeroeightsix.kami.util.math.Direction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -338,8 +338,8 @@ public class KamiGUI extends GUI {
             if (!BaritoneUtils.INSTANCE.getSettingsInitialized()) return;
             Optional<IBaritoneProcess> process = Objects.requireNonNull(BaritoneUtils.INSTANCE.getPrimary()).getPathingControlManager().mostRecentInControl();
             if (!baritone.isMinimized() && process.isPresent()) {
-                if (process.get() != TemporaryPauseProcess.INSTANCE && AutoWalk.INSTANCE.isEnabled() && AutoWalk.INSTANCE.getMode().getValue() == AutoWalk.AutoWalkMode.BARITONE && AutoWalk.INSTANCE.getDirection() != null) {
-                    processes.addLine("Process: AutoWalk (" + AutoWalk.INSTANCE.getDirection() + ")");
+                if (process.get() != TemporaryPauseProcess.INSTANCE && AutoWalk.INSTANCE.isEnabled() && AutoWalk.INSTANCE.getMode().getValue() == AutoWalk.AutoWalkMode.BARITONE) {
+                    processes.addLine("Process: AutoWalk (" + AutoWalk.INSTANCE.getDirection().getDisplayName() + ")");
                 } else {
                     processes.addLine("Process: " + process.get().displayName());
                 }
@@ -516,7 +516,7 @@ public class KamiGUI extends GUI {
             );
             coordsLabel.setText("");
             coordsLabel.addLine(ow);
-            coordsLabel.addLine(MathUtils.getPlayerCardinal(player).getDirectionName() + colouredSeparator + nether);
+            coordsLabel.addLine(Direction.fromEntity(player).getDisplayNameXY() + colouredSeparator + nether);
         });
         coords.addChild(coordsLabel);
         coordsLabel.setShadow(true);
