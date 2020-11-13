@@ -9,15 +9,15 @@ import kotlin.math.roundToInt
  * [EnumFacing] but with 45° directions
  */
 @Suppress("UNUSED")
-enum class Direction(val displayName: String, val displayNameXY: String, val directionVec: Vec3i) {
-    NORTH("North", "-Z", Vec3i(0, 0, -1)),
-    NORTH_EAST("North East", "+X -Z", Vec3i(1, 0, -1)),
-    EAST("East", "+X", Vec3i(1, 0, 0)),
-    SOUTH_EAST("South East", "+X +Z", Vec3i(1, 0, 1)),
-    SOUTH("South", "+Z", Vec3i(0, 0, 1)),
-    SOUTH_WEST("South West", "-X +Z", Vec3i(-1, 0, 1)),
-    WEST("West", "-X", Vec3i(-1, 0, 0)),
-    NORTH_WEST("North West", "-X -Z", Vec3i(-1, 0, -1));
+enum class Direction(val displayName: String, val displayNameXY: String, val directionVec: Vec3i, val isDiagonal: Boolean) {
+    NORTH("North", "-Z", Vec3i(0, 0, -1), false),
+    NORTH_EAST("North East", "+X -Z", Vec3i(1, 0, -1), true),
+    EAST("East", "+X", Vec3i(1, 0, 0), false),
+    SOUTH_EAST("South East", "+X +Z", Vec3i(1, 0, 1), true),
+    SOUTH("South", "+Z", Vec3i(0, 0, 1), false),
+    SOUTH_WEST("South West", "-X +Z", Vec3i(-1, 0, 1), true),
+    WEST("West", "-X", Vec3i(-1, 0, 0), false),
+    NORTH_WEST("North West", "-X -Z", Vec3i(-1, 0, -1), true);
 
     companion object {
 

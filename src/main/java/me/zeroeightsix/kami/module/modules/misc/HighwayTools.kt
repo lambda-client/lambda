@@ -12,12 +12,10 @@ import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
-import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
-import me.zeroeightsix.kami.util.math.MathUtils.Cardinal
-import me.zeroeightsix.kami.util.math.MathUtils.getPlayerCardinal
+import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
@@ -34,13 +32,11 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.*
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.RayTraceResult
-import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.*
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.round
 import kotlin.math.sqrt
 
 /**
@@ -74,13 +70,6 @@ object HighwayTools : Module() {
     private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withMinimum(0).withValue(0).withMaximum(16).withVisibility { page.value == Page.BEHAVIOR })
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
-//    private val depth = register(Settings.integerBuilder("Depth").withMinimum(0).withValue(1).withMaximum(10).withVisibility { page.value == Page.BEHAVIOR })
-//    private val overburden = register(Settings.integerBuilder("Overburden").withMinimum(0).withValue(64).withMaximum(1000).withVisibility { page.value == Page.BEHAVIOR })
-//    private val abundanceBreaking = register(Settings.booleanBuilder("AbundanceBreaking").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
-//    private val sloppyDigging = register(Settings.booleanBuilder("SloppyDigging").withValue(true).withVisibility { page.value == Page.BEHAVIOR && mode.value == Mode.TUNNEL})
-//    private val gapple = register(Settings.booleanBuilder("GappleLava").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
-    private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION).withVisibility { page.value == Page.BEHAVIOR })
-    private val stuckDelay = register(Settings.integerBuilder("TickDelayStuck").withMinimum(1).withValue(200).withMaximum(500).withVisibility { page.value == Page.BEHAVIOR })
     val maxReach = register(Settings.floatBuilder("MaxReach").withMinimum(2.0F).withValue(4.8F).withVisibility { page.value == Page.BEHAVIOR })
 
     // config
@@ -107,7 +96,7 @@ object HighwayTools : Module() {
     var fillerMat: Block = Blocks.NETHERRACK
     private var playerHotbarSlot = -1
     private var lastHotbarSlot = -1
-    private var buildDirectionSaved = Cardinal.ERROR
+    private var buildDirectionSaved = Direction.NORTH
     private var baritoneSettingAllowPlace = false
     private var baritoneSettingRenderGoal = false
 
@@ -118,10 +107,9 @@ object HighwayTools : Module() {
     private var waitTicks = 0
     private var blocksPlaced = 0
     var pathing = false
-    private var stuckBuilding = 0
-    private var stuckMining = 0
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
+    private var stuckManager = StuckManagement(StuckLevel.NONE, 0)
     // stats
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
@@ -149,23 +137,13 @@ object HighwayTools : Module() {
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
-                            if (!pathing) centerPlayer()
+                            if (!pathing) adjustPlayerPosition(Direction.NORTH)
                             val currentFood = mc.player.getFoodStats().foodLevel
                             if (currentFood != prevFood) {
                                 if (currentFood < prevFood) foodLoss++
                                 prevFood = currentFood
                             }
-                            if (!doTask()) {
-                                stuckBuilding += 1
-                                shuffleTasks()
-                                if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks (${stuckBuilding}x)")
-                                if (stuckBuilding > blockOffsets.size) {
-                                    refreshData()
-                                    if (debugMessages.value == DebugMessages.IMPORTANT) sendChatMessage("$chatName You got stuck, retry")
-                                }
-                            } else {
-                                stuckBuilding = 0
-                            }
+                            doTask()
                         } else {
                             if (isDone()) {
                                 if (checkTasks() && !pathing) {
@@ -182,12 +160,10 @@ object HighwayTools : Module() {
                     }
                 } else {
                     if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
-                        if (!doTask()) {
-                            shuffleTasks()
-                        }
+                        doTask()
                     } else {
                         currentBlockPos = mc.player.positionVector.toBlockPos()
-                        if (abs((buildDirectionSaved.ordinal - getPlayerCardinal(mc.player).ordinal) % 8) == 4) buildDirectionSaved = getPlayerCardinal(mc.player)
+                        if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
                         refreshData()
                     }
                 }
@@ -220,7 +196,7 @@ object HighwayTools : Module() {
         currentBlockPos = startingBlockPos
         playerHotbarSlot = mc.player.inventory.currentItem
         lastHotbarSlot = -1
-        buildDirectionSaved = getPlayerCardinal(mc.player)
+        buildDirectionSaved = Direction.fromEntity(mc.player)
         startTime = System.currentTimeMillis()
         runtimeSec = 0.1
         totalBlocksPlaced = 0
@@ -284,26 +260,37 @@ object HighwayTools : Module() {
         doneQueue.add(blockTask)
     }
 
-    private fun doTask(): Boolean {
+    private fun doTask() {
         if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
             if (waitTicks == 0) {
                 val blockTask = blockQueue.peek()
 
                 when (blockTask.taskState) {
                     TaskState.DONE -> doDONE(blockTask)
-                    TaskState.BREAKING -> if(!doBREAKING(blockTask)) return false
+                    TaskState.BREAKING -> if(!doBREAKING(blockTask)) {
+                        stuckManager.increase(blockTask)
+                        return
+                    }
                     TaskState.BROKEN -> doBROKEN(blockTask)
                     TaskState.PLACED -> doPLACED(blockTask)
-                    TaskState.LIQUID_BREAK -> if(!doBREAK(blockTask)) return false
-                    TaskState.BREAK -> if(!doBREAK(blockTask)) return false
-                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if(!doPLACE(blockTask)) return false
+                    TaskState.EMERGENCY_BREAK -> if(!doBREAK(blockTask)) {
+                        stuckManager.increase(blockTask)
+                        return
+                    }
+                    TaskState.BREAK -> if(!doBREAK(blockTask)) {
+                        stuckManager.increase(blockTask)
+                        return
+                    }
+                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if(!doPLACE(blockTask)) {
+                        stuckManager.increase(blockTask)
+                        return
+                    }
                 }
+
+                if (blockTask.taskState != TaskState.BREAKING) stuckManager.reset()
             } else {
                 waitTicks--
             }
-            return true
-        } else {
-            return false
         }
     }
 
@@ -316,7 +303,6 @@ object HighwayTools : Module() {
     private fun doBREAKING(blockTask: BlockTask): Boolean {
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
-                stuckMining = 0
                 totalBlocksDestroyed++
                 waitTicks = tickDelayBreak.value
                 if (blockTask.block == material || blockTask.block == fillerMat) {
@@ -338,8 +324,7 @@ object HighwayTools : Module() {
                 }
             }
             else -> {
-                if (!mineBlock(blockTask)) return false
-                stuckMining++
+                mineBlock(blockTask)
             }
         }
         return true
@@ -378,10 +363,12 @@ object HighwayTools : Module() {
         val block = mc.world.getBlockState(blockTask.blockPos).block
 
         // ignore blocks
-        for (b in ignoreBlocks) {
-            if (block == b && blockTask.block != Blocks.AIR) {
-                updateTask(blockTask, TaskState.DONE)
-                doTask()
+        if (blockTask.taskState != TaskState.EMERGENCY_BREAK) {
+            for (b in ignoreBlocks) {
+                if (block == b && blockTask.block != Blocks.AIR) {
+                    updateTask(blockTask, TaskState.DONE)
+                    doTask()
+                }
             }
         }
 
@@ -408,14 +395,14 @@ object HighwayTools : Module() {
             }
             else -> {
                 // liquid search around the breaking block
-                if (blockTask.taskState != TaskState.LIQUID_BREAK) {
+                if (blockTask.taskState != TaskState.EMERGENCY_BREAK) {
                     if (liquidHandler(blockTask)) {
-                        updateTask(blockTask, TaskState.LIQUID_BREAK)
+                        updateTask(blockTask, TaskState.EMERGENCY_BREAK)
                         return true
                     }
                 }
                 if (!inventoryProcessor(blockTask)) return false
-                if (!mineBlock(blockTask)) shuffleTasks()
+                mineBlock(blockTask)
             }
         }
         return true
@@ -429,8 +416,10 @@ object HighwayTools : Module() {
             block == fillerMat && block == blockTask.block -> updateTask(blockTask, TaskState.PLACED)
             else -> {
                 if (!BlockUtils.isPlaceable(blockTask.blockPos)) {
-                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Error: " + blockTask.blockPos + " is not a valid position to place a block, removing task.")
-                    blockQueue.remove(blockTask)
+//                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Error: " + blockTask.blockPos + " is not a valid position to place a block, removing task.")
+//                    blockQueue.remove(blockTask)
+                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Invalid place position: " + blockTask.blockPos)
+                    refreshData()
                     return false
                 }
 
@@ -532,7 +521,7 @@ object HighwayTools : Module() {
 
     private fun inventoryProcessor(blockTask: BlockTask): Boolean {
         when (blockTask.taskState) {
-            TaskState.BREAK, TaskState.LIQUID_BREAK -> {
+            TaskState.BREAK, TaskState.EMERGENCY_BREAK -> {
                 val noHotbar = InventoryUtils.getSlotsNoHotbar(278)
                 if (InventoryUtils.getSlotsHotbar(278) == null && noHotbar != null) {
 //                    InventoryUtils.moveToHotbar(278, 130)
@@ -614,16 +603,10 @@ object HighwayTools : Module() {
         return foundLiquid
     }
 
-    private fun mineBlock(blockTask: BlockTask): Boolean {
-        if (stuckMining > stuckDelay.value) {
-            stuckMining = 0
-            updateTask(blockTask, TaskState.BREAK)
-            return true
-        }
-
+    private fun mineBlock(blockTask: BlockTask) {
         if (blockTask.blockPos == mc.player.positionVector.toBlockPos().down()) {
             updateTask(blockTask, TaskState.DONE)
-            return true
+            return
         }
 
         val directHits = mutableListOf<RayTraceResult>()
@@ -649,11 +632,9 @@ object HighwayTools : Module() {
         }
 
         if (directHits.size == 0) {
-            stuckMining++
-            refreshData()
-            shuffleTasks()
-            doTask()
-            return false
+            stuckManager.increase(blockTask)
+            if (stuckManager.stuckLevel == StuckLevel.NONE) doTask()
+            return
         }
 
         var rayTrace: RayTraceResult? = null
@@ -666,9 +647,9 @@ object HighwayTools : Module() {
             }
         }
 
-        if (rayTrace == null) return false
+        if (rayTrace == null) return
 
-        val facing = rayTrace.sideHit ?: return false
+        val facing = rayTrace.sideHit
         val rotation = RotationUtils.getRotationTo(rayTrace.hitVec, true)
 
         setRotation(rotation)
@@ -687,11 +668,11 @@ object HighwayTools : Module() {
             }
             else -> {
                 val digPacket: CPacketPlayerDigging = when (blockTask.taskState) {
-                    TaskState.BREAK -> CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing)
+                    TaskState.BREAK, TaskState.EMERGENCY_BREAK -> CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing)
                     TaskState.BREAKING -> CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing)
                     else -> CPacketPlayerDigging()
                 }
-                if (blockTask.taskState == TaskState.BREAK) updateTask(blockTask, TaskState.BREAKING)
+                if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
                 Thread {
                     Thread.sleep(25L)
                     mc.connection!!.sendPacket(digPacket)
@@ -699,8 +680,6 @@ object HighwayTools : Module() {
                 }.start()
             }
         }
-
-        return true
     }
 
     // Only temporary till we found solution to avoid untraceable blocks
@@ -724,7 +703,7 @@ object HighwayTools : Module() {
 
     private fun placeBlock(blockTask: BlockTask): Boolean {
         val directHits = mutableListOf<RayTraceResult>()
-//        val emergencyHits = mutableListOf<RayTraceResult>()
+        val emergencyHits = mutableListOf<RayTraceResult>()
         for (side in EnumFacing.values()) {
             val offPos = blockTask.blockPos.offset(side)
             if (mc.world.getBlockState(offPos).material.isReplaceable) continue
@@ -732,27 +711,30 @@ object HighwayTools : Module() {
             val rotationVector = Vec3d(offPos).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.499))
             val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector, false)?: continue
             if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
-            if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == blockTask.blockPos) directHits.add(rt)
-//            if (rt.blockPos == offPos && offPos.offset(rt.sideHit) != blockTask.blockPos) emergencyHits.add(rt)
+            if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == blockTask.blockPos) {
+                directHits.add(rt)
+            } else {
+                emergencyHits.add(rt)
+            }
         }
         if (directHits.size == 0) {
-//            if (emergencyHits.size > 0) {
-//                var rayTrace = emergencyHits[0]
-//                var shortestRT = 99.0
-//                for (rt in emergencyHits) {
-//                    if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
-//                        shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit)))
-//                        rayTrace = rt
-//                    }
-//                }
-//                addTask(rayTrace.blockPos, TaskState.LIQUID_BREAK, Blocks.AIR)
-//                return true
-//            }
+            if (emergencyHits.size > 0 && stuckManager.stuckLevel.ordinal > 0) {
+                var rayTrace = emergencyHits[0]
+                var shortestRT = 99.0
+                for (rt in emergencyHits) {
+                    if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
+                        shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit)))
+                        rayTrace = rt
+                    }
+                }
+                addTask(rayTrace.blockPos, TaskState.EMERGENCY_BREAK, Blocks.AIR)
+                return false
+            }
             return if (illegalPlacements.value) {
                 if(debugMessages.value == DebugMessages.ALL) sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
                 placeBlockWall(blockTask)
             } else {
-                true
+                false
             }
         }
 
@@ -820,12 +802,14 @@ object HighwayTools : Module() {
         return false
     }
 
-    private fun centerPlayer(): Boolean {
-        return if (autoCenter.value == AutoCenterMode.OFF) {
-            true
-        } else {
-            SurroundUtils.centerPlayer(autoCenter.value == AutoCenterMode.TP)
-        }
+    private fun adjustPlayerPosition(direction: Direction) {
+        val vec = Vec3d(roundToCenter(mc.player.posX), mc.player.posY, roundToCenter(mc.player.posZ)).subtract(mc.player.positionVector)
+        mc.player.motionX = MathHelper.clamp(vec.x / 2.0, -0.2, 0.2)
+        mc.player.motionZ = MathHelper.clamp(vec.z / 2.0, -0.2, 0.2)
+    }
+
+    private fun roundToCenter(doubleIn: Double): Double {
+        return round(doubleIn + 0.5) - 0.5
     }
 
     private fun updateRenderer(renderer: ESPRenderer): ESPRenderer {
@@ -857,37 +841,34 @@ object HighwayTools : Module() {
     }
 
     private fun printEnable() {
-        var message = ""
         if (info.value) {
+            var message = ""
             message += "$chatName Module started." +
-                    "\n    §9> §7Direction: §a${buildDirectionSaved.cardinalName}§r"
+                    "\n    §9> §7Direction: §a${buildDirectionSaved.displayName}§r"
 
             message += if (buildDirectionSaved.isDiagonal) {
                 "\n    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r"
             } else {
-                if (buildDirectionSaved == Cardinal.NEG_Z || buildDirectionSaved == Cardinal.POS_Z) {
+                if (buildDirectionSaved == Direction.NORTH || buildDirectionSaved == Direction.SOUTH) {
                     "\n    §9> §7Coordinate: §a${startingBlockPos.x}§r"
                 } else {
                     "\n    §9> §7Coordinate: §a${startingBlockPos.z}§r"
                 }
             }
-        } else {
-            message += "$chatName Module started."
+            sendChatMessage(message)
         }
-        sendChatMessage(message)
     }
 
     private fun printDisable() {
-        var message = ""
         if (info.value) {
+            var message = ""
             message += "$chatName Module stopped." +
                     "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
                     "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
             if (baritoneMode.value) message += "\n    §9> §7Distance: §a${getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()}§r"
-        } else {
-            message += "$chatName Module stopped."
+            sendChatMessage(message)
         }
-        sendChatMessage(message)
+
     }
 
     fun getBlueprintStats(): Pair<Int, Int> {
@@ -945,7 +926,7 @@ object HighwayTools : Module() {
                 "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
                 "§rEnvironment",
                 "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
-                "    §7Direction: §9${buildDirectionSaved.cardinalName}",
+                "    §7Direction: §9${buildDirectionSaved.displayName}",
                 "    §7Blocks destroyed: §9$totalBlocksDestroyed",
                 "    §7Blocks placed: §9$totalBlocksPlaced",
                 "    §7Material: §9${material.localizedName}",
@@ -955,8 +936,7 @@ object HighwayTools : Module() {
                 "    §7Target state: §9${currentTask?.block?.localizedName}",
                 "    §7Position: §9(${currentTask?.blockPos?.asString()})",
                 "§rDebug",
-                "    §7Mining stuck: §9$stuckMining",
-                "    §7Building stuck: §9$stuckBuilding",
+                "    §7Stuck manager: §9${stuckManager}",
                 "    §7Pathing: §9$pathing",
                 "§rEstimations",
                 "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
@@ -1169,6 +1149,78 @@ object HighwayTools : Module() {
         }
     }
 
+    data class StuckManagement(
+            var stuckLevel: StuckLevel,
+            var stuckValue: Int
+    )  {
+        fun increase(blockTask: BlockTask) {
+
+            when (blockTask.taskState) {
+                TaskState.BREAK -> stuckValue += 30
+                TaskState.EMERGENCY_BREAK -> stuckValue += 30
+                TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> stuckValue += 10
+                else -> stuckValue++
+            }
+            when {
+                stuckValue < 100 -> {
+                    if (blockTask.taskState != TaskState.BREAKING) {
+                        shuffleTasks()
+                        if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
+                    }
+                }
+                stuckValue in 100..200  -> {
+                    stuckLevel = StuckLevel.MINOR
+                    shuffleTasks()
+                    // Jump etc?
+                }
+                stuckValue in 200..500 -> {
+                    stuckLevel = StuckLevel.MODERATE
+                    refreshData()
+                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
+                }
+                stuckValue > 500 -> {
+                    stuckLevel = StuckLevel.MAYOR
+//                    reset()
+//                    disable()
+//                    enable()
+
+                    // Scaffold
+                }
+            }
+        }
+
+        fun reset() {
+            stuckLevel = StuckLevel.NONE
+            stuckValue = 0
+        }
+
+        override fun toString(): String {
+            return "Level: $stuckLevel Value: $stuckValue"
+        }
+    }
+
+    data class BlockTask(
+            val blockPos: BlockPos,
+            var taskState: TaskState,
+            var block: Block
+    ) {
+        override fun toString(): String {
+            return "Block: " + block.localizedName + " @ Position: (" + blockPos.asString() + ") Priority: " + taskState.ordinal + " State: " + taskState.toString()
+        }
+    }
+
+    enum class TaskState(val color: ColorHolder) {
+        DONE(ColorHolder(50, 50, 50)),
+        BREAKING(ColorHolder(240, 222, 60)),
+        EMERGENCY_BREAK(ColorHolder(220, 41, 140)),
+        LIQUID_SOURCE(ColorHolder(120, 41, 240)),
+        LIQUID_FLOW(ColorHolder(120, 41, 240)),
+        BREAK(ColorHolder(222, 0, 0)),
+        BROKEN(ColorHolder(111, 0, 0)),
+        PLACE(ColorHolder(35, 188, 254)),
+        PLACED(ColorHolder(53, 222, 66))
+    }
+
     private enum class DebugMessages {
         OFF,
         IMPORTANT,
@@ -1193,32 +1245,11 @@ object HighwayTools : Module() {
         VIEWLOCK
     }
 
-    enum class AutoCenterMode {
-        OFF,
-        TP,
-        MOTION
-    }
-
-    data class BlockTask(
-            val blockPos: BlockPos,
-            var taskState: TaskState,
-            var block: Block
-    ) {
-        override fun toString(): String {
-            return "Block: " + block.localizedName + " @ Position: (" + blockPos.asString() + ") Priority: " + taskState.ordinal + " State: " + taskState.toString()
-        }
-    }
-
-    enum class TaskState(val color: ColorHolder) {
-        DONE(ColorHolder(50, 50, 50)),
-        BREAKING(ColorHolder(240, 222, 60)),
-        LIQUID_BREAK(ColorHolder(220, 41, 140)),
-        LIQUID_SOURCE(ColorHolder(120, 41, 240)),
-        LIQUID_FLOW(ColorHolder(120, 41, 240)),
-        BREAK(ColorHolder(222, 0, 0)),
-        BROKEN(ColorHolder(111, 0, 0)),
-        PLACE(ColorHolder(35, 188, 254)),
-        PLACED(ColorHolder(53, 222, 66))
+    enum class StuckLevel {
+        NONE,
+        MINOR,
+        MODERATE,
+        MAYOR
     }
 }
 
