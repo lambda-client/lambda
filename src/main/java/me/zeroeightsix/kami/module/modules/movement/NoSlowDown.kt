@@ -2,6 +2,8 @@ package me.zeroeightsix.kami.module.modules.movement
 
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.mixin.client.world.MixinBlockSoulSand
+import me.zeroeightsix.kami.mixin.client.world.MixinBlockWeb
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.event.listener
@@ -14,11 +16,9 @@ import net.minecraft.network.play.client.CPacketPlayerDigging.Action
 import net.minecraft.util.EnumFacing
 import net.minecraftforge.client.event.InputUpdateEvent
 
-
 /**
- * @see me.zeroeightsix.kami.mixin.client.MixinBlockSoulSand
- *
- * @see net.minecraft.client.entity.EntityPlayerSP.onLivingUpdate
+ * @see MixinBlockSoulSand
+ * @see MixinBlockWeb
  */
 @Module.Info(
         name = "NoSlowDown",
