@@ -67,7 +67,7 @@ object AntiAFK : Module() {
 
         listener<PacketEvent.Receive> {
             if (!autoReply.value || it.packet !is SPacketChat) return@listener
-            if (MessageDetectionHelper.isDirect(true, it.packet.getChatComponent().unformattedText)) {
+            if (MessageDetectionHelper.isDirectReceived(true, it.packet.getChatComponent().unformattedText)) {
                 sendServerMessage("/r I am currently AFK and using KAMI Blue!")
             }
         }
