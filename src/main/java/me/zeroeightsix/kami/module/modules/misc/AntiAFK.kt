@@ -56,7 +56,7 @@ object AntiAFK : Module() {
 
     override fun onDisable() {
         startPos = null
-        BaritoneUtils.settings()?.disconnectOnArrival?.value = baritoneDisconnectOnArrival
+        BaritoneUtils.settings?.disconnectOnArrival?.value = baritoneDisconnectOnArrival
         BaritoneUtils.cancelEverything()
     }
 
@@ -120,7 +120,7 @@ object AntiAFK : Module() {
     }
 
     private fun baritoneDisconnectOnArrival() {
-        BaritoneUtils.settings()?.disconnectOnArrival?.let {
+        BaritoneUtils.settings?.disconnectOnArrival?.let {
             baritoneDisconnectOnArrival = it.value
             it.value = false
         }
