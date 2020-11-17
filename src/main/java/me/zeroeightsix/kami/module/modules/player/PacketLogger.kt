@@ -41,7 +41,7 @@ object PacketLogger : Module() {
                 return@listener
             }
 
-            lines.add("${sdf.format(Date())}\n${it.packet.javaClass.simpleName}\n${it.packet.javaClass}\n${it.packet}")
+            lines.add("${sdf.format(Date())}\n${it.packet.javaClass.simpleName}\n${it.packet.javaClass}\n${it.packet}\n\n")
         }
 
         listener<SafeTickEvent> {
