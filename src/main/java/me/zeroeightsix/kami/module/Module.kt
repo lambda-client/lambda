@@ -114,7 +114,7 @@ open class Module {
 
     private fun sendToggleMessage() {
         if (mc.currentScreen !is DisplayGuiScreen && this !is ClickGUI && CommandConfig.toggleMessages.value) {
-            MessageSendHelper.sendChatMessage(name.value.toString() + if (enabled.value) " &adisabled" else " &cenabled")
+            MessageSendHelper.sendChatMessage(name.value.toString() + if (enabled.value) " &cdisabled" else " &aenabled")
         }
     }
 
