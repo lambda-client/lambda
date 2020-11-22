@@ -515,10 +515,9 @@ object HighwayTools : Module() {
     }
 
     private fun shuffleTasks() {
-        var tmpQueue: Queue<BlockTask> = LinkedList<BlockTask>(blockQueue)
-        tmpQueue = LinkedList<BlockTask>(tmpQueue.shuffled())
+        val shuffled = blockQueue.shuffled()
         blockQueue.clear()
-        blockQueue.addAll(tmpQueue)
+        blockQueue.addAll(shuffled)
     }
 
     private fun inventoryProcessor(blockTask: BlockTask): Boolean {
