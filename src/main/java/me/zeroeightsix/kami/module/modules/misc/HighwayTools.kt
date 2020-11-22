@@ -19,6 +19,7 @@ import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
 import me.zeroeightsix.kami.util.math.VectorUtils.getDistance
+import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
@@ -956,22 +957,17 @@ object HighwayTools : Module() {
     }
 
     fun getNextWalkableBlock(): BlockPos {
-        if (mode.value == Mode.HIGHWAY) {
+        var lastWalkable = getNextBlock()
+
+        for (step in 1..4) {
+            val pos = relativeDirection(currentBlockPos, step, 0)
             if (mc.world.getBlockState(getNextBlock().down()).block == material &&
-                    mc.world.getBlockState(getNextBlock()).block == Blocks.AIR &&
-                    mc.world.getBlockState(getNextBlock().up()).block == Blocks.AIR) {
-                if (mc.world.getBlockState(getNextBlock(getNextBlock().down())).block == material &&
-                        mc.world.getBlockState(getNextBlock(getNextBlock())).block == Blocks.AIR &&
-                        mc.world.getBlockState(getNextBlock(getNextBlock().up())).block == Blocks.AIR) {
-                    if (mc.world.getBlockState(getNextBlock(getNextBlock(getNextBlock().down()))).block == material &&
-                            mc.world.getBlockState(getNextBlock(getNextBlock(getNextBlock()))).block == Blocks.AIR &&
-                            mc.world.getBlockState(getNextBlock(getNextBlock(getNextBlock().up()))).block == Blocks.AIR) return getNextBlock(getNextBlock(getNextBlock()))
-                    return getNextBlock(getNextBlock())
-                }
-                return getNextBlock()
-            }
+                mc.world.getBlockState(getNextBlock()).block == Blocks.AIR &&
+                mc.world.getBlockState(getNextBlock().up()).block == Blocks.AIR) lastWalkable = pos
+            else break
         }
-        return getNextBlock()
+
+        return lastWalkable
     }
 
     private fun getNextBlock(): BlockPos {
@@ -982,21 +978,10 @@ object HighwayTools : Module() {
         return relativeDirection(blockPos, 1, 0)
     }
 
-    private fun relativeDirection(curs: BlockPos, steps: Int, turn: Int): BlockPos {
-        var c = curs
-        var d = (buildDirectionSaved.ordinal + turn).rem(8)
-        if (d < 0) d += 8
-        when (d) {
-            0 -> c = c.north(steps)
-            1 -> c = c.north(steps).east(steps)
-            2 -> c = c.east(steps)
-            3 -> c = c.south(steps).east(steps)
-            4 -> c = c.south(steps)
-            5 -> c = c.south(steps).west(steps)
-            6 -> c = c.west(steps)
-            7 -> c = c.north(steps).west(steps)
-        }
-        return c
+    private fun relativeDirection(current: BlockPos, steps: Int, turn: Int): BlockPos {
+        val index = buildDirectionSaved.ordinal + turn
+        val direction = Direction.values()[index % 8]
+        return current.add(direction.directionVec.multiply(steps))
     }
 
     private fun getAABBSide(bb: AxisAlignedBB, side: EnumFacing): Double {
