@@ -29,7 +29,9 @@ import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
-import net.minecraft.network.play.client.*
+import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraft.network.play.client.CPacketPlayerDigging
+import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.*
@@ -56,11 +58,11 @@ object HighwayTools : Module() {
     private val page = register(Settings.e<Page>("Page", Page.BUILD))
 
     // build settings
-    val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
-    var clearHeight = register(Settings.integerBuilder("Height").withMinimum(1).withValue(4).withMaximum(6).withVisibility { page.value == Page.BUILD && clearSpace.value })
-    private var buildWidth = register(Settings.integerBuilder("Width").withMinimum(1).withValue(5).withMaximum(9).withVisibility { page.value == Page.BUILD })
+    private val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
+    private val clearHeight = register(Settings.integerBuilder("Height").withMinimum(1).withValue(4).withMaximum(6).withVisibility { page.value == Page.BUILD && clearSpace.value })
+    private val buildWidth = register(Settings.integerBuilder("Width").withMinimum(1).withValue(5).withMaximum(9).withVisibility { page.value == Page.BUILD })
     private val railing = register(Settings.booleanBuilder("Railing").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
-    private var railingHeight = register(Settings.integerBuilder("RailingHeight").withMinimum(0).withValue(1).withMaximum(clearHeight.value).withVisibility { railing.value && page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
+    private val railingHeight = register(Settings.integerBuilder("RailingHeight").withMinimum(0).withValue(1).withMaximum(clearHeight.value).withVisibility { railing.value && page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
     private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(false).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
 
     // behavior settings
