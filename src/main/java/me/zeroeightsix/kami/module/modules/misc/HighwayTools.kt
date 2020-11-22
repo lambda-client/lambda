@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.module.modules.misc
 
-import baritone.api.BaritoneAPI
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
@@ -129,11 +128,11 @@ object HighwayTools : Module() {
         listener<SafeTickEvent> { event ->
             if (event.phase != TickEvent.Phase.END) {
                 if (mc.playerController == null) return@listener
-                BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(HighwayToolsProcess)
+                BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
                 runtimeSec = ((System.currentTimeMillis() - startTime) / 1000).toDouble()
 
                 if (baritoneMode.value) {
-                    pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
+                    pathing = BaritoneUtils.isPathing
                     var taskDistance = BlockPos(0, -1, 0)
                     blockQueue.firstOrNull() ?: doneQueue.firstOrNull()?.let {
                         taskDistance = it.blockPos
@@ -206,11 +205,12 @@ object HighwayTools : Module() {
         totalBlocksDestroyed = 0
 
         if (baritoneMode.value) {
-            baritoneSettingAllowPlace = BaritoneAPI.getSettings().allowPlace.value
-            BaritoneAPI.getSettings().allowPlace.value = false
+            baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
+            BaritoneUtils.settings?.allowPlace?.value = false
+
             if (!goalRender.value) {
-                baritoneSettingRenderGoal = BaritoneAPI.getSettings().renderGoal.value
-                BaritoneAPI.getSettings().renderGoal.value = false
+                baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
+                BaritoneUtils.settings?.renderGoal?.value = false
             }
         }
 
@@ -231,10 +231,11 @@ object HighwayTools : Module() {
         lastHotbarSlot = -1
 
         if (baritoneMode.value) {
-            BaritoneAPI.getSettings().allowPlace.value = baritoneSettingAllowPlace
-            if (!goalRender.value) BaritoneAPI.getSettings().renderGoal.value = baritoneSettingRenderGoal
-            val baritoneProcess = BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.mostRecentInControl()
-            if (baritoneProcess.isPresent && baritoneProcess.get() == HighwayToolsProcess) baritoneProcess.get().onLostControl()
+            BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
+            if (!goalRender.value) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
+            val process = BaritoneUtils.primary?.pathingControlManager?.mostRecentInControl()
+
+            if (process != null && process.isPresent && process.get() == HighwayToolsProcess) process.get().onLostControl()
         }
         printDisable()
     }
