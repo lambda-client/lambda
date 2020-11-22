@@ -379,11 +379,9 @@ object HighwayTools : Module() {
 
         // ignore blocks
         if (blockTask.taskState != TaskState.EMERGENCY_BREAK) {
-            for (b in ignoreBlocks) {
-                if (block == b && blockTask.block != Blocks.AIR) {
-                    updateTask(blockTask, TaskState.DONE)
-                    doTask()
-                }
+            if (blockTask.block != Blocks.AIR && ignoreBlocks.contains(blockTask.block)) {
+                updateTask(blockTask, TaskState.DONE)
+                doTask()
             }
         }
 
@@ -458,11 +456,9 @@ object HighwayTools : Module() {
 
 
     private fun checkTasks(): Boolean {
-        loop@ for (blockTask in doneQueue) {
+        for (blockTask in doneQueue) {
             val block = mc.world.getBlockState(blockTask.blockPos).block
-            for (b in ignoreBlocks) {
-                if (b == block) continue@loop
-            }
+            if (ignoreBlocks.contains(block)) continue
             when {
                 blockTask.block == material && block != material -> return false
                 mode.value == Mode.TUNNEL && blockTask.block == fillerMat && block != fillerMat -> return false
