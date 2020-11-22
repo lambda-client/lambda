@@ -268,18 +268,18 @@ object HighwayTools : Module() {
                 val blockTask = blockQueue.peek()
 
                 when (blockTask.taskState) {
-                    TaskState.DONE -> doDONE(blockTask)
-                    TaskState.BREAKING -> if(!doBREAKING(blockTask)) {
+                    TaskState.DONE -> doDone(blockTask)
+                    TaskState.BREAKING -> if(!doBreaking(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.BROKEN -> doBROKEN(blockTask)
-                    TaskState.PLACED -> doPLACED(blockTask)
-                    TaskState.EMERGENCY_BREAK -> if(!doBREAK(blockTask)) {
+                    TaskState.BROKEN -> dpBroken(blockTask)
+                    TaskState.PLACED -> doPlaced(blockTask)
+                    TaskState.EMERGENCY_BREAK -> if(!doBreak(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.BREAK -> if(!doBREAK(blockTask)) {
+                    TaskState.BREAK -> if(!doBreak(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
@@ -296,13 +296,13 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun doDONE(blockTask: BlockTask) {
+    private fun doDone(blockTask: BlockTask) {
         blockQueue.poll()
         doneQueue.add(blockTask)
         doTask()
     }
 
-    private fun doBREAKING(blockTask: BlockTask): Boolean {
+    private fun doBreaking(blockTask: BlockTask): Boolean {
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 totalBlocksDestroyed++
@@ -332,7 +332,7 @@ object HighwayTools : Module() {
         return true
     }
 
-    private fun doBROKEN(blockTask: BlockTask) {
+    private fun dpBroken(blockTask: BlockTask) {
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 totalBlocksDestroyed++
@@ -349,7 +349,7 @@ object HighwayTools : Module() {
         doTask()
     }
 
-    private fun doPLACED(blockTask: BlockTask) {
+    private fun doPlaced(blockTask: BlockTask) {
         val block = mc.world.getBlockState(blockTask.blockPos).block
 
         when {
@@ -361,7 +361,7 @@ object HighwayTools : Module() {
         doTask()
     }
 
-    private fun doBREAK(blockTask: BlockTask): Boolean {
+    private fun doBreak(blockTask: BlockTask): Boolean {
         val block = mc.world.getBlockState(blockTask.blockPos).block
 
         // ignore blocks
