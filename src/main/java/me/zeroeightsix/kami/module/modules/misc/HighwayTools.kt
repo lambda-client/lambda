@@ -119,7 +119,6 @@ object HighwayTools : Module() {
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
     private var startTime = 0L
-    private var runtimeSec = 0.0
     private var prevFood = 0
     private var foodLoss = 1
     private var materialLeft = 0
@@ -130,7 +129,6 @@ object HighwayTools : Module() {
             if (event.phase != TickEvent.Phase.END) {
                 if (mc.playerController == null) return@listener
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
-                runtimeSec = ((System.currentTimeMillis() - startTime) / 1000).toDouble()
 
                 if (baritoneMode.value) {
                     pathing = BaritoneUtils.isPathing
@@ -201,7 +199,6 @@ object HighwayTools : Module() {
         lastHotbarSlot = -1
         buildDirectionSaved = Direction.fromEntity(mc.player)
         startTime = System.currentTimeMillis()
-        runtimeSec = 0.1
         totalBlocksPlaced = 0
         totalBlocksDestroyed = 0
 
@@ -908,6 +905,7 @@ object HighwayTools : Module() {
         val pavingLeft = materialLeft / (blueprintStats.first + 1)
         val pavingLeftAll = (materialLeft + indirectMaterialLeft) / (blueprintStats.first + 1)
 
+        val runtimeSec = (System.currentTimeMillis() - startTime) / 1000
         val seconds = (runtimeSec % 60).toInt().toString().padStart(2,'0')
         val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2,'0')
         val hours = (runtimeSec / 3600).toInt().toString().padStart(2,'0')
