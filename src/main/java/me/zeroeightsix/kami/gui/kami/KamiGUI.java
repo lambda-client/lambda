@@ -335,7 +335,7 @@ public class KamiGUI extends GUI {
         processes.setShadow(true);
         processes.addTickListener(() -> {
             processes.setText("");
-            if (!BaritoneUtils.INSTANCE.getSettingsInitialized()) return;
+            if (!BaritoneUtils.INSTANCE.getInitialized()) return;
             Optional<IBaritoneProcess> process = Objects.requireNonNull(BaritoneUtils.INSTANCE.getPrimary()).getPathingControlManager().mostRecentInControl();
             if (!baritone.isMinimized() && process.isPresent()) {
                 if (process.get() != TemporaryPauseProcess.INSTANCE && AutoWalk.INSTANCE.isEnabled() && AutoWalk.INSTANCE.getMode().getValue() == AutoWalk.AutoWalkMode.BARITONE) {
