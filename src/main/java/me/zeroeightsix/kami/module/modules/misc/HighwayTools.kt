@@ -139,7 +139,7 @@ object HighwayTools : Module() {
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
-                            if (!pathing) adjustPlayerPosition(Direction.NORTH)
+                            if (!pathing) adjustPlayerPosition()
                             val currentFood = mc.player.getFoodStats().foodLevel
                             if (currentFood != prevFood) {
                                 if (currentFood < prevFood) foodLoss++
@@ -779,6 +779,9 @@ object HighwayTools : Module() {
                 mc.player.rotationYaw = rotation.x.toFloat()
                 mc.player.rotationPitch = rotation.y.toFloat()
             }
+            else -> {
+
+            }
         }
     }
 
@@ -806,7 +809,7 @@ object HighwayTools : Module() {
         return false
     }
 
-    private fun adjustPlayerPosition(direction: Direction) {
+    private fun adjustPlayerPosition() {
         val vec = Vec3d(roundToCenter(mc.player.posX), mc.player.posY, roundToCenter(mc.player.posZ)).subtract(mc.player.positionVector)
         mc.player.motionX = MathHelper.clamp(vec.x / 2.0, -0.2, 0.2)
         mc.player.motionZ = MathHelper.clamp(vec.z / 2.0, -0.2, 0.2)
@@ -1243,6 +1246,7 @@ object HighwayTools : Module() {
         CONFIG
     }
 
+    @Suppress("UNUSED")
     private enum class InteractMode {
         OFF,
         SPOOF,
