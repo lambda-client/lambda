@@ -72,7 +72,7 @@ object HighwayTools : Module() {
     private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withValue(0).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java, "InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
-    val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.0F).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
+    private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.0F).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
 
     // config
     private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.CONFIG })
