@@ -831,41 +831,51 @@ object HighwayTools : Module() {
     }
 
     fun printSettings() {
-        var message = "$chatName Settings" +
+        StringBuilder(ignoreBlocks.size + 1).run {
+            append("$chatName Settings" +
                 "\n    §9> §rMaterial: §7${material.localizedName}" +
                 "\n    §9> §rBaritone: §7${baritoneMode.value}" +
-                "\n    §9> §rIgnored Blocks:"
-        for (b in ignoreBlocks) message += "\n        §9> §7${b!!.registryName}"
-        sendChatMessage(message)
+                "\n    §9> §rIgnored Blocks:")
+            for (b in ignoreBlocks) append("\n        §9> §7${b!!.registryName}")
+
+            sendChatMessage(toString())
+        }
     }
 
     private fun printEnable() {
         if (info.value) {
-            var message = ""
-            message += "$chatName Module started." +
-                    "\n    §9> §7Direction: §a${buildDirectionSaved.displayName}§r"
+            StringBuilder(2).run {
+                append("$chatName Module started." +
+                    "\n    §9> §7Direction: §a${buildDirectionSaved.displayName}§r")
 
-            message += if (buildDirectionSaved.isDiagonal) {
-                "\n    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r"
-            } else {
-                if (buildDirectionSaved == Direction.NORTH || buildDirectionSaved == Direction.SOUTH) {
-                    "\n    §9> §7Coordinate: §a${startingBlockPos.x}§r"
+                if (buildDirectionSaved.isDiagonal) {
+                    append("\n    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
                 } else {
-                    "\n    §9> §7Coordinate: §a${startingBlockPos.z}§r"
+                    if (buildDirectionSaved == Direction.NORTH || buildDirectionSaved == Direction.SOUTH) {
+                        append("\n    §9> §7Coordinate: §a${startingBlockPos.x}§r")
+                    } else {
+                        append("\n    §9> §7Coordinate: §a${startingBlockPos.z}§r")
+                    }
                 }
+
+                sendChatMessage(toString())
             }
-            sendChatMessage(message)
         }
     }
 
     private fun printDisable() {
         if (info.value) {
-            var message = ""
-            message += "$chatName Module stopped." +
+            StringBuilder(2).run {
+                append(
+                    "$chatName Module stopped." +
                     "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
                     "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
-            if (baritoneMode.value) message += "\n    §9> §7Distance: §a${getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()}§r"
-            sendChatMessage(message)
+                )
+
+                if (baritoneMode.value) append("\n    §9> §7Distance: §a${getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()}§r")
+
+                sendChatMessage(toString())
+            }
         }
 
     }
