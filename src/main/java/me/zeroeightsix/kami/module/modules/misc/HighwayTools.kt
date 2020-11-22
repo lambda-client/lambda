@@ -918,39 +918,34 @@ object HighwayTools : Module() {
         val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2,'0')
         val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2,'0')
 
-
-
-
-
-        val statistics = mutableListOf<String>()
-
-        statistics.addAll(listOf(
-                "§rPerformance",
-                "    §7Runtime: §9$hours:$minutes:$seconds",
-                "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
-                "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
-                "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
-                "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
-                "§rEnvironment",
-                "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
-                "    §7Direction: §9${buildDirectionSaved.displayName}",
-                "    §7Blocks destroyed: §9$totalBlocksDestroyed",
-                "    §7Blocks placed: §9$totalBlocksPlaced",
-                "    §7Material: §9${material.localizedName}",
-                "    §7Filler: §9${fillerMat.localizedName}",
-                "§rTask",
-                "    §7Status: §9${currentTask?.taskState}",
-                "    §7Target state: §9${currentTask?.block?.localizedName}",
-                "    §7Position: §9(${currentTask?.blockPos?.asString()})",
-                "§rDebug",
-                "    §7Stuck manager: §9${stuckManager}",
-                "    §7Pathing: §9$pathing",
-                "§rEstimations",
-                "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
-                "    §7${fillerMat.localizedName} (filler material): §9$fillerMatLeft",
-                "    §7Paving distance left: §9$pavingLeftAll",
-                "    §7Estimated destination: §9(${relativeDirection(currentBlockPos, pavingLeft, 0).asString()})",
-                "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"))
+        val statistics = mutableListOf(
+            "§rPerformance",
+            "    §7Runtime: §9$hours:$minutes:$seconds",
+            "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
+            "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
+            "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
+            "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
+            "§rEnvironment",
+            "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
+            "    §7Direction: §9${buildDirectionSaved.displayName}",
+            "    §7Blocks destroyed: §9$totalBlocksDestroyed",
+            "    §7Blocks placed: §9$totalBlocksPlaced",
+            "    §7Material: §9${material.localizedName}",
+            "    §7Filler: §9${fillerMat.localizedName}",
+            "§rTask",
+            "    §7Status: §9${currentTask?.taskState}",
+            "    §7Target state: §9${currentTask?.block?.localizedName}",
+            "    §7Position: §9(${currentTask?.blockPos?.asString()})",
+            "§rDebug",
+            "    §7Stuck manager: §9${stuckManager}",
+            "    §7Pathing: §9$pathing",
+            "§rEstimations",
+            "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
+            "    §7${fillerMat.localizedName} (filler material): §9$fillerMatLeft",
+            "    §7Paving distance left: §9$pavingLeftAll",
+            "    §7Estimated destination: §9(${relativeDirection(currentBlockPos, pavingLeft, 0).asString()})",
+            "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"
+        )
 
         if (printDebug.value) {
             // for (x in getQueue()) sendChatMessage(x)
