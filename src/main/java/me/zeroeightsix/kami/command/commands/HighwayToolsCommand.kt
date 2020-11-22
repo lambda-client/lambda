@@ -17,17 +17,15 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
         .build(), "ht") {
 
     override fun call(args: Array<String?>) {
-        val subCommand = getSubCommand(args)
-        val ht = HighwayTools
-        when (subCommand) {
+        when (getSubCommand(args)) {
             SubCommands.SETTINGS -> {
-                ht.printSettings()
+                HighwayTools.printSettings()
             }
 
             SubCommands.MATERIAL -> {
                 try {
                     val block = Block.getBlockFromName(args[1].toString())!!
-                    ht.material = block
+                    HighwayTools.material = block
                     MessageSendHelper.sendChatMessage("Set your building material to &7${block.localizedName}&r.")
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
@@ -37,7 +35,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             SubCommands.FILLER -> {
                 try {
                     val block = Block.getBlockFromName(args[1].toString())!!
-                    ht.fillerMat = block
+                    HighwayTools.fillerMat = block
                     MessageSendHelper.sendChatMessage("Set your filling material to &7${block.localizedName}&r.")
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
@@ -47,9 +45,9 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             SubCommands.IGNORE_ADD -> {
                 try {
                     val block = Block.getBlockFromName(args[2].toString())!!
-                    if (block !in ht.ignoreBlocks) {
-                        ht.ignoreBlocks.add(block)
-                        ht.printSettings()
+                    if (block !in HighwayTools.ignoreBlocks) {
+                        HighwayTools.ignoreBlocks.add(block)
+                        HighwayTools.printSettings()
                         MessageSendHelper.sendChatMessage("Added &7${block.localizedName}&r to ignore list.")
                     } else {
                         MessageSendHelper.sendChatMessage("&7${block.localizedName}&r is already ignored.")
@@ -62,9 +60,9 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             SubCommands.IGNORE_DEL -> {
                 try {
                     val block = Block.getBlockFromName(args[2].toString())!!
-                    if (block !in ht.ignoreBlocks) {
-                        ht.ignoreBlocks.remove(block)
-                        ht.printSettings()
+                    if (block !in HighwayTools.ignoreBlocks) {
+                        HighwayTools.ignoreBlocks.remove(block)
+                        HighwayTools.printSettings()
                         MessageSendHelper.sendChatMessage("Removed &7${block.localizedName}&r from ignore list.")
                     } else {
                         MessageSendHelper.sendChatMessage("&7${block.localizedName}&r is not yet ignored.")
@@ -76,8 +74,8 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
 
             SubCommands.MAX_REACH -> {
                 try {
-                    ht.maxReach.value = args[1]!!.toFloatOrNull()
-                    MessageSendHelper.sendChatMessage("Set your max reach to &7${ht.maxReach.value}&r.")
+                    HighwayTools.maxReach.value = args[1]!!.toFloatOrNull()
+                    MessageSendHelper.sendChatMessage("Set your max reach to &7${HighwayTools.maxReach.value}&r.")
                 } catch (e: Exception) {
                     MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid number (eg: 5.5).")
                 }
