@@ -114,6 +114,7 @@ object HighwayTools : Module() {
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
     private val stuckManager = StuckManagement(StuckLevel.NONE, 0)
+    private val renderer = ESPRenderer()
 
     // stats
     private var totalBlocksPlaced = 0
@@ -123,69 +124,6 @@ object HighwayTools : Module() {
     private var foodLoss = 1
     private var materialLeft = 0
     private var fillerMatLeft = 0
-
-    init {
-        listener<SafeTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.END) {
-                if (mc.playerController == null) return@listener
-                BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
-
-                if (baritoneMode.value) {
-                    pathing = BaritoneUtils.isPathing
-                    var taskDistance = BlockPos(0, -1, 0)
-                    blockQueue.firstOrNull() ?: doneQueue.firstOrNull()?.let {
-                        taskDistance = it.blockPos
-                    }
-                    if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
-                        if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
-                            if (!pathing) adjustPlayerPosition()
-                            val currentFood = mc.player.getFoodStats().foodLevel
-                            if (currentFood != prevFood) {
-                                if (currentFood < prevFood) foodLoss++
-                                prevFood = currentFood
-                            }
-                            doTask()
-                        } else {
-                            if (isDone()) {
-                                if (checkTasks() && !pathing) {
-                                    currentBlockPos = getNextBlock(getNextBlock())
-                                    doneQueue.clear()
-                                    updateTasks(currentBlockPos)
-                                } else {
-                                    refreshData()
-                                }
-                            }
-                        }
-                    } else {
-                        refreshData()
-                    }
-                } else {
-                    if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
-                        doTask()
-                    } else {
-                        currentBlockPos = mc.player.positionVector.toBlockPos()
-                        if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
-                        refreshData()
-                    }
-                }
-            } else {
-                return@listener
-            }
-        }
-
-        listener<RenderWorldEvent> {
-            if (mc.player == null) return@listener
-            val renderer = ESPRenderer()
-            renderer.aFilled = if (filled.value) aFilled.value else 0
-            renderer.aOutline = if (outline.value) aOutline.value else 0
-            updateRenderer(renderer)
-            renderer.render(true)
-        }
-    }
-
-    fun isDone(): Boolean {
-        return blockQueue.size == 0
-    }
 
     override fun onEnable() {
         if (mc.player == null) {
@@ -236,6 +174,81 @@ object HighwayTools : Module() {
             if (process != null && process.isPresent && process.get() == HighwayToolsProcess) process.get().onLostControl()
         }
         printDisable()
+    }
+
+    fun isDone(): Boolean {
+        return blockQueue.size == 0
+    }
+
+    init {
+        listener<SafeTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.END) {
+                if (mc.playerController == null) return@listener
+
+                updateRenderer()
+                BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+
+                if (baritoneMode.value) {
+                    pathing = BaritoneUtils.isPathing
+                    var taskDistance = BlockPos(0, -1, 0)
+                    blockQueue.firstOrNull() ?: doneQueue.firstOrNull()?.let {
+                        taskDistance = it.blockPos
+                    }
+                    if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
+                        if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
+                            if (!pathing) adjustPlayerPosition()
+                            val currentFood = mc.player.getFoodStats().foodLevel
+                            if (currentFood != prevFood) {
+                                if (currentFood < prevFood) foodLoss++
+                                prevFood = currentFood
+                            }
+                            doTask()
+                        } else {
+                            if (isDone()) {
+                                if (checkTasks() && !pathing) {
+                                    currentBlockPos = getNextBlock(getNextBlock())
+                                    doneQueue.clear()
+                                    updateTasks(currentBlockPos)
+                                } else {
+                                    refreshData()
+                                }
+                            }
+                        }
+                    } else {
+                        refreshData()
+                    }
+                } else {
+                    if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
+                        doTask()
+                    } else {
+                        currentBlockPos = mc.player.positionVector.toBlockPos()
+                        if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
+                        refreshData()
+                    }
+                }
+            } else {
+                return@listener
+            }
+        }
+
+        listener<RenderWorldEvent> {
+            if (mc.player == null) return@listener
+            renderer.render(false)
+        }
+    }
+
+    private fun updateRenderer() {
+        renderer.clear()
+        renderer.aFilled = if (filled.value) aFilled.value else 0
+        renderer.aOutline = if (outline.value) aOutline.value else 0
+        for (blockTask in blockQueue) {
+            if (blockTask.taskState == TaskState.DONE)  continue
+                renderer.add(AxisAlignedBB(blockTask.blockPos), blockTask.taskState.color)
+        }
+        for (blockTask in doneQueue) {
+            if (blockTask.block != Blocks.AIR) continue
+            renderer.add(AxisAlignedBB(blockTask.blockPos), blockTask.taskState.color)
+        }
     }
 
     private fun addTask(blockPos: BlockPos, taskState: TaskState, material: Block) {
@@ -808,16 +821,6 @@ object HighwayTools : Module() {
 
     private fun roundToCenter(doubleIn: Double): Double {
         return round(doubleIn + 0.5) - 0.5
-    }
-
-    private fun updateRenderer(renderer: ESPRenderer): ESPRenderer {
-        for (blockTask in blockQueue) {
-            if (blockTask.taskState != TaskState.DONE) renderer.add(mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos), blockTask.taskState.color)
-        }
-        for (blockTask in doneQueue) {
-            if (blockTask.block != Blocks.AIR) renderer.add(mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos), blockTask.taskState.color)
-        }
-        return renderer
     }
 
     private fun getQueue(): List<String> {
