@@ -794,17 +794,11 @@ object HighwayTools : Module() {
     }
 
     private fun isInsideSelection(blockPos: BlockPos): Boolean {
-        for (bt in blockQueue) {
-            if (bt.blockPos == blockPos) return true
-        }
-        return false
+        return blockQueue.any { it.blockPos == blockPos }
     }
 
     private fun isInsideBuild(blockPos: BlockPos): Boolean {
-        for (bt in blockQueue) {
-            if (bt.blockPos == blockPos && bt.block == material) return true
-        }
-        return false
+        return blockQueue.any { it.blockPos == blockPos && it.block == material }
     }
 
     private fun adjustPlayerPosition() {
