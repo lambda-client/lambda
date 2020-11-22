@@ -37,6 +37,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.*
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.round
 import kotlin.math.sqrt
@@ -93,7 +94,8 @@ object HighwayTools : Module() {
             Blocks.BEDROCK,
             Blocks.END_PORTAL,
             Blocks.END_PORTAL_FRAME,
-            Blocks.PORTAL)
+            Blocks.PORTAL
+    )
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
     private var playerHotbarSlot = -1
@@ -103,28 +105,29 @@ object HighwayTools : Module() {
     private var baritoneSettingRenderGoal = false
 
     // runtime vars
-    val blockQueue: PriorityQueue<BlockTask> = PriorityQueue(compareBy { it.taskState.ordinal })
-    private val doneQueue: Queue<BlockTask> = LinkedList()
-    private var blockOffsets = mutableListOf<Pair<BlockPos, Block>>()
+    val blockQueue = PriorityQueue<BlockTask>(compareBy { it.taskState.ordinal })
+    private val doneQueue = ArrayList<BlockTask>()
+    private val blockOffsets = ArrayList<Pair<BlockPos, Block>>()
     private var waitTicks = 0
     private var blocksPlaced = 0
     var pathing = false
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
-    private var stuckManager = StuckManagement(StuckLevel.NONE, 0)
+    private val stuckManager = StuckManagement(StuckLevel.NONE, 0)
+
     // stats
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
-    private var startTime: Long = 0L
-    private var runtimeSec: Double = 0.0
-    private var prevFood: Int = 0
-    private var foodLoss: Int = 1
+    private var startTime = 0L
+    private var runtimeSec = 0.0
+    private var prevFood = 0
+    private var foodLoss = 1
     private var materialLeft = 0
     private var fillerMatLeft = 0
 
     init {
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) {
+        listener<SafeTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.END) {
                 if (mc.playerController == null) return@listener
                 BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.registerProcess(HighwayToolsProcess)
                 runtimeSec = ((System.currentTimeMillis() - startTime) / 1000).toDouble()
@@ -132,10 +135,8 @@ object HighwayTools : Module() {
                 if (baritoneMode.value) {
                     pathing = BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.isPathing
                     var taskDistance = BlockPos(0, -1, 0)
-                    if (blockQueue.size > 0) {
-                        taskDistance = blockQueue.peek().blockPos
-                    } else {
-                        if (doneQueue.size > 0) taskDistance = doneQueue.peek().blockPos
+                    blockQueue.firstOrNull() ?: doneQueue.firstOrNull()?.let {
+                        taskDistance = it.blockPos
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
