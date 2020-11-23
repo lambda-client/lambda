@@ -54,10 +54,10 @@ object FriendManager : Manager {
             friendFile = gson.fromJson(FileReader(file), object : TypeToken<FriendFile>() {}.type)
             friends.clear()
             friends.putAll(friendFile.friends.associateBy { it.name.toLowerCase() })
-            KamiMod.log.info("Friend loaded")
+            KamiMod.LOG.info("Friend loaded")
             true
         } catch (e: Exception) {
-            KamiMod.log.error("Failed loading friends", e)
+            KamiMod.LOG.error("Failed loading friends", e)
             false
         }
     }
@@ -72,10 +72,10 @@ object FriendManager : Manager {
             gson.toJson(friendFile, fileWriter)
             fileWriter.flush()
             fileWriter.close()
-            KamiMod.log.info("Friend saved")
+            KamiMod.LOG.info("Friends config saved")
             true
         } catch (e: Exception) {
-            KamiMod.log.error("Failed saving friend", e)
+            KamiMod.LOG.error("Failed saving friends config", e)
             e.printStackTrace()
             false
         }

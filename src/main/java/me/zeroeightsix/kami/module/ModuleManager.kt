@@ -20,7 +20,7 @@ object ModuleManager {
     fun preLoad() {
         preLoadingThread = Thread {
             moduleClassList = ClassUtils.findClasses("me.zeroeightsix.kami.module.modules", Module::class.java)
-            KamiMod.log.info("${moduleClassList!!.size} modules found")
+            KamiMod.LOG.info("${moduleClassList!!.size} modules found")
         }
         preLoadingThread!!.name = "Modules Pre-Loading"
         preLoadingThread!!.start()
@@ -42,7 +42,7 @@ object ModuleManager {
             }
         }
         val time = stopTimer.stop()
-        KamiMod.log.info("${moduleMap.size} modules loaded, took ${time}ms")
+        KamiMod.LOG.info("${moduleMap.size} modules loaded, took ${time}ms")
 
         /* Clean up variables used during pre-loading and registering */
         preLoadingThread = null
@@ -66,7 +66,8 @@ object ModuleManager {
                 module.name.value.replace(" ", "").equals(name, true)
                         || module.alias.any { it.replace(" ", "").equals(name, true) }
             }
-        } ?: throw ModuleNotFoundException("Error: Module not found. Check the spelling of the module. (getModuleByName(String) failed)")
+        }
+                ?: throw ModuleNotFoundException("Error: Module not found. Check the spelling of the module. (getModuleByName(String) failed)")
     }
 
     class ModuleNotFoundException(s: String?) : IllegalArgumentException(s)

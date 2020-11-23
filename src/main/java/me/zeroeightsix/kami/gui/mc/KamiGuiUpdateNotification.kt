@@ -1,14 +1,17 @@
 package me.zeroeightsix.kami.gui.mc
 
+import com.google.gson.JsonParser
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.util.WebUtils
 import me.zeroeightsix.kami.util.color.ColorConverter
 import net.minecraft.client.gui.*
 import net.minecraft.util.text.TextFormatting
+import org.kamiblue.commons.utils.ConnectionUtils
+import java.io.IOException
 
 class KamiGuiUpdateNotification(private val buttonId: Int) : GuiScreen() {
 
-    private val message = "A newer release of KAMI Blue is available (" + KamiMod.latest + ")."
+    private val message = "A newer release of KAMI Blue is available ($latest)."
 
     override fun initGui() {
         super.initGui()
@@ -33,7 +36,33 @@ class KamiGuiUpdateNotification(private val buttonId: Int) : GuiScreen() {
         mc.displayGuiScreen(screen)
     }
 
-    private companion object {
-        const val title = "KAMI Blue Update"
+    companion object {
+        private const val title = "KAMI Blue Update"
+
+        var latest: String? = null // latest version (null if no internet or exception occurred)
+        var isLatest = false
+
+        @JvmStatic
+        fun updateCheck() {
+            try {
+                KamiMod.LOG.info("Attempting KAMI Blue update check...")
+
+                val parser = JsonParser()
+                val rawJson = ConnectionUtils.requestRawJsonFrom(KamiMod.DOWNLOADS_API) {
+                    throw it
+                }
+
+                latest = parser.parse(rawJson).asJsonObject.getAsJsonObject("stable")["name"].asString
+                isLatest = latest.equals(KamiMod.VER_STABLE)
+
+                if (!isLatest) {
+                    KamiMod.LOG.warn("You are running an outdated version of KAMI Blue.\nCurrent: ${KamiMod.VER_STABLE}\nLatest: $latest")
+                } else {
+                    KamiMod.LOG.info("Your KAMI Blue (" + KamiMod.VER_STABLE + ") is up-to-date with the latest stable release.")
+                }
+            } catch (e: IOException) {
+                KamiMod.LOG.error("Oes noes! An exception was thrown during the update check.", e)
+            }
+        }
     }
 }
