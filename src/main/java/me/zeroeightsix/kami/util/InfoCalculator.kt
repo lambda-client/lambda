@@ -1,12 +1,10 @@
 package me.zeroeightsix.kami.util
 
 import org.kamiblue.commons.utils.MathUtils.round
-import org.spongepowered.asm.mixin.gen.Invoker
 import kotlin.math.hypot
 
 object InfoCalculator {
     private val mc = Wrapper.minecraft
-    @Invoker
 
     fun getServerType() = if (mc.isIntegratedServerRunning) "Singleplayer" else mc.currentServerData?.serverIP
             ?: "Main Menu"

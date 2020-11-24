@@ -6,7 +6,6 @@ import net.minecraft.util.ResourceLocation;
 import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -14,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 /**
  * Idea from littlebroto1
  */
-@Pseudo
 @Mixin(targets = "net.minecraft.client.gui.MapItemRenderer$Instance")
 public class MixinMapItemRenderer {
 
