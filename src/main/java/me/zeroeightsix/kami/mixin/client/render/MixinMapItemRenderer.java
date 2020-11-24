@@ -21,7 +21,7 @@ public class MixinMapItemRenderer {
     private final ResourceLocation kamiMap = new ResourceLocation("kamiblue/kamimap.png");
 
     @Redirect(method = "render", at = @At(value = "FIELD", target = "Lnet/minecraft/client/gui/MapItemRenderer$Instance;location:Lnet/minecraft/util/ResourceLocation;", opcode = Opcodes.GETFIELD))
-    public ResourceLocation render(MapItemRenderer.Instance i) {
+    public ResourceLocation render(MapItemRenderer.Instance instance) {
         if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getMap().getValue()) return kamiMap;
         else return this.location;
     }
