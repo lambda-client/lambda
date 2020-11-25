@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.util.Wrapper
 import net.minecraft.block.BlockAir
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import kotlin.math.*
 
 /**
@@ -149,5 +150,9 @@ object VectorUtils {
 
     fun BlockPos.toVec3d(): Vec3d {
         return Vec3d(this).add(0.5, 0.5, 0.5)
+    }
+
+    fun Vec3i.multiply(multiplier: Int): Vec3i {
+        return Vec3i(x * multiplier, y * multiplier, z * multiplier)
     }
 }
