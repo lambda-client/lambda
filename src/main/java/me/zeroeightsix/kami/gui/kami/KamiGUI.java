@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.gui.kami;
 import baritone.api.process.IBaritoneProcess;
 import com.mojang.realmsclient.gui.ChatFormatting;
 import kotlin.Pair;
-import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.gui.kami.component.*;
 import me.zeroeightsix.kami.gui.kami.theme.kami.KamiTheme;
 import me.zeroeightsix.kami.gui.rgui.GUI;
@@ -28,7 +27,6 @@ import me.zeroeightsix.kami.util.Wrapper;
 import me.zeroeightsix.kami.util.math.Direction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.*;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityEgg;
@@ -36,6 +34,7 @@ import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.entity.projectile.EntityWitherSkull;
 import net.minecraft.init.MobEffects;
 import net.minecraft.util.text.TextFormatting;
+import org.kamiblue.capeapi.PlayerProfile;
 
 import javax.annotation.Nonnull;
 import java.math.RoundingMode;
@@ -311,13 +310,13 @@ public class KamiGUI extends GUI {
             friends.setText("");
             if (!friendList.isMinimized()) {
                 if (FriendManager.INSTANCE.getEnabled()) {
-                    for (FriendManager.Friend friend : FriendManager.INSTANCE.getFriends().values()) {
-                        final String name = friend.getUsername();
+                    for (PlayerProfile friend : FriendManager.INSTANCE.getFriends().values()) {
+                        final String name = friend.getName();
                         if (name.isEmpty()) continue;
                         friends.addLine(name);
                     }
                 } else {
-                    friends.addLine(KamiMod.color + "cDisabled");
+                    friends.addLine(TextFormatting.RED + "Disabled");
                 }
             }
         });
@@ -363,40 +362,40 @@ public class KamiGUI extends GUI {
             Minecraft mc = Wrapper.getMinecraft();
 
             if (mc.player == null) return;
-            List<EntityPlayer> entityList = mc.world.playerEntities;
 
             Map<String, Integer> players = new HashMap<>();
-            for (Entity e : entityList) {
-                if (e.getName().equals(mc.player.getName())) continue;
+            for (EntityPlayer entity : mc.world.playerEntities) {
+                if (entity.isDead) continue;
+                if (entity.getName().equals(mc.player.getName())) continue;
 
-                String posString = (e.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (e.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
+                String posString = (entity.posY > mc.player.posY ? ChatFormatting.DARK_GREEN + "+" : (entity.posY == mc.player.posY ? " " : ChatFormatting.DARK_RED + "-"));
                 String weaknessFactor;
                 String strengthFactor;
                 String extraPaddingForFactors;
-                EntityPlayer ePlayer = (EntityPlayer) e;
 
-                if (ePlayer.isPotionActive(MobEffects.WEAKNESS)) weaknessFactor = "W";
+                if (entity.isPotionActive(MobEffects.WEAKNESS)) weaknessFactor = "W";
                 else weaknessFactor = "";
-                if (ePlayer.isPotionActive(MobEffects.STRENGTH)) strengthFactor = "S";
+
+                if (entity.isPotionActive(MobEffects.STRENGTH)) strengthFactor = "S";
                 else strengthFactor = "";
+
                 if (weaknessFactor.equals("") && strengthFactor.equals("")) extraPaddingForFactors = "";
                 else extraPaddingForFactors = " ";
 
-                float hpRaw = ((EntityLivingBase) e).getHealth() + ((EntityLivingBase) e).getAbsorptionAmount();
+                float hpRaw = entity.getHealth() + entity.getAbsorptionAmount();
                 String hp = dfHealth.format(hpRaw);
-                healthSB.append(KamiMod.color);
                 if (hpRaw >= 20) {
-                    healthSB.append("a");
+                    healthSB.append(TextFormatting.GREEN);
                 } else if (hpRaw >= 10) {
-                    healthSB.append("e");
+                    healthSB.append(TextFormatting.YELLOW);
                 } else if (hpRaw >= 5) {
-                    healthSB.append("6");
+                    healthSB.append(TextFormatting.GOLD);
                 } else {
-                    healthSB.append("c");
+                    healthSB.append(TextFormatting.RED);
                 }
                 healthSB.append(hp);
 
-                players.put(ChatFormatting.GRAY + posString + " " + healthSB.toString() + " " + ChatFormatting.DARK_GRAY + weaknessFactor + ChatFormatting.DARK_PURPLE + strengthFactor + ChatFormatting.GRAY + extraPaddingForFactors + e.getName(), (int) mc.player.getDistance(e));
+                players.put(ChatFormatting.GRAY + posString + " " + healthSB.toString() + " " + ChatFormatting.DARK_GRAY + weaknessFactor + ChatFormatting.DARK_PURPLE + strengthFactor + ChatFormatting.GRAY + extraPaddingForFactors + entity.getName(), (int) mc.player.getDistance(entity));
                 healthSB.setLength(0);
             }
 
@@ -408,7 +407,7 @@ public class KamiGUI extends GUI {
             players = sortByValue(players);
 
             for (Map.Entry<String, Integer> player : players.entrySet()) {
-                list.addLine(KamiMod.color + "7" + player.getKey() + " " + KamiMod.color + "8" + player.getValue());
+                list.addLine(TextFormatting.GRAY + player.getKey() + " " + TextFormatting.DARK_GRAY + player.getValue());
             }
         });
         textRadar.setCloseable(false);
@@ -491,28 +490,28 @@ public class KamiGUI extends GUI {
             int hposZ = (int) (player.posZ * f);
 
             /* The 7 and f in the string formatter is the color */
-            String colouredSeparator = KamiMod.color + "7 " + KamiMod.separator + KamiMod.color + "r";
-            String ow = String.format("%sf%,d%s7, %sf%,d%s7, %sf%,d %s7",
-                    KamiMod.color,
+            String colouredSeparator = TextFormatting.GRAY + " |" + TextFormatting.RESET;
+            String ow = String.format(" (%s%,d%s, %s%,d%s, %s%,d%s)",
+                    TextFormatting.WHITE,
                     posX,
-                    KamiMod.color,
-                    KamiMod.color,
+                    TextFormatting.GRAY,
+                    TextFormatting.WHITE,
                     posY,
-                    KamiMod.color,
-                    KamiMod.color,
+                    TextFormatting.GRAY,
+                    TextFormatting.WHITE,
                     posZ,
-                    KamiMod.color
+                    TextFormatting.GRAY
             );
-            String nether = String.format(" (%sf%,d%s7, %sf%,d%s7, %sf%,d%s7)",
-                    KamiMod.color,
+            String nether = String.format(" (%s%,d%s, %s%,d%s, %s%,d%s)",
+                    TextFormatting.WHITE,
                     hposX,
-                    KamiMod.color,
-                    KamiMod.color,
+                    TextFormatting.GRAY,
+                    TextFormatting.WHITE,
                     posY,
-                    KamiMod.color,
-                    KamiMod.color,
+                    TextFormatting.GRAY,
+                    TextFormatting.WHITE,
                     hposZ,
-                    KamiMod.color
+                    TextFormatting.GRAY
             );
             coordsLabel.setText("");
             coordsLabel.addLine(ow);
