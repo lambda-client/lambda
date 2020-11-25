@@ -191,7 +191,7 @@ object HighwayTools : Module() {
                 if (baritoneMode.value) {
                     pathing = BaritoneUtils.isPathing
                     var taskDistance = BlockPos(0, -1, 0)
-                    blockQueue.firstOrNull() ?: doneQueue.firstOrNull()?.let {
+                    (blockQueue.firstOrNull() ?: doneQueue.firstOrNull())?.let {
                         taskDistance = it.blockPos
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
@@ -242,12 +242,12 @@ object HighwayTools : Module() {
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
         for (blockTask in blockQueue) {
-            if (blockTask.taskState == TaskState.DONE)  continue
-                renderer.add(AxisAlignedBB(blockTask.blockPos), blockTask.taskState.color)
+            if (blockTask.taskState == TaskState.DONE) continue
+            renderer.add(mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos), blockTask.taskState.color)
         }
         for (blockTask in doneQueue) {
-            if (blockTask.block != Blocks.AIR) continue
-            renderer.add(AxisAlignedBB(blockTask.blockPos), blockTask.taskState.color)
+            if (blockTask.block == Blocks.AIR) continue
+            renderer.add(mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos), blockTask.taskState.color)
         }
     }
 
@@ -286,7 +286,7 @@ object HighwayTools : Module() {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.BROKEN -> dpBroken(blockTask)
+                    TaskState.BROKEN -> doBroken(blockTask)
                     TaskState.PLACED -> doPlaced(blockTask)
                     TaskState.EMERGENCY_BREAK -> if(!doBreak(blockTask)) {
                         stuckManager.increase(blockTask)
@@ -296,7 +296,7 @@ object HighwayTools : Module() {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if(!doPLACE(blockTask)) {
+                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if(!doPlace(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
@@ -345,7 +345,7 @@ object HighwayTools : Module() {
         return true
     }
 
-    private fun dpBroken(blockTask: BlockTask) {
+    private fun doBroken(blockTask: BlockTask) {
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 totalBlocksDestroyed++
@@ -375,7 +375,6 @@ object HighwayTools : Module() {
     }
 
     private fun doBreak(blockTask: BlockTask): Boolean {
-        val block = mc.world.getBlockState(blockTask.blockPos).block
 
         // ignore blocks
         if (blockTask.taskState != TaskState.EMERGENCY_BREAK) {
@@ -386,7 +385,7 @@ object HighwayTools : Module() {
         }
 
         // last check before breaking
-        when (block) {
+        when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 if (blockTask.block == Blocks.AIR) {
                     updateTask(blockTask, TaskState.DONE)
@@ -421,7 +420,7 @@ object HighwayTools : Module() {
         return true
     }
 
-    private fun doPLACE(blockTask: BlockTask): Boolean {
+    private fun doPlace(blockTask: BlockTask): Boolean {
         val block = mc.world.getBlockState(blockTask.blockPos).block
 
         when {
@@ -907,14 +906,14 @@ object HighwayTools : Module() {
         val pavingLeft = materialLeft / (blueprintStats.first + 1)
         val pavingLeftAll = (materialLeft + indirectMaterialLeft) / (blueprintStats.first + 1)
 
-        val runtimeSec = (System.currentTimeMillis() - startTime) / 1000
+        val runtimeSec = ((System.currentTimeMillis() - startTime) / 1000) + 0.0001
         val seconds = (runtimeSec % 60).toInt().toString().padStart(2,'0')
         val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2,'0')
         val hours = (runtimeSec / 3600).toInt().toString().padStart(2,'0')
 
         val distanceDone = getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()
 
-        val secLeft = runtimeSec / distanceDone * pavingLeftAll
+        val secLeft = runtimeSec / (distanceDone * pavingLeftAll + 0.0001)
         val secondsLeft = (secLeft % 60).toInt().toString().padStart(2,'0')
         val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2,'0')
         val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2,'0')
@@ -961,9 +960,9 @@ object HighwayTools : Module() {
 
         for (step in 1..4) {
             val pos = relativeDirection(currentBlockPos, step, 0)
-            if (mc.world.getBlockState(getNextBlock().down()).block == material &&
-                mc.world.getBlockState(getNextBlock()).block == Blocks.AIR &&
-                mc.world.getBlockState(getNextBlock().up()).block == Blocks.AIR) lastWalkable = pos
+            if (mc.world.getBlockState(pos.down()).block == material &&
+                mc.world.getBlockState(pos).block == Blocks.AIR &&
+                mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
             else break
         }
 
@@ -980,7 +979,7 @@ object HighwayTools : Module() {
 
     private fun relativeDirection(current: BlockPos, steps: Int, turn: Int): BlockPos {
         val index = buildDirectionSaved.ordinal + turn
-        val direction = Direction.values()[index % 8]
+        val direction = Direction.values()[Math.floorMod(index, 8)]
         return current.add(direction.directionVec.multiply(steps))
     }
 
