@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.event.events.SafeTickEvent
-import me.zeroeightsix.kami.mixin.extension.rightClickDelayTimer
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
@@ -229,7 +228,7 @@ object AutoObsidian : Module() {
             placingPos = getPlacingPos()
         } else {
             sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
-            mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             this.disable()
             return
         }
@@ -258,7 +257,7 @@ object AutoObsidian : Module() {
             if (InventoryUtils.getSlotsHotbar(i) == null) {
                 if (i != 234) continue else {
                     sendChatMessage("$chatName No shulker box was found in hotbar, disabling.")
-                    mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     this.disable()
                     return
                 }
@@ -282,7 +281,7 @@ object AutoObsidian : Module() {
                 state = State.SEARCHING
             } else {
                 sendChatMessage("$chatName No ender chest was found in inventory, disabling.")
-                mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 this.disable()
                 return
             }
@@ -343,7 +342,7 @@ object AutoObsidian : Module() {
                 val currentContainer = mc.player.openContainer
                 var enderChestSlot = -1
                 for (i in 0..26) {
-                    if (getIdFromItem(currentContainer.inventory[i].getItem()) == 130) {
+                    if (getIdFromItem(currentContainer.inventory[i].item) == 130) {
                         enderChestSlot = i
                     }
                 }
@@ -351,7 +350,7 @@ object AutoObsidian : Module() {
                     mc.playerController.windowClick(currentContainer.windowId, enderChestSlot, 0, ClickType.QUICK_MOVE, mc.player)
                 } else {
                     sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
-                    mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     this.disable()
                 }
             }.start()
@@ -419,7 +418,7 @@ object AutoObsidian : Module() {
                 return false
             } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
                 sendChatMessage("No pickaxe was found in inventory.")
-                mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 return false
             }
             InventoryUtils.swapSlotToItem(278)
