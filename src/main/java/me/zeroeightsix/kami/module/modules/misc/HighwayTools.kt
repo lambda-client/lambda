@@ -1162,7 +1162,7 @@ object HighwayTools : Module() {
             }
             when {
                 stuckValue < 100 -> {
-                    if (!pathing) adjustPlayerPosition(true)
+//                    if (!pathing) adjustPlayerPosition(true)
                     if (blockTask.taskState != TaskState.BREAKING) {
                         shuffleTasks()
                         if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
