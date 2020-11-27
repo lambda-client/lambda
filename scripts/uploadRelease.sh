@@ -13,7 +13,7 @@ source ~/.profile
 check_var "2" "$2" || exit $?
 check_var "3" "$3" || exit $?
 check_var "KAMI_REPO_MAJOR" "$KAMI_REPO_MAJOR" || exit $?
-check_var "KAMI_REPO" "$KAMI_REPO" || exit $?
+check_var "KAMI_REPO_NIGHTLY" "$KAMI_REPO_NIGHTLY" || exit $?
 check_var "GITHUB_TOKEN" "$GITHUB_TOKEN" || exit $?
 
 REPO="$KAMI_REPO_NIGHTLY"
