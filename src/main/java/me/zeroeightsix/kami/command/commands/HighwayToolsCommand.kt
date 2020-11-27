@@ -45,7 +45,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
             }
 
             SubCommands.IGNORE_ADD -> {
-                val block = Block.getBlockFromName(args[1].toString())
+                val block = Block.getBlockFromName(args[2].toString())
 
                 if (block != null) {
                     val added = HighwayTools.ignoreBlocks.add(block)
@@ -57,12 +57,12 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                         MessageSendHelper.sendChatMessage("&7${block.localizedName}&r is already ignored.")
                     }
                 } else {
-                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
+                    MessageSendHelper.sendChatMessage("&7${args[2]}&r is not a valid block.")
                 }
             }
 
             SubCommands.IGNORE_DEL -> {
-                val block = Block.getBlockFromName(args[1].toString())
+                val block = Block.getBlockFromName(args[2].toString())
 
                 if (block != null) {
                     val removed = HighwayTools.ignoreBlocks.remove(block)
@@ -73,7 +73,7 @@ class HighwayToolsCommand : Command("highwaytools", ChunkBuilder()
                         MessageSendHelper.sendChatMessage("&7${block.localizedName}&r is not yet ignored.")
                     }
                 } else {
-                    MessageSendHelper.sendChatMessage("&7${args[1]}&r is not a valid block.")
+                    MessageSendHelper.sendChatMessage("&7${args[2]}&r is not a valid block.")
                 }
             }
 

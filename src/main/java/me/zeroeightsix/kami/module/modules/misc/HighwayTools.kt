@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
@@ -197,7 +198,7 @@ object HighwayTools : Module() {
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone()) {
                             if (!BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
-                                if (!pathing) adjustPlayerPosition()
+                                if (!pathing) adjustPlayerPosition(false)
                                 val currentFood = mc.player.foodStats.foodLevel
                                 if (currentFood != prevFood) {
                                     if (currentFood < prevFood) foodLoss++
@@ -241,6 +242,8 @@ object HighwayTools : Module() {
         renderer.clear()
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
+//        renderer.add(currentBlockPos, ColorHolder(255, 255, 255))
+//        renderer.add(getNextWalkableBlock(), ColorHolder(0, 0, 0))
         for (blockTask in pendingTasks) {
             if (blockTask.taskState == TaskState.DONE) continue
             renderer.add(mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos), blockTask.taskState.color)
@@ -727,7 +730,7 @@ object HighwayTools : Module() {
             }
         }
         if (directHits.size == 0) {
-            if (emergencyHits.size > 0 && stuckManager.stuckLevel.ordinal > 0) {
+            if (emergencyHits.size > 0 && stuckManager.stuckLevel.ordinal > 0 && (blockTask.taskState == TaskState.LIQUID_SOURCE || blockTask.taskState == TaskState.LIQUID_FLOW)) {
                 var rayTrace = emergencyHits[0]
                 var shortestRT = 99.0
                 for (rt in emergencyHits) {
@@ -806,14 +809,11 @@ object HighwayTools : Module() {
         return pendingTasks.any { it.blockPos == blockPos && it.block == material }
     }
 
-    private fun adjustPlayerPosition() {
-        val vec = Vec3d(roundToCenter(mc.player.posX), mc.player.posY, roundToCenter(mc.player.posZ)).subtract(mc.player.positionVector)
+    private fun adjustPlayerPosition(bridge: Boolean) {
+        var vec = Vec3d(getNextWalkableBlock()).add(0.5, 0.5, 0.5).subtract(mc.player.positionVector)
+        if (bridge) vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.51))
         mc.player.motionX = MathHelper.clamp(vec.x / 2.0, -0.2, 0.2)
         mc.player.motionZ = MathHelper.clamp(vec.z / 2.0, -0.2, 0.2)
-    }
-
-    private fun roundToCenter(doubleIn: Double): Double {
-        return round(doubleIn + 0.5) - 0.5
     }
 
     private fun getQueue(): List<String> {
@@ -1162,6 +1162,7 @@ object HighwayTools : Module() {
             }
             when {
                 stuckValue < 100 -> {
+                    if (!pathing) adjustPlayerPosition(true)
                     if (blockTask.taskState != TaskState.BREAKING) {
                         shuffleTasks()
                         if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
@@ -1169,16 +1170,22 @@ object HighwayTools : Module() {
                 }
                 stuckValue in 100..200  -> {
                     stuckLevel = StuckLevel.MINOR
+                    if (!pathing) adjustPlayerPosition(true)
                     shuffleTasks()
+//                    shuffleTasks()
                     // Jump etc?
                 }
                 stuckValue in 200..500 -> {
                     stuckLevel = StuckLevel.MODERATE
-                    refreshData()
-                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
+                    if (!pathing) adjustPlayerPosition(true)
+                    shuffleTasks()
+//                    refreshData()
+//                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR
+                    if (!pathing) adjustPlayerPosition(true)
+                    shuffleTasks()
 //                    reset()
 //                    disable()
 //                    enable()
@@ -1224,6 +1231,7 @@ object HighwayTools : Module() {
         companion object : Comparator<BlockTask> {
             override fun compare(a: BlockTask, b: BlockTask): Int = when {
                 a.taskState.ordinal != b.taskState.ordinal -> a.taskState.ordinal - b.taskState.ordinal
+                a.taskState.ordinal == b.taskState.ordinal && stuckManager.stuckLevel != StuckLevel.NONE -> a.taskState.ordinal - b.taskState.ordinal
                 else -> getDistance(mc.player.positionVector, a.blockPos.toVec3d()).toInt() - getDistance(mc.player.positionVector, b.blockPos.toVec3d()).toInt()
             }
         }
