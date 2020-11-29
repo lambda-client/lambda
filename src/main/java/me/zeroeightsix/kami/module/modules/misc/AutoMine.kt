@@ -1,6 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.command.Command
+import me.zeroeightsix.kami.event.events.BaritoneCommandEvent
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.mixin.extension.sendClickBlockToController
@@ -33,6 +34,10 @@ object AutoMine : Module() {
         }
     }
 
+    override fun onDisable() {
+        BaritoneUtils.cancelEverything()
+    }
+
     private fun run() {
         if (mc.player == null || isDisabled || manual.value) return
 
@@ -56,19 +61,7 @@ object AutoMine : Module() {
         MessageSendHelper.sendBaritoneCommand("mine", *blocks.toTypedArray())
     }
 
-    override fun onDisable() {
-        BaritoneUtils.cancelEverything()
-    }
-
     init {
-        with(Setting.SettingListeners { run() }) {
-            iron.settingListener = this
-            diamond.settingListener = this
-            gold.settingListener = this
-            coal.settingListener = this
-            log.settingListener = this
-        }
-
         listener<SafeTickEvent> {
             if (manual.value) {
                 mc.sendClickBlockToController(true)
@@ -77,6 +70,20 @@ object AutoMine : Module() {
 
         listener<ConnectionEvent.Disconnect> {
             disable()
+        }
+
+        listener<BaritoneCommandEvent> { event ->
+            if (event.command.names.any { it.contains("cancel") }) {
+                disable()
+            }
+        }
+
+        with(Setting.SettingListeners { run() }) {
+            iron.settingListener = this
+            diamond.settingListener = this
+            gold.settingListener = this
+            coal.settingListener = this
+            log.settingListener = this
         }
     }
 }
