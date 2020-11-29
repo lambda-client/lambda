@@ -811,7 +811,10 @@ object HighwayTools : Module() {
 
     private fun adjustPlayerPosition(bridge: Boolean) {
         var vec = Vec3d(getNextWalkableBlock()).add(0.5, 0.5, 0.5).subtract(mc.player.positionVector)
-        if (bridge) vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.51))
+        when {
+            bridge && !buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.51))
+            bridge && buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))
+        }
         mc.player.motionX = MathHelper.clamp(vec.x / 2.0, -0.2, 0.2)
         mc.player.motionZ = MathHelper.clamp(vec.z / 2.0, -0.2, 0.2)
     }
