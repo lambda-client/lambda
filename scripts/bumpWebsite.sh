@@ -42,11 +42,11 @@ git reset --hard origin/master || exit $?
 git pull || exit $?
 
 sed -i "s/^build_number:.*/build_number: $BUILD_NUMBER/g" _config.yml
-sed -i "s/^cur_ver:.*/cur_ver: $4/g" _config.yml
+sed -i "s/^cur_ver:.*/cur_ver: $3/g" _config.yml
 sed -i "s/^beta_ver:.*/beta_ver: $2/g" _config.yml
 
-sed -i "s|jar_url:.*|jar_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_MAJOR/releases/download/$4/kamiblue-$4.jar|g" _config.yml
-sed -i "s|jar_sig_url:.*|jar_sig_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_MAJOR/releases/download/$4/kamiblue-$4.jar.sig|g" _config.yml
+sed -i "s|jar_url:.*|jar_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_MAJOR/releases/download/$3/kamiblue-$3.jar|g" _config.yml
+sed -i "s|jar_sig_url:.*|jar_sig_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_MAJOR/releases/download/$3/kamiblue-$3.jar.sig|g" _config.yml
 sed -i "s|beta_jar_url:.*|beta_jar_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_NIGHTLY/releases/download/$2/$1|g" _config.yml
 
 git commit -am "[bump] Release $2" || exit $?
