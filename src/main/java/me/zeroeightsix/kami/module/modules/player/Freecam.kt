@@ -45,12 +45,7 @@ object Freecam : Module() {
 
     override fun onDisable() {
         mc.renderChunksMany = true
-
-        if (mc.player == null) return
-        mc.world.removeEntityFromWorld(ENTITY_ID)
-        mc.setRenderViewEntity(mc.player)
-        cameraGuy = null
-        if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
+        resetCameraGuy()
     }
 
     override fun onEnable() {
@@ -80,7 +75,7 @@ object Freecam : Module() {
             if (it.phase != TickEvent.Phase.END) return@listener
 
             if (mc.player.isDead || mc.player.health <= 0.0f) {
-                if (cameraGuy != null) onDisable() // Reset the view entity, but not disable it
+                if (cameraGuy != null) resetCameraGuy()
                 return@listener
             }
 
@@ -105,7 +100,7 @@ object Freecam : Module() {
             mc.world.addEntityToWorld(ENTITY_ID, it)
 
             // Set the render view entity to our camera guy
-            mc.setRenderViewEntity(it)
+            mc.renderViewEntity = it
 
             // Reset player movement input
             resetInput = true
@@ -144,6 +139,14 @@ object Freecam : Module() {
 
             mc.player.movementInput.jump = Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)
         }
+    }
+
+    private fun resetCameraGuy() {
+        if (mc.player == null) return
+        mc.world.removeEntityFromWorld(ENTITY_ID)
+        mc.renderViewEntity = mc.player
+        cameraGuy = null
+        if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
     }
 
     private class FakeCamera(val player: EntityPlayerSP) : EntityOtherPlayerMP(mc.world, mc.session.profile) {
