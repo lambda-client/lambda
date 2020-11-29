@@ -1,9 +1,9 @@
 package me.zeroeightsix.installer;
 
 import me.zeroeightsix.kami.KamiMod;
-import me.zeroeightsix.kami.util.FolderHelper;
-import me.zeroeightsix.kami.util.OperatingSystemHelper;
 import me.zeroeightsix.kami.util.WebUtils;
+import me.zeroeightsix.kami.util.filesystem.FolderHelper;
+import me.zeroeightsix.kami.util.filesystem.OperatingSystemHelper;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
