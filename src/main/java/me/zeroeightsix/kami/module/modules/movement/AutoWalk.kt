@@ -36,7 +36,7 @@ object AutoWalk : Module() {
         return isEnabled && (mode.value != AutoWalkMode.BARITONE || BaritoneUtils.isActive)
     }
 
-    override fun getHudInfo(): String? {
+    override fun getHudInfo(): String {
         return if (BaritoneUtils.isActive) {
             direction.displayName
         } else {
@@ -103,7 +103,7 @@ object AutoWalk : Module() {
 
     init {
         mode.settingListener = Setting.SettingListeners {
-            if (mc.player == null) return@SettingListeners
+            if (mc.player == null || isDisabled) return@SettingListeners
             if (mode.value == AutoWalkMode.BARITONE) {
                 if (!checkBaritoneElytra()) startPathing()
             } else {
