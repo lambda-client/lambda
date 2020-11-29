@@ -35,25 +35,25 @@ object AutoMine : Module() {
 
     private fun run() {
         if (mc.player == null || isDisabled || manual.value) return
-        var current = ""
-        if (iron.value) current += " iron_ore"
-        if (diamond.value) current += " diamond_ore"
-        if (gold.value) current += " gold_ore"
-        if (coal.value) current += " coal_ore"
-        if (log.value) current += " log log2"
 
-        if (current.startsWith(" ")) {
-            current = current.substring(1)
+        val blocks = ArrayList<String>()
+
+        if (iron.value) blocks.add("iron_ore")
+        if (diamond.value) blocks.add("diamond_ore")
+        if (gold.value) blocks.add("gold_ore")
+        if (coal.value) blocks.add("coal_ore")
+        if (log.value) {
+            blocks.add("log")
+            blocks.add("log2")
         }
-        val total = current.split(" ")
 
-        if (current.length < 2) {
+        if (blocks.isEmpty()) {
             MessageSendHelper.sendBaritoneMessage("Error: you have to choose at least one thing to mine. To mine custom blocks run the &7" + Command.getCommandPrefix() + "b mine block&f command")
             BaritoneUtils.cancelEverything()
             return
         }
 
-        MessageSendHelper.sendBaritoneCommand("mine", *total.toTypedArray())
+        MessageSendHelper.sendBaritoneCommand("mine", *blocks.toTypedArray())
     }
 
     override fun onDisable() {
