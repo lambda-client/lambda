@@ -16,7 +16,6 @@ check_var "KAMI_REPO_MAJOR" "$KAMI_REPO_MAJOR" || exit $?
 check_var "KAMI_REPO_NIGHTLY" "$KAMI_REPO_NIGHTLY" || exit $?
 check_var "GITHUB_TOKEN" "$GITHUB_TOKEN" || exit $?
 check_var "KAMI_DIR" "$KAMI_DIR" || exit $?
-check_git || exit $?
 
 cd "$KAMI_DIR" || exit $?
 BRANCH="$(git symbolic-ref -q HEAD | sed "s/^refs\/heads\///g")"

@@ -28,9 +28,7 @@ git pull || exit $?
 git submodule update --init --recursive || exit $?
 
 # Update mirror
-cd "$KAMI_MIRROR_DIR" || exit $? || exit $?
-check_git || exit $? || exit $?
-
+cd "$KAMI_MIRROR_DIR" || exit $?
 git reset --hard master || exit $?
 git pull "$KAMI_DIR" || exit $?
 git submodule update --init --recursive || exit $?
