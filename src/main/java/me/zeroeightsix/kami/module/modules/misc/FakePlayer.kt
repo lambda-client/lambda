@@ -56,6 +56,5 @@ object FakePlayer : Module() {
     override fun onDisable() {
         if (mc.world == null || mc.player == null) return
         fakePlayer?.setDead()
-        mc.world?.removeEntityFromWorld(ENTITY_ID)
     }
 }
