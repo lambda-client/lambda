@@ -19,6 +19,7 @@ check_var "KAMI_WEBHOOK" "$KAMI_WEBHOOK" || exit $?
 
 # Safely update repository
 cd "$KAMI_DIR" || exit $?
+git reset --hard HEAD
 check_git || exit $?
 OLD_COMMIT=$(git log --pretty=%h -1)
 
