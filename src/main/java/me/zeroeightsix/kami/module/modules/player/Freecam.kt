@@ -26,9 +26,9 @@ import kotlin.math.min
 import kotlin.math.sin
 
 @Module.Info(
-        name = "Freecam",
-        category = Module.Category.PLAYER,
-        description = "Leave your body and transcend into the realm of the gods"
+    name = "Freecam",
+    category = Module.Category.PLAYER,
+    description = "Leave your body and transcend into the realm of the gods"
 )
 object Freecam : Module() {
     private val horizontalSpeed = register(Settings.floatBuilder("HorizontalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
@@ -55,8 +55,8 @@ object Freecam : Module() {
     init {
         listener<ConnectionEvent.Disconnect> {
             prevThirdPersonViewSetting = -1
-            cameraGuy = null
             if (disableOnDisconnect.value) disable()
+            else cameraGuy = null
         }
 
         listener<PacketEvent.Send> {
@@ -142,11 +142,13 @@ object Freecam : Module() {
     }
 
     private fun resetCameraGuy() {
-        if (mc.player == null) return
-        mc.world.removeEntityFromWorld(ENTITY_ID)
-        mc.renderViewEntity = mc.player
-        cameraGuy = null
-        if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
+        mc.addScheduledTask {
+            if (mc.player == null) return@addScheduledTask
+            mc.world?.removeEntityFromWorld(ENTITY_ID)
+            mc.renderViewEntity = mc.player
+            cameraGuy = null
+            if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
+        }
     }
 
     private class FakeCamera(val player: EntityPlayerSP) : EntityOtherPlayerMP(mc.world, mc.session.profile) {

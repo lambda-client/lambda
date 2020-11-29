@@ -13,9 +13,9 @@ import net.minecraft.client.gui.GuiGameOver
 import java.util.*
 
 @Module.Info(
-        name = "FakePlayer",
-        description = "Spawns a client sided fake player",
-        category = Module.Category.MISC
+    name = "FakePlayer",
+    description = "Spawns a client sided fake player",
+    category = Module.Category.MISC
 )
 object FakePlayer : Module() {
     private val copyInventory = register(Settings.b("CopyInventory", false))
@@ -54,7 +54,10 @@ object FakePlayer : Module() {
     }
 
     override fun onDisable() {
-        if (mc.world == null || mc.player == null) return
-        fakePlayer?.setDead()
+        mc.addScheduledTask {
+            if (mc.world == null || mc.player == null) return@addScheduledTask
+            fakePlayer?.setDead()
+            mc.world?.removeEntityFromWorld(-911)
+        }
     }
 }
