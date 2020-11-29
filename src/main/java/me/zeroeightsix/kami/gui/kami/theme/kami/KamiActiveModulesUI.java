@@ -6,6 +6,7 @@ import me.zeroeightsix.kami.gui.rgui.render.AbstractComponentUI;
 import me.zeroeightsix.kami.module.Module;
 import me.zeroeightsix.kami.module.ModuleManager;
 import me.zeroeightsix.kami.module.modules.client.ActiveModules;
+import me.zeroeightsix.kami.module.modules.render.AntiOverlay;
 import me.zeroeightsix.kami.util.Wrapper;
 import me.zeroeightsix.kami.util.color.ColorGradient;
 import me.zeroeightsix.kami.util.color.ColorHolder;
@@ -44,6 +45,7 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
 
         if (player != null
             && ActiveModules.INSTANCE.getPotionMove().getValue()
+            && !AntiOverlay.INSTANCE.getPotionIcons().getValue()
             && component.getParent().getY() < 26
             && player.getActivePotionEffects().size() > 0
             && component.getParent().getOpacity() == 0) {
