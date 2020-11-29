@@ -2,6 +2,8 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.command.Command
 import me.zeroeightsix.kami.event.events.ConnectionEvent
+import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.mixin.extension.sendClickBlockToController
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
@@ -10,27 +12,29 @@ import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 
 @Module.Info(
-        name = "AutoMine",
-        description = "Automatically mines chosen ores",
-        category = Module.Category.MISC
+    name = "AutoMine",
+    description = "Automatically mines chosen ores",
+    category = Module.Category.MISC
 )
 object AutoMine : Module() {
-    private val iron = register(Settings.b("Iron", true))
-    private val diamond = register(Settings.b("Diamond", true))
-    private val gold = register(Settings.b("Gold", false))
-    private val coal = register(Settings.b("Coal", false))
-    private val log = register(Settings.b("Logs", false))
+
+    private val manual = register(Settings.b("Manual", false))
+    private val iron = register(Settings.booleanBuilder("Iron").withValue(false).withVisibility { !manual.value })
+    private val diamond = register(Settings.booleanBuilder("Diamond").withValue(false).withVisibility { !manual.value })
+    private val gold = register(Settings.booleanBuilder("Gold").withValue(false).withVisibility { !manual.value })
+    private val coal = register(Settings.booleanBuilder("Coal").withValue(false).withVisibility { !manual.value })
+    private val log = register(Settings.booleanBuilder("Log").withValue(false).withVisibility { !manual.value })
 
     override fun onEnable() {
         if (mc.player == null) {
             disable()
-            return
+        } else {
+            run()
         }
-        run()
     }
 
     private fun run() {
-        if (mc.player == null || isDisabled) return
+        if (mc.player == null || isDisabled || manual.value) return
         var current = ""
         if (iron.value) current += " iron_ore"
         if (diamond.value) current += " diamond_ore"
@@ -63,6 +67,12 @@ object AutoMine : Module() {
             gold.settingListener = this
             coal.settingListener = this
             log.settingListener = this
+        }
+
+        listener<SafeTickEvent> {
+            if (manual.value) {
+                mc.sendClickBlockToController(true)
+            }
         }
 
         listener<ConnectionEvent.Disconnect> {
