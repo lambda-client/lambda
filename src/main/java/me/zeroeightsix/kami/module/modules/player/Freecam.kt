@@ -197,6 +197,10 @@ object Freecam : Module() {
         }
 
         override fun getEyeHeight() = 1.65f
+
+        override fun isInvisible() = true
+
+        override fun isInvisibleToPlayer(player: EntityPlayer) = true
     }
 
     /**
