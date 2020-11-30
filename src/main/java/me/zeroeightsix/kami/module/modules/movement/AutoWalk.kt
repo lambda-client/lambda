@@ -45,7 +45,7 @@ object AutoWalk : Module() {
     }
 
     override fun onDisable() {
-        if (mc.player != null) BaritoneUtils.cancelEverything()
+        if (mc.player != null && mode.value == AutoWalkMode.BARITONE) BaritoneUtils.cancelEverything()
     }
 
     init {
