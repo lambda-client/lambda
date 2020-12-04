@@ -23,7 +23,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.commons.utils.DisplayEnum
+import org.kamiblue.commons.interfaces.DisplayEnum
 import org.lwjgl.input.Keyboard
 import kotlin.math.abs
 import kotlin.math.cos

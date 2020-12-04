@@ -20,7 +20,7 @@ import me.zeroeightsix.kami.setting.impl.numerical.FloatSetting
 import me.zeroeightsix.kami.setting.impl.numerical.IntegerSetting
 import me.zeroeightsix.kami.setting.impl.numerical.NumberSetting
 import me.zeroeightsix.kami.util.Bind
-import org.kamiblue.commons.utils.DisplayEnum
+import org.kamiblue.commons.interfaces.DisplayEnum
 import java.util.*
 
 /**
