@@ -1,5 +1,5 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/kami-blue/client/badge)](https://www.codefactor.io/repository/github/kami-blue/client)
-[![Build Status features-master](https://img.shields.io/travis/com/kami-blue/client/master?logo=gradle&label=build)](https://travis-ci.com/kami-blue/client)
+[![build](https://github.com/kami-blue/client/workflows/gradle_build/badge.svg)](https://github.com/kami-blue/client/actions)
 [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
 [![HitCount](http://hits.dwyl.com/kami-blue/client.svg)](http://hits.dwyl.com/kami-blue/client)
 
