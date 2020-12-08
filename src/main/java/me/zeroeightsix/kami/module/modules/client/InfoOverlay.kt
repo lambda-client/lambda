@@ -91,7 +91,7 @@ object InfoOverlay : Module() {
             if (speed.value) addContent("${calcSpeed(decimalPlaces.value)}", speedUnit.value.displayName)
             if (timerSpeed.value) addContent("${round(50f / mc.timer.tickLength, decimalPlaces.value)}", "x")
             if (ping.value) addContent("${InfoCalculator.ping()}", "ms")
-            if (server.value) addContent(mc.player.serverBrand)
+            if (server.value) addContent(mc.player.serverBrand ?: "Unknown Server")
             if (durability.value) addContent("${InfoCalculator.heldItemDurability()}", "dura")
             if (biome.value) addContent(mc.world.getBiome(mc.player.position).biomeName, "biome")
             if (memory.value) addContent("${InfoCalculator.memory()}", "MB")
