@@ -43,9 +43,9 @@ echo "[$(date +"%H:%M:%S")] Downloaded git submodules!"
 
 #
 
-echo "[$(date +"%H:%M:%S")] Running gradlew build without daemon..."
-./gradlew --no-daemon build || {
-  echo "[$(date +"%H:%M:%S")] ERROR: Running gradlew build failed! Run './gradlew --no-daemon build' manually"
+echo "[$(date +"%H:%M:%S")] Running gradlew classes without daemon..."
+./gradlew --no-daemon classes || {
+  echo "[$(date +"%H:%M:%S")] ERROR: Running gradlew build failed! Run './gradlew --no-daemon classes' manually"
   exit 1
 }
 
