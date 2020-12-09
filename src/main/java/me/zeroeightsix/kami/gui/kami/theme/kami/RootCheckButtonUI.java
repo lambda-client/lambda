@@ -32,10 +32,10 @@ public class RootCheckButtonUI<T extends CheckButton> extends AbstractComponentU
     public void renderComponent(CheckButton component) {
         String text = component.getName(); // on toggle, toggled, hovered enabled
         ColorHolder color = new ColorHolder(
-                component.isHovered() ? GuiC.buttonHoveredN.color :
-                        component.isPressed() ? GuiC.buttonPressed.color :
-                                component.isToggled() ? GuiC.buttonIdleT.color :
-                                        GuiC.buttonHoveredT.color);
+            component.isHovered() ? GuiC.buttonHoveredN.color :
+                component.isPressed() ? GuiC.buttonPressed.color :
+                    component.isToggled() ? GuiC.buttonIdleT.color :
+                        GuiC.buttonHoveredT.color);
         if (component.isHovered()) {
             if (component.hasDescription() && !isSettingsOpen() && Tooltips.INSTANCE.isEnabled()) {
                 Component componentAt = KamiMod.INSTANCE.getGuiManager().getComponentAt(DisplayGuiScreen.mouseX, DisplayGuiScreen.mouseY);

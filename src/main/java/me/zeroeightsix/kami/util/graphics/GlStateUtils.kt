@@ -11,7 +11,7 @@ object GlStateUtils {
 
     @JvmStatic
     var colorLock = false
-    private set
+        private set
 
     @JvmStatic
     fun useVbo(): Boolean {

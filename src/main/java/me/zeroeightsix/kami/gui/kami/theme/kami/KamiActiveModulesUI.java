@@ -25,19 +25,19 @@ import static me.zeroeightsix.kami.util.color.ColorConverter.toF;
 public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kami.gui.kami.component.ActiveModules> {
 
     final ColorGradient transRights = new ColorGradient(
-            new Pair<>(0f, new ColorHolder(91, 207, 250)), new Pair<>(19.9999999999f, new ColorHolder(91, 207, 250)),
-            new Pair<>(20f, new ColorHolder(245, 170, 185)), new Pair<>(39.9999999999f, new ColorHolder(245, 170, 185)),
-            new Pair<>(40f, new ColorHolder(255, 255, 255)), new Pair<>(59.9999999999f, new ColorHolder(255, 255, 255)),
-            new Pair<>(60f, new ColorHolder(245, 170, 185)), new Pair<>(79.9999999999f, new ColorHolder(245, 170, 185)),
-            new Pair<>(80f, new ColorHolder(91, 207, 250)), new Pair<>(100f, new ColorHolder(91, 207, 250))
+        new Pair<>(0f, new ColorHolder(91, 207, 250)), new Pair<>(19.9999999999f, new ColorHolder(91, 207, 250)),
+        new Pair<>(20f, new ColorHolder(245, 170, 185)), new Pair<>(39.9999999999f, new ColorHolder(245, 170, 185)),
+        new Pair<>(40f, new ColorHolder(255, 255, 255)), new Pair<>(59.9999999999f, new ColorHolder(255, 255, 255)),
+        new Pair<>(60f, new ColorHolder(245, 170, 185)), new Pair<>(79.9999999999f, new ColorHolder(245, 170, 185)),
+        new Pair<>(80f, new ColorHolder(91, 207, 250)), new Pair<>(100f, new ColorHolder(91, 207, 250))
     );
 
     @Override
     public void renderComponent(me.zeroeightsix.kami.gui.kami.component.ActiveModules component) {
         List<Module> modules = ModuleManager.getModules().stream()
-                .filter(module -> module.isEnabled() && (ActiveModules.INSTANCE.getHidden().getValue() || module.isOnArray()))
-                .sorted(Comparator.comparing(module -> FontRenderAdapter.INSTANCE.getStringWidth(module.getName().getValue() + (module.getHudInfo() == null ? "" : module.getHudInfo() + " ")) * (component.sort_up ? -1 : 1)))
-                .collect(Collectors.toList());
+            .filter(module -> module.isEnabled() && (ActiveModules.INSTANCE.getHidden().getValue() || module.isOnArray()))
+            .sorted(Comparator.comparing(module -> FontRenderAdapter.INSTANCE.getStringWidth(module.getName().getValue() + (module.getHudInfo() == null ? "" : module.getHudInfo() + " ")) * (component.sort_up ? -1 : 1)))
+            .collect(Collectors.toList());
 
         int y = 2;
 
@@ -92,8 +92,8 @@ public class KamiActiveModulesUI extends AbstractComponentUI<me.zeroeightsix.kam
 
             String hudInfo = module.getHudInfo();
             String text = ActiveModules.INSTANCE.getAlignedText(
-                    module.getName().getValue(), (hudInfo == null ? "" : TextFormatting.GRAY + hudInfo + TextFormatting.RESET),
-                    component.getAlignment().equals(AlignedComponent.Alignment.RIGHT)
+                module.getName().getValue(), (hudInfo == null ? "" : TextFormatting.GRAY + hudInfo + TextFormatting.RESET),
+                component.getAlignment().equals(AlignedComponent.Alignment.RIGHT)
             );
             float textWidth = FontRenderAdapter.INSTANCE.getStringWidth(text);
             float textHeight = FontRenderAdapter.INSTANCE.getFontHeight() + 1;
