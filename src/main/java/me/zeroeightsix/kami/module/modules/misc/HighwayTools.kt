@@ -332,7 +332,7 @@ object HighwayTools : Module() {
             }
             is BlockLiquid -> {
                 var filler = fillerMat
-                if (isInsideBuild(blockTask.blockPos)) filler = material
+                if (isInsideBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
                 if (mc.world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     updateTask(blockTask, TaskState.LIQUID_FLOW)
                     updateTask(blockTask, filler)
@@ -399,7 +399,7 @@ object HighwayTools : Module() {
             }
             is BlockLiquid -> {
                 var filler = fillerMat
-                if (isInsideBuild(blockTask.blockPos)) filler = material
+                if (isInsideBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
                 if (mc.world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     updateTask(blockTask, TaskState.LIQUID_FLOW)
                     updateTask(blockTask, filler)
@@ -480,7 +480,7 @@ object HighwayTools : Module() {
             when (val block = mc.world.getBlockState(blockPos).block) {
                 is BlockLiquid -> {
                     var filler = fillerMat
-                    if (isInsideBuild(blockPos)) filler = material
+                    if (isInsideBuild(blockPos) || fillerMatLeft == 0) filler = material
                     when (mc.world.getBlockState(blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                         true -> addTask(blockPos, TaskState.LIQUID_FLOW, filler)
                         false -> addTask(blockPos, TaskState.LIQUID_SOURCE, filler)
