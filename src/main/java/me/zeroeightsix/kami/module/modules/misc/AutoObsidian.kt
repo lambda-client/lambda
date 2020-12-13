@@ -20,9 +20,7 @@ import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
-import net.minecraft.item.Item
 import net.minecraft.item.Item.getIdFromItem
-import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
@@ -49,7 +47,7 @@ object AutoObsidian : Module() {
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION))
-    private val maxReach = register(Settings.floatBuilder("MaxReach").withMinimum(2.0F).withValue(5.4F))
+    private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
 
     enum class State {
         SEARCHING, PLACING, PRE_MINING, MINING, COLLECTING, DONE
@@ -68,7 +66,7 @@ object AutoObsidian : Module() {
     }
     private enum class ItemID(val id: Int) {
         OBSIDIAN(49),
-        ENDERCHEST(130)
+        ENDER_CHEST(130)
     }
 
     var pathing = false
@@ -182,12 +180,12 @@ object AutoObsidian : Module() {
 
         /* Updates ender chest and obsidian counts before placing and mining ender chest */
         if (state == State.SEARCHING) {
-            enderChestCount = InventoryUtils.countItemAll(ItemID.ENDERCHEST.id)
+            enderChestCount = InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
             obsidianCount = countObsidian()
         }
 
         /* Updates main state */
-        val placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDERCHEST.id)
+        val placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
         val targetEnderChest = (targetStacks.value * 64 - obsidianCount) / 8
         state = when {
             state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> State.SEARCHING
@@ -202,16 +200,16 @@ object AutoObsidian : Module() {
         /* Updates searching state */
         if (state == State.SEARCHING && searchingState != SearchingState.DONE) {
             searchingState = when {
-                searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(ItemID.ENDERCHEST.id) > 0 -> SearchingState.DONE
+                searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0 -> SearchingState.DONE
                 searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 16.0f) == null -> SearchingState.DONE
                 searchingState == SearchingState.MINING && mc.world.isAirBlock(placingPos) -> {
-                    if (InventoryUtils.countItemAll(ItemID.ENDERCHEST.id) > 0) {
+                    if (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0) {
                         SearchingState.COLLECTING
                     } else { /* In case if the shulker wasn't placed due to server lag */
                         SearchingState.PLACING
                     }
                 }
-                searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDERCHEST.id) >= 64 || InventoryUtils.getSlots(0, 35, 0) == null) -> SearchingState.PRE_MINING
+                searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) >= 64 || InventoryUtils.getSlots(0, 35, 0) == null) -> SearchingState.PRE_MINING
                 searchingState == SearchingState.PLACING && !mc.world.isAirBlock(placingPos) -> {
                     if (mc.world.getBlockState(placingPos).block is BlockShulkerBox) {
                         SearchingState.OPENING
@@ -281,10 +279,10 @@ object AutoObsidian : Module() {
 
     private fun placeEnderChest(pos: BlockPos) {
         /* Case where we need to move ender chests into the hotbar */
-        if (InventoryUtils.getSlotsHotbar(ItemID.ENDERCHEST.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.ENDERCHEST.id) != null) {
-            InventoryUtils.moveToHotbar(ItemID.ENDERCHEST.id, 278)
+        if (InventoryUtils.getSlotsHotbar(ItemID.ENDER_CHEST.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.ENDER_CHEST.id) != null) {
+            InventoryUtils.moveToHotbar(ItemID.ENDER_CHEST.id, 278)
             return
-        } else if (InventoryUtils.getSlots(0, 35, ItemID.ENDERCHEST.id) == null) {
+        } else if (InventoryUtils.getSlots(0, 35, ItemID.ENDER_CHEST.id) == null) {
             /* Case where we are out of ender chests */
             if (searchShulker.value) {
                 state = State.SEARCHING
@@ -296,7 +294,7 @@ object AutoObsidian : Module() {
             }
         }
         /* Else, we already have enderchests in the hostbar */
-        InventoryUtils.swapSlotToItem(ItemID.ENDERCHEST.id)
+        InventoryUtils.swapSlotToItem(ItemID.ENDER_CHEST.id)
 
         placeBlock(pos)
     }
@@ -352,7 +350,7 @@ object AutoObsidian : Module() {
                 val currentContainer = mc.player.openContainer
                 var enderChestSlot = -1
                 for (i in 0..26) {
-                    if (getIdFromItem(currentContainer.inventory[i].item) == ItemID.ENDERCHEST.id) {
+                    if (getIdFromItem(currentContainer.inventory[i].item) == ItemID.ENDER_CHEST.id) {
                         enderChestSlot = i
                     }
                 }
@@ -424,7 +422,7 @@ object AutoObsidian : Module() {
     private fun mineBlock(pos: BlockPos, pre: Boolean): Boolean {
         if (pre) {
             if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
-                InventoryUtils.moveToHotbar(278, ItemID.ENDERCHEST.id)
+                InventoryUtils.moveToHotbar(278, ItemID.ENDER_CHEST.id)
                 return false
             } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
                 sendChatMessage("No pickaxe was found in inventory.")
