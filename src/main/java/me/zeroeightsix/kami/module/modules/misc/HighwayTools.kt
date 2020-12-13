@@ -11,7 +11,6 @@ import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
-import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
@@ -40,7 +39,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.abs
-import kotlin.math.round
 import kotlin.math.sqrt
 
 /**
@@ -106,7 +104,7 @@ object HighwayTools : Module() {
     private var baritoneSettingRenderGoal = false
 
     // runtime vars
-    val pendingTasks = PriorityQueue<BlockTask>(BlockTaskComparator)
+    val pendingTasks = PriorityQueue(BlockTaskComparator)
     private val doneTasks = ArrayList<BlockTask>()
     private val blueprint = ArrayList<Pair<BlockPos, Block>>()
     private var waitTicks = 0
