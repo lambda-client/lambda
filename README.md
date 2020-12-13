@@ -11,12 +11,6 @@ Please consider donating to help continue this project and get a unique cape in 
 
 Please go to [kamiblue.org/contributing](https://kamiblue.org/contributing) for building / contributing instructions.
 
-## Looking for maintainers. 
-
-Join the [Discord](https://kamiblue.org/discord) to contact a Council member. Check [l1ving's](https://github.com/l1ving) profile for alternate non-Discord contact methods. 
-
-Due to this project rapidly expanding we're in need of Kotlin maintainers who can review pull requests and preferably have experience working with either Minecraft / Forge or GL before.
-
 ## Thank you
 
 [zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
