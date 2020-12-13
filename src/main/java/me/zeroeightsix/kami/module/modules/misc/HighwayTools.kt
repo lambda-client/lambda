@@ -4,6 +4,7 @@ import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
+import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
@@ -73,6 +74,7 @@ object HighwayTools : Module() {
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java, "InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.0F).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
+    private val toggleInventoryManager = register(Settings.booleanBuilder("ToggleInventoryManager").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
 
     // config
     private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.CONFIG })
@@ -130,6 +132,11 @@ object HighwayTools : Module() {
             return
         }
 
+        /* Turn on inventory manager if the users wants us to control it */
+        if(toggleInventoryManager.value && InventoryManager.isDisabled) {
+            InventoryManager.enable()
+        }
+
         startingBlockPos = mc.player.positionVector.toBlockPos()
         currentBlockPos = startingBlockPos
         playerHotbarSlot = mc.player.inventory.currentItem
@@ -172,6 +179,12 @@ object HighwayTools : Module() {
 
             if (process != null && process.isPresent && process.get() == HighwayToolsProcess) process.get().onLostControl()
         }
+
+        /* Turn off inventory manager if the users wants us to control it */
+        if(toggleInventoryManager.value && InventoryManager.isEnabled) {
+            InventoryManager.disable()
+        }
+
         printDisable()
     }
 
