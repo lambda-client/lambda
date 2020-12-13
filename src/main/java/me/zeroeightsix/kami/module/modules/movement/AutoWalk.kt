@@ -12,6 +12,7 @@ import me.zeroeightsix.kami.util.TimerUtils
 import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import net.minecraft.util.MovementInputFromOptions
 import net.minecraftforge.client.event.InputUpdateEvent
 import kotlin.math.floor
 
@@ -36,7 +37,7 @@ object AutoWalk : Module() {
         return isEnabled && (mode.value != AutoWalkMode.BARITONE || BaritoneUtils.isActive)
     }
 
-    override fun getHudInfo(): String? {
+    override fun getHudInfo(): String {
         return if (BaritoneUtils.isActive) {
             direction.displayName
         } else {
@@ -45,7 +46,7 @@ object AutoWalk : Module() {
     }
 
     override fun onDisable() {
-        if (mc.player != null) BaritoneUtils.cancelEverything()
+        if (mc.player != null && mode.value == AutoWalkMode.BARITONE) BaritoneUtils.cancelEverything()
     }
 
     init {
@@ -60,6 +61,8 @@ object AutoWalk : Module() {
         }
 
         listener<InputUpdateEvent>(6969) {
+            if (it.movementInput !is MovementInputFromOptions) return@listener
+
             when (mode.value) {
                 AutoWalkMode.FORWARD -> {
                     it.movementInput.moveForward = 1.0f
@@ -103,7 +106,7 @@ object AutoWalk : Module() {
 
     init {
         mode.settingListener = Setting.SettingListeners {
-            if (mc.player == null) return@SettingListeners
+            if (mc.player == null || isDisabled) return@SettingListeners
             if (mode.value == AutoWalkMode.BARITONE) {
                 if (!checkBaritoneElytra()) startPathing()
             } else {

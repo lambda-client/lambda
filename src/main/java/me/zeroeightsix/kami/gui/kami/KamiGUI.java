@@ -83,7 +83,7 @@ public class KamiGUI extends GUI {
 
     public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
         List<Map.Entry<K, V>> list =
-                new LinkedList<>(map.entrySet());
+            new LinkedList<>(map.entrySet());
         list.sort(Map.Entry.comparingByValue());
 
         Map<K, V> result = new LinkedHashMap<>();
@@ -273,10 +273,8 @@ public class KamiGUI extends GUI {
         infoOverlay.setPinnable(true);
         Label information = new Label("");
         information.setShadow(true);
-        information.addTickListener(() -> {
-            information.setText("");
-            InfoOverlay.INSTANCE.infoContents().forEach(information::addLine);
-        });
+        information.setMultiline(true);
+        information.addTickListener(() -> information.setText(InfoOverlay.INSTANCE.infoContents()));
         infoOverlay.addChild(information);
         frames.add(infoOverlay);
 
@@ -438,21 +436,21 @@ public class KamiGUI extends GUI {
                         return;
                     }
                     final Map<String, Integer> entityCounts = entityList.stream()
-                            .filter(Objects::nonNull)
-                            .filter(e -> !(e instanceof EntityPlayer))
-                            .collect(Collectors.groupingBy(KamiGUI::getEntityName,
-                                    Collectors.reducing(0, ent -> {
-                                        if (ent instanceof EntityItem)
-                                            return ((EntityItem) ent).getItem().getCount();
-                                        return 1;
-                                    }, Integer::sum)
-                            ));
+                        .filter(Objects::nonNull)
+                        .filter(e -> !(e instanceof EntityPlayer))
+                        .collect(Collectors.groupingBy(KamiGUI::getEntityName,
+                            Collectors.reducing(0, ent -> {
+                                if (ent instanceof EntityItem)
+                                    return ((EntityItem) ent).getItem().getCount();
+                                return 1;
+                            }, Integer::sum)
+                        ));
 
                     entityLabel.setText("");
                     entityCounts.entrySet().stream()
-                            .sorted(Map.Entry.comparingByValue())
-                            .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
-                            .forEach(entityLabel::addLine);
+                        .sorted(Map.Entry.comparingByValue())
+                        .map(entry -> TextFormatting.GRAY + entry.getKey() + " " + TextFormatting.DARK_GRAY + "x" + entry.getValue())
+                        .forEach(entityLabel::addLine);
 
                     //entityLabel.getParent().setHeight(entityLabel.getLines().length * (entityLabel.getTheme().getFontRenderer().getFontHeight()+1) + 3);
                 }
@@ -466,7 +464,7 @@ public class KamiGUI extends GUI {
         /*
          * Coordinates
          */
-        Frame coords  = new Frame(getTheme(), new Stretcherlayout(1), "Coordinates");
+        Frame coords = new Frame(getTheme(), new Stretcherlayout(1), "Coordinates");
         coords.setCloseable(false);
         coords.setPinnable(true);
         Label coordsLabel = new Label("");
@@ -492,26 +490,26 @@ public class KamiGUI extends GUI {
             /* The 7 and f in the string formatter is the color */
             String colouredSeparator = TextFormatting.GRAY + " |" + TextFormatting.RESET;
             String ow = String.format(" (%s%,d%s, %s%,d%s, %s%,d%s)",
-                    TextFormatting.WHITE,
-                    posX,
-                    TextFormatting.GRAY,
-                    TextFormatting.WHITE,
-                    posY,
-                    TextFormatting.GRAY,
-                    TextFormatting.WHITE,
-                    posZ,
-                    TextFormatting.GRAY
+                TextFormatting.WHITE,
+                posX,
+                TextFormatting.GRAY,
+                TextFormatting.WHITE,
+                posY,
+                TextFormatting.GRAY,
+                TextFormatting.WHITE,
+                posZ,
+                TextFormatting.GRAY
             );
             String nether = String.format(" (%s%,d%s, %s%,d%s, %s%,d%s)",
-                    TextFormatting.WHITE,
-                    hposX,
-                    TextFormatting.GRAY,
-                    TextFormatting.WHITE,
-                    posY,
-                    TextFormatting.GRAY,
-                    TextFormatting.WHITE,
-                    hposZ,
-                    TextFormatting.GRAY
+                TextFormatting.WHITE,
+                hposX,
+                TextFormatting.GRAY,
+                TextFormatting.WHITE,
+                posY,
+                TextFormatting.GRAY,
+                TextFormatting.WHITE,
+                hposZ,
+                TextFormatting.GRAY
             );
             coordsLabel.setText("");
             coordsLabel.addLine(ow);

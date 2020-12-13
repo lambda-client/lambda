@@ -141,9 +141,9 @@ object ConfigUtils {
         val gui = KamiMod.INSTANCE.guiStateSetting.value
         for ((key, value) in gui.entrySet()) {
             val optional = KamiMod.INSTANCE.guiManager.children.stream()
-                    .filter { component: Component? -> component is Frame }
-                    .filter { component: Component -> (component as Frame).title == key }
-                    .findFirst()
+                .filter { component: Component? -> component is Frame }
+                .filter { component: Component -> (component as Frame).title == key }
+                .findFirst()
             if (optional.isPresent) {
                 val `object` = value.asJsonObject
                 val frame = optional.get() as Frame
@@ -169,17 +169,17 @@ object ConfigUtils {
     private fun saveConfigurationUnsafe() {
         val jsonObject = JsonObject()
         KamiMod.INSTANCE.guiManager.children.stream()
-                .filter { component: Component? -> component is Frame }
-                .map { component: Component? -> component as Frame? }
-                .forEach { frame ->
-                    val frameObject = JsonObject()
-                    frameObject.add("x", JsonPrimitive(frame!!.x))
-                    frameObject.add("y", JsonPrimitive(frame.y))
-                    frameObject.add("docking", JsonPrimitive(listOf(*Docking.values()).indexOf(frame.docking)))
-                    frameObject.add("minimized", JsonPrimitive(frame.isMinimized))
-                    frameObject.add("pinned", JsonPrimitive(frame.isPinned))
-                    jsonObject.add(frame.title, frameObject)
-                }
+            .filter { component: Component? -> component is Frame }
+            .map { component: Component? -> component as Frame? }
+            .forEach { frame ->
+                val frameObject = JsonObject()
+                frameObject.add("x", JsonPrimitive(frame!!.x))
+                frameObject.add("y", JsonPrimitive(frame.y))
+                frameObject.add("docking", JsonPrimitive(listOf(*Docking.values()).indexOf(frame.docking)))
+                frameObject.add("minimized", JsonPrimitive(frame.isMinimized))
+                frameObject.add("pinned", JsonPrimitive(frame.isPinned))
+                jsonObject.add(frame.title, frameObject)
+            }
         KamiMod.INSTANCE.guiStateSetting.value = jsonObject
         val outputFile = Paths.get(getConfigName())
         if (!Files.exists(outputFile)) Files.createFile(outputFile)
