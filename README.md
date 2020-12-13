@@ -7,9 +7,9 @@
 
 Please consider donating to help continue this project and get a unique cape in game. 
 
-## Help and documentation
+## Contributing
 
-Please go to [https://kamiblue.org](https://kamiblue.org) for documentation and help.
+Please go to [kamiblue.org/contributing](https://kamiblue.org/contributing) for building / contributing instructions.
 
 ## Looking for maintainers. 
 
