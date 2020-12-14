@@ -39,6 +39,7 @@ import net.minecraft.util.math.*
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.concurrent.thread
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -75,6 +76,7 @@ object HighwayTools : Module() {
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(false).withVisibility { page.value == Page.BEHAVIOR })
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
     private val toggleInventoryManager = register(Settings.booleanBuilder("ToggleInvManager").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
+    private val toggleAutoObsidian = register(Settings.booleanBuilder("ToggleAutoObsidian").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
 
     // config
     private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.CONFIG })
@@ -137,6 +139,21 @@ object HighwayTools : Module() {
             InventoryManager.enable()
         }
 
+        /* Turn on Auto Obsidian if the user wants us to control it. */
+        if(toggleAutoObsidian.value && AutoObsidian.isDisabled) {
+            /* If we have no obsidian, immediately turn on Auto Obsidian */
+            if(InventoryUtils.countItemAll(49) == 0) {
+                AutoObsidian.enable()
+            }
+            else {
+                thread {
+                    /* Wait 1 second because turning both on simultaneously is buggy */
+                    Thread.sleep(1000)
+                    AutoObsidian.enable()
+                }
+            }
+        }
+
         startingBlockPos = mc.player.positionVector.toBlockPos()
         currentBlockPos = startingBlockPos
         playerHotbarSlot = mc.player.inventory.currentItem
@@ -183,6 +200,11 @@ object HighwayTools : Module() {
         /* Turn off inventory manager if the users wants us to control it */
         if(toggleInventoryManager.value && InventoryManager.isEnabled) {
             InventoryManager.disable()
+        }
+
+        /* Turn off auto obsidian if the user wants us to control it */
+        if(toggleAutoObsidian.value && AutoObsidian.isEnabled) {
+            AutoObsidian.disable()
         }
 
         printDisable()
