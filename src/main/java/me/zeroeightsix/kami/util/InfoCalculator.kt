@@ -9,7 +9,7 @@ object InfoCalculator {
     private val mc = Wrapper.minecraft
 
     fun getServerType() = if (mc.isIntegratedServerRunning) "Singleplayer" else mc.currentServerData?.serverIP
-            ?: "Main Menu"
+        ?: "Main Menu"
 
     @JvmStatic
     fun ping() = mc.player?.let { mc.connection?.getPlayerInfo(it.uniqueID)?.responseTime ?: 1 } ?: -1

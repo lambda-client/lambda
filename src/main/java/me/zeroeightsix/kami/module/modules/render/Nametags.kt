@@ -54,12 +54,12 @@ object Nametags : Module() {
     private val range = register(Settings.integerBuilder("Range").withValue(64).withRange(0, 128).withStep(4).withVisibility { page.value == Page.ENTITY_TYPE })
 
     /* Content */
-    private val line1left = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line1Left").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
-    private val line1center = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line1Center").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
-    private val line1right = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line1Right").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
-    private val line2left = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line2Left").withValue(ContentType.NAME).withVisibility { page.value == Page.CONTENT })
-    private val line2center = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line2Center").withValue(ContentType.PING).withVisibility { page.value == Page.CONTENT })
-    private val line2right = register(Settings.enumBuilder<ContentType>(ContentType::class.java, "Line2Right").withValue(ContentType.TOTAL_HP).withVisibility { page.value == Page.CONTENT })
+    private val line1left = register(Settings.enumBuilder(ContentType::class.java, "Line1Left").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
+    private val line1center = register(Settings.enumBuilder(ContentType::class.java, "Line1Center").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
+    private val line1right = register(Settings.enumBuilder(ContentType::class.java, "Line1Right").withValue(ContentType.NONE).withVisibility { page.value == Page.CONTENT })
+    private val line2left = register(Settings.enumBuilder(ContentType::class.java, "Line2Left").withValue(ContentType.NAME).withVisibility { page.value == Page.CONTENT })
+    private val line2center = register(Settings.enumBuilder(ContentType::class.java, "Line2Center").withValue(ContentType.PING).withVisibility { page.value == Page.CONTENT })
+    private val line2right = register(Settings.enumBuilder(ContentType::class.java, "Line2Right").withValue(ContentType.TOTAL_HP).withVisibility { page.value == Page.CONTENT })
     private val dropItemCount = register(Settings.booleanBuilder("DropItemCount").withValue(true).withVisibility { page.value == Page.CONTENT && items.value })
     private val maxDropItems = register(Settings.integerBuilder("MaxDropItems").withValue(5).withRange(2, 16).withStep(1).withVisibility { page.value == Page.CONTENT && items.value })
 
@@ -184,9 +184,9 @@ object Nametags : Module() {
             itemList.add(itemStack to getEnchantmentText(itemStack))
         }
 
-        if (itemList.isEmpty() || itemList.count { !it.first.isEmpty() } == 0) return
+        if (itemList.isEmpty() || itemList.count { !it.first.isEmpty } == 0) return
         val halfHeight = textComponent.getHeight(2, true, customFont.value) / 2.0 + margins.value + 2.0
-        val halfWidth = (itemList.count { !it.first.isEmpty() } * 28) / 2f
+        val halfWidth = (itemList.count { !it.first.isEmpty } * 28) / 2f
 
         glPushMatrix()
         glTranslatef(screenPos.x.toFloat(), screenPos.y.toFloat(), 0f) // Translate to nametag pos
@@ -200,8 +200,11 @@ object Nametags : Module() {
         if (itemFrame.value) {
             glTranslatef(0f, -margins.value, 0f)
             val duraHeight = if (drawDura) FontRenderAdapter.getFontHeight(customFont = customFont.value) + 2f else 0f
-            val enchantmentHeight = if (enchantment.value) (itemList.map { it.second.getHeight(2, customFont = customFont.value) }.max()
-                    ?: 0f) + 4f else 0f
+            val enchantmentHeight = if (enchantment.value) {
+                (itemList.map { it.second.getHeight(2, customFont = customFont.value) }.maxOrNull() ?: 0f) + 4f
+            } else {
+                0f
+            }
             val height = 16 + duraHeight + enchantmentHeight * 0.6f
             val posBegin = Vec2d(-halfWidth - margins.value.toDouble(), -height - margins.value.toDouble())
             val posEnd = Vec2d(halfWidth + margins.value.toDouble(), margins.value.toDouble())
@@ -212,7 +215,7 @@ object Nametags : Module() {
         if (drawDura) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = customFont.value) - 2f, 0f)
 
         for ((itemStack, enchantmentText) in itemList) {
-            if (itemStack.isEmpty()) continue
+            if (itemStack.isEmpty) continue
             drawItem(itemStack, enchantmentText, drawDura)
         }
         glColor4f(1f, 1f, 1f, 1f)

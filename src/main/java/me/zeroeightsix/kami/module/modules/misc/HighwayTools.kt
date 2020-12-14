@@ -72,9 +72,9 @@ object HighwayTools : Module() {
     private val tickDelayPlace = register(Settings.integerBuilder("TickDelayPlace").withValue(3).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
     private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withValue(0).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java, "InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
-    private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
-    private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.0F).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
-    private val toggleInventoryManager = register(Settings.booleanBuilder("ToggleInventoryManager").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
+    private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(false).withVisibility { page.value == Page.BEHAVIOR })
+    private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
+    private val toggleInventoryManager = register(Settings.booleanBuilder("ToggleInvManager").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
 
     // config
     private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.CONFIG })
@@ -106,7 +106,7 @@ object HighwayTools : Module() {
     private var baritoneSettingRenderGoal = false
 
     // runtime vars
-    val pendingTasks = PriorityQueue<BlockTask>(BlockTaskComparator)
+    val pendingTasks = PriorityQueue(BlockTaskComparator)
     private val doneTasks = ArrayList<BlockTask>()
     private val blueprint = ArrayList<Pair<BlockPos, Block>>()
     private var waitTicks = 0
@@ -656,6 +656,7 @@ object HighwayTools : Module() {
 
         if (directHits.size == 0) {
             stuckManager.increase(blockTask)
+            refreshData()
             if (stuckManager.stuckLevel == StuckLevel.NONE) doTask()
             return
         }
@@ -1186,20 +1187,18 @@ object HighwayTools : Module() {
                     stuckLevel = StuckLevel.MINOR
                     if (!pathing) adjustPlayerPosition(true)
                     shuffleTasks()
-//                    shuffleTasks()
                     // Jump etc?
                 }
                 stuckValue in 200..500 -> {
                     stuckLevel = StuckLevel.MODERATE
                     if (!pathing) adjustPlayerPosition(true)
-                    shuffleTasks()
-//                    refreshData()
-//                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
+                    refreshData()
+                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR
                     if (!pathing) adjustPlayerPosition(true)
-                    shuffleTasks()
+                    refreshData()
 //                    reset()
 //                    disable()
 //                    enable()
