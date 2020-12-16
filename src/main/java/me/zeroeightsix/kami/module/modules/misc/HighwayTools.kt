@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
-import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.Direction
@@ -37,6 +36,7 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.*
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
@@ -215,8 +215,8 @@ object HighwayTools : Module() {
     }
 
     init {
-        listener<SafeTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.END) {
+        listener<SafeTickEvent> {
+            if (it.phase != TickEvent.Phase.END) {
                 if (mc.playerController == null) return@listener
 
                 updateRenderer()
