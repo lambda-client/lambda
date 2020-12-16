@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
-import me.zeroeightsix.kami.util.event.listener
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.Direction
@@ -37,6 +36,7 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.*
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
@@ -71,7 +71,7 @@ object HighwayTools : Module() {
     val baritoneMode = register(Settings.booleanBuilder("AutoMode").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val blocksPerTick = register(Settings.integerBuilder("BlocksPerTick").withValue(1).withRange(1, 10).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
     private val tickDelayPlace = register(Settings.integerBuilder("TickDelayPlace").withValue(3).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
-    private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withValue(0).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
+    private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withValue(1).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java, "InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(false).withVisibility { page.value == Page.BEHAVIOR })
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
@@ -215,8 +215,8 @@ object HighwayTools : Module() {
     }
 
     init {
-        listener<SafeTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.END) {
+        listener<SafeTickEvent> {
+            if (it.phase != TickEvent.Phase.END) {
                 if (mc.playerController == null) return@listener
 
                 updateRenderer()
@@ -1199,7 +1199,7 @@ object HighwayTools : Module() {
             }
             when {
                 stuckValue < 100 -> {
-//                    if (!pathing) adjustPlayerPosition(true)
+//                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     if (blockTask.taskState != TaskState.BREAKING) {
                         shuffleTasks()
                         if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
@@ -1207,20 +1207,24 @@ object HighwayTools : Module() {
                 }
                 stuckValue in 100..200  -> {
                     stuckLevel = StuckLevel.MINOR
-                    if (!pathing) adjustPlayerPosition(true)
-                    shuffleTasks()
+                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
+                    if (blockTask.taskState != TaskState.BREAKING) {
+                        shuffleTasks()
+                        if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
+                    }
                     // Jump etc?
                 }
                 stuckValue in 200..500 -> {
                     stuckLevel = StuckLevel.MODERATE
-                    if (!pathing) adjustPlayerPosition(true)
+                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
                     if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR
-                    if (!pathing) adjustPlayerPosition(true)
+                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
+                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
 //                    reset()
 //                    disable()
 //                    enable()
