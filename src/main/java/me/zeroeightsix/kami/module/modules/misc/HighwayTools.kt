@@ -1199,7 +1199,7 @@ object HighwayTools : Module() {
             }
             when {
                 stuckValue < 100 -> {
-//                    if (!pathing) adjustPlayerPosition(true)
+//                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     if (blockTask.taskState != TaskState.BREAKING) {
                         shuffleTasks()
                         if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
@@ -1207,20 +1207,24 @@ object HighwayTools : Module() {
                 }
                 stuckValue in 100..200  -> {
                     stuckLevel = StuckLevel.MINOR
-                    if (!pathing) adjustPlayerPosition(true)
-                    shuffleTasks()
+                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
+                    if (blockTask.taskState != TaskState.BREAKING) {
+                        shuffleTasks()
+                        if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
+                    }
                     // Jump etc?
                 }
                 stuckValue in 200..500 -> {
                     stuckLevel = StuckLevel.MODERATE
-                    if (!pathing) adjustPlayerPosition(true)
+                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
                     if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR
-                    if (!pathing) adjustPlayerPosition(true)
+                    if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
+                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
 //                    reset()
 //                    disable()
 //                    enable()
