@@ -19,6 +19,7 @@ import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
+import net.minecraft.item.Item
 import net.minecraft.item.Item.getIdFromItem
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -32,6 +33,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.min
 
 
 @Module.Info(
@@ -65,6 +67,7 @@ object AutoObsidian : Module() {
         OFF, TP, MOTION
     }
     private enum class ItemID(val id: Int) {
+        AIR(0),
         OBSIDIAN(49),
         ENDER_CHEST(130),
         DIAMOND_PICKAXE(278)
@@ -80,6 +83,7 @@ object AutoObsidian : Module() {
     private var placingPos = BlockPos(0, -1, 0)
     private var shulkerBoxId = 0
     private var enderChestCount = -1
+    private var maxEnderChests = -1 /* The number of ender chests required to completely fill an inventory */
     private var obsidianCount = -1
     private var tickCount = 0
     private var openTime = 0L
@@ -182,13 +186,15 @@ object AutoObsidian : Module() {
         /* Updates ender chest and obsidian counts before placing and mining ender chest */
         if (state == State.SEARCHING) {
             enderChestCount = InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
+            maxEnderChests = maxPossibleEnderChests()
             obsidianCount = countObsidian()
         }
 
         /* Updates main state */
         val placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
-        val targetEnderChest = (targetStacks.value * 64 - obsidianCount) / 8
+        val targetEnderChest = min((targetStacks.value * 64 - obsidianCount) / 8, maxEnderChests)
         state = when {
+            !canPickUpObsidian() -> State.DONE
             state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> State.SEARCHING
             state == State.COLLECTING && getDroppedItem(ItemID.OBSIDIAN.id, 16.0f) == null -> State.DONE
             state != State.DONE && mc.world.isAirBlock(placingPos) && placedEnderChest >= targetEnderChest -> State.COLLECTING
@@ -222,6 +228,51 @@ object AutoObsidian : Module() {
             }
         } else if (state != State.SEARCHING) searchingState = SearchingState.PLACING
 
+    }
+
+    /*
+        Calculate the maximum possible ender chests we can break given the current space in our inventory
+    */
+    private fun maxPossibleEnderChests(): Int {
+        var maxEnderChests = 0
+        mc.player?.inventory?.mainInventory.let {
+            val clonedList = ArrayList(it)
+            for (itemStack in clonedList) {
+                if(getIdFromItem(itemStack.item) == ItemID.AIR.id) {
+                    maxEnderChests += 8
+                }
+                else if(getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) {
+                    /* Pick floor: It is better to have an unfilled stack then overfill and get stuck trying to pick
+                       up extra obsidian
+                     */
+                    maxEnderChests = floor((64.0 - itemStack.count) / 8.0).toInt()
+                }
+            }
+        }
+        return maxEnderChests
+    }
+
+    /*
+       Check if we can pick up more obsidian:
+       There must be at least one slot which is either empty, or contains a stack of obsidian less than 64
+    */
+    private fun canPickUpObsidian(): Boolean {
+        mc.player?.inventory?.mainInventory?.let {
+            val clonedList = ArrayList(it)
+            for (itemStack in clonedList) {
+                /* If there is an air block slot, we have an open inventory slot */
+                if(getIdFromItem(itemStack.item) == ItemID.AIR.id) {
+                    return true
+                }
+                /* If there is a non-full stack of obsidian, we have an open inventory slot */
+                if((getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) && itemStack.count < 64) {
+                    return true
+                }
+            }
+        }
+
+        /* No matches to eligible slots, we can not pick up any more items */
+        return false
     }
 
     /* Return the obsidian count, rounded up to the nearest 8th */
