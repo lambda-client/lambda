@@ -660,7 +660,7 @@ object HighwayTools : Module() {
         if (blockTask.block == Blocks.FIRE) {
             mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, EnumFacing.DOWN))
             mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, EnumFacing.DOWN))
-            updateTask(blockTask, TaskState.DONE)
+            updateTask(blockTask, TaskState.BREAKING)
             return
         }
 
