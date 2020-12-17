@@ -66,7 +66,8 @@ object AutoObsidian : Module() {
     }
     private enum class ItemID(val id: Int) {
         OBSIDIAN(49),
-        ENDER_CHEST(130)
+        ENDER_CHEST(130),
+        DIAMOND_PICKAXE(278)
     }
 
     var pathing = false
@@ -280,7 +281,7 @@ object AutoObsidian : Module() {
     private fun placeEnderChest(pos: BlockPos) {
         /* Case where we need to move ender chests into the hotbar */
         if (InventoryUtils.getSlotsHotbar(ItemID.ENDER_CHEST.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.ENDER_CHEST.id) != null) {
-            InventoryUtils.moveToHotbar(ItemID.ENDER_CHEST.id, 278)
+            InventoryUtils.moveToHotbar(ItemID.ENDER_CHEST.id, ItemID.DIAMOND_PICKAXE.id)
             return
         } else if (InventoryUtils.getSlots(0, 35, ItemID.ENDER_CHEST.id) == null) {
             /* Case where we are out of ender chests */
@@ -422,15 +423,15 @@ object AutoObsidian : Module() {
 
     private fun mineBlock(pos: BlockPos, pre: Boolean): Boolean {
         if (pre) {
-            if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
-                InventoryUtils.moveToHotbar(278, ItemID.ENDER_CHEST.id)
+            if (InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) != null) {
+                InventoryUtils.moveToHotbar(ItemID.DIAMOND_PICKAXE.id, ItemID.ENDER_CHEST.id)
                 return false
-            } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
+            } else if (InventoryUtils.getSlots(0, 35, ItemID.DIAMOND_PICKAXE.id) == null) {
                 sendChatMessage("No pickaxe was found in inventory.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 return false
             }
-            InventoryUtils.swapSlotToItem(278)
+            InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
 
         var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return false
