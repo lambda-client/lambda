@@ -35,6 +35,7 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.*
+import net.minecraftforge.client.event.ColorHandlerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.util.*
@@ -525,6 +526,7 @@ object HighwayTools : Module() {
                             when {
                                 block in ignoreBlocks -> addTask(blockPos, Blocks.AIR)
                                 block == Blocks.AIR -> addTask(blockPos, Blocks.AIR)
+                                block == Blocks.FIRE -> addTask(blockPos, TaskState.BREAK, Blocks.FIRE)
                                 block != Blocks.AIR -> addTask(blockPos, TaskState.BREAK, Blocks.AIR)
                             }
                         }
@@ -650,6 +652,14 @@ object HighwayTools : Module() {
 
     private fun mineBlock(blockTask: BlockTask) {
         if (blockTask.blockPos == mc.player.positionVector.toBlockPos().down()) {
+            updateTask(blockTask, TaskState.DONE)
+            return
+        }
+
+        /* For fire, we just need to mine the bottom of the block */
+        if (blockTask.block == Blocks.FIRE) {
+            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, EnumFacing.DOWN))
+            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, EnumFacing.DOWN))
             updateTask(blockTask, TaskState.DONE)
             return
         }
