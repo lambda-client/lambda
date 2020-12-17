@@ -352,6 +352,7 @@ object AutoObsidian : Module() {
                 for (i in 0..26) {
                     if (getIdFromItem(currentContainer.inventory[i].item) == ItemID.ENDER_CHEST.id) {
                         enderChestSlot = i
+                        break
                     }
                 }
                 if (enderChestSlot != -1) {
