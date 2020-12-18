@@ -25,6 +25,7 @@ import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
+import net.minecraft.block.Block.registerBlocks
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
@@ -655,10 +656,11 @@ object HighwayTools : Module() {
             return
         }
 
-        /* For fire, we just need to mine the bottom of the block */
+        /* For fire, we just need to mine the top of the block below the fire */
+        /* TODO: This will not work if the top of the block which the fire is on is not visible */
         if (blockTask.block == Blocks.FIRE) {
-            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, EnumFacing.DOWN))
-            mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, EnumFacing.DOWN))
+            val blockBelowFire = BlockPos(blockTask.blockPos.x, blockTask.blockPos.y - 1, blockTask.blockPos.z)
+            mc.playerController.clickBlock(blockBelowFire, EnumFacing.UP)
             mc.player.swingArm(EnumHand.MAIN_HAND)
             updateTask(blockTask, TaskState.BREAKING)
             return
@@ -722,20 +724,23 @@ object HighwayTools : Module() {
                     mc.player.swingArm(EnumHand.MAIN_HAND)
                 }.start()
             }
-            else -> {
-                val digPacket: CPacketPlayerDigging = when (blockTask.taskState) {
-                    TaskState.BREAK, TaskState.EMERGENCY_BREAK -> CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing)
-                    TaskState.BREAKING -> CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing)
-                    else -> CPacketPlayerDigging()
-                }
-                if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
-                Thread {
-                    Thread.sleep(25L)
-                    mc.connection!!.sendPacket(digPacket)
-                    mc.player.swingArm(EnumHand.MAIN_HAND)
-                }.start()
-            }
+            else -> dispatchGenericMineThread(blockTask, facing)
         }
+    }
+
+    /* Dispatches a thread to mine any non-netherrack blocks generically */
+    private fun dispatchGenericMineThread(blockTask: BlockTask, facing: EnumFacing) {
+        val digPacket: CPacketPlayerDigging = when (blockTask.taskState) {
+            TaskState.BREAK, TaskState.EMERGENCY_BREAK -> CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing)
+            TaskState.BREAKING -> CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing)
+            else -> CPacketPlayerDigging()
+        }
+        if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
+        Thread {
+            Thread.sleep(25L)
+            mc.connection!!.sendPacket(digPacket)
+            mc.player.swingArm(EnumHand.MAIN_HAND)
+        }.start()
     }
 
     // Only temporary till we found solution to avoid untraceable blocks
