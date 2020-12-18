@@ -92,7 +92,6 @@ object HighwayTools : Module() {
     // internal settings
     val ignoreBlocks = hashSetOf(
             Blocks.STANDING_SIGN,
-            Blocks.WALL_SIGN,
             Blocks.STANDING_BANNER,
             Blocks.WALL_BANNER,
             Blocks.BEDROCK,
