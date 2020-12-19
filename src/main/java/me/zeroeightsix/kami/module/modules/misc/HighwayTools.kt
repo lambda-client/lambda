@@ -321,7 +321,7 @@ object HighwayTools : Module() {
 
     /* Returns true if we can do a task, else returns false */
     private fun canDoTask(): Boolean {
-        return !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating
+        return !AutoObsidian.isActive() && !AutoEat.eating
     }
 
     private fun doTask() {
