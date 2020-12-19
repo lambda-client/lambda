@@ -231,7 +231,7 @@ object HighwayTools : Module() {
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone()) {
-                            if (!BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
+                            if(canDoTask()) {
                                 if (!pathing) adjustPlayerPosition(false)
                                 val currentFood = mc.player.foodStats.foodLevel
                                 if (currentFood != prevFood) {
@@ -312,8 +312,13 @@ object HighwayTools : Module() {
         doneTasks.add(blockTask)
     }
 
+    /* Returns true if we can do a task, else returns false */
+    private fun canDoTask(): Boolean {
+        return !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating
+    }
+
     private fun doTask() {
-        if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
+        if (!isDone() && canDoTask()) {
             if (waitTicks == 0) {
                 val blockTask = pendingTasks.peek()
 
@@ -924,7 +929,6 @@ object HighwayTools : Module() {
                 sendChatMessage(toString())
             }
         }
-
     }
 
     fun getBlueprintStats(): Pair<Int, Int> {
