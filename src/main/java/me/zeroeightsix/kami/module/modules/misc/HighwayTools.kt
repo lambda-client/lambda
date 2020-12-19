@@ -119,6 +119,7 @@ object HighwayTools : Module() {
     private var startingBlockPos = BlockPos(0, -1, 0)
     private val stuckManager = StuckManagement(StuckLevel.NONE, 0)
     private val renderer = ESPRenderer()
+    private var active = false
 
     // stats
     private var totalBlocksPlaced = 0
@@ -183,6 +184,8 @@ object HighwayTools : Module() {
     override fun onDisable() {
         if (mc.player == null) return
 
+        active = false
+
         // load initial player hand
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
             mc.player.inventory.currentItem = playerHotbarSlot
@@ -221,7 +224,11 @@ object HighwayTools : Module() {
                 if (mc.playerController == null) return@listener
 
                 updateRenderer()
-                BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+
+                if (!active) {
+                    active = true
+                    BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+                }
 
                 if (baritoneMode.value) {
                     pathing = BaritoneUtils.isPathing
@@ -1256,6 +1263,7 @@ object HighwayTools : Module() {
         fun reset() {
             stuckLevel = StuckLevel.NONE
             stuckValue = 0
+            active = false
         }
 
         override fun toString(): String {
