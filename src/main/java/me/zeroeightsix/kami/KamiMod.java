@@ -55,7 +55,6 @@ public class KamiMod {
     public static Thread MAIN_THREAD;
 
     private KamiGUI guiManager;
-    private CommandManager commandManager;
     private Setting<JsonObject> guiStateSetting;
 
     @SuppressWarnings("ResultOfMethodCallIgnored") // Java meme
@@ -76,6 +75,7 @@ public class KamiMod {
 
         ModuleManager.load();
         ManagerLoader.load();
+        CommandManager.init();
 
         MinecraftForge.EVENT_BUS.register(ForgeEventProcessor.INSTANCE);
 
@@ -92,7 +92,6 @@ public class KamiMod {
         }).buildAndRegister("");
         guiManager = new KamiGUI();
         guiManager.initializeGUI();
-        commandManager = new CommandManager();
 
         ConfigUtils.INSTANCE.loadAll();
 
@@ -114,10 +113,6 @@ public class KamiMod {
 
     public void setGuiManager(KamiGUI guiManager) {
         this.guiManager = guiManager;
-    }
-
-    public CommandManager getCommandManager() {
-        return commandManager;
     }
 
     public Setting<JsonObject> getGuiStateSetting() {
