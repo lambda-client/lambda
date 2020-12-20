@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.command.commands
 
 import me.zeroeightsix.kami.command.ClientCommand
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
+import me.zeroeightsix.kami.util.text.formatValue
 import net.minecraft.entity.Entity
 
 object VanishCommand : ClientCommand(
@@ -16,16 +17,16 @@ object VanishCommand : ClientCommand(
                 vehicle = player.ridingEntity?.also {
                     player.dismountRidingEntity()
                     world.removeEntityFromWorld(it.entityId)
-                    sendChatMessage("Vehicle " + it.name + " removed.")
+                    sendChatMessage("Vehicle " + formatValue(it.name) + " removed")
                 }
             } else {
                 vehicle?.let {
                     it.isDead = false
                     world.addEntityToWorld(it.entityId, it)
                     player.startRiding(it, true)
-                    sendChatMessage("Vehicle " + it.name + " created.")
+                    sendChatMessage("Vehicle " + formatValue(it.name) + " created")
                     vehicle = null
-                } ?: sendChatMessage("No Vehicle.")
+                } ?: sendChatMessage("Not riding any vehicles")
             }
         }
     }
