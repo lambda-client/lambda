@@ -353,51 +353,9 @@ object AutoObsidian : Module() {
 
 
     private fun openShulker(pos: BlockPos) {
-        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return
-        if (rayTrace.blockPos != pos) {
-            var found = false
-            for (side in EnumFacing.values()) {
-                if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
-                    rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))?: continue
-                    if (rayTrace.blockPos == pos) {
-                        found = true
-                        break
-                    }
-                }
-            }
-            if (!found) {
-                return
-            }
-        }
-        val facing = rayTrace.sideHit ?: return
-        val hitVecOffset = rayTrace.hitVec
-        val rotation = getRotationTo(Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(facing.directionVec).scale(0.499)), true)
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                mc.connection!!.sendPacket(rotationPacket)
-            }
-            InteractMode.VIEWLOCK -> {
-                mc.player.rotationYaw = rotation.x.toFloat()
-                mc.player.rotationPitch = rotation.y.toFloat()
-            }
-        }
-
-        if (mc.currentScreen !is GuiShulkerBox) {
-            /* Added a delay here so it doesn't spam right click and get you kicked */
-            if (System.currentTimeMillis() >= openTime + 2000L) {
-                openTime = System.currentTimeMillis()
-                Thread{
-                    Thread.sleep(delayTicks.value * 25L)
-                    val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-                    mc.connection!!.sendPacket(placePacket)
-                    mc.player.swingArm(EnumHand.MAIN_HAND)
-                    if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
-                }.start()
-            }
-        } else {
-            /* Extra delay here to wait for the item list to be loaded */
-            Thread{
+        if(mc.currentScreen is GuiShulkerBox) {
+            Thread {
+                /* Extra delay here to wait for the item list to be loaded */
                 Thread.sleep(delayTicks.value * 50L)
                 val currentContainer = mc.player.openContainer
                 var enderChestSlot = -1
@@ -409,12 +367,54 @@ object AutoObsidian : Module() {
                 }
                 if (enderChestSlot != -1) {
                     mc.playerController.windowClick(currentContainer.windowId, enderChestSlot, 0, ClickType.QUICK_MOVE, mc.player)
+                    mc.player.closeScreen()
                 } else {
                     sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
                     mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     this.disable()
                 }
             }.start()
+        } else {
+            var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return
+            if (rayTrace.blockPos != pos) {
+                var found = false
+                for (side in EnumFacing.values()) {
+                    if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
+                        rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))?: continue
+                        if (rayTrace.blockPos == pos) {
+                            found = true
+                            break
+                        }
+                    }
+                }
+                if (!found) {
+                    return
+                }
+            }
+            val hitVecOffset = rayTrace.hitVec
+            val rotation = getRotationTo(hitVecOffset, true)
+            when (interacting.value) {
+                InteractMode.SPOOF -> {
+                    val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
+                    mc.connection!!.sendPacket(rotationPacket)
+                }
+                InteractMode.VIEWLOCK -> {
+                    mc.player.rotationYaw = rotation.x.toFloat()
+                    mc.player.rotationPitch = rotation.y.toFloat()
+                }
+            }
+
+            /* Added a delay here so it doesn't spam right click and get you kicked */
+            if (System.currentTimeMillis() >= openTime + 2000L) {
+                openTime = System.currentTimeMillis()
+                Thread{
+                    Thread.sleep(delayTicks.value * 25L)
+                    val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+                    mc.connection!!.sendPacket(placePacket)
+                    mc.player.swingArm(EnumHand.MAIN_HAND)
+                    if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
+                }.start()
+            }
         }
     }
 
@@ -485,7 +485,7 @@ object AutoObsidian : Module() {
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
 
-        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return false
+        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5), false, true, false) ?: return false
         if (rayTrace.blockPos != pos) {
             var found = false
             for (side in EnumFacing.values()) {
@@ -502,7 +502,7 @@ object AutoObsidian : Module() {
             }
         }
         val facing = rayTrace.sideHit ?: return false
-        val rotation = getRotationTo(Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(facing.directionVec).scale(0.499)), true)
+        val rotation = getRotationTo(rayTrace.hitVec, true)
         when (interacting.value) {
             InteractMode.SPOOF -> {
                 val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
