@@ -95,6 +95,7 @@ object HighwayTools : Module() {
             Blocks.STANDING_SIGN,
             Blocks.STANDING_BANNER,
             Blocks.WALL_BANNER,
+            Blocks.WALL_SIGN,
             Blocks.BEDROCK,
             Blocks.END_PORTAL,
             Blocks.END_PORTAL_FRAME,
