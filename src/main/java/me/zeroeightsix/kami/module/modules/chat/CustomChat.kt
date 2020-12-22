@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.module.modules.chat
 
-import me.zeroeightsix.kami.command.Command
+import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.manager.managers.MessageManager.newMessageModifier
 import me.zeroeightsix.kami.module.Module
@@ -8,15 +8,16 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.TimerUtils
 import me.zeroeightsix.kami.util.text.MessageDetectionHelper
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.text.formatValue
 import org.kamiblue.event.listener.listener
 import kotlin.math.min
 
 @Module.Info(
-        name = "CustomChat",
-        category = Module.Category.CHAT,
-        description = "Add a custom ending to your message!",
-        showOnArray = Module.ShowOnArray.OFF,
-        modulePriority = 200
+    name = "CustomChat",
+    category = Module.Category.CHAT,
+    description = "Add a custom ending to your message!",
+    showOnArray = Module.ShowOnArray.OFF,
+    modulePriority = 200
 )
 object CustomChat : Module() {
     private val textMode = register(Settings.e<TextMode>("Message", TextMode.JAPANESE))
@@ -36,14 +37,14 @@ object CustomChat : Module() {
     val isCustomMode get() = textMode.value == TextMode.CUSTOM
     private val timer = TimerUtils.TickTimer(TimerUtils.TimeUnit.SECONDS)
     private val modifier = newMessageModifier(
-            filter = {
-                (commands.value || !MessageDetectionHelper.isCommand(it.packet.message))
-                        && (spammer.value || it.source !is Spammer)
-            },
-            modifier = {
-                val message = it.packet.message + getFull()
-                message.substring(0, min(256, message.length))
-            }
+        filter = {
+            (commands.value || !MessageDetectionHelper.isCommand(it.packet.message))
+                && (spammer.value || it.source !is Spammer)
+        },
+        modifier = {
+            val message = it.packet.message + getFull()
+            message.substring(0, min(256, message.length))
+        }
     )
 
     override fun onEnable() {
@@ -73,7 +74,9 @@ object CustomChat : Module() {
     init {
         listener<SafeTickEvent> {
             if (timer.tick(5L) && textMode.value == TextMode.CUSTOM && customText.value.equals("unchanged", ignoreCase = true)) {
-                MessageSendHelper.sendWarningMessage("$chatName Warning: In order to use the custom " + name + ", please run the &7" + Command.getCommandPrefix() + "customchat&r command to change it")
+                MessageSendHelper.sendErrorMessage("$chatName In order to use the custom suffix, please run the " +
+                    formatValue("${CommandManager.prefix}set CustomChat CustomText \"text here\"") +
+                    " command to change it")
             }
         }
     }

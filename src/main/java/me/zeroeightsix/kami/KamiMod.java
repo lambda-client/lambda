@@ -54,8 +54,8 @@ public class KamiMod {
     public static KamiMod INSTANCE;
     public static Thread MAIN_THREAD;
 
+    private static boolean ready = false;
     private KamiGUI guiManager;
-    private CommandManager commandManager;
     private Setting<JsonObject> guiStateSetting;
 
     @SuppressWarnings("ResultOfMethodCallIgnored") // Java meme
@@ -76,6 +76,7 @@ public class KamiMod {
 
         ModuleManager.load();
         ManagerLoader.load();
+        CommandManager.init();
 
         MinecraftForge.EVENT_BUS.register(ForgeEventProcessor.INSTANCE);
 
@@ -92,7 +93,6 @@ public class KamiMod {
         }).buildAndRegister("");
         guiManager = new KamiGUI();
         guiManager.initializeGUI();
-        commandManager = new CommandManager();
 
         ConfigUtils.INSTANCE.loadAll();
 
@@ -104,6 +104,7 @@ public class KamiMod {
 
         // Need to reload the font after the settings were loaded
         KamiFontRenderer.INSTANCE.reloadFonts();
+        ready = true;
 
         LOG.info(NAME + " Mod initialized!");
     }
@@ -116,12 +117,12 @@ public class KamiMod {
         this.guiManager = guiManager;
     }
 
-    public CommandManager getCommandManager() {
-        return commandManager;
-    }
-
     public Setting<JsonObject> getGuiStateSetting() {
         return guiStateSetting;
+    }
+
+    public static boolean isReady() {
+        return ready;
     }
 
 }

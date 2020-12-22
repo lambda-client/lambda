@@ -1,6 +1,6 @@
 package me.zeroeightsix.kami.module.modules.chat
 
-import me.zeroeightsix.kami.command.Command
+import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PrintChatMessageEvent
 import me.zeroeightsix.kami.manager.managers.FriendManager
@@ -12,14 +12,16 @@ import me.zeroeightsix.kami.util.text.MessageDetectionHelper
 import me.zeroeightsix.kami.util.text.MessageDetectionHelper.detect
 import me.zeroeightsix.kami.util.text.MessageDetectionHelper.detectAndRemove
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.text.MessageSendHelper.sendServerMessage
 import me.zeroeightsix.kami.util.text.Regexes
+import me.zeroeightsix.kami.util.text.formatValue
 import net.minecraft.network.play.server.SPacketChat
 import org.kamiblue.event.listener.listener
 
 @Module.Info(
-        name = "BaritoneRemote",
-        description = "Remotely control Baritone with /msg",
-        category = Module.Category.CHAT
+    name = "BaritoneRemote",
+    description = "Remotely control Baritone with /msg",
+    category = Module.Category.CHAT
 )
 object BaritoneRemote : Module() {
     private val feedback = register(Settings.b("SendFeedback", true))
@@ -34,10 +36,9 @@ object BaritoneRemote : Module() {
         allow.settingListener = Setting.SettingListeners {
             mc.player?.let {
                 if ((allow.value == Allow.CUSTOM || allow.value == Allow.FRIENDS_AND_CUSTOM) && custom.value == "unchanged") {
-                    MessageSendHelper.sendChatMessage("$chatName Use the &7" + Command.getCommandPrefix()
-                            + "set ${name.value} Custom names&f command to change the custom users list. Use , to separate players, for example &7"
-                            + Command.getCommandPrefix()
-                            + "set ${name.value} Custom dominika,Dewy,086&f")
+                    MessageSendHelper.sendChatMessage("$chatName Use the ${formatValue("${CommandManager.prefix}set Custom")}"
+                        + " command to change the custom users list. For example, "
+                        + formatValue("${CommandManager.prefix}set Custom dominika,Dewy,086"))
                 }
             }
         }
@@ -45,21 +46,21 @@ object BaritoneRemote : Module() {
         /* convert incoming dms into valid baritone commands */
         listener<PacketEvent.Receive> {
             if (it.packet !is SPacketChat) return@listener
-            val message = it.packet.getChatComponent().unformattedText
+            val message = it.packet.chatComponent.unformattedText
 
             if (MessageDetectionHelper.isDirect(true, message)) {
                 val username = MessageDetectionHelper.getDirectUsername(message) ?: return@listener
                 val command = message.detectAndRemove(Regexes.DIRECT)
-                        ?: message.detectAndRemove(Regexes.DIRECT_ALT_1)
-                        ?: message.detectAndRemove(Regexes.DIRECT_ALT_2) ?: return@listener
+                    ?: message.detectAndRemove(Regexes.DIRECT_ALT_1)
+                    ?: message.detectAndRemove(Regexes.DIRECT_ALT_2) ?: return@listener
 
                 val bPrefix = BaritoneUtils.prefix
-                val kbPrefix = "${Command.getCommandPrefix()}b "
+                val kbPrefix = "${CommandManager.prefix}b "
                 if ((!command.startsWith(bPrefix) && !command.startsWith(kbPrefix)) || !isValidUser(username)) return@listener
 
                 val baritoneCommand =
-                        if (command.startsWith(bPrefix)) command.substring(bPrefix.length).split(" ")
-                        else command.substring(kbPrefix.length).split(" ")
+                    if (command.startsWith(bPrefix)) command.substring(bPrefix.length).split(" ")
+                    else command.substring(kbPrefix.length).split(" ")
 
                 MessageSendHelper.sendBaritoneCommand(*baritoneCommand.toTypedArray())
                 sendNextMsg = true
@@ -71,7 +72,7 @@ object BaritoneRemote : Module() {
         listener<PrintChatMessageEvent> {
             lastController?.let { controller ->
                 if (feedback.value && it.chatComponent.unformattedText.detect(Regexes.BARITONE)) {
-                    MessageSendHelper.sendServerMessage("/msg $controller " + it.chatComponent.unformattedText)
+                    sendServerMessage("/msg $controller " + it.chatComponent.unformattedText)
                 }
             }
         }
