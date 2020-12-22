@@ -865,7 +865,8 @@ object HighwayTools : Module() {
     fun printSettings() {
         StringBuilder(ignoreBlocks.size + 1).run {
             append("$chatName Settings" +
-                "\n    §9> §rMaterial: §7${material.localizedName}" +
+                "\n    §9> §rMain material: §7${material.localizedName}" +
+                "\n    §9> §rFiller material: §7${fillerMat.localizedName}" +
                 "\n    §9> §rBaritone: §7${baritoneMode.value}" +
                 "\n    §9> §rIgnored Blocks:")
             for (b in ignoreBlocks) append("\n        §9> §7${b!!.registryName}")
