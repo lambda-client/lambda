@@ -54,6 +54,7 @@ public class KamiMod {
     public static KamiMod INSTANCE;
     public static Thread MAIN_THREAD;
 
+    private static boolean ready = false;
     private KamiGUI guiManager;
     private Setting<JsonObject> guiStateSetting;
 
@@ -103,6 +104,7 @@ public class KamiMod {
 
         // Need to reload the font after the settings were loaded
         KamiFontRenderer.INSTANCE.reloadFonts();
+        ready = true;
 
         LOG.info(NAME + " Mod initialized!");
     }
@@ -117,6 +119,10 @@ public class KamiMod {
 
     public Setting<JsonObject> getGuiStateSetting() {
         return guiStateSetting;
+    }
+
+    public static boolean isReady() {
+        return ready;
     }
 
 }
