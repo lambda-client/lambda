@@ -19,6 +19,7 @@ import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
+import net.minecraft.item.Item
 import net.minecraft.item.Item.getIdFromItem
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -32,6 +33,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.min
 
 
 @Module.Info(
@@ -65,8 +67,10 @@ object AutoObsidian : Module() {
         OFF, TP, MOTION
     }
     private enum class ItemID(val id: Int) {
+        AIR(0),
         OBSIDIAN(49),
-        ENDER_CHEST(130)
+        ENDER_CHEST(130),
+        DIAMOND_PICKAXE(278)
     }
 
     var pathing = false
@@ -79,6 +83,7 @@ object AutoObsidian : Module() {
     private var placingPos = BlockPos(0, -1, 0)
     private var shulkerBoxId = 0
     private var enderChestCount = -1
+    private var maxEnderChests = -1 /* The number of ender chests required to completely fill an inventory */
     private var obsidianCount = -1
     private var tickCount = 0
     private var openTime = 0L
@@ -181,13 +186,15 @@ object AutoObsidian : Module() {
         /* Updates ender chest and obsidian counts before placing and mining ender chest */
         if (state == State.SEARCHING) {
             enderChestCount = InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
+            maxEnderChests = maxPossibleEnderChests()
             obsidianCount = countObsidian()
         }
 
         /* Updates main state */
         val placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
-        val targetEnderChest = (targetStacks.value * 64 - obsidianCount) / 8
+        val targetEnderChest = min((targetStacks.value * 64 - obsidianCount) / 8, maxEnderChests)
         state = when {
+            !canPickUpObsidian() -> State.DONE
             state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> State.SEARCHING
             state == State.COLLECTING && getDroppedItem(ItemID.OBSIDIAN.id, 16.0f) == null -> State.DONE
             state != State.DONE && mc.world.isAirBlock(placingPos) && placedEnderChest >= targetEnderChest -> State.COLLECTING
@@ -221,6 +228,51 @@ object AutoObsidian : Module() {
             }
         } else if (state != State.SEARCHING) searchingState = SearchingState.PLACING
 
+    }
+
+    /*
+        Calculate the maximum possible ender chests we can break given the current space in our inventory
+    */
+    private fun maxPossibleEnderChests(): Int {
+        var maxEnderChests = 0
+        mc.player?.inventory?.mainInventory.let {
+            val clonedList = ArrayList(it)
+            for (itemStack in clonedList) {
+                if(getIdFromItem(itemStack.item) == ItemID.AIR.id) {
+                    maxEnderChests += 8
+                }
+                else if(getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) {
+                    /* Pick floor: It is better to have an unfilled stack then overfill and get stuck trying to pick
+                       up extra obsidian
+                     */
+                    maxEnderChests = floor((64.0 - itemStack.count) / 8.0).toInt()
+                }
+            }
+        }
+        return maxEnderChests
+    }
+
+    /*
+       Check if we can pick up more obsidian:
+       There must be at least one slot which is either empty, or contains a stack of obsidian less than 64
+    */
+    private fun canPickUpObsidian(): Boolean {
+        mc.player?.inventory?.mainInventory?.let {
+            val clonedList = ArrayList(it)
+            for (itemStack in clonedList) {
+                /* If there is an air block slot, we have an open inventory slot */
+                if(getIdFromItem(itemStack.item) == ItemID.AIR.id) {
+                    return true
+                }
+                /* If there is a non-full stack of obsidian, we have an open inventory slot */
+                if((getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) && itemStack.count < 64) {
+                    return true
+                }
+            }
+        }
+
+        /* No matches to eligible slots, we can not pick up any more items */
+        return false
     }
 
     /* Return the obsidian count, rounded up to the nearest 8th */
@@ -280,7 +332,7 @@ object AutoObsidian : Module() {
     private fun placeEnderChest(pos: BlockPos) {
         /* Case where we need to move ender chests into the hotbar */
         if (InventoryUtils.getSlotsHotbar(ItemID.ENDER_CHEST.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.ENDER_CHEST.id) != null) {
-            InventoryUtils.moveToHotbar(ItemID.ENDER_CHEST.id, 278)
+            InventoryUtils.moveToHotbar(ItemID.ENDER_CHEST.id, ItemID.DIAMOND_PICKAXE.id)
             return
         } else if (InventoryUtils.getSlots(0, 35, ItemID.ENDER_CHEST.id) == null) {
             /* Case where we are out of ender chests */
@@ -301,37 +353,57 @@ object AutoObsidian : Module() {
 
 
     private fun openShulker(pos: BlockPos) {
-        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return
-        if (rayTrace.blockPos != pos) {
-            var found = false
-            for (side in EnumFacing.values()) {
-                if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
-                    rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))?: continue
-                    if (rayTrace.blockPos == pos) {
-                        found = true
+        if(mc.currentScreen is GuiShulkerBox) {
+            Thread {
+                /* Extra delay here to wait for the item list to be loaded */
+                Thread.sleep(delayTicks.value * 50L)
+                val currentContainer = mc.player.openContainer
+                var enderChestSlot = -1
+                for (i in 0..26) {
+                    if (getIdFromItem(currentContainer.inventory[i].item) == ItemID.ENDER_CHEST.id) {
+                        enderChestSlot = i
                         break
                     }
                 }
+                if (enderChestSlot != -1) {
+                    mc.playerController.windowClick(currentContainer.windowId, enderChestSlot, 0, ClickType.QUICK_MOVE, mc.player)
+                    mc.player.closeScreen()
+                } else {
+                    sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
+                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                    this.disable()
+                }
+            }.start()
+        } else {
+            var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return
+            if (rayTrace.blockPos != pos) {
+                var found = false
+                for (side in EnumFacing.values()) {
+                    if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
+                        rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))?: continue
+                        if (rayTrace.blockPos == pos) {
+                            found = true
+                            break
+                        }
+                    }
+                }
+                if (!found) {
+                    return
+                }
             }
-            if (!found) {
-                return
+            val hitVecOffset = rayTrace.hitVec
+            val rotation = getRotationTo(hitVecOffset, true)
+            when (interacting.value) {
+                InteractMode.SPOOF -> {
+                    val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
+                    mc.connection!!.sendPacket(rotationPacket)
+                }
+                InteractMode.VIEWLOCK -> {
+                    mc.player.rotationYaw = rotation.x.toFloat()
+                    mc.player.rotationPitch = rotation.y.toFloat()
+                }
             }
-        }
-        val facing = rayTrace.sideHit ?: return
-        val hitVecOffset = rayTrace.hitVec
-        val rotation = getRotationTo(Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(facing.directionVec).scale(0.499)), true)
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                mc.connection!!.sendPacket(rotationPacket)
-            }
-            InteractMode.VIEWLOCK -> {
-                mc.player.rotationYaw = rotation.x.toFloat()
-                mc.player.rotationPitch = rotation.y.toFloat()
-            }
-        }
 
-        if (mc.currentScreen !is GuiShulkerBox) {
             /* Added a delay here so it doesn't spam right click and get you kicked */
             if (System.currentTimeMillis() >= openTime + 2000L) {
                 openTime = System.currentTimeMillis()
@@ -343,25 +415,6 @@ object AutoObsidian : Module() {
                     if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
                 }.start()
             }
-        } else {
-            /* Extra delay here to wait for the item list to be loaded */
-            Thread{
-                Thread.sleep(delayTicks.value * 50L)
-                val currentContainer = mc.player.openContainer
-                var enderChestSlot = -1
-                for (i in 0..26) {
-                    if (getIdFromItem(currentContainer.inventory[i].item) == ItemID.ENDER_CHEST.id) {
-                        enderChestSlot = i
-                    }
-                }
-                if (enderChestSlot != -1) {
-                    mc.playerController.windowClick(currentContainer.windowId, enderChestSlot, 0, ClickType.QUICK_MOVE, mc.player)
-                } else {
-                    sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
-                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    this.disable()
-                }
-            }.start()
         }
     }
 
@@ -421,18 +474,18 @@ object AutoObsidian : Module() {
 
     private fun mineBlock(pos: BlockPos, pre: Boolean): Boolean {
         if (pre) {
-            if (InventoryUtils.getSlotsHotbar(278) == null && InventoryUtils.getSlotsNoHotbar(278) != null) {
-                InventoryUtils.moveToHotbar(278, ItemID.ENDER_CHEST.id)
+            if (InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) != null) {
+                InventoryUtils.moveToHotbar(ItemID.DIAMOND_PICKAXE.id, ItemID.ENDER_CHEST.id)
                 return false
-            } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
+            } else if (InventoryUtils.getSlots(0, 35, ItemID.DIAMOND_PICKAXE.id) == null) {
                 sendChatMessage("No pickaxe was found in inventory.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 return false
             }
-            InventoryUtils.swapSlotToItem(278)
+            InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
 
-        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return false
+        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5), false, true, false) ?: return false
         if (rayTrace.blockPos != pos) {
             var found = false
             for (side in EnumFacing.values()) {
@@ -449,7 +502,7 @@ object AutoObsidian : Module() {
             }
         }
         val facing = rayTrace.sideHit ?: return false
-        val rotation = getRotationTo(Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(facing.directionVec).scale(0.499)), true)
+        val rotation = getRotationTo(rayTrace.hitVec, true)
         when (interacting.value) {
             InteractMode.SPOOF -> {
                 val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)

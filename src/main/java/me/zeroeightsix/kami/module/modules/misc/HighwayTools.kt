@@ -25,6 +25,7 @@ import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
+import net.minecraft.block.Block.registerBlocks
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
@@ -35,6 +36,7 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.*
+import net.minecraftforge.client.event.ColorHandlerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.util.*
@@ -90,9 +92,9 @@ object HighwayTools : Module() {
     // internal settings
     val ignoreBlocks = hashSetOf(
             Blocks.STANDING_SIGN,
-            Blocks.WALL_SIGN,
             Blocks.STANDING_BANNER,
             Blocks.WALL_BANNER,
+            Blocks.WALL_SIGN,
             Blocks.BEDROCK,
             Blocks.END_PORTAL,
             Blocks.END_PORTAL_FRAME,
@@ -117,6 +119,7 @@ object HighwayTools : Module() {
     private var startingBlockPos = BlockPos(0, -1, 0)
     private val stuckManager = StuckManagement(StuckLevel.NONE, 0)
     private val renderer = ESPRenderer()
+    private var active = false
 
     // stats
     private var totalBlocksPlaced = 0
@@ -179,6 +182,8 @@ object HighwayTools : Module() {
     override fun onDisable() {
         if (mc.player == null) return
 
+        active = false
+
         // load initial player hand
         if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
             mc.player.inventory.currentItem = playerHotbarSlot
@@ -217,7 +222,11 @@ object HighwayTools : Module() {
                 if (mc.playerController == null) return@listener
 
                 updateRenderer()
-                BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+
+                if (!active) {
+                    active = true
+                    BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+                }
 
                 if (baritoneMode.value) {
                     pathing = BaritoneUtils.isPathing
@@ -227,7 +236,7 @@ object HighwayTools : Module() {
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone()) {
-                            if (!BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating) {
+                            if(canDoTask()) {
                                 if (!pathing) adjustPlayerPosition(false)
                                 val currentFood = mc.player.foodStats.foodLevel
                                 if (currentFood != prevFood) {
@@ -308,8 +317,13 @@ object HighwayTools : Module() {
         doneTasks.add(blockTask)
     }
 
+    /* Returns true if we can do a task, else returns false */
+    private fun canDoTask(): Boolean {
+        return !AutoObsidian.isActive() && !AutoEat.eating
+    }
+
     private fun doTask() {
-        if (!isDone() && !BaritoneUtils.paused && !AutoObsidian.isActive()) {
+        if (!isDone() && canDoTask()) {
             if (waitTicks == 0) {
                 val blockTask = pendingTasks.peek()
 
@@ -522,6 +536,7 @@ object HighwayTools : Module() {
                             when {
                                 block in ignoreBlocks -> addTask(blockPos, Blocks.AIR)
                                 block == Blocks.AIR -> addTask(blockPos, Blocks.AIR)
+                                block == Blocks.FIRE -> addTask(blockPos, TaskState.BREAK, Blocks.FIRE)
                                 block != Blocks.AIR -> addTask(blockPos, TaskState.BREAK, Blocks.AIR)
                             }
                         }
@@ -651,6 +666,16 @@ object HighwayTools : Module() {
             return
         }
 
+        /* For fire, we just need to mine the top of the block below the fire */
+        /* TODO: This will not work if the top of the block which the fire is on is not visible */
+        if (blockTask.block == Blocks.FIRE) {
+            val blockBelowFire = BlockPos(blockTask.blockPos.x, blockTask.blockPos.y - 1, blockTask.blockPos.z)
+            mc.playerController.clickBlock(blockBelowFire, EnumFacing.UP)
+            mc.player.swingArm(EnumHand.MAIN_HAND)
+            updateTask(blockTask, TaskState.BREAKING)
+            return
+        }
+
         val directHits = mutableListOf<RayTraceResult>()
         val bb = mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos)
         val playerEyeVec = mc.player.getPositionEyes(1f)
@@ -709,20 +734,23 @@ object HighwayTools : Module() {
                     mc.player.swingArm(EnumHand.MAIN_HAND)
                 }.start()
             }
-            else -> {
-                val digPacket: CPacketPlayerDigging = when (blockTask.taskState) {
-                    TaskState.BREAK, TaskState.EMERGENCY_BREAK -> CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing)
-                    TaskState.BREAKING -> CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing)
-                    else -> CPacketPlayerDigging()
-                }
-                if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
-                Thread {
-                    Thread.sleep(25L)
-                    mc.connection!!.sendPacket(digPacket)
-                    mc.player.swingArm(EnumHand.MAIN_HAND)
-                }.start()
-            }
+            else -> dispatchGenericMineThread(blockTask, facing)
         }
+    }
+
+    /* Dispatches a thread to mine any non-netherrack blocks generically */
+    private fun dispatchGenericMineThread(blockTask: BlockTask, facing: EnumFacing) {
+        val digPacket: CPacketPlayerDigging = when (blockTask.taskState) {
+            TaskState.BREAK, TaskState.EMERGENCY_BREAK -> CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing)
+            TaskState.BREAKING -> CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing)
+            else -> CPacketPlayerDigging()
+        }
+        if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
+        Thread {
+            Thread.sleep(25L)
+            mc.connection!!.sendPacket(digPacket)
+            mc.player.swingArm(EnumHand.MAIN_HAND)
+        }.start()
     }
 
     // Only temporary till we found solution to avoid untraceable blocks
@@ -907,7 +935,6 @@ object HighwayTools : Module() {
                 sendChatMessage(toString())
             }
         }
-
     }
 
     fun getBlueprintStats(): Pair<Int, Int> {
@@ -1235,6 +1262,7 @@ object HighwayTools : Module() {
         fun reset() {
             stuckLevel = StuckLevel.NONE
             stuckValue = 0
+            active = false
         }
 
         override fun toString(): String {
