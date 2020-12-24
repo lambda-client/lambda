@@ -19,7 +19,6 @@ import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
-import net.minecraft.item.Item
 import net.minecraft.item.Item.getIdFromItem
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -42,29 +41,51 @@ import kotlin.math.min
         description = "Breaks down Ender Chests to restock obsidian"
 )
 object AutoObsidian : Module() {
+    private val mode = register(Settings.e<Mode>("Mode", Mode.TARGETSTACKS))
+
     private val searchShulker = register(Settings.b("SearchShulker", false))
-    private val autoRefill = register(Settings.b("AutoRefill", false))
-    private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value })
-    private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20))
+    private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { mode.value != Mode.INFINITE })
+    private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && mode.value != Mode.INFINITE })
+    private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { mode.value == Mode.TARGETSTACKS })
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
 
-    enum class State {
-        SEARCHING, PLACING, PRE_MINING, MINING, COLLECTING, DONE
+    private enum class Mode {
+        TARGETSTACKS,
+        INFINITE,
+        FILLINVENTORY
     }
 
-    enum class SearchingState {
-        PLACING, OPENING, PRE_MINING, MINING, COLLECTING, DONE
+    enum class State {
+        SEARCHING,
+        PLACING,
+        PRE_MINING,
+        MINING,
+        COLLECTING,
+        DONE
+    }
+
+    private enum class SearchingState {
+        PLACING,
+        OPENING,
+        PRE_MINING,
+        MINING,
+        COLLECTING,
+        DONE
     }
 
     private enum class InteractMode {
-        OFF, SPOOF, VIEWLOCK
+        OFF,
+        SPOOF,
+        VIEWLOCK
     }
 
-    enum class AutoCenterMode {
-        OFF, TP, MOTION
+    private enum class AutoCenterMode {
+        OFF,
+        TP,
+        MOTION
     }
     private enum class ItemID(val id: Int) {
         AIR(0),
@@ -77,7 +98,7 @@ object AutoObsidian : Module() {
     var goal: BlockPos? = null
     var state = State.SEARCHING
 
-    var active = false
+    private var active = false
     private var searchingState = SearchingState.PLACING
     private var playerPos = BlockPos(0, -1, 0)
     private var placingPos = BlockPos(0, -1, 0)
@@ -191,16 +212,26 @@ object AutoObsidian : Module() {
         }
 
         /* Updates main state */
-        val placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
-        val targetEnderChest = min((targetStacks.value * 64 - obsidianCount) / 8, maxEnderChests)
+        var placedEnderChest = -1
+        var targetEnderChest = -1
+        when(mode.value) {
+            Mode.TARGETSTACKS -> {
+                placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
+                targetEnderChest = min((targetStacks.value * 64 - obsidianCount) / 8, maxEnderChests)
+            }
+            Mode.FILLINVENTORY -> {
+                placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
+                targetEnderChest = maxEnderChests
+            }
+        }
         state = when {
-            !canPickUpObsidian() -> State.DONE
+            (!canPickUpObsidian() && mode.value != Mode.INFINITE) -> State.DONE /* Never transition to done when in INFINITE mode */
             state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> State.SEARCHING
             state == State.COLLECTING && getDroppedItem(ItemID.OBSIDIAN.id, 16.0f) == null -> State.DONE
-            state != State.DONE && mc.world.isAirBlock(placingPos) && placedEnderChest >= targetEnderChest -> State.COLLECTING
+            state != State.DONE && mc.world.isAirBlock(placingPos) && placedEnderChest >= targetEnderChest && mode.value != Mode.INFINITE -> State.COLLECTING
             state == State.MINING && mc.world.isAirBlock(placingPos) -> State.PLACING
             state == State.PLACING && !mc.world.isAirBlock(placingPos) -> State.PRE_MINING
-            state == State.SEARCHING && searchingState == SearchingState.DONE && placedEnderChest < targetEnderChest -> State.PLACING
+            state == State.SEARCHING && searchingState == SearchingState.DONE && (placedEnderChest < targetEnderChest || mode.value == Mode.INFINITE) -> State.PLACING
             else -> state
         }
 
