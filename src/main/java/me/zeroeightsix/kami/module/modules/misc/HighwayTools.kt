@@ -25,7 +25,6 @@ import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
-import net.minecraft.block.Block.registerBlocks
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
@@ -36,7 +35,6 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.*
-import net.minecraftforge.client.event.ColorHandlerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.util.*
@@ -92,9 +90,9 @@ object HighwayTools : Module() {
     // internal settings
     val ignoreBlocks = hashSetOf(
             Blocks.STANDING_SIGN,
+            Blocks.WALL_SIGN,
             Blocks.STANDING_BANNER,
             Blocks.WALL_BANNER,
-            Blocks.WALL_SIGN,
             Blocks.BEDROCK,
             Blocks.END_PORTAL,
             Blocks.END_PORTAL_FRAME,
@@ -200,9 +198,7 @@ object HighwayTools : Module() {
         }
 
         /* Turn off inventory manager if the users wants us to control it */
-        if(toggleInventoryManager.value && InventoryManager.isEnabled) {
-            InventoryManager.disable()
-        }
+        if(toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
 
         /* Turn off auto obsidian if the user wants us to control it */
         if(toggleAutoObsidian.value && AutoObsidian.isEnabled) {
@@ -319,7 +315,7 @@ object HighwayTools : Module() {
 
     /* Returns true if we can do a task, else returns false */
     private fun canDoTask(): Boolean {
-        return !AutoObsidian.isActive() && !AutoEat.eating
+        return !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating
     }
 
     private fun doTask() {
