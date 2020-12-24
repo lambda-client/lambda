@@ -41,7 +41,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.concurrent.thread
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -138,9 +137,7 @@ object HighwayTools : Module() {
         }
 
         /* Turn on inventory manager if the users wants us to control it */
-        if(toggleInventoryManager.value && InventoryManager.isDisabled) {
-            InventoryManager.enable()
-        }
+        if(toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
 
         /* Turn on Auto Obsidian if the user wants us to control it. */
         if(toggleAutoObsidian.value && AutoObsidian.isDisabled) {
@@ -149,7 +146,7 @@ object HighwayTools : Module() {
                 AutoObsidian.enable()
             }
             else {
-                thread {
+                Thread {
                     /* Wait 1 second because turning both on simultaneously is buggy */
                     Thread.sleep(1000)
                     AutoObsidian.enable()
@@ -234,8 +231,8 @@ object HighwayTools : Module() {
                 if (baritoneMode.value) {
                     pathing = BaritoneUtils.isPathing
                     var taskDistance = BlockPos(0, -1, 0)
-                    (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.let {
-                        taskDistance = it.blockPos
+                    (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.let { element ->
+                        taskDistance = element.blockPos
                     }
                     if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
                         if (!isDone()) {
@@ -765,7 +762,7 @@ object HighwayTools : Module() {
         val rotation = RotationUtils.getRotationTo(hitVec, true)
         setRotation(rotation)
 
-        Thread{
+        Thread {
             Thread.sleep(25L)
             val placePacket = CPacketPlayerTryUseItemOnBlock(neighbour, side.opposite, EnumHand.MAIN_HAND, hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat())
             mc.connection!!.sendPacket(placePacket)
@@ -829,7 +826,7 @@ object HighwayTools : Module() {
         val rotation = RotationUtils.getRotationTo(hitVecOffset, true)
         setRotation(rotation)
 
-        Thread{
+        Thread {
             Thread.sleep(25L)
             val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
             mc.connection!!.sendPacket(placePacket)

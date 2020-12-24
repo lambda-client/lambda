@@ -125,7 +125,7 @@ public class KamiGUI extends GUI {
                 Stretcherlayout stretcherlayout = new Stretcherlayout(1);
                 stretcherlayout.setComponentOffsetWidth(0);
                 Scrollpane scrollpane = new Scrollpane(getTheme(), stretcherlayout, 300, 260);
-                scrollpane.setMaximumHeight(500);
+                scrollpane.setMaximumHeight(180);
                 categoryScrollpaneHashMap.put(moduleCategory, new Pair<>(scrollpane, new SettingsPanel(getTheme(), null)));
             }
 
