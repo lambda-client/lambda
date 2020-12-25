@@ -514,7 +514,7 @@ object AutoObsidian : Module() {
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
 
-        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5), false, true, false) ?: return false
+        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return false
         if (rayTrace.blockPos != pos) {
             var found = false
             for (side in EnumFacing.values()) {
