@@ -212,15 +212,13 @@ object AutoObsidian : Module() {
         }
 
         /* Updates main state */
-        var placedEnderChest = -1
+        var placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
         var targetEnderChest = -1
         when(mode.value) {
             Mode.TARGETSTACKS -> {
-                placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
                 targetEnderChest = min((targetStacks.value * 64 - obsidianCount) / 8, maxEnderChests)
             }
             Mode.FILLINVENTORY -> {
-                placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
                 targetEnderChest = maxEnderChests
             }
         }
