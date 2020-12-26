@@ -25,8 +25,6 @@ object GenerateWebsiteCommand : ClientCommand(
                 var totalMods = 0
                 var str = ""
                 for (module in mods) {
-                    if (!module.isProduction) continue
-                    if (!module.category.toString().equals(modCategory, ignoreCase = true)) continue
                     totalMods++
                     str += "        <li>" + module.name.value + "<p><i>" + module.description + "</i></p></li>\n"
                 }
