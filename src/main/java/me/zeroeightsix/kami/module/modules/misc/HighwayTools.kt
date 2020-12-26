@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
@@ -911,6 +912,7 @@ object HighwayTools : Module() {
                         append("\n    §9> §7Coordinate: §a${startingBlockPos.z}§r")
                     }
                 }
+                if (startingBlockPos.y >= 118 && startingBlockPos.x < 120)  append("\n    §9> §7You should move to Y 120 to build proper highways")
 
                 sendChatMessage(toString())
             }
@@ -1239,13 +1241,13 @@ object HighwayTools : Module() {
                     stuckLevel = StuckLevel.MODERATE
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
-                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
+                    if (debugMessages.value != DebugMessages.OFF && mc.currentScreen !is DisplayGuiScreen) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
-                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
+                    if (debugMessages.value != DebugMessages.OFF && mc.currentScreen !is DisplayGuiScreen) sendChatMessage("$chatName Refreshing data")
 //                    reset()
 //                    disable()
 //                    enable()
