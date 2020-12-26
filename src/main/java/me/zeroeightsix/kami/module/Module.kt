@@ -58,8 +58,8 @@ open class Module {
      */
     enum class Category(override val displayName: String): DisplayEnum {
         CHAT("Chat"),
-        COMBAT("Combat"),
         CLIENT("Client"),
+        COMBAT("Combat"),
         MISC("Misc"),
         MOVEMENT("Movement"),
         PLAYER("Player"),
