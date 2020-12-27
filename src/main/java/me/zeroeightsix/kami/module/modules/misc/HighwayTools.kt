@@ -49,10 +49,10 @@ import kotlin.math.sqrt
  */
 
 @Module.Info(
-        name = "HighwayTools",
-        description = "Be the grief a step a head.",
-        category = Module.Category.MISC,
-        modulePriority = 10
+    name = "HighwayTools",
+    description = "Be the grief a step a head.",
+    category = Module.Category.MISC,
+    modulePriority = 10
 )
 object HighwayTools : Module() {
 
@@ -90,14 +90,14 @@ object HighwayTools : Module() {
 
     // internal settings
     val ignoreBlocks = hashSetOf(
-            Blocks.STANDING_SIGN,
-            Blocks.WALL_SIGN,
-            Blocks.STANDING_BANNER,
-            Blocks.WALL_BANNER,
-            Blocks.BEDROCK,
-            Blocks.END_PORTAL,
-            Blocks.END_PORTAL_FRAME,
-            Blocks.PORTAL
+        Blocks.STANDING_SIGN,
+        Blocks.WALL_SIGN,
+        Blocks.STANDING_BANNER,
+        Blocks.WALL_BANNER,
+        Blocks.BEDROCK,
+        Blocks.END_PORTAL,
+        Blocks.END_PORTAL_FRAME,
+        Blocks.PORTAL
     )
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
@@ -596,7 +596,7 @@ object HighwayTools : Module() {
 //                    for (x in InventoryUtils.getSlots(0, 35, blockID)!!) InventoryUtils.throwAllInSlot(x)
 //                }
                 if (InventoryUtils.getSlotsHotbar(blockID) == null &&
-                        noHotbar != null) {
+                    noHotbar != null) {
                     when (blockTask.block) {
                         fillerMat -> InventoryUtils.moveToSlot(noHotbar[0], 37)
                         material -> InventoryUtils.moveToSlot(noHotbar[0], 38)
@@ -924,8 +924,8 @@ object HighwayTools : Module() {
             StringBuilder(2).run {
                 append(
                     "$chatName Module stopped." +
-                    "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
-                    "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
+                        "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
+                        "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
                 )
 
                 if (baritoneMode.value) append("\n    §9> §7Distance: §a${getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()}§r")
@@ -1021,8 +1021,8 @@ object HighwayTools : Module() {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
                     if (mc.world.getBlockState(pos.down()).block == material &&
-                            mc.world.getBlockState(pos).block == Blocks.AIR &&
-                            mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
@@ -1030,8 +1030,8 @@ object HighwayTools : Module() {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
                     if (mc.world.getBlockState(pos.down()).block == fillerMat &&
-                            mc.world.getBlockState(pos).block == Blocks.AIR &&
-                            mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
@@ -1209,8 +1209,8 @@ object HighwayTools : Module() {
     }
 
     data class StuckManagement(
-            var stuckLevel: StuckLevel,
-            var stuckValue: Int
+        var stuckLevel: StuckLevel,
+        var stuckValue: Int
     )  {
         fun increase(blockTask: BlockTask) {
 
@@ -1241,13 +1241,13 @@ object HighwayTools : Module() {
                     stuckLevel = StuckLevel.MODERATE
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
-                    if (debugMessages.value != DebugMessages.OFF && mc.currentScreen !is DisplayGuiScreen) sendChatMessage("$chatName Refreshing data")
+                    if (debugMessages.value != DebugMessages.OFF && (mc.currentScreen !is DisplayGuiScreen || mc.currentServerData != null)) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
-                    if (debugMessages.value != DebugMessages.OFF && mc.currentScreen !is DisplayGuiScreen) sendChatMessage("$chatName Refreshing data")
+                    if (debugMessages.value != DebugMessages.OFF && (mc.currentScreen !is DisplayGuiScreen || mc.currentServerData != null)) sendChatMessage("$chatName Refreshing data")
 //                    reset()
 //                    disable()
 //                    enable()
@@ -1269,9 +1269,9 @@ object HighwayTools : Module() {
     }
 
     data class BlockTask(
-            val blockPos: BlockPos,
-            var taskState: TaskState,
-            var block: Block
+        val blockPos: BlockPos,
+        var taskState: TaskState,
+        var block: Block
     ) {
         override fun toString(): String {
             return "Block: " + block.localizedName + " @ Position: (" + blockPos.asString() + ") Priority: " + taskState.ordinal + " State: " + taskState.toString()
@@ -1332,4 +1332,3 @@ object HighwayTools : Module() {
         MAYOR
     }
 }
-
