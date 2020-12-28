@@ -42,6 +42,7 @@ import kotlin.math.min
 )
 object AutoObsidian : Module() {
     private val mode = register(Settings.e<Mode>("Mode", Mode.TARGETSTACKS))
+    private val modeExitStrings = mapOf(Mode.FILLINVENTORY to "Inventory filled", Mode.TARGETSTACKS to "Target Stacks Reached")
 
     private val searchShulker = register(Settings.b("SearchShulker", false))
     private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { mode.value != Mode.INFINITE })
@@ -158,10 +159,10 @@ object AutoObsidian : Module() {
                     State.COLLECTING -> collectDroppedItem(ItemID.OBSIDIAN.id)
                     State.DONE -> {
                         if (!autoRefill.value) {
-                            sendChatMessage("$chatName Reached target stacks, disabling.")
+                            sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", disabling."))
                             this.disable()
                         } else {
-                            if (active) sendChatMessage("$chatName Reached target stacks, stopping.")
+                            if (active) sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", stopping."))
                             reset()
                         }
                     }
