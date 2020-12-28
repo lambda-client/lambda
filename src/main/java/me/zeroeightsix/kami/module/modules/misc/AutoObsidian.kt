@@ -275,10 +275,16 @@ object AutoObsidian : Module() {
                     /* Pick floor: It is better to have an unfilled stack then overfill and get stuck trying to pick
                        up extra obsidian
                      */
-                    maxEnderChests = floor((64.0 - itemStack.count) / 8.0).toInt()
+                    maxEnderChests += floor((64.0 - itemStack.count) / 8.0).toInt()
                 }
             }
         }
+        /* Here we assume ender chests are stacked the most efficiently possible. For every 64 ender chests
+           mined, another item slot is freed, which allows us to mine an additional 8 ender chests to fill
+           that slot with obsidian.
+         */
+        maxEnderChests += floor(maxEnderChests / 64.0).toInt() * 8
+
         return maxEnderChests
     }
 
