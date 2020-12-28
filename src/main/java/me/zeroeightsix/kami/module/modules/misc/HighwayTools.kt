@@ -912,7 +912,7 @@ object HighwayTools : Module() {
                         append("\n    §9> §7Coordinate: §a${startingBlockPos.z}§r")
                     }
                 }
-                if (startingBlockPos.y >= 118 && startingBlockPos.x < 120) append("\n    §9> §7You should move to Y 120 to build proper highways")
+                if (startingBlockPos.y >= 118 && startingBlockPos.y < 120) append("\n    §9> §7You should move to Y 120 to build proper highways")
                 sendChatMessage(toString())
             }
         }
