@@ -216,9 +216,7 @@ object HighwayTools : Module() {
         printDisable()
     }
 
-    fun isDone(): Boolean {
-        return pendingTasks.size == 0
-    }
+    fun isDone(): Boolean = pendingTasks.size == 0
 
     init {
         listener<SafeTickEvent> {
@@ -919,7 +917,7 @@ object HighwayTools : Module() {
                         append("\n    §9> §7Coordinate: §a${startingBlockPos.z}§r")
                     }
                 }
-                if (startingBlockPos.y in 117..119) append("\n    §9> §cCheck coordinate Y / altitude and make sure to move around Y 120 for the correct height")
+                if (startingBlockPos.y in 117..119 && mode.value != Mode.TUNNEL) append("\n    §9> §cCheck coordinate Y / altitude and make sure to move around Y 120 for the correct height")
                 sendChatMessage(toString())
             }
         }
