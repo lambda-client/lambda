@@ -110,7 +110,7 @@ object HighwayTools : Module() {
     // runtime vars
     val pendingTasks = PriorityQueue(BlockTaskComparator)
     private val doneTasks = ArrayList<BlockTask>()
-    private val bluePrint = ArrayList<Pair<BlockPos, Block>>()
+    private val blueprint = ArrayList<Pair<BlockPos, Block>>()
     private var waitTicks = 0
     private var blocksPlaced = 0
     var pathing = false
@@ -512,10 +512,10 @@ object HighwayTools : Module() {
     }
 
     private fun updateTasks(originPos: BlockPos) {
-        bluePrint.clear()
+        blueprint.clear()
         updateBlockArray(originPos)
         updateBlockArray(getNextBlock(originPos))
-        for ((blockPos, blockType) in bluePrint) {
+        for ((blockPos, blockType) in blueprint) {
             val isReplaceable = mc.world.getBlockState(blockPos).material.isReplaceable
             if (blockPos == mc.player.positionVector.toBlockPos().down()) continue
             when (val block = mc.world.getBlockState(blockPos).block) {
@@ -937,7 +937,7 @@ object HighwayTools : Module() {
     fun getBlueprintStats(): Pair<Int, Int> {
         var materialUsed = 0
         var fillerMatUsed = 0
-        for ((_, b) in bluePrint) {
+        for ((_, b) in blueprint) {
             when (b) {
                 material -> materialUsed++
                 fillerMat -> fillerMatUsed++
@@ -1070,23 +1070,23 @@ object HighwayTools : Module() {
         if (turn) turnValue = -1
         if (mat != fillerMat) {
             if (height > 1) {
-                bluePrint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), Blocks.AIR))
+                blueprint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), Blocks.AIR))
             } else {
-                bluePrint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), mat))
+                blueprint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), mat))
             }
         } else {
-            bluePrint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), material))
+            blueprint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), material))
         }
     }
 
     private fun genOffset(cursor: BlockPos, height: Int, width: Int, mat: Block, isOdd: Boolean) {
-        bluePrint.add(Pair(relativeDirection(cursor, width, -2), mat))
+        blueprint.add(Pair(relativeDirection(cursor, width, -2), mat))
         if (buildDirectionSaved.isDiagonal) {
             addOffset(cursor, height, width, mat, true)
         }
         when {
             isOdd -> {
-                bluePrint.add(Pair(relativeDirection(cursor, width, 2), mat))
+                blueprint.add(Pair(relativeDirection(cursor, width, 2), mat))
                 if (buildDirectionSaved.isDiagonal) {
                     addOffset(cursor, height, width, mat, false)
                 }
@@ -1094,11 +1094,11 @@ object HighwayTools : Module() {
             else -> {
                 val evenCursor = relativeDirection(cursor, 1, 2)
                 if (buildDirectionSaved.isDiagonal) {
-                    bluePrint.add(Pair(relativeDirection(evenCursor, width, 2), mat))
+                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), mat))
                     addOffset(cursor, height, width, mat, false)
                     addOffset(evenCursor, height, width, mat, false)
                 } else {
-                    bluePrint.add(Pair(relativeDirection(evenCursor, width, 2), mat))
+                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), mat))
                 }
             }
         }
@@ -1118,10 +1118,10 @@ object HighwayTools : Module() {
             Mode.HIGHWAY -> {
                 if (baritoneMode.value) {
                     cursor = relativeDirection(cursor, 1, 0)
-                    bluePrint.add(Pair(cursor, material))
+                    blueprint.add(Pair(cursor, material))
                 }
                 cursor = relativeDirection(cursor, 1, 0)
-                bluePrint.add(Pair(cursor, material))
+                blueprint.add(Pair(cursor, material))
                 var buildIterationsWidth = buildWidth.value / 2
                 var evenCursor = relativeDirection(cursor, 1, 2)
                 var isOdd = false
@@ -1129,7 +1129,7 @@ object HighwayTools : Module() {
                     isOdd = true
                     buildIterationsWidth++
                 } else {
-                    bluePrint.add(Pair(evenCursor, material))
+                    blueprint.add(Pair(evenCursor, material))
                 }
                 for (i in 1 until clearHeight.value + 1) {
                     for (j in 1 until buildIterationsWidth) {
@@ -1152,18 +1152,18 @@ object HighwayTools : Module() {
                     cursor = cursor.up()
                     evenCursor = evenCursor.up()
                     if (clearSpace.value && i < clearHeight.value) {
-                        bluePrint.add(Pair(cursor, Blocks.AIR))
-                        if (!isOdd) bluePrint.add(Pair(evenCursor, Blocks.AIR))
+                        blueprint.add(Pair(cursor, Blocks.AIR))
+                        if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
                     }
                 }
             }
             Mode.TUNNEL -> {
                 if (baritoneMode.value) {
                     cursor = relativeDirection(cursor, 1, 0)
-                    bluePrint.add(Pair(cursor, fillerMat))
+                    blueprint.add(Pair(cursor, fillerMat))
                 }
                 cursor = relativeDirection(cursor, 1, 0)
-                bluePrint.add(Pair(cursor, fillerMat))
+                blueprint.add(Pair(cursor, fillerMat))
                 var buildIterationsWidth = buildWidth.value / 2
                 var evenCursor = relativeDirection(cursor, 1, 2)
                 var isOdd = false
@@ -1171,33 +1171,33 @@ object HighwayTools : Module() {
                     isOdd = true
                     buildIterationsWidth++
                 } else {
-                    bluePrint.add(Pair(evenCursor, fillerMat))
+                    blueprint.add(Pair(evenCursor, fillerMat))
                 }
                 for (i in 1 until clearHeight.value + 2) {
                     for (j in 1 until buildIterationsWidth) {
                         if (i > 1) {
                             if (cornerBlock.value && i == 2 && j == buildIterationsWidth - 1) continue
-                            bluePrint.add(Pair(relativeDirection(cursor, j, -2), Blocks.AIR))
-                            if (isOdd) bluePrint.add(Pair(relativeDirection(cursor, j, 2), Blocks.AIR))
-                            else bluePrint.add(Pair(relativeDirection(evenCursor, j, 2), Blocks.AIR))
+                            blueprint.add(Pair(relativeDirection(cursor, j, -2), Blocks.AIR))
+                            if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 2), Blocks.AIR))
+                            else blueprint.add(Pair(relativeDirection(evenCursor, j, 2), Blocks.AIR))
                             if (buildDirectionSaved.isDiagonal) {
-                                bluePrint.add(Pair(relativeDirection(cursor, j, -3), Blocks.AIR))
-                                if (isOdd) bluePrint.add(Pair(relativeDirection(cursor, j, 3), Blocks.AIR))
-                                else bluePrint.add(Pair(relativeDirection(evenCursor, j, 3), Blocks.AIR))
+                                blueprint.add(Pair(relativeDirection(cursor, j, -3), Blocks.AIR))
+                                if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 3), Blocks.AIR))
+                                else blueprint.add(Pair(relativeDirection(evenCursor, j, 3), Blocks.AIR))
                             }
                         }
                     }
                     cursor = cursor.up()
                     evenCursor = evenCursor.up()
                     if (clearSpace.value && i < clearHeight.value + 1) {
-                        bluePrint.add(Pair(cursor, Blocks.AIR))
-                        if (!isOdd) bluePrint.add(Pair(evenCursor, Blocks.AIR))
+                        blueprint.add(Pair(cursor, Blocks.AIR))
+                        if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
                     }
                 }
             }
             Mode.FLAT -> {
                 for (bp in getBlockPositionsInArea(cursor.north(buildWidth.value).west(buildWidth.value), cursor.south(buildWidth.value).east(buildWidth.value))) {
-                    bluePrint.add(Pair(bp, material))
+                    blueprint.add(Pair(bp, material))
                 }
             }
             null -> {
