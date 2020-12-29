@@ -8,6 +8,7 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils.getHitVecOffset
 import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
+import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.combat.SurroundUtils
@@ -548,8 +549,6 @@ object AutoObsidian : Module() {
         searchingState = SearchingState.PLACING
         playerPos = BlockPos(0, -1, 0)
         placingPos = BlockPos(0, -1, 0)
-        enderChestCount = -1
-        obsidianCount = -1
         tickCount = 0
     }
     /* End of tasks */
