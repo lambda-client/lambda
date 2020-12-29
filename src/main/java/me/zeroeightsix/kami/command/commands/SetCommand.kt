@@ -2,6 +2,7 @@ package me.zeroeightsix.kami.command.commands
 
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.ClientCommand
+import me.zeroeightsix.kami.util.onMainThread
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.util.text.TextFormatting
 
@@ -30,10 +31,12 @@ object SetCommand : ClientCommand(
                                 value = value.toUpperCase()
                             }
 
-                            setting.setValueFromString(value, setting.valueClass.simpleName == "Boolean")
+                            onMainThread {
+                                setting.setValueFromString(value, setting.valueClass.simpleName == "Boolean")
 
-                            MessageSendHelper.sendChatMessage("Set ${TextFormatting.AQUA}${setting.name}${TextFormatting.RESET}" +
-                                " to ${TextFormatting.DARK_AQUA}${value}${TextFormatting.RESET}.")
+                                MessageSendHelper.sendChatMessage("Set ${TextFormatting.AQUA}${setting.name}${TextFormatting.RESET}" +
+                                    " to ${TextFormatting.DARK_AQUA}${value}${TextFormatting.RESET}.")
+                            }
 
                         } catch (e: Exception) {
                             MessageSendHelper.sendChatMessage("Unable to set value! ${TextFormatting.GOLD}${e.message}")
