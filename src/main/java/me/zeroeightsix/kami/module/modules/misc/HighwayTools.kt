@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.module.modules.misc
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
+import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
@@ -27,8 +28,11 @@ import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
 import net.minecraft.block.BlockLiquid
+import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
+import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -41,6 +45,7 @@ import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.sqrt
 
 /**
@@ -576,17 +581,18 @@ object HighwayTools : Module() {
     private fun inventoryProcessor(blockTask: BlockTask): Boolean {
         when (blockTask.taskState) {
             TaskState.BREAK, TaskState.EMERGENCY_BREAK -> {
-                val noHotbar = InventoryUtils.getSlotsNoHotbar(278)
-                if (InventoryUtils.getSlotsHotbar(278) == null && noHotbar != null) {
-//                    InventoryUtils.moveToHotbar(278, 130)
-                    InventoryUtils.moveToSlot(noHotbar[0], 36)
-                } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
-                    sendChatMessage("$chatName No Pickaxe was found in inventory")
-                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    disable()
-                    return false
-                }
-                InventoryUtils.swapSlotToItem(278)
+                equipBestTool(mc.world.getBlockState(blockTask.blockPos))
+//                val noHotbar = InventoryUtils.getSlotsNoHotbar(278)
+//                if (InventoryUtils.getSlotsHotbar(278) == null && noHotbar != null) {
+////                    InventoryUtils.moveToHotbar(278, 130)
+//                    InventoryUtils.moveToSlot(noHotbar[0], 36)
+//                } else if (InventoryUtils.getSlots(0, 35, 278) == null) {
+//                    sendChatMessage("$chatName No Pickaxe was found in inventory")
+//                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+//                    disable()
+//                    return false
+//                }
+//                InventoryUtils.swapSlotToItem(278)
             }
             TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
                 val blockID = getIdFromBlock(blockTask.block)
@@ -615,6 +621,32 @@ object HighwayTools : Module() {
             else -> return false
         }
         return true
+    }
+
+    private fun equipBestTool(blockState: IBlockState) {
+        var bestSlot = -1
+        var max = 0.0
+
+        for (i in 0..8) {
+            val stack = mc.player.inventory.getStackInSlot(i)
+            if (stack.isEmpty) continue
+            var speed = stack.getDestroySpeed(blockState)
+            var eff: Int
+
+            if (speed > 1) {
+                speed += (if (EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack).also { eff = it } > 0.0) eff.toDouble().pow(2.0) + 1 else 0.0).toFloat()
+                if (speed > max) {
+                    max = speed.toDouble()
+                    bestSlot = i
+                }
+            }
+        }
+        if (bestSlot != -1) equip(bestSlot)
+    }
+
+    private fun equip(slot: Int) {
+        mc.player.inventory.currentItem = slot
+        mc.playerController.syncCurrentPlayItem()
     }
 
     private fun liquidHandler(blockTask: BlockTask): Boolean {
