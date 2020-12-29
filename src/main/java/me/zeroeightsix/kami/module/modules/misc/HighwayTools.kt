@@ -75,6 +75,7 @@ object HighwayTools : Module() {
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java, "InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
     private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(false).withVisibility { page.value == Page.BEHAVIOR })
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
+    private val toggleAutoTool = register(Settings.booleanBuilder("ToggleAutoTool").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val toggleInventoryManager = register(Settings.booleanBuilder("ToggleInvManager").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val toggleAutoObsidian = register(Settings.booleanBuilder("ToggleAutoObsidian").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
 
@@ -134,6 +135,9 @@ object HighwayTools : Module() {
             disable()
             return
         }
+
+        /* Turn on Auto Tool if the users wants us to control it */
+        if(toggleAutoTool.value && AutoTool.isDisabled) AutoTool.enable()
 
         /* Turn on inventory manager if the users wants us to control it */
         if(toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
@@ -197,6 +201,9 @@ object HighwayTools : Module() {
 
             if (process != null && process.isPresent && process.get() == HighwayToolsProcess) process.get().onLostControl()
         }
+
+        /* Turn off Auto Tool if the users wants us to control it */
+        if(toggleAutoTool.value && AutoTool.isEnabled) AutoTool.disable()
 
         /* Turn off inventory manager if the users wants us to control it */
         if(toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
