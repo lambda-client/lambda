@@ -146,9 +146,9 @@ object HighwayTools : Module() {
             else {
                 Thread {
                     /* Wait 1 second because turning both on simultaneously is buggy */
-                    Thread.sleep(1000)
+                    Thread.sleep(1000L)
                     AutoObsidian.enable()
-                }
+                }.start()
             }
         }
 
