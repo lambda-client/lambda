@@ -139,7 +139,7 @@ object HighwayTools : Module() {
         if(toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
 
         /* Turn on Auto Obsidian if the user wants us to control it. */
-        if(toggleAutoObsidian.value && AutoObsidian.isDisabled) {
+        if(toggleAutoObsidian.value && AutoObsidian.isDisabled && mode.value != Mode.TUNNEL) {
             /* If we have no obsidian, immediately turn on Auto Obsidian */
             if(InventoryUtils.countItemAll(49) == 0) {
                 AutoObsidian.enable()
