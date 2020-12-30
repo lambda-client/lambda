@@ -50,7 +50,7 @@ public class DisplayGuiScreen extends GuiScreen {
 
     @Override
     public boolean doesGuiPauseGame() {
-        return false;
+        return ClickGUI.INSTANCE.getPauseInSinglePlayer().getValue();
     }
 
     @Override
