@@ -11,6 +11,8 @@ import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.RotationUtils.faceEntityClosest
 import me.zeroeightsix.kami.util.math.Vec2f
 import net.minecraft.entity.Entity
+import net.minecraft.item.ItemAxe
+import net.minecraft.item.ItemSword
 import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
@@ -32,6 +34,7 @@ object KillAura : Module() {
     val range = register(Settings.floatBuilder("Range").withValue(5f).withRange(0f, 8f).withStep(0.25f))
     private val tpsSync = register(Settings.b("TPSSync", false))
     private val autoTool = register(Settings.b("AutoWeapon", true))
+    private val onlySword = register(Settings.booleanBuilder("OnlySword").withValue(false).withVisibility { !autoTool.value })
     private val prefer = register(Settings.enumBuilder(CombatUtils.PreferWeapon::class.java).withName("Prefer").withValue(CombatUtils.PreferWeapon.SWORD).withVisibility { autoTool.value })
     private val disableOnDeath = register(Settings.b("DisableOnDeath", false))
 
@@ -96,7 +99,14 @@ object KillAura : Module() {
     }
 
     private fun attack(e: Entity) {
-        if (autoTool.value) CombatUtils.equipBestWeapon(prefer.value as CombatUtils.PreferWeapon)
+        val item = mc.player.heldItemMainhand.item
+
+        if (autoTool.value) {
+            CombatUtils.equipBestWeapon(prefer.value as CombatUtils.PreferWeapon)
+        } else if (onlySword.value && item !is ItemSword && item !is ItemAxe) {
+            return
+        }
+
         mc.playerController.attackEntity(mc.player, e)
         mc.player.swingArm(EnumHand.MAIN_HAND)
     }
