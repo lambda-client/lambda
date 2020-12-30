@@ -266,7 +266,7 @@ object AutoObsidian : Module() {
     */
     private fun maxPossibleEnderChests(): Int {
         var maxEnderChests = 0
-        mc.player?.inventory?.mainInventory.let {
+        mc.player?.inventory?.mainInventory?.let {
             val clonedList = ArrayList(it)
             for (itemStack in clonedList) {
                 if(getIdFromItem(itemStack.item) == ItemID.AIR.id) {
