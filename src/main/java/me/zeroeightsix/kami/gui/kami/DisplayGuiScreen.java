@@ -49,6 +49,11 @@ public class DisplayGuiScreen extends GuiScreen {
     }
 
     @Override
+    public boolean doesGuiPauseGame() {
+        return false;
+    }
+
+    @Override
     public void onGuiClosed() {
         KamiGUI gui = KamiMod.INSTANCE.getGuiManager();
 
