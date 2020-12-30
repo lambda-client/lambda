@@ -2,8 +2,8 @@ package me.zeroeightsix.kami.command.commands
 
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.ClientCommand
-import me.zeroeightsix.kami.util.onMainThread
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.threads.onMainThread
 import net.minecraft.util.text.TextFormatting
 
 object SetCommand : ClientCommand(
