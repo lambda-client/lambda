@@ -8,13 +8,18 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BaritoneUtils.pause
 import me.zeroeightsix.kami.util.BaritoneUtils.unpause
+import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.foodValue
+import me.zeroeightsix.kami.util.id
 import net.minecraft.client.settings.KeyBinding
 import net.minecraft.init.Items
+import net.minecraft.item.ItemBlock
 import net.minecraft.item.ItemFood
 import net.minecraft.item.ItemStack
+import net.minecraft.item.ItemTool
 import net.minecraft.util.EnumHand
 import org.kamiblue.event.listener.listener
+import kotlin.math.min
 
 @Module.Info(
     name = "AutoEat",
@@ -70,10 +75,20 @@ object AutoEat : Module() {
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, true)
                 mc.playerController.processRightClick(mc.player, mc.world, EnumHand.OFF_HAND)
             } else {
-                for (i in 0..8) {
-                    if (isValid(mc.player.inventory.getStackInSlot(i), stats.foodLevel)) {
+                for (i in 0..44) {
+                    val itemStack = mc.player.inventory.getStackInSlot(i)
+                    if (isValid(itemStack, stats.foodLevel)) {
+
+                        val newSlot = if (i > 8) { // not in hotbar
+                            min(InventoryUtils.moveToHotbar(
+                                itemStack.item.id, *avoidSlots(itemStack.item.id)
+                            ) - 36, 0) // - 36 convert to hotbar
+                        } else {
+                            i
+                        }
+
                         lastSlot = mc.player.inventory.currentItem
-                        mc.player.inventory.currentItem = i
+                        mc.player.inventory.currentItem = newSlot
 
                         if (pauseBaritone.value && !eating) {
                             pause()
@@ -89,12 +104,28 @@ object AutoEat : Module() {
         }
     }
 
+    private fun avoidSlots(initialItem: Int): IntArray {
+        val invalidItems = ArrayList<Int>()
+
+        for (i in 0..6) { // first 7 slots
+            val item = mc.player.inventory.getStackInSlot(i).item
+
+            if (item is ItemTool || item is ItemBlock) {
+                invalidItems.add(item.id)
+            }
+        }
+
+        return if (invalidItems.isEmpty()) {
+            intArrayOf(initialItem)
+        } else invalidItems.toIntArray()
+    }
+
     private fun isValid(stack: ItemStack, food: Int): Boolean {
         val item = stack.item
         if (item !is ItemFood) return false
 
         return passItemCheck(stack) && (foodLevel.value - food >= item.foodValue
-                || healthLevel.value - (mc.player.health + mc.player.absorptionAmount) > 0f)
+            || healthLevel.value - (mc.player.health + mc.player.absorptionAmount) > 0f)
     }
 
     private fun passItemCheck(stack: ItemStack): Boolean {

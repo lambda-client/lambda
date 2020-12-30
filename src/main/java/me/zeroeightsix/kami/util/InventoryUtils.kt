@@ -175,21 +175,25 @@ object InventoryUtils {
     /**
      * Try to move item with given [itemID] to empty hotbar slot or slot contains no exception [exceptionID]
      * If none of those found, then move it to slot 0
+     * @return the inventory slot [itemID] was moved to, -1 if failed
      */
-    fun moveToHotbar(itemID: Int, exceptionID: Int) {
-        val slot1 = getSlotsFullInvNoHotbar(itemID)?.getOrNull(0) ?: return
-        var slot2 = 36
+    fun moveToHotbar(itemID: Int, vararg exceptionID: Int): Int {
+        val slotFrom = getSlotsFullInvNoHotbar(itemID)?.getOrNull(0) ?: return -1
+        var slotTo = 36
+
         mc.player?.inventoryContainer?.inventory?.let {
             val clonedList = ArrayList(it)
             for (i in 36..44) { /* Finds slot contains no exception item first */
                 val itemStack = clonedList[i]
-                if (itemStack.item.id != exceptionID) {
-                    slot2 = i
+                if (!exceptionID.contains(itemStack.item.id)) {
+                    slotTo = i
                     break
                 }
             }
         }
-        moveToSlot(slot1, slot2)
+
+        moveToSlot(slotFrom, slotTo)
+        return slotTo
     }
 
     /**
