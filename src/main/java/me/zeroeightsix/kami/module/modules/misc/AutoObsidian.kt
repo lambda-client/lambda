@@ -8,7 +8,6 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils.getHitVecOffset
 import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
-import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.combat.SurroundUtils
@@ -224,6 +223,7 @@ object AutoObsidian : Module() {
                 targetEnderChest = maxEnderChests
             }
         }
+
         state = when {
             (!canPickUpObsidian() && mode.value != Mode.INFINITE) -> State.DONE /* Never transition to done when in INFINITE mode */
             state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> State.SEARCHING
@@ -382,7 +382,7 @@ object AutoObsidian : Module() {
                 return
             }
         }
-        /* Else, we already have enderchests in the hostbar */
+        /* Else, we already have ender chests in the hotbar */
         InventoryUtils.swapSlotToItem(ItemID.ENDER_CHEST.id)
 
         placeBlock(pos)
