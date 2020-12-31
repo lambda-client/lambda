@@ -32,7 +32,7 @@ object DiscordRPC : Module() {
     private val updateDelay = register(Settings.floatBuilder("UpdateDelay").withValue(4f).withRange(1f, 10f))
 
     private enum class LineInfo {
-        VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, Highway_Work, NONE
+        VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, HIGHWAY__WORK, NONE
     }
 
     private val presence = DiscordRichPresence()
@@ -119,7 +119,7 @@ object DiscordRPC : Module() {
             LineInfo.DIMENSION -> {
                 InfoCalculator.dimension()
             }
-            LineInfo.Highway_Work -> {
+            LineInfo.HIGHWAY__WORK -> {
                 if (HighwayTools.isEnabled) "Making Highways"
                 else "Doing Nothing"
             }
