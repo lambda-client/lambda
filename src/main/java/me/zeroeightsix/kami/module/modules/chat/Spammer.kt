@@ -1,5 +1,7 @@
 package me.zeroeightsix.kami.module.modules.chat
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.event.events.SafeTickEvent
@@ -11,10 +13,13 @@ import me.zeroeightsix.kami.util.text.MessageDetection
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendServerMessage
 import me.zeroeightsix.kami.util.text.formatValue
+import me.zeroeightsix.kami.util.threads.defaultScope
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.io.File
 import java.net.URL
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 @Module.Info(
@@ -30,7 +35,7 @@ object Spammer : Module() {
     private val remoteURL = register(Settings.s("remoteURL", "unchanged"))
 
     private val file = File(KamiMod.DIRECTORY + "spammer.txt")
-    private val spammer = ArrayList<String>()
+    private val spammer = Collections.synchronizedList(ArrayList<String>())
     private val timer = TickTimer(TimeUnit.SECONDS)
     private var currentLine = 0
 
@@ -59,15 +64,18 @@ object Spammer : Module() {
         if (loadRemote.value) {
             val url = urlValue ?: return
 
-            try {
-                val text = URL(url).readText()
-                spammer.addAll(text.split("\n"))
+            defaultScope.launch(Dispatchers.IO) {
+                try {
+                    val text = URL(url).readText()
+                    spammer.addAll(text.split("\n"))
 
-                MessageSendHelper.sendChatMessage("$chatName Loaded remote spammer messages!")
-            } catch (e: Exception) {
-                MessageSendHelper.sendErrorMessage("$chatName Failed loading remote spammer, $e")
-                disable()
+                    MessageSendHelper.sendChatMessage("$chatName Loaded remote spammer messages!")
+                } catch (e: Exception) {
+                    MessageSendHelper.sendErrorMessage("$chatName Failed loading remote spammer, $e")
+                    disable()
+                }
             }
+
         } else {
             if (file.exists()) {
                 try {
