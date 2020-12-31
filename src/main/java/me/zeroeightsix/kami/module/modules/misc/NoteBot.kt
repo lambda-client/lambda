@@ -300,17 +300,20 @@ object NoteBot : Module() {
 
     init {
         togglePlay.settingListener = Setting.SettingListeners {
-            if (isEnabled && togglePlay.value) {
-                playingSong = !playingSong
+            if (togglePlay.value) {
+                if (isEnabled) {
+                    playingSong = !playingSong
+                    if (playingSong) MessageSendHelper.sendChatMessage("Start playing!")
+                    else MessageSendHelper.sendChatMessage("Pause playing!")
+                }
                 togglePlay.value = false
-                if (playingSong) MessageSendHelper.sendChatMessage("Start playing!")
-                else MessageSendHelper.sendChatMessage("Pause playing!")
             }
         }
 
         reloadSong.settingListener = Setting.SettingListeners {
-            if (isEnabled && togglePlay.value) {
-                loadSong()
+            if (reloadSong.value) {
+                if (isEnabled) loadSong()
+                reloadSong.value = false
             }
         }
     }
