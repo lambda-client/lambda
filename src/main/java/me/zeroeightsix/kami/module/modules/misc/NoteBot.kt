@@ -71,7 +71,7 @@ object NoteBot : Module() {
     private val noteBlockMap = EnumMap<NoteBlockEvent.Instrument, Array<BlockPos?>>(NoteBlockEvent.Instrument::class.java)
     private val noteBlocks = ArrayList<BlockPos>()
     private val clickedBlocks = HashSet<BlockPos>()
-    private val soundTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.SECONDS)
+    private val soundTimer = TickTimer(TimeUnit.SECONDS)
 
     private val channelSettings = arrayOf(
         channel1, channel2, channel3, channel4,
@@ -280,7 +280,7 @@ object NoteBot : Module() {
 
         return EnumFacing.values()
             .filter { world.isAirBlock(pos.offset(it)) }
-            .minByOrNull { BlockUtils.getHitVec(pos, it).distanceTo(playerPos) }
+            .minByOrNull { WorldUtils.getHitVec(pos, it).distanceTo(playerPos) }
             ?: EnumFacing.UP
     }
 
