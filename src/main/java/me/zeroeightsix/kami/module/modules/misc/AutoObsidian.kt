@@ -203,20 +203,16 @@ object AutoObsidian : Module() {
             && mc.world.rayTraceBlocks(eyePos, pos.toVec3d())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
 
     private fun updateMainState() {
-        val obbyCount = countObby()
-        val slotCount = countEmptySlots()
+        val passCountCheck = checkObbyCount()
 
         state = when {
-            (!canPickUpObsidian() && fillMode.value != FillMode.INFINITE) -> {
-                State.DONE /* Never transition to done when in INFINITE mode */
-            }
             state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> {
                 State.SEARCHING
             }
-            state == State.COLLECTING && getDroppedItem(ItemID.OBSIDIAN.id, 8.0f) == null -> {
+            state == State.COLLECTING && (!canPickUpObby() || getDroppedItem(ItemID.OBSIDIAN.id, 16.0f) == null) -> {
                 State.DONE
             }
-            state != State.DONE && mc.world.isAirBlock(placingPos) && !checkObbyCount(obbyCount, slotCount) -> {
+            state != State.DONE && mc.world.isAirBlock(placingPos) && !passCountCheck -> {
                 State.COLLECTING
             }
             state == State.MINING && mc.world.isAirBlock(placingPos) -> {
@@ -225,7 +221,7 @@ object AutoObsidian : Module() {
             state == State.PLACING && !mc.world.isAirBlock(placingPos) -> {
                 State.PRE_MINING
             }
-            state == State.SEARCHING && searchingState == SearchingState.DONE && checkObbyCount(obbyCount, slotCount) -> {
+            state == State.SEARCHING && searchingState == SearchingState.DONE && passCountCheck -> {
                 State.PLACING
             }
             else -> {
@@ -238,8 +234,8 @@ object AutoObsidian : Module() {
      * Check if we can pick up more obsidian:
      * There must be at least one slot which is either empty, or contains a stack of obsidian less than 64
      */
-    private fun canPickUpObsidian(): Boolean {
-        return mc.player?.inventory?.mainInventory?.any {
+    private fun canPickUpObby(): Boolean {
+        return fillMode.value == FillMode.INFINITE || mc.player?.inventory?.mainInventory?.any {
             it.isEmpty || it.item.id == ItemID.OBSIDIAN.id && it.count < 64
         } ?: false
     }
@@ -247,24 +243,21 @@ object AutoObsidian : Module() {
     /**
      * @return True if can still place more ender chest
      */
-    private fun checkObbyCount(obbyCount: Int, slotCount: Int): Boolean {
+    private fun checkObbyCount(): Boolean {
+        val inventory = InventoryUtils.countItemAll(ItemID.OBSIDIAN.id)
+        val dropped = EntityUtils.getDroppedItems(ItemID.OBSIDIAN.id, 16.0f).sumBy { it.item.count }
+
         return when (fillMode.value!!) {
             FillMode.TARGET_STACKS -> {
-                obbyCount < targetStacks.value
+                ((inventory + dropped) / 8.0f).ceilToInt() / 8 < targetStacks.value
             }
             FillMode.FILL_INVENTORY -> {
-                slotCount > 8
+                countEmptySlots() - dropped >= 8
             }
             FillMode.INFINITE -> {
                 true
             }
         }
-    }
-
-    private fun countObby(): Int {
-        val inventory = InventoryUtils.countItemAll(49)
-        val dropped = EntityUtils.getDroppedItems(49, 8.0f).sumBy { it.item.count }
-        return ceil((inventory + dropped) / 8.0f).toInt() / 8
     }
 
     private fun countEmptySlots(): Int {
@@ -284,7 +277,7 @@ object AutoObsidian : Module() {
                 searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0 -> {
                     SearchingState.DONE
                 }
-                searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 8.0f) == null -> {
+                searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 16.0f) == null -> {
                     SearchingState.DONE
                 }
                 searchingState == SearchingState.MINING && mc.world.isAirBlock(placingPos) -> {
