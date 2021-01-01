@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
@@ -7,13 +8,17 @@ import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
+import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
-import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
+import me.zeroeightsix.kami.util.math.VectorUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.BlockShulkerBox
+import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.inventory.GuiShulkerBox
+import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
 import net.minecraft.network.play.client.CPacketPlayer
@@ -22,12 +27,12 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
-import kotlin.math.ceil
-
 
 @Module.Info(
     name = "AutoObsidian",
@@ -94,6 +99,8 @@ object AutoObsidian : Module() {
     private var tickCount = 0
     private var openTime = 0L
 
+    private val renderer = ESPRenderer().apply { aFilled = 33; aOutline = 233 }
+
     override fun isActive(): Boolean {
         return isEnabled && active
     }
@@ -145,11 +152,15 @@ object AutoObsidian : Module() {
                 }
             }
         }
+
+        listener<RenderWorldEvent> {
+            if (state != State.DONE) renderer.render(clear = false, cull = true)
+        }
     }
 
     private fun updateState() {
-        if (state != State.DONE && placingPos.y == -1) {
-            setPlacingPos()
+        if (state != State.DONE) {
+            updatePlacingPos()
         }
 
         if (!active && state != State.DONE) {
@@ -160,6 +171,36 @@ object AutoObsidian : Module() {
         updateMainState()
         updateSearchingState()
     }
+
+    private fun updatePlacingPos() {
+        val eyePos = mc.player.getPositionEyes(1f)
+        if (isPositionValid(placingPos, mc.world.getBlockState(placingPos), eyePos)) return
+
+        val posList = VectorUtils.getBlockPosInSphere(eyePos, maxReach.value)
+            .sortedBy { it.distanceSqToCenter(eyePos.x, eyePos.y, eyePos.z) }
+            .map { it to mc.world.getBlockState(it) }
+            .toList()
+
+        val pair = posList.find { it.second.block == Blocks.ENDER_CHEST || it.second.block is BlockShulkerBox }
+            ?: posList.find { isPositionValid(it.first, it.second, eyePos) }
+
+        if (pair != null) {
+            placingPos = pair.first
+            renderer.clear()
+            renderer.add(pair.first, ColorHolder(64, 255, 64))
+        } else {
+            sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
+            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            this.disable()
+        }
+    }
+
+    private fun isPositionValid(pos: BlockPos, blockState: IBlockState, eyePos: Vec3d) =
+        !mc.world.getBlockState(pos.down()).material.isReplaceable
+            && (blockState.block.let { it == Blocks.ENDER_CHEST || it is BlockShulkerBox }
+            || BlockUtils.isPlaceable(pos))
+            && mc.world.isAirBlock(pos.up())
+            && mc.world.rayTraceBlocks(eyePos, pos.toVec3d())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
 
     private fun updateMainState() {
         val obbyCount = countObby()
@@ -284,40 +325,11 @@ object AutoObsidian : Module() {
                 SearchingState.MINING -> mineBlock(placingPos, false)
                 SearchingState.COLLECTING -> collectDroppedItem(shulkerBoxId)
                 SearchingState.DONE -> {
-                    setPlacingPos()
+                    updatePlacingPos()
                 }
             }
         } else {
             searchingState = SearchingState.DONE
-        }
-    }
-
-    private fun setPlacingPos() {
-        val feetPos = mc.player.positionVector.toBlockPos()
-        val eyePos = mc.player.getPositionEyes(1f)
-        var validPos: BlockPos? = null
-
-        for (x in -4..4) {
-            for (y in -4..4) {
-                for (z in -4..4) {
-                    val pos = feetPos.add(x, y, z)
-                    if (eyePos.distanceTo(pos.toVec3d()) > maxReach.value) continue
-
-                    if (mc.world.getBlockState(pos.down()).material.isReplaceable) continue
-                    if (!BlockUtils.isPlaceable(pos) || !BlockUtils.isPlaceable(pos.up())) continue
-
-                    validPos = pos
-                    break
-                }
-            }
-        }
-
-        if (validPos != null) {
-            placingPos = validPos
-        } else {
-            sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
-            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-            this.disable()
         }
     }
 
@@ -409,7 +421,7 @@ object AutoObsidian : Module() {
     }
 
     private fun placeBlock(pos: BlockPos) {
-        val pair = BlockUtils.getNeighbour(pos, 1)
+        val pair = BlockUtils.getNeighbour(pos, 1, 6.5f)
             ?: run {
                 sendChatMessage("Can't find neighbour block")
                 return
