@@ -101,9 +101,9 @@ object AutoObsidian : Module() {
     private var searchingState = SearchingState.PLACING
     private var placingPos = BlockPos(0, -1, 0)
     private var shulkerBoxId = 0
-    private var tickCount = 0
     private var lastHitVec: Vec3d? = null
 
+    private val tickTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
     private val rotateTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
     private val shulkerOpenTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
     private val renderer = ESPRenderer().apply { aFilled = 33; aOutline = 233 }
@@ -122,14 +122,8 @@ object AutoObsidian : Module() {
 
     init {
         listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END || mc.playerController == null) return@listener
-
-            if (tickCount < delayTicks.value) {
-                tickCount++
-                return@listener
-            } else {
-                tickCount = 0
-            }
+            if (it.phase != TickEvent.Phase.END || mc.playerController == null
+                || !tickTimer.tick(delayTicks.value.toLong())) return@listener
 
             updateState()
             when (state) {
@@ -164,23 +158,19 @@ object AutoObsidian : Module() {
             if (state != State.DONE) renderer.render(clear = false, cull = true)
         }
 
-        listener<OnUpdateWalkingPlayerEvent> {
-            if (it.era != KamiEvent.Era.PRE || rotateTimer.tick(20L, false)) return@listener
-            doRotation()
-        }
-    }
+        listener<OnUpdateWalkingPlayerEvent> { event ->
+            if (event.era != KamiEvent.Era.PRE || rotateTimer.tick(20L, false)) return@listener
+            val rotation = lastHitVec?.let { Vec2f(getRotationTo(it, true)) } ?: return@listener
 
-    private fun doRotation() {
-        val rotation = lastHitVec?.let { Vec2f(getRotationTo(it, true)) } ?: return
-
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation )
-                PlayerPacketManager.addPacket(this, packet)
-            }
-            InteractMode.VIEW_LOCK -> {
-                mc.player.rotationYaw = rotation.x
-                mc.player.rotationPitch = rotation.y
+            when (interacting.value) {
+                InteractMode.SPOOF -> {
+                    val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
+                    PlayerPacketManager.addPacket(this, packet)
+                }
+                InteractMode.VIEW_LOCK -> {
+                    mc.player.rotationYaw = rotation.x
+                    mc.player.rotationPitch = rotation.y
+                }
             }
         }
     }
@@ -502,7 +492,6 @@ object AutoObsidian : Module() {
         pathing = false
         searchingState = SearchingState.PLACING
         placingPos = BlockPos(0, -1, 0)
-        tickCount = 0
         lastHitVec = null
     }
 }
