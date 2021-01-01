@@ -11,19 +11,18 @@ import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils
-import me.zeroeightsix.kami.util.BlockUtils
 import me.zeroeightsix.kami.util.InventoryUtils
+import me.zeroeightsix.kami.util.WorldUtils
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
-import me.zeroeightsix.kami.util.math.Vec2d
+import me.zeroeightsix.kami.util.math.Vec2f
+import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
-import me.zeroeightsix.kami.util.math.VectorUtils.getDistance
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
@@ -39,7 +38,10 @@ import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.*
+import net.minecraft.util.math.AxisAlignedBB
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.RayTraceResult
+import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.util.*
@@ -52,7 +54,6 @@ import kotlin.math.sqrt
  * @author Avanatiker
  * @since 20/08/2020
  */
-
 @Module.Info(
         name = "HighwayTools",
         description = "Be the grief a step a head.",
@@ -231,11 +232,10 @@ object HighwayTools : Module() {
 
                 if (baritoneMode.value) {
                     pathing = BaritoneUtils.isPathing
-                    var taskDistance = BlockPos(0, -1, 0)
-                    (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.let { element ->
-                        taskDistance = element.blockPos
-                    }
-                    if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
+                    val taskPos = (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.blockPos
+                        ?: BlockPos(0, -1, 0)
+
+                    if (mc.player.positionVector.distanceTo(taskPos) < maxReach.value ) {
                         if (!isDone()) {
                             if(canDoTask()) {
                                 if (!pathing) adjustPlayerPosition(false)
@@ -475,7 +475,7 @@ object HighwayTools : Module() {
             block == material && block == blockTask.block -> updateTask(blockTask, TaskState.PLACED)
             block == fillerMat && block == blockTask.block -> updateTask(blockTask, TaskState.PLACED)
             else -> {
-                if (!BlockUtils.isPlaceable(blockTask.blockPos)) {
+                if (!WorldUtils.isPlaceable(blockTask.blockPos)) {
 //                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Error: " + blockTask.blockPos + " is not a valid position to place a block, removing task.")
 //                    blockQueue.remove(blockTask)
                     if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Invalid place position: " + blockTask.blockPos)
@@ -746,7 +746,7 @@ object HighwayTools : Module() {
         if (rayTrace == null) return
 
         val facing = rayTrace.sideHit
-        val rotation = RotationUtils.getRotationTo(rayTrace.hitVec, true)
+        val rotation = RotationUtils.getRotationTo(rayTrace.hitVec)
 
         setRotation(rotation)
 
@@ -787,7 +787,7 @@ object HighwayTools : Module() {
         val neighbour = blockTask.blockPos.offset(side)
         val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.5))
 
-        val rotation = RotationUtils.getRotationTo(hitVec, true)
+        val rotation = RotationUtils.getRotationTo(hitVec)
         setRotation(rotation)
 
         Thread {
@@ -806,7 +806,7 @@ object HighwayTools : Module() {
         for (side in EnumFacing.values()) {
             val offPos = blockTask.blockPos.offset(side)
             if (mc.world.getBlockState(offPos).material.isReplaceable) continue
-            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(BlockUtils.getHitVecOffset(side))) > maxReach.value) continue
+            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(WorldUtils.getHitVecOffset(side))) > maxReach.value) continue
             val rotationVector = Vec3d(offPos).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.499))
             val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector, false)?: continue
             if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
@@ -821,8 +821,8 @@ object HighwayTools : Module() {
                 var rayTrace = emergencyHits[0]
                 var shortestRT = 99.0
                 for (rt in emergencyHits) {
-                    if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
-                        shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit)))
+                    if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
+                        shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit)))
                         rayTrace = rt
                     }
                 }
@@ -840,8 +840,8 @@ object HighwayTools : Module() {
         var rayTrace: RayTraceResult? = null
         var shortestRT = 99.0
         for (rt in directHits) {
-            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
-                shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit)))
+            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
+                shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit)))
                 rayTrace = rt
             }
         }
@@ -851,7 +851,7 @@ object HighwayTools : Module() {
         }
 
         val hitVecOffset = rayTrace.hitVec
-        val rotation = RotationUtils.getRotationTo(hitVecOffset, true)
+        val rotation = RotationUtils.getRotationTo(hitVecOffset)
         setRotation(rotation)
 
         Thread {
@@ -864,15 +864,15 @@ object HighwayTools : Module() {
         return true
     }
 
-    private fun setRotation(rotation: Vec2d) {
+    private fun setRotation(rotation: Vec2f) {
         when (interacting.value) {
             InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
+                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x, rotation.y, mc.player.onGround)
                 mc.connection!!.sendPacket(rotationPacket)
             }
             InteractMode.VIEWLOCK -> {
-                mc.player.rotationYaw = rotation.x.toFloat()
-                mc.player.rotationPitch = rotation.y.toFloat()
+                mc.player.rotationYaw = rotation.x
+                mc.player.rotationPitch = rotation.y
             }
             else -> {}
         }
@@ -902,8 +902,8 @@ object HighwayTools : Module() {
             bridge && !buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.51))
             bridge && buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))
         }
-        mc.player.motionX = MathHelper.clamp(vec.x / 2.0, -0.2, 0.2)
-        mc.player.motionZ = MathHelper.clamp(vec.z / 2.0, -0.2, 0.2)
+        mc.player.motionX = (vec.x / 2.0).coerceIn(-0.2, 0.2)
+        mc.player.motionZ = (vec.z / 2.0).coerceIn(-0.2, 0.2)
     }
 
     private fun getQueue(): List<String> {
@@ -958,7 +958,7 @@ object HighwayTools : Module() {
                     "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
                 )
 
-                if (baritoneMode.value) append("\n    §9> §7Distance: §a${getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()}§r")
+                if (baritoneMode.value) append("\n    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
 
                 sendChatMessage(toString())
             }
@@ -999,7 +999,7 @@ object HighwayTools : Module() {
         val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2,'0')
         val hours = (runtimeSec / 3600).toInt().toString().padStart(2,'0')
 
-        val distanceDone = getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()
+        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt()
 
         val secLeft = runtimeSec / (distanceDone * pavingLeftAll + 0.0001)
         val secondsLeft = (secLeft % 60).toInt().toString().padStart(2,'0')
@@ -1011,7 +1011,7 @@ object HighwayTools : Module() {
             "    §7Runtime: §9$hours:$minutes:$seconds",
             "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
             "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
-            "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
+            "    §7Distance per hour: §9%.2f".format((startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec) * 60 * 60),
             "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
             "§rEnvironment",
             "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
@@ -1325,7 +1325,7 @@ object HighwayTools : Module() {
             override fun compare(a: BlockTask, b: BlockTask): Int = when {
                 a.taskState.ordinal != b.taskState.ordinal -> a.taskState.ordinal - b.taskState.ordinal
                 a.taskState.ordinal == b.taskState.ordinal && stuckManager.stuckLevel != StuckLevel.NONE -> a.taskState.ordinal - b.taskState.ordinal
-                else -> getDistance(mc.player.positionVector, a.blockPos.toVec3d()).toInt() - getDistance(mc.player.positionVector, b.blockPos.toVec3d()).toInt()
+                else -> (mc.player.distanceTo(a.blockPos) - mc.player.distanceTo(b.blockPos)).toInt()
             }
         }
     }
