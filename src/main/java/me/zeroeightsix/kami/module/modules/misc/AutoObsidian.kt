@@ -7,7 +7,6 @@ import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
-import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
@@ -28,7 +27,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
 import kotlin.math.ceil
-import kotlin.math.floor
 
 
 @Module.Info(
@@ -46,7 +44,6 @@ object AutoObsidian : Module() {
     private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { fillMode.value == FillMode.TARGET_STACKS })
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
-    private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
 
     private enum class FillMode(override val displayName: String) : DisplayEnum {
@@ -80,12 +77,6 @@ object AutoObsidian : Module() {
         VIEW_LOCK("View Lock")
     }
 
-    private enum class AutoCenterMode(override val displayName: String) : DisplayEnum {
-        OFF("Off"),
-        TP("Teleport"),
-        MOTION("Motion")
-    }
-
     private enum class ItemID(val id: Int) {
         OBSIDIAN(49),
         ENDER_CHEST(130),
@@ -98,7 +89,6 @@ object AutoObsidian : Module() {
 
     private var active = false
     private var searchingState = SearchingState.PLACING
-    private var playerPos = BlockPos(0, -1, 0)
     private var placingPos = BlockPos(0, -1, 0)
     private var shulkerBoxId = 0
     private var tickCount = 0
@@ -159,26 +149,13 @@ object AutoObsidian : Module() {
     }
 
     private fun updateState() {
-        val currentPos = BlockPos(floor(mc.player.posX).toInt(), floor(mc.player.posY).toInt(), floor(mc.player.posZ).toInt())
         if (state != State.DONE && placingPos.y == -1) {
-            playerPos = currentPos
             setPlacingPos()
         }
 
         if (!active && state != State.DONE) {
             active = true
             BaritoneUtils.primary?.pathingControlManager?.registerProcess(AutoObsidianProcess)
-        }
-
-        /* Tell baritone to get you back to position */
-        if (state != State.DONE && state != State.COLLECTING && searchingState != SearchingState.COLLECTING) {
-            if (currentPos.x != playerPos.x || currentPos.z != playerPos.z) {
-                pathing = true
-                goal = playerPos
-                return
-            } else {
-                pathing = false
-            }
         }
 
         updateMainState()
@@ -215,6 +192,16 @@ object AutoObsidian : Module() {
                 state
             }
         }
+    }
+
+    /**
+     * Check if we can pick up more obsidian:
+     * There must be at least one slot which is either empty, or contains a stack of obsidian less than 64
+     */
+    private fun canPickUpObsidian(): Boolean {
+        return mc.player?.inventory?.mainInventory?.any {
+            it.isEmpty || it.item.id == ItemID.OBSIDIAN.id && it.count < 64
+        } ?: false
     }
 
     /**
@@ -289,16 +276,6 @@ object AutoObsidian : Module() {
         }
     }
 
-    /**
-     * Check if we can pick up more obsidian:
-     * There must be at least one slot which is either empty, or contains a stack of obsidian less than 64
-     */
-    private fun canPickUpObsidian(): Boolean {
-        return mc.player?.inventory?.mainInventory?.any {
-            it.isEmpty || it.item.id == ItemID.OBSIDIAN.id && it.count < 64
-        } ?: false
-    }
-
     private fun searchingState() {
         if (searchShulker.value) {
             when (searchingState) {
@@ -308,10 +285,6 @@ object AutoObsidian : Module() {
                 SearchingState.MINING -> mineBlock(placingPos, false)
                 SearchingState.COLLECTING -> collectDroppedItem(shulkerBoxId)
                 SearchingState.DONE -> {
-                    /* Positions need to be updated after moving while collecting dropped shulker box */
-                    val currentPos = BlockPos(floor(mc.player.posX).toInt(), floor(mc.player.posY).toInt(), floor(mc.player.posZ).toInt())
-                    playerPos = currentPos
-                    centerPlayer()
                     setPlacingPos()
                 }
             }
@@ -505,19 +478,10 @@ object AutoObsidian : Module() {
         } else false
     }
 
-    private fun centerPlayer(): Boolean {
-        return if (autoCenter.value == AutoCenterMode.OFF) {
-            true
-        } else {
-            SurroundUtils.centerPlayer(autoCenter.value == AutoCenterMode.TP)
-        }
-    }
-
     private fun reset() {
         active = false
         pathing = false
         searchingState = SearchingState.PLACING
-        playerPos = BlockPos(0, -1, 0)
         placingPos = BlockPos(0, -1, 0)
         tickCount = 0
     }
