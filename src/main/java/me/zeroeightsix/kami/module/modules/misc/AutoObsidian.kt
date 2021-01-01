@@ -5,14 +5,11 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.BaritoneUtils
+import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.BlockUtils.getHitVecOffset
 import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
-import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
-import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.combat.SurroundUtils
-import me.zeroeightsix.kami.util.id
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.BlockShulkerBox
@@ -382,13 +379,15 @@ object AutoObsidian : Module() {
                         break
                     }
                 }
-                if (enderChestSlot != -1) {
-                    mc.playerController.windowClick(currentContainer.windowId, enderChestSlot, 0, ClickType.QUICK_MOVE, mc.player)
-                    mc.player.closeScreen()
-                } else {
-                    sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
-                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    this.disable()
+                onMainThreadSafe {
+                    if (enderChestSlot != -1) {
+                        playerController.windowClick(currentContainer.windowId, enderChestSlot, 0, ClickType.QUICK_MOVE, Companion.mc.player)
+                        player.closeScreen()
+                    } else {
+                        sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
+                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                        disable()
+                    }
                 }
             }.start()
         } else {
