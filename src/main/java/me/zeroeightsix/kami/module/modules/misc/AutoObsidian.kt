@@ -6,11 +6,11 @@ import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
-import me.zeroeightsix.kami.util.BlockUtils.getHitVecOffset
 import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.client.audio.PositionedSoundRecord
@@ -419,7 +419,7 @@ object AutoObsidian : Module() {
                 Thread {
                     Thread.sleep(delayTicks.value * 25L)
                     val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-                    mc.connection!!.sendPacket(placePacket)
+                    mc.connection?.sendPacket(placePacket)
                     mc.player.swingArm(EnumHand.MAIN_HAND)
                     if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
                 }.start()
@@ -428,36 +428,28 @@ object AutoObsidian : Module() {
     }
 
     private fun placeBlock(pos: BlockPos) {
-        val rayTraces = mutableListOf<RayTraceResult>()
+        val results = mutableListOf<RayTraceResult>()
+        val eyePos = mc.player.getPositionEyes(1f)
+
         for (side in EnumFacing.values()) {
             val offPos = pos.offset(side)
             if (mc.world.getBlockState(offPos).material.isReplaceable) continue
-            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(getHitVecOffset(side))) > maxReach.value) continue
-            val rotationVector = Vec3d(offPos).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.499))
-            val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector) ?: continue
-            if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
-            if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == pos) {
-                rayTraces.add(rt)
+
+            val hitVec = offPos.toVec3d().add(Vec3d(side.opposite.directionVec).scale(0.499))
+            if (eyePos.distanceTo(hitVec) > maxReach.value) continue
+
+            val rayTraceResult = mc.world.rayTraceBlocks(eyePos, hitVec) ?: continue
+            if (rayTraceResult.typeOfHit != RayTraceResult.Type.BLOCK) continue
+            if (rayTraceResult.blockPos == offPos && offPos.offset(rayTraceResult.sideHit) == pos) {
+                results.add(rayTraceResult)
             }
-        }
-        if (rayTraces.size == 0) {
-            sendChatMessage("Position: $pos not available")
-            // placeBlockWall(pos, mat)
-            return
         }
 
-        var rayTrace: RayTraceResult? = null
-        var shortestRT = 99.0
-        for (rt in rayTraces) {
-            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(getHitVecOffset(rt.sideHit))) < shortestRT) {
-                shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(getHitVecOffset(rt.sideHit)))
-                rayTrace = rt
+        val rayTrace = results.minByOrNull { eyePos.distanceTo(it.hitVec) }
+            ?: run {
+                sendChatMessage("Can't find any vector?")
+                return
             }
-        }
-        if (rayTrace == null) {
-            sendChatMessage("Can't find any vector?")
-            return
-        }
 
         rotation(rayTrace.hitVec)
         val hitVecOffset = rayTrace.hitVec.subtract(Vec3d(rayTrace.blockPos))
@@ -465,7 +457,7 @@ object AutoObsidian : Module() {
         Thread {
             Thread.sleep(delayTicks.value * 25L)
             val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-            mc.connection!!.sendPacket(placePacket)
+            mc.connection?.sendPacket(placePacket)
             mc.player.swingArm(EnumHand.MAIN_HAND)
             if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
         }.start()
@@ -509,10 +501,10 @@ object AutoObsidian : Module() {
         Thread {
             Thread.sleep(delayTicks.value * 25L)
             if (pre) {
-                mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, facing))
+                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, facing))
                 if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
             } else {
-                mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, facing))
+                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, facing))
             }
             mc.player.swingArm(EnumHand.MAIN_HAND)
         }.start()
@@ -524,7 +516,7 @@ object AutoObsidian : Module() {
         when (interacting.value) {
             InteractMode.SPOOF -> {
                 val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                mc.connection!!.sendPacket(rotationPacket)
+                mc.connection?.sendPacket(rotationPacket)
             }
             InteractMode.VIEWLOCK -> {
                 mc.player.rotationYaw = rotation.x.toFloat()
