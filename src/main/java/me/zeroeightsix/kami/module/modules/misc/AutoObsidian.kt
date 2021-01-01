@@ -4,7 +4,7 @@ import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import me.zeroeightsix.kami.event.KamiEvent
+import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
@@ -14,15 +14,16 @@ import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
-import me.zeroeightsix.kami.util.BlockUtils.placeBlock
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
+import me.zeroeightsix.kami.util.WorldUtils.placeBlock
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
-import me.zeroeightsix.kami.util.math.Vec2f
 import me.zeroeightsix.kami.util.math.VectorUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
+import me.zeroeightsix.kami.util.threads.defaultScope
+import me.zeroeightsix.kami.util.threads.onMainThreadSafe
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
@@ -105,9 +106,9 @@ object AutoObsidian : Module() {
     private var shulkerBoxId = 0
     private var lastHitVec: Vec3d? = null
 
-    private val tickTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
-    private val rotateTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
-    private val shulkerOpenTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
+    private val tickTimer = TickTimer(TimeUnit.TICKS)
+    private val rotateTimer = TickTimer(TimeUnit.TICKS)
+    private val shulkerOpenTimer = TickTimer(TimeUnit.TICKS)
     private val renderer = ESPRenderer().apply { aFilled = 33; aOutline = 233 }
 
     override fun isActive(): Boolean {
@@ -161,8 +162,8 @@ object AutoObsidian : Module() {
         }
 
         listener<OnUpdateWalkingPlayerEvent> { event ->
-            if (event.era != KamiEvent.Era.PRE || rotateTimer.tick(20L, false)) return@listener
-            val rotation = lastHitVec?.let { Vec2f(getRotationTo(it, true)) } ?: return@listener
+            if (event.phase != Phase.PRE || rotateTimer.tick(20L, false)) return@listener
+            val rotation = lastHitVec?.let { getRotationTo(it) } ?: return@listener
 
             when (interacting.value) {
                 InteractMode.SPOOF -> {
@@ -228,7 +229,7 @@ object AutoObsidian : Module() {
     private fun isPositionValid(pos: BlockPos, blockState: IBlockState, eyePos: Vec3d) =
         !mc.world.getBlockState(pos.down()).material.isReplaceable
             && (blockState.block.let { it == Blocks.ENDER_CHEST || it is BlockShulkerBox }
-            || BlockUtils.isPlaceable(pos))
+            || WorldUtils.isPlaceable(pos))
             && mc.world.isAirBlock(pos.up())
             && mc.world.rayTraceBlocks(eyePos, pos.toVec3d())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
 
@@ -429,14 +430,13 @@ object AutoObsidian : Module() {
             }
         } else {
             val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
-            val hitVecOffset = BlockUtils.getHitVecOffset(side)
+            val hitVecOffset = WorldUtils.getHitVecOffset(side)
 
-            lastHitVec = BlockUtils.getHitVec(pos, side)
+            lastHitVec = WorldUtils.getHitVec(pos, side)
             rotateTimer.reset()
 
             if (shulkerOpenTimer.tick(50)) {
-                // TODO: Replace with defaultScope later
-                moduleScope.launch {
+                defaultScope.launch {
                     delay(10L)
                     onMainThreadSafe {
                         connection.sendPacket(CPacketPlayerTryUseItemOnBlock(pos, side, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat()))
@@ -448,19 +448,18 @@ object AutoObsidian : Module() {
     }
 
     private fun placeBlock(pos: BlockPos) {
-        val pair = BlockUtils.getNeighbour(pos, 1, 6.5f)
+        val pair = WorldUtils.getNeighbour(pos, 1, 6.5f)
             ?: run {
                 sendChatMessage("Can't find neighbour block")
                 return
             }
 
-        lastHitVec = BlockUtils.getHitVec(pair.second, pair.first)
+        lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
         rotateTimer.reset()
 
         mc.connection?.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
 
-        // TODO: Replace with defaultScope later
-        moduleScope.launch {
+        defaultScope.launch {
             delay(10L)
             onMainThreadSafe {
                 placeBlock(pair.second, pair.first)
@@ -486,11 +485,10 @@ object AutoObsidian : Module() {
         }
 
         val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
-        lastHitVec = BlockUtils.getHitVec(pos, side)
+        lastHitVec = WorldUtils.getHitVec(pos, side)
         rotateTimer.reset()
 
-        // TODO: Replace with defaultScope later
-        moduleScope.launch {
+        defaultScope.launch {
             delay(5L)
             onMainThreadSafe {
                 if (pre) {
