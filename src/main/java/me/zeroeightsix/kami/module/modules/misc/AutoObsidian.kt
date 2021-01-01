@@ -461,15 +461,13 @@ object AutoObsidian : Module() {
         }
     }
 
-    private fun mineBlock(pos: BlockPos, pre: Boolean): Boolean {
+    private fun mineBlock(pos: BlockPos, pre: Boolean) {
         if (pre) {
             if (InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) != null) {
                 InventoryUtils.moveToHotbar(ItemID.DIAMOND_PICKAXE.id, ItemID.ENDER_CHEST.id)
-                return false
             } else if (InventoryUtils.getSlots(0, 35, ItemID.DIAMOND_PICKAXE.id) == null) {
                 sendChatMessage("No pickaxe was found in inventory.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                return false
             }
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
@@ -491,7 +489,6 @@ object AutoObsidian : Module() {
                 player.swingArm(EnumHand.MAIN_HAND)
             }
         }
-        return true
     }
 
     private fun collectDroppedItem(itemId: Int) {
