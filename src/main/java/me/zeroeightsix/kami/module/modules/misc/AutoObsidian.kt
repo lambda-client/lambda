@@ -56,7 +56,7 @@ object AutoObsidian : Module() {
     private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && fillMode.value != FillMode.INFINITE })
     private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { fillMode.value == FillMode.TARGET_STACKS })
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
-    private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
+    private val interacting = register(Settings.e<InteractMode>("InteractMode", InteractMode.SPOOF))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(2.0f, 6.0f).withStep(0.1f))
 
     private enum class FillMode(override val displayName: String, val message: String) : DisplayEnum {
@@ -164,7 +164,7 @@ object AutoObsidian : Module() {
             if (event.era != KamiEvent.Era.PRE || rotateTimer.tick(20L, false)) return@listener
             val rotation = lastHitVec?.let { Vec2f(getRotationTo(it, true)) } ?: return@listener
 
-            when (interacting.value) {
+            when (interacting.value!!) {
                 InteractMode.SPOOF -> {
                     val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
                     PlayerPacketManager.addPacket(this, packet)
@@ -340,11 +340,21 @@ object AutoObsidian : Module() {
     private fun searchingState() {
         if (searchShulker.value) {
             when (searchingState) {
-                SearchingState.PLACING -> placeShulker(placingPos)
-                SearchingState.OPENING -> openShulker(placingPos)
-                SearchingState.PRE_MINING -> mineBlock(placingPos, true)
-                SearchingState.MINING -> mineBlock(placingPos, false)
-                SearchingState.COLLECTING -> collectDroppedItem(shulkerBoxId)
+                SearchingState.PLACING -> {
+                    placeShulker(placingPos)
+                }
+                SearchingState.OPENING -> {
+                    openShulker(placingPos)
+                }
+                SearchingState.PRE_MINING -> {
+                    mineBlock(placingPos, true)
+                }
+                SearchingState.MINING -> {
+                    mineBlock(placingPos, false)
+                }
+                SearchingState.COLLECTING -> {
+                    collectDroppedItem(shulkerBoxId)
+                }
                 SearchingState.DONE -> {
                     updatePlacingPos()
                 }
@@ -493,10 +503,10 @@ object AutoObsidian : Module() {
 
     private fun collectDroppedItem(itemId: Int) {
         goal = if (getDroppedItem(itemId, 16.0f) != null) {
-             GoalNear(getDroppedItem(itemId, 16.0f), 0)
-         } else {
-             null
-         }
+            GoalNear(getDroppedItem(itemId, 16.0f), 0)
+        } else {
+            null
+        }
     }
 
     private fun reset() {
