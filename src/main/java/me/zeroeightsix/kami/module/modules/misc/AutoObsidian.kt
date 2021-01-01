@@ -1,5 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.KamiEvent
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
@@ -10,6 +12,7 @@ import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.BlockUtils.placeBlock
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
@@ -25,6 +28,7 @@ import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
+import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
@@ -395,28 +399,17 @@ object AutoObsidian : Module() {
 
     private fun openShulker(pos: BlockPos) {
         if (mc.currentScreen is GuiShulkerBox) {
-            Thread {
-                /* Extra delay here to wait for the item list to be loaded */
-                Thread.sleep(delayTicks.value * 50L)
-                val currentContainer = mc.player.openContainer
-                var enderChestSlot = -1
-                for (i in 0..26) {
-                    if (currentContainer.inventory[i].item.id == ItemID.ENDER_CHEST.id) {
-                        enderChestSlot = i
-                        break
-                    }
-                }
-                onMainThreadSafe {
-                    if (enderChestSlot != -1) {
-                        playerController.windowClick(currentContainer.windowId, enderChestSlot, 0, ClickType.QUICK_MOVE, Companion.mc.player)
-                        player.closeScreen()
-                    } else {
-                        sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
-                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                        disable()
-                    }
-                }
-            }.start()
+            val container = mc.player.openContainer
+            val slot = container.inventory.subList(0, 27).indexOfFirst { it.item.id == ItemID.OBSIDIAN.id }
+
+            if (slot != -1) {
+                InventoryUtils.inventoryClick(container.windowId, slot, 0, ClickType.QUICK_MOVE)
+                mc.player.closeScreen()
+            } else {
+                sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                disable()
+            }
         } else {
             val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
             val hitVecOffset = BlockUtils.getHitVecOffset(side)
@@ -427,13 +420,15 @@ object AutoObsidian : Module() {
             /* Added a delay here so it doesn't spam right click and get you kicked */
             if (System.currentTimeMillis() >= openTime + 2000L) {
                 openTime = System.currentTimeMillis()
-                Thread {
-                    Thread.sleep(delayTicks.value * 25L)
-                    val placePacket = CPacketPlayerTryUseItemOnBlock(pos, side, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-                    mc.connection?.sendPacket(placePacket)
-                    mc.player.swingArm(EnumHand.MAIN_HAND)
-                    if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
-                }.start()
+
+                // TODO: Replace with defaultScope later
+                moduleScope.launch {
+                    delay(10L)
+                    onMainThreadSafe {
+                        connection.sendPacket(CPacketPlayerTryUseItemOnBlock(pos, side, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat()))
+                        player.swingArm(EnumHand.MAIN_HAND)
+                    }
+                }
             }
         }
     }
@@ -445,17 +440,24 @@ object AutoObsidian : Module() {
                 return
             }
 
-        val hitVecOffset = BlockUtils.getHitVecOffset(pair.first)
         lastHitVec = BlockUtils.getHitVec(pair.second, pair.first)
         rotateTimer.reset()
 
-        Thread {
-            Thread.sleep(delayTicks.value * 25L)
-            val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-            mc.connection?.sendPacket(placePacket)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-            if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
-        }.start()
+        mc.connection?.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
+
+        // TODO: Replace with defaultScope later
+        moduleScope.launch {
+            delay(10L)
+            onMainThreadSafe {
+                placeBlock(pair.second, pair.first)
+                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
+            }
+
+            delay(10L)
+            onMainThreadSafe {
+                connection.sendPacket(CPacketEntityAction(Companion.mc.player, CPacketEntityAction.Action.STOP_SNEAKING))
+            }
+        }
     }
 
     private fun mineBlock(pos: BlockPos, pre: Boolean): Boolean {
@@ -475,18 +477,19 @@ object AutoObsidian : Module() {
         lastHitVec = BlockUtils.getHitVec(pos, side)
         rotateTimer.reset()
 
-        Thread {
-            Thread.sleep(delayTicks.value * 25L)
-
-            if (pre) {
-                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
-                if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
-            } else {
-                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
+        // TODO: Replace with defaultScope later
+        moduleScope.launch {
+            delay(5L)
+            onMainThreadSafe {
+                if (pre) {
+                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
+                    if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
+                } else {
+                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
+                }
+                player.swingArm(EnumHand.MAIN_HAND)
             }
-
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-        }.start()
+        }
         return true
     }
 
