@@ -25,6 +25,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -48,41 +49,41 @@ object AutoObsidian : Module() {
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
 
-    private enum class Mode {
-        TARGET_STACKS,
-        INFINITE,
-        FILL_INVENTORY
+    private enum class Mode(override val displayName: String) : DisplayEnum {
+        TARGET_STACKS("Target stacks"),
+        INFINITE("Infinite"),
+        FILL_INVENTORY("Fill inventory")
     }
 
-    enum class State {
-        SEARCHING,
-        PLACING,
-        PRE_MINING,
-        MINING,
-        COLLECTING,
-        DONE
+    enum class State(override val displayName: String) : DisplayEnum {
+        SEARCHING("Searching"),
+        PLACING("Placing"),
+        PRE_MINING("Pre mining"),
+        MINING("Mining"),
+        COLLECTING("Collecting"),
+        DONE("Done")
     }
 
-    private enum class SearchingState {
-        PLACING,
-        OPENING,
-        PRE_MINING,
-        MINING,
-        COLLECTING,
-        DONE
+    private enum class SearchingState(override val displayName: String) : DisplayEnum {
+        PLACING("SearchingState"),
+        OPENING("Opening"),
+        PRE_MINING("Pre mining"),
+        MINING("Mining"),
+        COLLECTING("Collecting"),
+        DONE("Done")
     }
 
     @Suppress("UNUSED")
-    private enum class InteractMode {
-        OFF,
-        SPOOF,
-        VIEWLOCK
+    private enum class InteractMode(override val displayName: String) : DisplayEnum {
+        OFF("Off"),
+        SPOOF("Spoof"),
+        VIEW_LOCK("View Lock")
     }
 
-    private enum class AutoCenterMode {
-        OFF,
-        TP,
-        MOTION
+    private enum class AutoCenterMode(override val displayName: String) : DisplayEnum {
+        OFF("Off"),
+        TP("Teleport"),
+        MOTION("Motion")
     }
 
     private enum class ItemID(val id: Int) {
@@ -462,7 +463,7 @@ object AutoObsidian : Module() {
                 val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
                 mc.connection?.sendPacket(rotationPacket)
             }
-            InteractMode.VIEWLOCK -> {
+            InteractMode.VIEW_LOCK -> {
                 mc.player.rotationYaw = rotation.x.toFloat()
                 mc.player.rotationPitch = rotation.y.toFloat()
             }
