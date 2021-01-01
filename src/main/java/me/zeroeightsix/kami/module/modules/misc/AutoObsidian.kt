@@ -28,6 +28,7 @@ import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
+import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
 import net.minecraft.network.play.client.CPacketEntityAction
@@ -354,18 +355,22 @@ object AutoObsidian : Module() {
     }
 
     private fun placeShulker(pos: BlockPos) {
-        for (i in 219..234) {
-            if (InventoryUtils.getSlotsHotbar(i) == null) {
-                if (i != 234) continue else {
-                    sendChatMessage("$chatName No shulker box was found in hotbar, disabling.")
-                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    this.disable()
-                    return
+        if (InventoryUtils.getSlotsHotbar(shulkerBoxId) == null && InventoryUtils.getSlotsNoHotbar(shulkerBoxId) != null) {
+            InventoryUtils.moveToHotbar(shulkerBoxId, Items.DIAMOND_PICKAXE.id)
+        } else {
+            for (i in 219..234) {
+                if (InventoryUtils.getSlotsHotbar(i) == null) {
+                    if (i == 234) {
+                        sendChatMessage("$chatName No shulker box was found in hotbar, disabling.")
+                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                        this.disable()
+                    }
+                    continue
                 }
+                shulkerBoxId = i
+                InventoryUtils.swapSlotToItem(i)
+                break
             }
-            shulkerBoxId = i
-            InventoryUtils.swapSlotToItem(i)
-            break
         }
 
         if (mc.world.getBlockState(pos).block !is BlockShulkerBox) {
