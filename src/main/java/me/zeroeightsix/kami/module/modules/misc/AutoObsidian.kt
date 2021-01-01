@@ -41,8 +41,6 @@ import org.kamiblue.event.listener.listener
 )
 object AutoObsidian : Module() {
     private val fillMode = register(Settings.e<FillMode>("FillMode", FillMode.TARGET_STACKS))
-    private val modeExitStrings = mapOf(FillMode.FILL_INVENTORY to "Inventory filled", FillMode.TARGET_STACKS to "Target Stacks Reached")
-
     private val searchShulker = register(Settings.b("SearchShulker", false))
     private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { fillMode.value != FillMode.INFINITE })
     private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && fillMode.value != FillMode.INFINITE })
@@ -51,10 +49,10 @@ object AutoObsidian : Module() {
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
 
-    private enum class FillMode(override val displayName: String) : DisplayEnum {
-        TARGET_STACKS("Target stacks"),
-        FILL_INVENTORY("Fill inventory"),
-        INFINITE("Infinite")
+    private enum class FillMode(override val displayName: String, val message: String) : DisplayEnum {
+        TARGET_STACKS("Target stacks", "Target Stacks Reached"),
+        FILL_INVENTORY("Fill inventory", "Inventory filled"),
+        INFINITE("Infinite", "")
     }
 
     enum class State(override val displayName: String) : DisplayEnum {
@@ -143,10 +141,10 @@ object AutoObsidian : Module() {
                 }
                 State.DONE -> {
                     if (!autoRefill.value) {
-                        sendChatMessage("$chatName ".plus(modeExitStrings[fillMode.value]).plus(", disabling."))
+                        sendChatMessage("$chatName ${fillMode.value.message}, disabling.")
                         this.disable()
                     } else {
-                        if (active) sendChatMessage("$chatName ".plus(modeExitStrings[fillMode.value]).plus(", stopping."))
+                        if (active) sendChatMessage("$chatName ${fillMode.value.message}, stopping.")
                         reset()
                     }
                 }
