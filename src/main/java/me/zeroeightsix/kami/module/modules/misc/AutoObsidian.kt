@@ -8,9 +8,11 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BlockUtils.getHitVecOffset
 import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
+import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.combat.SurroundUtils
+import me.zeroeightsix.kami.util.id
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.BlockShulkerBox
@@ -32,7 +34,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.min
 
 
 @Module.Info(
@@ -91,7 +92,6 @@ object AutoObsidian : Module() {
     }
 
     private enum class ItemID(val id: Int) {
-        AIR(0),
         OBSIDIAN(49),
         ENDER_CHEST(130),
         DIAMOND_PICKAXE(278)
@@ -106,9 +106,6 @@ object AutoObsidian : Module() {
     private var playerPos = BlockPos(0, -1, 0)
     private var placingPos = BlockPos(0, -1, 0)
     private var shulkerBoxId = 0
-    private var enderChestCount = -1
-    private var maxEnderChests = -1 /* The number of ender chests required to completely fill an inventory */
-    private var obsidianCount = -1
     private var tickCount = 0
     private var openTime = 0L
 
@@ -121,67 +118,49 @@ object AutoObsidian : Module() {
         state = State.SEARCHING
     }
 
-    init {
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) {
-                if (mc.playerController == null) return@listener
-
-                if (tickCount < delayTicks.value) {
-                    tickCount++
-                    return@listener
-                } else tickCount = 0
-
-                updateState()
-                when (state) {
-
-                    /* Searching states */
-                    State.SEARCHING -> {
-                        if (searchShulker.value) {
-                            when (searchingState) {
-                                SearchingState.PLACING -> placeShulker(placingPos)
-                                SearchingState.OPENING -> openShulker(placingPos)
-                                SearchingState.PRE_MINING -> mineBlock(placingPos, true)
-                                SearchingState.MINING -> mineBlock(placingPos, false)
-                                SearchingState.COLLECTING -> collectDroppedItem(shulkerBoxId)
-                                SearchingState.DONE -> {
-                                    /* Positions need to be updated after moving while collecting dropped shulker box */
-                                    val currentPos = BlockPos(floor(mc.player.posX).toInt(), floor(mc.player.posY).toInt(), floor(mc.player.posZ).toInt())
-                                    playerPos = currentPos
-                                    centerPlayer()
-                                    setPlacingPos()
-                                }
-                            }
-                        } else searchingState = SearchingState.DONE
-                    }
-
-                    /* Main states */
-                    State.PLACING -> placeEnderChest(placingPos)
-                    State.PRE_MINING -> mineBlock(placingPos, true)
-                    State.MINING -> mineBlock(placingPos, false)
-                    State.COLLECTING -> collectDroppedItem(ItemID.OBSIDIAN.id)
-                    State.DONE -> {
-                        if (!autoRefill.value) {
-                            sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", disabling."))
-                            this.disable()
-                        } else {
-                            if (active) sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", stopping."))
-                            reset()
-                        }
-                    }
-                }
-            } else {
-                return@listener
-            }
-        }
+    override fun onDisable() {
+        reset()
     }
 
-    override fun onDisable() {
-        BaritoneUtils.primary?.pathingControlManager?.mostRecentInControl()?.let {
-            if (it.isPresent && it.get() == AutoObsidianProcess) {
-                it.get().onLostControl()
+    init {
+        listener<SafeTickEvent> {
+            if (it.phase != TickEvent.Phase.END || mc.playerController == null) return@listener
+
+            if (tickCount < delayTicks.value) {
+                tickCount++
+                return@listener
+            } else {
+                tickCount = 0
+            }
+
+            updateState()
+            when (state) {
+                State.SEARCHING -> {
+                    searchingState()
+                }
+                State.PLACING -> {
+                    placeEnderChest(placingPos)
+                }
+                State.PRE_MINING -> {
+                    mineBlock(placingPos, true)
+                }
+                State.MINING -> {
+                    mineBlock(placingPos, false)
+                }
+                State.COLLECTING -> {
+                    collectDroppedItem(ItemID.OBSIDIAN.id)
+                }
+                State.DONE -> {
+                    if (!autoRefill.value) {
+                        sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", disabling."))
+                        this.disable()
+                    } else {
+                        if (active) sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", stopping."))
+                        reset()
+                    }
+                }
             }
         }
-        reset()
     }
 
     private fun updateState() {
@@ -207,117 +186,115 @@ object AutoObsidian : Module() {
             }
         }
 
-        /* Updates ender chest and obsidian counts before placing and mining ender chest */
-        if (state == State.SEARCHING) {
-            enderChestCount = InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
-            maxEnderChests = maxPossibleEnderChests()
-            obsidianCount = countObsidian()
-        }
+        updateMainState()
+        updateSearchingState()
+    }
 
-        /* Updates main state */
-        val placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
-        var targetEnderChest = -1
-        when (mode.value) {
-            Mode.TARGET_STACKS -> {
-                targetEnderChest = min((targetStacks.value * 64 - obsidianCount) / 8, maxEnderChests)
-            }
-            Mode.FILL_INVENTORY -> {
-                targetEnderChest = maxEnderChests
-            }
-            else -> {
-            }
-        }
+    private fun updateMainState() {
+        val obbyCount = countObby()
 
         state = when {
-            (!canPickUpObsidian() && mode.value != Mode.INFINITE) -> State.DONE /* Never transition to done when in INFINITE mode */
-            state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> State.SEARCHING
-            state == State.COLLECTING && getDroppedItem(ItemID.OBSIDIAN.id, 16.0f) == null -> State.DONE
-            state != State.DONE && mc.world.isAirBlock(placingPos) && placedEnderChest >= targetEnderChest && mode.value != Mode.INFINITE -> State.COLLECTING
-            state == State.MINING && mc.world.isAirBlock(placingPos) -> State.PLACING
-            state == State.PLACING && !mc.world.isAirBlock(placingPos) -> State.PRE_MINING
-            state == State.SEARCHING && searchingState == SearchingState.DONE && (placedEnderChest < targetEnderChest || mode.value == Mode.INFINITE) -> State.PLACING
-            else -> state
+            (!canPickUpObsidian() && mode.value != Mode.INFINITE) -> {
+                State.DONE /* Never transition to done when in INFINITE mode */
+            }
+            state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> {
+                State.SEARCHING
+            }
+            state == State.COLLECTING && getDroppedItem(ItemID.OBSIDIAN.id, 8.0f) == null -> {
+                State.DONE
+            }
+            state != State.DONE && mc.world.isAirBlock(placingPos) && mode.value != Mode.INFINITE && obbyCount >= targetStacks.value -> {
+                State.COLLECTING
+            }
+            state == State.MINING && mc.world.isAirBlock(placingPos) -> {
+                State.PLACING
+            }
+            state == State.PLACING && !mc.world.isAirBlock(placingPos) -> {
+                State.PRE_MINING
+            }
+            state == State.SEARCHING && searchingState == SearchingState.DONE && (mode.value == Mode.INFINITE || obbyCount < targetStacks.value) -> {
+                State.PLACING
+            }
+            else -> {
+                state
+            }
         }
+    }
 
+    private fun countObby(): Int {
+        val inventory = InventoryUtils.countItemAll(49)
+        val dropped = EntityUtils.getDroppedItems(49, 8.0f).sumBy { it.item.count }
+        return ceil((inventory + dropped) / 8.0f).toInt() / 8
+    }
+
+    private fun updateSearchingState() {
         /* Updates searching state */
         if (state == State.SEARCHING && searchingState != SearchingState.DONE) {
             searchingState = when {
-                searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0 -> SearchingState.DONE
-                searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 16.0f) == null -> SearchingState.DONE
+                searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0 -> {
+                    SearchingState.DONE
+                }
+                searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 8.0f) == null -> {
+                    SearchingState.DONE
+                }
                 searchingState == SearchingState.MINING && mc.world.isAirBlock(placingPos) -> {
                     if (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0) {
                         SearchingState.COLLECTING
-                    } else { /* In case if the shulker wasn't placed due to server lag */
+                    } else {
+                        // In case if the shulker wasn't placed due to server lag
                         SearchingState.PLACING
                     }
                 }
-                searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) >= 64 || InventoryUtils.getSlots(0, 35, 0) == null) -> SearchingState.PRE_MINING
+                searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) >= 64
+                    || InventoryUtils.getSlots(0, 35, 0) == null) -> {
+                    SearchingState.PRE_MINING
+                }
                 searchingState == SearchingState.PLACING && !mc.world.isAirBlock(placingPos) -> {
                     if (mc.world.getBlockState(placingPos).block is BlockShulkerBox) {
                         SearchingState.OPENING
-                    } else { /* In case if the shulker wasn't placed due to server lag */
+                    } else {
+                        // In case if the shulker wasn't placed due to server lag
                         SearchingState.PRE_MINING
                     }
                 }
-                else -> searchingState
-            }
-        } else if (state != State.SEARCHING) searchingState = SearchingState.PLACING
-
-    }
-
-    /*
-        Calculate the maximum possible ender chests we can break given the current space in our inventory
-    */
-    private fun maxPossibleEnderChests(): Int {
-        var maxEnderChests = 0
-        mc.player?.inventory?.mainInventory?.let {
-            val clonedList = ArrayList(it)
-            for (itemStack in clonedList) {
-                if (getIdFromItem(itemStack.item) == ItemID.AIR.id) {
-                    maxEnderChests += 8
-                } else if (getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) {
-                    /* Pick floor: It is better to have an unfilled stack then overfill and get stuck trying to pick
-                       up extra obsidian
-                     */
-                    maxEnderChests += floor((64.0 - itemStack.count) / 8.0).toInt()
+                else -> {
+                    searchingState
                 }
             }
+        } else if (state != State.SEARCHING) {
+            searchingState = SearchingState.PLACING
         }
-        /* Here we assume ender chests are stacked the most efficiently possible. For every 64 ender chests
-           mined, another item slot is freed, which allows us to mine an additional 8 ender chests to fill
-           that slot with obsidian.
-         */
-        maxEnderChests += floor(maxEnderChests / 64.0).toInt() * 8
-
-        return maxEnderChests
     }
 
-    /*
-       Check if we can pick up more obsidian:
-       There must be at least one slot which is either empty, or contains a stack of obsidian less than 64
-    */
+    /**
+     * Check if we can pick up more obsidian:
+     * There must be at least one slot which is either empty, or contains a stack of obsidian less than 64
+     */
     private fun canPickUpObsidian(): Boolean {
-        mc.player?.inventory?.mainInventory?.let {
-            val clonedList = ArrayList(it)
-            for (itemStack in clonedList) {
-                /* If there is an air block slot, we have an open inventory slot */
-                if (getIdFromItem(itemStack.item) == ItemID.AIR.id) {
-                    return true
-                }
-                /* If there is a non-full stack of obsidian, we have an open inventory slot */
-                if ((getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) && itemStack.count < 64) {
-                    return true
-                }
-            }
-        }
-
-        /* No matches to eligible slots, we can not pick up any more items */
-        return false
+        return mc.player?.inventory?.mainInventory?.any {
+            it.isEmpty || it.item.id == ItemID.OBSIDIAN.id && it.count < 64
+        } ?: false
     }
 
-    /* Return the obsidian count, rounded up to the nearest 8th */
-    private fun countObsidian(): Int {
-        return ceil(InventoryUtils.countItemAll(ItemID.OBSIDIAN.id).toDouble() / 8.0).toInt() * 8
+    private fun searchingState() {
+        if (searchShulker.value) {
+            when (searchingState) {
+                SearchingState.PLACING -> placeShulker(placingPos)
+                SearchingState.OPENING -> openShulker(placingPos)
+                SearchingState.PRE_MINING -> mineBlock(placingPos, true)
+                SearchingState.MINING -> mineBlock(placingPos, false)
+                SearchingState.COLLECTING -> collectDroppedItem(shulkerBoxId)
+                SearchingState.DONE -> {
+                    /* Positions need to be updated after moving while collecting dropped shulker box */
+                    val currentPos = BlockPos(floor(mc.player.posX).toInt(), floor(mc.player.posY).toInt(), floor(mc.player.posZ).toInt())
+                    playerPos = currentPos
+                    centerPlayer()
+                    setPlacingPos()
+                }
+            }
+        } else {
+            searchingState = SearchingState.DONE
+        }
     }
 
     private fun setPlacingPos() {
@@ -580,5 +557,4 @@ object AutoObsidian : Module() {
         placingPos = BlockPos(0, -1, 0)
         tickCount = 0
     }
-    /* End of tasks */
 }
