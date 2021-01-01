@@ -164,7 +164,7 @@ object AutoObsidian : Module() {
             if (event.era != KamiEvent.Era.PRE || rotateTimer.tick(20L, false)) return@listener
             val rotation = lastHitVec?.let { Vec2f(getRotationTo(it, true)) } ?: return@listener
 
-            when (interacting.value!!) {
+            when (interacting.value) {
                 InteractMode.SPOOF -> {
                     val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
                     PlayerPacketManager.addPacket(this, packet)
@@ -172,6 +172,9 @@ object AutoObsidian : Module() {
                 InteractMode.VIEW_LOCK -> {
                     mc.player.rotationYaw = rotation.x
                     mc.player.rotationPitch = rotation.y
+                }
+                else -> {
+
                 }
             }
         }
