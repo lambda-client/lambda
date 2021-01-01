@@ -6,10 +6,10 @@ import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
-import me.zeroeightsix.kami.util.BlockUtils.isPlaceableForChest
 import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
+import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.BlockShulkerBox
@@ -292,34 +292,34 @@ object AutoObsidian : Module() {
     }
 
     private fun setPlacingPos() {
-        if (getPlacingPos().y != -1) {
-            placingPos = getPlacingPos()
+        val feetPos = mc.player.positionVector.toBlockPos()
+        val eyePos = mc.player.getPositionEyes(1f)
+        var validPos: BlockPos? = null
+
+        for (x in -4..4) {
+            for (y in -4..4) {
+                for (z in -4..4) {
+                    val pos = feetPos.add(x, y, z)
+                    if (eyePos.distanceTo(pos.toVec3d()) > maxReach.value) continue
+
+                    if (mc.world.getBlockState(pos.down()).material.isReplaceable) continue
+                    if (!BlockUtils.isPlaceable(pos) || !BlockUtils.isPlaceable(pos.up())) continue
+
+                    validPos = pos
+                    break
+                }
+            }
+        }
+
+        if (validPos != null) {
+            placingPos = validPos
         } else {
             sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             this.disable()
-            return
         }
     }
 
-    private fun getPlacingPos(): BlockPos {
-        val pos = playerPos
-        var facing = EnumFacing.NORTH
-        for (i in 1..4) {
-            val posOffset = pos.offset(facing)
-            val posOffsetDiagonal = posOffset.offset(facing.rotateY())
-            when {
-                isPlaceableForChest(posOffset) -> return posOffset
-                isPlaceableForChest(posOffset.up()) -> return posOffset.up()
-                isPlaceableForChest(posOffsetDiagonal) -> return posOffsetDiagonal
-                isPlaceableForChest(posOffsetDiagonal.up()) -> return posOffsetDiagonal.up()
-                else -> facing = facing.rotateY()
-            }
-        }
-        return BlockPos(0, -1, 0)
-    }
-
-    /* Tasks */
     private fun placeShulker(pos: BlockPos) {
         for (i in 219..234) {
             if (InventoryUtils.getSlotsHotbar(i) == null) {
@@ -356,12 +356,12 @@ object AutoObsidian : Module() {
                 return
             }
         }
+
         /* Else, we already have ender chests in the hotbar */
         InventoryUtils.swapSlotToItem(ItemID.ENDER_CHEST.id)
 
         placeBlock(pos)
     }
-
 
     private fun openShulker(pos: BlockPos) {
         if (mc.currentScreen is GuiShulkerBox) {

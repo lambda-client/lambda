@@ -139,15 +139,6 @@ object BlockUtils {
     fun isPlaceable(pos: BlockPos, ignoreSelfCollide: Boolean = false) = mc.world.getBlockState(pos).material.isReplaceable
         && mc.world.checkNoEntityCollision(AxisAlignedBB(pos), if (ignoreSelfCollide) mc.player else null)
 
-    /**
-     * Checks if given [pos] is able to chest (air above) block in it
-     *
-     * @return true playing is not colliding with [pos] and there is block below it
-     */
-    fun isPlaceableForChest(pos: BlockPos): Boolean {
-        return isPlaceable(pos) && !mc.world.getBlockState(pos.down()).material.isReplaceable && mc.world.isAirBlock(pos.up())
-    }
-
     fun buildStructure(placeSpeed: Float, getPlaceInfo: (HashSet<BlockPos>) -> Pair<EnumFacing, BlockPos>?) {
         val emptyHashSet = HashSet<BlockPos>()
         val placed = HashSet<BlockPos>()
