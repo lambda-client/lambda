@@ -37,22 +37,22 @@ import kotlin.math.floor
     description = "Breaks down Ender Chests to restock obsidian"
 )
 object AutoObsidian : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.TARGET_STACKS))
-    private val modeExitStrings = mapOf(Mode.FILL_INVENTORY to "Inventory filled", Mode.TARGET_STACKS to "Target Stacks Reached")
+    private val fillMode = register(Settings.e<FillMode>("FillMode", FillMode.TARGET_STACKS))
+    private val modeExitStrings = mapOf(FillMode.FILL_INVENTORY to "Inventory filled", FillMode.TARGET_STACKS to "Target Stacks Reached")
 
     private val searchShulker = register(Settings.b("SearchShulker", false))
-    private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { mode.value != Mode.INFINITE })
-    private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && mode.value != Mode.INFINITE })
-    private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { mode.value == Mode.TARGET_STACKS })
+    private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { fillMode.value != FillMode.INFINITE })
+    private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && fillMode.value != FillMode.INFINITE })
+    private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { fillMode.value == FillMode.TARGET_STACKS })
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
 
-    private enum class Mode(override val displayName: String) : DisplayEnum {
+    private enum class FillMode(override val displayName: String) : DisplayEnum {
         TARGET_STACKS("Target stacks"),
-        INFINITE("Infinite"),
-        FILL_INVENTORY("Fill inventory")
+        FILL_INVENTORY("Fill inventory"),
+        INFINITE("Infinite")
     }
 
     enum class State(override val displayName: String) : DisplayEnum {
@@ -147,10 +147,10 @@ object AutoObsidian : Module() {
                 }
                 State.DONE -> {
                     if (!autoRefill.value) {
-                        sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", disabling."))
+                        sendChatMessage("$chatName ".plus(modeExitStrings[fillMode.value]).plus(", disabling."))
                         this.disable()
                     } else {
-                        if (active) sendChatMessage("$chatName ".plus(modeExitStrings[mode.value]).plus(", stopping."))
+                        if (active) sendChatMessage("$chatName ".plus(modeExitStrings[fillMode.value]).plus(", stopping."))
                         reset()
                     }
                 }
@@ -187,9 +187,10 @@ object AutoObsidian : Module() {
 
     private fun updateMainState() {
         val obbyCount = countObby()
+        val slotCount = countEmptySlots()
 
         state = when {
-            (!canPickUpObsidian() && mode.value != Mode.INFINITE) -> {
+            (!canPickUpObsidian() && fillMode.value != FillMode.INFINITE) -> {
                 State.DONE /* Never transition to done when in INFINITE mode */
             }
             state == State.DONE && autoRefill.value && InventoryUtils.countItemAll(ItemID.OBSIDIAN.id) <= threshold.value -> {
@@ -198,7 +199,7 @@ object AutoObsidian : Module() {
             state == State.COLLECTING && getDroppedItem(ItemID.OBSIDIAN.id, 8.0f) == null -> {
                 State.DONE
             }
-            state != State.DONE && mc.world.isAirBlock(placingPos) && mode.value != Mode.INFINITE && obbyCount >= targetStacks.value -> {
+            state != State.DONE && mc.world.isAirBlock(placingPos) && !checkObbyCount(obbyCount, slotCount) -> {
                 State.COLLECTING
             }
             state == State.MINING && mc.world.isAirBlock(placingPos) -> {
@@ -207,7 +208,7 @@ object AutoObsidian : Module() {
             state == State.PLACING && !mc.world.isAirBlock(placingPos) -> {
                 State.PRE_MINING
             }
-            state == State.SEARCHING && searchingState == SearchingState.DONE && (mode.value == Mode.INFINITE || obbyCount < targetStacks.value) -> {
+            state == State.SEARCHING && searchingState == SearchingState.DONE && checkObbyCount(obbyCount, slotCount) -> {
                 State.PLACING
             }
             else -> {
@@ -216,10 +217,37 @@ object AutoObsidian : Module() {
         }
     }
 
+    /**
+     * @return True if can still place more ender chest
+     */
+    private fun checkObbyCount(obbyCount: Int, slotCount: Int): Boolean {
+        return when (fillMode.value!!) {
+            FillMode.TARGET_STACKS -> {
+                obbyCount < targetStacks.value
+            }
+            FillMode.FILL_INVENTORY -> {
+                slotCount > 8
+            }
+            FillMode.INFINITE -> {
+                true
+            }
+        }
+    }
+
     private fun countObby(): Int {
         val inventory = InventoryUtils.countItemAll(49)
         val dropped = EntityUtils.getDroppedItems(49, 8.0f).sumBy { it.item.count }
         return ceil((inventory + dropped) / 8.0f).toInt() / 8
+    }
+
+    private fun countEmptySlots(): Int {
+        return mc.player?.inventory?.mainInventory?.sumBy {
+            when {
+                it.isEmpty -> 64
+                it.item.id == ItemID.OBSIDIAN.id -> 64 - it.count
+                else -> 0
+            }
+        } ?: 0
     }
 
     private fun updateSearchingState() {
