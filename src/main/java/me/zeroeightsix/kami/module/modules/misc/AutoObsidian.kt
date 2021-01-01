@@ -1,5 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import baritone.api.pathing.goals.Goal
+import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.KamiEvent
@@ -54,7 +56,7 @@ object AutoObsidian : Module() {
     private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { fillMode.value == FillMode.TARGET_STACKS })
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
-    private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
+    private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(2.0f, 6.0f).withStep(0.1f))
 
     private enum class FillMode(override val displayName: String, val message: String) : DisplayEnum {
         TARGET_STACKS("Target stacks", "Target Stacks Reached"),
@@ -93,12 +95,11 @@ object AutoObsidian : Module() {
         DIAMOND_PICKAXE(278)
     }
 
-    var pathing = false
-    var goal: BlockPos? = null
-    var state = State.SEARCHING
+    var goal: Goal? = null; private set
+    var state = State.SEARCHING; private set
+    private var searchingState = SearchingState.PLACING
 
     private var active = false
-    private var searchingState = SearchingState.PLACING
     private var placingPos = BlockPos(0, -1, 0)
     private var shulkerBoxId = 0
     private var lastHitVec: Vec3d? = null
@@ -178,11 +179,19 @@ object AutoObsidian : Module() {
     private fun updateState() {
         if (state != State.DONE) {
             updatePlacingPos()
-        }
 
-        if (!active && state != State.DONE) {
-            active = true
-            BaritoneUtils.primary?.pathingControlManager?.registerProcess(AutoObsidianProcess)
+            if (!active) {
+                active = true
+                BaritoneUtils.primary?.pathingControlManager?.registerProcess(AutoObsidianProcess)
+            }
+
+            if (state != State.COLLECTING && searchingState != SearchingState.COLLECTING) {
+                goal = if (mc.player.getDistanceSqToCenter(placingPos) > 2.0) {
+                    GoalNear(placingPos, 2)
+                } else {
+                    null
+                }
+            }
         }
 
         updateMainState()
@@ -481,15 +490,16 @@ object AutoObsidian : Module() {
     }
 
     private fun collectDroppedItem(itemId: Int) {
-        pathing = if (getDroppedItem(itemId, 16.0f) != null) {
-            goal = getDroppedItem(itemId, 16.0f)
-            true
-        } else false
+        goal = if (getDroppedItem(itemId, 16.0f) != null) {
+             GoalNear(getDroppedItem(itemId, 16.0f), 0)
+         } else {
+             null
+         }
     }
 
     private fun reset() {
         active = false
-        pathing = false
+        goal = null
         searchingState = SearchingState.PLACING
         placingPos = BlockPos(0, -1, 0)
         lastHitVec = null
