@@ -1,7 +1,10 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import me.zeroeightsix.kami.event.KamiEvent
+import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
@@ -11,6 +14,7 @@ import me.zeroeightsix.kami.util.EntityUtils.getDroppedItem
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
+import me.zeroeightsix.kami.util.math.Vec2f
 import me.zeroeightsix.kami.util.math.VectorUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
@@ -21,7 +25,6 @@ import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
-import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
@@ -96,7 +99,9 @@ object AutoObsidian : Module() {
     private var shulkerBoxId = 0
     private var tickCount = 0
     private var openTime = 0L
+    private var lastHitVec: Vec3d? = null
 
+    private val rotateTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
     private val renderer = ESPRenderer().apply { aFilled = 33; aOutline = 233 }
 
     override fun isActive(): Boolean {
@@ -153,6 +158,26 @@ object AutoObsidian : Module() {
 
         listener<RenderWorldEvent> {
             if (state != State.DONE) renderer.render(clear = false, cull = true)
+        }
+
+        listener<OnUpdateWalkingPlayerEvent> {
+            if (it.era != KamiEvent.Era.PRE || rotateTimer.tick(20L, false)) return@listener
+            doRotation()
+        }
+    }
+
+    private fun doRotation() {
+        val rotation = lastHitVec?.let { Vec2f(getRotationTo(it, true)) } ?: return
+
+        when (interacting.value) {
+            InteractMode.SPOOF -> {
+                val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation )
+                PlayerPacketManager.addPacket(this, packet)
+            }
+            InteractMode.VIEW_LOCK -> {
+                mc.player.rotationYaw = rotation.x
+                mc.player.rotationPitch = rotation.y
+            }
         }
     }
 
@@ -396,7 +421,8 @@ object AutoObsidian : Module() {
             val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
             val hitVecOffset = BlockUtils.getHitVecOffset(side)
 
-            rotation(pos.toVec3d().add(hitVecOffset))
+            lastHitVec = BlockUtils.getHitVec(pos, side)
+            rotateTimer.reset()
 
             /* Added a delay here so it doesn't spam right click and get you kicked */
             if (System.currentTimeMillis() >= openTime + 2000L) {
@@ -420,6 +446,8 @@ object AutoObsidian : Module() {
             }
 
         val hitVecOffset = BlockUtils.getHitVecOffset(pair.first)
+        lastHitVec = BlockUtils.getHitVec(pair.second, pair.first)
+        rotateTimer.reset()
 
         Thread {
             Thread.sleep(delayTicks.value * 25L)
@@ -443,35 +471,23 @@ object AutoObsidian : Module() {
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
 
-        val facing = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
+        val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
+        lastHitVec = BlockUtils.getHitVec(pos, side)
+        rotateTimer.reset()
 
         Thread {
             Thread.sleep(delayTicks.value * 25L)
 
             if (pre) {
-                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, facing))
+                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
                 if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
             } else {
-                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, facing))
+                mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
             }
 
             mc.player.swingArm(EnumHand.MAIN_HAND)
         }.start()
         return true
-    }
-
-    private fun rotation(hitVec: Vec3d) {
-        val rotation = getRotationTo(hitVec, true)
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                mc.connection?.sendPacket(rotationPacket)
-            }
-            InteractMode.VIEW_LOCK -> {
-                mc.player.rotationYaw = rotation.x.toFloat()
-                mc.player.rotationPitch = rotation.y.toFloat()
-            }
-        }
     }
 
     private fun collectDroppedItem(itemId: Int) {
@@ -487,5 +503,6 @@ object AutoObsidian : Module() {
         searchingState = SearchingState.PLACING
         placingPos = BlockPos(0, -1, 0)
         tickCount = 0
+        lastHitVec = null
     }
 }
