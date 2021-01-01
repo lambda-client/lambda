@@ -147,7 +147,7 @@ object AutoObsidian : Module() {
                 State.DONE -> {
                     if (!autoRefill.value) {
                         sendChatMessage("$chatName ${fillMode.value.message}, disabling.")
-                        this.disable()
+                        disable()
                     } else {
                         if (active) sendChatMessage("$chatName ${fillMode.value.message}, stopping.")
                         reset()
@@ -218,7 +218,7 @@ object AutoObsidian : Module() {
         } else {
             sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-            this.disable()
+            disable()
         }
     }
 
@@ -363,7 +363,7 @@ object AutoObsidian : Module() {
                     if (i == 234) {
                         sendChatMessage("$chatName No shulker box was found in hotbar, disabling.")
                         mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                        this.disable()
+                        disable()
                     }
                     continue
                 }
@@ -390,7 +390,7 @@ object AutoObsidian : Module() {
             } else {
                 sendChatMessage("$chatName No ender chest was found in inventory, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                this.disable()
+                disable()
                 return
             }
         }
