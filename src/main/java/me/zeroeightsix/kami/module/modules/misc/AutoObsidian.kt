@@ -269,40 +269,41 @@ object AutoObsidian : Module() {
     }
 
     private fun updateSearchingState() {
-        /* Updates searching state */
-        if (state == State.SEARCHING && searchingState != SearchingState.DONE) {
-            searchingState = when {
-                searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0 -> {
-                    SearchingState.DONE
-                }
-                searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 16.0f) == null -> {
-                    SearchingState.DONE
-                }
-                searchingState == SearchingState.MINING && mc.world.isAirBlock(placingPos) -> {
-                    if (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0) {
-                        SearchingState.COLLECTING
-                    } else {
-                        // In case if the shulker wasn't placed due to server lag
-                        SearchingState.PLACING
+        if (state == State.SEARCHING) {
+            if (searchingState != SearchingState.DONE) {
+                searchingState = when {
+                    searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0 -> {
+                        SearchingState.DONE
                     }
-                }
-                searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) >= 64
-                    || InventoryUtils.getSlots(0, 35, 0) == null) -> {
-                    SearchingState.PRE_MINING
-                }
-                searchingState == SearchingState.PLACING && !mc.world.isAirBlock(placingPos) -> {
-                    if (mc.world.getBlockState(placingPos).block is BlockShulkerBox) {
-                        SearchingState.OPENING
-                    } else {
-                        // In case if the shulker wasn't placed due to server lag
+                    searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 16.0f) == null -> {
+                        SearchingState.DONE
+                    }
+                    searchingState == SearchingState.MINING && mc.world.isAirBlock(placingPos) -> {
+                        if (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0) {
+                            SearchingState.COLLECTING
+                        } else {
+                            // In case if the shulker wasn't placed due to server lag
+                            SearchingState.PLACING
+                        }
+                    }
+                    searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) >= 64
+                        || InventoryUtils.getSlots(0, 35, 0) == null) -> {
                         SearchingState.PRE_MINING
                     }
-                }
-                else -> {
-                    searchingState
+                    searchingState == SearchingState.PLACING && !mc.world.isAirBlock(placingPos) -> {
+                        if (mc.world.getBlockState(placingPos).block is BlockShulkerBox) {
+                            SearchingState.OPENING
+                        } else {
+                            // In case if the shulker wasn't placed due to server lag
+                            SearchingState.PRE_MINING
+                        }
+                    }
+                    else -> {
+                        searchingState
+                    }
                 }
             }
-        } else if (state != State.SEARCHING) {
+        } else {
             searchingState = SearchingState.PLACING
         }
     }
