@@ -102,10 +102,10 @@ object AutoObsidian : Module() {
     private var placingPos = BlockPos(0, -1, 0)
     private var shulkerBoxId = 0
     private var tickCount = 0
-    private var openTime = 0L
     private var lastHitVec: Vec3d? = null
 
     private val rotateTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
+    private val shulkerOpenTimer = TimerUtils.TickTimer(TimerUtils.TimeUnit.TICKS)
     private val renderer = ESPRenderer().apply { aFilled = 33; aOutline = 233 }
 
     override fun isActive(): Boolean {
@@ -400,12 +400,12 @@ object AutoObsidian : Module() {
     private fun openShulker(pos: BlockPos) {
         if (mc.currentScreen is GuiShulkerBox) {
             val container = mc.player.openContainer
-            val slot = container.inventory.subList(0, 27).indexOfFirst { it.item.id == ItemID.OBSIDIAN.id }
+            val slot = container.inventory.subList(0, 27).indexOfFirst { it.item.id == ItemID.ENDER_CHEST.id }
 
             if (slot != -1) {
                 InventoryUtils.inventoryClick(container.windowId, slot, 0, ClickType.QUICK_MOVE)
                 mc.player.closeScreen()
-            } else {
+            } else if (shulkerOpenTimer.tick(100, false)) { // Wait for maximum of 5 seconds
                 sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 disable()
@@ -417,10 +417,7 @@ object AutoObsidian : Module() {
             lastHitVec = BlockUtils.getHitVec(pos, side)
             rotateTimer.reset()
 
-            /* Added a delay here so it doesn't spam right click and get you kicked */
-            if (System.currentTimeMillis() >= openTime + 2000L) {
-                openTime = System.currentTimeMillis()
-
+            if (shulkerOpenTimer.tick(50)) {
                 // TODO: Replace with defaultScope later
                 moduleScope.launch {
                     delay(10L)
