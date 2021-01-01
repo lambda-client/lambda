@@ -99,7 +99,6 @@ object AutoObsidian : Module() {
     }
 
     override fun onEnable() {
-        if (mc.player == null) return
         state = State.SEARCHING
     }
 
