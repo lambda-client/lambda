@@ -36,27 +36,27 @@ import kotlin.math.min
 
 
 @Module.Info(
-        name = "AutoObsidian",
-        category = Module.Category.MISC,
-        description = "Breaks down Ender Chests to restock obsidian"
+    name = "AutoObsidian",
+    category = Module.Category.MISC,
+    description = "Breaks down Ender Chests to restock obsidian"
 )
 object AutoObsidian : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.TARGETSTACKS))
-    private val modeExitStrings = mapOf(Mode.FILLINVENTORY to "Inventory filled", Mode.TARGETSTACKS to "Target Stacks Reached")
+    private val mode = register(Settings.e<Mode>("Mode", Mode.TARGET_STACKS))
+    private val modeExitStrings = mapOf(Mode.FILL_INVENTORY to "Inventory filled", Mode.TARGET_STACKS to "Target Stacks Reached")
 
     private val searchShulker = register(Settings.b("SearchShulker", false))
     private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { mode.value != Mode.INFINITE })
     private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && mode.value != Mode.INFINITE })
-    private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { mode.value == Mode.TARGETSTACKS })
+    private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { mode.value == Mode.TARGET_STACKS })
     private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java).withName("InteractMode").withValue(InteractMode.SPOOF))
     private val autoCenter = register(Settings.enumBuilder(AutoCenterMode::class.java).withName("AutoCenter").withValue(AutoCenterMode.MOTION))
     private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f))
 
     private enum class Mode {
-        TARGETSTACKS,
+        TARGET_STACKS,
         INFINITE,
-        FILLINVENTORY
+        FILL_INVENTORY
     }
 
     enum class State {
@@ -77,6 +77,7 @@ object AutoObsidian : Module() {
         DONE
     }
 
+    @Suppress("UNUSED")
     private enum class InteractMode {
         OFF,
         SPOOF,
@@ -88,6 +89,7 @@ object AutoObsidian : Module() {
         TP,
         MOTION
     }
+
     private enum class ItemID(val id: Int) {
         AIR(0),
         OBSIDIAN(49),
@@ -213,14 +215,16 @@ object AutoObsidian : Module() {
         }
 
         /* Updates main state */
-        var placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
+        val placedEnderChest = enderChestCount - InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id)
         var targetEnderChest = -1
-        when(mode.value) {
-            Mode.TARGETSTACKS -> {
+        when (mode.value) {
+            Mode.TARGET_STACKS -> {
                 targetEnderChest = min((targetStacks.value * 64 - obsidianCount) / 8, maxEnderChests)
             }
-            Mode.FILLINVENTORY -> {
+            Mode.FILL_INVENTORY -> {
                 targetEnderChest = maxEnderChests
+            }
+            else -> {
             }
         }
 
@@ -269,10 +273,9 @@ object AutoObsidian : Module() {
         mc.player?.inventory?.mainInventory?.let {
             val clonedList = ArrayList(it)
             for (itemStack in clonedList) {
-                if(getIdFromItem(itemStack.item) == ItemID.AIR.id) {
+                if (getIdFromItem(itemStack.item) == ItemID.AIR.id) {
                     maxEnderChests += 8
-                }
-                else if(getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) {
+                } else if (getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) {
                     /* Pick floor: It is better to have an unfilled stack then overfill and get stuck trying to pick
                        up extra obsidian
                      */
@@ -298,11 +301,11 @@ object AutoObsidian : Module() {
             val clonedList = ArrayList(it)
             for (itemStack in clonedList) {
                 /* If there is an air block slot, we have an open inventory slot */
-                if(getIdFromItem(itemStack.item) == ItemID.AIR.id) {
+                if (getIdFromItem(itemStack.item) == ItemID.AIR.id) {
                     return true
                 }
                 /* If there is a non-full stack of obsidian, we have an open inventory slot */
-                if((getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) && itemStack.count < 64) {
+                if ((getIdFromItem(itemStack.item) == ItemID.OBSIDIAN.id) && itemStack.count < 64) {
                     return true
                 }
             }
@@ -390,7 +393,7 @@ object AutoObsidian : Module() {
 
 
     private fun openShulker(pos: BlockPos) {
-        if(mc.currentScreen is GuiShulkerBox) {
+        if (mc.currentScreen is GuiShulkerBox) {
             Thread {
                 /* Extra delay here to wait for the item list to be loaded */
                 Thread.sleep(delayTicks.value * 50L)
@@ -412,12 +415,14 @@ object AutoObsidian : Module() {
                 }
             }.start()
         } else {
-            var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return
+            var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5))
+                ?: return
             if (rayTrace.blockPos != pos) {
                 var found = false
                 for (side in EnumFacing.values()) {
                     if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
-                        rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))?: continue
+                        rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))
+                            ?: continue
                         if (rayTrace.blockPos == pos) {
                             found = true
                             break
@@ -428,23 +433,14 @@ object AutoObsidian : Module() {
                     return
                 }
             }
-            val hitVecOffset = rayTrace.hitVec
-            val rotation = getRotationTo(hitVecOffset, true)
-            when (interacting.value) {
-                InteractMode.SPOOF -> {
-                    val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                    mc.connection!!.sendPacket(rotationPacket)
-                }
-                InteractMode.VIEWLOCK -> {
-                    mc.player.rotationYaw = rotation.x.toFloat()
-                    mc.player.rotationPitch = rotation.y.toFloat()
-                }
-            }
+
+            rotation(rayTrace.hitVec)
+            val hitVecOffset = rayTrace.hitVec.subtract(Vec3d(rayTrace.blockPos))
 
             /* Added a delay here so it doesn't spam right click and get you kicked */
             if (System.currentTimeMillis() >= openTime + 2000L) {
                 openTime = System.currentTimeMillis()
-                Thread{
+                Thread {
                     Thread.sleep(delayTicks.value * 25L)
                     val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
                     mc.connection!!.sendPacket(placePacket)
@@ -462,7 +458,7 @@ object AutoObsidian : Module() {
             if (mc.world.getBlockState(offPos).material.isReplaceable) continue
             if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(getHitVecOffset(side))) > maxReach.value) continue
             val rotationVector = Vec3d(offPos).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.499))
-            val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector)?: continue
+            val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector) ?: continue
             if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
             if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == pos) {
                 rayTraces.add(rt)
@@ -487,20 +483,10 @@ object AutoObsidian : Module() {
             return
         }
 
-        val hitVecOffset = rayTrace.hitVec
-        val rotation = getRotationTo(hitVecOffset, true)
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                mc.connection!!.sendPacket(rotationPacket)
-            }
-            InteractMode.VIEWLOCK -> {
-                mc.player.rotationYaw = rotation.x.toFloat()
-                mc.player.rotationPitch = rotation.y.toFloat()
-            }
-        }
+        rotation(rayTrace.hitVec)
+        val hitVecOffset = rayTrace.hitVec.subtract(Vec3d(rayTrace.blockPos))
 
-        Thread{
+        Thread {
             Thread.sleep(delayTicks.value * 25L)
             val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
             mc.connection!!.sendPacket(placePacket)
@@ -522,12 +508,14 @@ object AutoObsidian : Module() {
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
 
-        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5)) ?: return false
+        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5))
+            ?: return false
         if (rayTrace.blockPos != pos) {
             var found = false
             for (side in EnumFacing.values()) {
                 if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
-                    rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))?: continue
+                    rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))
+                        ?: continue
                     if (rayTrace.blockPos == pos) {
                         found = true
                         break
@@ -538,18 +526,9 @@ object AutoObsidian : Module() {
                 return false
             }
         }
+
         val facing = rayTrace.sideHit ?: return false
-        val rotation = getRotationTo(rayTrace.hitVec, true)
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                mc.connection!!.sendPacket(rotationPacket)
-            }
-            InteractMode.VIEWLOCK -> {
-                mc.player.rotationYaw = rotation.x.toFloat()
-                mc.player.rotationPitch = rotation.y.toFloat()
-            }
-        }
+        rotation(rayTrace.hitVec)
 
         Thread {
             Thread.sleep(delayTicks.value * 25L)
@@ -562,6 +541,20 @@ object AutoObsidian : Module() {
             mc.player.swingArm(EnumHand.MAIN_HAND)
         }.start()
         return true
+    }
+
+    private fun rotation(hitVec: Vec3d) {
+        val rotation = getRotationTo(hitVec, true)
+        when (interacting.value) {
+            InteractMode.SPOOF -> {
+                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
+                mc.connection!!.sendPacket(rotationPacket)
+            }
+            InteractMode.VIEWLOCK -> {
+                mc.player.rotationYaw = rotation.x.toFloat()
+                mc.player.rotationPitch = rotation.y.toFloat()
+            }
+        }
     }
 
     private fun collectDroppedItem(itemId: Int) {
