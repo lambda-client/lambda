@@ -15,17 +15,14 @@ import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.inventory.GuiShulkerBox
-import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
-import net.minecraft.item.Item.getIdFromItem
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
@@ -374,7 +371,7 @@ object AutoObsidian : Module() {
                 val currentContainer = mc.player.openContainer
                 var enderChestSlot = -1
                 for (i in 0..26) {
-                    if (getIdFromItem(currentContainer.inventory[i].item) == ItemID.ENDER_CHEST.id) {
+                    if (currentContainer.inventory[i].item.id == ItemID.ENDER_CHEST.id) {
                         enderChestSlot = i
                         break
                     }
@@ -391,34 +388,17 @@ object AutoObsidian : Module() {
                 }
             }.start()
         } else {
-            var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5))
-                ?: return
-            if (rayTrace.blockPos != pos) {
-                var found = false
-                for (side in EnumFacing.values()) {
-                    if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
-                        rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))
-                            ?: continue
-                        if (rayTrace.blockPos == pos) {
-                            found = true
-                            break
-                        }
-                    }
-                }
-                if (!found) {
-                    return
-                }
-            }
+            val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
+            val hitVecOffset = BlockUtils.getHitVecOffset(side)
 
-            rotation(rayTrace.hitVec)
-            val hitVecOffset = rayTrace.hitVec.subtract(Vec3d(rayTrace.blockPos))
+            rotation(pos.toVec3d().add(hitVecOffset))
 
             /* Added a delay here so it doesn't spam right click and get you kicked */
             if (System.currentTimeMillis() >= openTime + 2000L) {
                 openTime = System.currentTimeMillis()
                 Thread {
                     Thread.sleep(delayTicks.value * 25L)
-                    val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+                    val placePacket = CPacketPlayerTryUseItemOnBlock(pos, side, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
                     mc.connection?.sendPacket(placePacket)
                     mc.player.swingArm(EnumHand.MAIN_HAND)
                     if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
@@ -428,35 +408,17 @@ object AutoObsidian : Module() {
     }
 
     private fun placeBlock(pos: BlockPos) {
-        val results = mutableListOf<RayTraceResult>()
-        val eyePos = mc.player.getPositionEyes(1f)
-
-        for (side in EnumFacing.values()) {
-            val offPos = pos.offset(side)
-            if (mc.world.getBlockState(offPos).material.isReplaceable) continue
-
-            val hitVec = offPos.toVec3d().add(Vec3d(side.opposite.directionVec).scale(0.499))
-            if (eyePos.distanceTo(hitVec) > maxReach.value) continue
-
-            val rayTraceResult = mc.world.rayTraceBlocks(eyePos, hitVec) ?: continue
-            if (rayTraceResult.typeOfHit != RayTraceResult.Type.BLOCK) continue
-            if (rayTraceResult.blockPos == offPos && offPos.offset(rayTraceResult.sideHit) == pos) {
-                results.add(rayTraceResult)
-            }
-        }
-
-        val rayTrace = results.minByOrNull { eyePos.distanceTo(it.hitVec) }
+        val pair = BlockUtils.getNeighbour(pos, 1)
             ?: run {
-                sendChatMessage("Can't find any vector?")
+                sendChatMessage("Can't find neighbour block")
                 return
             }
 
-        rotation(rayTrace.hitVec)
-        val hitVecOffset = rayTrace.hitVec.subtract(Vec3d(rayTrace.blockPos))
+        val hitVecOffset = BlockUtils.getHitVecOffset(pair.first)
 
         Thread {
             Thread.sleep(delayTicks.value * 25L)
-            val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+            val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
             mc.connection?.sendPacket(placePacket)
             mc.player.swingArm(EnumHand.MAIN_HAND)
             if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
@@ -476,36 +438,18 @@ object AutoObsidian : Module() {
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
 
-        var rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5))
-            ?: return false
-        if (rayTrace.blockPos != pos) {
-            var found = false
-            for (side in EnumFacing.values()) {
-                if (mc.world.getBlockState(pos.offset(side)).block == Blocks.AIR) {
-                    rayTrace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), Vec3d(pos).add(0.5, 0.5, 0.5).add(Vec3d(side.directionVec).scale(0.499)))
-                        ?: continue
-                    if (rayTrace.blockPos == pos) {
-                        found = true
-                        break
-                    }
-                }
-            }
-            if (!found) {
-                return false
-            }
-        }
-
-        val facing = rayTrace.sideHit ?: return false
-        rotation(rayTrace.hitVec)
+        val facing = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
 
         Thread {
             Thread.sleep(delayTicks.value * 25L)
+
             if (pre) {
                 mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, facing))
                 if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
             } else {
                 mc.connection?.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, facing))
             }
+
             mc.player.swingArm(EnumHand.MAIN_HAND)
         }.start()
         return true
