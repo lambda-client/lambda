@@ -3,7 +3,6 @@ package me.zeroeightsix.kami.event
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.event.events.*
-import me.zeroeightsix.kami.gui.UIRenderer
 import me.zeroeightsix.kami.gui.kami.KamiGUI
 import me.zeroeightsix.kami.gui.mc.KamiGuiChat
 import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame
@@ -12,7 +11,6 @@ import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
 import me.zeroeightsix.kami.util.graphics.ProjectionUtils
 import me.zeroeightsix.kami.util.text.MessageDetection
-import net.minecraft.entity.passive.AbstractHorse
 import net.minecraftforge.client.event.*
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
 import net.minecraftforge.event.entity.player.AttackEntityEvent
@@ -24,6 +22,7 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.lwjgl.input.Keyboard
+import java.util.*
 
 object ForgeEventProcessor {
     private val mc = Wrapper.minecraft
@@ -61,34 +60,22 @@ object ForgeEventProcessor {
         ProjectionUtils.updateMatrix()
 
         mc.profiler.startSection("KamiWorldRender")
+
         KamiTessellator.prepareGL()
-        val renderWorldEvent = RenderWorldEvent(KamiTessellator, event.partialTicks)
-        renderWorldEvent.setupTranslation()
-
-        KamiEventBus.post(renderWorldEvent)
-
+        KamiEventBus.post(RenderWorldEvent())
         KamiTessellator.releaseGL()
+
         mc.profiler.endSection()
     }
 
     @SubscribeEvent
     fun onRenderPre(event: RenderGameOverlayEvent.Pre) {
         KamiEventBus.post(event)
-        if (event.isCanceled) return
     }
 
     @SubscribeEvent
     fun onRender(event: RenderGameOverlayEvent.Post) {
         KamiEventBus.post(event)
-        if (event.isCanceled) return
-
-        val target = if (!mc.player.isCreative && mc.player!!.ridingEntity is AbstractHorse) RenderGameOverlayEvent.ElementType.HEALTHMOUNT
-        else RenderGameOverlayEvent.ElementType.EXPERIENCE
-
-        if (event.type == target) {
-            KamiEventBus.post(RenderOverlayEvent(event.partialTicks))
-            UIRenderer.renderAndUpdateFrames()
-        }
     }
 
     @SubscribeEvent(priority = EventPriority.NORMAL, receiveCanceled = true)
@@ -108,6 +95,10 @@ object ForgeEventProcessor {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     fun onChatSent(event: ClientChatEvent) {
+        MessageDetection.Command.BARITONE.removedOrNull(event.message)?.let {
+            KamiEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').toLowerCase(Locale.ROOT)))
+        }
+
         if (MessageDetection.Command.KAMI_BLUE detect event.message) {
             CommandManager.runCommand(event.message.removePrefix(CommandManager.prefix))
             event.isCanceled = true
