@@ -564,8 +564,8 @@ object HighwayTools : Module() {
                                 if (buildDirectionSaved.isDiagonal) {
                                     val blockUp = mc.world.getBlockState(blockPos.up()).block
                                     when {
-                                        getPlaceableSide(blockPos.up()) == null && blockUp != material -> addTask(blockPos, TaskState.PLACE, fillerMat)
-                                        getPlaceableSide(blockPos.up()) != null -> addTask(blockPos, fillerMat)
+                                        WorldUtils.getNeighbour(blockPos.up(), 1) == null && blockUp != material -> addTask(blockPos, TaskState.PLACE, fillerMat)
+                                        WorldUtils.getNeighbour(blockPos.up(), 1) != null -> addTask(blockPos, fillerMat)
                                     }
                                 }
                             } else {
@@ -769,9 +769,8 @@ object HighwayTools : Module() {
 
     // Only temporary till we found solution to avoid untraceable blocks
     private fun placeBlockWall(blockTask: BlockTask): Boolean {
-        val side = getPlaceableSide(blockTask.blockPos) ?: return false
-        val neighbour = blockTask.blockPos.offset(side)
-        val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.5))
+        val pair = WorldUtils.getNeighbour(blockTask.blockPos, 1) ?: return false
+        val hitVec = WorldUtils.getHitVec(pair.second, pair.first)
 
         lastHitVec = hitVec
         rotateTimer.reset()
@@ -779,7 +778,7 @@ object HighwayTools : Module() {
         defaultScope.launch {
             delay(10L)
             onMainThreadSafe {
-                placeBlock(neighbour, side.opposite)
+                placeBlock(pair.second, pair.first)
                 if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
             }
         }
@@ -843,20 +842,9 @@ object HighwayTools : Module() {
             delay(10L)
             onMainThreadSafe {
                 placeBlock(rayTrace.blockPos, rayTrace.sideHit)
-                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
             }
         }
         return true
-    }
-
-    private fun getPlaceableSide(pos: BlockPos): EnumFacing? {
-        for (side in EnumFacing.values()) {
-            val neighbour = pos.offset(side)
-            if (!mc.world.getBlockState(neighbour).block.canCollideCheck(mc.world.getBlockState(neighbour), false)) continue
-            val blockState = mc.world.getBlockState(neighbour)
-            if (!blockState.material.isReplaceable) return side
-        }
-        return null
     }
 
     private fun isInsideSelection(blockPos: BlockPos): Boolean {
