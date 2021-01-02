@@ -41,7 +41,7 @@ object MessageDetection {
             override fun detect(input: CharSequence) = playerName(input) != null
 
             override fun playerName(input: CharSequence) = Wrapper.player?.name?.let { name ->
-                input.replace(regex, "$1").takeIf { it.isNotBlank() && it != name }
+                regex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() && it != name }
             }
         },
         ANY {
@@ -49,7 +49,8 @@ object MessageDetection {
 
             override fun detect(input: CharSequence) = input.contains(regex)
 
-            override fun playerName(input: CharSequence) = input.replace(regex, "$1").takeIf { it.isNotBlank() }
+            override fun playerName(input: CharSequence) =
+                regex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }
         }
     }
 

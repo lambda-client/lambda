@@ -15,7 +15,7 @@ import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.threads.defaultScope
 import me.zeroeightsix.kami.util.threads.isActiveOrFalse
 import net.minecraft.entity.Entity
@@ -159,7 +159,7 @@ object CombatSetting : Module() {
         val prediction = target?.let { getPrediction(it) }
 
         for (pos in CrystalUtils.getPlacePos(target, mc.player, 8f)) {
-            val dist = eyePos.distanceTo(pos.toVec3d(0.0, 0.5, 0.0))
+            val dist = eyePos.distanceTo(pos.toVec3dCenter(0.0, 0.5, 0.0))
             val damage = target?.let { CrystalUtils.calcDamage(pos, it, prediction?.first, prediction?.second) } ?: 0.0f
             val selfDamage = CrystalUtils.calcDamage(pos, mc.player)
             cacheList.add(Pair(pos, Triple(damage, selfDamage, dist)))
