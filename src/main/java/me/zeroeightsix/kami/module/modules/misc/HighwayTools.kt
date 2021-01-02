@@ -10,7 +10,6 @@ import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
-import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
@@ -24,7 +23,6 @@ import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.defaultScope
@@ -36,6 +34,7 @@ import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
+import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
@@ -855,88 +854,54 @@ object HighwayTools : Module() {
         }
     }
 
-    // Only temporary till we found solution to avoid untraceable blocks
-    private fun placeBlockWall(blockTask: BlockTask): Boolean {
-        val pair = WorldUtils.getNeighbour(blockTask.blockPos, 1) ?: return false
-        val hitVec = WorldUtils.getHitVec(pair.second, pair.first)
+    private fun placeBlock(blockTask: BlockTask): Boolean {
+        if (!isVisible(blockTask.blockPos)) {
+            if (illegalPlacements.value) {
+                if (debugMessages.value == DebugMessages.ALL) {
+                    sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                }
+            } else {
+                return false
+            }
+        }
 
-        lastHitVec = hitVec
+        val pair = WorldUtils.getNeighbour(blockTask.blockPos, 1, 6.5f)
+            ?: run {
+                sendChatMessage("Can't find neighbour block")
+                return false
+            }
+
+        lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
         rotateTimer.reset()
+
+        mc.connection?.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
 
         defaultScope.launch {
             delay(10L)
             onMainThreadSafe {
                 placeBlock(pair.second, pair.first)
-                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
+            }
+
+            delay(10L)
+            onMainThreadSafe {
+                connection.sendPacket(CPacketEntityAction(Companion.mc.player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
         }
         return true
     }
 
-    private fun placeBlock(blockTask: BlockTask): Boolean {
-        val directHits = mutableListOf<RayTraceResult>()
-        val emergencyHits = mutableListOf<RayTraceResult>()
+    private fun isVisible(pos: BlockPos): Boolean {
         val eyePos = mc.player.getPositionEyes(1f)
 
         for (side in EnumFacing.values()) {
-            val offPos = blockTask.blockPos.offset(side)
-            if (mc.world.getBlockState(offPos).material.isReplaceable) continue
-            if (eyePos.distanceTo(Vec3d(offPos).add(WorldUtils.getHitVecOffset(side))) > maxReach.value) continue
-            val rotationVector = offPos.toVec3dCenter().add(side.opposite.directionVec.toVec3d().scale(0.499))
-            val rt = mc.world.rayTraceBlocks(eyePos, rotationVector, false) ?: continue
-            if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
-            if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == blockTask.blockPos) {
-                directHits.add(rt)
-            } else {
-                emergencyHits.add(rt)
-            }
-        }
-        if (directHits.size == 0) {
-            if (emergencyHits.size > 0 && StuckManager.stuckLevel.ordinal > 0 && (blockTask.taskState == TaskState.LIQUID_SOURCE || blockTask.taskState == TaskState.LIQUID_FLOW)) {
-                var rayTrace = emergencyHits[0]
-                var shortestRT = 99.0
-                for (rt in emergencyHits) {
-                    val dist = eyePos.distanceTo(WorldUtils.getHitVec(rt.blockPos, rt.sideHit))
-                    if (dist < shortestRT) {
-                        shortestRT = dist
-                        rayTrace = rt
-                    }
-                }
-                addTaskToPending(rayTrace.blockPos, TaskState.EMERGENCY_BREAK, Blocks.AIR)
-                return false
-            }
-            return if (illegalPlacements.value) {
-                if (debugMessages.value == DebugMessages.ALL) sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
-                placeBlockWall(blockTask)
-            } else {
-                false
-            }
+            val blockState = mc.world.getBlockState(pos.offset(side))
+            if (blockState.isFullBlock) continue
+            val rayTraceResult = mc.world.rayTraceBlocks(eyePos, WorldUtils.getHitVec(pos, side), false, true, false) ?: continue
+            if (rayTraceResult.typeOfHit == RayTraceResult.Type.BLOCK && rayTraceResult.hitVec.distanceTo(pos) > 1.0) continue
+            return true
         }
 
-        var rayTrace: RayTraceResult? = null
-        var shortestRT = 99.0
-        for (rt in directHits) {
-            val dist = eyePos.distanceTo(WorldUtils.getHitVec(rt.blockPos, rt.sideHit))
-            if (dist < shortestRT) {
-                shortestRT = dist
-                rayTrace = rt
-            }
-        }
-        if (rayTrace == null) {
-            sendChatMessage("Can't find any vector?")
-            return false
-        }
-
-        lastHitVec = rayTrace.hitVec
-        rotateTimer.reset()
-
-        defaultScope.launch {
-            delay(10L)
-            onMainThreadSafe {
-                placeBlock(rayTrace.blockPos, rayTrace.sideHit)
-            }
-        }
-        return true
+        return false
     }
 
     private fun isInsideSelection(blockPos: BlockPos): Boolean {

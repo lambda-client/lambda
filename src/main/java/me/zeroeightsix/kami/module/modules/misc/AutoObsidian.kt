@@ -10,7 +10,6 @@ import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.AutoObsidianProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
@@ -463,7 +462,6 @@ object AutoObsidian : Module() {
             delay(10L)
             onMainThreadSafe {
                 placeBlock(pair.second, pair.first)
-                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
             }
 
             delay(10L)
