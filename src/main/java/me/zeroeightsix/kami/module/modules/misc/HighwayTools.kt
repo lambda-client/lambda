@@ -25,6 +25,7 @@ import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.defaultScope
 import me.zeroeightsix.kami.util.threads.onMainThreadSafe
@@ -881,7 +882,7 @@ object HighwayTools : Module() {
             val offPos = blockTask.blockPos.offset(side)
             if (mc.world.getBlockState(offPos).material.isReplaceable) continue
             if (eyePos.distanceTo(Vec3d(offPos).add(WorldUtils.getHitVecOffset(side))) > maxReach.value) continue
-            val rotationVector = offPos.toVec3d().add(Vec3d(side.opposite.directionVec).scale(0.499))
+            val rotationVector = offPos.toVec3dCenter().add(side.opposite.directionVec.toVec3d().scale(0.499))
             val rt = mc.world.rayTraceBlocks(eyePos, rotationVector, false) ?: continue
             if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
             if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == blockTask.blockPos) {
@@ -947,7 +948,7 @@ object HighwayTools : Module() {
     }
 
     private fun adjustPlayerPosition(bridge: Boolean) {
-        var vec = getNextWalkableBlock().toVec3d().subtract(mc.player.positionVector)
+        var vec = getNextWalkableBlock().toVec3dCenter().subtract(mc.player.positionVector)
         when {
             bridge && !buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))
             bridge && buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))

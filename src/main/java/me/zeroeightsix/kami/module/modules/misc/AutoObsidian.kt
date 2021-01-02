@@ -20,7 +20,7 @@ import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.defaultScope
 import me.zeroeightsix.kami.util.threads.onMainThreadSafe
@@ -231,7 +231,7 @@ object AutoObsidian : Module() {
             && (blockState.block.let { it == Blocks.ENDER_CHEST || it is BlockShulkerBox }
             || WorldUtils.isPlaceable(pos))
             && mc.world.isAirBlock(pos.up())
-            && mc.world.rayTraceBlocks(eyePos, pos.toVec3d())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
+            && mc.world.rayTraceBlocks(eyePos, pos.toVec3dCenter())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
 
     private fun updateMainState() {
         val passCountCheck = checkObbyCount()
