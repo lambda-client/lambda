@@ -28,7 +28,9 @@ import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.inventory.GuiShulkerBox
+import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
+import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
@@ -473,13 +475,41 @@ object AutoObsidian : Module() {
         }
     }
 
+    /**
+     * @return True if there is a non-sliktouch pick in the hotbar, else returns false
+     */
+    private fun hotbarHasNonSilkTouchPick(): Boolean {
+        val slotsWithPickaxes = InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return false
+        for (slot in slotsWithPickaxes) {
+            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Gets the first non-hotbar slot of a diamond pickaxe that does not have the silk touch enchantment.
+     * @return The position of the pickaxe. -1 if there is no match.
+     */
+    private fun getNonSilkTouchPickPos(): Int {
+        val slotsWithPickaxes = InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return -1
+        for (slot in slotsWithPickaxes) {
+            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
+                return slot
+            }
+        }
+        return -1
+    }
+
     private fun mineBlock(pos: BlockPos, pre: Boolean) {
         if (pre) {
-            if (InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) != null) {
-                InventoryUtils.moveToHotbar(ItemID.DIAMOND_PICKAXE.id, ItemID.ENDER_CHEST.id)
-            } else if (InventoryUtils.getSlots(0, 35, ItemID.DIAMOND_PICKAXE.id) == null) {
-                sendChatMessage("No pickaxe was found in inventory.")
+            if (!hotbarHasNonSilkTouchPick() && getNonSilkTouchPickPos() != -1) {
+                InventoryUtils.moveToSlot(0, getNonSilkTouchPickPos(), 36)
+            } else if (!hotbarHasNonSilkTouchPick()) {
+                sendChatMessage("No valid pickaxe was found in inventory.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                disable()
             }
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
