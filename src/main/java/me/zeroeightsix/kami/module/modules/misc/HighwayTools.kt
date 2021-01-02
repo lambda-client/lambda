@@ -229,7 +229,7 @@ object HighwayTools : Module() {
         }
 
         safeListener<OnUpdateWalkingPlayerEvent> { event ->
-            if (event.phase != Phase.PRE || rotateTimer.tick(20L, false)) return@safeListener
+            if (event.phase != Phase.PRE) return@safeListener
 
             updateRenderer()
 
@@ -276,6 +276,7 @@ object HighwayTools : Module() {
                 }
             }
 
+            if (rotateTimer.tick(20L, false)) return@safeListener
             val rotation = lastHitVec?.let { RotationUtils.getRotationTo(it) } ?: return@safeListener
 
             when (interacting.value) {
