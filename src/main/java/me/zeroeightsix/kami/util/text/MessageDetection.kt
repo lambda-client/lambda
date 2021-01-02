@@ -4,7 +4,6 @@ import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.module.modules.chat.EncryptChat
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.Wrapper
-import org.kamiblue.commons.extension.replaceAll
 
 object MessageDetection {
     enum class Command : PrefixDetector {
@@ -26,7 +25,7 @@ object MessageDetection {
         }
     }
 
-    enum class Message : Detector, PlayerDetector {
+    enum class Message : Detector, PlayerDetector, RemovableDetector {
         SELF {
             override fun detect(input: CharSequence) = Wrapper.player?.name?.let {
                 input.startsWith("<${it}>")
@@ -35,14 +34,6 @@ object MessageDetection {
             override fun playerName(input: CharSequence): String? {
                 return if (detectNot(input)) null
                 else Wrapper.player?.name
-            }
-
-            override fun removed(input: CharSequence): String? = Wrapper.player?.name?.let {
-                if (detect(input)) {
-                    input.toString().substring("<${it}>".length).takeIf { str -> str.isNotBlank() }
-                } else {
-                    null
-                }
             }
         },
         OTHER {
@@ -53,12 +44,6 @@ object MessageDetection {
             override fun playerName(input: CharSequence) = Wrapper.player?.name?.let { name ->
                 regex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() && it != name }
             }
-
-            override fun removed(input: CharSequence): String? = if (detect(input)) {
-                input.replace(regex, "").removePrefix(" ").takeIf { it.isNotBlank() }
-            } else {
-                null
-            }
         },
         ANY {
             private val regex = "^<(\\w+)>".toRegex()
@@ -67,42 +52,22 @@ object MessageDetection {
 
             override fun playerName(input: CharSequence) =
                 regex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }
+        };
 
-            override fun removed(input: CharSequence): String? = if (detect(input)) {
-                input.replace(regex, "").removePrefix(" ").takeIf { it.isNotBlank() }
-            } else {
-                null
-            }
+        override fun removedOrNull(input: CharSequence): CharSequence? = playerName(input)?.let {
+            input.removePrefix("<$it>")
         }
     }
 
     enum class Direct(override vararg val regexes: Regex) : RegexDetector, PlayerDetector {
-        SENT("^To (\\w+?): ".toRegex(RegexOption.IGNORE_CASE)) {
-            override fun removed(input: CharSequence): String? = if (detect(input)) {
-                input.replaceAll("", *regexes).toString()
-            } else {
-                null
-            }
-        },
+        SENT("^To (\\w+?): ".toRegex(RegexOption.IGNORE_CASE)),
         RECEIVE(
             "^(\\w+?) whispers( to you)?: ".toRegex(),
             "^\\[?(\\w+?)( )?->( )?\\w+?]?( )?:? ".toRegex(),
             "^From (\\w+?): ".toRegex(RegexOption.IGNORE_CASE),
             ". (\\w+?) » \\w+? » ".toRegex()
-        ) {
-            override fun removed(input: CharSequence): String? = if (detect(input)) {
-                input.replaceAll("", *regexes).toString()
-            } else {
-                null
-            }
-        },
-        ANY(*SENT.regexes, *RECEIVE.regexes) {
-            override fun removed(input: CharSequence): String? = when {
-                SENT.detect(input) -> input.replaceAll("", *SENT.regexes).toString()
-                RECEIVE.detect(input) -> input.replaceAll("", *RECEIVE.regexes).toString()
-                else -> null
-            }
-        };
+        ),
+        ANY(*SENT.regexes, *RECEIVE.regexes);
 
         override fun playerName(input: CharSequence) = matchedRegex(input)?.let { regex ->
             input.replace(regex, "$1").takeIf { it.isNotBlank() }
