@@ -5,7 +5,6 @@ import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
@@ -29,6 +28,7 @@ import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.defaultScope
 import me.zeroeightsix.kami.util.threads.onMainThreadSafe
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
 import net.minecraft.block.BlockLiquid
@@ -45,7 +45,6 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
@@ -224,72 +223,65 @@ object HighwayTools : Module() {
     fun isDone(): Boolean = pendingTasks.size == 0
 
     init {
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) {
-                if (mc.playerController == null) return@listener
-
-                updateRenderer()
-
-                if (!active) {
-                    active = true
-                    BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
-                }
-
-                if (baritoneMode.value) {
-                    pathing = BaritoneUtils.isPathing
-                    val taskPos = (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.blockPos
-                        ?: BlockPos(0, -1, 0)
-
-                    if (mc.player.positionVector.distanceTo(taskPos) < maxReach.value ) {
-                        if (!isDone()) {
-                            if(canDoTask()) {
-                                if (!pathing) adjustPlayerPosition(false)
-                                val currentFood = mc.player.foodStats.foodLevel
-                                if (currentFood != prevFood) {
-                                    if (currentFood < prevFood) foodLoss++
-                                    prevFood = currentFood
-                                }
-                                doTask()
-                            }
-                        } else {
-                            if (checkTasks() && !pathing) {
-                                currentBlockPos = getNextBlock(getNextBlock())
-                                doneTasks.clear()
-                                updateTasks(currentBlockPos)
-                            } else {
-                                refreshData()
-                            }
-                        }
-                    } else {
-                        refreshData()
-                    }
-                } else {
-                    if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
-                        doTask()
-                    } else {
-                        currentBlockPos = mc.player.positionVector.toBlockPos()
-                        if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
-                        refreshData()
-                    }
-                }
-            } else {
-                return@listener
-            }
-        }
-
         listener<RenderWorldEvent> {
             if (mc.player == null) return@listener
             renderer.render(false)
         }
 
-        listener<OnUpdateWalkingPlayerEvent> { event ->
-            if (event.phase != Phase.PRE || rotateTimer.tick(20L, false)) return@listener
-            val rotation = lastHitVec?.let { RotationUtils.getRotationTo(it) } ?: return@listener
+        safeListener<OnUpdateWalkingPlayerEvent> { event ->
+            if (event.phase != Phase.PRE || rotateTimer.tick(20L, false)) return@safeListener
+
+            updateRenderer()
+
+            if (!active) {
+                active = true
+                BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+            }
+
+            if (baritoneMode.value) {
+                pathing = BaritoneUtils.isPathing
+                val taskPos = (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.blockPos
+                    ?: BlockPos(0, -1, 0)
+
+                if (mc.player.positionVector.distanceTo(taskPos) < maxReach.value ) {
+                    if (!isDone()) {
+                        if(canDoTask()) {
+                            if (!pathing) adjustPlayerPosition(false)
+                            val currentFood = mc.player.foodStats.foodLevel
+                            if (currentFood != prevFood) {
+                                if (currentFood < prevFood) foodLoss++
+                                prevFood = currentFood
+                            }
+                            doTask()
+                        }
+                    } else {
+                        if (checkTasks() && !pathing) {
+                            currentBlockPos = getNextBlock(getNextBlock())
+                            doneTasks.clear()
+                            updateTasks(currentBlockPos)
+                        } else {
+                            refreshData()
+                        }
+                    }
+                } else {
+                    refreshData()
+                }
+            } else {
+                if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
+                    doTask()
+                } else {
+                    currentBlockPos = mc.player.positionVector.toBlockPos()
+                    if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
+                    refreshData()
+                }
+            }
+
+            val rotation = lastHitVec?.let { RotationUtils.getRotationTo(it) } ?: return@safeListener
 
             when (interacting.value) {
                 InteractMode.SPOOF -> {
                     val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
-                    PlayerPacketManager.addPacket(this, packet)
+                    PlayerPacketManager.addPacket(this@HighwayTools, packet)
                 }
                 InteractMode.VIEW_LOCK -> {
                     mc.player.rotationYaw = rotation.x
@@ -909,7 +901,7 @@ object HighwayTools : Module() {
     private fun adjustPlayerPosition(bridge: Boolean) {
         var vec = Vec3d(getNextWalkableBlock()).add(0.5, 0.5, 0.5).subtract(mc.player.positionVector)
         when {
-            bridge && !buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.51))
+            bridge && !buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))
             bridge && buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))
         }
         mc.player.motionX = (vec.x / 2.0).coerceIn(-0.2, 0.2)
