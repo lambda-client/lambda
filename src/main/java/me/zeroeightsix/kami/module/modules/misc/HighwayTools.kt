@@ -91,7 +91,7 @@ object HighwayTools : Module() {
     private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withValue(91).withRange(0, 255).withStep(1).withVisibility { outline.value && page.value == Page.CONFIG })
 
     // internal settings
-    val ignoreBlocks = setOf(
+    val ignoreBlocks = hashSetOf(
         Blocks.STANDING_SIGN,
         Blocks.WALL_SIGN,
         Blocks.STANDING_BANNER,
