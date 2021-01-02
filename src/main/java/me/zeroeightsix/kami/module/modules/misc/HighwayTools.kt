@@ -1,8 +1,12 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import me.zeroeightsix.kami.event.Phase
+import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
+import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
@@ -10,21 +14,21 @@ import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.BaritoneUtils
-import me.zeroeightsix.kami.util.BlockUtils
-import me.zeroeightsix.kami.util.InventoryUtils
+import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.WorldUtils.placeBlock
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
-import me.zeroeightsix.kami.util.math.Vec2d
+import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
-import me.zeroeightsix.kami.util.math.VectorUtils.getDistance
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
+import me.zeroeightsix.kami.util.threads.defaultScope
+import me.zeroeightsix.kami.util.threads.onMainThreadSafe
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
 import net.minecraft.block.BlockLiquid
@@ -34,13 +38,13 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
-import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
-import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.*
-import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraft.util.math.AxisAlignedBB
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.RayTraceResult
+import net.minecraft.util.math.Vec3d
 import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
@@ -52,12 +56,11 @@ import kotlin.math.sqrt
  * @author Avanatiker
  * @since 20/08/2020
  */
-
 @Module.Info(
-        name = "HighwayTools",
-        description = "Be the grief a step a head.",
-        category = Module.Category.MISC,
-        modulePriority = 10
+    name = "HighwayTools",
+    description = "Be the grief a step a head.",
+    category = Module.Category.MISC,
+    modulePriority = 10
 )
 object HighwayTools : Module() {
 
@@ -95,14 +98,14 @@ object HighwayTools : Module() {
 
     // internal settings
     val ignoreBlocks = hashSetOf(
-            Blocks.STANDING_SIGN,
-            Blocks.WALL_SIGN,
-            Blocks.STANDING_BANNER,
-            Blocks.WALL_BANNER,
-            Blocks.BEDROCK,
-            Blocks.END_PORTAL,
-            Blocks.END_PORTAL_FRAME,
-            Blocks.PORTAL
+        Blocks.STANDING_SIGN,
+        Blocks.WALL_SIGN,
+        Blocks.STANDING_BANNER,
+        Blocks.WALL_BANNER,
+        Blocks.BEDROCK,
+        Blocks.END_PORTAL,
+        Blocks.END_PORTAL_FRAME,
+        Blocks.PORTAL
     )
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
@@ -124,6 +127,8 @@ object HighwayTools : Module() {
     private val stuckManager = StuckManagement(StuckLevel.NONE, 0)
     private val renderer = ESPRenderer()
     private var active = false
+    private var lastHitVec: Vec3d? = null
+    private val rotateTimer = TickTimer(TimeUnit.TICKS)
 
     // stats
     private var totalBlocksPlaced = 0
@@ -141,15 +146,14 @@ object HighwayTools : Module() {
         }
 
         /* Turn on inventory manager if the users wants us to control it */
-        if(toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
+        if (toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
 
         /* Turn on Auto Obsidian if the user wants us to control it. */
-        if(toggleAutoObsidian.value && AutoObsidian.isDisabled && mode.value != Mode.TUNNEL) {
+        if (toggleAutoObsidian.value && AutoObsidian.isDisabled && mode.value != Mode.TUNNEL) {
             /* If we have no obsidian, immediately turn on Auto Obsidian */
-            if(InventoryUtils.countItemAll(49) == 0) {
+            if (InventoryUtils.countItemAll(49) == 0) {
                 AutoObsidian.enable()
-            }
-            else {
+            } else {
                 Thread {
                     /* Wait 1 second because turning both on simultaneously is buggy */
                     Thread.sleep(1000L)
@@ -205,10 +209,10 @@ object HighwayTools : Module() {
 
 
         /* Turn off inventory manager if the users wants us to control it */
-        if(toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
+        if (toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
 
         /* Turn off auto obsidian if the user wants us to control it */
-        if(toggleAutoObsidian.value && AutoObsidian.isEnabled) {
+        if (toggleAutoObsidian.value && AutoObsidian.isEnabled) {
             AutoObsidian.disable()
         }
 
@@ -218,63 +222,75 @@ object HighwayTools : Module() {
     fun isDone(): Boolean = pendingTasks.size == 0
 
     init {
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) {
-                if (mc.playerController == null) return@listener
-
-                updateRenderer()
-
-                if (!active) {
-                    active = true
-                    BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
-                }
-
-                if (baritoneMode.value) {
-                    pathing = BaritoneUtils.isPathing
-                    var taskDistance = BlockPos(0, -1, 0)
-                    (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.let { element ->
-                        taskDistance = element.blockPos
-                    }
-                    if (getDistance(mc.player.positionVector, taskDistance.toVec3d()) < maxReach.value ) {
-                        if (!isDone()) {
-                            if(canDoTask()) {
-                                if (!pathing) adjustPlayerPosition(false)
-                                val currentFood = mc.player.foodStats.foodLevel
-                                if (currentFood != prevFood) {
-                                    if (currentFood < prevFood) foodLoss++
-                                    prevFood = currentFood
-                                }
-                                doTask()
-                            }
-                        } else {
-                            if (checkTasks() && !pathing) {
-                                currentBlockPos = getNextBlock(getNextBlock())
-                                doneTasks.clear()
-                                updateTasks(currentBlockPos)
-                            } else {
-                                refreshData()
-                            }
-                        }
-                    } else {
-                        refreshData()
-                    }
-                } else {
-                    if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
-                        doTask()
-                    } else {
-                        currentBlockPos = mc.player.positionVector.toBlockPos()
-                        if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
-                        refreshData()
-                    }
-                }
-            } else {
-                return@listener
-            }
-        }
-
         listener<RenderWorldEvent> {
             if (mc.player == null) return@listener
             renderer.render(false)
+        }
+
+        safeListener<OnUpdateWalkingPlayerEvent> { event ->
+            if (event.phase != Phase.PRE) return@safeListener
+
+            updateRenderer()
+
+            if (!active) {
+                active = true
+                BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+            }
+
+            if (baritoneMode.value) {
+                pathing = BaritoneUtils.isPathing
+                val taskPos = (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.blockPos
+                    ?: BlockPos(0, -1, 0)
+
+                if (mc.player.positionVector.distanceTo(taskPos) < maxReach.value) {
+                    if (!isDone()) {
+                        if (canDoTask()) {
+                            if (!pathing) adjustPlayerPosition(false)
+                            val currentFood = mc.player.foodStats.foodLevel
+                            if (currentFood != prevFood) {
+                                if (currentFood < prevFood) foodLoss++
+                                prevFood = currentFood
+                            }
+                            doTask()
+                        }
+                    } else {
+                        if (checkTasks() && !pathing) {
+                            currentBlockPos = getNextBlock(getNextBlock())
+                            doneTasks.clear()
+                            updateTasks(currentBlockPos)
+                        } else {
+                            refreshData()
+                        }
+                    }
+                } else {
+                    refreshData()
+                }
+            } else {
+                if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
+                    doTask()
+                } else {
+                    currentBlockPos = mc.player.positionVector.toBlockPos()
+                    if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
+                    refreshData()
+                }
+            }
+
+            if (rotateTimer.tick(20L, false)) return@safeListener
+            val rotation = lastHitVec?.let { RotationUtils.getRotationTo(it) } ?: return@safeListener
+
+            when (interacting.value) {
+                InteractMode.SPOOF -> {
+                    val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
+                    PlayerPacketManager.addPacket(this@HighwayTools, packet)
+                }
+                InteractMode.VIEW_LOCK -> {
+                    mc.player.rotationYaw = rotation.x
+                    mc.player.rotationPitch = rotation.y
+                }
+                else -> {
+
+                }
+            }
         }
     }
 
@@ -330,21 +346,21 @@ object HighwayTools : Module() {
 
                 when (blockTask.taskState) {
                     TaskState.DONE -> doDone(blockTask)
-                    TaskState.BREAKING -> if(!doBreaking(blockTask)) {
+                    TaskState.BREAKING -> if (!doBreaking(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
                     TaskState.BROKEN -> doBroken(blockTask)
                     TaskState.PLACED -> doPlaced(blockTask)
-                    TaskState.EMERGENCY_BREAK -> if(!doBreak(blockTask)) {
+                    TaskState.EMERGENCY_BREAK -> if (!doBreak(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.BREAK -> if(!doBreak(blockTask)) {
+                    TaskState.BREAK -> if (!doBreak(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if(!doPlace(blockTask)) {
+                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if (!doPlace(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
@@ -475,7 +491,7 @@ object HighwayTools : Module() {
             block == material && block == blockTask.block -> updateTask(blockTask, TaskState.PLACED)
             block == fillerMat && block == blockTask.block -> updateTask(blockTask, TaskState.PLACED)
             else -> {
-                if (!BlockUtils.isPlaceable(blockTask.blockPos)) {
+                if (!WorldUtils.isPlaceable(blockTask.blockPos)) {
 //                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Error: " + blockTask.blockPos + " is not a valid position to place a block, removing task.")
 //                    blockQueue.remove(blockTask)
                     if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Invalid place position: " + blockTask.blockPos)
@@ -601,7 +617,7 @@ object HighwayTools : Module() {
 //                    for (x in InventoryUtils.getSlots(0, 35, blockID)!!) InventoryUtils.throwAllInSlot(x)
 //                }
                 if (InventoryUtils.getSlotsHotbar(blockID) == null &&
-                        noHotbar != null) {
+                    noHotbar != null) {
                     when (blockTask.block) {
                         fillerMat -> InventoryUtils.moveToSlot(noHotbar[0], 37)
                         material -> InventoryUtils.moveToSlot(noHotbar[0], 38)
@@ -746,21 +762,25 @@ object HighwayTools : Module() {
         if (rayTrace == null) return
 
         val facing = rayTrace.sideHit
-        val rotation = RotationUtils.getRotationTo(rayTrace.hitVec, true)
-
-        setRotation(rotation)
+        lastHitVec = rayTrace.hitVec
+        rotateTimer.reset()
 
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.NETHERRACK -> {
                 updateTask(blockTask, TaskState.BROKEN)
                 waitTicks = tickDelayBreak.value
-                Thread {
-                    Thread.sleep(16L)
-                    mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
-                    Thread.sleep(16L)
-                    mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
-                    mc.player.swingArm(EnumHand.MAIN_HAND)
-                }.start()
+                defaultScope.launch {
+                    delay(5L)
+                    onMainThreadSafe {
+                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
+                        player.swingArm(EnumHand.MAIN_HAND)
+                    }
+                    delay(45L)
+                    onMainThreadSafe {
+                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
+                        player.swingArm(EnumHand.MAIN_HAND)
+                    }
+                }
             }
             else -> dispatchGenericMineThread(blockTask, facing)
         }
@@ -774,11 +794,13 @@ object HighwayTools : Module() {
             else -> CPacketPlayerDigging()
         }
         if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
-        Thread {
-            Thread.sleep(25L)
-            mc.connection!!.sendPacket(digPacket)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-        }.start()
+        defaultScope.launch {
+            delay(5L)
+            onMainThreadSafe {
+                connection.sendPacket(digPacket)
+                player.swingArm(EnumHand.MAIN_HAND)
+            }
+        }
     }
 
     // Only temporary till we found solution to avoid untraceable blocks
@@ -787,16 +809,16 @@ object HighwayTools : Module() {
         val neighbour = blockTask.blockPos.offset(side)
         val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.5))
 
-        val rotation = RotationUtils.getRotationTo(hitVec, true)
-        setRotation(rotation)
+        lastHitVec = hitVec
+        rotateTimer.reset()
 
-        Thread {
-            Thread.sleep(25L)
-            val placePacket = CPacketPlayerTryUseItemOnBlock(neighbour, side.opposite, EnumHand.MAIN_HAND, hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat())
-            mc.connection!!.sendPacket(placePacket)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-            if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
-        }.start()
+        defaultScope.launch {
+            delay(10L)
+            onMainThreadSafe {
+                placeBlock(neighbour, side.opposite)
+                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
+            }
+        }
         return true
     }
 
@@ -806,9 +828,9 @@ object HighwayTools : Module() {
         for (side in EnumFacing.values()) {
             val offPos = blockTask.blockPos.offset(side)
             if (mc.world.getBlockState(offPos).material.isReplaceable) continue
-            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(BlockUtils.getHitVecOffset(side))) > maxReach.value) continue
+            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(WorldUtils.getHitVecOffset(side))) > maxReach.value) continue
             val rotationVector = Vec3d(offPos).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.499))
-            val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector, false)?: continue
+            val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector, false) ?: continue
             if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
             if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == blockTask.blockPos) {
                 directHits.add(rt)
@@ -821,8 +843,8 @@ object HighwayTools : Module() {
                 var rayTrace = emergencyHits[0]
                 var shortestRT = 99.0
                 for (rt in emergencyHits) {
-                    if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
-                        shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit)))
+                    if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
+                        shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit)))
                         rayTrace = rt
                     }
                 }
@@ -830,7 +852,7 @@ object HighwayTools : Module() {
                 return false
             }
             return if (illegalPlacements.value) {
-                if(debugMessages.value == DebugMessages.ALL) sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                if (debugMessages.value == DebugMessages.ALL) sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
                 placeBlockWall(blockTask)
             } else {
                 false
@@ -840,8 +862,8 @@ object HighwayTools : Module() {
         var rayTrace: RayTraceResult? = null
         var shortestRT = 99.0
         for (rt in directHits) {
-            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
-                shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(BlockUtils.getHitVecOffset(rt.sideHit)))
+            if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit))) < shortestRT) {
+                shortestRT = mc.player.getPositionEyes(1f).distanceTo(Vec3d(rt.blockPos).add(WorldUtils.getHitVecOffset(rt.sideHit)))
                 rayTrace = rt
             }
         }
@@ -850,32 +872,17 @@ object HighwayTools : Module() {
             return false
         }
 
-        val hitVecOffset = rayTrace.hitVec
-        val rotation = RotationUtils.getRotationTo(hitVecOffset, true)
-        setRotation(rotation)
+        lastHitVec = rayTrace.hitVec
+        rotateTimer.reset()
 
-        Thread {
-            Thread.sleep(25L)
-            val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-            mc.connection!!.sendPacket(placePacket)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-            if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
-        }.start()
-        return true
-    }
-
-    private fun setRotation(rotation: Vec2d) {
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x.toFloat(), rotation.y.toFloat(), mc.player.onGround)
-                mc.connection!!.sendPacket(rotationPacket)
+        defaultScope.launch {
+            delay(10L)
+            onMainThreadSafe {
+                placeBlock(rayTrace.blockPos, rayTrace.sideHit)
+                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
             }
-            InteractMode.VIEWLOCK -> {
-                mc.player.rotationYaw = rotation.x.toFloat()
-                mc.player.rotationPitch = rotation.y.toFloat()
-            }
-            else -> {}
         }
+        return true
     }
 
     private fun getPlaceableSide(pos: BlockPos): EnumFacing? {
@@ -899,11 +906,11 @@ object HighwayTools : Module() {
     private fun adjustPlayerPosition(bridge: Boolean) {
         var vec = Vec3d(getNextWalkableBlock()).add(0.5, 0.5, 0.5).subtract(mc.player.positionVector)
         when {
-            bridge && !buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.51))
+            bridge && !buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))
             bridge && buildDirectionSaved.isDiagonal -> vec = vec.add(Vec3d(buildDirectionSaved.directionVec).scale(0.525))
         }
-        mc.player.motionX = MathHelper.clamp(vec.x / 2.0, -0.2, 0.2)
-        mc.player.motionZ = MathHelper.clamp(vec.z / 2.0, -0.2, 0.2)
+        mc.player.motionX = (vec.x / 2.0).coerceIn(-0.2, 0.2)
+        mc.player.motionZ = (vec.z / 2.0).coerceIn(-0.2, 0.2)
     }
 
     private fun getQueue(): List<String> {
@@ -954,11 +961,11 @@ object HighwayTools : Module() {
             StringBuilder(2).run {
                 append(
                     "$chatName Module stopped." +
-                    "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
-                    "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
+                        "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
+                        "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
                 )
 
-                if (baritoneMode.value) append("\n    §9> §7Distance: §a${getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()}§r")
+                if (baritoneMode.value) append("\n    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
 
                 sendChatMessage(toString())
             }
@@ -995,29 +1002,29 @@ object HighwayTools : Module() {
         val pavingLeftAll = (materialLeft + indirectMaterialLeft) / (blueprintStats.first + 1)
 
         val runtimeSec = ((System.currentTimeMillis() - startTime) / 1000) + 0.0001
-        val seconds = (runtimeSec % 60).toInt().toString().padStart(2,'0')
-        val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2,'0')
-        val hours = (runtimeSec / 3600).toInt().toString().padStart(2,'0')
+        val seconds = (runtimeSec % 60).toInt().toString().padStart(2, '0')
+        val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
+        val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
 
-        val distanceDone = getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt()
+        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt()
 
         val secLeft = runtimeSec / (distanceDone * pavingLeftAll + 0.0001)
-        val secondsLeft = (secLeft % 60).toInt().toString().padStart(2,'0')
-        val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2,'0')
-        val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2,'0')
+        val secondsLeft = (secLeft % 60).toInt().toString().padStart(2, '0')
+        val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2, '0')
+        val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2, '0')
 
         val statistics = mutableListOf(
             "§rPerformance",
             "    §7Runtime: §9$hours:$minutes:$seconds",
             "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
             "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
-            "    §7Distance per hour: §9%.2f".format((getDistance(startingBlockPos.toVec3d(), currentBlockPos.toVec3d()).toInt() / runtimeSec) * 60 * 60),
+            "    §7Distance per hour: §9%.2f".format((startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec) * 60 * 60),
             "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
             "§rEnvironment",
             "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
             "    §7Direction: §9${buildDirectionSaved.displayName}",
-            "    §7Blocks destroyed: §9$totalBlocksDestroyed".padStart(6,'0'),
-            "    §7Blocks placed: §9$totalBlocksPlaced".padStart(6,'0'),
+            "    §7Blocks destroyed: §9$totalBlocksDestroyed".padStart(6, '0'),
+            "    §7Blocks placed: §9$totalBlocksPlaced".padStart(6, '0'),
             "    §7Material: §9${material.localizedName}",
             "    §7Filler: §9${fillerMat.localizedName}",
             "§rTask",
@@ -1051,8 +1058,8 @@ object HighwayTools : Module() {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
                     if (mc.world.getBlockState(pos.down()).block == material &&
-                            mc.world.getBlockState(pos).block == Blocks.AIR &&
-                            mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
@@ -1060,12 +1067,13 @@ object HighwayTools : Module() {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
                     if (mc.world.getBlockState(pos.down()).block == fillerMat &&
-                            mc.world.getBlockState(pos).block == Blocks.AIR &&
-                            mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
-            else -> {}
+            else -> {
+            }
         }
 
         return lastWalkable
@@ -1239,9 +1247,9 @@ object HighwayTools : Module() {
     }
 
     data class StuckManagement(
-            var stuckLevel: StuckLevel,
-            var stuckValue: Int
-    )  {
+        var stuckLevel: StuckLevel,
+        var stuckValue: Int
+    ) {
         fun increase(blockTask: BlockTask) {
 
             when (blockTask.taskState) {
@@ -1258,7 +1266,7 @@ object HighwayTools : Module() {
                         if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
                     }
                 }
-                stuckValue in 100..200  -> {
+                stuckValue in 100..200 -> {
                     stuckLevel = StuckLevel.MINOR
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     if (blockTask.taskState != TaskState.BREAKING) {
@@ -1299,9 +1307,9 @@ object HighwayTools : Module() {
     }
 
     data class BlockTask(
-            val blockPos: BlockPos,
-            var taskState: TaskState,
-            var block: Block
+        val blockPos: BlockPos,
+        var taskState: TaskState,
+        var block: Block
     ) {
         override fun toString(): String {
             return "Block: " + block.localizedName + " @ Position: (" + blockPos.asString() + ") Priority: " + taskState.ordinal + " State: " + taskState.toString()
@@ -1325,7 +1333,7 @@ object HighwayTools : Module() {
             override fun compare(a: BlockTask, b: BlockTask): Int = when {
                 a.taskState.ordinal != b.taskState.ordinal -> a.taskState.ordinal - b.taskState.ordinal
                 a.taskState.ordinal == b.taskState.ordinal && stuckManager.stuckLevel != StuckLevel.NONE -> a.taskState.ordinal - b.taskState.ordinal
-                else -> getDistance(mc.player.positionVector, a.blockPos.toVec3d()).toInt() - getDistance(mc.player.positionVector, b.blockPos.toVec3d()).toInt()
+                else -> (mc.player.distanceTo(a.blockPos) - mc.player.distanceTo(b.blockPos)).toInt()
             }
         }
     }
@@ -1352,7 +1360,7 @@ object HighwayTools : Module() {
     private enum class InteractMode {
         OFF,
         SPOOF,
-        VIEWLOCK
+        VIEW_LOCK
     }
 
     enum class StuckLevel {

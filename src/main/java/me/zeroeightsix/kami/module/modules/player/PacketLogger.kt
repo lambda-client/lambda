@@ -3,11 +3,16 @@ package me.zeroeightsix.kami.module.modules.player
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.mixin.extension.pitch
+import me.zeroeightsix.kami.mixin.extension.yaw
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
 import org.kamiblue.event.listener.listener
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraft.network.play.client.CPacketPlayerDigging
+import net.minecraft.util.math.Vec3d
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
@@ -41,7 +46,16 @@ object PacketLogger : Module() {
                 return@listener
             }
 
-            lines.add("${sdf.format(Date())}\n${it.packet.javaClass.simpleName}\n${it.packet.javaClass}\n${it.packet}\n\n")
+            lines.add("${sdf.format(Date())}\n${it.packet.javaClass.simpleName}\n${it.packet.javaClass}\n${it.packet}")
+            when (it.packet) {
+                is CPacketPlayerDigging -> {
+                    lines.add("\nMining - ${it.packet.position}@${it.packet.facing} - ${it.packet.action}")
+                }
+                is CPacketPlayer -> {
+                    lines.add("\nRotation - Pitch: ${it.packet.pitch} Yaw: ${it.packet.yaw}")
+                }
+            }
+            lines.add("\n\n")
         }
 
         listener<SafeTickEvent> {
