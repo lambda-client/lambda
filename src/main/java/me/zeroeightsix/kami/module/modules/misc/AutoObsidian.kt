@@ -479,9 +479,9 @@ object AutoObsidian : Module() {
      * @return True if there is a non-sliktouch pick in the hotbar, else returns false
      */
     private fun hotbarHasNonSilkTouchPick(): Boolean {
-        if (InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) == null) return false
-        for (pos in InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id)!!) {
-            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(pos)) == 0) {
+        val slotsWithPickaxes = InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return false
+        for (slot in slotsWithPickaxes) {
+            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
                 return true
             }
         }
@@ -493,10 +493,10 @@ object AutoObsidian : Module() {
      * @return The position of the pickaxe. -1 if there is no match.
      */
     private fun getNonSilkTouchPickPos(): Int {
-        if (InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) == null) return -1
-        for (pos in InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id)!!) {
-            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(pos)) == 0) {
-                return pos
+        val slotsWithPickaxes = InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return -1
+        for (slot in slotsWithPickaxes) {
+            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
+                return slot
             }
         }
         return -1
