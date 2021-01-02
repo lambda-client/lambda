@@ -15,7 +15,7 @@ import me.zeroeightsix.kami.util.graphics.font.TextComponent
 import me.zeroeightsix.kami.util.graphics.font.VAlign
 import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import org.kamiblue.event.listener.listener
@@ -118,7 +118,7 @@ object WaypointRender : Module() {
     private fun drawText(pos: BlockPos, textComponentIn: TextComponent, distance: Int) {
         glPushMatrix()
 
-        val screenPos = ProjectionUtils.toScreenPos(pos.toVec3d())
+        val screenPos = ProjectionUtils.toScreenPos(pos.toVec3dCenter())
         glTranslatef(screenPos.x.toFloat(), screenPos.y.toFloat(), 0f)
         glScalef(textScale.value * 2f, textScale.value * 2f, 0f)
 

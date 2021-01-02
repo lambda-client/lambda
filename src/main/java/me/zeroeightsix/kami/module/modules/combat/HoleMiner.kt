@@ -11,7 +11,7 @@ import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks
@@ -85,8 +85,8 @@ object HoleMiner : Module() {
                     return@listener
                 }
                 val action = if (start) CPacketPlayerDigging.Action.START_DESTROY_BLOCK else CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK
-                val rotation = RotationUtils.getRotationTo(pos.toVec3d())
-                val diff = mc.player.getPositionEyes(1f).subtract(pos.toVec3d())
+                val rotation = RotationUtils.getRotationTo(pos.toVec3dCenter())
+                val diff = mc.player.getPositionEyes(1f).subtract(pos.toVec3dCenter())
                 val normalizedVec = diff.scale(1.0 / diff.length())
                 val facing = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
                 PlayerPacketManager.addPacket(this, PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation))
