@@ -7,7 +7,6 @@ import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
-import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
@@ -32,11 +31,8 @@ import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
 import net.minecraft.block.BlockLiquid
-import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
-import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.util.EnumFacing
@@ -49,7 +45,6 @@ import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.abs
-import kotlin.math.pow
 import kotlin.math.sqrt
 
 /**
@@ -97,7 +92,7 @@ object HighwayTools : Module() {
     private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withValue(91).withRange(0, 255).withStep(1).withVisibility { outline.value && page.value == Page.CONFIG })
 
     // internal settings
-    val ignoreBlocks = hashSetOf(
+    val ignoreBlocks = setOf(
         Blocks.STANDING_SIGN,
         Blocks.WALL_SIGN,
         Blocks.STANDING_BANNER,
@@ -596,7 +591,7 @@ object HighwayTools : Module() {
     private fun inventoryProcessor(blockTask: BlockTask): Boolean {
         when (blockTask.taskState) {
             TaskState.BREAK, TaskState.EMERGENCY_BREAK -> {
-                equipBestTool(mc.world.getBlockState(blockTask.blockPos))
+                AutoTool.equipBestTool(mc.world.getBlockState(blockTask.blockPos))
 //                val noHotbar = InventoryUtils.getSlotsNoHotbar(278)
 //                if (InventoryUtils.getSlotsHotbar(278) == null && noHotbar != null) {
 ////                    InventoryUtils.moveToHotbar(278, 130)
@@ -636,32 +631,6 @@ object HighwayTools : Module() {
             else -> return false
         }
         return true
-    }
-
-    private fun equipBestTool(blockState: IBlockState) {
-        var bestSlot = -1
-        var max = 0.0
-
-        for (i in 0..8) {
-            val stack = mc.player.inventory.getStackInSlot(i)
-            if (stack.isEmpty) continue
-            var speed = stack.getDestroySpeed(blockState)
-            var eff: Int
-
-            if (speed > 1) {
-                speed += (if (EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack).also { eff = it } > 0.0) eff.toDouble().pow(2.0) + 1 else 0.0).toFloat()
-                if (speed > max) {
-                    max = speed.toDouble()
-                    bestSlot = i
-                }
-            }
-        }
-        if (bestSlot != -1) equip(bestSlot)
-    }
-
-    private fun equip(slot: Int) {
-        mc.player.inventory.currentItem = slot
-        mc.playerController.syncCurrentPlayItem()
     }
 
     private fun liquidHandler(blockTask: BlockTask): Boolean {
@@ -1149,7 +1118,7 @@ object HighwayTools : Module() {
         var cursor = blockPos.down()
 
         when (mode.value) {
-            Mode.HIGHWAY -> {
+            Mode.HIGHWAY, Mode.TUNNEL -> {
                 if (baritoneMode.value) {
                     cursor = relativeDirection(cursor, 1, 0)
                     blueprint.add(Pair(cursor, material))
@@ -1165,67 +1134,53 @@ object HighwayTools : Module() {
                 } else {
                     blueprint.add(Pair(evenCursor, material))
                 }
-                for (i in 1 until clearHeight.value + 1) {
-                    for (j in 1 until buildIterationsWidth) {
-                        if (i == 1) {
-                            if (j == buildIterationsWidth - 1 && !cornerBlock.value) {
-                                genOffset(cursor, i, j, fillerMat, isOdd)
+                if (mode.value == Mode.HIGHWAY) {
+                    for (i in 1 until clearHeight.value + 1) {
+                        for (j in 1 until buildIterationsWidth) {
+                            if (i == 1) {
+                                if (j == buildIterationsWidth - 1 && !cornerBlock.value) {
+                                    genOffset(cursor, i, j, fillerMat, isOdd)
+                                } else {
+                                    genOffset(cursor, i, j, material, isOdd)
+                                }
                             } else {
-                                genOffset(cursor, i, j, material, isOdd)
-                            }
-                        } else {
-                            if (i <= railingHeight.value + 1 && j == buildIterationsWidth - 1) {
-                                genOffset(cursor, i, j, material, isOdd)
-                            } else {
-                                if (clearSpace.value) {
-                                    genOffset(cursor, i, j, Blocks.AIR, isOdd)
+                                if (i <= railingHeight.value + 1 && j == buildIterationsWidth - 1) {
+                                    genOffset(cursor, i, j, material, isOdd)
+                                } else {
+                                    if (clearSpace.value) {
+                                        genOffset(cursor, i, j, Blocks.AIR, isOdd)
+                                    }
                                 }
                             }
                         }
-                    }
-                    cursor = cursor.up()
-                    evenCursor = evenCursor.up()
-                    if (clearSpace.value && i < clearHeight.value) {
-                        blueprint.add(Pair(cursor, Blocks.AIR))
-                        if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
-                    }
-                }
-            }
-            Mode.TUNNEL -> {
-                if (baritoneMode.value) {
-                    cursor = relativeDirection(cursor, 1, 0)
-                    blueprint.add(Pair(cursor, fillerMat))
-                }
-                cursor = relativeDirection(cursor, 1, 0)
-                blueprint.add(Pair(cursor, fillerMat))
-                var buildIterationsWidth = buildWidth.value / 2
-                var evenCursor = relativeDirection(cursor, 1, 2)
-                var isOdd = false
-                if (buildWidth.value % 2 == 1) {
-                    isOdd = true
-                    buildIterationsWidth++
-                } else {
-                    blueprint.add(Pair(evenCursor, fillerMat))
-                }
-                for (i in 1 until clearHeight.value + 2) {
-                    for (j in 1 until buildIterationsWidth) {
-                        if (i > 1) {
-                            if (cornerBlock.value && i == 2 && j == buildIterationsWidth - 1) continue
-                            blueprint.add(Pair(relativeDirection(cursor, j, -2), Blocks.AIR))
-                            if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 2), Blocks.AIR))
-                            else blueprint.add(Pair(relativeDirection(evenCursor, j, 2), Blocks.AIR))
-                            if (buildDirectionSaved.isDiagonal) {
-                                blueprint.add(Pair(relativeDirection(cursor, j, -3), Blocks.AIR))
-                                if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 3), Blocks.AIR))
-                                else blueprint.add(Pair(relativeDirection(evenCursor, j, 3), Blocks.AIR))
-                            }
+                        cursor = cursor.up()
+                        evenCursor = evenCursor.up()
+                        if (clearSpace.value && i < clearHeight.value) {
+                            blueprint.add(Pair(cursor, Blocks.AIR))
+                            if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
                         }
                     }
-                    cursor = cursor.up()
-                    evenCursor = evenCursor.up()
-                    if (clearSpace.value && i < clearHeight.value + 1) {
-                        blueprint.add(Pair(cursor, Blocks.AIR))
-                        if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
+                } else {
+                    for (i in 1 until clearHeight.value + 2) {
+                        for (j in 1 until buildIterationsWidth) {
+                            if (i > 1) {
+                                if (cornerBlock.value && i == 2 && j == buildIterationsWidth - 1) continue
+                                blueprint.add(Pair(relativeDirection(cursor, j, -2), Blocks.AIR))
+                                if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 2), Blocks.AIR))
+                                else blueprint.add(Pair(relativeDirection(evenCursor, j, 2), Blocks.AIR))
+                                if (buildDirectionSaved.isDiagonal) {
+                                    blueprint.add(Pair(relativeDirection(cursor, j, -3), Blocks.AIR))
+                                    if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 3), Blocks.AIR))
+                                    else blueprint.add(Pair(relativeDirection(evenCursor, j, 3), Blocks.AIR))
+                                }
+                            }
+                        }
+                        cursor = cursor.up()
+                        evenCursor = evenCursor.up()
+                        if (clearSpace.value && i < clearHeight.value + 1) {
+                            blueprint.add(Pair(cursor, Blocks.AIR))
+                            if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
+                        }
                     }
                 }
             }
