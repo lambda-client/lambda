@@ -120,7 +120,6 @@ object HighwayTools : Module() {
     var pathing = false
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
-    private val stuckManager = StuckManagement(StuckLevel.NONE, 0)
     private val renderer = ESPRenderer()
     private var active = false
     private var lastHitVec: Vec3d? = null
@@ -343,26 +342,26 @@ object HighwayTools : Module() {
                 when (blockTask.taskState) {
                     TaskState.DONE -> doDone(blockTask)
                     TaskState.BREAKING -> if (!doBreaking(blockTask)) {
-                        stuckManager.increase(blockTask)
+                        StuckManager.increase(blockTask)
                         return
                     }
                     TaskState.BROKEN -> doBroken(blockTask)
                     TaskState.PLACED -> doPlaced(blockTask)
                     TaskState.EMERGENCY_BREAK -> if (!doBreak(blockTask)) {
-                        stuckManager.increase(blockTask)
+                        StuckManager.increase(blockTask)
                         return
                     }
                     TaskState.BREAK -> if (!doBreak(blockTask)) {
-                        stuckManager.increase(blockTask)
+                        StuckManager.increase(blockTask)
                         return
                     }
                     TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if (!doPlace(blockTask)) {
-                        stuckManager.increase(blockTask)
+                        StuckManager.increase(blockTask)
                         return
                     }
                 }
 
-                if (blockTask.taskState != TaskState.BREAKING) stuckManager.reset()
+                if (blockTask.taskState != TaskState.BREAKING) StuckManager.reset()
             } else {
                 waitTicks--
             }
@@ -789,9 +788,9 @@ object HighwayTools : Module() {
         }
 
         if (directHits.size == 0) {
-            stuckManager.increase(blockTask)
+            StuckManager.increase(blockTask)
             refreshData()
-            if (stuckManager.stuckLevel == StuckLevel.NONE) doTask()
+            if (StuckManager.stuckLevel == StuckLevel.NONE) doTask()
             return
         }
 
@@ -892,7 +891,7 @@ object HighwayTools : Module() {
             }
         }
         if (directHits.size == 0) {
-            if (emergencyHits.size > 0 && stuckManager.stuckLevel.ordinal > 0 && (blockTask.taskState == TaskState.LIQUID_SOURCE || blockTask.taskState == TaskState.LIQUID_FLOW)) {
+            if (emergencyHits.size > 0 && StuckManager.stuckLevel.ordinal > 0 && (blockTask.taskState == TaskState.LIQUID_SOURCE || blockTask.taskState == TaskState.LIQUID_FLOW)) {
                 var rayTrace = emergencyHits[0]
                 var shortestRT = 99.0
                 for (rt in emergencyHits) {
@@ -1067,7 +1066,7 @@ object HighwayTools : Module() {
             "    §7Target state: §9${currentTask?.block?.localizedName}",
             "    §7Position: §9(${currentTask?.blockPos?.asString()})",
             "§rDebug",
-            "    §7Stuck manager: §9${stuckManager}",
+            "    §7Stuck manager: §9${StuckManager}",
             "    §7Pathing: §9$pathing",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
@@ -1182,10 +1181,10 @@ object HighwayTools : Module() {
         shuffleTasks()
     }
 
-    data class StuckManagement(
-        var stuckLevel: StuckLevel,
-        var stuckValue: Int
-    ) {
+    object StuckManager {
+        var stuckLevel = StuckLevel.NONE
+        var stuckValue = 0
+        
         fun increase(blockTask: BlockTask) {
 
             when (blockTask.taskState) {
@@ -1255,7 +1254,7 @@ object HighwayTools : Module() {
     ) : Comparable<BlockTask> {
         override fun compareTo(other: BlockTask) = when {
             taskState.ordinal != other.taskState.ordinal -> taskState.ordinal - other.taskState.ordinal
-            taskState.ordinal == other.taskState.ordinal && stuckManager.stuckLevel != StuckLevel.NONE -> 0
+            taskState.ordinal == other.taskState.ordinal && StuckManager.stuckLevel != StuckLevel.NONE -> 0
             else -> (mc.player.distanceTo(blockPos) - mc.player.distanceTo(other.blockPos)).toInt()
         }
 
