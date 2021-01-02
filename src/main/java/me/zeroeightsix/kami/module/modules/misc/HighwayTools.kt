@@ -1279,7 +1279,7 @@ object HighwayTools : Module() {
                     stuckLevel = StuckLevel.MODERATE
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
-                    if (debugMessages.value != DebugMessages.OFF && (mc.currentScreen !is DisplayGuiScreen || mc.currentServerData != null)) sendChatMessage("$chatName Refreshing data")
+                    if (debugMessages.value != DebugMessages.OFF ) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR
