@@ -775,6 +775,11 @@ object HighwayTools : Module() {
                         connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
                         player.swingArm(EnumHand.MAIN_HAND)
                     }
+                    delay(45L)
+                    onMainThreadSafe {
+                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
+                        player.swingArm(EnumHand.MAIN_HAND)
+                    }
                 }
             }
             else -> dispatchGenericMineThread(blockTask, facing)
