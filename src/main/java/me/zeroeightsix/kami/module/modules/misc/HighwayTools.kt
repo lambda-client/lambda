@@ -57,10 +57,10 @@ import kotlin.math.sqrt
  * @since 20/08/2020
  */
 @Module.Info(
-        name = "HighwayTools",
-        description = "Be the grief a step a head.",
-        category = Module.Category.MISC,
-        modulePriority = 10
+    name = "HighwayTools",
+    description = "Be the grief a step a head.",
+    category = Module.Category.MISC,
+    modulePriority = 10
 )
 object HighwayTools : Module() {
 
@@ -98,14 +98,14 @@ object HighwayTools : Module() {
 
     // internal settings
     val ignoreBlocks = hashSetOf(
-            Blocks.STANDING_SIGN,
-            Blocks.WALL_SIGN,
-            Blocks.STANDING_BANNER,
-            Blocks.WALL_BANNER,
-            Blocks.BEDROCK,
-            Blocks.END_PORTAL,
-            Blocks.END_PORTAL_FRAME,
-            Blocks.PORTAL
+        Blocks.STANDING_SIGN,
+        Blocks.WALL_SIGN,
+        Blocks.STANDING_BANNER,
+        Blocks.WALL_BANNER,
+        Blocks.BEDROCK,
+        Blocks.END_PORTAL,
+        Blocks.END_PORTAL_FRAME,
+        Blocks.PORTAL
     )
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
@@ -146,15 +146,14 @@ object HighwayTools : Module() {
         }
 
         /* Turn on inventory manager if the users wants us to control it */
-        if(toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
+        if (toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
 
         /* Turn on Auto Obsidian if the user wants us to control it. */
-        if(toggleAutoObsidian.value && AutoObsidian.isDisabled && mode.value != Mode.TUNNEL) {
+        if (toggleAutoObsidian.value && AutoObsidian.isDisabled && mode.value != Mode.TUNNEL) {
             /* If we have no obsidian, immediately turn on Auto Obsidian */
-            if(InventoryUtils.countItemAll(49) == 0) {
+            if (InventoryUtils.countItemAll(49) == 0) {
                 AutoObsidian.enable()
-            }
-            else {
+            } else {
                 Thread {
                     /* Wait 1 second because turning both on simultaneously is buggy */
                     Thread.sleep(1000L)
@@ -210,10 +209,10 @@ object HighwayTools : Module() {
 
 
         /* Turn off inventory manager if the users wants us to control it */
-        if(toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
+        if (toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
 
         /* Turn off auto obsidian if the user wants us to control it */
-        if(toggleAutoObsidian.value && AutoObsidian.isEnabled) {
+        if (toggleAutoObsidian.value && AutoObsidian.isEnabled) {
             AutoObsidian.disable()
         }
 
@@ -243,9 +242,9 @@ object HighwayTools : Module() {
                 val taskPos = (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.blockPos
                     ?: BlockPos(0, -1, 0)
 
-                if (mc.player.positionVector.distanceTo(taskPos) < maxReach.value ) {
+                if (mc.player.positionVector.distanceTo(taskPos) < maxReach.value) {
                     if (!isDone()) {
-                        if(canDoTask()) {
+                        if (canDoTask()) {
                             if (!pathing) adjustPlayerPosition(false)
                             val currentFood = mc.player.foodStats.foodLevel
                             if (currentFood != prevFood) {
@@ -347,21 +346,21 @@ object HighwayTools : Module() {
 
                 when (blockTask.taskState) {
                     TaskState.DONE -> doDone(blockTask)
-                    TaskState.BREAKING -> if(!doBreaking(blockTask)) {
+                    TaskState.BREAKING -> if (!doBreaking(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
                     TaskState.BROKEN -> doBroken(blockTask)
                     TaskState.PLACED -> doPlaced(blockTask)
-                    TaskState.EMERGENCY_BREAK -> if(!doBreak(blockTask)) {
+                    TaskState.EMERGENCY_BREAK -> if (!doBreak(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.BREAK -> if(!doBreak(blockTask)) {
+                    TaskState.BREAK -> if (!doBreak(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if(!doPlace(blockTask)) {
+                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if (!doPlace(blockTask)) {
                         stuckManager.increase(blockTask)
                         return
                     }
@@ -618,7 +617,7 @@ object HighwayTools : Module() {
 //                    for (x in InventoryUtils.getSlots(0, 35, blockID)!!) InventoryUtils.throwAllInSlot(x)
 //                }
                 if (InventoryUtils.getSlotsHotbar(blockID) == null &&
-                        noHotbar != null) {
+                    noHotbar != null) {
                     when (blockTask.block) {
                         fillerMat -> InventoryUtils.moveToSlot(noHotbar[0], 37)
                         material -> InventoryUtils.moveToSlot(noHotbar[0], 38)
@@ -826,7 +825,7 @@ object HighwayTools : Module() {
             if (mc.world.getBlockState(offPos).material.isReplaceable) continue
             if (mc.player.getPositionEyes(1f).distanceTo(Vec3d(offPos).add(WorldUtils.getHitVecOffset(side))) > maxReach.value) continue
             val rotationVector = Vec3d(offPos).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.499))
-            val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector, false)?: continue
+            val rt = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1f), rotationVector, false) ?: continue
             if (rt.typeOfHit != RayTraceResult.Type.BLOCK) continue
             if (rt.blockPos == offPos && offPos.offset(rt.sideHit) == blockTask.blockPos) {
                 directHits.add(rt)
@@ -848,7 +847,7 @@ object HighwayTools : Module() {
                 return false
             }
             return if (illegalPlacements.value) {
-                if(debugMessages.value == DebugMessages.ALL) sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                if (debugMessages.value == DebugMessages.ALL) sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
                 placeBlockWall(blockTask)
             } else {
                 false
@@ -957,8 +956,8 @@ object HighwayTools : Module() {
             StringBuilder(2).run {
                 append(
                     "$chatName Module stopped." +
-                    "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
-                    "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
+                        "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
+                        "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
                 )
 
                 if (baritoneMode.value) append("\n    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
@@ -998,16 +997,16 @@ object HighwayTools : Module() {
         val pavingLeftAll = (materialLeft + indirectMaterialLeft) / (blueprintStats.first + 1)
 
         val runtimeSec = ((System.currentTimeMillis() - startTime) / 1000) + 0.0001
-        val seconds = (runtimeSec % 60).toInt().toString().padStart(2,'0')
-        val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2,'0')
-        val hours = (runtimeSec / 3600).toInt().toString().padStart(2,'0')
+        val seconds = (runtimeSec % 60).toInt().toString().padStart(2, '0')
+        val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
+        val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
 
         val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt()
 
         val secLeft = runtimeSec / (distanceDone * pavingLeftAll + 0.0001)
-        val secondsLeft = (secLeft % 60).toInt().toString().padStart(2,'0')
-        val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2,'0')
-        val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2,'0')
+        val secondsLeft = (secLeft % 60).toInt().toString().padStart(2, '0')
+        val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2, '0')
+        val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2, '0')
 
         val statistics = mutableListOf(
             "§rPerformance",
@@ -1019,8 +1018,8 @@ object HighwayTools : Module() {
             "§rEnvironment",
             "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
             "    §7Direction: §9${buildDirectionSaved.displayName}",
-            "    §7Blocks destroyed: §9$totalBlocksDestroyed".padStart(6,'0'),
-            "    §7Blocks placed: §9$totalBlocksPlaced".padStart(6,'0'),
+            "    §7Blocks destroyed: §9$totalBlocksDestroyed".padStart(6, '0'),
+            "    §7Blocks placed: §9$totalBlocksPlaced".padStart(6, '0'),
             "    §7Material: §9${material.localizedName}",
             "    §7Filler: §9${fillerMat.localizedName}",
             "§rTask",
@@ -1054,8 +1053,8 @@ object HighwayTools : Module() {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
                     if (mc.world.getBlockState(pos.down()).block == material &&
-                            mc.world.getBlockState(pos).block == Blocks.AIR &&
-                            mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
@@ -1063,12 +1062,13 @@ object HighwayTools : Module() {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
                     if (mc.world.getBlockState(pos.down()).block == fillerMat &&
-                            mc.world.getBlockState(pos).block == Blocks.AIR &&
-                            mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
-            else -> {}
+            else -> {
+            }
         }
 
         return lastWalkable
@@ -1242,9 +1242,9 @@ object HighwayTools : Module() {
     }
 
     data class StuckManagement(
-            var stuckLevel: StuckLevel,
-            var stuckValue: Int
-    )  {
+        var stuckLevel: StuckLevel,
+        var stuckValue: Int
+    ) {
         fun increase(blockTask: BlockTask) {
 
             when (blockTask.taskState) {
@@ -1261,7 +1261,7 @@ object HighwayTools : Module() {
                         if (debugMessages.value == DebugMessages.ALL) sendChatMessage("$chatName Shuffled tasks $stuckValue")
                     }
                 }
-                stuckValue in 100..200  -> {
+                stuckValue in 100..200 -> {
                     stuckLevel = StuckLevel.MINOR
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     if (blockTask.taskState != TaskState.BREAKING) {
@@ -1302,9 +1302,9 @@ object HighwayTools : Module() {
     }
 
     data class BlockTask(
-            val blockPos: BlockPos,
-            var taskState: TaskState,
-            var block: Block
+        val blockPos: BlockPos,
+        var taskState: TaskState,
+        var block: Block
     ) {
         override fun toString(): String {
             return "Block: " + block.localizedName + " @ Position: (" + blockPos.asString() + ") Priority: " + taskState.ordinal + " State: " + taskState.toString()
