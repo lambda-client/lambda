@@ -12,6 +12,8 @@ interface RemovableDetector: Detector {
 
 interface PlayerDetector: Detector {
     fun playerName(input: CharSequence): String?
+
+    fun removed(input: CharSequence): String?
 }
 
 interface PrefixDetector : Detector , RemovableDetector{
