@@ -45,7 +45,6 @@ import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 /**
  * @author Avanatiker
@@ -339,24 +338,36 @@ object HighwayTools : Module() {
                 val blockTask = pendingTasks.peek()
 
                 when (blockTask.taskState) {
-                    TaskState.DONE -> doDone(blockTask)
-                    TaskState.BREAKING -> if (!doBreaking(blockTask)) {
-                        StuckManager.increase(blockTask)
-                        return
+                    TaskState.DONE -> {
+                        doDone(blockTask)
                     }
-                    TaskState.BROKEN -> doBroken(blockTask)
-                    TaskState.PLACED -> doPlaced(blockTask)
-                    TaskState.EMERGENCY_BREAK -> if (!doBreak(blockTask)) {
-                        StuckManager.increase(blockTask)
-                        return
+                    TaskState.BREAKING -> {
+                        if (!doBreaking(blockTask)) {
+                            StuckManager.increase(blockTask)
+                            return
+                        }
+                    }
+                    TaskState.BROKEN -> {
+                        doBroken(blockTask)
+                    }
+                    TaskState.PLACED -> {
+                        doPlaced(blockTask)
+                    }
+                    TaskState.EMERGENCY_BREAK -> {
+                        if (!doBreak(blockTask)) {
+                            StuckManager.increase(blockTask)
+                            return
+                        }
                     }
                     TaskState.BREAK -> if (!doBreak(blockTask)) {
                         StuckManager.increase(blockTask)
                         return
                     }
-                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> if (!doPlace(blockTask)) {
-                        StuckManager.increase(blockTask)
-                        return
+                    TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
+                        if (!doPlace(blockTask)) {
+                            StuckManager.increase(blockTask)
+                            return
+                        }
                     }
                 }
 
@@ -466,7 +477,7 @@ object HighwayTools : Module() {
             else -> {
                 // liquid search around the breaking block
                 if (blockTask.taskState != TaskState.EMERGENCY_BREAK) {
-                    if (liquidHandler(blockTask)) {
+                    if (handleLiquid(blockTask)) {
                         updateTask(blockTask, TaskState.EMERGENCY_BREAK)
                         return true
                     }
@@ -482,8 +493,12 @@ object HighwayTools : Module() {
         val block = mc.world.getBlockState(blockTask.blockPos).block
 
         when {
-            block == material && block == blockTask.block -> updateTask(blockTask, TaskState.PLACED)
-            block == fillerMat && block == blockTask.block -> updateTask(blockTask, TaskState.PLACED)
+            block == material && block == blockTask.block -> {
+                updateTask(blockTask, TaskState.PLACED)
+            }
+            block == fillerMat && block == blockTask.block -> {
+                updateTask(blockTask, TaskState.PLACED)
+            }
             else -> {
                 if (!WorldUtils.isPlaceable(blockTask.blockPos)) {
 //                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Error: " + blockTask.blockPos + " is not a valid position to place a block, removing task.")
@@ -707,39 +722,41 @@ object HighwayTools : Module() {
         return true
     }
 
-    private fun liquidHandler(blockTask: BlockTask): Boolean {
+    private fun handleLiquid(blockTask: BlockTask): Boolean {
         var foundLiquid = false
         for (side in EnumFacing.values()) {
             val neighbour = blockTask.blockPos.offset(side)
             val neighbourBlock = mc.world.getBlockState(neighbour).block
+
             if (neighbourBlock is BlockLiquid) {
-                var flowing = false
-                try {
-                    flowing = mc.world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0
-                } catch (e: Exception) {
+                val isFlowing = mc.world.getBlockState(blockTask.blockPos).let {
+                    it.block is BlockLiquid && it.getValue(BlockLiquid.LEVEL) != 0
                 }
-                if (sqrt(mc.player.getDistanceSqToCenter(neighbour)) > maxReach.value) continue
+
+                if (mc.player.distanceTo(neighbour) > maxReach.value) continue
+
                 foundLiquid = true
-                val found = mutableListOf<Triple<BlockTask, TaskState, Block>>()
-                var filler = fillerMat
-                if (isInsideBuild(neighbour)) filler = material
+                val found = ArrayList<Triple<BlockTask, TaskState, Block>>()
+                val filler = if (isInsideBuild(neighbour)) material else fillerMat
+
                 for (bt in pendingTasks) {
                     if (bt.blockPos == neighbour) {
-                        when (flowing) {
+                        when (isFlowing) {
                             false -> found.add(Triple(bt, TaskState.LIQUID_SOURCE, filler))
                             true -> found.add(Triple(bt, TaskState.LIQUID_FLOW, filler))
                         }
                     }
                 }
+
                 if (found.isEmpty()) {
-                    when (flowing) {
+                    when (isFlowing) {
                         false -> addTaskToPending(neighbour, TaskState.LIQUID_SOURCE, filler)
                         true -> addTaskToPending(neighbour, TaskState.LIQUID_FLOW, filler)
                     }
                 } else {
-                    for (x in found) {
-                        updateTask(x.first, x.second)
-                        updateTask(x.first, x.third)
+                    for (triple in found) {
+                        updateTask(triple.first, triple.second)
+                        updateTask(triple.first, triple.third)
                     }
                 }
             }
