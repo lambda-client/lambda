@@ -38,7 +38,6 @@ import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
@@ -512,7 +511,6 @@ object HighwayTools : Module() {
         return true
     }
 
-
     private fun checkTasks(): Boolean {
         for (blockTask in doneTasks) {
             val block = mc.world.getBlockState(blockTask.blockPos).block
@@ -758,56 +756,22 @@ object HighwayTools : Module() {
         /* For fire, we just need to mine the top of the block below the fire */
         /* TODO: This will not work if the top of the block which the fire is on is not visible */
         if (blockTask.block == Blocks.FIRE) {
-            val blockBelowFire = BlockPos(blockTask.blockPos.x, blockTask.blockPos.y - 1, blockTask.blockPos.z)
+            val blockBelowFire = blockTask.blockPos.down()
             mc.playerController.clickBlock(blockBelowFire, EnumFacing.UP)
             mc.player.swingArm(EnumHand.MAIN_HAND)
             updateTask(blockTask, TaskState.BREAKING)
             return
         }
 
-        val directHits = mutableListOf<RayTraceResult>()
-        val bb = mc.world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(mc.world, blockTask.blockPos)
-        val playerEyeVec = mc.player.getPositionEyes(1f)
-
-        for (side in EnumFacing.values()) {
-            loop@ for (direction in EnumFacing.values()) {
-                when (side) {
-                    EnumFacing.UP -> if (direction == EnumFacing.DOWN || direction == EnumFacing.UP) continue@loop
-                    EnumFacing.DOWN -> if (direction == EnumFacing.UP || direction == EnumFacing.DOWN) continue@loop
-                    EnumFacing.NORTH -> if (direction == EnumFacing.SOUTH || direction == EnumFacing.NORTH) continue@loop
-                    EnumFacing.EAST -> if (direction == EnumFacing.WEST || direction == EnumFacing.EAST) continue@loop
-                    EnumFacing.SOUTH -> if (direction == EnumFacing.NORTH || direction == EnumFacing.SOUTH) continue@loop
-                    EnumFacing.WEST -> if (direction == EnumFacing.EAST || direction == EnumFacing.WEST) continue@loop
-                }
-                val sideVec = bb.center.add(Vec3d(side.directionVec).scale(getAABBSide(bb, side) * 0.9).add(Vec3d(direction.directionVec)).scale(getAABBSide(bb, direction) - 0.001))
-                if (playerEyeVec.distanceTo(sideVec) > maxReach.value) continue
-                if (mc.world.getBlockState(blockTask.blockPos.offset(side)).block != Blocks.AIR) continue
-                val rt = mc.world.rayTraceBlocks(playerEyeVec, sideVec, false) ?: continue
-                if (rt.blockPos == blockTask.blockPos && rt.sideHit == side) directHits.add(rt)
-            }
-        }
-
-        if (directHits.size == 0) {
+        if (!isVisible(blockTask.blockPos)) {
             StuckManager.increase(blockTask)
             refreshData()
             if (StuckManager.stuckLevel == StuckLevel.NONE) doTask()
             return
         }
 
-        var rayTrace: RayTraceResult? = null
-        var shortestRT = 999.0
-        for (rt in directHits) {
-            val distance = playerEyeVec.distanceTo(rt.hitVec)
-            if (distance < shortestRT) {
-                shortestRT = distance
-                rayTrace = rt
-            }
-        }
-
-        if (rayTrace == null) return
-
-        val facing = rayTrace.sideHit
-        lastHitVec = rayTrace.hitVec
+        val side = EnumFacing.getDirectionFromEntityLiving(blockTask.blockPos, mc.player)
+        lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
         rotateTimer.reset()
 
         when (mc.world.getBlockState(blockTask.blockPos).block) {
@@ -817,23 +781,12 @@ object HighwayTools : Module() {
                 defaultScope.launch {
                     delay(5L)
                     onMainThreadSafe {
-                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
+                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
                         player.swingArm(EnumHand.MAIN_HAND)
                     }
                 }
             }
-            else -> dispatchGenericMineThread(blockTask, facing)
-        }
-    }
-
-    private fun getAABBSide(bb: AxisAlignedBB, side: EnumFacing): Double {
-        return when (side) {
-            EnumFacing.UP -> bb.maxY - bb.center.y
-            EnumFacing.NORTH -> bb.center.z - bb.minZ
-            EnumFacing.EAST -> bb.maxX - bb.center.x
-            EnumFacing.SOUTH -> bb.maxZ - bb.center.z
-            EnumFacing.WEST -> bb.center.x - bb.minX
-            EnumFacing.DOWN -> bb.center.y - bb.minY
+            else -> dispatchGenericMineThread(blockTask, side)
         }
     }
 
