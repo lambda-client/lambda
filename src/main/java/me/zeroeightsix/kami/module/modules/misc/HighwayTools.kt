@@ -1,8 +1,13 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import me.zeroeightsix.kami.event.Phase
+import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.kami.DisplayGuiScreen
+import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
@@ -10,20 +15,20 @@ import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.BaritoneUtils
-import me.zeroeightsix.kami.util.InventoryUtils
-import me.zeroeightsix.kami.util.WorldUtils
+import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.WorldUtils.placeBlock
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
-import me.zeroeightsix.kami.util.math.Vec2f
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
+import me.zeroeightsix.kami.util.threads.defaultScope
+import me.zeroeightsix.kami.util.threads.onMainThreadSafe
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
 import net.minecraft.block.BlockLiquid
@@ -33,9 +38,7 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
-import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
-import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.AxisAlignedBB
@@ -125,6 +128,8 @@ object HighwayTools : Module() {
     private val stuckManager = StuckManagement(StuckLevel.NONE, 0)
     private val renderer = ESPRenderer()
     private var active = false
+    private var lastHitVec: Vec3d? = null
+    private val rotateTimer = TickTimer(TimeUnit.TICKS)
 
     // stats
     private var totalBlocksPlaced = 0
@@ -275,6 +280,25 @@ object HighwayTools : Module() {
         listener<RenderWorldEvent> {
             if (mc.player == null) return@listener
             renderer.render(false)
+        }
+
+        listener<OnUpdateWalkingPlayerEvent> { event ->
+            if (event.phase != Phase.PRE || rotateTimer.tick(20L, false)) return@listener
+            val rotation = lastHitVec?.let { RotationUtils.getRotationTo(it) } ?: return@listener
+
+            when (interacting.value) {
+                InteractMode.SPOOF -> {
+                    val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
+                    PlayerPacketManager.addPacket(this, packet)
+                }
+                InteractMode.VIEW_LOCK -> {
+                    mc.player.rotationYaw = rotation.x
+                    mc.player.rotationPitch = rotation.y
+                }
+                else -> {
+
+                }
+            }
         }
     }
 
@@ -746,21 +770,20 @@ object HighwayTools : Module() {
         if (rayTrace == null) return
 
         val facing = rayTrace.sideHit
-        val rotation = RotationUtils.getRotationTo(rayTrace.hitVec)
-
-        setRotation(rotation)
+        lastHitVec = rayTrace.hitVec
+        rotateTimer.reset()
 
         when (mc.world.getBlockState(blockTask.blockPos).block) {
             Blocks.NETHERRACK -> {
                 updateTask(blockTask, TaskState.BROKEN)
                 waitTicks = tickDelayBreak.value
-                Thread {
-                    Thread.sleep(16L)
-                    mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
-                    Thread.sleep(16L)
-                    mc.connection!!.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
-                    mc.player.swingArm(EnumHand.MAIN_HAND)
-                }.start()
+                defaultScope.launch {
+                    delay(5L)
+                    onMainThreadSafe {
+                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
+                        player.swingArm(EnumHand.MAIN_HAND)
+                    }
+                }
             }
             else -> dispatchGenericMineThread(blockTask, facing)
         }
@@ -774,11 +797,13 @@ object HighwayTools : Module() {
             else -> CPacketPlayerDigging()
         }
         if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
-        Thread {
-            Thread.sleep(25L)
-            mc.connection!!.sendPacket(digPacket)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-        }.start()
+        defaultScope.launch {
+            delay(5L)
+            onMainThreadSafe {
+                connection.sendPacket(digPacket)
+                player.swingArm(EnumHand.MAIN_HAND)
+            }
+        }
     }
 
     // Only temporary till we found solution to avoid untraceable blocks
@@ -787,16 +812,16 @@ object HighwayTools : Module() {
         val neighbour = blockTask.blockPos.offset(side)
         val hitVec = Vec3d(neighbour).add(0.5, 0.5, 0.5).add(Vec3d(side.opposite.directionVec).scale(0.5))
 
-        val rotation = RotationUtils.getRotationTo(hitVec)
-        setRotation(rotation)
+        lastHitVec = hitVec
+        rotateTimer.reset()
 
-        Thread {
-            Thread.sleep(25L)
-            val placePacket = CPacketPlayerTryUseItemOnBlock(neighbour, side.opposite, EnumHand.MAIN_HAND, hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat())
-            mc.connection!!.sendPacket(placePacket)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-            if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
-        }.start()
+        defaultScope.launch {
+            delay(10L)
+            onMainThreadSafe {
+                placeBlock(neighbour, side.opposite)
+                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
+            }
+        }
         return true
     }
 
@@ -850,32 +875,17 @@ object HighwayTools : Module() {
             return false
         }
 
-        val hitVecOffset = rayTrace.hitVec
-        val rotation = RotationUtils.getRotationTo(hitVecOffset)
-        setRotation(rotation)
+        lastHitVec = rayTrace.hitVec
+        rotateTimer.reset()
 
-        Thread {
-            Thread.sleep(25L)
-            val placePacket = CPacketPlayerTryUseItemOnBlock(rayTrace.blockPos, rayTrace.sideHit, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-            mc.connection!!.sendPacket(placePacket)
-            mc.player.swingArm(EnumHand.MAIN_HAND)
-            if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
-        }.start()
-        return true
-    }
-
-    private fun setRotation(rotation: Vec2f) {
-        when (interacting.value) {
-            InteractMode.SPOOF -> {
-                val rotationPacket = CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, rotation.x, rotation.y, mc.player.onGround)
-                mc.connection!!.sendPacket(rotationPacket)
+        defaultScope.launch {
+            delay(10L)
+            onMainThreadSafe {
+                placeBlock(rayTrace.blockPos, rayTrace.sideHit)
+                if (NoBreakAnimation.isEnabled) NoBreakAnimation.resetMining()
             }
-            InteractMode.VIEWLOCK -> {
-                mc.player.rotationYaw = rotation.x
-                mc.player.rotationPitch = rotation.y
-            }
-            else -> {}
         }
+        return true
     }
 
     private fun getPlaceableSide(pos: BlockPos): EnumFacing? {
@@ -1352,7 +1362,7 @@ object HighwayTools : Module() {
     private enum class InteractMode {
         OFF,
         SPOOF,
-        VIEWLOCK
+        VIEW_LOCK
     }
 
     enum class StuckLevel {
