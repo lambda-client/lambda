@@ -112,7 +112,7 @@ object HighwayTools : Module() {
     private var baritoneSettingRenderGoal = false
 
     // runtime vars
-    val pendingTasks = PriorityQueue(BlockTaskComparator)
+    val pendingTasks = PriorityQueue<BlockTask>()
     private val doneTasks = ArrayList<BlockTask>()
     private val blueprint = ArrayList<Pair<BlockPos, Block>>()
     private var waitTicks = 0
@@ -306,11 +306,11 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun addTask(blockPos: BlockPos, taskState: TaskState, material: Block) {
+    private fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
         pendingTasks.add(BlockTask(blockPos, taskState, material))
     }
 
-    private fun addTask(blockPos: BlockPos, material: Block) {
+    private fun addTaskToDone(blockPos: BlockPos, material: Block) {
         doneTasks.add(BlockTask(blockPos, TaskState.DONE, material))
     }
 
@@ -539,25 +539,25 @@ object HighwayTools : Module() {
                     var filler = fillerMat
                     if (isInsideBuild(blockPos) || fillerMatLeft == 0) filler = material
                     when (mc.world.getBlockState(blockPos).getValue(BlockLiquid.LEVEL) != 0) {
-                        true -> addTask(blockPos, TaskState.LIQUID_FLOW, filler)
-                        false -> addTask(blockPos, TaskState.LIQUID_SOURCE, filler)
+                        true -> addTaskToPending(blockPos, TaskState.LIQUID_FLOW, filler)
+                        false -> addTaskToPending(blockPos, TaskState.LIQUID_SOURCE, filler)
                     }
                 }
                 else -> {
                     when (blockType) {
                         Blocks.AIR -> {
                             when {
-                                block in ignoreBlocks -> addTask(blockPos, Blocks.AIR)
-                                block == Blocks.AIR -> addTask(blockPos, Blocks.AIR)
-                                block == Blocks.FIRE -> addTask(blockPos, TaskState.BREAK, Blocks.FIRE)
-                                block != Blocks.AIR -> addTask(blockPos, TaskState.BREAK, Blocks.AIR)
+                                block in ignoreBlocks -> addTaskToDone(blockPos, Blocks.AIR)
+                                block == Blocks.AIR -> addTaskToDone(blockPos, Blocks.AIR)
+                                block == Blocks.FIRE -> addTaskToPending(blockPos, TaskState.BREAK, Blocks.FIRE)
+                                block != Blocks.AIR -> addTaskToPending(blockPos, TaskState.BREAK, Blocks.AIR)
                             }
                         }
                         material -> {
                             when {
-                                block == material -> addTask(blockPos, material)
-                                !isReplaceable && block != material -> addTask(blockPos, TaskState.BREAK, material)
-                                isReplaceable -> addTask(blockPos, TaskState.PLACE, material)
+                                block == material -> addTaskToDone(blockPos, material)
+                                !isReplaceable && block != material -> addTaskToPending(blockPos, TaskState.BREAK, material)
+                                isReplaceable -> addTaskToPending(blockPos, TaskState.PLACE, material)
                             }
                         }
                         fillerMat -> {
@@ -565,15 +565,15 @@ object HighwayTools : Module() {
                                 if (buildDirectionSaved.isDiagonal) {
                                     val blockUp = mc.world.getBlockState(blockPos.up()).block
                                     when {
-                                        WorldUtils.getNeighbour(blockPos.up(), 1) == null && blockUp != material -> addTask(blockPos, TaskState.PLACE, fillerMat)
-                                        WorldUtils.getNeighbour(blockPos.up(), 1) != null -> addTask(blockPos, fillerMat)
+                                        WorldUtils.getNeighbour(blockPos.up(), 1) == null && blockUp != material -> addTaskToPending(blockPos, TaskState.PLACE, fillerMat)
+                                        WorldUtils.getNeighbour(blockPos.up(), 1) != null -> addTaskToDone(blockPos, fillerMat)
                                     }
                                 }
                             } else {
                                 when {
-                                    block == fillerMat -> addTask(blockPos, fillerMat)
-                                    !isReplaceable && block != fillerMat -> addTask(blockPos, TaskState.BREAK, fillerMat)
-                                    isReplaceable -> addTask(blockPos, TaskState.PLACE, fillerMat)
+                                    block == fillerMat -> addTaskToDone(blockPos, fillerMat)
+                                    !isReplaceable && block != fillerMat -> addTaskToPending(blockPos, TaskState.BREAK, fillerMat)
+                                    isReplaceable -> addTaskToPending(blockPos, TaskState.PLACE, fillerMat)
                                 }
                             }
                         }
@@ -736,8 +736,8 @@ object HighwayTools : Module() {
                 }
                 if (found.isEmpty()) {
                     when (flowing) {
-                        false -> addTask(neighbour, TaskState.LIQUID_SOURCE, filler)
-                        true -> addTask(neighbour, TaskState.LIQUID_FLOW, filler)
+                        false -> addTaskToPending(neighbour, TaskState.LIQUID_SOURCE, filler)
+                        true -> addTaskToPending(neighbour, TaskState.LIQUID_FLOW, filler)
                     }
                 } else {
                     for (x in found) {
@@ -902,7 +902,7 @@ object HighwayTools : Module() {
                         rayTrace = rt
                     }
                 }
-                addTask(rayTrace.blockPos, TaskState.EMERGENCY_BREAK, Blocks.AIR)
+                addTaskToPending(rayTrace.blockPos, TaskState.EMERGENCY_BREAK, Blocks.AIR)
                 return false
             }
             return if (illegalPlacements.value) {
@@ -1248,11 +1248,17 @@ object HighwayTools : Module() {
         pendingTasks.addAll(shuffled)
     }
 
-    data class BlockTask(
+    class BlockTask(
         val blockPos: BlockPos,
         var taskState: TaskState,
         var block: Block
-    ) {
+    ) : Comparable<BlockTask> {
+        override fun compareTo(other: BlockTask) = when {
+            taskState.ordinal != other.taskState.ordinal -> taskState.ordinal - other.taskState.ordinal
+            taskState.ordinal == other.taskState.ordinal && stuckManager.stuckLevel != StuckLevel.NONE -> 0
+            else -> (mc.player.distanceTo(blockPos) - mc.player.distanceTo(other.blockPos)).toInt()
+        }
+
         override fun toString(): String {
             return "Block: " + block.localizedName + " @ Position: (" + blockPos.asString() + ") Priority: " + taskState.ordinal + " State: " + taskState.toString()
         }
@@ -1268,16 +1274,6 @@ object HighwayTools : Module() {
         BROKEN(ColorHolder(111, 0, 0)),
         PLACE(ColorHolder(35, 188, 254)),
         PLACED(ColorHolder(53, 222, 66))
-    }
-
-    class BlockTaskComparator {
-        companion object : Comparator<BlockTask> {
-            override fun compare(a: BlockTask, b: BlockTask): Int = when {
-                a.taskState.ordinal != b.taskState.ordinal -> a.taskState.ordinal - b.taskState.ordinal
-                a.taskState.ordinal == b.taskState.ordinal && stuckManager.stuckLevel != StuckLevel.NONE -> a.taskState.ordinal - b.taskState.ordinal
-                else -> (mc.player.distanceTo(a.blockPos) - mc.player.distanceTo(b.blockPos)).toInt()
-            }
-        }
     }
 
     private enum class DebugMessages {
