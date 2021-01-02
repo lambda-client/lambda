@@ -13,6 +13,7 @@ import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.placeBlock
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
@@ -22,7 +23,6 @@ import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
-import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.defaultScope
@@ -157,7 +157,7 @@ object HighwayTools : Module() {
             }
         }
 
-        startingBlockPos = mc.player.positionVector.toBlockPos()
+        startingBlockPos = mc.player.flooredPosition
         currentBlockPos = startingBlockPos
         playerHotbarSlot = mc.player.inventory.currentItem
         lastHotbarSlot = -1
@@ -261,10 +261,10 @@ object HighwayTools : Module() {
                     refreshData()
                 }
             } else {
-                if (currentBlockPos == mc.player.positionVector.toBlockPos()) {
+                if (currentBlockPos == mc.player.flooredPosition) {
                     doTask()
                 } else {
-                    currentBlockPos = mc.player.positionVector.toBlockPos()
+                    currentBlockPos = mc.player.flooredPosition
                     if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(mc.player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(mc.player)
                     refreshData()
                 }
@@ -532,7 +532,7 @@ object HighwayTools : Module() {
         updateBlockArray(getNextBlock(originPos))
         for ((blockPos, blockType) in blueprint) {
             val isReplaceable = mc.world.getBlockState(blockPos).material.isReplaceable
-            if (blockPos == mc.player.positionVector.toBlockPos().down()) continue
+            if (blockPos == mc.player.flooredPosition.down()) continue
             when (val block = mc.world.getBlockState(blockPos).block) {
                 is BlockLiquid -> {
                     var filler = fillerMat
@@ -750,7 +750,7 @@ object HighwayTools : Module() {
     }
 
     private fun mineBlock(blockTask: BlockTask) {
-        if (blockTask.blockPos == mc.player.positionVector.toBlockPos().down()) {
+        if (blockTask.blockPos == mc.player.flooredPosition.down()) {
             updateTask(blockTask, TaskState.DONE)
             return
         }
@@ -896,7 +896,8 @@ object HighwayTools : Module() {
         for (side in EnumFacing.values()) {
             val blockState = mc.world.getBlockState(pos.offset(side))
             if (blockState.isFullBlock) continue
-            val rayTraceResult = mc.world.rayTraceBlocks(eyePos, WorldUtils.getHitVec(pos, side), false, true, false) ?: continue
+            val rayTraceResult = mc.world.rayTraceBlocks(eyePos, WorldUtils.getHitVec(pos, side), false, true, false)
+                ?: continue
             if (rayTraceResult.typeOfHit == RayTraceResult.Type.BLOCK && rayTraceResult.hitVec.distanceTo(pos) > 1.0) continue
             return true
         }
@@ -1150,7 +1151,7 @@ object HighwayTools : Module() {
     object StuckManager {
         var stuckLevel = StuckLevel.NONE
         var stuckValue = 0
-        
+
         fun increase(blockTask: BlockTask) {
 
             when (blockTask.taskState) {
