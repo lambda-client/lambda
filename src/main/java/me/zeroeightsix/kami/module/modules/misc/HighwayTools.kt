@@ -17,6 +17,7 @@ import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.placeBlock
+import me.zeroeightsix.kami.util.WorldUtils.rayTraceHitVec
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
@@ -511,9 +512,16 @@ object HighwayTools : Module() {
                     return false
                 }
 
-                if (!inventoryProcessor(blockTask)) return false
-                if (!placeBlock(blockTask)) return false
-                if (blockTask.taskState != TaskState.PLACE && isInsideSelection(blockTask.blockPos)) updateTask(blockTask, Blocks.AIR)
+                if (!inventoryProcessor(blockTask)) {
+                    return false
+                }
+                if (!placeBlock(blockTask)) {
+                    return false
+                }
+                if (blockTask.taskState != TaskState.PLACE && isInsideSelection(blockTask.blockPos)) {
+                    updateTask(blockTask, Blocks.AIR)
+                }
+
                 updateTask(blockTask, TaskState.PLACED)
                 if (blocksPerTick.value > blocksPlaced + 1) {
                     blocksPlaced++
@@ -783,15 +791,17 @@ object HighwayTools : Module() {
             return
         }
 
-        if (!isVisible(blockTask.blockPos)) {
+        val rayTraceResult = rayTraceHitVec(blockTask.blockPos)
+
+        if (rayTraceResult == null) {
             increase(blockTask)
             refreshData()
             if (StuckManager.stuckLevel == StuckLevel.NONE) doTask()
             return
         }
 
-        val side = EnumFacing.getDirectionFromEntityLiving(blockTask.blockPos, player)
-        lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
+        val side = rayTraceResult.sideHit
+        lastHitVec = rayTraceResult.hitVec
         rotateTimer.reset()
 
         when (world.getBlockState(blockTask.blockPos).block) {
@@ -804,7 +814,7 @@ object HighwayTools : Module() {
                         connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
                         player.swingArm(EnumHand.MAIN_HAND)
                     }
-                    delay(20L)
+                    delay(10L)
                     onMainThreadSafe {
                         connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
                         player.swingArm(EnumHand.MAIN_HAND)
@@ -833,6 +843,12 @@ object HighwayTools : Module() {
     }
 
     private fun SafeClientEvent.placeBlock(blockTask: BlockTask): Boolean {
+        val pair = WorldUtils.getNeighbour(blockTask.blockPos, 1, 6.5f)
+            ?: run {
+                sendChatMessage("Can't find neighbour block")
+                return false
+            }
+
         if (!isVisible(blockTask.blockPos)) {
             if (illegalPlacements.value) {
                 if (debugMessages.value == DebugMessages.ALL) {
@@ -843,19 +859,13 @@ object HighwayTools : Module() {
             }
         }
 
-        val pair = WorldUtils.getNeighbour(blockTask.blockPos, 1, 6.5f)
-            ?: run {
-                sendChatMessage("Can't find neighbour block")
-                return false
-            }
-
         lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
         rotateTimer.reset()
 
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
         defaultScope.launch {
-            delay(10L)
+            delay(5L)
             onMainThreadSafe {
                 placeBlock(pair.second, pair.first)
             }
@@ -874,8 +884,8 @@ object HighwayTools : Module() {
         for (side in EnumFacing.values()) {
             val blockState = world.getBlockState(pos.offset(side))
             if (blockState.isFullBlock) continue
-            val rayTraceResult = world.rayTraceBlocks(eyePos, WorldUtils.getHitVec(pos, side), false, true, false)
-                ?: continue
+            val rayTraceResult = world.rayTraceBlocks(eyePos, WorldUtils.getHitVec(pos, side), false, false, true)
+                ?: return true
             if (rayTraceResult.typeOfHit == RayTraceResult.Type.BLOCK && rayTraceResult.hitVec.distanceTo(pos) > 1.0) continue
             return true
         }
@@ -1041,25 +1051,25 @@ object HighwayTools : Module() {
         for (blockTask in tasks) list.add("    " + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") Priority: " + blockTask.taskState.ordinal + " State: " + blockTask.taskState.toString())
     }
 
-    fun SafeClientEvent.getNextWalkableBlock(): BlockPos {
+    fun getNextWalkableBlock(): BlockPos {
         var lastWalkable = getNextBlock()
 
         when (mode.value) {
             Mode.HIGHWAY -> {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
-                    if (world.getBlockState(pos.down()).block == material &&
-                        world.getBlockState(pos).block == Blocks.AIR &&
-                        world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                    if (mc.world.getBlockState(pos.down()).block == material &&
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
             Mode.TUNNEL -> {
                 for (step in 1..3) {
                     val pos = relativeDirection(currentBlockPos, step, 0)
-                    if (world.getBlockState(pos.down()).block == fillerMat &&
-                        world.getBlockState(pos).block == Blocks.AIR &&
-                        world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                    if (mc.world.getBlockState(pos.down()).block == fillerMat &&
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
                     else break
                 }
             }
@@ -1131,7 +1141,6 @@ object HighwayTools : Module() {
         var stuckValue = 0
 
         fun SafeClientEvent.increase(blockTask: BlockTask) {
-
             when (blockTask.taskState) {
                 TaskState.BREAK -> stuckValue += 30
                 TaskState.EMERGENCY_BREAK -> stuckValue += 30
