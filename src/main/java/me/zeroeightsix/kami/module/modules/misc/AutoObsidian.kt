@@ -55,6 +55,7 @@ import org.kamiblue.event.listener.listener
 object AutoObsidian : Module() {
     private val fillMode = register(Settings.e<FillMode>("FillMode", FillMode.TARGET_STACKS))
     private val searchShulker = register(Settings.b("SearchShulker", false))
+    private val leaveEmptyShulkers = register(Settings.booleanBuilder("LeaveEmptyShulkers").withValue(true).withVisibility { searchShulker.value == true })
     private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { fillMode.value != FillMode.INFINITE })
     private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && fillMode.value != FillMode.INFINITE })
     private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { fillMode.value == FillMode.TARGET_STACKS })
@@ -96,7 +97,8 @@ object AutoObsidian : Module() {
     private enum class ItemID(val id: Int) {
         OBSIDIAN(49),
         ENDER_CHEST(130),
-        DIAMOND_PICKAXE(278)
+        DIAMOND_PICKAXE(278),
+        AIR(0)
     }
 
     var goal: Goal? = null; private set
@@ -321,7 +323,7 @@ object AutoObsidian : Module() {
                             SearchingState.PLACING
                         }
                     }
-                    searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) >= 64
+                    searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0
                         || InventoryUtils.getSlots(0, 35, 0) == null) -> {
                         SearchingState.PRE_MINING
                     }
@@ -426,9 +428,15 @@ object AutoObsidian : Module() {
                 InventoryUtils.inventoryClick(container.windowId, slot, 0, ClickType.QUICK_MOVE)
                 mc.player.closeScreen()
             } else if (shulkerOpenTimer.tick(100, false)) { // Wait for maximum of 5 seconds
-                sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
-                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
+                if(leaveEmptyShulkers.value && container.inventory.subList(0, 27).indexOfFirst { it.item.id != ItemID.AIR.id } == -1) {
+                    searchingState = SearchingState.PRE_MINING
+                    mc.player.closeScreen()
+                }
+                else {
+                    sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
+                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                    disable()
+                }
             }
         } else {
             val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
