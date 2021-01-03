@@ -611,12 +611,14 @@ object HighwayTools : Module() {
 
         when (mode.value) {
             Mode.HIGHWAY, Mode.TUNNEL -> {
+                var mat = material
+                if (mode.value == Mode.TUNNEL) mat = fillerMat
                 if (baritoneMode.value) {
                     cursor = relativeDirection(cursor, 1, 0)
-                    blueprint.add(Pair(cursor, material))
+                    blueprint.add(Pair(cursor, mat))
                 }
                 cursor = relativeDirection(cursor, 1, 0)
-                blueprint.add(Pair(cursor, material))
+                blueprint.add(Pair(cursor, mat))
                 var buildIterationsWidth = buildWidth.value / 2
                 var evenCursor = relativeDirection(cursor, 1, 2)
                 var isOdd = false
@@ -624,55 +626,36 @@ object HighwayTools : Module() {
                     isOdd = true
                     buildIterationsWidth++
                 } else {
-                    blueprint.add(Pair(evenCursor, material))
+                    blueprint.add(Pair(evenCursor, mat))
                 }
-                if (mode.value == Mode.HIGHWAY) {
-                    for (i in 1 until clearHeight.value + 1) {
-                        for (j in 1 until buildIterationsWidth) {
-                            if (i == 1) {
-                                if (j == buildIterationsWidth - 1 && !cornerBlock.value) {
-                                    genOffset(cursor, i, j, fillerMat, isOdd)
-                                } else {
-                                    genOffset(cursor, i, j, material, isOdd)
-                                }
+                if (mode.value == Mode.TUNNEL) cursor = cursor.up()
+                for (i in 1 until clearHeight.value + 1) {
+                    for (j in 1 until buildIterationsWidth) {
+                        if (i == 1) {
+                            if (j == buildIterationsWidth - 1 && !cornerBlock.value) {
+                                genOffset(cursor, i, j, fillerMat, isOdd)
                             } else {
-                                if (i <= railingHeight.value + 1 && j == buildIterationsWidth - 1) {
-                                    genOffset(cursor, i, j, material, isOdd)
-                                } else {
-                                    if (clearSpace.value) {
-                                        genOffset(cursor, i, j, Blocks.AIR, isOdd)
-                                    }
+                                genOffset(cursor, i, j, mat, isOdd)
+                            }
+                        } else {
+                            if (i <= railingHeight.value + 1 && j == buildIterationsWidth - 1) {
+                                genOffset(cursor, i, j, mat, isOdd)
+                            } else {
+                                if (clearSpace.value) {
+                                    genOffset(cursor, i, j, Blocks.AIR, isOdd)
                                 }
                             }
-                        }
-                        cursor = cursor.up()
-                        evenCursor = evenCursor.up()
-                        if (clearSpace.value && i < clearHeight.value) {
-                            blueprint.add(Pair(cursor, Blocks.AIR))
-                            if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
                         }
                     }
-                } else {
-                    for (i in 1 until clearHeight.value + 2) {
-                        for (j in 1 until buildIterationsWidth) {
-                            if (i > 1) {
-                                if (cornerBlock.value && i == 2 && j == buildIterationsWidth - 1) continue
-                                blueprint.add(Pair(relativeDirection(cursor, j, -2), Blocks.AIR))
-                                if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 2), Blocks.AIR))
-                                else blueprint.add(Pair(relativeDirection(evenCursor, j, 2), Blocks.AIR))
-                                if (buildDirectionSaved.isDiagonal) {
-                                    blueprint.add(Pair(relativeDirection(cursor, j, -3), Blocks.AIR))
-                                    if (isOdd) blueprint.add(Pair(relativeDirection(cursor, j, 3), Blocks.AIR))
-                                    else blueprint.add(Pair(relativeDirection(evenCursor, j, 3), Blocks.AIR))
-                                }
-                            }
-                        }
-                        cursor = cursor.up()
-                        evenCursor = evenCursor.up()
-                        if (clearSpace.value && i < clearHeight.value + 1) {
-                            blueprint.add(Pair(cursor, Blocks.AIR))
-                            if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
-                        }
+                    if (mode.value == Mode.TUNNEL) {
+                        if (i == 1) blueprint.add(Pair(cursor, Blocks.AIR))
+                        if (i == clearHeight.value) blueprint.add(Pair(evenCursor.up(), Blocks.AIR))
+                    }
+                    cursor = cursor.up()
+                    evenCursor = evenCursor.up()
+                    if (clearSpace.value && i < clearHeight.value) {
+                        blueprint.add(Pair(cursor, Blocks.AIR))
+                        if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
                     }
                 }
             }
@@ -814,9 +797,9 @@ object HighwayTools : Module() {
                         connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
                         player.swingArm(EnumHand.MAIN_HAND)
                     }
-                    delay(10L)
+                    delay(45L)
                     onMainThreadSafe {
-                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
+                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
                         player.swingArm(EnumHand.MAIN_HAND)
                     }
                 }
@@ -1105,25 +1088,27 @@ object HighwayTools : Module() {
     }
 
     private fun genOffset(cursor: BlockPos, height: Int, width: Int, mat: Block, isOdd: Boolean) {
-        blueprint.add(Pair(relativeDirection(cursor, width, -2), mat))
+        var matUse = mat
+        if (mode.value == Mode.TUNNEL) matUse = Blocks.AIR
+        blueprint.add(Pair(relativeDirection(cursor, width, -2), matUse))
         if (buildDirectionSaved.isDiagonal) {
-            addOffset(cursor, height, width, mat, true)
+            addOffset(cursor, height, width, matUse, true)
         }
         when {
             isOdd -> {
-                blueprint.add(Pair(relativeDirection(cursor, width, 2), mat))
+                blueprint.add(Pair(relativeDirection(cursor, width, 2), matUse))
                 if (buildDirectionSaved.isDiagonal) {
-                    addOffset(cursor, height, width, mat, false)
+                    addOffset(cursor, height, width, matUse, false)
                 }
             }
             else -> {
                 val evenCursor = relativeDirection(cursor, 1, 2)
                 if (buildDirectionSaved.isDiagonal) {
-                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), mat))
-                    addOffset(cursor, height, width, mat, false)
-                    addOffset(evenCursor, height, width, mat, false)
+                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), matUse))
+                    addOffset(cursor, height, width, matUse, false)
+                    addOffset(evenCursor, height, width, matUse, false)
                 } else {
-                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), mat))
+                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), matUse))
                 }
             }
         }
@@ -1168,7 +1153,7 @@ object HighwayTools : Module() {
                     stuckLevel = StuckLevel.MODERATE
                     if (!pathing && blockTask.taskState == TaskState.PLACE && !buildDirectionSaved.isDiagonal) adjustPlayerPosition(true)
                     refreshData()
-                    if (debugMessages.value != DebugMessages.OFF && (mc.currentScreen !is DisplayGuiScreen || mc.currentServerData != null)) sendChatMessage("$chatName Refreshing data")
+                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("$chatName Refreshing data")
                 }
                 stuckValue > 500 -> {
                     stuckLevel = StuckLevel.MAYOR

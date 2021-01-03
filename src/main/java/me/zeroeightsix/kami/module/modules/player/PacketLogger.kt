@@ -3,6 +3,8 @@ package me.zeroeightsix.kami.module.modules.player
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.mixin.extension.pitch
+import me.zeroeightsix.kami.mixin.extension.yaw
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Setting
 import me.zeroeightsix.kami.setting.Settings
@@ -49,9 +51,8 @@ object PacketLogger : Module() {
                 is CPacketPlayerDigging -> {
                     lines.add("\nMining - ${it.packet.position}@${it.packet.facing} - ${it.packet.action}")
                 }
-                is CPacketPlayer.Rotation -> {
-                    val vec = Vec3d(it.packet.getX(0.0), it.packet.getY(0.0), it.packet.getZ(0.0))
-                    lines.add("\nRotation - Pitch: ${it.packet.getPitch(0.0F)} Yaw: ${it.packet.getYaw(0.0F)}")
+                is CPacketPlayer -> {
+                    lines.add("\nRotation - Pitch: ${it.packet.pitch} Yaw: ${it.packet.yaw}")
                 }
             }
             lines.add("\n\n")

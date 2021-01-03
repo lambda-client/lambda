@@ -19,7 +19,6 @@ import org.kamiblue.event.listener.listener
 import java.io.File
 import java.net.URL
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 @Module.Info(
