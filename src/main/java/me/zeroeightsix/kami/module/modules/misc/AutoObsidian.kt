@@ -428,11 +428,10 @@ object AutoObsidian : Module() {
                 InventoryUtils.inventoryClick(container.windowId, slot, 0, ClickType.QUICK_MOVE)
                 mc.player.closeScreen()
             } else if (shulkerOpenTimer.tick(100, false)) { // Wait for maximum of 5 seconds
-                if(leaveEmptyShulkers.value && container.inventory.subList(0, 27).indexOfFirst { it.item.id != ItemID.AIR.id } == -1) {
+                if (leaveEmptyShulkers.value && container.inventory.subList(0, 27).indexOfFirst { it.item.id != ItemID.AIR.id } == -1) {
                     searchingState = SearchingState.PRE_MINING
                     mc.player.closeScreen()
-                }
-                else {
+                } else {
                     sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
                     mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     disable()
