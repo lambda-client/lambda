@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.util.text
 
 import me.zeroeightsix.kami.command.CommandManager
-import me.zeroeightsix.kami.module.modules.chat.EncryptChat
+import me.zeroeightsix.kami.module.modules.chat.ChatEncryption
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.Wrapper
 
@@ -21,7 +21,7 @@ object MessageDetection {
         },
         ANY {
             override val prefixes: Array<out CharSequence>
-                get() = arrayOf(*ANY_EXCEPT_DELIMITER.prefixes, EncryptChat.delimiter.value)
+                get() = arrayOf(*ANY_EXCEPT_DELIMITER.prefixes, ChatEncryption.delimiter.value)
         }
     }
 
