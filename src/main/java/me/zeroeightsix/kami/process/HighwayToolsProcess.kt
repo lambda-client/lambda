@@ -24,11 +24,10 @@ object HighwayToolsProcess : IBaritoneProcess {
     override fun onLostControl() {}
 
     override fun displayName0(): String {
-        val ht = HighwayTools
-        val processName = if (ht.pendingTasks.size > 0 && !ht.pathing) {
-            ht.pendingTasks.peek().toString()
-        } else if (ht.pathing) {
-            "Moving to Position: (${ht.getNextWalkableBlock().asString()})"
+        val processName = if (HighwayTools.pendingTasks.size > 0 && !HighwayTools.pathing) {
+            HighwayTools.pendingTasks.peek().toString()
+        } else if (HighwayTools.pathing) {
+            "Moving to Position: (${HighwayTools.getNextWalkableBlock().asString()})"
         } else {
             "Manual mode"
         }
@@ -40,9 +39,8 @@ object HighwayToolsProcess : IBaritoneProcess {
     }
 
     override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
-        val ht = HighwayTools
-        return if (ht.baritoneMode.value) {
-            PathingCommand(GoalNear(ht.getNextWalkableBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
+        return if (HighwayTools.baritoneMode.value) {
+            PathingCommand(GoalNear(HighwayTools.getNextWalkableBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
         } else PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
     }
 }
