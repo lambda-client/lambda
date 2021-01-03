@@ -107,21 +107,24 @@ object HighwayTools : Module() {
     private var baritoneSettingAllowPlace = false
     private var baritoneSettingRenderGoal = false
 
-    // runtime vars
-    val pendingTasks = LinkedList<BlockTask>()
-    private val doneTasks = ArrayList<BlockTask>()
-    private val blueprint = ArrayList<Pair<BlockPos, Block>>()
+    // State
+    private var active = false
+    var pathing = false; private set
     private var waitTicks = 0
     private var blocksPlaced = 0
-    var pathing = false
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
-    private val renderer = ESPRenderer()
-    private var active = false
+
+    // Rotation
     private var lastHitVec: Vec3d? = null
     private val rotateTimer = TickTimer(TimeUnit.TICKS)
 
-    // stats
+    // Tasks
+    val pendingTasks = LinkedList<BlockTask>()
+    private val doneTasks = ArrayList<BlockTask>()
+    private val blueprint = ArrayList<Pair<BlockPos, Block>>()
+
+    // Stats
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
     private var startTime = 0L
@@ -129,6 +132,12 @@ object HighwayTools : Module() {
     private var foodLoss = 1
     private var materialLeft = 0
     private var fillerMatLeft = 0
+
+    private val renderer = ESPRenderer()
+
+    override fun isActive(): Boolean {
+        return isEnabled && active
+    }
 
     override fun onEnable() {
         if (mc.player == null) {
@@ -757,12 +766,12 @@ object HighwayTools : Module() {
                 updateTask(blockTask, TaskState.BROKEN)
                 waitTicks = tickDelayBreak.value
                 defaultScope.launch {
-                    delay(10L)
+                    delay(20L)
                     onMainThreadSafe {
                         connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
                         player.swingArm(EnumHand.MAIN_HAND)
                     }
-                    delay(40L)
+                    delay(20L)
                     onMainThreadSafe {
                         connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
                         player.swingArm(EnumHand.MAIN_HAND)
@@ -782,7 +791,7 @@ object HighwayTools : Module() {
         }
         if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) updateTask(blockTask, TaskState.BREAKING)
         defaultScope.launch {
-            delay(10L)
+            delay(20L)
             onMainThreadSafe {
                 connection.sendPacket(digPacket)
                 player.swingArm(EnumHand.MAIN_HAND)
@@ -814,7 +823,7 @@ object HighwayTools : Module() {
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
         defaultScope.launch {
-            delay(10L)
+            delay(20L)
             onMainThreadSafe {
                 placeBlock(pair.second, pair.first)
             }
