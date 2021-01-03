@@ -1191,10 +1191,19 @@ object HighwayTools : Module() {
         var taskState: TaskState,
         var block: Block
     ) : Comparable<BlockTask> {
-        override fun compareTo(other: BlockTask) = when {
-            taskState.ordinal != other.taskState.ordinal -> taskState.ordinal - other.taskState.ordinal
-            taskState.ordinal == other.taskState.ordinal && StuckManager.stuckLevel != StuckLevel.NONE -> 0
-            else -> (mc.player.distanceTo(blockPos) - mc.player.distanceTo(other.blockPos)).toInt()
+        override fun compareTo(other: BlockTask) : Int {
+            return runSafeR {
+                if (!isVisible(other.blockPos)) return@runSafeR 69
+
+                val statePriority = taskState.ordinal - other.taskState.ordinal
+                if (statePriority != 0) return@runSafeR statePriority
+
+                val eyePos = player.getPositionEyes(1f) ?: Vec3d.ZERO
+                val dist = (eyePos.distanceTo(other.blockPos) - eyePos.distanceTo(blockPos)).toInt()
+                if (dist != 0) return@runSafeR dist
+
+                -0x22
+            } ?: -420
         }
 
         override fun toString(): String {
@@ -1204,13 +1213,13 @@ object HighwayTools : Module() {
 
     enum class TaskState(val color: ColorHolder) {
         DONE(ColorHolder(50, 50, 50)),
-        BREAKING(ColorHolder(240, 222, 60)),
-        EMERGENCY_BREAK(ColorHolder(220, 41, 140)),
         LIQUID_SOURCE(ColorHolder(120, 41, 240)),
         LIQUID_FLOW(ColorHolder(120, 41, 240)),
+        BREAKING(ColorHolder(240, 222, 60)),
+        EMERGENCY_BREAK(ColorHolder(220, 41, 140)),
         BREAK(ColorHolder(222, 0, 0)),
-        BROKEN(ColorHolder(111, 0, 0)),
         PLACE(ColorHolder(35, 188, 254)),
+        BROKEN(ColorHolder(111, 0, 0)),
         PLACED(ColorHolder(53, 222, 66))
     }
 
