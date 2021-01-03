@@ -9,7 +9,7 @@ import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import net.minecraft.util.math.BlockPos
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.toRadian
@@ -35,7 +35,7 @@ object HoleSnap : Module() {
                 disable()
                 return@listener
             }
-            findHole()?.toVec3d()?.let {
+            findHole()?.toVec3dCenter()?.let {
                 if (disableStrafe.value) Strafe.disable()
                 if (mc.player.onGround) {
                     val yawRad = RotationUtils.getRotationTo(mc.player.positionVector, it).x.toDouble().toRadian()

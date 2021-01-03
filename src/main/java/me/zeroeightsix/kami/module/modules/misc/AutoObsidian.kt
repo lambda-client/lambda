@@ -7,7 +7,6 @@ import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.NoBreakAnimation
@@ -24,11 +23,14 @@ import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.defaultScope
 import me.zeroeightsix.kami.util.threads.onMainThreadSafe
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.inventory.GuiShulkerBox
+import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
+import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
@@ -53,6 +55,7 @@ import org.kamiblue.event.listener.listener
 object AutoObsidian : Module() {
     private val fillMode = register(Settings.e<FillMode>("FillMode", FillMode.TARGET_STACKS))
     private val searchShulker = register(Settings.b("SearchShulker", false))
+    private val leaveEmptyShulkers = register(Settings.booleanBuilder("LeaveEmptyShulkers").withValue(true).withVisibility { searchShulker.value == true })
     private val autoRefill = register(Settings.booleanBuilder("AutoRefill").withValue(false).withVisibility { fillMode.value != FillMode.INFINITE })
     private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value && fillMode.value != FillMode.INFINITE })
     private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20).withVisibility { fillMode.value == FillMode.TARGET_STACKS })
@@ -94,7 +97,8 @@ object AutoObsidian : Module() {
     private enum class ItemID(val id: Int) {
         OBSIDIAN(49),
         ENDER_CHEST(130),
-        DIAMOND_PICKAXE(278)
+        DIAMOND_PICKAXE(278),
+        AIR(0)
     }
 
     var goal: Goal? = null; private set
@@ -124,9 +128,9 @@ object AutoObsidian : Module() {
     }
 
     init {
-        listener<SafeTickEvent> {
+        safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.END || mc.playerController == null
-                || !tickTimer.tick(delayTicks.value.toLong())) return@listener
+                || !tickTimer.tick(delayTicks.value.toLong())) return@safeListener
 
             updateState()
             when (state) {
@@ -319,7 +323,7 @@ object AutoObsidian : Module() {
                             SearchingState.PLACING
                         }
                     }
-                    searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) >= 64
+                    searchingState == SearchingState.OPENING && (InventoryUtils.countItemAll(ItemID.ENDER_CHEST.id) > 0
                         || InventoryUtils.getSlots(0, 35, 0) == null) -> {
                         SearchingState.PRE_MINING
                     }
@@ -424,9 +428,14 @@ object AutoObsidian : Module() {
                 InventoryUtils.inventoryClick(container.windowId, slot, 0, ClickType.QUICK_MOVE)
                 mc.player.closeScreen()
             } else if (shulkerOpenTimer.tick(100, false)) { // Wait for maximum of 5 seconds
-                sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
-                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
+                if (leaveEmptyShulkers.value && container.inventory.subList(0, 27).indexOfFirst { it.item.id != ItemID.AIR.id } == -1) {
+                    searchingState = SearchingState.PRE_MINING
+                    mc.player.closeScreen()
+                } else {
+                    sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
+                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                    disable()
+                }
             }
         } else {
             val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
@@ -473,13 +482,41 @@ object AutoObsidian : Module() {
         }
     }
 
+    /**
+     * @return True if there is a non-sliktouch pick in the hotbar, else returns false
+     */
+    private fun hotbarHasNonSilkTouchPick(): Boolean {
+        val slotsWithPickaxes = InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return false
+        for (slot in slotsWithPickaxes) {
+            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Gets the first non-hotbar slot of a diamond pickaxe that does not have the silk touch enchantment.
+     * @return The position of the pickaxe. -1 if there is no match.
+     */
+    private fun getNonSilkTouchPickPos(): Int {
+        val slotsWithPickaxes = InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return -1
+        for (slot in slotsWithPickaxes) {
+            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
+                return slot
+            }
+        }
+        return -1
+    }
+
     private fun mineBlock(pos: BlockPos, pre: Boolean) {
         if (pre) {
-            if (InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) == null && InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) != null) {
-                InventoryUtils.moveToHotbar(ItemID.DIAMOND_PICKAXE.id, ItemID.ENDER_CHEST.id)
-            } else if (InventoryUtils.getSlots(0, 35, ItemID.DIAMOND_PICKAXE.id) == null) {
-                sendChatMessage("No pickaxe was found in inventory.")
+            if (!hotbarHasNonSilkTouchPick() && getNonSilkTouchPickPos() != -1) {
+                InventoryUtils.moveToSlot(0, getNonSilkTouchPickPos(), 36)
+            } else if (!hotbarHasNonSilkTouchPick()) {
+                sendChatMessage("No valid pickaxe was found in inventory.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                disable()
             }
             InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
         }
