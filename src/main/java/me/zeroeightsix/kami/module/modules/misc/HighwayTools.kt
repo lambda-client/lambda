@@ -12,7 +12,7 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.placeBlock
@@ -56,35 +56,35 @@ import kotlin.collections.LinkedHashMap
 )
 object HighwayTools : Module() {
 
-    private val mode = register(Settings.e<Mode>("Mode", Mode.HIGHWAY))
-    private val page = register(Settings.e<Page>("Page", Page.BUILD))
+    private val mode by setting("Mode", Mode.HIGHWAY)
+    private val page by setting("Page", Page.BUILD)
 
     // build settings
-    private val clearSpace = register(Settings.booleanBuilder("ClearSpace").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
-    private val clearHeight = register(Settings.integerBuilder("Height").withValue(4).withRange(1, 6).withStep(1).withVisibility { page.value == Page.BUILD && clearSpace.value })
-    private val buildWidth = register(Settings.integerBuilder("Width").withValue(5).withRange(1, 9).withStep(1).withVisibility { page.value == Page.BUILD })
-    private val railing = register(Settings.booleanBuilder("Railing").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
-    private val railingHeight = register(Settings.integerBuilder("RailingHeight").withValue(1).withRange(1, 4).withStep(1).withVisibility { railing.value && page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
-    private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(false).withVisibility { page.value == Page.BUILD && (mode.value == Mode.HIGHWAY || mode.value == Mode.TUNNEL) })
+    private val clearSpace by setting("ClearSpace", true,  { page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val clearHeight by setting("Height", 4, 1..6, 1,  { page == Page.BUILD && clearSpace })
+    private val buildWidth by setting("Width", 5, 1..9, 1,  { page == Page.BUILD })
+    private val railing by setting("Railing", true,  { page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val railingHeight by setting("RailingHeight", 1, 1..4, 1,  { railing && page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val cornerBlock by setting("CornerBlock", false,  { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
 
     // behavior settings
-    private val tickDelayPlace = register(Settings.integerBuilder("TickDelayPlace").withValue(3).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
-    private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withValue(1).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
-    private val interacting = register(Settings.enumBuilder(InteractMode::class.java, "InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
-    private val illegalPlacements = register(Settings.booleanBuilder("IllegalPlacements").withValue(false).withVisibility { page.value == Page.BEHAVIOR })
-    private val maxReach = register(Settings.floatBuilder("MaxReach").withValue(4.5F).withRange(1.0f, 6.0f).withStep(0.1f).withVisibility { page.value == Page.BEHAVIOR })
-    private val toggleInventoryManager = register(Settings.booleanBuilder("ToggleInvManager").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
-    private val toggleAutoObsidian = register(Settings.booleanBuilder("ToggleAutoObsidian").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
+    private val tickDelayPlace by setting("TickDelayPlace", 3, 0..16, 1,  { page == Page.BEHAVIOR })
+    private val tickDelayBreak by setting("TickDelayBreak", 1, 0..16, 1,  { page == Page.BEHAVIOR })
+    private val interacting by setting("InteractMode", InteractMode.SPOOF,  { page == Page.BEHAVIOR })
+    private val illegalPlacements by setting("IllegalPlacements", false,  { page == Page.BEHAVIOR })
+    private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f,  { page == Page.BEHAVIOR })
+    private val toggleInventoryManager by setting("ToggleInvManager", true,  { page == Page.BEHAVIOR })
+    private val toggleAutoObsidian by setting("ToggleAutoObsidian", true,  { page == Page.BEHAVIOR })
 
     // config
-    private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.CONFIG })
-    private val printDebug = register(Settings.booleanBuilder("ShowQueue").withValue(false).withVisibility { page.value == Page.CONFIG })
-    private val debugMessages = register(Settings.enumBuilder(DebugMessages::class.java, "Debug").withValue(DebugMessages.IMPORTANT).withVisibility { page.value == Page.CONFIG })
-    private val goalRender = register(Settings.booleanBuilder("GoalRender").withValue(false).withVisibility { page.value == Page.CONFIG })
-    private val filled = register(Settings.booleanBuilder("Filled").withValue(true).withVisibility { page.value == Page.CONFIG })
-    private val outline = register(Settings.booleanBuilder("Outline").withValue(true).withVisibility { page.value == Page.CONFIG })
-    private val aFilled = register(Settings.integerBuilder("FilledAlpha").withValue(26).withRange(0, 255).withStep(1).withVisibility { filled.value && page.value == Page.CONFIG })
-    private val aOutline = register(Settings.integerBuilder("OutlineAlpha").withValue(91).withRange(0, 255).withStep(1).withVisibility { outline.value && page.value == Page.CONFIG })
+    private val info by setting("ShowInfo", true,  { page == Page.CONFIG })
+    private val printDebug by setting("ShowQueue", false,  { page == Page.CONFIG })
+    private val debugMessages by setting("Debug", DebugMessages.IMPORTANT,  { page == Page.CONFIG })
+    private val goalRender by setting("GoalRender", false,  { page == Page.CONFIG })
+    private val filled by setting("Filled", true,  { page == Page.CONFIG })
+    private val outline by setting("Outline", true,  { page == Page.CONFIG })
+    private val aFilled by setting("FilledAlpha", 26, 0..255, 1,  { filled && page == Page.CONFIG })
+    private val aOutline by setting("OutlineAlpha", 91, 0..255, 1,  { outline && page == Page.CONFIG })
 
     // internal settings
     val ignoreBlocks = hashSetOf(
@@ -147,10 +147,10 @@ object HighwayTools : Module() {
         }
 
         /* Turn on inventory manager if the users wants us to control it */
-        if (toggleInventoryManager.value && InventoryManager.isDisabled) InventoryManager.enable()
+        if (toggleInventoryManager && InventoryManager.isDisabled) InventoryManager.enable()
 
         /* Turn on Auto Obsidian if the user wants us to control it. */
-        if (toggleAutoObsidian.value && AutoObsidian.isDisabled && mode.value != Mode.TUNNEL) {
+        if (toggleAutoObsidian && AutoObsidian.isDisabled && mode != Mode.TUNNEL) {
             /* If we have no obsidian, immediately turn on Auto Obsidian */
             if (InventoryUtils.countItemAll(49) == 0) {
                 AutoObsidian.enable()
@@ -174,7 +174,7 @@ object HighwayTools : Module() {
         baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
         BaritoneUtils.settings?.allowPlace?.value = false
 
-        if (!goalRender.value) {
+        if (!goalRender) {
             baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
             BaritoneUtils.settings?.renderGoal?.value = false
         }
@@ -191,13 +191,13 @@ object HighwayTools : Module() {
         active = false
 
         BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
-        if (!goalRender.value) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
+        if (!goalRender) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
 
         /* Turn off inventory manager if the users wants us to control it */
-        if (toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
+        if (toggleInventoryManager && InventoryManager.isEnabled) InventoryManager.disable()
 
         /* Turn off auto obsidian if the user wants us to control it */
-        if (toggleAutoObsidian.value && AutoObsidian.isEnabled) {
+        if (toggleAutoObsidian && AutoObsidian.isEnabled) {
             AutoObsidian.disable()
         }
 
@@ -233,8 +233,8 @@ object HighwayTools : Module() {
 
     private fun SafeClientEvent.updateRenderer() {
         renderer.clear()
-        renderer.aFilled = if (filled.value) aFilled.value else 0
-        renderer.aOutline = if (outline.value) aOutline.value else 0
+        renderer.aFilled = if (filled) aFilled else 0
+        renderer.aOutline = if (outline) aOutline else 0
         for (blockTask in pendingTasks) {
             if (blockTask.taskState == TaskState.DONE) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
@@ -257,7 +257,7 @@ object HighwayTools : Module() {
         if (rotateTimer.tick(20L, false)) return
         val rotation = lastHitVec?.let { RotationUtils.getRotationTo(it) } ?: return
 
-        when (interacting.value) {
+        when (interacting) {
             InteractMode.SPOOF -> {
                 val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
                 PlayerPacketManager.addPacket(this@HighwayTools, packet)
@@ -316,7 +316,7 @@ object HighwayTools : Module() {
     private fun generateBluePrint(feetPos: BlockPos) {
         val basePos = feetPos.down()
 
-        if (mode.value != Mode.FLAT) {
+        if (mode != Mode.FLAT) {
             val zDirection = startingDirection
             val xDirection = zDirection.clockwise(if (zDirection.isDiagonal) 1 else 2)
             val nextPos = basePos.add(zDirection.directionVec)
@@ -332,18 +332,18 @@ object HighwayTools : Module() {
     }
 
     private fun generateClear(basePos: BlockPos, xDirection: Direction) {
-        if (!clearSpace.value) return
+        if (!clearSpace) return
 
-        for (w in 0 until buildWidth.value) {
-            for (h in 0 until clearHeight.value) {
-                val x = w - buildWidth.value / 2
+        for (w in 0 until buildWidth) {
+            for (h in 0 until clearHeight) {
+                val x = w - buildWidth / 2
                 val pos = basePos.add(xDirection.directionVec.multiply(x)).up(h)
 
-                if (mode.value == Mode.HIGHWAY && h == 0 && isRail(w)) {
+                if (mode == Mode.HIGHWAY && h == 0 && isRail(w)) {
                     continue
                 }
 
-                if (mode.value == Mode.HIGHWAY) {
+                if (mode == Mode.HIGHWAY) {
                     blueprintNew[pos] = Blocks.AIR
                 } else {
                     blueprintNew[pos.up()] = Blocks.AIR
@@ -353,14 +353,14 @@ object HighwayTools : Module() {
     }
 
     private fun generateBase(basePos: BlockPos, xDirection: Direction) {
-        val baseMaterial = if (mode.value == Mode.TUNNEL) fillerMat else material
+        val baseMaterial = if (mode == Mode.TUNNEL) fillerMat else material
 
-        for (w in 0 until buildWidth.value) {
-            val x = w - buildWidth.value / 2
+        for (w in 0 until buildWidth) {
+            val x = w - buildWidth / 2
             val pos = basePos.add(xDirection.directionVec.multiply(x))
 
-            if (mode.value == Mode.HIGHWAY && isRail(w)) {
-                for (y in 1..railingHeight.value) {
+            if (mode == Mode.HIGHWAY && isRail(w)) {
+                for (y in 1..railingHeight) {
                     blueprintNew[pos.up(y)] = baseMaterial
                 }
             } else {
@@ -369,14 +369,14 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun isRail(w: Int) = railing.value && w !in 1 until buildWidth.value - 1
+    private fun isRail(w: Int) = railing && w !in 1 until buildWidth - 1
 
     private fun generateFlat(basePos: BlockPos) {
         // Base
-        for (w1 in 0 until buildWidth.value) {
-            for (w2 in 0 until buildWidth.value) {
-                val x = w1 - buildWidth.value / 2
-                val z = w2 - buildWidth.value / 2
+        for (w1 in 0 until buildWidth) {
+            for (w2 in 0 until buildWidth) {
+                val x = w1 - buildWidth / 2
+                val z = w2 - buildWidth / 2
                 val pos = basePos.add(x, 0, z)
 
                 blueprintNew[pos] = material
@@ -384,12 +384,12 @@ object HighwayTools : Module() {
         }
 
         // Clear
-        if (!clearSpace.value) return
-        for (w1 in -buildWidth.value..buildWidth.value) {
-            for (w2 in -buildWidth.value..buildWidth.value) {
-                for (y in 1 until clearHeight.value) {
-                    val x = w1 - buildWidth.value / 2
-                    val z = w2 - buildWidth.value / 2
+        if (!clearSpace) return
+        for (w1 in -buildWidth..buildWidth) {
+            for (w2 in -buildWidth..buildWidth) {
+                for (y in 1 until clearHeight) {
+                    val x = w1 - buildWidth / 2
+                    val z = w2 - buildWidth / 2
                     val pos = basePos.add(x, y, z)
 
                     blueprintNew[pos] = Blocks.AIR
@@ -418,7 +418,7 @@ object HighwayTools : Module() {
     }
 
     private fun SafeClientEvent.getNextPos(): BlockPos {
-        val baseMaterial = if (mode.value == Mode.TUNNEL) fillerMat else material
+        val baseMaterial = if (mode == Mode.TUNNEL) fillerMat else material
         var lastPos = currentBlockPos
 
         for (step in 1..2) {
@@ -446,7 +446,7 @@ object HighwayTools : Module() {
 
             (lastTask ?: sortedTasks.firstOrNull())?.let {
                 val dist = player.getPositionEyes(1f).distanceTo(it.blockPos) - 0.7
-                if (dist > maxReach.value) {
+                if (dist > maxReach) {
                     refreshData()
                 } else {
                     doNextTask(sortedTasks)
@@ -474,7 +474,7 @@ object HighwayTools : Module() {
             if (it.taskState != TaskState.DONE) {
                 val timeout = it.taskState.stuckTimeout
                 if (it.stuckTicks > timeout) {
-                    if (debugMessages.value == DebugMessages.IMPORTANT) {
+                    if (debugMessages == DebugMessages.IMPORTANT) {
                         sendChatMessage("Stuck for more than $timeout ticks, refreshing data.")
                     }
                     refreshData()
@@ -524,7 +524,7 @@ object HighwayTools : Module() {
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 totalBlocksDestroyed++
-                waitTicks = tickDelayBreak.value
+                waitTicks = tickDelayBreak
                 if (blockTask.block == material || blockTask.block == fillerMat) {
                     blockTask.updateState(TaskState.PLACE)
                 } else {
@@ -641,7 +641,7 @@ object HighwayTools : Module() {
             }
             else -> {
                 if (!WorldUtils.isPlaceable(blockTask.blockPos)) {
-                    if (debugMessages.value != DebugMessages.OFF) sendChatMessage("Invalid place position: " + blockTask.blockPos)
+                    if (debugMessages != DebugMessages.OFF) sendChatMessage("Invalid place position: " + blockTask.blockPos)
                     refreshData()
                     return
                 }
@@ -656,7 +656,7 @@ object HighwayTools : Module() {
 
                 blockTask.updateState(TaskState.PLACED)
 
-                waitTicks = tickDelayPlace.value
+                waitTicks = tickDelayPlace
             }
         }
     }
@@ -668,7 +668,7 @@ object HighwayTools : Module() {
 
             when {
                 blockTask.block == material && block != material -> return false
-                mode.value == Mode.TUNNEL && blockTask.block == fillerMat && block != fillerMat -> return false
+                mode == Mode.TUNNEL && blockTask.block == fillerMat && block != fillerMat -> return false
                 blockTask.block == Blocks.AIR && block != Blocks.AIR -> return false
             }
 
@@ -716,7 +716,7 @@ object HighwayTools : Module() {
                     it.block is BlockLiquid && it.getValue(BlockLiquid.LEVEL) != 0
                 }
 
-                if (player.distanceTo(neighbour) > maxReach.value) continue
+                if (player.distanceTo(neighbour) > maxReach) continue
 
                 foundLiquid = true
                 val found = ArrayList<Triple<BlockTask, TaskState, Block>>()
@@ -776,7 +776,7 @@ object HighwayTools : Module() {
 
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.NETHERRACK -> {
-                waitTicks = tickDelayBreak.value
+                waitTicks = tickDelayBreak
                 defaultScope.launch {
                     delay(10L)
                     onMainThreadSafe {
@@ -825,8 +825,8 @@ object HighwayTools : Module() {
             }
 
         if (!isVisible(blockTask.blockPos)) {
-            if (illegalPlacements.value) {
-                if (debugMessages.value == DebugMessages.ALL) {
+            if (illegalPlacements) {
+                if (debugMessages == DebugMessages.ALL) {
                     sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
                 }
             } else {
@@ -889,7 +889,7 @@ object HighwayTools : Module() {
     }
 
     private fun printEnable() {
-        if (info.value) {
+        if (info) {
             StringBuilder(2).run {
                 append("$chatName Module started." +
                     "\n    §9> §7Direction: §a${startingDirection.displayName}§r")
@@ -903,14 +903,14 @@ object HighwayTools : Module() {
                         append("\n    §9> §7Coordinate: §a${startingBlockPos.z}§r")
                     }
                 }
-                if (startingBlockPos.y in 117..119 && mode.value != Mode.TUNNEL) append("\n    §9> §cCheck coordinate Y / altitude and make sure to move around Y 120 for the correct height")
+                if (startingBlockPos.y in 117..119 && mode != Mode.TUNNEL) append("\n    §9> §cCheck coordinate Y / altitude and make sure to move around Y 120 for the correct height")
                 sendChatMessage(toString())
             }
         }
     }
 
     private fun printDisable() {
-        if (info.value) {
+        if (info) {
             StringBuilder(2).run {
                 append(
                     "$chatName Module stopped." +
@@ -990,7 +990,7 @@ object HighwayTools : Module() {
             "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"
         )
 
-        if (printDebug.value) {
+        if (printDebug) {
             statistics.addAll(getQueue())
         }
 
