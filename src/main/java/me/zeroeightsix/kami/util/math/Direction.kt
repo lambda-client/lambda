@@ -19,6 +19,10 @@ enum class Direction(val displayName: String, val displayNameXY: String, val dir
     WEST("West", "-X", Vec3i(-1, 0, 0), false),
     NORTH_WEST("North West", "-X -Z", Vec3i(-1, 0, -1), true);
 
+    fun clockwise(n: Int = 1) = values()[Math.floorMod((ordinal + n), 8)]
+
+    fun counterClockwise(n: Int = 1) = values()[Math.floorMod((ordinal - n), 8)]
+
     companion object {
 
         @JvmStatic

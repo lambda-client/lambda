@@ -22,7 +22,6 @@ import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
-import me.zeroeightsix.kami.util.math.VectorUtils.getBlockPositionsInArea
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
@@ -41,6 +40,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.LinkedHashMap
 import kotlin.math.abs
 
 /**
@@ -63,7 +63,7 @@ object HighwayTools : Module() {
     private val clearHeight = register(Settings.integerBuilder("Height").withValue(4).withRange(1, 6).withStep(1).withVisibility { page.value == Page.BUILD && clearSpace.value })
     private val buildWidth = register(Settings.integerBuilder("Width").withValue(5).withRange(1, 9).withStep(1).withVisibility { page.value == Page.BUILD })
     private val railing = register(Settings.booleanBuilder("Railing").withValue(true).withVisibility { page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
-    private val railingHeight = register(Settings.integerBuilder("RailingHeight").withValue(1).withRange(0, 4).withStep(1).withMaximum(clearHeight.value).withVisibility { railing.value && page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
+    private val railingHeight = register(Settings.integerBuilder("RailingHeight").withValue(1).withRange(1, 4).withStep(1).withVisibility { railing.value && page.value == Page.BUILD && mode.value == Mode.HIGHWAY })
     private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(false).withVisibility { page.value == Page.BUILD && (mode.value == Mode.HIGHWAY || mode.value == Mode.TUNNEL) })
 
     // behavior settings
@@ -101,26 +101,29 @@ object HighwayTools : Module() {
     var fillerMat: Block = Blocks.NETHERRACK
     private var playerHotbarSlot = -1
     private var lastHotbarSlot = -1
-    private var buildDirectionSaved = Direction.NORTH
     private var baritoneSettingAllowPlace = false
     private var baritoneSettingRenderGoal = false
+
+    // Blue print
+    private var startingDirection = Direction.NORTH
+    private var currentBlockPos = BlockPos(0, -1, 0)
+    private var startingBlockPos = BlockPos(0, -1, 0)
+    private val blueprint = ArrayList<Pair<BlockPos, Block>>()
+    private val blueprintNew = LinkedHashMap<BlockPos, Block>()
 
     // State
     private var active = false
     var pathing = false; private set
     private var waitTicks = 0
-    private var currentBlockPos = BlockPos(0, -1, 0)
-    private var startingBlockPos = BlockPos(0, -1, 0)
 
     // Rotation
     private var lastHitVec: Vec3d? = null
     private val rotateTimer = TickTimer(TimeUnit.TICKS)
 
     // Tasks
-    val pendingTasks = LinkedList<BlockTask>()
+    private val pendingTasks = LinkedList<BlockTask>()
     private val doneTasks = ArrayList<BlockTask>()
-    private val blueprint = ArrayList<Pair<BlockPos, Block>>()
-    private var lastTask: BlockTask? = null
+    var lastTask: BlockTask? = null; private set
 
     // Stats
     private var totalBlocksPlaced = 0
@@ -164,7 +167,7 @@ object HighwayTools : Module() {
         currentBlockPos = startingBlockPos
         playerHotbarSlot = mc.player.inventory.currentItem
         lastHotbarSlot = -1
-        buildDirectionSaved = Direction.fromEntity(mc.player)
+        startingDirection = Direction.fromEntity(mc.player)
         startTime = System.currentTimeMillis()
         totalBlocksPlaced = 0
         totalBlocksDestroyed = 0
@@ -234,7 +237,7 @@ object HighwayTools : Module() {
             updateRenderer()
             pendingTasks.sortWith(compareBy {
                 it.taskState.ordinal * 10 +
-                    player.getPositionEyes(1f).distanceTo(it.blockPos) * 5 +
+                    player.getPositionEyes(1f).distanceTo(it.blockPos) * 8 +
                     it.stuckTicks * 2 +
                     it.ranTicks
             })
@@ -271,7 +274,7 @@ object HighwayTools : Module() {
                     doNextTask()
                 } else {
                     currentBlockPos = player.flooredPosition
-                    if (abs((buildDirectionSaved.ordinal - Direction.fromEntity(player).ordinal) % 8) == 4) buildDirectionSaved = Direction.fromEntity(player)
+                    if (abs((startingDirection.ordinal - Direction.fromEntity(player).ordinal) % 8) == 4) startingDirection = Direction.fromEntity(player)
                     refreshData()
                 }
             }
@@ -312,8 +315,8 @@ object HighwayTools : Module() {
         renderer.clear()
         renderer.aFilled = if (filled.value) aFilled.value else 0
         renderer.aOutline = if (outline.value) aOutline.value else 0
-//        renderer.add(currentBlockPos, ColorHolder(255, 255, 255))
-//        renderer.add(getNextWalkableBlock(), ColorHolder(0, 0, 0))
+        renderer.through = false
+
         for (blockTask in pendingTasks) {
             if (blockTask.taskState == TaskState.DONE) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
@@ -322,6 +325,169 @@ object HighwayTools : Module() {
             if (blockTask.block == Blocks.AIR) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
+    }
+
+    private fun SafeClientEvent.refreshData() {
+        doneTasks.clear()
+        pendingTasks.clear()
+        lastTask = null
+        updateTasks(currentBlockPos)
+    }
+
+    private fun SafeClientEvent.updateTasks(originPos: BlockPos) {
+        blueprintNew.clear()
+        generateBluePrint(originPos)
+
+        for ((pos, block) in blueprintNew) {
+            if (block == Blocks.AIR) {
+                addTaskClear(pos)
+            } else {
+                addTaskBuild(pos, block)
+            }
+        }
+    }
+
+    private fun SafeClientEvent.addTaskBuild(pos: BlockPos, block: Block) {
+        val blockState = world.getBlockState(pos)
+
+        when {
+            blockState.block == block -> {
+                addTaskToDone(pos, block)
+            }
+            blockState.material.isReplaceable -> {
+                addTaskToPending(pos, TaskState.PLACE, block)
+            }
+            else -> {
+                addTaskToPending(pos, TaskState.BREAK, block)
+            }
+        }
+    }
+
+    private fun SafeClientEvent.addTaskClear(pos: BlockPos) {
+        if (world.isAirBlock(pos)) {
+            addTaskToDone(pos, Blocks.AIR)
+        } else {
+            addTaskToPending(pos, TaskState.BREAK, Blocks.AIR)
+        }
+    }
+
+    private fun generateBluePrint(feetPos: BlockPos) {
+        val basePos = feetPos.down()
+
+        if (mode.value != Mode.FLAT) {
+            val zDirection = startingDirection
+            val xDirection = zDirection.clockwise(2)
+            val nextPos = basePos.add(zDirection.directionVec)
+
+            generateClear(basePos, xDirection)
+            generateClear(nextPos, xDirection)
+
+            generateBase(basePos, xDirection)
+            generateBase(nextPos, xDirection)
+        } else {
+            generateFlat(basePos)
+        }
+    }
+
+    private fun generateClear(basePos: BlockPos, xDirection: Direction) {
+        if (!clearSpace.value) return
+
+        for (w in 0 until buildWidth.value) {
+            for (h in 0 until clearHeight.value) {
+                val x = w - buildWidth.value / 2
+                val pos = basePos.add(xDirection.directionVec.multiply(x)).up(h)
+
+                if (mode.value == Mode.HIGHWAY && h == 0 && isRail(w)) {
+                    continue
+                }
+
+                blueprintNew[pos] = Blocks.AIR
+            }
+        }
+    }
+
+    private fun generateBase(basePos: BlockPos, xDirection: Direction) {
+        val baseMaterial = if (mode.value == Mode.TUNNEL) fillerMat else material
+
+        for (w in 0 until buildWidth.value) {
+            val x = w - buildWidth.value / 2
+            val pos = basePos.add(xDirection.directionVec.multiply(x))
+
+            if (mode.value == Mode.HIGHWAY) {
+                if (isRail(w)) {
+                    for (y in 1..railingHeight.value) {
+                        blueprintNew[pos.up(y)] = baseMaterial
+                    }
+                } else {
+                    blueprintNew[pos] = baseMaterial
+                }
+            } else {
+                blueprintNew[pos.down()] = baseMaterial
+            }
+        }
+    }
+
+    private fun isRail(w: Int) = railing.value && w !in 1 until buildWidth.value - 1
+
+    private fun generateFlat(basePos: BlockPos) {
+        // Base
+        for (x in -buildWidth.value..buildWidth.value) {
+            for (z in -buildWidth.value..buildWidth.value) {
+                val pos = basePos.add(x, 0, z)
+
+                blueprintNew[pos] = material
+            }
+        }
+
+        // Clear
+        if (!clearSpace.value) return
+        for (x in -buildWidth.value..buildWidth.value) {
+            for (z in -buildWidth.value..buildWidth.value) {
+                for (y in 1 until clearHeight.value) {
+                    val pos = basePos.add(x, y, z)
+                    blueprintNew[pos] = Blocks.AIR
+                }
+            }
+        }
+    }
+
+    fun getNextWalkableBlock(): BlockPos {
+        var lastWalkable = getNextBlock()
+
+        when (mode.value) {
+            Mode.HIGHWAY -> {
+                for (step in 1..3) {
+                    val pos = relativeDirection(currentBlockPos, step, 0)
+                    if (mc.world.getBlockState(pos.down()).block == material &&
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                    else break
+                }
+            }
+            Mode.TUNNEL -> {
+                for (step in 1..3) {
+                    val pos = relativeDirection(currentBlockPos, step, 0)
+                    if (mc.world.getBlockState(pos.down()).block == fillerMat &&
+                        mc.world.getBlockState(pos).block == Blocks.AIR &&
+                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
+                    else break
+                }
+            }
+            else -> {
+            }
+        }
+
+        return lastWalkable
+    }
+
+    private fun getNextBlock(blockPos: BlockPos = currentBlockPos): BlockPos {
+        return relativeDirection(blockPos, 1, 0)
+    }
+
+    private fun relativeDirection(current: BlockPos, steps: Int, turn: Int): BlockPos {
+        val index = startingDirection.ordinal + turn
+        val direction = Direction.values()[Math.floorMod(index, 8)]
+        return current.add(direction.directionVec.multiply(steps))
     }
 
     private fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
@@ -347,7 +513,11 @@ object HighwayTools : Module() {
         lastTask?.let {
             it.onTick()
             doTask(it)
-            if (it.taskState != TaskState.DONE) return
+
+            if (it.taskState != TaskState.DONE) {
+                if (it.stuckTicks > 20) refreshData()
+                return
+            }
         }
 
         var currentTask: BlockTask? = pendingTasks.peek()
@@ -528,134 +698,15 @@ object HighwayTools : Module() {
         for (blockTask in doneTasks) {
             val block = world.getBlockState(blockTask.blockPos).block
             if (ignoreBlocks.contains(block)) continue
+
             when {
                 blockTask.block == material && block != material -> return false
                 mode.value == Mode.TUNNEL && blockTask.block == fillerMat && block != fillerMat -> return false
                 blockTask.block == Blocks.AIR && block != Blocks.AIR -> return false
             }
+
         }
         return true
-    }
-
-    private fun SafeClientEvent.updateTasks(originPos: BlockPos) {
-        blueprint.clear()
-        updateBlockArray(originPos)
-        updateBlockArray(getNextBlock(originPos))
-        for ((blockPos, blockType) in blueprint) {
-            val isReplaceable = world.getBlockState(blockPos).material.isReplaceable
-            if (blockPos == player.flooredPosition.down()) continue
-            when (val block = world.getBlockState(blockPos).block) {
-                is BlockLiquid -> {
-                    var filler = fillerMat
-                    if (isInsideBuild(blockPos) || fillerMatLeft == 0) filler = material
-                    when (world.getBlockState(blockPos).getValue(BlockLiquid.LEVEL) != 0) {
-                        true -> addTaskToPending(blockPos, TaskState.LIQUID_FLOW, filler)
-                        false -> addTaskToPending(blockPos, TaskState.LIQUID_SOURCE, filler)
-                    }
-                }
-                else -> {
-                    when (blockType) {
-                        Blocks.AIR -> {
-                            when {
-                                block in ignoreBlocks -> addTaskToDone(blockPos, Blocks.AIR)
-                                block == Blocks.AIR -> addTaskToDone(blockPos, Blocks.AIR)
-                                block == Blocks.FIRE -> addTaskToPending(blockPos, TaskState.BREAK, Blocks.FIRE)
-                                block != Blocks.AIR -> addTaskToPending(blockPos, TaskState.BREAK, Blocks.AIR)
-                            }
-                        }
-                        material -> {
-                            when {
-                                block == material -> addTaskToDone(blockPos, material)
-                                !isReplaceable && block != material -> addTaskToPending(blockPos, TaskState.BREAK, material)
-                                isReplaceable -> addTaskToPending(blockPos, TaskState.PLACE, material)
-                            }
-                        }
-                        fillerMat -> {
-                            if (mode.value == Mode.HIGHWAY) {
-                                if (buildDirectionSaved.isDiagonal) {
-                                    val blockUp = world.getBlockState(blockPos.up()).block
-                                    when {
-                                        WorldUtils.getNeighbour(blockPos.up(), 1) == null && blockUp != material -> addTaskToPending(blockPos, TaskState.PLACE, fillerMat)
-                                        WorldUtils.getNeighbour(blockPos.up(), 1) != null -> addTaskToDone(blockPos, fillerMat)
-                                    }
-                                }
-                            } else {
-                                when {
-                                    block == fillerMat -> addTaskToDone(blockPos, fillerMat)
-                                    !isReplaceable && block != fillerMat -> addTaskToPending(blockPos, TaskState.BREAK, fillerMat)
-                                    isReplaceable -> addTaskToPending(blockPos, TaskState.PLACE, fillerMat)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun updateBlockArray(blockPos: BlockPos) {
-        var cursor = blockPos.down()
-
-        when (mode.value) {
-            Mode.HIGHWAY, Mode.TUNNEL -> {
-                var mat = material
-                if (mode.value == Mode.TUNNEL) mat = fillerMat
-                if (baritoneMode.value) {
-                    cursor = relativeDirection(cursor, 1, 0)
-                    blueprint.add(Pair(cursor, mat))
-                }
-                cursor = relativeDirection(cursor, 1, 0)
-                blueprint.add(Pair(cursor, mat))
-                var buildIterationsWidth = buildWidth.value / 2
-                var evenCursor = relativeDirection(cursor, 1, 2)
-                var isOdd = false
-                if (buildWidth.value % 2 == 1) {
-                    isOdd = true
-                    buildIterationsWidth++
-                } else {
-                    blueprint.add(Pair(evenCursor, mat))
-                }
-                if (mode.value == Mode.TUNNEL) cursor = cursor.up()
-                for (i in 1 until clearHeight.value + 1) {
-                    for (j in 1 until buildIterationsWidth) {
-                        if (i == 1) {
-                            if (j == buildIterationsWidth - 1 && !cornerBlock.value) {
-                                genOffset(cursor, i, j, fillerMat, isOdd)
-                            } else {
-                                genOffset(cursor, i, j, mat, isOdd)
-                            }
-                        } else {
-                            if (i <= railingHeight.value + 1 && j == buildIterationsWidth - 1) {
-                                genOffset(cursor, i, j, mat, isOdd)
-                            } else {
-                                if (clearSpace.value) {
-                                    genOffset(cursor, i, j, Blocks.AIR, isOdd)
-                                }
-                            }
-                        }
-                    }
-                    if (mode.value == Mode.TUNNEL) {
-                        if (i == 1) blueprint.add(Pair(cursor, Blocks.AIR))
-                        if (i == clearHeight.value) blueprint.add(Pair(evenCursor.up(), Blocks.AIR))
-                    }
-                    cursor = cursor.up()
-                    evenCursor = evenCursor.up()
-                    if (clearSpace.value && i < clearHeight.value) {
-                        blueprint.add(Pair(cursor, Blocks.AIR))
-                        if (!isOdd) blueprint.add(Pair(evenCursor, Blocks.AIR))
-                    }
-                }
-            }
-            Mode.FLAT -> {
-                for (bp in getBlockPositionsInArea(cursor.north(buildWidth.value).west(buildWidth.value), cursor.south(buildWidth.value).east(buildWidth.value))) {
-                    blueprint.add(Pair(bp, material))
-                }
-            }
-            null -> {
-                sendChatMessage("Module logic is a lie.")
-                disable()
-            }
-        }
     }
 
     private fun SafeClientEvent.inventoryProcessor(blockTask: BlockTask) {
@@ -874,12 +925,12 @@ object HighwayTools : Module() {
         if (info.value) {
             StringBuilder(2).run {
                 append("$chatName Module started." +
-                    "\n    §9> §7Direction: §a${buildDirectionSaved.displayName}§r")
+                    "\n    §9> §7Direction: §a${startingDirection.displayName}§r")
 
-                if (buildDirectionSaved.isDiagonal) {
+                if (startingDirection.isDiagonal) {
                     append("\n    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
                 } else {
-                    if (buildDirectionSaved == Direction.NORTH || buildDirectionSaved == Direction.SOUTH) {
+                    if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
                         append("\n    §9> §7Coordinate: §a${startingBlockPos.x}§r")
                     } else {
                         append("\n    §9> §7Coordinate: §a${startingBlockPos.z}§r")
@@ -957,7 +1008,7 @@ object HighwayTools : Module() {
             "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
             "§rEnvironment",
             "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
-            "    §7Direction: §9${buildDirectionSaved.displayName}",
+            "    §7Direction: §9${startingDirection.displayName}",
             "    §7Blocks destroyed: §9$totalBlocksDestroyed".padStart(6, '0'),
             "    §7Blocks placed: §9$totalBlocksPlaced".padStart(6, '0'),
             "    §7Material: §9${material.localizedName}",
@@ -996,104 +1047,10 @@ object HighwayTools : Module() {
     private fun addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
         for (blockTask in tasks) list.add("    " + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") Priority: " + blockTask.taskState.ordinal + " State: " + blockTask.taskState.toString())
     }
-
-    fun getNextWalkableBlock(): BlockPos {
-        var lastWalkable = getNextBlock()
-
-        when (mode.value) {
-            Mode.HIGHWAY -> {
-                for (step in 1..3) {
-                    val pos = relativeDirection(currentBlockPos, step, 0)
-                    if (mc.world.getBlockState(pos.down()).block == material &&
-                        mc.world.getBlockState(pos).block == Blocks.AIR &&
-                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
-                    else break
-                }
-            }
-            Mode.TUNNEL -> {
-                for (step in 1..3) {
-                    val pos = relativeDirection(currentBlockPos, step, 0)
-                    if (mc.world.getBlockState(pos.down()).block == fillerMat &&
-                        mc.world.getBlockState(pos).block == Blocks.AIR &&
-                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
-                    else break
-                }
-            }
-            else -> {
-            }
-        }
-
-        return lastWalkable
-    }
-
-    private fun getNextBlock(blockPos: BlockPos = currentBlockPos): BlockPos {
-        return relativeDirection(blockPos, 1, 0)
-    }
-
-    private fun relativeDirection(current: BlockPos, steps: Int, turn: Int): BlockPos {
-        val index = buildDirectionSaved.ordinal + turn
-        val direction = Direction.values()[Math.floorMod(index, 8)]
-        return current.add(direction.directionVec.multiply(steps))
-    }
-
-    private fun addOffset(cursor: BlockPos, height: Int, width: Int, mat: Block, turn: Boolean) {
-        var turnValue = 1
-        if (turn) turnValue = -1
-        if (mat != fillerMat) {
-            if (height > 1) {
-                blueprint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), Blocks.AIR))
-            } else {
-                blueprint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), mat))
-            }
-        } else {
-            blueprint.add(Pair(relativeDirection(relativeDirection(cursor, 1, 3 * turnValue), width - 1, 2 * turnValue), material))
-        }
-    }
-
-    private fun genOffset(cursor: BlockPos, height: Int, width: Int, mat: Block, isOdd: Boolean) {
-        var matUse = mat
-        if (mode.value == Mode.TUNNEL) matUse = Blocks.AIR
-        blueprint.add(Pair(relativeDirection(cursor, width, -2), matUse))
-        if (buildDirectionSaved.isDiagonal) {
-            addOffset(cursor, height, width, matUse, true)
-        }
-        when {
-            isOdd -> {
-                blueprint.add(Pair(relativeDirection(cursor, width, 2), matUse))
-                if (buildDirectionSaved.isDiagonal) {
-                    addOffset(cursor, height, width, matUse, false)
-                }
-            }
-            else -> {
-                val evenCursor = relativeDirection(cursor, 1, 2)
-                if (buildDirectionSaved.isDiagonal) {
-                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), matUse))
-                    addOffset(cursor, height, width, matUse, false)
-                    addOffset(evenCursor, height, width, matUse, false)
-                } else {
-                    blueprint.add(Pair(relativeDirection(evenCursor, width, 2), matUse))
-                }
-            }
-        }
-    }
-
     object StuckManager {
         override fun toString(): String {
             return " "
         }
-    }
-
-    private fun SafeClientEvent.refreshData() {
-        doneTasks.clear()
-        pendingTasks.clear()
-        updateTasks(currentBlockPos)
-        shuffleTasks()
-    }
-
-    private fun shuffleTasks() {
-        val shuffled = pendingTasks.shuffled()
-        pendingTasks.clear()
-        pendingTasks.addAll(shuffled)
     }
 
     class BlockTask(

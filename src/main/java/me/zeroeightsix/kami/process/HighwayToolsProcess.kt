@@ -24,13 +24,16 @@ object HighwayToolsProcess : IBaritoneProcess {
     override fun onLostControl() {}
 
     override fun displayName0(): String {
-        val processName = if (HighwayTools.pendingTasks.size > 0 && !HighwayTools.pathing) {
-            HighwayTools.pendingTasks.peek().toString()
+        val lastTask = HighwayTools.lastTask
+
+        val processName = if (lastTask != null && !HighwayTools.pathing) {
+            lastTask.toString()
         } else if (HighwayTools.pathing) {
             "Moving to Position: (${HighwayTools.getNextWalkableBlock().asString()})"
         } else {
             "Manual mode"
         }
+
         return "HighwayTools: $processName"
     }
 
