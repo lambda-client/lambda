@@ -28,6 +28,7 @@ import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
 import net.minecraft.block.Block.getIdFromBlock
+import net.minecraft.block.BlockAir
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
@@ -41,6 +42,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashMap
 
 /**
@@ -120,7 +122,7 @@ object HighwayTools : Module() {
     var goal: GoalNear? = null; private set
 
     // Tasks
-    private val pendingTasks = LinkedList<BlockTask>()
+    private val pendingTasks = HashSet<BlockTask>()
     private val doneTasks = ArrayList<BlockTask>()
     var lastTask: BlockTask? = null; private set
 
@@ -420,8 +422,14 @@ object HighwayTools : Module() {
 
         for (step in 1..2) {
             val pos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
-            val block = world.getBlockState(pos.down()).block
-            if (block != baseMaterial) break
+
+            if (!blueprintNew.containsKey(pos.down())) break
+
+            val block = world.getBlockState(pos).block
+            val blockBelow = world.getBlockState(pos.down()).block
+
+            if (block is BlockLiquid || blockBelow is BlockLiquid) break
+            if (block !is BlockAir || blockBelow != baseMaterial) break
 
             lastPos = pos
         }
@@ -431,19 +439,19 @@ object HighwayTools : Module() {
 
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isNotEmpty()) {
-            pendingTasks.sortWith(compareBy {
+            val sortedTasks = pendingTasks.sortedBy {
                 it.taskState.ordinal * 10 +
-                    player.getPositionEyes(1f).distanceTo(it.blockPos) * 8 +
+                    player.getPositionEyes(1f).distanceTo(it.blockPos) * 2 +
                     it.stuckTicks * 2 +
                     it.ranTicks
-            })
+            }
 
-            (lastTask?: pendingTasks.peek())?.let {
+            (lastTask?: sortedTasks.firstOrNull())?.let {
                 val dist = player.getPositionEyes(1f).distanceTo(it.blockPos) - 0.7
                 if (dist > maxReach.value) {
                     refreshData()
                 } else {
-                    doNextTask()
+                    doNextTask(sortedTasks)
                 }
             }
         } else {
@@ -456,7 +464,7 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun SafeClientEvent.doNextTask() {
+    private fun SafeClientEvent.doNextTask(sortedTasks: List<BlockTask>) {
         if (goal != null) return
 
         if (waitTicks > 0) {
@@ -473,15 +481,10 @@ object HighwayTools : Module() {
             }
         }
 
-        var currentTask: BlockTask? = pendingTasks.peek()
-
-        while (currentTask != null) {
-            doTask(currentTask)
-            lastTask = currentTask
-
-            if (currentTask.taskState != TaskState.DONE) break
-
-            currentTask = pendingTasks.peek()
+        for (task in sortedTasks) {
+            doTask(task)
+            if (task.taskState != TaskState.DONE) break
+            lastTask = task
         }
     }
 
@@ -511,7 +514,7 @@ object HighwayTools : Module() {
     }
 
     private fun doDone(blockTask: BlockTask) {
-        pendingTasks.poll()
+        pendingTasks.remove(blockTask)
         doneTasks.add(blockTask)
     }
 
@@ -925,7 +928,7 @@ object HighwayTools : Module() {
     }
 
     fun gatherStatistics(): List<String> {
-        val currentTask: BlockTask? = pendingTasks.peek()
+        val currentTask = lastTask
 
         materialLeft = InventoryUtils.countItemAll(getIdFromBlock(material))
         fillerMatLeft = InventoryUtils.countItemAll(getIdFromBlock(fillerMat))
@@ -1038,6 +1041,12 @@ object HighwayTools : Module() {
         override fun toString(): String {
             return "Block: ${block.localizedName} @ Position: (${blockPos.asString()}) State: ${taskState.name}"
         }
+
+        override fun equals(other: Any?) = this === other
+            || (other is BlockTask
+            && blockPos == other.blockPos)
+
+        override fun hashCode() =  blockPos.hashCode()
     }
 
     enum class TaskState(val color: ColorHolder) {
