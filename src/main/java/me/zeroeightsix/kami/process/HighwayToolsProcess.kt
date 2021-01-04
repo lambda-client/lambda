@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.process
 
-import baritone.api.pathing.goals.GoalNear
 import baritone.api.process.IBaritoneProcess
 import baritone.api.process.PathingCommand
 import baritone.api.process.PathingCommandType
@@ -26,13 +25,9 @@ object HighwayToolsProcess : IBaritoneProcess {
     override fun displayName0(): String {
         val lastTask = HighwayTools.lastTask
 
-        val processName = if (lastTask != null && !HighwayTools.pathing) {
-            lastTask.toString()
-        } else if (HighwayTools.pathing) {
-            "Moving to Position: (${HighwayTools.getNextWalkableBlock().asString()})"
-        } else {
-            "Manual mode"
-        }
+        val processName = HighwayTools.goal?.goalPos?.asString()
+            ?: lastTask?.toString()
+            ?: "Thinking"
 
         return "HighwayTools: $processName"
     }
@@ -41,9 +36,9 @@ object HighwayToolsProcess : IBaritoneProcess {
         return HighwayTools.isEnabled
     }
 
-    override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
-        return if (HighwayTools.baritoneMode.value) {
-            PathingCommand(GoalNear(HighwayTools.getNextWalkableBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
-        } else PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
+    override fun onTick(p0: Boolean, p1: Boolean): PathingCommand {
+        return HighwayTools.goal?.let {
+            PathingCommand(it, PathingCommandType.SET_GOAL_AND_PATH)
+        } ?: PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
     }
 }

@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.Phase
@@ -41,7 +42,6 @@ import net.minecraft.util.math.Vec3d
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.LinkedHashMap
-import kotlin.math.abs
 
 /**
  * @author Avanatiker
@@ -67,7 +67,6 @@ object HighwayTools : Module() {
     private val cornerBlock = register(Settings.booleanBuilder("CornerBlock").withValue(false).withVisibility { page.value == Page.BUILD && (mode.value == Mode.HIGHWAY || mode.value == Mode.TUNNEL) })
 
     // behavior settings
-    val baritoneMode = register(Settings.booleanBuilder("AutoMode").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
     private val tickDelayPlace = register(Settings.integerBuilder("TickDelayPlace").withValue(3).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
     private val tickDelayBreak = register(Settings.integerBuilder("TickDelayBreak").withValue(1).withRange(0, 16).withStep(1).withVisibility { page.value == Page.BEHAVIOR })
     private val interacting = register(Settings.enumBuilder(InteractMode::class.java, "InteractMode").withValue(InteractMode.SPOOF).withVisibility { page.value == Page.BEHAVIOR })
@@ -99,8 +98,6 @@ object HighwayTools : Module() {
     )
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
-    private var playerHotbarSlot = -1
-    private var lastHotbarSlot = -1
     private var baritoneSettingAllowPlace = false
     private var baritoneSettingRenderGoal = false
 
@@ -113,12 +110,14 @@ object HighwayTools : Module() {
 
     // State
     private var active = false
-    var pathing = false; private set
     private var waitTicks = 0
 
     // Rotation
     private var lastHitVec: Vec3d? = null
     private val rotateTimer = TickTimer(TimeUnit.TICKS)
+
+    // Pathing
+    var goal: GoalNear? = null; private set
 
     // Tasks
     private val pendingTasks = LinkedList<BlockTask>()
@@ -165,24 +164,19 @@ object HighwayTools : Module() {
 
         startingBlockPos = mc.player.flooredPosition
         currentBlockPos = startingBlockPos
-        playerHotbarSlot = mc.player.inventory.currentItem
-        lastHotbarSlot = -1
         startingDirection = Direction.fromEntity(mc.player)
+
         startTime = System.currentTimeMillis()
         totalBlocksPlaced = 0
         totalBlocksDestroyed = 0
 
-        if (baritoneMode.value) {
-            baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
-            BaritoneUtils.settings?.allowPlace?.value = false
+        baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
+        BaritoneUtils.settings?.allowPlace?.value = false
 
-            if (!goalRender.value) {
-                baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
-                BaritoneUtils.settings?.renderGoal?.value = false
-            }
+        if (!goalRender.value) {
+            baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
+            BaritoneUtils.settings?.renderGoal?.value = false
         }
-
-        playerHotbarSlot = mc.player.inventory.currentItem
 
         runSafe {
             refreshData()
@@ -195,21 +189,8 @@ object HighwayTools : Module() {
 
         active = false
 
-        // load initial player hand
-        if (lastHotbarSlot != playerHotbarSlot && playerHotbarSlot != -1) {
-            mc.player.inventory.currentItem = playerHotbarSlot
-        }
-        playerHotbarSlot = -1
-        lastHotbarSlot = -1
-
-        if (baritoneMode.value) {
-            BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
-            if (!goalRender.value) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
-            val process = BaritoneUtils.primary?.pathingControlManager?.mostRecentInControl()
-
-            if (process != null && process.isPresent && process.get() == HighwayToolsProcess) process.get().onLostControl()
-        }
-
+        BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
+        if (!goalRender.value) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
 
         /* Turn off inventory manager if the users wants us to control it */
         if (toggleInventoryManager.value && InventoryManager.isEnabled) InventoryManager.disable()
@@ -224,8 +205,6 @@ object HighwayTools : Module() {
         printDisable()
     }
 
-    fun isDone(): Boolean = pendingTasks.size == 0
-
     init {
         safeListener<RenderWorldEvent> {
             renderer.render(false)
@@ -234,53 +213,34 @@ object HighwayTools : Module() {
         safeListener<OnUpdateWalkingPlayerEvent> { event ->
             if (event.phase != Phase.PRE) return@safeListener
 
-            updateRenderer()
-            pendingTasks.sortWith(compareBy {
-                it.taskState.ordinal * 10 +
-                    player.getPositionEyes(1f).distanceTo(it.blockPos) * 8 +
-                    it.stuckTicks * 2 +
-                    it.ranTicks
-            })
-
             if (!active) {
                 active = true
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
             }
 
-            if (baritoneMode.value) {
-                pathing = BaritoneUtils.isPathing
-                val taskPos = (pendingTasks.firstOrNull() ?: doneTasks.firstOrNull())?.blockPos
-                    ?: BlockPos(0, -1, 0)
-
-                if (player.positionVector.distanceTo(taskPos) < maxReach.value) {
-                    if (!isDone()) {
-                        if (canDoTask()) {
-                            doNextTask()
-                        }
-                    } else {
-                        if (checkTasks() && !pathing) {
-                            currentBlockPos = getNextBlock(getNextBlock())
-                            doneTasks.clear()
-                            updateTasks(currentBlockPos)
-                        } else {
-                            refreshData()
-                        }
-                    }
-                } else {
-                    refreshData()
-                }
-            } else {
-                if (currentBlockPos == player.flooredPosition) {
-                    doNextTask()
-                } else {
-                    currentBlockPos = player.flooredPosition
-                    if (abs((startingDirection.ordinal - Direction.fromEntity(player).ordinal) % 8) == 4) startingDirection = Direction.fromEntity(player)
-                    refreshData()
-                }
-            }
-
+            updateRenderer()
             updateFood()
+
+            if (BaritoneUtils.paused || AutoObsidian.isActive() || AutoEat.eating) return@safeListener
+
+            doPathing()
+            runTasks()
+
             doRotation()
+        }
+    }
+
+    private fun SafeClientEvent.updateRenderer() {
+        renderer.clear()
+        renderer.aFilled = if (filled.value) aFilled.value else 0
+        renderer.aOutline = if (outline.value) aOutline.value else 0
+        for (blockTask in pendingTasks) {
+            if (blockTask.taskState == TaskState.DONE) continue
+            renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
+        }
+        for (blockTask in doneTasks) {
+            if (blockTask.block == Blocks.AIR) continue
+            renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
     }
 
@@ -308,22 +268,6 @@ object HighwayTools : Module() {
             else -> {
 
             }
-        }
-    }
-
-    private fun SafeClientEvent.updateRenderer() {
-        renderer.clear()
-        renderer.aFilled = if (filled.value) aFilled.value else 0
-        renderer.aOutline = if (outline.value) aOutline.value else 0
-        renderer.through = false
-
-        for (blockTask in pendingTasks) {
-            if (blockTask.taskState == TaskState.DONE) continue
-            renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
-        }
-        for (blockTask in doneTasks) {
-            if (blockTask.block == Blocks.AIR) continue
-            renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
     }
 
@@ -451,45 +395,6 @@ object HighwayTools : Module() {
         }
     }
 
-    fun getNextWalkableBlock(): BlockPos {
-        var lastWalkable = getNextBlock()
-
-        when (mode.value) {
-            Mode.HIGHWAY -> {
-                for (step in 1..3) {
-                    val pos = relativeDirection(currentBlockPos, step, 0)
-                    if (mc.world.getBlockState(pos.down()).block == material &&
-                        mc.world.getBlockState(pos).block == Blocks.AIR &&
-                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
-                    else break
-                }
-            }
-            Mode.TUNNEL -> {
-                for (step in 1..3) {
-                    val pos = relativeDirection(currentBlockPos, step, 0)
-                    if (mc.world.getBlockState(pos.down()).block == fillerMat &&
-                        mc.world.getBlockState(pos).block == Blocks.AIR &&
-                        mc.world.getBlockState(pos.up()).block == Blocks.AIR) lastWalkable = pos
-                    else break
-                }
-            }
-            else -> {
-            }
-        }
-
-        return lastWalkable
-    }
-
-    private fun getNextBlock(blockPos: BlockPos = currentBlockPos): BlockPos {
-        return relativeDirection(blockPos, 1, 0)
-    }
-
-    private fun relativeDirection(current: BlockPos, steps: Int, turn: Int): BlockPos {
-        val index = startingDirection.ordinal + turn
-        val direction = Direction.values()[Math.floorMod(index, 8)]
-        return current.add(direction.directionVec.multiply(steps))
-    }
-
     private fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
         pendingTasks.add(BlockTask(blockPos, taskState, material))
     }
@@ -498,20 +403,68 @@ object HighwayTools : Module() {
         doneTasks.add(BlockTask(blockPos, TaskState.DONE, material))
     }
 
-    /* Returns true if we can do a task, else returns false */
-    private fun canDoTask(): Boolean {
-        return !BaritoneUtils.paused && !AutoObsidian.isActive() && !AutoEat.eating
+    private fun SafeClientEvent.doPathing() {
+        val nextPos = getNextPos()
+
+        if (nextPos == mc.player.flooredPosition) {
+            currentBlockPos = nextPos
+            goal = null
+        } else {
+            goal = GoalNear(nextPos, 0)
+        }
+    }
+
+    private fun SafeClientEvent.getNextPos() : BlockPos {
+        val baseMaterial = if (mode.value == Mode.TUNNEL) fillerMat else material
+        var lastPos = currentBlockPos
+
+        for (step in 1..2) {
+            val pos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
+            val block = world.getBlockState(pos.down()).block
+            if (block != baseMaterial) break
+
+            lastPos = pos
+        }
+
+        return lastPos
+    }
+
+    private fun SafeClientEvent.runTasks() {
+        if (pendingTasks.isNotEmpty()) {
+            pendingTasks.sortWith(compareBy {
+                it.taskState.ordinal * 10 +
+                    player.getPositionEyes(1f).distanceTo(it.blockPos) * 8 +
+                    it.stuckTicks * 2 +
+                    it.ranTicks
+            })
+
+            (lastTask?: pendingTasks.peek())?.let {
+                val dist = player.getPositionEyes(1f).distanceTo(it.blockPos) - 0.7
+                if (dist > maxReach.value) {
+                    refreshData()
+                } else {
+                    doNextTask()
+                }
+            }
+        } else {
+            if (checkDoneTasks()) {
+                doneTasks.clear()
+                updateTasks(currentBlockPos.add(startingDirection.directionVec))
+            } else {
+                refreshData()
+            }
+        }
     }
 
     private fun SafeClientEvent.doNextTask() {
-        if (isDone() || !canDoTask()) return
+        if (goal != null) return
+
         if (waitTicks > 0) {
             waitTicks--
             return
         }
 
         lastTask?.let {
-            it.onTick()
             doTask(it)
 
             if (it.taskState != TaskState.DONE) {
@@ -523,7 +476,6 @@ object HighwayTools : Module() {
         var currentTask: BlockTask? = pendingTasks.peek()
 
         while (currentTask != null) {
-            currentTask.onTick()
             doTask(currentTask)
             lastTask = currentTask
 
@@ -534,6 +486,8 @@ object HighwayTools : Module() {
     }
 
     private fun SafeClientEvent.doTask(blockTask: BlockTask) {
+        blockTask.onTick()
+
         when (blockTask.taskState) {
             TaskState.DONE -> {
                 doDone(blockTask)
@@ -694,7 +648,7 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun SafeClientEvent.checkTasks(): Boolean {
+    private fun SafeClientEvent.checkDoneTasks(): Boolean {
         for (blockTask in doneTasks) {
             val block = world.getBlockState(blockTask.blockPos).block
             if (ignoreBlocks.contains(block)) continue
@@ -913,8 +867,8 @@ object HighwayTools : Module() {
             append("$chatName Settings" +
                 "\n    §9> §rMain material: §7${material.localizedName}" +
                 "\n    §9> §rFiller material: §7${fillerMat.localizedName}" +
-                "\n    §9> §rBaritone: §7${baritoneMode.value}" +
                 "\n    §9> §rIgnored Blocks:")
+
             for (b in ignoreBlocks) append("\n        §9> §7${b!!.registryName}")
 
             sendChatMessage(toString())
@@ -950,8 +904,7 @@ object HighwayTools : Module() {
                         "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
                         "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
                 )
-
-                if (baritoneMode.value) append("\n    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
+                append("\n    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
 
                 sendChatMessage(toString())
             }
@@ -972,11 +925,7 @@ object HighwayTools : Module() {
     }
 
     fun gatherStatistics(): List<String> {
-        val currentTask: BlockTask? = if (isDone()) {
-            null
-        } else {
-            pendingTasks.peek()
-        }
+        val currentTask: BlockTask? = pendingTasks.peek()
 
         materialLeft = InventoryUtils.countItemAll(getIdFromBlock(material))
         fillerMatLeft = InventoryUtils.countItemAll(getIdFromBlock(fillerMat))
@@ -1019,12 +968,12 @@ object HighwayTools : Module() {
             "    §7Position: §9(${currentTask?.blockPos?.asString()})",
             "§rDebug",
             "    §7Stuck manager: §9${StuckManager}",
-            "    §7Pathing: §9$pathing",
+            //"    §7Pathing: §9$pathing",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
             "    §7${fillerMat.localizedName} (filler material): §9$fillerMatLeft",
             "    §7Paving distance left: §9$pavingLeftAll",
-            "    §7Estimated destination: §9(${relativeDirection(currentBlockPos, pavingLeft, 0).asString()})",
+            //"    §7Estimated destination: §9(${relativeDirection(currentBlockPos, pavingLeft, 0).asString()})",
             "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"
         )
 
