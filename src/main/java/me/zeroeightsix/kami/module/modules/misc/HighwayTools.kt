@@ -24,6 +24,7 @@ import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -313,21 +314,36 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun generateBluePrint(feetPos: BlockPos) {
+    private fun SafeClientEvent.generateBluePrint(feetPos: BlockPos) {
         val basePos = feetPos.down()
 
         if (mode.value != Mode.FLAT) {
             val zDirection = startingDirection
             val xDirection = zDirection.clockwise(if (zDirection.isDiagonal) 1 else 2)
-            val nextPos = basePos.add(zDirection.directionVec)
 
-            generateClear(basePos, xDirection)
-            generateClear(nextPos, xDirection)
+            for (x in -12 until 12) {
+                val thisPos = basePos.add(zDirection.directionVec.multiply(x))
+                generateClear(thisPos, xDirection)
+                generateBase(thisPos, xDirection)
+            }
 
-            generateBase(basePos, xDirection)
-            generateBase(nextPos, xDirection)
+            pickTasksInRange()
+
         } else {
             generateFlat(basePos)
+        }
+    }
+
+    private fun SafeClientEvent.pickTasksInRange() {
+        val removeCandidates = LinkedList<BlockPos>()
+        for (task in blueprintNew) {
+            if (player.getPositionEyes(1f).distanceTo(task.key) > maxReach.value) {
+                removeCandidates.add(task.key)
+            }
+        }
+
+        for (task in removeCandidates) {
+            blueprintNew.remove(task)
         }
     }
 
@@ -430,10 +446,17 @@ object HighwayTools : Module() {
             val blockBelow = world.getBlockState(pos.down()).block
             if (blockBelow != baseMaterial) break
 
-            lastPos = pos
+            if (checkFOMO(pos)) lastPos = pos
         }
 
         return lastPos
+    }
+
+    private fun checkFOMO(pos: BlockPos): Boolean {
+        for (task in blueprint) {
+            if (pos.toVec3d().distanceTo(task.first.toVec3d()) > maxReach.value) return false
+        }
+        return true
     }
 
     private fun SafeClientEvent.runTasks() {
