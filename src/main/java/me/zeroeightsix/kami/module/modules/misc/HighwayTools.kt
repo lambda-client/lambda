@@ -318,7 +318,7 @@ object HighwayTools : Module() {
 
         if (mode.value != Mode.FLAT) {
             val zDirection = startingDirection
-            val xDirection = zDirection.clockwise(2)
+            val xDirection = zDirection.clockwise(if (zDirection.isDiagonal) 1 else 2)
             val nextPos = basePos.add(zDirection.directionVec)
 
             generateClear(basePos, xDirection)
@@ -373,8 +373,10 @@ object HighwayTools : Module() {
 
     private fun generateFlat(basePos: BlockPos) {
         // Base
-        for (x in -buildWidth.value..buildWidth.value) {
-            for (z in -buildWidth.value..buildWidth.value) {
+        for (w1 in 0 until buildWidth.value) {
+            for (w2 in 0 until buildWidth.value) {
+                val x = w1 - buildWidth.value / 2
+                val z = w2 - buildWidth.value / 2
                 val pos = basePos.add(x, 0, z)
 
                 blueprintNew[pos] = material
@@ -383,10 +385,13 @@ object HighwayTools : Module() {
 
         // Clear
         if (!clearSpace.value) return
-        for (x in -buildWidth.value..buildWidth.value) {
-            for (z in -buildWidth.value..buildWidth.value) {
+        for (w1 in -buildWidth.value..buildWidth.value) {
+            for (w2 in -buildWidth.value..buildWidth.value) {
                 for (y in 1 until clearHeight.value) {
+                    val x = w1 - buildWidth.value / 2
+                    val z = w2 - buildWidth.value / 2
                     val pos = basePos.add(x, y, z)
+
                     blueprintNew[pos] = Blocks.AIR
                 }
             }
@@ -450,7 +455,7 @@ object HighwayTools : Module() {
         } else {
             if (checkDoneTasks()) {
                 doneTasks.clear()
-                updateTasks(currentBlockPos.add(startingDirection.directionVec))
+                refreshData(currentBlockPos.add(startingDirection.directionVec))
             } else {
                 refreshData()
             }
