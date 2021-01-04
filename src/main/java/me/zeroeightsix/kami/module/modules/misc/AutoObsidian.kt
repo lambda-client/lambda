@@ -483,23 +483,24 @@ object AutoObsidian : Module() {
     }
 
     /**
-     * @return True if there is a non-sliktouch pick in the hotbar, else returns false
+     * Gets the first hotbar slot of a diamond pickaxe that does not have the silk touch enchantment.
+     * @return The position of the pickaxe. -1 if there is no match.
      */
-    private fun hotbarHasNonSilkTouchPick(): Boolean {
-        val slotsWithPickaxes = InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return false
+    private fun getHotbarNonSilkTouchPick(): Int {
+        val slotsWithPickaxes = InventoryUtils.getSlotsHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return -1
         for (slot in slotsWithPickaxes) {
             if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
-                return true
+                return slot
             }
         }
-        return false
+        return -1
     }
 
     /**
      * Gets the first non-hotbar slot of a diamond pickaxe that does not have the silk touch enchantment.
      * @return The position of the pickaxe. -1 if there is no match.
      */
-    private fun getNonSilkTouchPickPos(): Int {
+    private fun getInventoryNonSilkTouchPick(): Int {
         val slotsWithPickaxes = InventoryUtils.getSlotsNoHotbar(ItemID.DIAMOND_PICKAXE.id) ?: return -1
         for (slot in slotsWithPickaxes) {
             if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, mc.player.inventory.getStackInSlot(slot)) == 0) {
@@ -509,17 +510,27 @@ object AutoObsidian : Module() {
         return -1
     }
 
-    private fun mineBlock(pos: BlockPos, pre: Boolean) {
-        if (pre) {
-            if (!hotbarHasNonSilkTouchPick() && getNonSilkTouchPickPos() != -1) {
-                InventoryUtils.moveToSlot(0, getNonSilkTouchPickPos(), 36)
-            } else if (!hotbarHasNonSilkTouchPick()) {
-                sendChatMessage("No valid pickaxe was found in inventory.")
-                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
-            }
-            InventoryUtils.swapSlotToItem(ItemID.DIAMOND_PICKAXE.id)
+    /**
+     * Swaps the active hotbar slot to one which has a valid pickaxe (i.e. non-silk touch). If there is no valid pickaxe,
+     * disable the module.
+     */
+    private fun swapToValidPickaxe() {
+        var hotbarPickaxeSlot = getHotbarNonSilkTouchPick()
+        val inventoryPickaxeSlot = getInventoryNonSilkTouchPick()
+        if ((hotbarPickaxeSlot == -1) && (inventoryPickaxeSlot != -1)) {
+            /* Note that slot 36 in windowId 0 is the same as slot 0 in the hotbar */
+            InventoryUtils.moveToSlot(0, inventoryPickaxeSlot, 36)
+            hotbarPickaxeSlot = 0
+        } else if (hotbarPickaxeSlot == -1) {
+            sendChatMessage("No valid pickaxe was found in inventory.")
+            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
         }
+        InventoryUtils.swapSlot(hotbarPickaxeSlot)
+    }
+
+    private fun mineBlock(pos: BlockPos, pre: Boolean) {
+        if (pre) swapToValidPickaxe()
 
         val side = EnumFacing.getDirectionFromEntityLiving(pos, mc.player)
         lastHitVec = WorldUtils.getHitVec(pos, side)
