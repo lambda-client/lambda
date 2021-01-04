@@ -1,11 +1,12 @@
 package me.zeroeightsix.kami.module.modules.player
 
 import me.zeroeightsix.kami.event.events.PacketEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.util.threads.safeListener
 import org.kamiblue.event.listener.listener
 import net.minecraft.network.play.client.CPacketAnimation
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @Module.Info(
         name = "NoSwing",
@@ -24,11 +25,11 @@ object NoSwing : Module() {
             if (mode.value == Mode.SERVER && it.packet is CPacketAnimation) it.cancel()
         }
 
-        listener<SafeTickEvent> {
-            mc.player.isSwingInProgress = false
-            mc.player.swingProgressInt = 0
-            mc.player.swingProgress = 0.0f
-            mc.player.prevSwingProgress = 0.0f
+        safeListener<TickEvent.ClientTickEvent> {
+            player.isSwingInProgress = false
+            player.swingProgressInt = 0
+            player.swingProgress = 0.0f
+            player.prevSwingProgress = 0.0f
         }
     }
 }

@@ -1,17 +1,17 @@
 package me.zeroeightsix.kami.module.modules.misc
 
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.manager.managers.WaypointManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.Settings
-import org.kamiblue.event.listener.listener
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.SoundEvents
 import net.minecraft.tileentity.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.roundToInt
 
 @Module.Info(
@@ -49,8 +49,8 @@ object StashFinder : Module() {
     }
 
     init {
-        listener<SafeTickEvent> {
-            mc.world.loadedTileEntityList
+        safeListener<TickEvent.ClientTickEvent> {
+            world.loadedTileEntityList
                     .filter {
                         logChests.value && it is TileEntityChest
                                 || logShulkers.value && it is TileEntityShulkerBox
@@ -69,7 +69,7 @@ object StashFinder : Module() {
                 }
 
                 if (playSound.value) {
-                    mc.getSoundHandler().playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 }
 
                 if (logToChat.value) {
