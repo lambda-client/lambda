@@ -423,12 +423,10 @@ object HighwayTools : Module() {
             val pos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
 
             if (!blueprintNew.containsKey(pos.down())) break
+            if (!world.isAirBlock(pos) || !world.isAirBlock(pos.up())) break
 
-            val block = world.getBlockState(pos).block
             val blockBelow = world.getBlockState(pos.down()).block
-
-            if (block is BlockLiquid || blockBelow is BlockLiquid) break
-            if (block != Blocks.AIR || blockBelow != baseMaterial) break
+            if (blockBelow != baseMaterial) break
 
             lastPos = pos
         }
