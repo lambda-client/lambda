@@ -546,12 +546,12 @@ object HighwayTools : Module() {
     private fun SafeClientEvent.doBroken(blockTask: BlockTask) {
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
-                totalBlocksDestroyed++
                 if (blockTask.block != Blocks.AIR) {
                     blockTask.updateState(TaskState.PLACE)
                 } else {
                     blockTask.updateState(TaskState.DONE)
                 }
+                totalBlocksDestroyed++
             }
             else -> {
                 blockTask.updateState(TaskState.BREAK)
@@ -563,10 +563,19 @@ object HighwayTools : Module() {
         val block = world.getBlockState(blockTask.blockPos).block
 
         when {
-            blockTask.block == block && block != Blocks.AIR -> blockTask.updateState(TaskState.DONE)
-            blockTask.block == Blocks.AIR && block != Blocks.AIR -> blockTask.updateState(TaskState.BREAK)
-            blockTask.block == block && block == Blocks.AIR -> blockTask.updateState(TaskState.BREAK)
-            else -> blockTask.updateState(TaskState.PLACE)
+            blockTask.block == block && block != Blocks.AIR -> {
+                blockTask.updateState(TaskState.DONE)
+                totalBlocksPlaced++
+            }
+            blockTask.block == Blocks.AIR && block != Blocks.AIR -> {
+                blockTask.updateState(TaskState.BREAK)
+            }
+            blockTask.block == block && block == Blocks.AIR -> {
+                blockTask.updateState(TaskState.BREAK)
+            }
+            else -> {
+                blockTask.updateState(TaskState.PLACE)
+            }
         }
     }
 
@@ -643,7 +652,6 @@ object HighwayTools : Module() {
                 blockTask.updateState(TaskState.PLACED)
 
                 waitTicks = tickDelayPlace.value
-                totalBlocksPlaced++
             }
         }
     }
