@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.manager.managers.UUIDManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraft.entity.passive.EntityTameable
@@ -16,9 +16,9 @@ import kotlin.math.pow
         category = Module.Category.RENDER)
 
 object MobOwner : Module() {
-    private val speed = register(Settings.b("Speed", true))
-    private val jump = register(Settings.b("Jump", true))
-    private val hp = register(Settings.b("Health", true))
+    private val speed = setting("Speed", true)
+    private val jump = setting("Jump", true)
+    private val hp = setting("Health", true)
 
     private const val invalidText = "Offline or invalid UUID!"
 

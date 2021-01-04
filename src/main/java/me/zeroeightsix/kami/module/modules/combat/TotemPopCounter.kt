@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.manager.managers.FriendManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.color.EnumTextColor
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendServerMessage
@@ -24,13 +24,13 @@ import kotlin.collections.ArrayList
         category = Module.Category.COMBAT
 )
 object TotemPopCounter : Module() {
-    private val countFriends = register(Settings.b("CountFriends", true))
-    private val countSelf = register(Settings.b("CountSelf", false))
-    private val resetOnDeath = register(Settings.b("ResetOnDeath", true))
-    private val announceSetting = register(Settings.e<Announce>("Announce", Announce.CLIENT))
-    private val thanksTo = register(Settings.b("ThanksTo", false))
-    private val colorName = register(Settings.e<EnumTextColor>("ColorName", EnumTextColor.DARK_PURPLE))
-    private val colorNumber = register(Settings.e<EnumTextColor>("ColorNumber", EnumTextColor.LIGHT_PURPLE))
+    private val countFriends = setting("CountFriends", true)
+    private val countSelf = setting("CountSelf", false)
+    private val resetOnDeath = setting("ResetOnDeath", true)
+    private val announceSetting = setting("Announce", Announce.CLIENT)
+    private val thanksTo = setting("ThanksTo", false)
+    private val colorName = setting("ColorName", EnumTextColor.DARK_PURPLE)
+    private val colorNumber = setting("ColorNumber", EnumTextColor.LIGHT_PURPLE)
 
     private enum class Announce {
         CLIENT, EVERYONE
@@ -113,8 +113,6 @@ object TotemPopCounter : Module() {
             }
             Announce.EVERYONE -> {
                 sendServerMessage(TextFormatting.getTextWithoutFormattingCodes(message))
-            }
-            else -> {
             }
         }
     }

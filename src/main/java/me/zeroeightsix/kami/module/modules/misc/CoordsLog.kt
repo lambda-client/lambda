@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.manager.managers.WaypointManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.InfoCalculator
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
@@ -13,14 +13,14 @@ import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @Module.Info(
-        name = "CoordsLog",
-        description = "Automatically logs your coords, based on actions",
-        category = Module.Category.MISC
+    name = "CoordsLog",
+    description = "Automatically logs your coords, based on actions",
+    category = Module.Category.MISC
 )
 object CoordsLog : Module() {
-    private val saveOnDeath = register(Settings.b("SaveOnDeath", true))
-    private val autoLog = register(Settings.b("AutoLog", false))
-    private val delay = register(Settings.integerBuilder("Delay").withValue(15).withRange(1, 60).withStep(1))
+    private val saveOnDeath = setting("SaveOnDeath", true)
+    private val autoLog = setting("AutoLog", false)
+    private val delay = setting("Delay", 15, 1..60, 1)
 
     private var previousCoord: String? = null
     private var savedDeath = false

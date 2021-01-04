@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.combat
 
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.network.play.server.SPacketEntityStatus
@@ -15,7 +15,7 @@ import org.kamiblue.event.listener.listener
         category = Module.Category.COMBAT
 )
 object AntiChainPop : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.PACKET))
+    private val mode = setting("Mode", Mode.PACKET)
 
     private enum class Mode {
         ITEMS, PACKET

@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.combat
 
 import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.math.RotationUtils.faceEntityClosest
 import me.zeroeightsix.kami.util.threads.safeListener
@@ -17,8 +17,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
         modulePriority = 20
 )
 object AimBot : Module() {
-    private val bowOnly = register(Settings.b("BowOnly", true))
-    private val autoSwap = register(Settings.booleanBuilder("AutoSwap").withValue(false).withVisibility { bowOnly.value })
+    private val bowOnly = setting("BowOnly", true)
+    private val autoSwap = setting("AutoSwap", false, { bowOnly.value })
 
     init {
         safeListener<TickEvent.ClientTickEvent> {

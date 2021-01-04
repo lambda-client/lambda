@@ -2,8 +2,7 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.combat.CombatUtils
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.block.state.IBlockState
@@ -18,15 +17,15 @@ import org.lwjgl.input.Mouse
 import kotlin.math.pow
 
 @Module.Info(
-        name = "AutoTool",
-        description = "Automatically switch to the best tools when mining or attacking",
-        category = Module.Category.MISC
+    name = "AutoTool",
+    description = "Automatically switch to the best tools when mining or attacking",
+    category = Module.Category.MISC
 )
 object AutoTool : Module() {
-    private val switchBack = register(Settings.b("SwitchBack", true))
-    private val timeout = register(Settings.integerBuilder("Timeout").withRange(1, 100).withValue(20).withVisibility { switchBack.value })
-    private val swapWeapon = register(Settings.b("SwitchWeapon", false))
-    private val preferWeapon = register(Settings.e<CombatUtils.PreferWeapon>("Prefer", CombatUtils.PreferWeapon.SWORD))
+    private val switchBack = setting("SwitchBack", true)
+    private val timeout = setting("Timeout", 20, 1..100, 5, { switchBack.value })
+    private val swapWeapon = setting("SwitchWeapon", false)
+    private val preferWeapon = setting("Prefer", CombatUtils.PreferWeapon.SWORD)
 
     private var shouldMoveBack = false
     private var lastSlot = 0
@@ -85,6 +84,6 @@ object AutoTool : Module() {
     }
 
     init {
-        switchBack.settingListener = Setting.SettingListeners { if (!switchBack.value) shouldMoveBack = false }
+        switchBack.listeners.add { if (!switchBack.value) shouldMoveBack = false }
     }
 }

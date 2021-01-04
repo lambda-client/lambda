@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.combat.CrystalUtils
@@ -38,10 +38,10 @@ import java.util.*
         modulePriority = 90
 )
 object CrystalBasePlace : Module() {
-    private val manualPlaceBind = register(Settings.custom("BindManualPlace", Bind.none(), BindConverter()))
-    private val minDamageInc = register(Settings.floatBuilder("MinDamageInc").withValue(2.0f).withRange(0.0f, 10.0f).withStep(0.25f))
-    private val range = register(Settings.floatBuilder("Range").withValue(4.0f).withRange(0.0f, 8.0f).withStep(0.5f))
-    private val delay = register(Settings.integerBuilder("Delay").withValue(20).withRange(0, 50).withStep(5))
+    private val manualPlaceBind = setting("BindManualPlace", Bind())
+    private val minDamageInc = setting("MinDamageInc", 2.0f, 0.0f..10.0f, 0.25f)
+    private val range = setting("Range", 4.0f, 0.0f..8.0f, 0.5f)
+    private val delay = setting("Delay", 20, 0..50, 5)
 
     private val timer = TickTimer()
     private val renderer = ESPRenderer().apply { aFilled = 33; aOutline = 233 }

@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.chat
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.MovementUtils.isMoving
 import me.zeroeightsix.kami.util.text.MessageDetection
 import me.zeroeightsix.kami.util.text.MessageSendHelper
@@ -15,14 +15,14 @@ import java.io.File
 import java.io.FileReader
 
 @Module.Info(
-        name = "LoginMessage",
-        description = "Sends a given message to public chat on login.",
-        category = Module.Category.CHAT,
-        showOnArray = Module.ShowOnArray.OFF,
-        modulePriority = 150
+    name = "LoginMessage",
+    description = "Sends a given message to public chat on login.",
+    category = Module.Category.CHAT,
+    showOnArray = false,
+    modulePriority = 150
 )
 object LoginMessage : Module() {
-    private val sendAfterMoving = register(Settings.b("SendAfterMoving", false))
+    private val sendAfterMoving = setting("SendAfterMoving", false)
 
     private val file = File(KamiMod.DIRECTORY + "loginmsg.txt")
     private var loginMessage: String? = null
@@ -69,7 +69,7 @@ object LoginMessage : Module() {
         } else {
             file.createNewFile()
             MessageSendHelper.sendErrorMessage("$chatName Login Message file is empty!" +
-                    ", please add them in the &7loginmsg.txt&f under the &7.minecraft/kamiblue&f directory.")
+                ", please add them in the &7loginmsg.txt&f under the &7.minecraft/kamiblue&f directory.")
             disable()
         }
 

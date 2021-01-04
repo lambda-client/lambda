@@ -1,18 +1,18 @@
 package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.world.GameType
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @Module.Info(
-        name = "FakeGameMode",
-        description = "Fakes your current gamemode client side",
-        category = Module.Category.MISC
+    name = "FakeGameMode",
+    description = "Fakes your current gamemode client side",
+    category = Module.Category.MISC
 )
 object FakeGameMode : Module() {
-    private val gamemode = register(Settings.e<GameMode>("Mode", GameMode.CREATIVE))
+    private val gamemode = setting("Mode", GameMode.CREATIVE)
 
     @Suppress("UNUSED")
     private enum class GameMode(val gameType: GameType) {

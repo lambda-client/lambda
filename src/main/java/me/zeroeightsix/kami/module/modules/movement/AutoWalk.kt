@@ -5,8 +5,7 @@ import me.zeroeightsix.kami.event.events.BaritoneCommandEvent
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
@@ -25,8 +24,8 @@ import org.kamiblue.event.listener.listener
         description = "Automatically walks somewhere"
 )
 object AutoWalk : Module() {
-    val mode = register(Settings.e<AutoWalkMode>("Direction", AutoWalkMode.BARITONE))
-    private val disableOnDisconnect = register(Settings.b("DisableOnDisconnect", true))
+    val mode = setting("Direction", AutoWalkMode.BARITONE)
+    private val disableOnDisconnect = setting("DisableOnDisconnect", true)
 
     enum class AutoWalkMode {
         FORWARD, BACKWARDS, BARITONE
@@ -110,8 +109,8 @@ object AutoWalk : Module() {
     } ?: true
 
     init {
-        mode.settingListener = Setting.SettingListeners {
-            if (mc.player == null || isDisabled) return@SettingListeners
+        mode.listeners.add {
+            if (mc.player == null) return@add
             if (mode.value == AutoWalkMode.BARITONE) {
                 if (!checkBaritoneElytra()) startPathing()
             } else {

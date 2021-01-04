@@ -2,11 +2,11 @@ package me.zeroeightsix.kami.module.modules.player
 
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.threads.safeListener
-import org.kamiblue.event.listener.listener
 import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.event.listener.listener
 
 @Module.Info(
         name = "NoSwing",
@@ -14,7 +14,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
         description = "Cancels server or client swing animation"
 )
 object NoSwing : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.CLIENT))
+    private val mode = setting("Mode", Mode.CLIENT)
 
     private enum class Mode {
         CLIENT, SERVER

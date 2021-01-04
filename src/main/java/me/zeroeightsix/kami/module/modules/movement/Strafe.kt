@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.mixin.extension.tickLength
 import me.zeroeightsix.kami.mixin.extension.timer
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.MovementUtils
 import me.zeroeightsix.kami.util.MovementUtils.speed
@@ -20,10 +20,10 @@ import kotlin.math.sin
         description = "Improves control in air"
 )
 object Strafe : Module() {
-    private val airSpeedBoost = register(Settings.b("AirSpeedBoost", true))
-    private val timerBoost = register(Settings.b("TimerBoost", false))
-    private val autoJump = register(Settings.b("AutoJump", false))
-    private val onHolding = register(Settings.b("OnHoldingSprint", false))
+    private val airSpeedBoost = setting("AirSpeedBoost", true)
+    private val timerBoost = setting("TimerBoost", false)
+    private val autoJump = setting("AutoJump", false)
+    private val onHolding = setting("OnHoldingSprint", false)
 
     private var jumpTicks = 0
 

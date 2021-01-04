@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.mixin.extension.rightClickDelayTimer
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.process.AutoObsidianProcess
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
@@ -27,21 +27,20 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.ceilToInt
-import org.kamiblue.event.listener.listener
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 @Module.Info(
-        name = "AutoObsidian",
-        category = Module.Category.MISC,
-        description = "Mines ender chest automatically to fill inventory with obsidian"
+    name = "AutoObsidian",
+    category = Module.Category.MISC,
+    description = "Mines ender chest automatically to fill inventory with obsidian"
 )
 object AutoObsidian : Module() {
-    private val searchShulker = register(Settings.b("SearchShulker", false))
-    private val autoRefill = register(Settings.b("AutoRefill", false))
-    private val threshold = register(Settings.integerBuilder("RefillThreshold").withValue(8).withRange(1, 56).withVisibility { autoRefill.value })
-    private val targetStacks = register(Settings.integerBuilder("TargetStacks").withValue(1).withRange(1, 20))
-    private val delayTicks = register(Settings.integerBuilder("DelayTicks").withValue(5).withRange(0, 10))
+    private val searchShulker = setting("SearchShulker", false)
+    private val autoRefill = setting("AutoRefill", false)
+    private val threshold = setting("RefillThreshold", 8, 1..56, 1, { autoRefill.value })
+    private val targetStacks = setting("TargetStacks", 1, 1..20, 1)
+    private val delayTicks = setting("DelayTicks", 5, 0..10, 1)
 
     enum class State {
         SEARCHING, PLACING, PRE_MINING, MINING, COLLECTING, DONE

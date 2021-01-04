@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.chat
 
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
 import me.zeroeightsix.kami.util.text.MessageSendHelper
@@ -12,15 +12,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Module.Info(
-        name = "AutoQMain",
-        description = "Automatically does '/queue 2b2t-lobby'",
-        category = Module.Category.CHAT,
-        showOnArray = Module.ShowOnArray.OFF
+    name = "AutoQMain",
+    description = "Automatically does '/queue 2b2t-lobby'",
+    category = Module.Category.CHAT,
+    showOnArray = false
 )
 object AutoQMain : Module() {
-    private val showWarns = register(Settings.b("ShowWarnings", true))
-    private val dimensionWarning = register(Settings.b("DimensionWarning", true))
-    private val delay = register(Settings.integerBuilder("Delay").withValue(30).withRange(5, 120).withStep(5))
+    private val showWarns = setting("ShowWarnings", true)
+    private val dimensionWarning = setting("DimensionWarning", true)
+    private val delay = setting("Delay", 30, 5..120, 5)
 
     private val timer = TickTimer(TimeUnit.SECONDS)
 

@@ -6,7 +6,7 @@ import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.mixin.extension.onGround
 import me.zeroeightsix.kami.mixin.extension.rightClickMouse
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.WorldUtils
 import me.zeroeightsix.kami.util.text.MessageSendHelper
@@ -32,13 +32,13 @@ import org.kamiblue.event.listener.listener
     description = "Prevents fall damage"
 )
 object NoFall : Module() {
-    private val distance = register(Settings.integerBuilder("Distance").withValue(3).withRange(1, 10))
-    private val mode = register(Settings.e<Mode>("Mode", Mode.CATCH))
-    private val fallModeSetting = register(Settings.enumBuilder(FallMode::class.java, "Fall").withValue(FallMode.PACKET).withVisibility { mode.value == Mode.FALL })
-    private val catchModeSetting = register(Settings.enumBuilder(CatchMode::class.java, "Catch").withValue(CatchMode.MOTION).withVisibility { mode.value == Mode.CATCH })
-    private val pickup = register(Settings.booleanBuilder("Pickup").withValue(false).withVisibility { mode.value == Mode.FALL && fallModeSetting.value == FallMode.BUCKET })
-    private val pickupDelay = register(Settings.integerBuilder("PickupDelay").withValue(300).withMinimum(100).withMaximum(1000).withVisibility { mode.value == Mode.FALL && fallModeSetting.value == FallMode.BUCKET && pickup.value })
-    private val voidOnly = register(Settings.booleanBuilder("VoidOnly").withValue(false).withVisibility { mode.value == Mode.CATCH })
+    private val distance = setting("Distance", 3, 1..10, 1)
+    private val mode = setting("Mode", Mode.CATCH)
+    private val fallModeSetting = setting("Fall", FallMode.PACKET, { mode.value == Mode.FALL })
+    private val catchModeSetting = setting("Catch", CatchMode.MOTION, { mode.value == Mode.CATCH })
+    private val pickup = setting("Pickup", false, { mode.value == Mode.FALL && fallModeSetting.value == FallMode.BUCKET })
+    private val pickupDelay = setting("PickupDelay", 300, 100..1000, 50, { mode.value == Mode.FALL && fallModeSetting.value == FallMode.BUCKET && pickup.value })
+    private val voidOnly = setting("VoidOnly", false, { mode.value == Mode.CATCH })
 
     private enum class Mode {
         FALL, CATCH
@@ -133,9 +133,6 @@ object NoFall : Module() {
             CatchMode.MOTION -> {
                 mc.player.motionY = 10.0
                 mc.player.motionY = -1.0
-            }
-            else -> {
-                // unsupported mode
             }
         }
     }

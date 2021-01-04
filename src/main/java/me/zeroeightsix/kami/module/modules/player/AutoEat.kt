@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.client.Baritone
 import me.zeroeightsix.kami.module.modules.combat.CombatSetting
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.BaritoneUtils.pause
 import me.zeroeightsix.kami.util.BaritoneUtils.unpause
@@ -28,10 +28,10 @@ import kotlin.math.min
     category = Module.Category.PLAYER
 )
 object AutoEat : Module() {
-    private val foodLevel = register(Settings.integerBuilder("BelowHunger").withValue(15).withRange(1, 20).withStep(1))
-    private val healthLevel = register(Settings.integerBuilder("BelowHealth").withValue(8).withRange(1, 20).withStep(1))
-    private val pauseBaritone = register(Settings.b("PauseBaritone", true))
-    private val eatBadFood = register(Settings.b("EatBadFood", false))
+    private val foodLevel = setting("BelowHunger", 15, 1..20, 1)
+    private val healthLevel = setting("BelowHealth", 8, 1..20, 1)
+    private val eatBadFood = setting("EatBadFood", true)
+    private val pauseBaritone = setting("PauseBaritone", true)
 
     private var lastSlot = -1
     var eating = false; private set

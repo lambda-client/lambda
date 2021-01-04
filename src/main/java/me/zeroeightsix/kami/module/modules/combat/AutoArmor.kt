@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.manager.managers.PlayerInventoryManager
 import me.zeroeightsix.kami.manager.managers.PlayerInventoryManager.addInventoryTask
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.gui.inventory.GuiContainer
@@ -21,7 +21,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
         modulePriority = 500
 )
 object AutoArmor : Module() {
-    private val delay = register(Settings.integerBuilder("Delay").withValue(5).withRange(1, 10).withStep(1))
+    private val delay = setting("Delay", 5, 1..10, 1)
 
     private val timer = TickTimer(TimeUnit.TICKS)
     private var lastTask = TaskState(true)

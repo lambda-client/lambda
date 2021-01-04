@@ -1,8 +1,7 @@
 package me.zeroeightsix.kami.module.modules.movement
 
-import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -16,8 +15,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
         category = Module.Category.MOVEMENT
 )
 object Sprint : Module() {
-    private val multiDirection = register(Settings.b("MultiDirection", false))
-    private val onHolding = register(Settings.b("OnHoldingSprint", false))
+    private val multiDirection = setting("MultiDirection", false)
+    private val onHolding = setting("OnHoldingSprint", false)
 
     var sprinting = false
 

@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.combat
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.GuiEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.init.Items
@@ -18,11 +18,11 @@ import org.kamiblue.event.listener.listener
         description = "Automatically mends armour"
 )
 object AutoMend : Module() {
-    private val autoThrow = register(Settings.b("AutoThrow", true))
-    private val autoSwitch = register(Settings.b("AutoSwitch", true))
-    private val autoDisable = register(Settings.booleanBuilder("AutoDisable").withValue(false).withVisibility { autoSwitch.value })
-    private val threshold = register(Settings.integerBuilder("Repair%").withValue(75).withRange(1, 100).withStep(1))
-    private val gui = register(Settings.b("RunInGUIs", false))
+    private val autoThrow = setting("AutoThrow", true)
+    private val autoSwitch = setting("AutoSwitch", true)
+    private val autoDisable = setting("AutoDisable", false, { autoSwitch.value })
+    private val threshold = setting("Repair%", 75, 1..100, 1)
+    private val gui = setting("RunInGUIs", false)
 
     private var initHotbarSlot = -1
     private var isGuiOpened = false

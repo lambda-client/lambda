@@ -1,14 +1,12 @@
 package me.zeroeightsix.kami.module.modules.combat
 
-import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendServerMessage
-import me.zeroeightsix.kami.util.text.formatValue
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.client.event.ClientChatReceivedEvent
@@ -21,9 +19,9 @@ import org.kamiblue.event.listener.listener
         description = "Sends an insult in chat after killing someone"
 )
 object AutoEZ : Module() {
-    private val detectMode = register(Settings.e<DetectMode>("DetectMode", DetectMode.HEALTH))
-    private val messageMode = register(Settings.e<MessageMode>("MessageMode", MessageMode.ONTOP))
-    private val customText = register(Settings.stringBuilder("CustomText").withValue("unchanged"))
+    private val detectMode = setting("DetectMode", DetectMode.HEALTH)
+    private val messageMode = setting("MessageMode", MessageMode.ONTOP)
+    private val customText = setting("CustomText", "unchanged")
 
     private enum class DetectMode {
         BROADCAST, HEALTH
@@ -144,9 +142,9 @@ object AutoEZ : Module() {
 
     private fun sendHelpMessage() {
         if (messageMode.value == MessageMode.CUSTOM && customText.value == "unchanged" && timer.tick(5L)) { // 5 seconds delay
-            MessageSendHelper.sendChatMessage("$chatName In order to use the custom $name, please run the " +
-                formatValue("${CommandManager.prefix}set AutoEZ customText") +
-                " command to change it, with ${formatValue("\$NAME")} being the username of the killed player")
+            MessageSendHelper.sendChatMessage("$chatName In order to use the custom $name, " +
+                    "please change the CustomText setting in ClickGUI, " +
+                    "with '&7\$NAME&f' being the username of the killed player")
         }
     }
 

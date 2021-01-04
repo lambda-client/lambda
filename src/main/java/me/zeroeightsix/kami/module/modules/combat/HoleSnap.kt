@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.combat
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.movement.Strafe
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.combat.SurroundUtils
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils
@@ -23,8 +23,8 @@ import kotlin.math.*
         category = Module.Category.COMBAT
 )
 object HoleSnap : Module() {
-    private val disableStrafe = register(Settings.b("DisableStrafe", true))
-    private val range = register(Settings.floatBuilder("Range").withValue(2.5f).withRange(0f, 5f))
+    private val disableStrafe = setting("DisableStrafe", true)
+    private val range = setting("Range", 2.5f, 0.5f..4.0f, 0.25f)
 
     override fun onEnable() {
         if (mc.player == null) disable()

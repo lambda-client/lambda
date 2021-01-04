@@ -5,11 +5,11 @@ import club.minnced.discord.rpc.DiscordRichPresence
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.ShutdownEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.client.InfoOverlay
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.InfoCalculator
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
+import me.zeroeightsix.kami.util.TpsCalculator
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.text.MessageSendHelper
@@ -19,6 +19,7 @@ import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.capeapi.CapeType
+import org.kamiblue.commons.utils.MathUtils
 import org.kamiblue.event.listener.listener
 
 @Module.Info(
@@ -28,11 +29,11 @@ import org.kamiblue.event.listener.listener
     enabledByDefault = true
 )
 object DiscordRPC : Module() {
-    private val line1Left = register(Settings.e<LineInfo>("Line1Left", LineInfo.VERSION)) // details left
-    private val line1Right = register(Settings.e<LineInfo>("Line1Right", LineInfo.USERNAME)) // details right
-    private val line2Left = register(Settings.e<LineInfo>("Line2Left", LineInfo.SERVER_IP)) // state left
-    private val line2Right = register(Settings.e<LineInfo>("Line2Right", LineInfo.HEALTH)) // state right
-    private val coordsConfirm = register(Settings.booleanBuilder("CoordsConfirm").withValue(false).withVisibility { showCoordsConfirm() })
+    private val line1Left = setting("Line1Left", LineInfo.VERSION) // details left
+    private val line1Right = setting("Line1Right", LineInfo.USERNAME) // details right
+    private val line2Left = setting("Line2Left", LineInfo.SERVER_IP) // state left
+    private val line2Right = setting("Line2Right", LineInfo.HEALTH) // state right
+    private val coordsConfirm = setting("CoordsConfirm", false, { showCoordsConfirm() })
 
     private enum class LineInfo {
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
@@ -135,7 +136,7 @@ object DiscordRPC : Module() {
                 else "No Coords"
             }
             LineInfo.SPEED -> {
-                if (mc.player != null) InfoOverlay.calcSpeedWithUnit(1)
+                if (mc.player != null) "${InfoCalculator.speed(false)} m/s"
                 else "No Speed"
             }
             LineInfo.HELD_ITEM -> {
@@ -145,7 +146,7 @@ object DiscordRPC : Module() {
                 "${Minecraft.getDebugFPS()} FPS"
             }
             LineInfo.TPS -> {
-                if (mc.player != null) "${InfoCalculator.tps(1)} tps"
+                if (mc.player != null) "${MathUtils.round(TpsCalculator.tickRate, 1)} tps"
                 else "No Tps"
             }
             else -> {

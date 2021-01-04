@@ -5,7 +5,7 @@ import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerAttackEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
@@ -38,13 +38,13 @@ import kotlin.math.sin
     description = "Leave your body and transcend into the realm of the gods"
 )
 object Freecam : Module() {
-    private val directionMode = register(Settings.e<FlightMode>("FlightMode", FlightMode.CREATIVE))
-    private val horizontalSpeed = register(Settings.floatBuilder("HorizontalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
-    private val verticalSpeed = register(Settings.floatBuilder("VerticalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f).withVisibility { directionMode.value == FlightMode.CREATIVE })
-    private val autoRotate = register(Settings.b("AutoRotate", true))
-    private val arrowKeyMove = register(Settings.b("ArrowKeyMove", true))
-    private val disableOnDisconnect = register(Settings.b("DisconnectDisable", true))
-    private val leftClickCome = register(Settings.b("LeftClickCome", true))
+    private val directionMode = setting("FlightMode", FlightMode.CREATIVE)
+    private val horizontalSpeed = setting("HorizontalSpeed", 20f, 1f..50f, 1f)
+    private val verticalSpeed = setting("VerticalSpeed", 20f, 1f..50f, 1f)
+    private val autoRotate = setting("AutoRotate", true)
+    private val arrowKeyMove = setting("ArrowKeyMove", true)
+    private val disableOnDisconnect = setting("DisconnectDisable", true)
+    private val leftClickCome = setting("LeftClickCome", true)
 
     private enum class FlightMode(override val displayName: String) : DisplayEnum {
         CREATIVE("Creative"),

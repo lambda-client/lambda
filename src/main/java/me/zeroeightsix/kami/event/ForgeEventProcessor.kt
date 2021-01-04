@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.event
 
-import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.CommandManager
-import me.zeroeightsix.kami.event.events.*
-import me.zeroeightsix.kami.gui.kami.KamiGUI
+import me.zeroeightsix.kami.event.events.BaritoneCommandEvent
+import me.zeroeightsix.kami.event.events.ConnectionEvent
+import me.zeroeightsix.kami.event.events.RenderWorldEvent
+import me.zeroeightsix.kami.event.events.ResolutionUpdateEvent
 import me.zeroeightsix.kami.gui.mc.KamiGuiChat
-import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
@@ -38,13 +38,6 @@ object ForgeEventProcessor {
                 prevWidth = mc.displayWidth
                 prevHeight = mc.displayHeight
                 KamiEventBus.post(ResolutionUpdateEvent(mc.displayWidth, mc.displayHeight))
-                for (component in KamiMod.INSTANCE.guiManager.children) {
-                    if (component !is Frame) continue
-                    KamiGUI.dock(component)
-                }
-            }
-            if (mc.world != null && mc.player != null) {
-                KamiMod.INSTANCE.guiManager.callTick(KamiMod.INSTANCE.guiManager)
             }
         }
     }

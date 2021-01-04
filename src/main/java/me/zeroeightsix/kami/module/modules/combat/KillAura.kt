@@ -4,7 +4,7 @@ import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.TpsCalculator
 import me.zeroeightsix.kami.util.combat.CombatUtils
 import me.zeroeightsix.kami.util.isWeapon
@@ -24,16 +24,16 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
     modulePriority = 50
 )
 object KillAura : Module() {
-    private val delayMode = register(Settings.e<WaitMode>("Mode", WaitMode.DELAY))
-    private val lockView = register(Settings.booleanBuilder("LockView").withValue(false))
-    private val spoofRotation = register(Settings.booleanBuilder("SpoofRotation").withValue(true).withVisibility { !lockView.value })
-    private val spamDelay = register(Settings.floatBuilder("SpamDelay").withValue(2.0f).withRange(1.0f, 40.0f).withStep(0.5f).withVisibility { delayMode.value == WaitMode.SPAM })
-    val range = register(Settings.floatBuilder("Range").withValue(5f).withRange(0f, 8f).withStep(0.25f))
-    private val tpsSync = register(Settings.b("TPSSync", false))
-    private val autoWeapon = register(Settings.b("AutoWeapon", true))
-    private val weaponOnly = register(Settings.b("WeaponOnly", false))
-    private val prefer = register(Settings.enumBuilder(CombatUtils.PreferWeapon::class.java).withName("Prefer").withValue(CombatUtils.PreferWeapon.SWORD).withVisibility { autoWeapon.value })
-    private val disableOnDeath = register(Settings.b("DisableOnDeath", false))
+    private val delayMode = setting("Mode", WaitMode.DELAY)
+    private val lockView = setting("LockView", false)
+    private val spoofRotation = setting("SpoofRotation", true, { !lockView.value })
+    private val waitTick = setting("SpamDelay", 2.0f, 1.0f..40.0f, 0.5f, { delayMode.value == WaitMode.SPAM })
+    val range = setting("Range", 5f, 0f..8f, 0.25f)
+    private val tpsSync = setting("TPSSync", false)
+    private val autoWeapon = setting("AutoWeapon", true)
+    private val weaponOnly = setting("WeaponOnly", true)
+    private val prefer = setting("Prefer", CombatUtils.PreferWeapon.SWORD, { autoWeapon.value })
+    private val disableOnDeath = setting("DisableOnDeath", false)
 
     private var inactiveTicks = 0
     private var tickCount = 0
@@ -62,7 +62,7 @@ object KillAura : Module() {
             if (player.getDistance(target) > range.value) return@safeListener
 
             if (autoWeapon.value) {
-                CombatUtils.equipBestWeapon(prefer.value as CombatUtils.PreferWeapon)
+                CombatUtils.equipBestWeapon(prefer.value)
             }
 
             if (weaponOnly.value && !player.heldItemMainhand.item.isWeapon) {
@@ -89,7 +89,7 @@ object KillAura : Module() {
             val adjustTicks = if (!tpsSync.value) 0f else TpsCalculator.adjustTicks
             player.getCooledAttackStrength(adjustTicks) >= 1f
         } else {
-            if (tickCount < spamDelay.value) {
+            if (tickCount < waitTick.value) {
                 tickCount++
                 false
             } else {

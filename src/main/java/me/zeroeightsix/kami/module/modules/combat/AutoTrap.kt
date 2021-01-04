@@ -5,8 +5,8 @@ import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
+import me.zeroeightsix.kami.setting.settings.impl.primitive.BooleanSetting
 import me.zeroeightsix.kami.util.Bind
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.WorldUtils
@@ -29,11 +29,11 @@ import org.lwjgl.input.Keyboard
         modulePriority = 60
 )
 object AutoTrap : Module() {
-    private val trapMode = register(Settings.e<TrapMode>("TrapMode", TrapMode.FULL_TRAP))
-    private val selfTrap = register(Settings.b("SelfTrap", false))
-    private val bindSelfTrap = register(Settings.custom("BindSelfTrap", Bind.none(), BindConverter()))
-    private val autoDisable = register(Settings.b("AutoDisable", true))
-    private val placeSpeed = register(Settings.floatBuilder("PlacesPerTick").withValue(4f).withRange(0.25f, 5f).withStep(0.25f))
+    private val trapMode = setting("TrapMode", TrapMode.FULL_TRAP)
+    private val selfTrap = setting("SelfTrap", false)
+    private val bindSelfTrap = setting("BindSelfTrap", Bind())
+    private val autoDisable = setting("AutoDisable", true)
+    private val placeSpeed = setting("PlacesPerTick", 4f, 0.25f..5f, 0.25f)
 
     private var job: Job? = null
 
@@ -66,7 +66,7 @@ object AutoTrap : Module() {
         }
     }
 
-    private fun Setting<Boolean>.toggleMsg() = "$chatName Turned ${this.name} ${if (this.value) "&aon" else "&coff"}&f!"
+    private fun BooleanSetting.toggleMsg() = "$chatName Turned ${this.name} ${if (this.value) "&aon" else "&coff"}&f!"
 
     private fun isPlaceable(): Boolean {
         (if (selfTrap.value) mc.player else CombatManager.target)?.positionVector?.toBlockPos()?.let {

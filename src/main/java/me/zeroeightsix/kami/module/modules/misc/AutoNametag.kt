@@ -2,7 +2,7 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.entity.Entity
@@ -21,9 +21,13 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
     category = Module.Category.MISC
 )
 object AutoNametag : Module() {
-    private val modeSetting = register(Settings.e<Mode>("Mode", Mode.ANY))
-    private val range = register(Settings.floatBuilder("Range").withValue(3.5f).withRange(2.0f, 8.0f).withStep(0.5f))
-    private val debug = register(Settings.b("Debug", false))
+    private val modeSetting = setting("Mode", Mode.ANY)
+    private val range = setting("Range", 3.5f, 2.0f..8.0f, 0.5f)
+    private val debug = setting("Debug", false)
+
+    private enum class Mode {
+        WITHER, ANY
+    }
 
     private var currentName = ""
     private var currentSlot = -1
@@ -37,7 +41,7 @@ object AutoNametag : Module() {
 
     private fun SafeClientEvent.useNameTag() {
         val originalSlot = player.inventory.currentItem
-        loop@ for (entity in world.loadedEntityList) {
+        for (entity in world.loadedEntityList) {
             when (modeSetting.value) {
                 Mode.WITHER -> {
                     if (entity is EntityWither
@@ -55,7 +59,6 @@ object AutoNametag : Module() {
                         nametagEntity(entity)
                     }
                 }
-                else -> continue@loop
             }
         }
         player.inventory.currentItem = originalSlot
@@ -91,9 +94,5 @@ object AutoNametag : Module() {
         val stack = player.inventory.getStackInSlot(i)
         val tag = stack.item
         return tag is ItemNameTag && stack.displayName != "Name Tag"
-    }
-
-    private enum class Mode {
-        WITHER, ANY
     }
 }

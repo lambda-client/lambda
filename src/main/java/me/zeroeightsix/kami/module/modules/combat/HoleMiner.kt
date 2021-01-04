@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.module.modules.combat
 import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
+import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.combat.CrystalUtils
 import me.zeroeightsix.kami.util.combat.SurroundUtils
@@ -30,12 +30,12 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
         modulePriority = 100
 )
 object HoleMiner : Module() {
-    private val range = register(Settings.floatBuilder("Range").withValue(5.0f).withRange(0.0f, 10.0f))
+    private val range = setting("Range", 5.0f, 1.0f..8.0f, 0.25f)
 
     private var miningPos: BlockPos? = null
     private var start = true
 
-    override fun getHudInfo() = "${CombatManager.target?.name}"
+    override fun getHudInfo() = CombatManager.target?.name ?: ""
 
     override fun onDisable() {
         miningPos = null
