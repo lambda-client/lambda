@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.gui
 
 import me.zeroeightsix.kami.event.events.RenderOverlayEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.rgui.WindowComponent
 import me.zeroeightsix.kami.gui.rgui.windows.ColorPicker
 import me.zeroeightsix.kami.gui.rgui.windows.SettingWindow
@@ -15,12 +14,12 @@ import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.Vec2f
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.event.listener.listener
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
@@ -85,8 +84,8 @@ abstract class AbstractKamiGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         mc = Wrapper.minecraft
         windowList.add(ColorPicker)
 
-        listener<SafeTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.START) return@listener
+        safeListener<TickEvent.ClientTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.START) return@safeListener
 
             blurShader.shader?.let {
                 val multiplier = ClickGUI.blur * fadeMultiplier
@@ -100,7 +99,7 @@ abstract class AbstractKamiGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
             }
         }
 
-        listener<RenderOverlayEvent>(-69420) {
+        safeListener<RenderOverlayEvent>(-69420) {
             if (!displayed.value && fadeMultiplier > 0.0f) {
                 drawScreen(0, 0, mc.renderPartialTicks)
             }

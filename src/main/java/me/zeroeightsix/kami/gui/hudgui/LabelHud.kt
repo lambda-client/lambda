@@ -1,12 +1,11 @@
 package me.zeroeightsix.kami.gui.hudgui
 
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.util.graphics.VertexHelper
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import me.zeroeightsix.kami.util.graphics.font.TextComponent
 import me.zeroeightsix.kami.util.math.Vec2d
+import me.zeroeightsix.kami.util.threads.safeAsyncListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.event.listener.asyncListener
 
 abstract class LabelHud(
     name: String,
@@ -25,8 +24,8 @@ abstract class LabelHud(
     protected val displayText = TextComponent()
 
     init {
-        asyncListener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) return@asyncListener
+        safeAsyncListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@safeAsyncListener
             displayText.clear()
             updateText()
         }

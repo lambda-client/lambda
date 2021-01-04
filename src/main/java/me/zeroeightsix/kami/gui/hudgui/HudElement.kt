@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.gui.hudgui
 
 import me.zeroeightsix.kami.event.KamiEventBus
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.rgui.windows.BasicWindow
 import me.zeroeightsix.kami.module.modules.client.GuiColors
 import me.zeroeightsix.kami.module.modules.client.Hud
@@ -10,9 +9,9 @@ import me.zeroeightsix.kami.util.graphics.RenderUtils2D
 import me.zeroeightsix.kami.util.graphics.VertexHelper
 import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.Vec2f
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.interfaces.DisplayEnum
-import org.kamiblue.event.listener.listener
 
 open class HudElement(
     name: String,
@@ -28,8 +27,8 @@ open class HudElement(
     val settingList get() = GuiConfig.getGroupOrPut(SettingGroup.HUD_GUI.groupName).getGroupOrPut(originalName).getSettings()
 
     init {
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END || !visible) return@listener
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.END || !visible) return@safeListener
             width = maxWidth
             height = maxHeight
         }

@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.gui.hudgui.elements.client
 
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.hudgui.HudElement
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.ModuleManager
@@ -14,11 +13,11 @@ import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import me.zeroeightsix.kami.util.graphics.font.HAlign
 import me.zeroeightsix.kami.util.graphics.font.TextComponent
 import me.zeroeightsix.kami.util.graphics.font.VAlign
+import me.zeroeightsix.kami.util.threads.safeAsyncListener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.sumByFloat
 import org.kamiblue.commons.interfaces.DisplayEnum
-import org.kamiblue.event.listener.asyncListener
 import org.lwjgl.opengl.GL11.*
 import java.awt.Color
 import java.util.*
@@ -67,8 +66,8 @@ object ModuleList : HudElement(
         .toMutableMap()
 
     init {
-        asyncListener<SafeTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.END) return@asyncListener
+        safeAsyncListener<TickEvent.ClientTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.END) return@safeAsyncListener
 
             val moduleSet = ModuleManager.getModules().toSet()
 

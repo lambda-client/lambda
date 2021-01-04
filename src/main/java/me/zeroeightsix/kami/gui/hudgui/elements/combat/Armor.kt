@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.gui.hudgui.elements.combat
 
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.gui.hudgui.HudElement
 import me.zeroeightsix.kami.setting.GuiConfig.setting
 import me.zeroeightsix.kami.util.InventoryUtils
@@ -11,12 +10,12 @@ import me.zeroeightsix.kami.util.graphics.VertexHelper
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
 import me.zeroeightsix.kami.util.graphics.font.HAlign
 import me.zeroeightsix.kami.util.graphics.font.VAlign
+import me.zeroeightsix.kami.util.threads.safeAsyncListener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.init.Items
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.utils.MathUtils
-import org.kamiblue.event.listener.asyncListener
 import kotlin.math.max
 
 object Armor : HudElement(
@@ -53,8 +52,8 @@ object Armor : HudElement(
     )
 
     init {
-        asyncListener<SafeTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.END) return@asyncListener
+        safeAsyncListener<TickEvent.ClientTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.END) return@safeAsyncListener
 
             for ((index, item) in armorItems.withIndex()) {
                 armorCounts[index] = InventoryUtils.countItemAll(item)
