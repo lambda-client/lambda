@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
+import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
@@ -35,8 +36,10 @@ import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
+import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
@@ -78,6 +81,7 @@ object HighwayTools : Module() {
     private val toggleAutoObsidian = register(Settings.booleanBuilder("ToggleAutoObsidian").withValue(true).withVisibility { page.value == Page.BEHAVIOR })
 
     // config
+    private val fakeSounds = register(Settings.booleanBuilder("Sounds").withValue(true).withVisibility { page.value == Page.CONFIG })
     private val info = register(Settings.booleanBuilder("ShowInfo").withValue(true).withVisibility { page.value == Page.CONFIG })
     private val printDebug = register(Settings.booleanBuilder("ShowQueue").withValue(false).withVisibility { page.value == Page.CONFIG })
     private val debugMessages = register(Settings.enumBuilder(DebugMessages::class.java, "Debug").withValue(DebugMessages.IMPORTANT).withVisibility { page.value == Page.CONFIG })
@@ -229,6 +233,28 @@ object HighwayTools : Module() {
             runTasks()
 
             doRotation()
+        }
+
+        safeListener<PacketEvent.Receive> { event ->
+            if (event.packet is SPacketBlockChange) {
+                val pos = event.packet.blockPosition
+                if (isInsideSelection(pos)) {
+                    val blockStateNow = world.getBlockState(pos)
+                    val blockStateAfter = event.packet.blockState
+                    if (blockStateNow.block != blockStateAfter.block && fakeSounds.value) {
+                        when {
+                            blockStateAfter.block == Blocks.AIR -> {
+                                val soundType = blockStateNow.block.getSoundType(blockStateNow, world, pos, player)
+                                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                            }
+                            blockStateNow.block == Blocks.AIR -> {
+                                val soundType = blockStateAfter.block.getSoundType(blockStateAfter, world, pos, player)
+                                world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -798,23 +824,25 @@ object HighwayTools : Module() {
         rotateTimer.reset()
 
         when (world.getBlockState(blockTask.blockPos).block) {
-            Blocks.NETHERRACK -> {
-                waitTicks = tickDelayBreak.value
-                defaultScope.launch {
-                    delay(10L)
-                    onMainThreadSafe {
-                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
-                        player.swingArm(EnumHand.MAIN_HAND)
-                    }
-                    delay(40L)
-                    onMainThreadSafe {
-                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
-                        player.swingArm(EnumHand.MAIN_HAND)
-                        blockTask.updateState(TaskState.BROKEN)
-                    }
-                }
-            }
+            Blocks.NETHERRACK -> dispatchInstantBreakThread(blockTask, side)
             else -> dispatchGenericMineThread(blockTask, side)
+        }
+    }
+
+    private fun dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
+        waitTicks = tickDelayBreak.value
+        defaultScope.launch {
+            delay(10L)
+            onMainThreadSafe {
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
+                player.swingArm(EnumHand.MAIN_HAND)
+            }
+            delay(40L)
+            onMainThreadSafe {
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
+                player.swingArm(EnumHand.MAIN_HAND)
+                blockTask.updateState(TaskState.BROKEN)
+            }
         }
     }
 
