@@ -27,7 +27,8 @@ import kotlin.math.max
 object ModuleList : HudElement(
     name = "ModuleList",
     category = Category.CLIENT,
-    description = "List of enabled modules"
+    description = "List of enabled modules",
+    enabledByDefault = true
 ) {
 
     private val sortingMode by setting("SortingMode", SortingMode.LENGTH)
@@ -94,7 +95,9 @@ object ModuleList : HudElement(
         GlStateManager.pushMatrix()
 
         GlStateManager.translate(renderWidth * dockingH.multiplier, 0.0f, 0.0f)
-        if (dockingV == VAlign.BOTTOM) GlStateManager.translate(0.0f, renderHeight, 0.0f)
+        if (dockingV == VAlign.BOTTOM) {
+            GlStateManager.translate(0.0f, renderHeight - (FontRenderAdapter.getFontHeight() + 2.0f) , 0.0f)
+        }
 
         drawModuleList()
 
@@ -168,5 +171,11 @@ object ModuleList : HudElement(
         } else {
             AnimationUtils.exponentDec(AnimationUtils.toDeltaTimeFloat(lastUpdateTime), 200.0f)
         }
+
+    init {
+        relativePosX = -2.0f
+        relativePosY = 2.0f
+        dockingH = HAlign.RIGHT
+    }
 
 }

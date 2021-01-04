@@ -3,9 +3,9 @@ package me.zeroeightsix.kami.gui.hudgui.elements.player
 import me.zeroeightsix.kami.gui.hudgui.LabelHud
 import me.zeroeightsix.kami.setting.GuiConfig.setting
 import me.zeroeightsix.kami.util.InfoCalculator
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.utils.MathUtils
-import org.kamiblue.event.listener.listener
 import java.util.*
 
 object PlayerSpeed : LabelHud(
@@ -27,8 +27,8 @@ object PlayerSpeed : LabelHud(
     private val speedList = ArrayDeque<Double>()
 
     init {
-        listener<TickEvent.ClientTickEvent> {
-            if (it.phase == TickEvent.Phase.END) updateSpeedList()
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase == TickEvent.Phase.END && visible) updateSpeedList()
         }
     }
 
