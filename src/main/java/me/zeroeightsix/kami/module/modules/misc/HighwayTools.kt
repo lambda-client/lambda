@@ -272,14 +272,11 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun SafeClientEvent.refreshData() {
+    private fun SafeClientEvent.refreshData(originPos: BlockPos = currentBlockPos) {
         doneTasks.clear()
         pendingTasks.clear()
         lastTask = null
-        updateTasks(currentBlockPos)
-    }
 
-    private fun SafeClientEvent.updateTasks(originPos: BlockPos) {
         blueprintNew.clear()
         generateBluePrint(originPos)
 
@@ -437,10 +434,9 @@ object HighwayTools : Module() {
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isNotEmpty()) {
             val sortedTasks = pendingTasks.sortedBy {
-                it.taskState.ordinal * 10 +
+                it.taskState.priority +
                     player.getPositionEyes(1f).distanceTo(it.blockPos) * 2 +
-                    it.stuckTicks * 2 +
-                    it.ranTicks
+                    it.stuckTicks * 10 / it.taskState.stuckTimeout
             }
 
             (lastTask ?: sortedTasks.firstOrNull())?.let {
@@ -471,7 +467,13 @@ object HighwayTools : Module() {
             doTask(it)
 
             if (it.taskState != TaskState.DONE) {
-                if (it.stuckTicks > 20) refreshData()
+                val timeout = it.taskState.stuckTimeout
+                if (it.stuckTicks > timeout) {
+                    if (debugMessages.value == DebugMessages.IMPORTANT) {
+                        sendChatMessage("Stuck for more than $timeout ticks, refreshing data.")
+                    }
+                    refreshData()
+                }
                 return
             }
         }
@@ -687,13 +689,13 @@ object HighwayTools : Module() {
                     sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
                     mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     disable()
-                    blockTask.onFailed()
+                    blockTask.onStuck()
                 }
 
                 InventoryUtils.swapSlotToItem(blockID)
             }
             else -> {
-                blockTask.onFailed()
+                blockTask.onStuck()
             }
         }
     }
@@ -759,7 +761,7 @@ object HighwayTools : Module() {
         val rayTraceResult = rayTraceHitVec(blockTask.blockPos)
 
         if (rayTraceResult == null) {
-            blockTask.onFailed()
+            blockTask.onStuck()
             return
         }
 
@@ -813,7 +815,7 @@ object HighwayTools : Module() {
         val pair = WorldUtils.getNeighbour(blockTask.blockPos, 1, 6.5f)
             ?: run {
                 sendChatMessage("Can't find neighbour block")
-                blockTask.onFailed()
+                blockTask.onStuck()
                 return
             }
 
@@ -823,7 +825,7 @@ object HighwayTools : Module() {
                     sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
                 }
             } else {
-                blockTask.onFailed()
+                blockTask.onStuck()
             }
         }
 
@@ -860,12 +862,12 @@ object HighwayTools : Module() {
         return false
     }
 
-    private fun isInsideSelection(blockPos: BlockPos): Boolean {
-        return pendingTasks.any { it.blockPos == blockPos }
+    private fun isInsideSelection(pos: BlockPos): Boolean {
+        return blueprintNew.containsKey(pos)
     }
 
-    private fun isInsideBuild(blockPos: BlockPos): Boolean {
-        return pendingTasks.any { it.blockPos == blockPos && it.block == material }
+    private fun isInsideBuild(pos: BlockPos): Boolean {
+        return blueprintNew[pos]?.let { it != Blocks.AIR } ?: false
     }
 
     fun printSettings() {
@@ -973,7 +975,7 @@ object HighwayTools : Module() {
             "    §7Target state: §9${currentTask?.block?.localizedName}",
             "    §7Position: §9(${currentTask?.blockPos?.asString()})",
             "§rDebug",
-            "    §7Stuck ticks: §9${lastTask?.stuckTicks?.toString()?: "N/A"}",
+            "    §7Stuck ticks: §9${lastTask?.stuckTicks?.toString() ?: "N/A"}",
             //"    §7Pathing: §9$pathing",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
@@ -1012,28 +1014,31 @@ object HighwayTools : Module() {
         var stuckTicks = 0; private set
 
         fun updateState(state: TaskState) {
+            if (state == taskState) return
             taskState = state
             onUpdate()
         }
 
         fun updateMaterial(material: Block) {
+            if (material == block) return
             block = material
             onUpdate()
         }
 
         fun onTick() {
             ranTicks++
+            if (ranTicks > taskState.stuckThreshold) {
+                stuckTicks++
+            }
         }
 
-        fun onFailed() {
+        fun onStuck() {
             stuckTicks++
         }
 
         fun onUpdate() {
-            if (taskState == TaskState.DONE) {
-                stuckTicks = 0
-                ranTicks = 0
-            }
+            stuckTicks = 0
+            ranTicks = 0
         }
 
         override fun toString(): String {
@@ -1047,16 +1052,16 @@ object HighwayTools : Module() {
         override fun hashCode() = blockPos.hashCode()
     }
 
-    enum class TaskState(val color: ColorHolder) {
-        DONE(ColorHolder(50, 50, 50)),
-        LIQUID_SOURCE(ColorHolder(120, 41, 240)),
-        LIQUID_FLOW(ColorHolder(120, 41, 240)),
-        BROKEN(ColorHolder(111, 0, 0)),
-        BREAKING(ColorHolder(240, 222, 60)),
-        EMERGENCY_BREAK(ColorHolder(220, 41, 140)),
-        BREAK(ColorHolder(222, 0, 0)),
-        PLACED(ColorHolder(53, 222, 66)),
-        PLACE(ColorHolder(35, 188, 254))
+    enum class TaskState(val priority: Int, val stuckThreshold: Int, val stuckTimeout: Int, val color: ColorHolder) {
+        DONE(0, 69420, 0x22, ColorHolder(50, 50, 50)),
+        LIQUID_SOURCE(1, 100, 100, ColorHolder(120, 41, 240)),
+        LIQUID_FLOW(20, 80, 80, ColorHolder(120, 41, 240)),
+        BROKEN(120, 20, 10, ColorHolder(111, 0, 0)),
+        BREAKING(140, 100, 100, ColorHolder(240, 222, 60)),
+        EMERGENCY_BREAK(160, 20, 20, ColorHolder(220, 41, 140)),
+        BREAK(180, 20, 20, ColorHolder(222, 0, 0)),
+        PLACED(280, 20, 5, ColorHolder(53, 222, 66)),
+        PLACE(300, 20, 10, ColorHolder(35, 188, 254))
     }
 
     private enum class DebugMessages {
