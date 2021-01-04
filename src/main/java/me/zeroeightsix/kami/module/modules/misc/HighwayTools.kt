@@ -967,7 +967,7 @@ object HighwayTools : Module() {
             "    §7Target state: §9${currentTask?.block?.localizedName}",
             "    §7Position: §9(${currentTask?.blockPos?.asString()})",
             "§rDebug",
-            "    §7Stuck manager: §9${StuckManager}",
+            "    §7Stuck ticks: §9${lastTask?.stuckTicks?.toString()?: "N/A"}",
             //"    §7Pathing: §9$pathing",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
@@ -995,12 +995,6 @@ object HighwayTools : Module() {
 
     private fun addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
         for (blockTask in tasks) list.add("    " + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") Priority: " + blockTask.taskState.ordinal + " State: " + blockTask.taskState.toString())
-    }
-
-    object StuckManager {
-        override fun toString(): String {
-            return " "
-        }
     }
 
     class BlockTask(
@@ -1084,11 +1078,5 @@ object HighwayTools : Module() {
         VIEW_LOCK
     }
 
-    enum class StuckLevel {
-        NONE,
-        MINOR,
-        MODERATE,
-        MAYOR
-    }
 }
 
