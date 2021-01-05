@@ -43,6 +43,8 @@ import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
+import org.kamiblue.commons.extension.ceilToInt
+import org.kamiblue.commons.extension.floorToInt
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
@@ -204,7 +206,7 @@ object HighwayTools : Module() {
 
     init {
         safeListener<PacketEvent.Receive> {
-            if (it.packet !is SPacketBlockChange || !fakeSounds) return@safeListener
+            if (it.packet !is SPacketBlockChange) return@safeListener
 
             val pos = it.packet.blockPosition
             if (!isInsideSelection(pos)) return@safeListener
@@ -212,10 +214,19 @@ object HighwayTools : Module() {
             val prev = world.getBlockState(pos)
             val new = it.packet.getBlockState()
 
-            if (prev.block != new.block && new.block == Blocks.AIR) {
-                onMainThreadSafe {
-                    val soundType = new.block.getSoundType(new, world, pos, player)
-                    world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+            if (prev.block != new.block) {
+                when {
+                    new.block == Blocks.AIR -> {
+                        totalBlocksDestroyed++
+                        if (fakeSounds) {
+                            val soundType = new.block.getSoundType(new, world, pos, player)
+                            world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                        }
+                    }
+                    prev.block == Blocks.AIR -> {
+                        totalBlocksPlaced++
+                        // Wait for it :P
+                    }
                 }
             }
         }
@@ -224,8 +235,8 @@ object HighwayTools : Module() {
             renderer.render(false)
         }
 
-        safeListener<OnUpdateWalkingPlayerEvent> { event ->
-            if (event.phase != Phase.PRE) return@safeListener
+        safeListener<OnUpdateWalkingPlayerEvent> {
+            if (it.phase != Phase.PRE) return@safeListener
 
             if (!active) {
                 active = true
@@ -333,7 +344,7 @@ object HighwayTools : Module() {
             val zDirection = startingDirection
             val xDirection = zDirection.clockwise(if (zDirection.isDiagonal) 1 else 2)
 
-            for (x in -12 until 12) {
+            for (x in -maxReach.floorToInt()..maxReach.ceilToInt()) {
                 val thisPos = basePos.add(zDirection.directionVec.multiply(x))
                 generateClear(thisPos, xDirection)
                 generateBase(thisPos, xDirection)
@@ -461,12 +472,13 @@ object HighwayTools : Module() {
             if (checkFOMO(pos)) lastPos = pos
         }
 
+        if (currentBlockPos != lastPos) refreshData()
         return lastPos
     }
 
-    private fun checkFOMO(pos: BlockPos): Boolean {
-        for (task in blueprint) {
-            if (pos.toVec3d().distanceTo(task.first.toVec3d()) > maxReach) return false
+    private fun checkFOMO(origin: BlockPos): Boolean {
+        for ((pos, _) in blueprint) {
+            if (origin.toVec3d().distanceTo(pos.toVec3d()) > maxReach) return false
         }
         return true
     }
@@ -558,7 +570,6 @@ object HighwayTools : Module() {
     private fun SafeClientEvent.doBreaking(blockTask: BlockTask) {
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
-                totalBlocksDestroyed++
                 waitTicks = tickDelayBreak
                 if (blockTask.block == material || blockTask.block == fillerMat) {
                     blockTask.updateState(TaskState.PLACE)
@@ -591,7 +602,6 @@ object HighwayTools : Module() {
                 } else {
                     blockTask.updateState(TaskState.DONE)
                 }
-                totalBlocksDestroyed++
             }
             else -> {
                 blockTask.updateState(TaskState.BREAK)
@@ -605,7 +615,6 @@ object HighwayTools : Module() {
         when {
             blockTask.block == block && block != Blocks.AIR -> {
                 blockTask.updateState(TaskState.DONE)
-                totalBlocksPlaced++
             }
             blockTask.block == Blocks.AIR && block != Blocks.AIR -> {
                 blockTask.updateState(TaskState.BREAK)
