@@ -253,13 +253,6 @@ object WorldUtils {
         val placePacket = CPacketPlayerTryUseItemOnBlock(pos, side, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
         connection.sendPacket(placePacket)
         player.swingArm(EnumHand.MAIN_HAND)
-
-        val itemStack = PlayerPacketManager.getHoldingItemStack()
-        val block = (itemStack.item as? ItemBlock?)?.block ?: return
-        val metaData = itemStack.metadata
-        val blockState = block.getStateForPlacement(world, pos, side, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat(), metaData, player, EnumHand.MAIN_HAND)
-        val soundType = blockState.block.getSoundType(blockState, world, pos, player)
-        world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
     }
 
 }

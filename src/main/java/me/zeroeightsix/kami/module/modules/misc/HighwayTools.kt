@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
+import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
@@ -24,6 +25,7 @@ import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -34,8 +36,10 @@ import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
+import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
@@ -77,6 +81,7 @@ object HighwayTools : Module() {
     private val toggleAutoObsidian by setting("ToggleAutoObsidian", true,  { page == Page.BEHAVIOR })
 
     // config
+    private val fakeSounds by setting("Sounds", true, { page == Page.CONFIG })
     private val info by setting("ShowInfo", true,  { page == Page.CONFIG })
     private val printDebug by setting("ShowQueue", false,  { page == Page.CONFIG })
     private val debugMessages by setting("Debug", DebugMessages.IMPORTANT,  { page == Page.CONFIG })
@@ -229,6 +234,28 @@ object HighwayTools : Module() {
 
             doRotation()
         }
+
+        safeListener<PacketEvent.Receive> { event ->
+            if (event.packet is SPacketBlockChange) {
+                val pos = event.packet.blockPosition
+                if (isInsideSelection(pos)) {
+                    val blockStateNow = world.getBlockState(pos)
+                    val blockStateAfter = event.packet.blockState
+                    if (blockStateNow.block != blockStateAfter.block && fakeSounds.value) {
+                        when {
+                            blockStateAfter.block == Blocks.AIR -> {
+                                val soundType = blockStateNow.block.getSoundType(blockStateNow, world, pos, player)
+                                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                            }
+                            blockStateNow.block == Blocks.AIR -> {
+                                val soundType = blockStateAfter.block.getSoundType(blockStateAfter, world, pos, player)
+                                world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun SafeClientEvent.updateRenderer() {
@@ -313,21 +340,36 @@ object HighwayTools : Module() {
         }
     }
 
-    private fun generateBluePrint(feetPos: BlockPos) {
+    private fun SafeClientEvent.generateBluePrint(feetPos: BlockPos) {
         val basePos = feetPos.down()
 
         if (mode != Mode.FLAT) {
             val zDirection = startingDirection
             val xDirection = zDirection.clockwise(if (zDirection.isDiagonal) 1 else 2)
-            val nextPos = basePos.add(zDirection.directionVec)
 
-            generateClear(basePos, xDirection)
-            generateClear(nextPos, xDirection)
+            for (x in -12 until 12) {
+                val thisPos = basePos.add(zDirection.directionVec.multiply(x))
+                generateClear(thisPos, xDirection)
+                generateBase(thisPos, xDirection)
+            }
 
-            generateBase(basePos, xDirection)
-            generateBase(nextPos, xDirection)
+            pickTasksInRange()
+
         } else {
             generateFlat(basePos)
+        }
+    }
+
+    private fun SafeClientEvent.pickTasksInRange() {
+        val removeCandidates = LinkedList<BlockPos>()
+        for (task in blueprintNew) {
+            if (player.getPositionEyes(1f).distanceTo(task.key) > maxReach.value) {
+                removeCandidates.add(task.key)
+            }
+        }
+
+        for (task in removeCandidates) {
+            blueprintNew.remove(task)
         }
     }
 
@@ -430,10 +472,17 @@ object HighwayTools : Module() {
             val blockBelow = world.getBlockState(pos.down()).block
             if (blockBelow != baseMaterial) break
 
-            lastPos = pos
+            if (checkFOMO(pos)) lastPos = pos
         }
 
         return lastPos
+    }
+
+    private fun checkFOMO(pos: BlockPos): Boolean {
+        for (task in blueprint) {
+            if (pos.toVec3d().distanceTo(task.first.toVec3d()) > maxReach.value) return false
+        }
+        return true
     }
 
     private fun SafeClientEvent.runTasks() {
@@ -775,23 +824,25 @@ object HighwayTools : Module() {
         rotateTimer.reset()
 
         when (world.getBlockState(blockTask.blockPos).block) {
-            Blocks.NETHERRACK -> {
-                waitTicks = tickDelayBreak
-                defaultScope.launch {
-                    delay(10L)
-                    onMainThreadSafe {
-                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
-                        player.swingArm(EnumHand.MAIN_HAND)
-                    }
-                    delay(40L)
-                    onMainThreadSafe {
-                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
-                        player.swingArm(EnumHand.MAIN_HAND)
-                        blockTask.updateState(TaskState.BROKEN)
-                    }
-                }
-            }
+            Blocks.NETHERRACK -> dispatchInstantBreakThread(blockTask, side)
             else -> dispatchGenericMineThread(blockTask, side)
+        }
+    }
+
+    private fun dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
+        waitTicks = tickDelayBreak
+        defaultScope.launch {
+            delay(10L)
+            onMainThreadSafe {
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
+                player.swingArm(EnumHand.MAIN_HAND)
+            }
+            delay(40L)
+            onMainThreadSafe {
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
+                player.swingArm(EnumHand.MAIN_HAND)
+                blockTask.updateState(TaskState.BROKEN)
+            }
         }
     }
 
