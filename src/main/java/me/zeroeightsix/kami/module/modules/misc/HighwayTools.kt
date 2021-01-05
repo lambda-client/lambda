@@ -64,32 +64,32 @@ object HighwayTools : Module() {
     private val page by setting("Page", Page.BUILD)
 
     // build settings
-    private val clearSpace by setting("ClearSpace", true,  { page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val clearHeight by setting("Height", 4, 1..6, 1,  { page == Page.BUILD && clearSpace })
-    private val buildWidth by setting("Width", 5, 1..9, 1,  { page == Page.BUILD })
-    private val railing by setting("Railing", true,  { page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val railingHeight by setting("RailingHeight", 1, 1..4, 1,  { railing && page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val cornerBlock by setting("CornerBlock", false,  { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
+    private val clearSpace by setting("ClearSpace", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val clearHeight by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace })
+    private val buildWidth by setting("Width", 5, 1..9, 1, { page == Page.BUILD })
+    private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val railingHeight by setting("RailingHeight", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val cornerBlock by setting("CornerBlock", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
 
     // behavior settings
-    private val tickDelayPlace by setting("TickDelayPlace", 3, 0..16, 1,  { page == Page.BEHAVIOR })
-    private val tickDelayBreak by setting("TickDelayBreak", 1, 0..16, 1,  { page == Page.BEHAVIOR })
-    private val interacting by setting("InteractMode", InteractMode.SPOOF,  { page == Page.BEHAVIOR })
-    private val illegalPlacements by setting("IllegalPlacements", false,  { page == Page.BEHAVIOR })
-    private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f,  { page == Page.BEHAVIOR })
-    private val toggleInventoryManager by setting("ToggleInvManager", true,  { page == Page.BEHAVIOR })
-    private val toggleAutoObsidian by setting("ToggleAutoObsidian", true,  { page == Page.BEHAVIOR })
+    private val tickDelayPlace by setting("TickDelayPlace", 3, 0..16, 1, { page == Page.BEHAVIOR })
+    private val tickDelayBreak by setting("TickDelayBreak", 1, 0..16, 1, { page == Page.BEHAVIOR })
+    private val interacting by setting("InteractMode", InteractMode.SPOOF, { page == Page.BEHAVIOR })
+    private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
+    private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
+    private val toggleInventoryManager by setting("ToggleInvManager", true, { page == Page.BEHAVIOR })
+    private val toggleAutoObsidian by setting("ToggleAutoObsidian", true, { page == Page.BEHAVIOR })
 
     // config
     private val fakeSounds by setting("Sounds", true, { page == Page.CONFIG })
-    private val info by setting("ShowInfo", true,  { page == Page.CONFIG })
-    private val printDebug by setting("ShowQueue", false,  { page == Page.CONFIG })
-    private val debugMessages by setting("Debug", DebugMessages.IMPORTANT,  { page == Page.CONFIG })
-    private val goalRender by setting("GoalRender", false,  { page == Page.CONFIG })
-    private val filled by setting("Filled", true,  { page == Page.CONFIG })
-    private val outline by setting("Outline", true,  { page == Page.CONFIG })
-    private val aFilled by setting("FilledAlpha", 26, 0..255, 1,  { filled && page == Page.CONFIG })
-    private val aOutline by setting("OutlineAlpha", 91, 0..255, 1,  { outline && page == Page.CONFIG })
+    private val info by setting("ShowInfo", true, { page == Page.CONFIG })
+    private val printDebug by setting("ShowQueue", false, { page == Page.CONFIG })
+    private val debugMessages by setting("Debug", DebugMessages.IMPORTANT, { page == Page.CONFIG })
+    private val goalRender by setting("GoalRender", false, { page == Page.CONFIG })
+    private val filled by setting("Filled", true, { page == Page.CONFIG })
+    private val outline by setting("Outline", true, { page == Page.CONFIG })
+    private val aFilled by setting("FilledAlpha", 26, 0..255, 1, { filled && page == Page.CONFIG })
+    private val aOutline by setting("OutlineAlpha", 91, 0..255, 1, { outline && page == Page.CONFIG })
 
     // internal settings
     val ignoreBlocks = hashSetOf(
@@ -212,6 +212,21 @@ object HighwayTools : Module() {
     }
 
     init {
+        safeListener<PacketEvent.Receive> {
+            if (it.packet !is SPacketBlockChange || !fakeSounds) return@safeListener
+
+            val pos = it.packet.blockPosition
+            if (!isInsideSelection(pos)) return@safeListener
+
+            val prev = world.getBlockState(pos)
+            val new = it.packet.getBlockState()
+
+            if (prev.block != new.block && new.block == Blocks.AIR) {
+                val soundType = new.block.getSoundType(new, world, pos, player)
+                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+            }
+        }
+
         safeListener<RenderWorldEvent> {
             renderer.render(false)
         }
@@ -233,28 +248,6 @@ object HighwayTools : Module() {
             runTasks()
 
             doRotation()
-        }
-
-        safeListener<PacketEvent.Receive> { event ->
-            if (event.packet is SPacketBlockChange) {
-                val pos = event.packet.blockPosition
-                if (isInsideSelection(pos)) {
-                    val blockStateNow = world.getBlockState(pos)
-                    val blockStateAfter = event.packet.blockState
-                    if (blockStateNow.block != blockStateAfter.block && fakeSounds.value) {
-                        when {
-                            blockStateAfter.block == Blocks.AIR -> {
-                                val soundType = blockStateNow.block.getSoundType(blockStateNow, world, pos, player)
-                                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                            }
-                            blockStateNow.block == Blocks.AIR -> {
-                                val soundType = blockStateAfter.block.getSoundType(blockStateAfter, world, pos, player)
-                                world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -363,7 +356,7 @@ object HighwayTools : Module() {
     private fun SafeClientEvent.pickTasksInRange() {
         val removeCandidates = LinkedList<BlockPos>()
         for (task in blueprintNew) {
-            if (player.getPositionEyes(1f).distanceTo(task.key) > maxReach.value) {
+            if (player.getPositionEyes(1f).distanceTo(task.key) > maxReach) {
                 removeCandidates.add(task.key)
             }
         }
@@ -480,7 +473,7 @@ object HighwayTools : Module() {
 
     private fun checkFOMO(pos: BlockPos): Boolean {
         for (task in blueprint) {
-            if (pos.toVec3d().distanceTo(task.first.toVec3d()) > maxReach.value) return false
+            if (pos.toVec3d().distanceTo(task.first.toVec3d()) > maxReach) return false
         }
         return true
     }
