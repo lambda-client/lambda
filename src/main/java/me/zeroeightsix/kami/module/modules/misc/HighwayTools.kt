@@ -156,16 +156,7 @@ object HighwayTools : Module() {
 
         /* Turn on Auto Obsidian if the user wants us to control it. */
         if (toggleAutoObsidian && AutoObsidian.isDisabled && mode != Mode.TUNNEL) {
-            /* If we have no obsidian, immediately turn on Auto Obsidian */
-            if (InventoryUtils.countItemAll(49) == 0) {
-                AutoObsidian.enable()
-            } else {
-                Thread {
-                    /* Wait 1 second because turning both on simultaneously is buggy */
-                    Thread.sleep(1000L)
-                    AutoObsidian.enable()
-                }.start()
-            }
+            AutoObsidian.enable()
         }
 
         startingBlockPos = mc.player.flooredPosition
@@ -222,8 +213,10 @@ object HighwayTools : Module() {
             val new = it.packet.getBlockState()
 
             if (prev.block != new.block && new.block == Blocks.AIR) {
-                val soundType = new.block.getSoundType(new, world, pos, player)
-                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                onMainThreadSafe {
+                    val soundType = new.block.getSoundType(new, world, pos, player)
+                    world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                }
             }
         }
 
