@@ -352,8 +352,8 @@ object HighwayTools : Module() {
                 if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
             }
             if (mode == Mode.TUNNEL) {
-                blueprintNew[basePos.add(startingDirection.directionVec.multiply(1))] = fillerMat
-                blueprintNew[basePos.add(startingDirection.directionVec.multiply(2))] = fillerMat
+                blueprintNew[basePos.add(zDirection.directionVec.multiply(1))] = fillerMat
+                blueprintNew[basePos.add(zDirection.directionVec.multiply(2))] = fillerMat
             }
 
             pickTasksInRange()
@@ -384,7 +384,7 @@ object HighwayTools : Module() {
                 if (mode == Mode.HIGHWAY) {
                     blueprintNew[pos] = Blocks.AIR
                 } else {
-                    blueprintNew[pos.up()] = Blocks.AIR
+                    if (!(isRail(w) && h == 0 && !cornerBlock)) blueprintNew[pos.up()] = Blocks.AIR
                 }
             }
         }
@@ -396,7 +396,8 @@ object HighwayTools : Module() {
             val pos = basePos.add(xDirection.directionVec.multiply(x))
 
             if (mode == Mode.HIGHWAY && isRail(w)) {
-                for (y in 1..railingHeight) {
+                val startHeight = if (cornerBlock) 0 else 1
+                for (y in startHeight..railingHeight) {
                     blueprintNew[pos.up(y)] = material
                 }
             } else {
