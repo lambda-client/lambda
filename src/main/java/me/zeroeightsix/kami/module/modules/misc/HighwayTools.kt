@@ -875,6 +875,7 @@ object HighwayTools : Module() {
                 }
             } else {
                 blockTask.onStuck()
+                return
             }
         }
 
@@ -900,12 +901,12 @@ object HighwayTools : Module() {
         val eyePos = player.getPositionEyes(1f)
 
         for (side in EnumFacing.values()) {
-            val blockState = world.getBlockState(pos.offset(side))
+            val offPos = pos.offset(side)
+            val blockState = world.getBlockState(offPos)
             if (blockState.isFullBlock) continue
             val rayTraceResult = world.rayTraceBlocks(eyePos, WorldUtils.getHitVec(pos, side), false, false, true)
-                ?: return true
-            if (rayTraceResult.typeOfHit == RayTraceResult.Type.BLOCK && rayTraceResult.hitVec.distanceTo(pos) > 1.0) continue
-            return true
+                ?: continue
+            if (rayTraceResult.typeOfHit == RayTraceResult.Type.BLOCK && rayTraceResult.blockPos == offPos && offPos.offset(rayTraceResult.sideHit) == pos) return true
         }
 
         return false
