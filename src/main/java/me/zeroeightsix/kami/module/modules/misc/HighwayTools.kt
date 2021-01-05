@@ -220,7 +220,9 @@ object HighwayTools : Module() {
                         totalBlocksDestroyed++
                         if (fakeSounds) {
                             val soundType = new.block.getSoundType(new, world, pos, player)
-                            world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                            onMainThread {
+                                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                            }
                         }
                     }
                     prev.block == Blocks.AIR -> {
@@ -347,7 +349,11 @@ object HighwayTools : Module() {
             for (x in -maxReach.floorToInt()..maxReach.ceilToInt()) {
                 val thisPos = basePos.add(zDirection.directionVec.multiply(x))
                 generateClear(thisPos, xDirection)
-                generateBase(thisPos, xDirection)
+                if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
+            }
+            if (mode == Mode.TUNNEL) {
+                blueprintNew[basePos.add(startingDirection.directionVec.multiply(1))] = fillerMat
+                blueprintNew[basePos.add(startingDirection.directionVec.multiply(2))] = fillerMat
             }
 
             pickTasksInRange()
@@ -392,18 +398,16 @@ object HighwayTools : Module() {
     }
 
     private fun generateBase(basePos: BlockPos, xDirection: Direction) {
-        val baseMaterial = if (mode == Mode.TUNNEL) fillerMat else material
-
         for (w in 0 until buildWidth) {
             val x = w - buildWidth / 2
             val pos = basePos.add(xDirection.directionVec.multiply(x))
 
             if (mode == Mode.HIGHWAY && isRail(w)) {
                 for (y in 1..railingHeight) {
-                    blueprintNew[pos.up(y)] = baseMaterial
+                    blueprintNew[pos.up(y)] = material
                 }
             } else {
-                blueprintNew[pos] = baseMaterial
+                blueprintNew[pos] = material
             }
         }
     }
@@ -463,11 +467,11 @@ object HighwayTools : Module() {
         for (step in 1..2) {
             val pos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
 
-            if (!blueprintNew.containsKey(pos.down())) break
+            if (!blueprintNew.containsKey(pos.down()) && mode != Mode.TUNNEL) break
             if (!world.isAirBlock(pos) || !world.isAirBlock(pos.up())) break
 
             val blockBelow = world.getBlockState(pos.down()).block
-            if (blockBelow != baseMaterial) break
+            if (blockBelow != baseMaterial && mode != Mode.TUNNEL) break
 
             if (checkFOMO(pos)) lastPos = pos
         }
