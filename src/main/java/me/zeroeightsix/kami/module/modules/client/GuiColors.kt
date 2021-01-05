@@ -12,9 +12,9 @@ import me.zeroeightsix.kami.util.color.ColorHolder
     alwaysEnabled = true
 )
 object GuiColors : Module() {
-    private val primarySetting = setting("PrimaryColor", ColorHolder(57, 87, 159, 255))
-    private val outlineSetting = setting("OutlineColor", ColorHolder(111, 111, 111, 0)) // TODO outlines are set to 0 alpha until we fix the left side
-    private val backgroundSetting = setting("BackgroundColor", ColorHolder(16, 16, 16, 200))
+    private val primarySetting = setting("PrimaryColor", ColorHolder(111, 166, 222, 255))
+    private val outlineSetting = setting("OutlineColor", ColorHolder(88, 99, 111, 200))
+    private val backgroundSetting = setting("BackgroundColor", ColorHolder(30, 36, 48, 200))
     private val textSetting = setting("TextColor", ColorHolder(255, 255, 255, 255))
     private val aHover = setting("HoverAlpha", 32, 0..255, 1)
 
