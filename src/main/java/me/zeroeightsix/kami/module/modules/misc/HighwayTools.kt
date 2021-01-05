@@ -481,8 +481,8 @@ object HighwayTools : Module() {
     }
 
     private fun checkFOMO(origin: BlockPos): Boolean {
-        for ((pos, _) in blueprint) {
-            if (origin.toVec3d().distanceTo(pos.toVec3d()) > maxReach) return false
+        for (task in pendingTasks) {
+            if (task.taskState != TaskState.DONE && origin.distanceTo(task.blockPos) > maxReach) return false
         }
         return true
     }
