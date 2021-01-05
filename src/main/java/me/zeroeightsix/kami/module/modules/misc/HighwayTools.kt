@@ -357,22 +357,15 @@ object HighwayTools : Module() {
             }
 
             pickTasksInRange()
-
         } else {
             generateFlat(basePos)
         }
     }
 
     private fun SafeClientEvent.pickTasksInRange() {
-        val removeCandidates = LinkedList<BlockPos>()
-        for (task in blueprintNew) {
-            if (player.getPositionEyes(1f).distanceTo(task.key) > maxReach) {
-                removeCandidates.add(task.key)
-            }
-        }
-
-        for (task in removeCandidates) {
-            blueprintNew.remove(task)
+        val eyePos = player.getPositionEyes(1f)
+        blueprintNew.keys.removeIf {
+            eyePos.distanceTo(it) - 0.7 > maxReach
         }
     }
 
