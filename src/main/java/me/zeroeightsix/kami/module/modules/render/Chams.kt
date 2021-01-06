@@ -36,7 +36,7 @@ object Chams : Module() {
     private val arrows = setting("Arrows", false, { page.value == Page.ENTITY_TYPE && !all.value })
     private val throwable = setting("Throwable", false, { page.value == Page.ENTITY_TYPE && !all.value })
     private val items = setting("Items", false, { page.value == Page.ENTITY_TYPE && !all.value })
-    private val crystals = setting("Crystals", true, { page.value == Page.ENTITY_TYPE && !all.value })
+    private val crystals = setting("Crystals", false, { page.value == Page.ENTITY_TYPE && !all.value })
     private val players = setting("Players", true, { page.value == Page.ENTITY_TYPE && !all.value })
     private val friends = setting("Friends", false, { page.value == Page.ENTITY_TYPE && !all.value && players.value })
     private val sleeping = setting("Sleeping", false, { page.value == Page.ENTITY_TYPE && !all.value && players.value })
