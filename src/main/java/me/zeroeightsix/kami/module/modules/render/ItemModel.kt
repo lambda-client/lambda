@@ -16,4 +16,5 @@ object ItemModel : Module() {
     val rotateY by setting("RotateY", 0.0f, -180.0f..180.0f, 1.0f)
     val rotateZ by setting("RotateZ", 0.0f, -180.0f..180.0f, 1.0f)
     val scale by setting("Scale", 1.0f, 0.1f..3.0f, 0.025f)
+    val modifyHand by setting("ModifyHand", false)
 }
