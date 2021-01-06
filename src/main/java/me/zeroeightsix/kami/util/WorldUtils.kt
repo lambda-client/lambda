@@ -4,6 +4,7 @@ import kotlinx.coroutines.delay
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.util.math.RotationUtils
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.math.corners
 import me.zeroeightsix.kami.util.threads.runSafeSuspend
 import net.minecraft.client.Minecraft
@@ -132,17 +133,38 @@ object WorldUtils {
         return Vec3d(vec.x * 0.5 + 0.5, vec.y * 0.5 + 0.5, vec.z * 0.5 + 0.5)
     }
 
-    fun SafeClientEvent.rayTraceHitVec(pos: BlockPos) : RayTraceResult? {
+    fun SafeClientEvent.rayTraceBreakVec(pos: BlockPos) : RayTraceResult? {
         val eyePos = player.getPositionEyes(1f)
         val bb = world.getBlockState(pos).getSelectedBoundingBox(world, pos)
 
         return world.rayTraceBlocks(eyePos, bb.center, false, false, true)?.takeIf {
                 it.isEqualTo(pos)
             } ?: bb.corners(0.95).mapNotNull { corner ->
-                world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf { it.isEqualTo(pos) }
+                world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf {
+                    it.isEqualTo(pos)
+                }
             }.minByOrNull {
                 it.hitVec?.distanceTo(eyePos) ?: 69420.0
             }
+    }
+
+    fun SafeClientEvent.rayTracePlaceVec(pos: BlockPos) : RayTraceResult? {
+        val eyePos = player.getPositionEyes(1f)
+
+        for (side in EnumFacing.values()) {
+            val offPos = pos.offset(side)
+            val blockState = world.getBlockState(offPos)
+            if (!blockState.isFullBlock) continue
+            val bb = blockState.getSelectedBoundingBox(world, offPos)
+            return bb.corners(0.95).mapNotNull { corner ->
+                world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf {
+                    it.isEqualTo(offPos)
+                }
+            }.minByOrNull {
+                it.hitVec?.distanceTo(eyePos) ?: 69420.0
+            }
+        }
+        return null
     }
 
     private fun RayTraceResult.isEqualTo(pos: BlockPos) = typeOfHit == RayTraceResult.Type.BLOCK && blockPos == pos

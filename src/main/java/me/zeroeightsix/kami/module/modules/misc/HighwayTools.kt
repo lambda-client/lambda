@@ -17,7 +17,8 @@ import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.placeBlock
-import me.zeroeightsix.kami.util.WorldUtils.rayTraceHitVec
+import me.zeroeightsix.kami.util.WorldUtils.rayTraceBreakVec
+import me.zeroeightsix.kami.util.WorldUtils.rayTracePlaceVec
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
@@ -25,7 +26,6 @@ import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -36,6 +36,7 @@ import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
+import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
@@ -227,7 +228,12 @@ object HighwayTools : Module() {
                     }
                     prev.block == Blocks.AIR -> {
                         totalBlocksPlaced++
-                        // Wait for it :P
+                        if (fakeSounds) {
+                            val soundType = prev.block.getSoundType(prev, world, pos, player)
+                            onMainThread {
+                                world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                            }
+                        }
                     }
                 }
             }
@@ -805,7 +811,7 @@ object HighwayTools : Module() {
             return
         }
 
-        val rayTraceResult = rayTraceHitVec(blockTask.blockPos)
+        val rayTraceResult = rayTraceBreakVec(blockTask.blockPos)
 
         if (rayTraceResult == null) {
             blockTask.onStuck()
@@ -861,25 +867,20 @@ object HighwayTools : Module() {
     }
 
     private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
-        val pair = WorldUtils.getNeighbour(blockTask.blockPos, 1, 6.5f)
-            ?: run {
-                sendChatMessage("Can't find neighbour block")
-                blockTask.onStuck()
-                return
-            }
+        val rayTraceResult = rayTracePlaceVec(blockTask.blockPos)
 
-        if (!isVisible(blockTask.blockPos)) {
+        if (rayTraceResult == null) {
             if (illegalPlacements) {
                 if (debugMessages == DebugMessages.ALL) {
                     sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
                 }
             } else {
                 blockTask.onStuck()
-                return
             }
+            return
         }
 
-        lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
+        lastHitVec = rayTraceResult.hitVec
         rotateTimer.reset()
 
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
@@ -887,7 +888,10 @@ object HighwayTools : Module() {
         defaultScope.launch {
             delay(10L)
             onMainThreadSafe {
-                placeBlock(pair.second, pair.first)
+                val offsetHitVec = lastHitVec ?: return@onMainThreadSafe
+                val placePacket = CPacketPlayerTryUseItemOnBlock(rayTraceResult.blockPos, rayTraceResult.sideHit, EnumHand.MAIN_HAND, offsetHitVec.x.toFloat(), offsetHitVec.y.toFloat(), offsetHitVec.z.toFloat())
+                connection.sendPacket(placePacket)
+                player.swingArm(EnumHand.MAIN_HAND)
             }
 
             delay(10L)
@@ -895,21 +899,6 @@ object HighwayTools : Module() {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
         }
-    }
-
-    private fun SafeClientEvent.isVisible(pos: BlockPos): Boolean {
-        val eyePos = player.getPositionEyes(1f)
-
-        for (side in EnumFacing.values()) {
-            val offPos = pos.offset(side)
-            val blockState = world.getBlockState(offPos)
-            if (blockState.isFullBlock) continue
-            val rayTraceResult = world.rayTraceBlocks(eyePos, WorldUtils.getHitVec(pos, side), false, false, true)
-                ?: continue
-            if (rayTraceResult.typeOfHit == RayTraceResult.Type.BLOCK && rayTraceResult.blockPos == offPos && offPos.offset(rayTraceResult.sideHit) == pos) return true
-        }
-
-        return false
     }
 
     private fun isInsideSelection(pos: BlockPos): Boolean {
@@ -969,7 +958,7 @@ object HighwayTools : Module() {
         }
     }
 
-    fun getBlueprintStats(): Pair<Int, Int> {
+    private fun getBlueprintStats(): Pair<Int, Int> {
         var materialUsed = 0
         var fillerMatUsed = 0
         for ((_, b) in blueprint) {
@@ -1060,7 +1049,7 @@ object HighwayTools : Module() {
         var taskState: TaskState,
         var block: Block
     ) {
-        var ranTicks = 0; private set
+        private var ranTicks = 0
         var stuckTicks = 0; private set
 
         fun updateState(state: TaskState) {
@@ -1086,7 +1075,7 @@ object HighwayTools : Module() {
             stuckTicks++
         }
 
-        fun onUpdate() {
+        private fun onUpdate() {
             stuckTicks = 0
             ranTicks = 0
         }
