@@ -392,8 +392,9 @@ object HighwayTools : Module() {
 
     private fun SafeClientEvent.pickTasksInRange() {
         val eyePos = player.getPositionEyes(1f)
+        val startBlocker = startingBlockPos.add(startingDirection.clockwise(4).directionVec.multiply(maxReach.toInt() - 1))
         blueprintNew.keys.removeIf {
-            eyePos.distanceTo(it) - 0.7 > maxReach
+            eyePos.distanceTo(it) - 0.7 > maxReach || startBlocker.distanceTo(it) < maxReach
         }
     }
 
