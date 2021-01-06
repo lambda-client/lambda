@@ -7,6 +7,7 @@ import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
+import me.zeroeightsix.kami.event.events.RenderOverlayEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
@@ -16,16 +17,18 @@ import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
-import me.zeroeightsix.kami.util.WorldUtils.placeBlock
 import me.zeroeightsix.kami.util.WorldUtils.rayTraceBreakVec
 import me.zeroeightsix.kami.util.WorldUtils.rayTracePlaceVec
 import me.zeroeightsix.kami.util.color.ColorHolder
-import me.zeroeightsix.kami.util.graphics.ESPRenderer
+import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.Direction
 import me.zeroeightsix.kami.util.math.RotationUtils
+import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.corners
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -46,6 +49,8 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
+import org.kamiblue.event.listener.listener
+import org.lwjgl.opengl.GL11
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
@@ -260,6 +265,23 @@ object HighwayTools : Module() {
             runTasks()
 
             doRotation()
+        }
+
+        safeListener<RenderOverlayEvent> {
+            val taskPos = lastTask?.blockPos ?: currentBlockPos
+            val bb = world.getBlockState(taskPos).getSelectedBoundingBox(world, taskPos)
+            val vertices = mutableListOf<Vec2d>()
+            for (vec in bb.corners(0.90)) {
+                vertices.add(Vec2d(ProjectionUtils.toScaledScreenPos(vec)))
+            }
+            val vertexHelper = VertexHelper(GlStateUtils.useVbo())
+            GL11.glDisable(GL11.GL_TEXTURE_2D)
+            for (vec in vertices) {
+                RenderUtils2D.drawLine(vertexHelper, Vec2d(ProjectionUtils.toScaledScreenPos(player.getPositionEyes(1f))), vec, 2F, ColorHolder(55, 255, 55))
+            }
+            val hitVec = lastHitVec ?: return@safeListener
+            RenderUtils2D.drawLine(vertexHelper, Vec2d(ProjectionUtils.toScaledScreenPos(player.getPositionEyes(1f))), Vec2d(ProjectionUtils.toScaledScreenPos(hitVec)),3F, ColorHolder(255, 55, 55))
+            GL11.glEnable(GL11.GL_TEXTURE_2D)
         }
     }
 

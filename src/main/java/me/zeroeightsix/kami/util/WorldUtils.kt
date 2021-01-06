@@ -156,6 +156,7 @@ object WorldUtils {
             val blockState = world.getBlockState(offPos)
             if (!blockState.isFullBlock) continue
             val bb = blockState.getSelectedBoundingBox(world, offPos)
+
             return bb.corners(0.95).mapNotNull { corner ->
                 world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf {
                     it.isEqualTo(offPos)
