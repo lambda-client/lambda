@@ -11,6 +11,7 @@ import me.zeroeightsix.kami.util.graphics.GlStateUtils
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.entity.Entity
+import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
 import net.minecraft.entity.player.EntityPlayer
@@ -35,6 +36,7 @@ object Chams : Module() {
     private val arrows = setting("Arrows", false, { page.value == Page.ENTITY_TYPE && !all.value })
     private val throwable = setting("Throwable", false, { page.value == Page.ENTITY_TYPE && !all.value })
     private val items = setting("Items", false, { page.value == Page.ENTITY_TYPE && !all.value })
+    private val crystals = setting("Crystals", true, { page.value == Page.ENTITY_TYPE && !all.value })
     private val players = setting("Players", true, { page.value == Page.ENTITY_TYPE && !all.value })
     private val friends = setting("Friends", false, { page.value == Page.ENTITY_TYPE && !all.value && players.value })
     private val sleeping = setting("Sleeping", false, { page.value == Page.ENTITY_TYPE && !all.value && players.value })
@@ -104,6 +106,7 @@ object Chams : Module() {
                 || arrows.value && entity is EntityArrow
                 || throwable.value && entity is EntityThrowable
                 || items.value && entity is EntityItem
+                || crystals.value && entity is EntityEnderCrystal
                 || players.value && entity is EntityPlayer && EntityUtils.playerTypeCheck(entity, friends.value, sleeping.value)
                 || mobTypeSettings(entity, mobs.value, passive.value, neutral.value, hostile.value))
     }
