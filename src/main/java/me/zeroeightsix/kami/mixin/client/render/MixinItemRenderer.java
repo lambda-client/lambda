@@ -23,8 +23,10 @@ public class MixinItemRenderer {
     }
 
     @Inject(method = "renderItemInFirstPerson(Lnet/minecraft/client/entity/AbstractClientPlayer;FFLnet/minecraft/util/EnumHand;FLnet/minecraft/item/ItemStack;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GlStateManager;pushMatrix()V", shift = At.Shift.AFTER))
-    private void transformSideFirstPerson$pushMatrix(AbstractClientPlayer player, float var0, float pitch, EnumHand hand, float var1, ItemStack stack, float yOffset, CallbackInfo ci) {
+    private void transformSideFirstPerson$pushMatrix(AbstractClientPlayer player, float partialTicks, float pitch, EnumHand hand, float swingProgress, ItemStack stack, float equippedProgress, CallbackInfo ci) {
         if (ItemModel.INSTANCE.isEnabled()) {
+            if (!ItemModel.INSTANCE.getModifyHand() && stack.isEmpty()) return;
+
             EnumHandSide enumhandside = hand == EnumHand.MAIN_HAND ? player.getPrimaryHand() : player.getPrimaryHand().opposite();
             float sideMultiplier = enumhandside == EnumHandSide.RIGHT ? 1.0f : -1.0f;
 
@@ -33,8 +35,10 @@ public class MixinItemRenderer {
     }
 
     @Inject(method = "renderItemInFirstPerson(Lnet/minecraft/client/entity/AbstractClientPlayer;FFLnet/minecraft/util/EnumHand;FLnet/minecraft/item/ItemStack;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ItemRenderer;renderItemSide(Lnet/minecraft/entity/EntityLivingBase;Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/renderer/block/model/ItemCameraTransforms$TransformType;Z)V"))
-    private void transformSideFirstPerson$renderItemSide(AbstractClientPlayer player, float var0, float pitch, EnumHand hand, float var1, ItemStack stack, float yOffset, CallbackInfo ci) {
+    private void transformSideFirstPerson$renderItemSide(AbstractClientPlayer player, float partialTicks, float pitch, EnumHand hand, float swingProgress, ItemStack stack, float equippedProgress, CallbackInfo ci) {
         if (ItemModel.INSTANCE.isEnabled()) {
+            if (!ItemModel.INSTANCE.getModifyHand() && stack.isEmpty()) return;
+
             EnumHandSide enumhandside = hand == EnumHand.MAIN_HAND ? player.getPrimaryHand() : player.getPrimaryHand().opposite();
             float sideMultiplier = enumhandside == EnumHandSide.RIGHT ? 1.0f : -1.0f;
             float scale = ItemModel.INSTANCE.getScale();
