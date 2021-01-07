@@ -43,14 +43,9 @@ object StashLogger : Module(
     private val logHoppers by setting("Hoppers", true)
     private val hopperDensity by setting("MinHoppers", 5, 1..20, 1, { logHoppers })
 
-    private val chunkData = Collections.synchronizedMap(LinkedHashMap<Long, ChunkStats>())
+    private val chunkData = LinkedHashMap<Long, ChunkStats>()
     private val knownPositions = HashSet<BlockPos>()
     private val timer = TickTimer(TimeUnit.SECONDS)
-
-    override fun onEnable() {
-        chunkData.clear()
-        knownPositions.clear()
-    }
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
@@ -60,8 +55,7 @@ object StashLogger : Module(
                 coroutineScope {
                     launch {
                         world.loadedTileEntityList.toList().forEach(::logTileEntity)
-                    }
-                    launch {
+
                         for (chunkStats in chunkData.values) {
                             if (!chunkStats.hot) continue
 
@@ -94,7 +88,7 @@ object StashLogger : Module(
         if (!checkTileEntityType(tileEntity)) return
         if (!knownPositions.add(tileEntity.pos)) return
 
-        val chunk = ChunkPos.asLong(tileEntity.pos.x shl 4, tileEntity.pos.z shl 4)
+        val chunk = ChunkPos.asLong(tileEntity.pos.x shr 4, tileEntity.pos.z shr 4)
         val chunkStats = chunkData.getOrPut(chunk, ::ChunkStats)
 
         chunkStats.add(tileEntity)
@@ -108,13 +102,13 @@ object StashLogger : Module(
             || logHoppers && tileEntity is TileEntityHopper
 
     private class ChunkStats {
-        var chests: Int = 0; private set
-        var shulkers: Int = 0; private set
-        var droppers: Int = 0; private set
-        var dispensers: Int = 0; private set
-        var hoppers: Int = 0; private set
+        var chests = 0; private set
+        var shulkers = 0; private set
+        var droppers = 0; private set
+        var dispensers = 0; private set
+        var hoppers = 0; private set
 
-        var hot: Boolean = false
+        var hot = false
 
         private val tileEntities = Collections.synchronizedList(ArrayList<TileEntity>())
 
@@ -125,6 +119,7 @@ object StashLogger : Module(
                 is TileEntityDropper -> droppers++
                 is TileEntityDispenser -> dispensers++
                 is TileEntityHopper -> hoppers++
+                else -> return
             }
 
             tileEntities.add(tileEntity)

@@ -128,7 +128,7 @@ object ModuleList : HudElement(
             GlStateManager.translate(animationXOffset - stringPosX - margin, 0.0f, 0.0f)
 
             if (rainbow.value) {
-                val hue = timedHue + indexedHue.value * 0.005f * index++
+                val hue = timedHue + indexedHue.value * 0.05f * index++
                 val color = ColorConverter.hexToRgb(Color.HSBtoRGB(hue, primaryHsb[1], primaryHsb[2]))
 
                 TextComponent.TextLine(" ").run {
