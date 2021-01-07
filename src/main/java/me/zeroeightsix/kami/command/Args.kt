@@ -148,6 +148,10 @@ class PlayerArg(
     override val name: String
 ) : AbstractArg<PlayerProfile>(), AutoComplete by DynamicPrefixMatch(::playerInfoMap) {
 
+    override suspend fun checkType(string: String?): Boolean {
+        return !string.isNullOrBlank()
+    }
+
     override suspend fun convertToType(string: String?): PlayerProfile? {
         return UUIDManager.getByString(string)
     }
