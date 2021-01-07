@@ -100,7 +100,7 @@ object AutoObsidian : Module() {
 
     private var active = false
     private var placingPos = BlockPos(0, -1, 0)
-    private var shulkerBoxId = 0
+    private var shulkerID = 0
     private var lastHitVec: Vec3d? = null
 
     private val tickTimer = TickTimer(TimeUnit.TICKS)
@@ -304,7 +304,7 @@ object AutoObsidian : Module() {
                     searchingState == SearchingState.PLACING && InventoryUtils.countItemAll(Blocks.ENDER_CHEST.id) > 0 -> {
                         SearchingState.DONE
                     }
-                    searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerBoxId, 8.0f) == null -> {
+                    searchingState == SearchingState.COLLECTING && getDroppedItem(shulkerID, 8.0f) == null -> {
                         SearchingState.DONE
                     }
                     searchingState == SearchingState.MINING && world.isAirBlock(placingPos) -> {
@@ -353,7 +353,7 @@ object AutoObsidian : Module() {
                     mineBlock(placingPos, false)
                 }
                 SearchingState.COLLECTING -> {
-                    collectDroppedItem(shulkerBoxId)
+                    collectDroppedItem(shulkerID)
                 }
                 SearchingState.DONE -> {
                     updatePlacingPos()
@@ -364,25 +364,42 @@ object AutoObsidian : Module() {
         }
     }
 
+    /**
+     * @return The id of a shulker found in the hotbar, else returns -1
+     */
+    private fun getShulkerInHotbar(): Int {
+        for (shulkerID in 219..234) {
+            if (InventoryUtils.getSlotsHotbar(shulkerID) != null) return shulkerID
+        }
+        return -1
+    }
+
+    /**
+     * @return the id of a shulker found in a non-hotbar slot, else returns -1
+     */
+    private fun getShulkerInInventory(): Int {
+        for (shulkerID in 219..234) {
+            if (InventoryUtils.getSlotsNoHotbar(shulkerID) != null) return shulkerID
+        }
+        return -1
+    }
+
     private fun SafeClientEvent.placeShulker(pos: BlockPos) {
-        if (InventoryUtils.getSlotsHotbar(shulkerBoxId) == null && InventoryUtils.getSlotsNoHotbar(shulkerBoxId) != null) {
-            InventoryUtils.moveToHotbar(shulkerBoxId, Items.DIAMOND_PICKAXE.id)
-        } else {
-            for (i in 219..234) {
-                if (InventoryUtils.getSlotsHotbar(i) == null) {
-                    if (i == 234) {
-                        MessageSendHelper.sendChatMessage("$chatName No shulker box was found in hotbar, disabling.")
-                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                        disable()
-                    }
-                    continue
-                }
-                shulkerBoxId = i
-                InventoryUtils.swapSlotToItem(i)
-                break
-            }
+        shulkerID = getShulkerInHotbar()
+
+        val inventoryShulkerID = getShulkerInInventory()
+        if (shulkerID == -1 && inventoryShulkerID != -1) {
+            InventoryUtils.moveToHotbar(inventoryShulkerID, Items.DIAMOND_PICKAXE.id)
+            shulkerID = inventoryShulkerID
+            return
+        } else if (shulkerID == -1) {
+            MessageSendHelper.sendChatMessage("$chatName No shulker box was found in hotbar, disabling.")
+            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
+            return
         }
 
+        InventoryUtils.swapSlotToItem(shulkerID)
         if (world.getBlockState(pos).block !is BlockShulkerBox) {
             placeBlock(pos)
         }
