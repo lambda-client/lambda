@@ -63,7 +63,7 @@ object StorageESP : Module(
     }
 
     override fun getHudInfo(): String {
-        return renderer.getSize().toString()
+        return renderer.size.toString()
     }
 
     private var cycler = HueCycler(600)

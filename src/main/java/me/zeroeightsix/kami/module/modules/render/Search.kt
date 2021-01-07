@@ -59,7 +59,7 @@ object Search : Module(
     private val updateTimer = TickTimer()
 
     override fun getHudInfo(): String {
-        return renderer.getSize().toString()
+        return renderer.size.toString()
     }
 
     override fun onEnable() {

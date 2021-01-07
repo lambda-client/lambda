@@ -19,8 +19,9 @@ import org.lwjgl.opengl.GL11.GL_QUADS
  * Created by Xiaro on 30/07/20
  */
 class ESPRenderer {
+    private var toRender: MutableList<Triple<AxisAlignedBB, ColorHolder, Int>>? = ArrayList()
+    private val lockObject = Any()
     private val frustumCamera: ICamera = Frustum()
-    private var toRender: MutableList<Triple<AxisAlignedBB, ColorHolder, Int>> = ArrayList()
 
     var aFilled = 0
     var aOutline = 0
@@ -30,9 +31,8 @@ class ESPRenderer {
     var tracerOffset = 50
     var fullOutline = false
 
-    fun getSize(): Int {
-        return toRender.size
-    }
+    val size: Int
+        get() = toRender?.size ?: 0
 
     fun add(entity: Entity, color: ColorHolder) {
         add(entity, color, GeometryMasks.Quad.ALL)
@@ -60,43 +60,61 @@ class ESPRenderer {
     }
 
     fun add(triple: Triple<AxisAlignedBB, ColorHolder, Int>) {
-        toRender.add(triple)
+        synchronized(lockObject) {
+            getListNotNull().add(triple)
+        }
     }
 
     fun replaceAll(list: MutableList<Triple<AxisAlignedBB, ColorHolder, Int>>) {
-        toRender = list
+        synchronized(lockObject) {
+            toRender = list
+        }
     }
 
     fun clear() {
-        toRender.clear()
+        synchronized(lockObject) {
+            getListNotNull().clear()
+        }
+    }
+
+    private fun getListNotNull(): MutableList<Triple<AxisAlignedBB, ColorHolder, Int>> {
+        synchronized(lockObject) {
+            return toRender ?: ArrayList<Triple<AxisAlignedBB, ColorHolder, Int>>().also { replaceAll(it) }
+        }
     }
 
     fun render(clear: Boolean, cull: Boolean = true) {
-        if (toRender.isEmpty() && (aFilled == 0 && aOutline == 0 && aTracer == 0)) return
+        synchronized(lockObject) {
+            if (aFilled == 0 && aOutline == 0 && aTracer == 0) return
 
-        val entity = Wrapper.minecraft.renderViewEntity ?: Wrapper.player ?: return
-        val interpolatedPos = EntityUtils.getInterpolatedPos(entity, KamiTessellator.pTicks())
-        frustumCamera.setPosition(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z)
+            val list = toRender ?: return
 
-        if (through) GlStateManager.disableDepth()
+            if (list.isEmpty()) return
 
-        if (aFilled != 0) drawList(Type.FILLED, cull)
+            val entity = Wrapper.minecraft.renderViewEntity ?: Wrapper.player ?: return
+            val interpolatedPos = EntityUtils.getInterpolatedPos(entity, KamiTessellator.pTicks())
+            frustumCamera.setPosition(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z)
 
-        if (aOutline != 0) drawList(Type.OUTLINE, cull)
+            if (through) GlStateManager.disableDepth()
 
-        if (aTracer != 0) drawList(Type.TRACER, cull)
+            if (aFilled != 0) drawList(list, Type.FILLED, cull)
+            if (aOutline != 0) drawList(list, Type.OUTLINE, cull)
+            if (aTracer != 0) drawList(list, Type.TRACER, cull)
+            if (clear) clear()
 
-        if (clear) clear()
-        GlStateManager.enableDepth()
+            GlStateManager.enableDepth()
+        }
     }
 
-    private fun drawList(type: Type, cull: Boolean = false) {
+    private fun drawList(list: List<Triple<AxisAlignedBB, ColorHolder, Int>>, type: Type, cull: Boolean = false) {
         KamiTessellator.begin(if (type == Type.FILLED) GL_QUADS else GL_LINES)
 
-        for ((box, color, sides) in toRender) when (type) {
-            Type.FILLED -> drawFilled(cull, box, color, sides)
-            Type.OUTLINE -> drawOutline(cull, box, color, sides)
-            Type.TRACER -> drawTracer(box, color)
+        for ((box, color, sides) in list) {
+            when (type) {
+                Type.FILLED -> drawFilled(cull, box, color, sides)
+                Type.OUTLINE -> drawOutline(cull, box, color, sides)
+                Type.TRACER -> drawTracer(box, color)
+            }
         }
 
         KamiTessellator.render()
@@ -130,5 +148,4 @@ class ESPRenderer {
     private enum class Type {
         FILLED, OUTLINE, TRACER
     }
-
 }
