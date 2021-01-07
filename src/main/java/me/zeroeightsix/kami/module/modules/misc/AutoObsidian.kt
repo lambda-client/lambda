@@ -157,8 +157,8 @@ object AutoObsidian : Module() {
             if (state != State.DONE) renderer.render(clear = false, cull = true)
         }
 
-        safeListener<OnUpdateWalkingPlayerEvent> { event ->
-            if (event.phase != Phase.PRE || rotateTimer.tick(20L, false)) return@safeListener
+        safeListener<TickEvent.ClientTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.START || rotateTimer.tick(20L, false)) return@safeListener
             val rotation = lastHitVec?.let { getRotationTo(it) } ?: return@safeListener
 
             when (rotationMode) {

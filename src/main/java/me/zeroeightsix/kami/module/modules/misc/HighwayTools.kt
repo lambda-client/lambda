@@ -21,14 +21,11 @@ import me.zeroeightsix.kami.util.WorldUtils.rayTraceBreakVec
 import me.zeroeightsix.kami.util.WorldUtils.rayTracePlaceVec
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
+import me.zeroeightsix.kami.util.math.*
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
-import me.zeroeightsix.kami.util.math.Direction
-import me.zeroeightsix.kami.util.math.RotationUtils
-import me.zeroeightsix.kami.util.math.Vec2d
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
-import me.zeroeightsix.kami.util.math.corners
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -47,6 +44,7 @@ import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
 import org.kamiblue.event.listener.listener
@@ -248,8 +246,8 @@ object HighwayTools : Module() {
             renderer.render(false)
         }
 
-        safeListener<OnUpdateWalkingPlayerEvent> {
-            if (it.phase != Phase.PRE) return@safeListener
+        safeListener<TickEvent.ClientTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.START) return@safeListener
 
             if (!active) {
                 active = true
@@ -265,23 +263,6 @@ object HighwayTools : Module() {
             runTasks()
 
             doRotation()
-        }
-
-        safeListener<RenderOverlayEvent> {
-            val taskPos = lastTask?.blockPos ?: currentBlockPos
-            val bb = world.getBlockState(taskPos).getSelectedBoundingBox(world, taskPos)
-            val vertices = mutableListOf<Vec2d>()
-            for (vec in bb.corners(0.90)) {
-                vertices.add(Vec2d(ProjectionUtils.toScaledScreenPos(vec)))
-            }
-            val vertexHelper = VertexHelper(GlStateUtils.useVbo())
-            GL11.glDisable(GL11.GL_TEXTURE_2D)
-            for (vec in vertices) {
-                RenderUtils2D.drawLine(vertexHelper, Vec2d(ProjectionUtils.toScaledScreenPos(player.getPositionEyes(1f))), vec, 2F, ColorHolder(55, 255, 55))
-            }
-            val hitVec = lastHitVec ?: return@safeListener
-            RenderUtils2D.drawLine(vertexHelper, Vec2d(ProjectionUtils.toScaledScreenPos(player.getPositionEyes(1f))), Vec2d(ProjectionUtils.toScaledScreenPos(hitVec)),3F, ColorHolder(255, 55, 55))
-            GL11.glEnable(GL11.GL_TEXTURE_2D)
         }
     }
 
@@ -394,7 +375,7 @@ object HighwayTools : Module() {
         val eyePos = player.getPositionEyes(1f)
         val startBlocker = startingBlockPos.add(startingDirection.clockwise(4).directionVec.multiply(maxReach.toInt() - 1))
         blueprintNew.keys.removeIf {
-            eyePos.distanceTo(it) - 0.7 > maxReach || startBlocker.distanceTo(it) < maxReach
+            eyePos.distanceTo(it) > maxReach - 0.7 || startBlocker.distanceTo(it) < maxReach
         }
     }
 
@@ -519,12 +500,13 @@ object HighwayTools : Module() {
             }
 
             (lastTask ?: sortedTasks.firstOrNull())?.let {
-                val dist = player.getPositionEyes(1f).distanceTo(it.blockPos) - 0.7
-                if (dist > maxReach) {
-                    refreshData()
-                } else {
-                    doNextTask(sortedTasks)
-                }
+//                val dist = player.getPositionEyes(1f).distanceTo(it.blockPos) - 0.7
+//                if (dist > maxReach) {
+//                    refreshData()
+//                } else {
+//                    doNextTask(sortedTasks)
+//                }
+                doNextTask(sortedTasks)
             }
         } else {
             if (checkDoneTasks()) {

@@ -4,8 +4,8 @@ import kotlinx.coroutines.delay
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.util.math.RotationUtils
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.math.corners
+import me.zeroeightsix.kami.util.math.faceCorners
 import me.zeroeightsix.kami.util.threads.runSafeSuspend
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
@@ -150,22 +150,23 @@ object WorldUtils {
 
     fun SafeClientEvent.rayTracePlaceVec(pos: BlockPos) : RayTraceResult? {
         val eyePos = player.getPositionEyes(1f)
+        val possibleTraces = mutableListOf<RayTraceResult>()
 
         for (side in EnumFacing.values()) {
             val offPos = pos.offset(side)
             val blockState = world.getBlockState(offPos)
             if (!blockState.isFullBlock) continue
             val bb = blockState.getSelectedBoundingBox(world, offPos)
-
-            return bb.corners(0.95).mapNotNull { corner ->
-                world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf {
-                    it.isEqualTo(offPos)
+            val rt = bb.faceCorners(side.opposite, 0.85).mapNotNull { corner ->
+                world.rayTraceBlocks(eyePos, corner, false, false, false)?.takeIf {
+                    it.isEqualTo(offPos) && it.sideHit == side.opposite
                 }
             }.minByOrNull {
                 it.hitVec?.distanceTo(eyePos) ?: 69420.0
             }
+            possibleTraces.add(rt)
         }
-        return null
+        return possibleTraces.minByOrNull { it.hitVec?.distanceTo(eyePos) ?: 69420.0 }
     }
 
     private fun RayTraceResult.isEqualTo(pos: BlockPos) = typeOfHit == RayTraceResult.Type.BLOCK && blockPos == pos
