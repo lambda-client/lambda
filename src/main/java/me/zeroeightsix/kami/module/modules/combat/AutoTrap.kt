@@ -40,11 +40,11 @@ object AutoTrap : Module(
         return isEnabled && job.isActiveOrFalse
     }
 
-    override fun onDisable() {
-        PlayerPacketManager.resetHotbar()
-    }
-
     init {
+        onDisable {
+            PlayerPacketManager.resetHotbar()
+        }
+
         safeListener<TickEvent.ClientTickEvent> {
             if (!job.isActiveOrFalse && isPlaceable()) job = runAutoTrap()
 

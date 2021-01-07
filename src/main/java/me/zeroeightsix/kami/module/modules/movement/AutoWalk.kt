@@ -24,7 +24,7 @@ object AutoWalk : Module(
     description = "Automatically walks somewhere"
 ) {
     val mode = setting("Direction", AutoWalkMode.BARITONE)
-    private val disableOnDisconnect = setting("DisableOnDisconnect", true)
+    private val disableOnDisconnect by setting("DisableOnDisconnect", true)
 
     enum class AutoWalkMode {
         FORWARD, BACKWARDS, BARITONE
@@ -46,11 +46,11 @@ object AutoWalk : Module(
         }
     }
 
-    override fun onDisable() {
-        if (mc.player != null && mode.value == AutoWalkMode.BARITONE) BaritoneUtils.cancelEverything()
-    }
-
     init {
+        onDisable {
+            if (mode.value == AutoWalkMode.BARITONE) BaritoneUtils.cancelEverything()
+        }
+
         listener<BaritoneCommandEvent> {
             if (it.command.contains("cancel")) {
                 disable()
@@ -58,11 +58,11 @@ object AutoWalk : Module(
         }
 
         listener<ConnectionEvent.Disconnect> {
-            if (disableOnDisconnect.value) disable()
+            if (disableOnDisconnect) disable()
         }
 
         listener<InputUpdateEvent>(6969) {
-            if (LagNotifier.paused && LagNotifier.pauseAutoWalk.value) return@listener
+            if (LagNotifier.paused && LagNotifier.pauseAutoWalk) return@listener
 
             if (it.movementInput !is MovementInputFromOptions) return@listener
 
@@ -74,7 +74,7 @@ object AutoWalk : Module(
                     it.movementInput.moveForward = -1.0f
                 }
                 else -> {
-                    // this is fine, Java meme
+                    // Baritone mode
                 }
             }
         }

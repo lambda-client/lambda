@@ -109,15 +109,15 @@ object AutoObsidian : Module(
         return isEnabled && active
     }
 
-    override fun onEnable() {
-        state = State.SEARCHING
-    }
-
-    override fun onDisable() {
-        reset()
-    }
-
     init {
+        onEnable {
+            state = State.SEARCHING
+        }
+
+        onDisable {
+            reset()
+        }
+
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
 

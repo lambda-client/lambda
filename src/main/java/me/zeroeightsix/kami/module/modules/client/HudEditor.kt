@@ -11,21 +11,21 @@ object HudEditor : Module(
     category = Category.CLIENT,
     showOnArray = false
 ) {
-    override fun onEnable() {
-        if (mc.currentScreen !is KamiHudGui) {
-            ClickGUI.disable()
-            mc.displayGuiScreen(KamiHudGui)
-            KamiHudGui.onDisplayed()
-        }
-    }
-
-    override fun onDisable() {
-        if (mc.currentScreen is KamiHudGui) {
-            mc.displayGuiScreen(null)
-        }
-    }
-
     init {
+        onEnable {
+            if (mc.currentScreen !is KamiHudGui) {
+                ClickGUI.disable()
+                mc.displayGuiScreen(KamiHudGui)
+                KamiHudGui.onDisplayed()
+            }
+        }
+
+        onDisable {
+            if (mc.currentScreen is KamiHudGui) {
+                mc.displayGuiScreen(null)
+            }
+        }
+
         listener<ShutdownEvent> {
             disable()
         }

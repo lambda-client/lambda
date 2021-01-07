@@ -35,12 +35,12 @@ object AutoEat : Module(
     private var lastSlot = -1
     var eating = false; private set
 
-    override fun onDisable() {
-        unpause()
-        eating = false
-    }
-
     init {
+        onDisable {
+            unpause()
+            eating = false
+        }
+
         safeListener<TickEvent.ClientTickEvent> {
             if (CombatSetting.isActive()) return@safeListener
 

@@ -8,6 +8,7 @@ import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.setting.settings.AbstractSetting
 import me.zeroeightsix.kami.util.Bind
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.threads.runSafe
 import net.minecraft.client.Minecraft
 import org.kamiblue.commons.interfaces.Alias
 import org.kamiblue.commons.interfaces.DisplayEnum
@@ -30,7 +31,7 @@ open class Module(
     val settingList: List<AbstractSetting<*>> get() = fullSettingList.filter { it != bind && it != enabled && it != visible && it != default }
 
     val bind = setting("Bind", Bind(), { !alwaysEnabled })
-    private val enabled = setting("Enabled", enabledByDefault || alwaysEnabled, { false })
+    private val enabled = setting("Enabled", false, { false })
     private val visible = setting("Visible", showOnArray)
     private val default = setting("Default", false, { settingList.isNotEmpty() })
     /* End of settings */
@@ -42,53 +43,29 @@ open class Module(
     val isVisible: Boolean get() = visible.value
     /* End of properties */
 
-
-    fun resetSettings() {
-        for (setting in settingList) {
-            setting.resetValue()
-        }
+    internal fun postInit() {
+        enabled.value = enabledByDefault || alwaysEnabled
+        if (alwaysListening) KamiEventBus.subscribe(this)
     }
 
     fun toggle() {
-        setEnabled(!isEnabled)
-    }
-
-    fun setEnabled(state: Boolean) {
-        if (isEnabled != state) if (state) enable() else disable()
+        enabled.value = !enabled.value
     }
 
     fun enable() {
-        if (!enabled.value) sendToggleMessage()
-
         enabled.value = true
-        onEnable()
-        onToggle()
-        if (!alwaysListening) {
-            KamiEventBus.subscribe(this)
-        }
     }
 
     fun disable() {
-        if (alwaysEnabled) return
-        if (enabled.value) sendToggleMessage()
-
         enabled.value = false
-        onDisable()
-        onToggle()
-        if (!alwaysListening) {
-            KamiEventBus.unsubscribe(this)
-        }
     }
 
     private fun sendToggleMessage() {
-        if (this !is ClickGUI && CommandConfig.toggleMessages.value) {
-            MessageSendHelper.sendChatMessage(name + if (enabled.value) " &cdisabled" else " &aenabled")
+        runSafe {
+            if (this@Module !is ClickGUI && CommandConfig.toggleMessages.value) {
+                MessageSendHelper.sendChatMessage(name + if (enabled.value) " &cdisabled" else " &aenabled")
+            }
         }
-    }
-
-
-    open fun destroy() {
-        // Cleanup method in case this module wants to do something when the client closes down
     }
 
     open fun isActive(): Boolean {
@@ -99,19 +76,45 @@ open class Module(
         return ""
     }
 
-    protected open fun onEnable() {
-        // override to run code when the module is enabled
+    protected fun onEnable(block: (Boolean) -> Unit) {
+        enabled.valueListeners.add { _, input ->
+            if (input) {
+                block(input)
+            }
+        }
     }
 
-    protected open fun onDisable() {
-        // override to run code when the module is disabled
+    protected fun onDisable(block: (Boolean) -> Unit) {
+        enabled.valueListeners.add { _, input ->
+            if (!input) {
+                block(input)
+            }
+        }
     }
 
-    protected open fun onToggle() {
-        // override to run code when the module is enabled or disabled
+    protected fun onToggle(block: (Boolean) -> Unit) {
+        enabled.valueListeners.add { _, input ->
+            block(input)
+        }
     }
 
     init {
+        enabled.consumers.add { prev, input ->
+            val enabled = alwaysEnabled || input
+
+            if (prev != input && !alwaysEnabled) {
+                sendToggleMessage()
+            }
+
+            if (enabled || alwaysListening) {
+                KamiEventBus.subscribe(this)
+            } else {
+                KamiEventBus.unsubscribe(this)
+            }
+
+            enabled
+        }
+
         default.valueListeners.add { _, it ->
             if (it) {
                 settingList.forEach { it.resetValue() }

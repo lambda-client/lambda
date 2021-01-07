@@ -62,16 +62,16 @@ object Search : Module(
         return renderer.size.toString()
     }
 
-    override fun onEnable() {
-        if (!overrideWarning && ShaderHelper.isIntegratedGraphics) {
-            MessageSendHelper.sendErrorMessage("$chatName Warning: Running Search with an Intel Integrated GPU is not recommended, as it has a &llarge&r impact on performance.")
-            MessageSendHelper.sendWarningMessage("$chatName If you're sure you want to try, run the ${formatValue("${CommandManager.prefix}search override")} command")
-            disable()
-            return
-        }
-    }
-
     init {
+        onEnable {
+            if (!overrideWarning && ShaderHelper.isIntegratedGraphics) {
+                MessageSendHelper.sendErrorMessage("$chatName Warning: Running Search with an Intel Integrated GPU is not recommended, as it has a &llarge&r impact on performance.")
+                MessageSendHelper.sendWarningMessage("$chatName If you're sure you want to try, run the ${formatValue("${CommandManager.prefix}search override")} command")
+                disable()
+                return@onEnable
+            }
+        }
+
         safeListener<RenderWorldEvent> {
             renderer.render(false)
 

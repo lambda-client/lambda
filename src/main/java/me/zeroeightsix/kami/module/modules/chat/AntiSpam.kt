@@ -76,6 +76,10 @@ object AntiSpam : Module(
     )
 
     init {
+        onDisable {
+            messageHistory.clear()
+        }
+
         listener<ClientChatReceivedEvent> { event ->
             if (mc.player == null) return@listener
 
@@ -102,10 +106,6 @@ object AntiSpam : Module(
                 }
             }
         }
-    }
-
-    override fun onDisable() {
-        messageHistory.clear()
     }
 
     private fun sanitize(toClean: String, matcher: String, replacement: String): String {

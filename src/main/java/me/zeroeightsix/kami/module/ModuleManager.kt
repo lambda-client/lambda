@@ -32,7 +32,7 @@ object ModuleManager : AsyncLoader<List<Class<out Module>>> {
         val stopTimer = StopTimer()
 
         for (clazz in input) {
-            moduleSet.add(ClassUtils.getInstance(clazz))
+            moduleSet.add(ClassUtils.getInstance(clazz).apply { postInit() })
         }
 
         val time = stopTimer.stop()
