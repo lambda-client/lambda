@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.gui.hudgui.elements.misc
 
+import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.gui.hudgui.LabelHud
 import me.zeroeightsix.kami.module.modules.misc.HighwayTools
 
@@ -8,7 +9,7 @@ object HighwayToolsHud : LabelHud(
     category = Category.MISC,
     description = "Hud for HighwayTools module"
 ) {
-    override fun updateText() {
+    override fun SafeClientEvent.updateText() {
         val list = HighwayTools.gatherStatistics()
         for (line in list) {
             displayText.addLine(line)
