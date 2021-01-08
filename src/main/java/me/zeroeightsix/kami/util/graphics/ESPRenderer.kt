@@ -31,7 +31,7 @@ class ESPRenderer {
     var fullOutline = false
 
     val size: Int
-        get() = toRender?.size
+        get() = toRender.size
 
     fun add(entity: Entity, color: ColorHolder) {
         add(entity, color, GeometryMasks.Quad.ALL)
@@ -127,4 +127,5 @@ class ESPRenderer {
     private enum class Type {
         FILLED, OUTLINE, TRACER
     }
+
 }
