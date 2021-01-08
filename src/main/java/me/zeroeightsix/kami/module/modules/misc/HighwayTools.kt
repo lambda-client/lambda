@@ -58,14 +58,12 @@ import kotlin.collections.LinkedHashMap
  * @author Avanatiker
  * @since 20/08/2020
  */
-@Module.Info(
+object HighwayTools : Module(
     name = "HighwayTools",
     description = "Be the grief a step a head.",
-    category = Module.Category.MISC,
+    category = Category.MISC,
     modulePriority = 10
-)
-object HighwayTools : Module() {
-
+) {
     private val mode by setting("Mode", Mode.HIGHWAY)
     private val page by setting("Page", Page.BUILD)
 
@@ -151,64 +149,64 @@ object HighwayTools : Module() {
         return isEnabled && active
     }
 
-    override fun onEnable() {
-        if (mc.player == null) {
-            disable()
-            return
-        }
-
-        /* Turn on inventory manager if the users wants us to control it */
-        if (toggleInventoryManager && InventoryManager.isDisabled) InventoryManager.enable()
-
-        /* Turn on Auto Obsidian if the user wants us to control it. */
-        if (toggleAutoObsidian && AutoObsidian.isDisabled && mode != Mode.TUNNEL) {
-            AutoObsidian.enable()
-        }
-
-        startingBlockPos = mc.player.flooredPosition
-        currentBlockPos = startingBlockPos
-        startingDirection = Direction.fromEntity(mc.player)
-
-        startTime = System.currentTimeMillis()
-        totalBlocksPlaced = 0
-        totalBlocksDestroyed = 0
-
-        baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
-        BaritoneUtils.settings?.allowPlace?.value = false
-
-        if (!goalRender) {
-            baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
-            BaritoneUtils.settings?.renderGoal?.value = false
-        }
-
-        runSafe {
-            refreshData()
-            printEnable()
-        }
-    }
-
-    override fun onDisable() {
-        if (mc.player == null) return
-
-        active = false
-
-        BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
-        if (!goalRender) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
-
-        /* Turn off inventory manager if the users wants us to control it */
-        if (toggleInventoryManager && InventoryManager.isEnabled) InventoryManager.disable()
-
-        /* Turn off auto obsidian if the user wants us to control it */
-        if (toggleAutoObsidian && AutoObsidian.isEnabled) {
-            AutoObsidian.disable()
-        }
-
-        lastTask = null
-
-        printDisable()
-    }
-
     init {
+        onEnable {
+            if (mc.player == null) {
+                disable()
+                return@onEnable
+            }
+
+            /* Turn on inventory manager if the users wants us to control it */
+            if (toggleInventoryManager && InventoryManager.isDisabled) InventoryManager.enable()
+
+            /* Turn on Auto Obsidian if the user wants us to control it. */
+            if (toggleAutoObsidian && AutoObsidian.isDisabled && mode != Mode.TUNNEL) {
+                AutoObsidian.enable()
+            }
+
+            startingBlockPos = mc.player.flooredPosition
+            currentBlockPos = startingBlockPos
+            startingDirection = Direction.fromEntity(mc.player)
+
+            startTime = System.currentTimeMillis()
+            totalBlocksPlaced = 0
+            totalBlocksDestroyed = 0
+
+            baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
+            BaritoneUtils.settings?.allowPlace?.value = false
+
+            if (!goalRender) {
+                baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
+                BaritoneUtils.settings?.renderGoal?.value = false
+            }
+
+            runSafe {
+                refreshData()
+                printEnable()
+            }
+        }
+
+        onDisable {
+            if (mc.player == null) return@onDisable
+
+            active = false
+
+            BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
+            if (!goalRender) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
+
+            /* Turn off inventory manager if the users wants us to control it */
+            if (toggleInventoryManager && InventoryManager.isEnabled) InventoryManager.disable()
+
+            /* Turn off auto obsidian if the user wants us to control it */
+            if (toggleAutoObsidian && AutoObsidian.isEnabled) {
+                AutoObsidian.disable()
+            }
+
+            lastTask = null
+
+            printDisable()
+        }
+
         safeListener<PacketEvent.Receive> {
             if (it.packet !is SPacketBlockChange) return@safeListener
 
