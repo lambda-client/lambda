@@ -14,13 +14,12 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import kotlin.math.abs
 
-@Module.Info(
-        name = "AntiBot",
-        description = "Avoid attacking fake players",
-        category = Module.Category.COMBAT,
-        alwaysListening = true
-)
-object AntiBot : Module() {
+object AntiBot : Module(
+    name = "AntiBot",
+    description = "Avoid attacking fake players",
+    category = Category.COMBAT,
+    alwaysListening = true
+) {
     private val tabList = setting("TabList", true)
     private val ping = setting("Ping", true)
     private val hp = setting("HP", true)
@@ -28,7 +27,7 @@ object AntiBot : Module() {
     private val hoverOnTop = setting("HoverOnTop", true)
     private val ticksExists = setting("TicksExists", 200, 0..500, 10)
 
-    val botSet = HashSet<EntityPlayer>()
+    private val botSet = HashSet<EntityPlayer>()
 
     init {
         listener<ConnectionEvent.Disconnect> {
@@ -55,7 +54,7 @@ object AntiBot : Module() {
     fun isBot(entity: Entity) = isEnabled && entity is EntityPlayer && botSet.contains(entity)
 
     private fun SafeClientEvent.isBot(entity: EntityPlayer) = entity.name == player.name
-            || entity.name == FakePlayer.playerName.value
+            || entity.name == FakePlayer.playerName
             || tabList.value && connection.getPlayerInfo(entity.name) == null
             || ping.value && connection.getPlayerInfo(entity.name)?.responseTime ?: -1 <= 0
             || hp.value && entity.health !in 0f..20f

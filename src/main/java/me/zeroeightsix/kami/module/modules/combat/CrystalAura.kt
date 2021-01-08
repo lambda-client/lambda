@@ -22,6 +22,7 @@ import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.defaultScope
+import me.zeroeightsix.kami.util.threads.runSafeR
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Items
@@ -53,14 +54,13 @@ import kotlin.math.max
 import kotlin.math.min
 
 @CombatManager.CombatModule
-@Module.Info(
+object CrystalAura : Module(
     name = "CrystalAura",
-    alias = ["CA", "AC", "AutoCrystal"],
+    alias = arrayOf("CA", "AC", "AutoCrystal"),
     description = "Places End Crystals to kill enemies",
-    category = Module.Category.COMBAT,
+    category = Category.COMBAT,
     modulePriority = 80
-)
-object CrystalAura : Module() {
+) {
     /* Settings */
     private val page by setting("Page", Page.GENERAL)
 
@@ -144,22 +144,23 @@ object CrystalAura : Module() {
 
     override fun isActive() = isEnabled && InventoryUtils.countItemAll(426) > 0 && inactiveTicks <= 20
 
-    override fun onEnable() {
-        if (mc.player == null) disable()
-        else resetRotation()
-    }
-
-    override fun onDisable() {
-        lastCrystal = null
-        forcePlacing = false
-        placeTimer = 0
-        hitTimer = 0
-        hitCount = 0
-        inactiveTicks = 10
-        PlayerPacketManager.resetHotbar()
-    }
-
     init {
+        onEnable {
+            runSafeR {
+                resetRotation()
+            } ?: disable()
+        }
+
+        onDisable {
+            lastCrystal = null
+            forcePlacing = false
+            placeTimer = 0
+            hitTimer = 0
+            hitCount = 0
+            inactiveTicks = 10
+            PlayerPacketManager.resetHotbar()
+        }
+
         listener<InputEvent.KeyInputEvent> {
             if (bindForcePlace.isDown(Keyboard.getEventKey())) {
                 forcePlacing = !forcePlacing

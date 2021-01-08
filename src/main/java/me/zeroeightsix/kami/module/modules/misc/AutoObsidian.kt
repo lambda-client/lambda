@@ -4,9 +4,7 @@ import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.SafeClientEvent
-import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
@@ -47,12 +45,11 @@ import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
 
-@Module.Info(
+object AutoObsidian : Module(
     name = "AutoObsidian",
-    category = Module.Category.MISC,
+    category = Category.MISC,
     description = "Breaks down Ender Chests to restock obsidian"
-)
-object AutoObsidian : Module() {
+) {
     private val fillMode by setting("FillMode", FillMode.TARGET_STACKS)
     private val searchShulker by setting("SearchShulker", false)
     private val leaveEmptyShulkers by setting("LeaveEmptyShulkers", true, { searchShulker })
@@ -112,69 +109,77 @@ object AutoObsidian : Module() {
         return isEnabled && active
     }
 
-    override fun onEnable() {
-        state = State.SEARCHING
-    }
-
-    override fun onDisable() {
-        reset()
-    }
-
     init {
-        safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.END || !tickTimer.tick(delayTicks.toLong())) return@safeListener
+        onEnable {
+            state = State.SEARCHING
+        }
 
-            updateState()
-            when (state) {
-                State.SEARCHING -> {
-                    searchingState()
-                }
-                State.PLACING -> {
-                    placeEnderChest(placingPos)
-                }
-                State.PRE_MINING -> {
-                    mineBlock(placingPos, true)
-                }
-                State.MINING -> {
-                    mineBlock(placingPos, false)
-                }
-                State.COLLECTING -> {
-                    collectDroppedItem(Blocks.OBSIDIAN.id)
-                }
-                State.DONE -> {
-                    if (!autoRefill) {
-                        MessageSendHelper.sendChatMessage("$chatName ${fillMode.message}, disabling.")
-                        disable()
-                    } else {
-                        if (active) MessageSendHelper.sendChatMessage("$chatName ${fillMode.message}, stopping.")
-                        reset()
-                    }
-                }
-            }
+        onDisable {
+            reset()
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.START) return@safeListener
+
+            runAutoObby()
+            doRotation()
         }
 
         listener<RenderWorldEvent> {
             if (state != State.DONE) renderer.render(clear = false, cull = true)
         }
+    }
 
-        safeListener<TickEvent.ClientTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.START || rotateTimer.tick(20L, false)) return@safeListener
-            val rotation = lastHitVec?.let { getRotationTo(it) } ?: return@safeListener
+    private fun SafeClientEvent.doRotation() {
+        if (rotateTimer.tick(20L, false)) return
 
-            when (rotationMode) {
-                RotationMode.SPOOF -> {
-                    val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
-                    PlayerPacketManager.addPacket(this@AutoObsidian, packet)
-                }
-                RotationMode.VIEW_LOCK -> {
-                    player.rotationYaw = rotation.x
-                    player.rotationPitch = rotation.y
-                }
-                else -> {
-                    // Rotation off
-                }
+        val rotation = lastHitVec?.let { getRotationTo(it) } ?: return
+
+        when (rotationMode) {
+            RotationMode.SPOOF -> {
+                val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
+                PlayerPacketManager.addPacket(this@AutoObsidian, packet)
+            }
+            RotationMode.VIEW_LOCK -> {
+                player.rotationYaw = rotation.x
+                player.rotationPitch = rotation.y
+            }
+            else -> {
+                // Rotation off
             }
         }
+    }
+
+    private fun SafeClientEvent.runAutoObby() {
+        if (!tickTimer.tick(delayTicks.toLong())) return
+
+        updateState()
+        when (state) {
+            State.SEARCHING -> {
+                searchingState()
+            }
+            State.PLACING -> {
+                placeEnderChest(placingPos)
+            }
+            State.PRE_MINING -> {
+                mineBlock(placingPos, true)
+            }
+            State.MINING -> {
+                mineBlock(placingPos, false)
+            }
+            State.COLLECTING -> {
+                collectDroppedItem(Blocks.OBSIDIAN.id)
+            }
+            State.DONE -> {
+                if (!autoRefill) {
+                    MessageSendHelper.sendChatMessage("$chatName ${fillMode.message}, disabling.")
+                    disable()
+                } else {
+                    if (active) MessageSendHelper.sendChatMessage("$chatName ${fillMode.message}, stopping.")
+                    reset()
+                }
+            }
+            }
     }
 
     private fun SafeClientEvent.updateState() {
