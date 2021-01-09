@@ -1,13 +1,10 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.KamiEventBus;
 import me.zeroeightsix.kami.event.events.GuiEvent;
 import me.zeroeightsix.kami.event.events.RenderEvent;
-import me.zeroeightsix.kami.event.events.ShutdownEvent;
 import me.zeroeightsix.kami.gui.mc.KamiGuiUpdateNotification;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
-import me.zeroeightsix.kami.util.ConfigUtils;
 import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;

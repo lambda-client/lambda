@@ -10,7 +10,6 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.util.ResourceLocation
 import org.kamiblue.commons.extension.ceilToInt
 import org.lwjgl.opengl.GL11
-import java.util.*
 
 object KamiMoji : Module(
     name = "KamiMoji",
@@ -32,7 +31,7 @@ object KamiMoji : Module(
                     drawEmoji(getEmoji(possible), (posX + x).toDouble(), posY.toDouble(), fontHeight.toFloat(), alpha)
                 }
 
-                text = text.replaceFirst(emojiText.toRegex(), getReplacement(fontHeight))
+                text = text.replaceFirst(emojiText, getReplacement(fontHeight))
             }
         }
 

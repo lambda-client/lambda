@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.mixin.client.gui;
 
 import me.zeroeightsix.kami.module.modules.player.Freecam;
-import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.client.GuiIngameForge;
 import org.spongepowered.asm.mixin.Mixin;

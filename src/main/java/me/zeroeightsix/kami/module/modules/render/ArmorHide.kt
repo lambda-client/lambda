@@ -24,7 +24,7 @@ object ArmorHide : Module(
 
     @JvmStatic
     fun shouldHide(slotIn: EntityEquipmentSlot, entity: EntityLivingBase): Boolean {
-        return when(entity) {
+        return when (entity) {
             is EntityPlayer -> player && shouldHidePiece(slotIn)
             is EntityArmorStand -> armorStands && shouldHidePiece(slotIn)
             is EntityMob -> mobs && shouldHidePiece(slotIn)
@@ -34,8 +34,8 @@ object ArmorHide : Module(
 
     private fun shouldHidePiece(slotIn: EntityEquipmentSlot): Boolean {
         return helmet && slotIn == EntityEquipmentSlot.HEAD
-                || chestplate && slotIn == EntityEquipmentSlot.CHEST
-                || leggings && slotIn == EntityEquipmentSlot.LEGS
-                || boots && slotIn == EntityEquipmentSlot.FEET
+            || chestplate && slotIn == EntityEquipmentSlot.CHEST
+            || leggings && slotIn == EntityEquipmentSlot.LEGS
+            || boots && slotIn == EntityEquipmentSlot.FEET
     }
 }

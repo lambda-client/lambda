@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.chat
 
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.chat.ExtraChatHistory.maxMessages
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 
 object ExtraChatHistory : Module(

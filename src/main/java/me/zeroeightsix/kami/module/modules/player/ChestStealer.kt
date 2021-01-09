@@ -1,10 +1,6 @@
 package me.zeroeightsix.kami.module.modules.player
 
-import me.zeroeightsix.kami.gui.mc.KamiGuiStealButton
-import me.zeroeightsix.kami.mixin.client.gui.MixinGuiContainer
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.player.ChestStealer.canSteal
-import me.zeroeightsix.kami.module.modules.player.ChestStealer.stealing
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.InventoryUtils.getEmptySlotContainer
@@ -55,17 +51,17 @@ object ChestStealer : Module(
 
     fun isContainerOpen(): Boolean {
         return mc.player.openContainer != null
-                && isValidGui()
+            && isValidGui()
     }
 
     fun isValidGui(): Boolean {
         return mc.currentScreen !is GuiEnchantment
-                && mc.currentScreen !is GuiMerchant
-                && mc.currentScreen !is GuiRepair
-                && mc.currentScreen !is GuiBeacon
-                && mc.currentScreen !is GuiCrafting
-                && mc.currentScreen !is GuiContainerCreative
-                && mc.currentScreen !is GuiInventory
+            && mc.currentScreen !is GuiMerchant
+            && mc.currentScreen !is GuiRepair
+            && mc.currentScreen !is GuiBeacon
+            && mc.currentScreen !is GuiCrafting
+            && mc.currentScreen !is GuiContainerCreative
+            && mc.currentScreen !is GuiInventory
     }
 
     @JvmStatic

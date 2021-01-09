@@ -1,7 +1,6 @@
 package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.render.ExtraTab.tabSize
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 
 object ExtraTab : Module(

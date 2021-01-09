@@ -179,7 +179,7 @@ object AutoObsidian : Module(
                     reset()
                 }
             }
-            }
+        }
     }
 
     private fun SafeClientEvent.updateState() {

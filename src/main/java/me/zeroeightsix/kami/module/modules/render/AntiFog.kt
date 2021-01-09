@@ -2,7 +2,6 @@ package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
-import me.zeroeightsix.kami.util.Wrapper.player
 
 /**
  * Created by 086 on 9/04/2018.

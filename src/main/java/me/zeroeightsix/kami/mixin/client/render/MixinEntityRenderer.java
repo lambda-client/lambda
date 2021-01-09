@@ -12,7 +12,6 @@ import me.zeroeightsix.kami.module.modules.render.AntiFog;
 import me.zeroeightsix.kami.module.modules.render.AntiOverlay;
 import me.zeroeightsix.kami.module.modules.render.CameraClip;
 import me.zeroeightsix.kami.module.modules.render.NoHurtCam;
-import me.zeroeightsix.kami.util.Wrapper;
 import me.zeroeightsix.kami.util.math.Vec2f;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.entity.EntityPlayerSP;

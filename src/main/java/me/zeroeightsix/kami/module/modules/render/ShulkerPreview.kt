@@ -2,10 +2,11 @@ package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.mixin.client.gui.MixinGuiScreen
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.util.color.ColorConverter
-import me.zeroeightsix.kami.util.color.ColorHolder
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.*
+import net.minecraft.client.renderer.BufferBuilder
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.client.renderer.RenderHelper
+import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.inventory.ItemStackHelper
 import net.minecraft.item.ItemShulkerBox
