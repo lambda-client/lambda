@@ -1,7 +1,5 @@
 package me.zeroeightsix.kami.util.text
 
-import me.zeroeightsix.kami.KamiMod
-
 interface Detector {
     infix fun detect(input: CharSequence): Boolean
 
@@ -23,9 +21,6 @@ interface PrefixDetector : Detector, RemovableDetector {
 
     override fun removedOrNull(input: CharSequence) = prefixes.firstOrNull(input::startsWith)?.let {
         input.removePrefix(it)
-    } ?: run {
-        KamiMod.LOG.debug("Could not replace type ${this.javaClass.simpleName} for message \"$input\"")
-        null
     }
 }
 
@@ -38,8 +33,5 @@ interface RegexDetector : Detector, RemovableDetector {
 
     override fun removedOrNull(input: CharSequence): CharSequence? = matchedRegex(input)?.let { regex ->
         input.replace(regex, "").takeIf { it.isNotBlank() }
-    } ?: run {
-        KamiMod.LOG.debug("Could not replace type ${this.javaClass.simpleName} for message \"$input\"")
-        null
     }
 }
