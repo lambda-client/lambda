@@ -22,12 +22,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinFontRenderer {
 
     @Shadow public int FONT_HEIGHT;
-    @Shadow public float alpha;
-    @Shadow public float posX;
-    @Shadow public float posY;
-    @Shadow public float red;
-    @Shadow public float green;
-    @Shadow public float blue;
+    @Shadow private float alpha;
+    @Shadow protected float posX;
+    @Shadow protected float posY;
+    @Shadow private float red;
+    @Shadow private float green;
+    @Shadow private float blue;
 
     @Shadow
     protected abstract void renderStringAtPos(String text, boolean shadow);
@@ -38,7 +38,7 @@ public abstract class MixinFontRenderer {
     @Redirect(method = "renderString", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/FontRenderer;renderStringAtPos(Ljava/lang/String;Z)V"))
     private void renderStringAtPos(FontRenderer fontRenderer, String text, boolean shadow) {
         if (KamiMoji.INSTANCE.isEnabled() && text.contains(":")) {
-            text = KamiMoji.getText(text, FONT_HEIGHT, shadow, posX, posY, alpha);
+            text = KamiMoji.renderText(text, FONT_HEIGHT, shadow, posX, posY, alpha);
         }
 
         GlStateManager.color(red, blue, green, alpha); // Big Mojang meme :monkey:
