@@ -33,8 +33,8 @@ object LoginMessage : Module(
             if (file.exists()) {
                 val fileReader = FileReader(file)
                 try {
-                    fileReader.readLines().forEach {
-                        loginMessages.add(if (it.isNotBlank()) it.trim() else return@forEach)
+                    fileReader.forEachLine {
+                        loginMessages.add(if (it.isNotBlank()) it.trim() else return@forEachLine)
                     }
 
                     MessageSendHelper.sendChatMessage("$chatName Loaded ${loginMessages.size} login messages!")
