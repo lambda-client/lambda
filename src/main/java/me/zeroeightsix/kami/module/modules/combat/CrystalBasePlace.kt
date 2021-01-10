@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.color.ColorHolder
-import me.zeroeightsix.kami.util.combat.CrystalUtils
+import me.zeroeightsix.kami.util.combat.CrystalUtils.calcCrystalDamage
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils
@@ -64,9 +64,9 @@ object CrystalBasePlace : Module(
             renderer.render(clear)
         }
 
-        listener<InputEvent.KeyInputEvent> {
-            if (!CombatManager.isOnTopPriority(this) || CombatSetting.pause) return@listener
-            val target = CombatManager.target ?: return@listener
+        safeListener<InputEvent.KeyInputEvent> {
+            if (!CombatManager.isOnTopPriority(this@CrystalBasePlace) || CombatSetting.pause) return@safeListener
+            val target = CombatManager.target ?: return@safeListener
 
             if (manualPlaceBind.value.isDown(Keyboard.getEventKey())) prePlace(target)
         }
@@ -115,7 +115,7 @@ object CrystalBasePlace : Module(
         return slots[0]
     }
 
-    private fun prePlace(entity: EntityLivingBase) {
+    private fun SafeClientEvent.prePlace(entity: EntityLivingBase) {
         if (rotationTo != null || !timer.tick((delay.value * 50.0f).toLong(), false)) return
         val placeInfo = getPlaceInfo(entity)
         if (placeInfo != null) {
@@ -132,7 +132,7 @@ object CrystalBasePlace : Module(
         }
     }
 
-    private fun getPlaceInfo(entity: EntityLivingBase): Pair<EnumFacing, BlockPos>? {
+    private fun SafeClientEvent.getPlaceInfo(entity: EntityLivingBase): Pair<EnumFacing, BlockPos>? {
         val cacheMap = TreeMap<Float, BlockPos>(compareByDescending { it })
         val prediction = CombatSetting.getPrediction(entity)
         val eyePos = mc.player.getPositionEyes(1.0f)
@@ -150,7 +150,7 @@ object CrystalBasePlace : Module(
             if (!WorldUtils.hasNeighbour(pos)) continue
 
             // Damage check
-            val damage = calcDamage(pos, entity, prediction.first, prediction.second)
+            val damage = calcPlaceDamage(pos, entity, prediction.first, prediction.second)
             if (!checkDamage(damage.first, damage.second, maxCurrentDamage)) continue
 
             cacheMap[damage.first] = pos
@@ -162,17 +162,17 @@ object CrystalBasePlace : Module(
         return null
     }
 
-    private fun calcDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d, entityBB: AxisAlignedBB): Pair<Float, Float> {
+    private fun SafeClientEvent.calcPlaceDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d, entityBB: AxisAlignedBB): Pair<Float, Float> {
         // Set up a fake obsidian here for proper damage calculation
-        val prevState = mc.world.getBlockState(pos)
-        mc.world.setBlockState(pos, Blocks.OBSIDIAN.defaultState)
+        val prevState = world.getBlockState(pos)
+        world.setBlockState(pos, Blocks.OBSIDIAN.defaultState)
 
         // Checks damage
-        val damage = CrystalUtils.calcDamage(pos, entity, entityPos, entityBB)
-        val selfDamage = CrystalUtils.calcDamage(pos, mc.player)
+        val damage = calcCrystalDamage(pos, entity, entityPos, entityBB)
+        val selfDamage = calcCrystalDamage(pos, player)
 
         // Revert the block state before return
-        mc.world.setBlockState(pos, prevState)
+        world.setBlockState(pos, prevState)
 
         return damage to selfDamage
     }

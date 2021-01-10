@@ -73,7 +73,6 @@ object FakePlayer : Module(
             if (copyPotions) copyPotions(player)
             if (maxArmor) addMaxArmor()
             if (gappleEffects) addGappleEffects()
-
         }.also {
             onMainThreadSafe {
                 world.addEntityToWorld(ENTITY_ID, it)

@@ -8,7 +8,7 @@ import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
-import me.zeroeightsix.kami.util.combat.CrystalUtils
+import me.zeroeightsix.kami.util.combat.CrystalUtils.calcCrystalDamage
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.Vec2f
 import me.zeroeightsix.kami.util.math.VectorUtils
@@ -124,8 +124,8 @@ object BedAura : Module(
                 val rotation = RotationUtils.getRotationTo(topSideVec)
                 val facing = EnumFacing.fromAngle(rotation.x.toDouble())
                 if (!canPlaceBed(pos)) continue
-                val targetDamage = CrystalUtils.calcDamage(pos.offset(facing), it)
-                val selfDamage = CrystalUtils.calcDamage(pos.offset(facing), player)
+                val targetDamage = calcCrystalDamage(pos.offset(facing), it)
+                val selfDamage = calcCrystalDamage(pos.offset(facing), player)
                 if (targetDamage < minDamage.value && (suicideMode.value || selfDamage > maxSelfDamage.value))
                     damagePosMap[Pair(targetDamage, selfDamage)] = pos
             }

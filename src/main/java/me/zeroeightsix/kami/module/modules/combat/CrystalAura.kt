@@ -14,7 +14,12 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.combat.CombatUtils
+import me.zeroeightsix.kami.util.combat.CombatUtils.equipBestWeapon
 import me.zeroeightsix.kami.util.combat.CrystalUtils
+import me.zeroeightsix.kami.util.combat.CrystalUtils.calcCrystalDamage
+import me.zeroeightsix.kami.util.combat.CrystalUtils.canPlaceCollide
+import me.zeroeightsix.kami.util.combat.CrystalUtils.getCrystalBB
+import me.zeroeightsix.kami.util.combat.CrystalUtils.getCrystalList
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
@@ -187,7 +192,7 @@ object CrystalAura : Module(
                 is SPacketSoundEffect -> {
                     // Minecraft sends sounds packets a tick before removing the crystal lol
                     if (event.packet.category == SoundCategory.BLOCKS && event.packet.sound == SoundEvents.ENTITY_GENERIC_EXPLODE) {
-                        val crystalList = CrystalUtils.getCrystalList(Vec3d(event.packet.x, event.packet.y, event.packet.z), 6.0f)
+                        val crystalList = getCrystalList(Vec3d(event.packet.x, event.packet.y, event.packet.z), 6.0f)
 
                         for (crystal in crystalList) {
                             crystal.setDead()
@@ -297,7 +302,7 @@ object CrystalAura : Module(
 
     private fun SafeClientEvent.preExplode(): Boolean {
         if (antiWeakness && player.isPotionActive(MobEffects.WEAKNESS) && !isHoldingTool()) {
-            CombatUtils.equipBestWeapon()
+            equipBestWeapon()
             PlayerPacketManager.resetHotbar()
             return false
         }
@@ -398,11 +403,11 @@ object CrystalAura : Module(
             if (hitBlockPos.distanceTo(pos) > 1.0 && triple.third > wallPlaceRange) continue
 
             // Collide check
-            if (!CrystalUtils.canPlaceCollide(pos)) continue
+            if (!canPlaceCollide(pos)) continue
 
             // Place sync
             if (placeSync) {
-                val bb = CrystalUtils.getCrystalBB(pos.up())
+                val bb = getCrystalBB(pos.up())
                 if (placedBBMap.values.any { it.first.intersects(bb) }) continue
             }
 
@@ -494,8 +499,8 @@ object CrystalAura : Module(
                 for ((_, pair) in placedBBMap) {
                     val pos = pair.first.center.subtract(0.0, 1.0, 0.0)
                     if (pos.distanceTo(eyePos) > placeRange) continue
-                    val damage = CrystalUtils.calcDamage(pos, it)
-                    val selfDamage = CrystalUtils.calcDamage(pos, player)
+                    val damage = calcCrystalDamage(pos, it)
+                    val selfDamage = calcCrystalDamage(pos, player)
                     if (!checkDamagePlace(damage, selfDamage)) continue
                     count++
                 }

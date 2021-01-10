@@ -1,12 +1,15 @@
 package me.zeroeightsix.kami.module.modules.combat
 
+import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.combat.CombatUtils
-import me.zeroeightsix.kami.util.combat.CrystalUtils
+import me.zeroeightsix.kami.util.combat.CombatUtils.calcDamageFromMob
+import me.zeroeightsix.kami.util.combat.CombatUtils.calcDamageFromPlayer
+import me.zeroeightsix.kami.util.combat.CrystalUtils.calcCrystalDamage
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.gui.inventory.GuiContainer
@@ -167,7 +170,7 @@ object AutoOffhand : Module(
 
     private fun getNextType(type: Type) = with(Type.values()) { this[(type.ordinal + 1) % this.size] }
 
-    private fun updateDamage() {
+    private fun SafeClientEvent.updateDamage() {
         maxDamage = 0f
         if (!checkDamage.value) return
         for (entity in mc.world.loadedEntityList) {
@@ -175,13 +178,13 @@ object AutoOffhand : Module(
             if (entity !is EntityMob && entity !is EntityPlayer && entity !is EntityEnderCrystal) continue
             if (mc.player.getDistance(entity) > 10f) continue
             if (mob.value && entity is EntityMob) {
-                maxDamage = max(CombatUtils.calcDamageFromMob(entity), maxDamage)
+                maxDamage = max(calcDamageFromMob(entity), maxDamage)
             }
-            if (player.value && entity is EntityPlayer) {
-                maxDamage = max(CombatUtils.calcDamageFromPlayer(entity), maxDamage)
+            if (this@AutoOffhand.player.value && entity is EntityPlayer) {
+                maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
             }
             if (crystal.value && entity is EntityEnderCrystal) {
-                maxDamage = max(CrystalUtils.calcDamage(entity, mc.player), maxDamage)
+                maxDamage = max(calcCrystalDamage(entity, mc.player), maxDamage)
             }
         }
         if (falling.value && nextFallDist > 3.0f) maxDamage = max(ceil(nextFallDist - 3.0f), maxDamage)

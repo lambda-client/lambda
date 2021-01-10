@@ -10,7 +10,8 @@ import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.combat.CombatUtils
-import me.zeroeightsix.kami.util.combat.CrystalUtils
+import me.zeroeightsix.kami.util.combat.CrystalUtils.calcCrystalDamage
+import me.zeroeightsix.kami.util.combat.CrystalUtils.getPlacePos
 import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.Vec2d
@@ -159,10 +160,10 @@ object CombatSetting : Module(
         val target = CombatManager.target
         val prediction = target?.let { getPrediction(it) }
 
-        for (pos in CrystalUtils.getPlacePos(target, player, 8f)) {
+        for (pos in getPlacePos(target, player, 8f)) {
             val dist = eyePos.distanceTo(pos.toVec3dCenter(0.0, 0.5, 0.0))
-            val damage = target?.let { CrystalUtils.calcDamage(pos, it, prediction?.first, prediction?.second) } ?: 0.0f
-            val selfDamage = CrystalUtils.calcDamage(pos, player)
+            val damage = target?.let { calcCrystalDamage(pos, it, prediction?.first, prediction?.second) } ?: 0.0f
+            val selfDamage = calcCrystalDamage(pos, player)
             cacheList.add(Pair(pos, Triple(damage, selfDamage, dist)))
         }
 
@@ -185,8 +186,8 @@ object CombatSetting : Module(
             if (entity !is EntityEnderCrystal) continue
             val dist = entity.distanceTo(eyePos)
             if (dist > 16.0f) continue
-            val damage = if (target != null && prediction != null) CrystalUtils.calcDamage(entity, target, prediction.first, prediction.second) else 0.0f
-            val selfDamage = CrystalUtils.calcDamage(entity, player)
+            val damage = if (target != null && prediction != null) calcCrystalDamage(entity, target, prediction.first, prediction.second) else 0.0f
+            val selfDamage = calcCrystalDamage(entity, player)
             cacheList.add(entity to Triple(damage, selfDamage, dist))
         }
 

@@ -5,6 +5,7 @@ import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.combat.CombatUtils
+import me.zeroeightsix.kami.util.combat.CombatUtils.equipBestWeapon
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
@@ -36,8 +37,8 @@ object AutoTool : Module(
             if (shouldMoveBack || !switchBack.value) equipBestTool(mc.world.getBlockState(it.pos))
         }
 
-        listener<AttackEntityEvent> {
-            if (swapWeapon.value && it.target is EntityLivingBase) CombatUtils.equipBestWeapon(preferWeapon.value)
+        safeListener<AttackEntityEvent> {
+            if (swapWeapon.value && it.target is EntityLivingBase) equipBestWeapon(preferWeapon.value)
         }
 
         safeListener<TickEvent.ClientTickEvent> {
