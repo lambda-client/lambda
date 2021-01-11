@@ -10,6 +10,10 @@ import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.combat.CrystalUtils.calcCrystalDamage
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
+import me.zeroeightsix.kami.util.items.HotbarSlot
+import me.zeroeightsix.kami.util.items.block
+import me.zeroeightsix.kami.util.items.firstBlock
+import me.zeroeightsix.kami.util.items.hotbarSlots
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
@@ -80,7 +84,7 @@ object CrystalBasePlace : Module(
 
             placePacket?.let { packet ->
                 if (inactiveTicks > 1) {
-                    if (!isHoldingObby) PlayerPacketManager.spoofHotbar(slot)
+                    if (!isHoldingObby) PlayerPacketManager.spoofHotbar(slot.hotbarSlot)
                     player.swingArm(EnumHand.MAIN_HAND)
                     connection.sendPacket(packet)
                     PlayerPacketManager.resetHotbar()
@@ -101,18 +105,23 @@ object CrystalBasePlace : Module(
         }
     }
 
-    private val SafeClientEvent.isHoldingObby get() = isObby(player.heldItemMainhand) || isObby(player.inventory.getStackInSlot(PlayerPacketManager.serverSideHotbar))
+    private val SafeClientEvent.isHoldingObby
+        get() =
+            isObby(player.heldItemMainhand)
+                || isObby(player.inventory.getStackInSlot(PlayerPacketManager.serverSideHotbar))
 
     private fun isObby(itemStack: ItemStack) = itemStack.item.block == Blocks.OBSIDIAN
 
-    private fun getObby(): Int? {
-        val slots = InventoryUtils.getSlotsHotbar(49)
-        if (slots == null) { // Obsidian check
+    private fun SafeClientEvent.getObby(): HotbarSlot? {
+        val slot = player.hotbarSlots.firstBlock(Blocks.OBSIDIAN)
+
+        if (slot == null) { // Obsidian check
             MessageSendHelper.sendChatMessage("$chatName No obsidian in hotbar, disabling!")
             disable()
             return null
         }
-        return slots[0]
+
+        return slot
     }
 
     private fun SafeClientEvent.prePlace(entity: EntityLivingBase) {

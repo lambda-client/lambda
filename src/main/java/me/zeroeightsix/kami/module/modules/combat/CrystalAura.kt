@@ -15,11 +15,11 @@ import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.combat.CombatUtils
 import me.zeroeightsix.kami.util.combat.CombatUtils.equipBestWeapon
-import me.zeroeightsix.kami.util.combat.CrystalUtils
 import me.zeroeightsix.kami.util.combat.CrystalUtils.calcCrystalDamage
 import me.zeroeightsix.kami.util.combat.CrystalUtils.canPlaceCollide
 import me.zeroeightsix.kami.util.combat.CrystalUtils.getCrystalBB
 import me.zeroeightsix.kami.util.combat.CrystalUtils.getCrystalList
+import me.zeroeightsix.kami.util.items.*
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
@@ -147,7 +147,10 @@ object CrystalAura : Module(
     val minDamage get() = max(minDamageP, minDamageE)
     val maxSelfDamage get() = min(maxSelfDamageP, maxSelfDamageE)
 
-    override fun isActive() = isEnabled && InventoryUtils.countItemAll(426) > 0 && inactiveTicks <= 20
+    override fun isActive() =
+        isEnabled
+            && (mc.player?.allSlots?.countItem(Items.END_CRYSTAL) ?: 0) > 0
+            && inactiveTicks <= 20
 
     init {
         onEnable {
@@ -270,9 +273,9 @@ object CrystalAura : Module(
         getPlacingPos()?.let { pos ->
             getHand()?.let { hand ->
                 if (autoSwap && getHand() == null) {
-                    InventoryUtils.getSlotsHotbar(426)?.get(0)?.let {
-                        if (spoofHotbar) PlayerPacketManager.spoofHotbar(it)
-                        else InventoryUtils.swapSlot(it)
+                    player.hotbarSlots.firstItem(Items.END_CRYSTAL)?.let {
+                        if (spoofHotbar) PlayerPacketManager.spoofHotbar(it.hotbarSlot)
+                        else swapToSlot(it)
                     }
                 }
 
@@ -284,7 +287,7 @@ object CrystalAura : Module(
                 if (placeSwing) sendOrQueuePacket(CPacketAnimation(hand))
 
                 val crystalPos = pos.up()
-                placedBBMap[crystalPos] = CrystalUtils.getCrystalBB(crystalPos) to System.currentTimeMillis()
+                placedBBMap[crystalPos] = getCrystalBB(crystalPos) to System.currentTimeMillis()
 
                 if (predictExplode) {
                     defaultScope.launch {
@@ -380,7 +383,7 @@ object CrystalAura : Module(
     private fun SafeClientEvent.canPlace() =
         doPlace
             && placeTimer > placeDelay
-            && InventoryUtils.countItemAll(426) > 0
+            && player.allSlots.countItem(Items.END_CRYSTAL) > 0
             && countValidCrystal() < maxCrystal
 
     @Suppress("UnconditionalJumpStatementInLoop") // The linter is wrong here, it will continue until it's supposed to return
@@ -424,7 +427,7 @@ object CrystalAura : Module(
      * @return True if passed placing damage check
      */
     private fun checkDamagePlace(damage: Float, selfDamage: Float) =
-        (shouldFacePlace(damage)  || damage >= minDamageP) && (selfDamage <= maxSelfDamageP)
+        (shouldFacePlace(damage) || damage >= minDamageP) && (selfDamage <= maxSelfDamageP)
     /* End of placing */
 
     /* Exploding */
@@ -439,10 +442,10 @@ object CrystalAura : Module(
         }
 
         return (filteredCrystal.firstOrNull { (crystal, triple) ->
-                triple.third <= explodeRange
+            triple.third <= explodeRange
                 && (player.canEntityBeSeen(crystal) || EntityUtils.canEntityFeetBeSeen(crystal))
         } ?: filteredCrystal.firstOrNull { (_, triple) ->
-                triple.third <= wallExplodeRange
+            triple.third <= wallExplodeRange
         })?.key
     }
 
@@ -452,8 +455,8 @@ object CrystalAura : Module(
 
     private fun shouldForceExplode() = autoForceExplode
         && placeMap.values.any {
-            it.first > minDamage && it.second <= maxSelfDamage && it.third <= placeRange
-        }
+        it.first > minDamage && it.second <= maxSelfDamage && it.third <= placeRange
+    }
     /* End of exploding */
 
     /* General */

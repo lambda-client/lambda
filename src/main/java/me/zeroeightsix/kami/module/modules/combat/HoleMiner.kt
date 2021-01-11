@@ -5,10 +5,10 @@ import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
-import me.zeroeightsix.kami.util.InventoryUtils
 import me.zeroeightsix.kami.util.combat.CrystalUtils.canPlace
 import me.zeroeightsix.kami.util.combat.CrystalUtils.canPlaceOn
 import me.zeroeightsix.kami.util.combat.SurroundUtils
+import me.zeroeightsix.kami.util.items.swapToItem
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
@@ -66,13 +66,10 @@ object HoleMiner : Module(
             if (!CombatManager.isOnTopPriority(HoleMiner)) return@safeListener
 
             if (player.heldItemMainhand.item != Items.DIAMOND_PICKAXE) {
-                val slot = InventoryUtils.getSlotsHotbar(278)?.get(0)
-                if (slot == null) {
+                if (!swapToItem(Items.DIAMOND_PICKAXE)) {
                     MessageSendHelper.sendChatMessage("$chatName No pickaxe found, disabling")
                     disable()
                     return@safeListener
-                } else {
-                    InventoryUtils.swapSlot(slot)
                 }
             }
 
