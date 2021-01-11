@@ -19,7 +19,7 @@ object CreditsCommand : ClientCommand(
         executeAsync {
             val contributors = getContributors() ?: run {
                 MessageSendHelper.sendErrorMessage("Failed to retrieve contributors from Github API.\n" +
-                    "Checkout the page manually: &9${KamiMod.GITHUB_LINK}client/graphs/contributors")
+                    "Checkout the page manually: &9${KamiMod.GITHUB_LINK}/client/graphs/contributors")
                 return@executeAsync
             }
 
