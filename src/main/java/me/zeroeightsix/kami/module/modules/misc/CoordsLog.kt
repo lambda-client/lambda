@@ -17,9 +17,9 @@ object CoordsLog : Module(
     description = "Automatically logs your coords, based on actions",
     category = Category.MISC
 ) {
-    private val saveOnDeath by setting("SaveOnDeath", true)
-    private val logEveryX by setting("LogEveryX", false)
-    private val delay by setting("DelayMinutes", 15, 1..60, 1)
+    private val saveOnDeath = setting("SaveOnDeath", true)
+    private val autoLog = setting("AutoLog", false)
+    private val delay = setting("Delay", 15, 1..60, 1)
 
     private var previousCoord: String? = null
     private var savedDeath = false
@@ -27,16 +27,16 @@ object CoordsLog : Module(
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
-            if (logEveryX && timer.tick(delay.toLong())) {
+            if (autoLog.value && timer.tick(delay.value.toLong())) {
                 val currentCoord = player.positionVector.toBlockPos().asString()
 
                 if (currentCoord != previousCoord) {
-                    WaypointManager.add("CoordsLog")
+                    WaypointManager.add("autoLogger")
                     previousCoord = currentCoord
                 }
             }
 
-            if (saveOnDeath) {
+            if (saveOnDeath.value) {
                 savedDeath = if (player.isDead || player.health <= 0.0f) {
                     if (!savedDeath) {
                         val deathPoint = WaypointManager.add("Death - " + InfoCalculator.getServerType()).pos
