@@ -43,7 +43,7 @@ class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0
         if (buttonId == 1) {
             if (!listening) {
                 listening = true
-                name = value.toString()
+                name = setting.value
                 value = 0.0
             } else {
                 onStopListening(false)
