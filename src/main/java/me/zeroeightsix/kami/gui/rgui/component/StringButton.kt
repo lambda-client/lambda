@@ -59,6 +59,7 @@ class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0
         if (keyState) {
             when (keyCode) {
                 Keyboard.KEY_RETURN -> {
+                    onStopListening(true)
                 }
                 Keyboard.KEY_BACK, Keyboard.KEY_DELETE -> {
                     name = name.substring(0, max(name.length - 1, 0))

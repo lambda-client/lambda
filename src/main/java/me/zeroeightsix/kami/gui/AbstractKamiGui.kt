@@ -235,6 +235,7 @@ abstract class AbstractKamiGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
     }
 
     override fun keyTyped(typedChar: Char, keyCode: Int) {
+        if (settingWindow?.listeningChild != null) return
         when {
             keyCode == Keyboard.KEY_BACK || keyCode == Keyboard.KEY_DELETE -> {
                 typedString = ""
