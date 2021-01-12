@@ -3,10 +3,10 @@ package me.zeroeightsix.kami.module.modules.player
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.combat.CombatSetting
+import me.zeroeightsix.kami.process.PauseProcess.pauseBaritone
+import me.zeroeightsix.kami.process.PauseProcess.unpauseBaritone
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
-import me.zeroeightsix.kami.util.BaritoneUtils.pause
-import me.zeroeightsix.kami.util.BaritoneUtils.unpause
 import me.zeroeightsix.kami.util.combat.CombatUtils
 import me.zeroeightsix.kami.util.items.*
 import me.zeroeightsix.kami.util.threads.runSafe
@@ -59,7 +59,7 @@ object AutoEat : Module(
             || CombatUtils.getHealthSmart(player) < belowHealth
 
     private fun SafeClientEvent.eat(hand: EnumHand) {
-        if (pauseBaritone) pause()
+        if (pauseBaritone) pauseBaritone()
 
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, true)
         playerController.processRightClick(player, world, hand)
@@ -68,7 +68,7 @@ object AutoEat : Module(
     }
 
     private fun stopEating() {
-        unpause()
+        unpauseBaritone()
 
         runSafe {
             if (lastSlot != -1) {

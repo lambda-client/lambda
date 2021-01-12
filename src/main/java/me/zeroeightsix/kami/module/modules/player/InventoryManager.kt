@@ -3,6 +3,8 @@ package me.zeroeightsix.kami.module.modules.player
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.process.PauseProcess.pauseBaritone
+import me.zeroeightsix.kami.process.PauseProcess.unpauseBaritone
 import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.setting.settings.impl.collection.CollectionSetting
 import me.zeroeightsix.kami.util.*
@@ -56,7 +58,7 @@ object InventoryManager : Module(
     init {
         onDisable {
             paused = false
-            BaritoneUtils.unpause()
+            unpauseBaritone()
         }
 
         safeListener<PlayerTravelEvent> {
@@ -93,12 +95,12 @@ object InventoryManager : Module(
             else -> State.IDLE
         }
 
-        if (currentState != State.IDLE && pauseMovement && !paused) {
-            BaritoneUtils.pause()
-            paused = true
-        } else if (currentState == State.IDLE && paused) {
-            BaritoneUtils.unpause()
-            paused = false
+        paused = if (currentState != State.IDLE && pauseMovement) {
+            pauseBaritone()
+            true
+        } else {
+            unpauseBaritone()
+            false
         }
     }
 
