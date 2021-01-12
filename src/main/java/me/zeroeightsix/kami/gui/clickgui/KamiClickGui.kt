@@ -72,8 +72,9 @@ object KamiClickGui : AbstractKamiGui<ModuleSettingWindow, Module>() {
         }
     }
 
+    // Check for typedString added to resolve #1793. TODO: Better solution suggested in #1803
     override fun keyTyped(typedChar: Char, keyCode: Int) {
-        if (keyCode == Keyboard.KEY_ESCAPE || ClickGUI.bind.value.isDown(keyCode)) {
+        if (keyCode == Keyboard.KEY_ESCAPE || (keyCode == ClickGUI.bind.value.key && typedString.isEmpty())) {
             ClickGUI.disable()
         } else if (settingWindow?.listeningChild == null) {
             when {
