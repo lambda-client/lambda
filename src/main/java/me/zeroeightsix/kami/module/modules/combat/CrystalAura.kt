@@ -271,32 +271,36 @@ object CrystalAura : Module(
 
     private fun SafeClientEvent.place() {
         getPlacingPos()?.let { pos ->
-            getHand()?.let { hand ->
-                if (autoSwap && getHand() == null) {
+            val hand = getHand()
+
+            if (hand == null) {
+                if (autoSwap) {
                     player.hotbarSlots.firstItem(Items.END_CRYSTAL)?.let {
                         if (spoofHotbar) PlayerPacketManager.spoofHotbar(it.hotbarSlot)
                         else swapToSlot(it)
                     }
                 }
+                return
+            }
 
-                placeTimer = 0
-                inactiveTicks = 0
-                lastLookAt = Vec3d(pos).add(0.5, placeOffset.toDouble(), 0.5)
-                sendOrQueuePacket(getPlacePacket(pos, hand))
-                if (extraPlacePacket) sendOrQueuePacket(getPlacePacket(pos, hand))
-                if (placeSwing) sendOrQueuePacket(CPacketAnimation(hand))
+            placeTimer = 0
+            inactiveTicks = 0
+            lastLookAt = Vec3d(pos).add(0.5, placeOffset.toDouble(), 0.5)
 
-                val crystalPos = pos.up()
-                placedBBMap[crystalPos] = getCrystalBB(crystalPos) to System.currentTimeMillis()
+            sendOrQueuePacket(getPlacePacket(pos, hand))
+            if (extraPlacePacket) sendOrQueuePacket(getPlacePacket(pos, hand))
+            if (placeSwing) sendOrQueuePacket(CPacketAnimation(hand))
 
-                if (predictExplode) {
-                    defaultScope.launch {
-                        delay(predictDelay.toLong())
+            val crystalPos = pos.up()
+            placedBBMap[crystalPos] = getCrystalBB(crystalPos) to System.currentTimeMillis()
 
-                        synchronized(lockObject) {
-                            if (!placedBBMap.containsKey(crystalPos)) return@synchronized
-                            packetExplode(lastEntityID + 1, pos, crystalPos.toVec3d(0.5, 0.0, 0.5))
-                        }
+            if (predictExplode) {
+                defaultScope.launch {
+                    delay(predictDelay.toLong())
+
+                    synchronized(lockObject) {
+                        if (!placedBBMap.containsKey(crystalPos)) return@synchronized
+                        packetExplode(lastEntityID + 1, pos, crystalPos.toVec3d(0.5, 0.0, 0.5))
                     }
                 }
             }
@@ -462,6 +466,7 @@ object CrystalAura : Module(
     /* General */
     private fun SafeClientEvent.getHand(): EnumHand? {
         val serverSideItem = if (spoofHotbar) player.inventory.getStackInSlot(PlayerPacketManager.serverSideHotbar).item else null
+
         return when (Items.END_CRYSTAL) {
             player.heldItemOffhand.item -> EnumHand.OFF_HAND
             player.heldItemMainhand.item -> EnumHand.MAIN_HAND
