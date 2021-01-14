@@ -83,14 +83,14 @@ object ConfigUtils {
         if (!oldConfig.exists() && !oldConfigBak.exists()) return
 
         try {
-            newConfig.file.mkdirs()
+            newConfig.file.parentFile.mkdirs()
             Files.move(oldConfig.absoluteFile.toPath(), newConfig.file.absoluteFile.toPath())
         } catch (e: Exception) {
             KamiMod.LOG.warn("Error moving legacy config", e)
         }
 
         try {
-            newConfig.backup.mkdirs()
+            newConfig.backup.parentFile.mkdirs()
             Files.move(oldConfigBak.absoluteFile.toPath(), newConfig.backup.absoluteFile.toPath())
         } catch (e: Exception) {
             KamiMod.LOG.warn("Error moving legacy config", e)
