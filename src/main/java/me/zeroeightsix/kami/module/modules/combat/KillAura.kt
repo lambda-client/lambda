@@ -3,11 +3,12 @@ package me.zeroeightsix.kami.module.modules.combat
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.manager.managers.CombatManager
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.TpsCalculator
 import me.zeroeightsix.kami.util.combat.CombatUtils
-import me.zeroeightsix.kami.util.isWeapon
+import me.zeroeightsix.kami.util.combat.CombatUtils.equipBestWeapon
+import me.zeroeightsix.kami.util.items.isWeapon
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.entity.Entity
@@ -16,7 +17,7 @@ import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @CombatManager.CombatModule
-object KillAura : Module(
+internal object KillAura : Module(
     name = "KillAura",
     alias = arrayOf("KA", "Aura", "TriggerBot"),
     category = Category.COMBAT,
@@ -61,7 +62,7 @@ object KillAura : Module(
             if (player.getDistance(target) > range.value) return@safeListener
 
             if (autoWeapon.value) {
-                CombatUtils.equipBestWeapon(prefer.value)
+                equipBestWeapon(prefer.value)
             }
 
             if (weaponOnly.value && !player.heldItemMainhand.item.isWeapon) {

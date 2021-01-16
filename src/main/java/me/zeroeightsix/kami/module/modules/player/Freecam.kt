@@ -5,9 +5,10 @@ import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerAttackEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.MovementUtils.calcMoveYaw
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.threads.runSafe
@@ -19,22 +20,21 @@ import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.network.play.client.CPacketUseEntity
 import net.minecraft.util.MovementInput
 import net.minecraft.util.MovementInputFromOptions
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.commons.extension.floorToInt
 import org.kamiblue.commons.extension.toRadian
 import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.min
-import kotlin.math.sin
+import kotlin.math.*
 
-object Freecam : Module(
+internal object Freecam : Module(
     name = "Freecam",
     category = Category.PLAYER,
     description = "Leave your body and transcend into the realm of the gods"
@@ -126,6 +126,24 @@ object Freecam : Module(
         }
     }
 
+    @JvmStatic
+    val renderChunkOffset
+        get() = BlockPos(
+            (mc.player.posX / 16).floorToInt() * 16,
+            (mc.player.posY / 16).floorToInt() * 16,
+            (mc.player.posZ / 16).floorToInt() * 16
+        )
+
+    @JvmStatic
+    fun getRenderViewEntity(renderViewEntity: EntityPlayer): EntityPlayer {
+        val player = mc.player
+        return if (isEnabled && player != null) {
+            player
+        } else {
+            renderViewEntity
+        }
+    }
+
     private fun resetMovementInput(movementInput: MovementInput?) {
         if (movementInput !is MovementInputFromOptions) return
         movementInput.apply {
@@ -177,7 +195,7 @@ object Freecam : Module(
             val movementInput = calcMovementInput(forward, strafe, false to false)
 
             val yawDiff = player.rotationYaw - it.rotationYaw
-            val yawRad = MovementUtils.calcMoveYaw(yawDiff, movementInput.first, movementInput.second).toFloat()
+            val yawRad = calcMoveYaw(yawDiff, movementInput.first, movementInput.second).toFloat()
             val inputTotal = min(abs(movementInput.first) + abs(movementInput.second), 1f)
 
             player.movementInput?.apply {

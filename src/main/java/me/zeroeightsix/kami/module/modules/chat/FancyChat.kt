@@ -1,13 +1,13 @@
 package me.zeroeightsix.kami.module.modules.chat
 
 import me.zeroeightsix.kami.manager.managers.MessageManager.newMessageModifier
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.text.MessageDetection
 import org.kamiblue.commons.utils.MathUtils
 import kotlin.math.min
 
-object FancyChat : Module(
+internal object FancyChat : Module(
     name = "FancyChat",
     category = Category.CHAT,
     description = "Makes messages you send fancy",
@@ -24,14 +24,14 @@ object FancyChat : Module(
     private val spammer = setting("Spammer", false)
 
     private val modifier = newMessageModifier(
-            filter = {
-                (commands.value || MessageDetection.Command.ANY detectNot it.packet.message)
-                        && (spammer.value || it.source !is Spammer)
-            },
-            modifier = {
-                val message = getText(it.packet.message)
-                message.substring(0, min(256, message.length))
-            }
+        filter = {
+            (commands.value || MessageDetection.Command.ANY detectNot it.packet.message)
+                && (spammer.value || it.source !is Spammer)
+        },
+        modifier = {
+            val message = getText(it.packet.message)
+            message.substring(0, min(256, message.length))
+        }
     )
 
     init {

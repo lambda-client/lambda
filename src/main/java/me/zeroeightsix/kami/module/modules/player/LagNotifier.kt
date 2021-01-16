@@ -3,8 +3,10 @@ package me.zeroeightsix.kami.module.modules.player
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.RenderOverlayEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
+import me.zeroeightsix.kami.process.PauseProcess.pauseBaritone
+import me.zeroeightsix.kami.process.PauseProcess.unpauseBaritone
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter
@@ -23,7 +25,7 @@ import org.lwjgl.opengl.GL11.glColor4f
 /**
  * Thanks Brady and cooker and leij for helping me not be completely retarded
  */
-object LagNotifier : Module(
+internal object LagNotifier : Module(
     name = "LagNotifier",
     description = "Displays a warning when the server is lagging",
     category = Category.PLAYER
@@ -39,6 +41,7 @@ object LagNotifier : Module(
     private var lastPacketTimer = TickTimer()
     private var lastRubberBandTimer = TickTimer()
     private var text = ""
+
     var paused = false; private set
 
     init {
@@ -67,7 +70,9 @@ object LagNotifier : Module(
                 when {
                     lastPacketTimer.tick(timeoutMillis, false) -> {
                         if (pingTimer.tick(1L)) WebUtils.update()
-                        text = if (WebUtils.isInternetDown) "Your internet is offline! " else "Server Not Responding! "
+                        text = if (WebUtils.isInternetDown) "Your internet is offline! "
+                        else "Server Not Responding! "
+
                         text += timeDifference(lastPacketTimer.time)
                         pause()
                     }
@@ -101,18 +106,20 @@ object LagNotifier : Module(
     }
 
     private fun pause() {
-        if (pauseBaritone && !paused) {
-            if (feedback) MessageSendHelper.sendBaritoneMessage("Paused due to lag!")
-            BaritoneUtils.pause()
+        if (!paused && pauseBaritone && feedback) {
+            MessageSendHelper.sendBaritoneMessage("Paused due to lag!")
         }
-        if (pauseTakeoff || pauseAutoWalk) paused = true
+
+        pauseBaritone()
+        paused = true
     }
 
     private fun unpause() {
-        if (BaritoneUtils.paused && paused) {
-            if (feedback) MessageSendHelper.sendBaritoneMessage("Unpaused!")
-            BaritoneUtils.unpause()
+        if (paused && pauseBaritone && feedback) {
+            MessageSendHelper.sendBaritoneMessage("Unpaused!")
         }
+
+        unpauseBaritone()
         paused = false
         text = ""
     }

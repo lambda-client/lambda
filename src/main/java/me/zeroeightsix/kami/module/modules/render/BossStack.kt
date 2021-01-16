@@ -2,8 +2,8 @@ package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.mixin.extension.mapBossInfos
 import me.zeroeightsix.kami.mixin.extension.render
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.graphics.GlStateUtils
 import net.minecraft.client.gui.BossInfoClient
@@ -17,7 +17,7 @@ import org.lwjgl.opengl.GL11.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-object BossStack : Module(
+internal object BossStack : Module(
     name = "BossStack",
     description = "Modify the boss health GUI to take up less space",
     category = Category.RENDER
@@ -86,23 +86,23 @@ object BossStack : Module(
     }
 
     private fun getClosestBoss(name: String?) =
-            mc.world?.loadedEntityList?.let {
-                var closest = Float.MAX_VALUE
-                var closestBoss: EntityLivingBase? = null
+        mc.world?.loadedEntityList?.let {
+            var closest = Float.MAX_VALUE
+            var closestBoss: EntityLivingBase? = null
 
-                for (entity in it) {
-                    if (entity !is EntityLivingBase) continue
-                    if (entity.isNonBoss) continue
-                    if (name != null && entity.displayName.formattedText != name) continue
+            for (entity in it) {
+                if (entity !is EntityLivingBase) continue
+                if (entity.isNonBoss) continue
+                if (name != null && entity.displayName.formattedText != name) continue
 
-                    val dist = entity.getDistance(mc.player)
-                    if (dist >= closest) continue
+                val dist = entity.getDistance(mc.player)
+                if (dist >= closest) continue
 
-                    closest = dist
-                    closestBoss = entity
-                }
-                closestBoss
+                closest = dist
+                closestBoss = entity
             }
+            closestBoss
+        }
 
     private fun drawHealthBar() {
         mc.profiler.startSection("bossHealth")

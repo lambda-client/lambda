@@ -1,8 +1,8 @@
 package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.EntityUtils.getInterpolatedAmount
 import me.zeroeightsix.kami.util.EntityUtils.getTargetList
 import me.zeroeightsix.kami.util.color.ColorHolder
@@ -19,7 +19,7 @@ import org.kamiblue.event.listener.listener
 import org.lwjgl.opengl.GL11.GL_LINES
 import kotlin.math.min
 
-object EyeFinder : Module(
+internal object EyeFinder : Module(
     name = "EyeFinder",
     description = "Draw lines from entity's heads to where they are looking",
     category = Category.RENDER
@@ -87,7 +87,7 @@ object EyeFinder : Module(
 
     private fun getRaytraceResult(entity: Entity): RayTraceResult? {
         var result = entity.rayTrace(5.0, Minecraft.getMinecraft().renderPartialTicks)
-                ?: return null /* Raytrace for block */
+            ?: return null /* Raytrace for block */
         if (result.typeOfHit == RayTraceResult.Type.MISS) { /* Raytrace for entity */
             val eyePos = entity.getPositionEyes(mc.renderPartialTicks)
             val entityLookVec = entity.getLook(mc.renderPartialTicks).scale(5.0)

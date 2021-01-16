@@ -3,33 +3,30 @@ package me.zeroeightsix.kami.module.modules.misc
 import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.SafeClientEvent
-import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
-import me.zeroeightsix.kami.event.events.RenderOverlayEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.modules.misc.AutoTool.equipBestTool
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
-import me.zeroeightsix.kami.util.WorldUtils.rayTraceBreakVec
+import me.zeroeightsix.kami.util.WorldUtils.rayTraceHitVec
 import me.zeroeightsix.kami.util.WorldUtils.rayTracePlaceVec
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
+import me.zeroeightsix.kami.util.items.*
 import me.zeroeightsix.kami.util.math.*
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
-import net.minecraft.block.Block.getIdFromBlock
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Blocks
@@ -42,13 +39,10 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
-import org.kamiblue.event.listener.listener
-import org.lwjgl.opengl.GL11
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
@@ -58,7 +52,7 @@ import kotlin.collections.LinkedHashMap
  * @author Avanatiker
  * @since 20/08/2020
  */
-object HighwayTools : Module(
+internal object HighwayTools : Module(
     name = "HighwayTools",
     description = "Be the grief a step a head.",
     category = Category.MISC,
@@ -255,7 +249,7 @@ object HighwayTools : Module(
             updateRenderer()
             updateFood()
 
-            if (BaritoneUtils.paused || AutoObsidian.isActive() || AutoEat.eating) return@safeListener
+            if (BaritoneUtils.isPathing || AutoObsidian.isActive() || AutoEat.eating) return@safeListener
 
             doPathing()
             runTasks()
@@ -730,25 +724,18 @@ object HighwayTools : Module(
     private fun SafeClientEvent.inventoryProcessor(blockTask: BlockTask) {
         when (blockTask.taskState) {
             TaskState.BREAK, TaskState.EMERGENCY_BREAK -> {
-                AutoTool.equipBestTool(world.getBlockState(blockTask.blockPos))
+                equipBestTool(world.getBlockState(blockTask.blockPos))
             }
             TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
-                val blockID = getIdFromBlock(blockTask.block)
-                val noHotbar = InventoryUtils.getSlotsNoHotbar(blockID)
-
-                if (InventoryUtils.getSlotsHotbar(blockID) == null && noHotbar != null) {
-                    when (blockTask.block) {
-                        fillerMat -> InventoryUtils.moveToSlot(noHotbar[0], 37)
-                        material -> InventoryUtils.moveToSlot(noHotbar[0], 38)
+                if (!swapToBlock(blockTask.block)) {
+                    if (!swapToBlockOrMove(Blocks.ENDER_CHEST)) {
+                        sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
+                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                        disable()
+                        blockTask.onStuck()
                     }
-                } else if (InventoryUtils.getSlots(0, 35, blockID) == null) {
-                    sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
-                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    disable()
-                    blockTask.onStuck()
+                    return
                 }
-
-                InventoryUtils.swapSlotToItem(blockID)
             }
             else -> {
                 blockTask.onStuck()
@@ -814,7 +801,7 @@ object HighwayTools : Module(
             return
         }
 
-        val rayTraceResult = rayTraceBreakVec(blockTask.blockPos)
+        val rayTraceResult = rayTraceHitVec(blockTask.blockPos)
 
         if (rayTraceResult == null) {
             blockTask.onStuck()
@@ -974,12 +961,12 @@ object HighwayTools : Module(
         return Pair(materialUsed / 2, fillerMatUsed / 2)
     }
 
-    fun gatherStatistics(): List<String> {
+    fun SafeClientEvent.gatherStatistics(): List<String> {
         val currentTask = lastTask
 
-        materialLeft = InventoryUtils.countItemAll(getIdFromBlock(material))
-        fillerMatLeft = InventoryUtils.countItemAll(getIdFromBlock(fillerMat))
-        val indirectMaterialLeft = 8 * InventoryUtils.countItemAll(130)
+        materialLeft = player.allSlots.countBlock(material)
+        fillerMatLeft = player.allSlots.countBlock(fillerMat)
+        val indirectMaterialLeft = 8 * player.allSlots.countBlock(Blocks.ENDER_CHEST)
 
         val blueprintStats = getBlueprintStats()
 

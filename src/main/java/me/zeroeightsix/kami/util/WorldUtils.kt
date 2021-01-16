@@ -133,19 +133,17 @@ object WorldUtils {
         return Vec3d(vec.x * 0.5 + 0.5, vec.y * 0.5 + 0.5, vec.z * 0.5 + 0.5)
     }
 
-    fun SafeClientEvent.rayTraceBreakVec(pos: BlockPos) : RayTraceResult? {
+    fun SafeClientEvent.rayTraceHitVec(pos: BlockPos): RayTraceResult? {
         val eyePos = player.getPositionEyes(1f)
         val bb = world.getBlockState(pos).getSelectedBoundingBox(world, pos)
 
         return world.rayTraceBlocks(eyePos, bb.center, false, false, true)?.takeIf {
-                it.isEqualTo(pos)
-            } ?: bb.corners(0.95).mapNotNull { corner ->
-                world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf {
-                    it.isEqualTo(pos)
-                }
-            }.minByOrNull {
-                it.hitVec?.distanceTo(eyePos) ?: 69420.0
-            }
+            it.isEqualTo(pos)
+        } ?: bb.corners(0.95).mapNotNull { corner ->
+            world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf { it.isEqualTo(pos) }
+        }.minByOrNull {
+            it.hitVec?.distanceTo(eyePos) ?: 69420.0
+        }
     }
 
     fun SafeClientEvent.rayTracePlaceVec(pos: BlockPos) : RayTraceResult? {

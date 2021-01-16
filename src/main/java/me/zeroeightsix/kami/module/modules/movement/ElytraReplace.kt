@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.movement
 
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.audio.PositionedSoundRecord
@@ -14,7 +14,7 @@ import net.minecraft.item.ItemElytra
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-object ElytraReplace : Module(
+internal object ElytraReplace : Module(
     name = "ElytraReplace",
     description = "Automatically swap and replace your chestplate and elytra.",
     category = Category.MOVEMENT
@@ -107,9 +107,9 @@ object ElytraReplace : Module(
             return
         } else { // swap chestplate from inventory with whatever you were wearing, if you're already wearing non-armor in chest slot
             mc.playerController.windowClick(0, 6, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             mc.playerController.windowClick(0, slot, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             return
         }
     }
@@ -137,9 +137,9 @@ object ElytraReplace : Module(
             true
         } else { // switch non-broken elytra with whatever was previously in the chest slot
             mc.playerController.windowClick(0, 6, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             mc.playerController.windowClick(0, slot, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             true
         }
     }

@@ -2,8 +2,8 @@ package me.zeroeightsix.kami.module.modules.render
 
 import me.zeroeightsix.kami.event.Phase
 import me.zeroeightsix.kami.event.events.RenderEntityEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.EntityUtils
 import me.zeroeightsix.kami.util.EntityUtils.mobTypeSettings
 import me.zeroeightsix.kami.util.color.HueCycler
@@ -21,7 +21,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import org.lwjgl.opengl.GL11.*
 
-object Chams : Module(
+internal object Chams : Module(
     name = "Chams",
     category = Category.RENDER,
     description = "Modify entity rendering"
@@ -101,12 +101,12 @@ object Chams : Module(
 
     private fun checkEntityType(entity: Entity): Boolean {
         return (self.value || entity != mc.player) && (all.value
-                || experience.value && entity is EntityXPOrb
-                || arrows.value && entity is EntityArrow
-                || throwable.value && entity is EntityThrowable
-                || items.value && entity is EntityItem
-                || crystals.value && entity is EntityEnderCrystal
-                || players.value && entity is EntityPlayer && EntityUtils.playerTypeCheck(entity, friends.value, sleeping.value)
-                || mobTypeSettings(entity, mobs.value, passive.value, neutral.value, hostile.value))
+            || experience.value && entity is EntityXPOrb
+            || arrows.value && entity is EntityArrow
+            || throwable.value && entity is EntityThrowable
+            || items.value && entity is EntityItem
+            || crystals.value && entity is EntityEnderCrystal
+            || players.value && entity is EntityPlayer && EntityUtils.playerTypeCheck(entity, friends.value, sleeping.value)
+            || mobTypeSettings(entity, mobs.value, passive.value, neutral.value, hostile.value))
     }
 }

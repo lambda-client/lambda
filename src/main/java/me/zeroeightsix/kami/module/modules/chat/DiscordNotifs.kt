@@ -6,8 +6,8 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
 import me.zeroeightsix.kami.util.TimeUtils
@@ -17,7 +17,7 @@ import net.minecraft.network.play.server.SPacketChat
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 
-object DiscordNotifs : Module(
+internal object DiscordNotifs : Module(
     name = "DiscordNotifs",
     category = Category.CHAT,
     description = "Sends your chat to a set Discord channel"
@@ -34,7 +34,7 @@ object DiscordNotifs : Module(
 
     val url = setting("URL", "unchanged")
     val pingID = setting("PingID", "unchanged")
-    val avatar = setting("Avatar", KamiMod.GITHUB_LINK + "assets/raw/assets/assets/icons/kami.png")
+    val avatar = setting("Avatar", KamiMod.GITHUB_LINK + "/assets/raw/assets/assets/icons/kami.png")
 
     private val server: String get() = mc.currentServerData?.serverIP ?: "the server"
     private val timer = TickTimer(TimeUnit.SECONDS)
@@ -91,9 +91,9 @@ object DiscordNotifs : Module(
     }
 
     private fun timeout(message: String) = !timeout.value
-            || restart.value && MessageDetection.Server.RESTART detect message
-            || direct.value && MessageDetection.Direct.ANY detect message
-            || timer.tick(timeoutTime.value.toLong())
+        || restart.value && MessageDetection.Server.RESTART detect message
+        || direct.value && MessageDetection.Direct.ANY detect message
+        || timer.tick(timeoutTime.value.toLong())
 
     /* Text formatting and misc methods */
     private fun getPingID(message: String) = if (message == "KamiBlueMessageType1"

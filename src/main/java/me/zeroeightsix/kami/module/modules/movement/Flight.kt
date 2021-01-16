@@ -5,9 +5,10 @@ import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.MovementUtils
+import me.zeroeightsix.kami.util.MovementUtils.calcMoveYaw
 import me.zeroeightsix.kami.util.threads.runSafe
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.network.play.client.CPacketPlayer
@@ -16,7 +17,7 @@ import org.kamiblue.event.listener.listener
 import kotlin.math.cos
 import kotlin.math.sin
 
-object Flight : Module(
+internal object Flight : Module(
     name = "Flight",
     category = Category.MOVEMENT,
     description = "Makes the player fly",
@@ -69,7 +70,7 @@ object Flight : Module(
                         else -0.0622
                     } else {
                         if (MovementUtils.isInputting) {
-                            val yaw = MovementUtils.calcMoveYaw()
+                            val yaw = calcMoveYaw()
                             player.motionX = -sin(yaw) * 0.2f
                             player.motionZ = cos(yaw) * 0.2f
                         }

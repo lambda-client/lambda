@@ -8,8 +8,8 @@ import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.mixin.extension.entityOutlineShader
 import me.zeroeightsix.kami.mixin.extension.listShaders
 import me.zeroeightsix.kami.mixin.extension.renderOutlines
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.ModuleConfig.setting
 import me.zeroeightsix.kami.util.EntityUtils.getTargetList
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.ESPRenderer
@@ -28,7 +28,7 @@ import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 
-object ESP : Module(
+internal object ESP : Module(
     name = "ESP",
     category = Category.RENDER,
     description = "Highlights entities"
@@ -194,9 +194,9 @@ object ESP : Module(
                 if (entity == player) continue
                 if (player.getDistance(entity) > range) continue
                 if (entity is EntityXPOrb && experience
-                        || entity is EntityArrow && arrows
-                        || entity is EntityThrowable && throwable
-                        || entity is EntityItem && items) {
+                    || entity is EntityArrow && arrows
+                    || entity is EntityThrowable && throwable
+                    || entity is EntityItem && items) {
                     entityList.add(entity)
                 }
             }
