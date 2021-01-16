@@ -36,7 +36,7 @@ open class Slider(
         get() = FontRenderAdapter.getFontHeight() + 3.0f
     protected var protectedWidth = 0.0
 
-    private val DisplayDescription = TextComponent(" ")
+    private val displayDescription = TextComponent(" ")
     private var descriptionPosX = 0.0f
     private var shown = false
 
@@ -59,7 +59,7 @@ open class Slider(
     }
 
     private fun setupDescription() {
-        DisplayDescription.clear()
+        displayDescription.clear()
         if (description.isNotBlank()) {
             val spaceWidth = FontRenderAdapter.getStringWidth(" ")
             var lineWidth = -spaceWidth
@@ -68,7 +68,7 @@ open class Slider(
             for (string in description.split(' ')) {
                 lineWidth += FontRenderAdapter.getStringWidth(string) + spaceWidth
                 if (lineWidth > 169) {
-                    DisplayDescription.addLine(lineString.trimEnd())
+                    displayDescription.addLine(lineString.trimEnd())
                     lineWidth = -spaceWidth
                     lineString = ""
                 } else {
@@ -76,7 +76,7 @@ open class Slider(
                 }
             }
 
-            if (lineString.isNotBlank()) DisplayDescription.addLine(lineString)
+            if (lineString.isNotBlank()) displayDescription.addLine(lineString)
         }
     }
 
@@ -132,8 +132,8 @@ open class Slider(
 
             val alpha = (if (mouseState == MouseState.HOVER) AnimationUtils.exponentInc(deltaTime, 250.0f, 0.0f, 1.0f)
             else AnimationUtils.exponentDec(deltaTime, 250.0f, 0.0f, 1.0f))
-            val textWidth = DisplayDescription.getWidth().toDouble()
-            val textHeight = DisplayDescription.getHeight(2).toDouble()
+            val textWidth = displayDescription.getWidth().toDouble()
+            val textHeight = displayDescription.getHeight(2).toDouble()
 
             val relativeCorner = Vec2f(mc.displayWidth.toFloat(), mc.displayHeight.toFloat()).div(ClickGUI.getScaleFactorFloat()).minus(absolutePos)
 
@@ -147,7 +147,7 @@ open class Slider(
             RenderUtils2D.drawRectFilled(vertexHelper, posEnd = Vec2d(textWidth, textHeight).plus(4.0), color = GuiColors.backGround.apply { a = (a * alpha).toInt() })
             RenderUtils2D.drawRectOutline(vertexHelper, posEnd = Vec2d(textWidth, textHeight).plus(4.0), lineWidth = 2.0f, color = GuiColors.primary.apply { a = (a * alpha).toInt() })
 
-            DisplayDescription.draw(Vec2d(2.0, 2.0), 2, alpha)
+            displayDescription.draw(Vec2d(2.0, 2.0), 2, alpha)
 
             glEnable(GL_SCISSOR_TEST)
             glPopMatrix()
