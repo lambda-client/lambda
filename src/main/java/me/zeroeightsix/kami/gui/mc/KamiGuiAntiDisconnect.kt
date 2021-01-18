@@ -31,6 +31,7 @@ class KamiGuiAntiDisconnect : GuiScreen() {
                     button.displayString = buttonText
                 } else {
                     button.enabled = false
+
                     when {
                         mc.isIntegratedServerRunning -> {
                             mc.displayGuiScreen(GuiWorldSelection(GuiMainMenu()))
@@ -42,6 +43,7 @@ class KamiGuiAntiDisconnect : GuiScreen() {
                             mc.displayGuiScreen(GuiMultiplayer(GuiMainMenu()))
                         }
                     }
+
                     mc.world.sendQuittingDisconnectingPacket()
                     mc.loadWorld(null)
                 }
