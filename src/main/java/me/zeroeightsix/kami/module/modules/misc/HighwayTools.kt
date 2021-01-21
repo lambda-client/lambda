@@ -458,27 +458,27 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.getNextPos(): BlockPos {
         val baseMaterial = if (mode == Mode.TUNNEL) fillerMat else material
-        var lastPos = currentBlockPos
+        var nextPos = currentBlockPos
 
-        for (step in 1..2) {
-            val pos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
+        for (step in 1..3) {
+            val possiblePos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
 
-            if (!blueprintNew.containsKey(pos.down()) && mode != Mode.TUNNEL) break
-            if (!world.isAirBlock(pos) || !world.isAirBlock(pos.up())) break
+//            if (!blueprintNew.containsKey(possiblePos.down()) && mode != Mode.TUNNEL) break
+            if (!world.isAirBlock(possiblePos) || !world.isAirBlock(possiblePos.up())) break
 
-            val blockBelow = world.getBlockState(pos.down()).block
+            val blockBelow = world.getBlockState(possiblePos.down()).block
             if (blockBelow != baseMaterial && mode != Mode.TUNNEL) break
 
-            if (checkFOMO(pos)) lastPos = pos
+            if (checkFOMO(possiblePos)) nextPos = possiblePos
         }
 
-        if (currentBlockPos != lastPos) refreshData()
-        return lastPos
+        if (currentBlockPos != nextPos) refreshData()
+        return nextPos
     }
 
     private fun checkFOMO(origin: BlockPos): Boolean {
         for (task in pendingTasks) {
-            if (task.taskState != TaskState.DONE && origin.distanceTo(task.blockPos) > maxReach) return false
+            if (task.taskState != TaskState.DONE && origin.distanceTo(task.blockPos) > maxReach - 1.0) return false
         }
         return true
     }
@@ -957,7 +957,7 @@ internal object HighwayTools : Module(
                 fillerMat -> fillerMatUsed++
             }
         }
-        // TODO: Make it dynamic for several depth layers
+        // TODO: Update to new dynamic blueprint
         return Pair(materialUsed / 2, fillerMatUsed / 2)
     }
 
@@ -1005,13 +1005,13 @@ internal object HighwayTools : Module(
             "    §7Position: §9(${currentTask?.blockPos?.asString()})",
             "§rDebug",
             "    §7Stuck ticks: §9${lastTask?.stuckTicks?.toString() ?: "N/A"}",
-            //"    §7Pathing: §9$pathing",
+//            "    §7Pathing: §9$pathing",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
             "    §7${fillerMat.localizedName} (filler material): §9$fillerMatLeft",
-            "    §7Paving distance left: §9$pavingLeftAll",
-            //"    §7Estimated destination: §9(${relativeDirection(currentBlockPos, pavingLeft, 0).asString()})",
-            "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"
+//            "    §7Paving distance left: §9$pavingLeftAll",
+//            "    §7Estimated destination: §9(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft))})",
+//            "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"
         )
 
         if (printDebug) {
@@ -1045,7 +1045,7 @@ internal object HighwayTools : Module(
         fun updateState(state: TaskState) {
             if (state == taskState) return
             taskState = state
-            onUpdate()
+            if (taskState == TaskState.PLACE && state == TaskState.PLACED) onUpdate()
         }
 
         fun updateMaterial(material: Block) {
