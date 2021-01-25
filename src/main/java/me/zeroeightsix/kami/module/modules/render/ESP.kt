@@ -124,6 +124,7 @@ internal object ESP : Module(
             frameBuffer?.framebufferClear()
             mc.framebuffer.bindFramebuffer(false)
 
+            GlStateManager.disableCull()
             GlStateManager.enableBlend()
             GlStateManager.enableDepth()
             GlStateManager.disableTexture2D()
