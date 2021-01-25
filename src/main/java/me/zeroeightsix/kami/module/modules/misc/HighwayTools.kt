@@ -75,6 +75,7 @@ internal object HighwayTools : Module(
     private val interacting by setting("InteractMode", InteractMode.SPOOF, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
+    private val tickDelayCheck by setting("TickDelayCheck", 2, 1..128, 1, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("ToggleInvManager", true, { page == Page.BEHAVIOR })
     private val toggleAutoObsidian by setting("ToggleAutoObsidian", true, { page == Page.BEHAVIOR })
 
@@ -117,7 +118,7 @@ internal object HighwayTools : Module(
     private var waitTicks = 0
 
     // Rotation
-    private var lastHitVec: Vec3d? = null
+    private var lastHitVec = Vec3d.ZERO
     private val rotateTimer = TickTimer(TimeUnit.TICKS)
 
     // Pathing
@@ -485,21 +486,24 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isNotEmpty()) {
-            val sortedTasks = pendingTasks.sortedBy {
-                it.taskState.priority +
-                    player.getPositionEyes(1f).distanceTo(it.blockPos) * 2 +
-                    it.stuckTicks * 10 / it.taskState.stuckTimeout
-            }
+//          (startingBlockPos.distanceTo(player.position) / startingBlockPos.distanceTo(it.blockPos)) * player.distanceTo(it.blockPos) * (lastHitVec.distanceTo(it.blockPos) * 2)
 
-            (lastTask ?: sortedTasks.firstOrNull())?.let {
-//                val dist = player.getPositionEyes(1f).distanceTo(it.blockPos) - 0.7
-//                if (dist > maxReach) {
-//                    refreshData()
-//                } else {
-//                    doNextTask(sortedTasks)
-//                }
-                doNextTask(sortedTasks)
-            }
+            val sortedTasks = pendingTasks.sortedWith(
+                compareBy <BlockTask> {
+                    it.taskState.ordinal
+                }.thenBy {
+                    it.stuckTicks
+                }.thenBy {
+                    startingBlockPos.distanceTo(it.blockPos)
+                }.thenBy {
+                    player.distanceTo(it.blockPos)
+                }.thenBy {
+                    lastHitVec?.distanceTo(it.blockPos)
+                }
+            )
+            doTask(sortedTasks[0])
+
+            if (sortedTasks[0].taskState.ordinal < 2) runTasks()
         } else {
             if (checkDoneTasks()) {
                 doneTasks.clear()
@@ -507,34 +511,6 @@ internal object HighwayTools : Module(
             } else {
                 refreshData()
             }
-        }
-    }
-
-    private fun SafeClientEvent.doNextTask(sortedTasks: List<BlockTask>) {
-        if (waitTicks > 0) {
-            waitTicks--
-            return
-        }
-
-        lastTask?.let {
-            doTask(it)
-
-            if (it.taskState != TaskState.DONE) {
-                val timeout = it.taskState.stuckTimeout
-                if (it.stuckTicks > timeout) {
-                    if (debugMessages == DebugMessages.IMPORTANT) {
-                        sendChatMessage("Stuck for more than $timeout ticks, refreshing data.")
-                    }
-                    refreshData()
-                }
-                return
-            }
-        }
-
-        for (task in sortedTasks) {
-            doTask(task)
-            lastTask = task
-            if (task.taskState != TaskState.DONE) break
         }
     }
 
@@ -559,6 +535,9 @@ internal object HighwayTools : Module(
             }
             TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
                 doPlace(blockTask)
+            }
+            TaskState.PENDING -> {
+                sendChatMessage("PENDING.")
             }
         }
     }
@@ -822,6 +801,7 @@ internal object HighwayTools : Module(
         waitTicks = tickDelayBreak
         defaultScope.launch {
             delay(10L)
+            blockTask.updateState(TaskState.PENDING)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
@@ -830,8 +810,9 @@ internal object HighwayTools : Module(
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
-                blockTask.updateState(TaskState.BROKEN)
             }
+            delay(50L * tickDelayCheck)
+            blockTask.updateState(TaskState.BROKEN)
         }
     }
 
@@ -876,6 +857,7 @@ internal object HighwayTools : Module(
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
         defaultScope.launch {
+            blockTask.updateState(TaskState.PENDING)
             delay(10L)
             onMainThreadSafe {
                 val offsetHitVec = lastHitVec ?: return@onMainThreadSafe
@@ -883,11 +865,12 @@ internal object HighwayTools : Module(
                 connection.sendPacket(placePacket)
                 player.swingArm(EnumHand.MAIN_HAND)
             }
-
             delay(10L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
+            delay(50L * tickDelayCheck)
+            blockTask.updateState(TaskState.PLACED)
         }
     }
 
@@ -1021,7 +1004,7 @@ internal object HighwayTools : Module(
         return statistics
     }
 
-    private fun getQueue(): List<String> {
+    private fun SafeClientEvent.getQueue(): List<String> {
         val message = ArrayList<String>()
         message.add("QUEUE:")
         addTaskToMessageList(message, pendingTasks)
@@ -1030,8 +1013,21 @@ internal object HighwayTools : Module(
         return message
     }
 
-    private fun addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
-        for (blockTask in tasks) list.add("    " + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") Priority: " + blockTask.taskState.ordinal + " State: " + blockTask.taskState.toString())
+    private fun SafeClientEvent.addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
+        val sortedTasks = tasks.sortedWith(
+            compareBy <BlockTask> {
+                it.taskState.ordinal
+            }.thenBy {
+                it.stuckTicks
+            }.thenBy {
+                startingBlockPos.distanceTo(it.blockPos)
+            }.thenBy {
+                player.distanceTo(it.blockPos)
+            }.thenBy {
+                lastHitVec?.distanceTo(it.blockPos)
+            }
+        )
+        for (blockTask in sortedTasks) list.add("    " + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") Priority: " + blockTask.taskState.ordinal + " State: " + blockTask.taskState.toString())
     }
 
     class BlockTask(
@@ -1081,16 +1077,17 @@ internal object HighwayTools : Module(
         override fun hashCode() = blockPos.hashCode()
     }
 
-    enum class TaskState(val priority: Int, val stuckThreshold: Int, val stuckTimeout: Int, val color: ColorHolder) {
-        DONE(0, 69420, 0x22, ColorHolder(50, 50, 50)),
-        LIQUID_SOURCE(1, 100, 100, ColorHolder(120, 41, 240)),
-        LIQUID_FLOW(20, 80, 80, ColorHolder(120, 41, 240)),
-        BROKEN(120, 20, 10, ColorHolder(111, 0, 0)),
-        BREAKING(140, 100, 100, ColorHolder(240, 222, 60)),
-        EMERGENCY_BREAK(160, 20, 20, ColorHolder(220, 41, 140)),
-        BREAK(180, 20, 20, ColorHolder(222, 0, 0)),
-        PLACED(280, 20, 5, ColorHolder(53, 222, 66)),
-        PLACE(300, 20, 10, ColorHolder(35, 188, 254))
+    enum class TaskState(val stuckThreshold: Int, val stuckTimeout: Int, val color: ColorHolder) {
+        DONE(69420, 0x22, ColorHolder(50, 50, 50)),
+        BROKEN(20, 10, ColorHolder(111, 0, 0)),
+        PLACED(20, 5, ColorHolder(53, 222, 66)),
+        LIQUID_SOURCE(100, 100, ColorHolder(120, 41, 240)),
+        LIQUID_FLOW(80, 80, ColorHolder(120, 41, 240)),
+        BREAKING(100, 100, ColorHolder(240, 222, 60)),
+        EMERGENCY_BREAK(20, 20, ColorHolder(220, 41, 140)),
+        BREAK(20, 20, ColorHolder(222, 0, 0)),
+        PLACE(20, 10, ColorHolder(35, 188, 254)),
+        PENDING(100000, 100000, ColorHolder(0, 0, 0))
     }
 
     private enum class DebugMessages {
