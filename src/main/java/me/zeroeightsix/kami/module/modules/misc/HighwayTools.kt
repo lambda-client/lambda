@@ -357,6 +357,9 @@ internal object HighwayTools : Module(
         for (task in pendingTasks) {
             if (task.blockPos == pos) return task
         }
+        for (task in doneTasks) {
+            if (task.blockPos == pos) return task
+        }
         return BlockTask(BlockPos(0, -1, 0), TaskState.DONE, Blocks.AIR)
     }
 
@@ -468,9 +471,9 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.doPathing() {
         val nextPos = getNextPos()
 
-        if (nextPos == mc.player.flooredPosition) {
+        if (player.flooredPosition.distanceTo(nextPos) < 2) {
             currentBlockPos = nextPos
-            goal = null
+            goal = GoalNear(nextPos, 0)
         } else {
             goal = GoalNear(nextPos, 0)
         }
@@ -479,13 +482,11 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.getNextPos(): BlockPos {
         var nextPos = currentBlockPos
 
-        for (step in 1..2) {
-            val possiblePos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
-            if (getTaskFromPos(possiblePos).taskState != TaskState.DONE ||
-                getTaskFromPos(possiblePos.up()).taskState != TaskState.DONE ||
-                getTaskFromPos(possiblePos.down()).taskState != TaskState.DONE) break
-            if (checkFOMO(possiblePos.up())) nextPos = possiblePos
-        }
+        val possiblePos = currentBlockPos.add(startingDirection.directionVec)
+        if (getTaskFromPos(possiblePos).taskState != TaskState.DONE ||
+            getTaskFromPos(possiblePos.up()).taskState != TaskState.DONE ||
+            getTaskFromPos(possiblePos.down()).taskState != TaskState.DONE) return nextPos
+        if (checkFOMO(possiblePos.up())) nextPos = possiblePos
 
         if (currentBlockPos != nextPos) refreshData()
         return nextPos
@@ -580,7 +581,7 @@ internal object HighwayTools : Module(
             }
             TaskState.PENDING_BROKEN, TaskState.PENDING_PLACED -> {
                 if (debugMessages == DebugMessages.ALL) sendChatMessage("$chatName Currently waiting for blockState updates...")
-                blockTask.onStuck()
+//                blockTask.onStuck()
             }
         }
     }
