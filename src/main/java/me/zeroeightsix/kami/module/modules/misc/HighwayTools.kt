@@ -14,6 +14,7 @@ import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
+import me.zeroeightsix.kami.util.WorldUtils.isPlaceable
 import me.zeroeightsix.kami.util.WorldUtils.rayTraceHitVec
 import me.zeroeightsix.kami.util.WorldUtils.rayTracePlaceVec
 import me.zeroeightsix.kami.util.color.ColorHolder
@@ -21,6 +22,7 @@ import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.items.*
 import me.zeroeightsix.kami.util.math.*
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
+import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
@@ -293,7 +295,7 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.doRotation() {
         if (rotateTimer.tick(20L, false)) return
-        val rotation = lastHitVec?.let { RotationUtils.getRotationTo(it) } ?: return
+        val rotation = lastHitVec?.let { getRotationTo(it) } ?: return
 
         when (interacting) {
             InteractMode.SPOOF -> {
@@ -705,7 +707,7 @@ internal object HighwayTools : Module(
                 blockTask.updateState(TaskState.PLACED)
             }
             else -> {
-                if (!WorldUtils.isPlaceable(blockTask.blockPos)) {
+                if (!isPlaceable(blockTask.blockPos)) {
                     if (debugMessages != DebugMessages.OFF) sendChatMessage("Invalid place position: " + blockTask.blockPos)
                     refreshData()
                     return
