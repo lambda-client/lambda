@@ -72,6 +72,7 @@ internal object HighwayTools : Module(
     // behavior settings
     private val tickDelayPlace by setting("TickDelayPlace", 3, 0..16, 1, { page == Page.BEHAVIOR })
     private val tickDelayBreak by setting("TickDelayBreak", 1, 0..16, 1, { page == Page.BEHAVIOR })
+    private val taskTimeoutTicks by setting("TaskTimeoutTicks", 3, 0..16, 1, { page == Page.BEHAVIOR })
     private val interacting by setting("InteractMode", InteractMode.SPOOF, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
@@ -257,7 +258,7 @@ internal object HighwayTools : Module(
             updateRenderer()
             updateFood()
 
-            if (BaritoneUtils.isPathing || AutoObsidian.isActive() || AutoEat.eating) return@safeListener
+            if (player.flooredPosition.distanceTo(currentBlockPos) > 2 || AutoObsidian.isActive() || AutoEat.eating) return@safeListener
 
             doPathing()
             runTasks()
@@ -475,7 +476,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.getNextPos(): BlockPos {
         var nextPos = currentBlockPos
 
-        for (step in 1..3) {
+        for (step in 1..2) {
             val possiblePos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
             if (getTaskFromPos(possiblePos).taskState != TaskState.DONE ||
                 getTaskFromPos(possiblePos.up()).taskState != TaskState.DONE ||
@@ -551,19 +552,8 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun agePendingTasks() {
-        for (task in pendingTasks) {
-            when (task.taskState) {
-                TaskState.PENDING_PLACED,
-                TaskState.PENDING_BROKEN -> task.onStuck()
-                else -> {}
-            }
-        }
-    }
-
     private fun SafeClientEvent.doTask(blockTask: BlockTask) {
         blockTask.onTick()
-        agePendingTasks()
 
         when (blockTask.taskState) {
             TaskState.DONE -> {
@@ -861,6 +851,8 @@ internal object HighwayTools : Module(
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
+            delay(50L * taskTimeoutTicks)
+            if (blockTask.taskState == TaskState.PENDING_BROKEN) blockTask.updateState(TaskState.BREAK)
         }
     }
 
@@ -918,6 +910,8 @@ internal object HighwayTools : Module(
             onMainThreadSafe {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
+            delay(50L * taskTimeoutTicks)
+            if (blockTask.taskState == TaskState.PENDING_PLACED) blockTask.updateState(TaskState.PLACE)
         }
     }
 
@@ -1132,8 +1126,8 @@ internal object HighwayTools : Module(
         EMERGENCY_BREAK(20, 20, ColorHolder(220, 41, 140)),
         BREAK(20, 20, ColorHolder(222, 0, 0)),
         PLACE(20, 10, ColorHolder(35, 188, 254)),
-        PENDING_BROKEN(0, 10, ColorHolder(0, 0, 0)),
-        PENDING_PLACED(0, 10, ColorHolder(0, 0, 0))
+        PENDING_BROKEN(100, 100, ColorHolder(0, 0, 0)),
+        PENDING_PLACED(100, 100, ColorHolder(0, 0, 0))
     }
 
     private enum class DebugMessages {
