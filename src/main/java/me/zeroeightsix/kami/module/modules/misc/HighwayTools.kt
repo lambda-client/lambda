@@ -530,7 +530,7 @@ internal object HighwayTools : Module(
                     TaskState.PENDING_PLACED -> firstTask.updateState(TaskState.PLACE)
                     else -> {
                         if (debugMessages != DebugMessages.OFF) {
-                            sendChatMessage("Stuck for more then $timeout ticks, refreshing data.")
+                            sendChatMessage("Stuck while ${firstTask.taskState}@(${firstTask.blockPos.asString()}) for more then $timeout ticks (${firstTask.stuckTicks}), refreshing data.")
                         }
                         refreshData()
                     }
@@ -556,8 +556,19 @@ internal object HighwayTools : Module(
         }
     }
 
+    private fun agePendingTasks() {
+        for (task in pendingTasks) {
+            when (task.taskState) {
+                TaskState.PENDING_PLACED,
+                TaskState.PENDING_BROKEN -> task.onStuck()
+                else -> {}
+            }
+        }
+    }
+
     private fun SafeClientEvent.doTask(blockTask: BlockTask) {
         blockTask.onTick()
+        agePendingTasks()
 
         when (blockTask.taskState) {
             TaskState.DONE -> {
@@ -978,6 +989,7 @@ internal object HighwayTools : Module(
         }
     }
 
+    // ToDo: Update to new dynamic blueprint
     private fun getBlueprintStats(): Pair<Int, Int> {
         var materialUsed = 0
         var fillerMatUsed = 0
@@ -987,12 +999,15 @@ internal object HighwayTools : Module(
                 fillerMat -> fillerMatUsed++
             }
         }
-        // TODO: Update to new dynamic blueprint
         return Pair(materialUsed / 2, fillerMatUsed / 2)
     }
 
     fun SafeClientEvent.gatherStatistics(): List<String> {
-        val currentTask = lastTask
+        val currentTask = if (sortedTasks.isNotEmpty()) {
+            sortedTasks[0]
+        } else {
+            null
+        }
 
         materialLeft = player.allSlots.countBlock(material)
         fillerMatLeft = player.allSlots.countBlock(fillerMat)
@@ -1034,7 +1049,7 @@ internal object HighwayTools : Module(
             "    §7Target state: §9${currentTask?.block?.localizedName}",
             "    §7Position: §9(${currentTask?.blockPos?.asString()})",
             "§rDebug",
-            "    §7Stuck ticks: §9${lastTask?.stuckTicks?.toString() ?: "N/A"}",
+            "    §7Stuck ticks: §9${currentTask?.stuckTicks.toString()}",
 //            "    §7Pathing: §9$pathing",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
@@ -1113,16 +1128,16 @@ internal object HighwayTools : Module(
 
     enum class TaskState(val stuckThreshold: Int, val stuckTimeout: Int, val color: ColorHolder) {
         DONE(69420, 0x22, ColorHolder(50, 50, 50)),
-        BROKEN(20, 10, ColorHolder(111, 0, 0)),
-        PLACED(20, 5, ColorHolder(53, 222, 66)),
+        BROKEN(1000, 1000, ColorHolder(111, 0, 0)),
+        PLACED(1000, 1000, ColorHolder(53, 222, 66)),
         LIQUID_SOURCE(100, 100, ColorHolder(120, 41, 240)),
         LIQUID_FLOW(80, 80, ColorHolder(120, 41, 240)),
         BREAKING(100, 100, ColorHolder(240, 222, 60)),
         EMERGENCY_BREAK(20, 20, ColorHolder(220, 41, 140)),
         BREAK(20, 20, ColorHolder(222, 0, 0)),
         PLACE(20, 10, ColorHolder(35, 188, 254)),
-        PENDING_BROKEN(0, 4, ColorHolder(0, 0, 0)),
-        PENDING_PLACED(0, 4, ColorHolder(0, 0, 0))
+        PENDING_BROKEN(0, 10, ColorHolder(0, 0, 0)),
+        PENDING_PLACED(0, 10, ColorHolder(0, 0, 0))
     }
 
     private enum class DebugMessages {
