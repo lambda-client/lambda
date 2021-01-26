@@ -278,6 +278,7 @@ internal object HighwayTools : Module(
             if (blockTask.block == Blocks.AIR) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
+//        renderer.add(world.getBlockState(currentBlockPos).getSelectedBoundingBox(world, currentBlockPos), ColorHolder(0, 0, 255))
     }
 
     private fun SafeClientEvent.updateFood() {
@@ -479,7 +480,7 @@ internal object HighwayTools : Module(
             if (getTaskFromPos(possiblePos).taskState != TaskState.DONE ||
                 getTaskFromPos(possiblePos.up()).taskState != TaskState.DONE ||
                 getTaskFromPos(possiblePos.down()).taskState != TaskState.DONE) break
-            if (checkFOMO(possiblePos)) nextPos = possiblePos
+            if (checkFOMO(possiblePos.up())) nextPos = possiblePos
         }
 
         if (currentBlockPos != nextPos) refreshData()
@@ -543,7 +544,6 @@ internal object HighwayTools : Module(
         } else {
             if (checkDoneTasks()) {
                 doneTasks.clear()
-                // ToDo: This maybe is causing desync of current pos and goal?
                 refreshData(currentBlockPos.add(startingDirection.directionVec))
             } else {
                 refreshData()
@@ -821,7 +821,7 @@ internal object HighwayTools : Module(
         }
 
         /* For fire, we just need to mine the top of the block below the fire */
-        /* TODO: This will not work if the top of the block which the fire is on is not visible */
+        /* ToDo: This will not work if the top of the block which the fire is on is not visible */
         if (blockTask.block == Blocks.FIRE) {
             val blockBelowFire = blockTask.blockPos.down()
             playerController.clickBlock(blockBelowFire, EnumFacing.UP)

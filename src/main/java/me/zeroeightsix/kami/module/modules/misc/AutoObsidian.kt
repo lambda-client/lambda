@@ -222,7 +222,7 @@ internal object AutoObsidian : Module(
         if (pair != null) {
             placingPos = pair.first
             renderer.clear()
-            renderer.add(pair.first, ColorHolder(64, 255, 64))
+            renderer.add(world.getBlockState(pair.first).getSelectedBoundingBox(world, pair.first), ColorHolder(64, 255, 64))
         } else {
             MessageSendHelper.sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
