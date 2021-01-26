@@ -472,18 +472,13 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.getNextPos(): BlockPos {
-        val baseMaterial = if (mode == Mode.TUNNEL) fillerMat else material
         var nextPos = currentBlockPos
 
         for (step in 1..3) {
             val possiblePos = currentBlockPos.add(startingDirection.directionVec.multiply(step))
-
-//            if (!blueprintNew.containsKey(possiblePos.down()) && mode != Mode.TUNNEL) break
-            if (!world.isAirBlock(possiblePos) || !world.isAirBlock(possiblePos.up())) break
-
-            val blockBelow = world.getBlockState(possiblePos.down()).block
-            if (blockBelow != baseMaterial && mode != Mode.TUNNEL) break
-
+            if (getTaskFromPos(possiblePos).taskState != TaskState.DONE ||
+                getTaskFromPos(possiblePos.up()).taskState != TaskState.DONE ||
+                getTaskFromPos(possiblePos.down()).taskState != TaskState.DONE) break
             if (checkFOMO(possiblePos)) nextPos = possiblePos
         }
 
@@ -758,6 +753,7 @@ internal object HighwayTools : Module(
         when (blockTask.taskState) {
             TaskState.BREAK, TaskState.EMERGENCY_BREAK -> {
                 equipBestTool(world.getBlockState(blockTask.blockPos))
+//                swapToValidPickaxe()
             }
             TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
                 if (!swapToBlock(blockTask.block)) {

@@ -7,12 +7,13 @@ import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.util.combat.CombatUtils
 import me.zeroeightsix.kami.util.combat.CombatUtils.equipBestWeapon
-import me.zeroeightsix.kami.util.items.swapToSlot
+import me.zeroeightsix.kami.util.items.*
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.Enchantments
+import net.minecraft.inventory.Slot
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Mouse
@@ -59,11 +60,11 @@ internal object AutoTool : Module(
     }
 
     fun SafeClientEvent.equipBestTool(blockState: IBlockState) {
-        var bestSlot = -1
+        var slotFrom: Slot? = null
         var max = 0.0
 
-        for (i in 0..8) {
-            val stack = player.inventory.getStackInSlot(i)
+        for (i in player.inventorySlots) {
+            val stack = i.stack
             if (stack.isEmpty) continue
             var speed = stack.getDestroySpeed(blockState)
             var eff: Int
@@ -75,13 +76,16 @@ internal object AutoTool : Module(
                     ).toFloat()
                 if (speed > max) {
                     max = speed.toDouble()
-                    bestSlot = i
+                    slotFrom = i
                 }
             }
-
         }
 
-        if (bestSlot != -1) swapToSlot(bestSlot)
+        if (slotFrom != null) {
+            val slotTo = player.hotbarSlots.firstEmpty()?.hotbarSlot ?: 0
+
+            moveToHotbar(slotFrom.slotNumber, slotTo)
+        }
     }
 
     init {
