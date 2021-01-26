@@ -75,7 +75,6 @@ internal object HighwayTools : Module(
     private val interacting by setting("InteractMode", InteractMode.SPOOF, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
-    private val tickDelayCheck by setting("TickDelayCheck", 2, 1..128, 1, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("ToggleInvManager", true, { page == Page.BEHAVIOR })
     private val toggleAutoObsidian by setting("ToggleAutoObsidian", true, { page == Page.BEHAVIOR })
 
@@ -211,23 +210,28 @@ internal object HighwayTools : Module(
             val prev = world.getBlockState(pos)
             val new = it.packet.getBlockState()
 
-            if (prev.block != new.block) {
-                when {
-                    new.block == Blocks.AIR -> {
-                        totalBlocksDestroyed++
-                        if (fakeSounds) {
-                            val soundType = new.block.getSoundType(new, world, pos, player)
-                            onMainThread {
-                                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+            if (isInsideBuild(pos) && prev.block != new.block) {
+                val task = getTaskFromPos(pos)
+                if (task.taskState == TaskState.PENDING) {
+                    when {
+                        prev.block != Blocks.AIR && new.block == Blocks.AIR -> {
+                            totalBlocksDestroyed++
+                            task.updateState(TaskState.BROKEN)
+                            if (fakeSounds) {
+                                val soundType = prev.block.getSoundType(prev, world, pos, player)
+                                onMainThread {
+                                    world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                                }
                             }
                         }
-                    }
-                    prev.block == Blocks.AIR -> {
-                        totalBlocksPlaced++
-                        if (fakeSounds) {
-                            val soundType = prev.block.getSoundType(prev, world, pos, player)
-                            onMainThread {
-                                world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                        (task.block == material || task.block == fillerMat) && task.block == new.block -> {
+                            totalBlocksPlaced++
+                            task.updateState(TaskState.PLACED)
+                            if (fakeSounds) {
+                                val soundType = new.block.getSoundType(new, world, pos, player)
+                                onMainThread {
+                                    world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                                }
                             }
                         }
                     }
@@ -339,6 +343,13 @@ internal object HighwayTools : Module(
         } else {
             addTaskToPending(pos, TaskState.BREAK, Blocks.AIR)
         }
+    }
+
+    private fun getTaskFromPos(pos: BlockPos): BlockTask {
+        for (task in pendingTasks) {
+            if (task.blockPos == pos) return task
+        }
+        return BlockTask(BlockPos(0, -1, 0), TaskState.DONE, Blocks.AIR)
     }
 
     private fun SafeClientEvent.generateBluePrint(feetPos: BlockPos) {
@@ -559,7 +570,7 @@ internal object HighwayTools : Module(
             }
             is BlockLiquid -> {
                 var filler = fillerMat
-                if (isInsideBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
+                if (isInsideBlueprint(blockTask.blockPos) || fillerMatLeft == 0) filler = material
                 if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     blockTask.updateState(TaskState.LIQUID_FLOW)
                     blockTask.updateMaterial(filler)
@@ -628,7 +639,7 @@ internal object HighwayTools : Module(
             }
             is BlockLiquid -> {
                 var filler = fillerMat
-                if (isInsideBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
+                if (isInsideBlueprint(blockTask.blockPos) || fillerMatLeft == 0) filler = material
                 if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     blockTask.updateState(TaskState.LIQUID_FLOW)
                     blockTask.updateMaterial(filler)
@@ -737,7 +748,7 @@ internal object HighwayTools : Module(
 
                 foundLiquid = true
                 val found = ArrayList<Triple<BlockTask, TaskState, Block>>()
-                val filler = if (isInsideBuild(neighbour)) material else fillerMat
+                val filler = if (isInsideBlueprint(neighbour)) material else fillerMat
 
                 for (bt in pendingTasks) {
                     if (bt.blockPos == neighbour) {
@@ -800,8 +811,8 @@ internal object HighwayTools : Module(
     private fun dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
         waitTicks = tickDelayBreak
         defaultScope.launch {
-            delay(10L)
             blockTask.updateState(TaskState.PENDING)
+            delay(10L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
@@ -811,8 +822,6 @@ internal object HighwayTools : Module(
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
-            delay(50L * tickDelayCheck)
-            blockTask.updateState(TaskState.BROKEN)
         }
     }
 
@@ -869,8 +878,6 @@ internal object HighwayTools : Module(
             onMainThreadSafe {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
-            delay(50L * tickDelayCheck)
-            blockTask.updateState(TaskState.PLACED)
         }
     }
 
@@ -878,8 +885,15 @@ internal object HighwayTools : Module(
         return blueprintNew.containsKey(pos)
     }
 
-    private fun isInsideBuild(pos: BlockPos): Boolean {
+    private fun isInsideBlueprint(pos: BlockPos): Boolean {
         return blueprintNew[pos]?.let { it != Blocks.AIR } ?: false
+    }
+
+    private fun isInsideBuild(pos: BlockPos): Boolean {
+        for (task in pendingTasks) {
+            if (task.blockPos == pos) return true
+        }
+        return false
     }
 
     fun printSettings() {
