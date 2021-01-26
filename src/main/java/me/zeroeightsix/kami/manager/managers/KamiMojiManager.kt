@@ -13,8 +13,7 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.manager.Manager
 import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.graphics.TextureUtils
-import me.zeroeightsix.kami.util.threads.mainScope
-import me.zeroeightsix.kami.util.threads.onMainThreadW
+import me.zeroeightsix.kami.util.threads.defaultScope
 import net.minecraft.util.ResourceLocation
 import org.lwjgl.opengl.GL11.GL_RGBA
 import java.io.File
@@ -32,9 +31,10 @@ object KamiMojiManager : Manager {
     private const val zipUrl = "https://github.com/2b2t-Utilities/emojis/archive/master.zip"
 
     private val parser = JsonParser()
-    private val emojiMap = HashMap<String, ResourceLocation?>()
+    private val emojiMap = HashMap<String, ResourceLocation>()
+    private val fileMap = HashMap<String, File>()
 
-    private val job = mainScope.launch(Dispatchers.IO) {
+    private val job = defaultScope.launch(Dispatchers.IO) {
         val directory = File(directory)
 
         if (!directory.exists()) {
@@ -45,6 +45,12 @@ object KamiMojiManager : Manager {
             checkEmojiUpdate()
         } catch (e: Exception) {
             KamiMod.LOG.warn("Failed to check emoji update", e)
+        }
+
+        directory.listFiles()?.forEach {
+            if (it.isFile && it.extension == "png" ) {
+                fileMap[it.nameWithoutExtension] = it
+            }
         }
 
         KamiMod.LOG.info("KamiMoji Initialized")
@@ -108,9 +114,7 @@ object KamiMojiManager : Manager {
 
         // Loads emoji on demand
         if (!emojiMap.containsKey(name)) {
-            mainScope.launch(Dispatchers.IO) {
-                loadEmoji(name)
-            }
+            loadEmoji(name)
         }
 
         return emojiMap[name]
@@ -119,17 +123,15 @@ object KamiMojiManager : Manager {
     fun isEmoji(name: String?) = getEmoji(name) != null
 
     private fun loadEmoji(name: String) {
-        val file = File("$directory/${name}.png")
+        val file = fileMap[name] ?: return
         if (!file.exists()) return
 
         try {
             val image = ImageIO.read(file)
+            val dynamicTexture = TextureUtils.genTextureWithMipmaps(image, 3, GL_RGBA)
+            val resourceLocation = Wrapper.minecraft.textureManager.getDynamicTextureLocation(name, dynamicTexture)
 
-            onMainThreadW(5000L) {
-                val dynamicTexture = TextureUtils.genTextureWithMipmaps(image, 3, GL_RGBA)
-                val resourceLocation = Wrapper.minecraft.textureManager.getDynamicTextureLocation(name, dynamicTexture)
-                emojiMap[name] = resourceLocation
-            }
+            emojiMap[name] = resourceLocation
         } catch (e: IOException) {
             KamiMod.LOG.warn("Failed to load emoji", e)
         }

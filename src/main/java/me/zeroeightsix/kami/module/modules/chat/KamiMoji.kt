@@ -22,7 +22,7 @@ internal object KamiMoji : Module(
     fun renderText(inputText: String, fontHeight: Int, shadow: Boolean, posX: Float, posY: Float, alpha: Float): String {
         var text = inputText
 
-        for (possible in text.split(":").toTypedArray()) {
+        for (possible in text.split(":")) {
             if (KamiMojiManager.isEmoji(possible)) {
                 val emojiText = ":$possible:"
                 if (!shadow) {
