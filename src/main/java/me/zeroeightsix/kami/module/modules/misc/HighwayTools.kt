@@ -111,6 +111,7 @@ internal object HighwayTools : Module(
     private var startingBlockPos = BlockPos(0, -1, 0)
     private val blueprint = ArrayList<Pair<BlockPos, Block>>()
     private val blueprintNew = LinkedHashMap<BlockPos, Block>()
+    private var sortedTasks: List<BlockTask> = emptyList()
 
     // State
     private var active = false
@@ -212,26 +213,28 @@ internal object HighwayTools : Module(
 
             if (isInsideBuild(pos) && prev.block != new.block) {
                 val task = getTaskFromPos(pos)
-                if (task.taskState == TaskState.PENDING) {
-                    when {
-                        prev.block != Blocks.AIR && new.block == Blocks.AIR -> {
-                            totalBlocksDestroyed++
-                            task.updateState(TaskState.BROKEN)
-                            if (fakeSounds) {
-                                val soundType = prev.block.getSoundType(prev, world, pos, player)
-                                onMainThread {
-                                    world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                                }
+                when {
+                    task.taskState == TaskState.PENDING_BROKEN &&
+                        prev.block != Blocks.AIR &&
+                        new.block == Blocks.AIR -> {
+                        totalBlocksDestroyed++
+                        task.updateState(TaskState.BROKEN)
+                        if (fakeSounds) {
+                            val soundType = prev.block.getSoundType(prev, world, pos, player)
+                            onMainThread {
+                                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
                             }
                         }
-                        (task.block == material || task.block == fillerMat) && task.block == new.block -> {
-                            totalBlocksPlaced++
-                            task.updateState(TaskState.PLACED)
-                            if (fakeSounds) {
-                                val soundType = new.block.getSoundType(new, world, pos, player)
-                                onMainThread {
-                                    world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                                }
+                    }
+                    task.taskState == TaskState.PENDING_PLACED &&
+                        (task.block == material || task.block == fillerMat)
+                        && task.block == new.block -> {
+                        totalBlocksPlaced++
+                        task.updateState(TaskState.PLACED)
+                        if (fakeSounds) {
+                            val soundType = new.block.getSoundType(new, world, pos, player)
+                            onMainThread {
+                                world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
                             }
                         }
                     }
@@ -497,9 +500,14 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isNotEmpty()) {
+            if (waitTicks > 0) {
+                waitTicks--
+                return
+            }
+
 //          (startingBlockPos.distanceTo(player.position) / startingBlockPos.distanceTo(it.blockPos)) * player.distanceTo(it.blockPos) * (lastHitVec.distanceTo(it.blockPos) * 2)
 
-            val sortedTasks = pendingTasks.sortedWith(
+            sortedTasks = pendingTasks.sortedWith(
                 compareBy <BlockTask> {
                     it.taskState.ordinal
                 }.thenBy {
@@ -512,12 +520,35 @@ internal object HighwayTools : Module(
                     lastHitVec?.distanceTo(it.blockPos)
                 }
             )
-            doTask(sortedTasks[0])
 
-            if (sortedTasks[0].taskState.ordinal < 2) runTasks()
+            val firstTask = sortedTasks[0]
+
+            val timeout = firstTask.taskState.stuckTimeout
+            if (firstTask.stuckTicks > timeout) {
+                when (firstTask.taskState) {
+                    TaskState.PENDING_BROKEN -> firstTask.updateState(TaskState.BREAK)
+                    TaskState.PENDING_PLACED -> firstTask.updateState(TaskState.PLACE)
+                    else -> {
+                        if (debugMessages != DebugMessages.OFF) {
+                            sendChatMessage("Stuck for more then $timeout ticks, refreshing data.")
+                        }
+                        refreshData()
+                    }
+                }
+            }
+
+            doTask(firstTask)
+
+            when (firstTask.taskState) {
+                TaskState.DONE,
+                TaskState.BROKEN,
+                TaskState.PLACED -> runTasks()
+                else -> {}
+            }
         } else {
             if (checkDoneTasks()) {
                 doneTasks.clear()
+                // ToDo: This maybe is causing desync of current pos and goal?
                 refreshData(currentBlockPos.add(startingDirection.directionVec))
             } else {
                 refreshData()
@@ -547,8 +578,9 @@ internal object HighwayTools : Module(
             TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
                 doPlace(blockTask)
             }
-            TaskState.PENDING -> {
-                sendChatMessage("PENDING.")
+            TaskState.PENDING_BROKEN, TaskState.PENDING_PLACED -> {
+                if (debugMessages == DebugMessages.ALL) sendChatMessage("$chatName Currently waiting for blockState updates...")
+                blockTask.onStuck()
             }
         }
     }
@@ -811,7 +843,7 @@ internal object HighwayTools : Module(
     private fun dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
         waitTicks = tickDelayBreak
         defaultScope.launch {
-            blockTask.updateState(TaskState.PENDING)
+            blockTask.updateState(TaskState.PENDING_BROKEN)
             delay(10L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
@@ -853,6 +885,7 @@ internal object HighwayTools : Module(
             if (illegalPlacements) {
                 if (debugMessages == DebugMessages.ALL) {
                     sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                    // ToDo: Actually place through wall
                 }
             } else {
                 blockTask.onStuck()
@@ -866,7 +899,7 @@ internal object HighwayTools : Module(
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
         defaultScope.launch {
-            blockTask.updateState(TaskState.PENDING)
+            blockTask.updateState(TaskState.PENDING_PLACED)
             delay(10L)
             onMainThreadSafe {
                 val offsetHitVec = lastHitVec ?: return@onMainThreadSafe
@@ -1018,30 +1051,17 @@ internal object HighwayTools : Module(
         return statistics
     }
 
-    private fun SafeClientEvent.getQueue(): List<String> {
+    private fun getQueue(): List<String> {
         val message = ArrayList<String>()
-        message.add("QUEUE:")
-        addTaskToMessageList(message, pendingTasks)
-        message.add("DONE:")
+        message.add("Pending Tasks:")
+        addTaskToMessageList(message, sortedTasks)
+        message.add("Done Tasks:")
         addTaskToMessageList(message, doneTasks)
         return message
     }
 
-    private fun SafeClientEvent.addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
-        val sortedTasks = tasks.sortedWith(
-            compareBy <BlockTask> {
-                it.taskState.ordinal
-            }.thenBy {
-                it.stuckTicks
-            }.thenBy {
-                startingBlockPos.distanceTo(it.blockPos)
-            }.thenBy {
-                player.distanceTo(it.blockPos)
-            }.thenBy {
-                lastHitVec?.distanceTo(it.blockPos)
-            }
-        )
-        for (blockTask in sortedTasks) list.add("    " + blockTask.block.localizedName + "@(" + blockTask.blockPos.asString() + ") Priority: " + blockTask.taskState.ordinal + " State: " + blockTask.taskState.toString())
+    private fun addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
+        for (blockTask in tasks) list.add("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold}, Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
     }
 
     class BlockTask(
@@ -1101,7 +1121,8 @@ internal object HighwayTools : Module(
         EMERGENCY_BREAK(20, 20, ColorHolder(220, 41, 140)),
         BREAK(20, 20, ColorHolder(222, 0, 0)),
         PLACE(20, 10, ColorHolder(35, 188, 254)),
-        PENDING(100000, 100000, ColorHolder(0, 0, 0))
+        PENDING_BROKEN(0, 4, ColorHolder(0, 0, 0)),
+        PENDING_PLACED(0, 4, ColorHolder(0, 0, 0))
     }
 
     private enum class DebugMessages {
