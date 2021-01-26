@@ -9,7 +9,6 @@ import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.misc.AutoTool.equipBestTool
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
@@ -29,7 +28,9 @@ import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
+import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -505,7 +506,7 @@ internal object HighwayTools : Module(
 //          (startingBlockPos.distanceTo(player.position) / startingBlockPos.distanceTo(it.blockPos)) * player.distanceTo(it.blockPos) * (lastHitVec.distanceTo(it.blockPos) * 2)
 
             sortedTasks = pendingTasks.sortedWith(
-                compareBy <BlockTask> {
+                compareBy<BlockTask> {
                     it.taskState.ordinal
                 }.thenBy {
                     it.stuckTicks
@@ -540,7 +541,8 @@ internal object HighwayTools : Module(
                 TaskState.DONE,
                 TaskState.BROKEN,
                 TaskState.PLACED -> runTasks()
-                else -> {}
+                else -> {
+                }
             }
         } else {
             if (checkDoneTasks()) {
@@ -742,8 +744,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.inventoryProcessor(blockTask: BlockTask) {
         when (blockTask.taskState) {
             TaskState.BREAK, TaskState.EMERGENCY_BREAK -> {
-                equipBestTool(world.getBlockState(blockTask.blockPos))
-//                swapToValidPickaxe()
+                swapOrMoveBestTool(blockTask)
             }
             TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
                 if (!swapToBlock(blockTask.block)) {
@@ -758,6 +759,35 @@ internal object HighwayTools : Module(
             }
             else -> {
                 blockTask.onStuck()
+            }
+        }
+    }
+
+    private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask) {
+        val slotFrom = player.inventorySlots.maxByOrNull {
+            val stack = it.stack
+            if (stack.isEmpty) {
+                0.0f
+            } else {
+                var speed = stack.getDestroySpeed(world.getBlockState(blockTask.blockPos))
+
+                if (speed > 1.0f) {
+                    val efficiency = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack)
+                    if (efficiency > 0) {
+                        speed += efficiency * efficiency + 1.0f
+                    }
+                }
+
+                speed
+            }
+        }
+
+        if (slotFrom != null) {
+            slotFrom.toHotbarSlotOrNull()?.let {
+                swapToSlot(it)
+            } ?: run {
+                val slotTo = player.hotbarSlots.firstEmpty()?.hotbarSlot ?: 0
+                moveToHotbar(slotFrom.slotNumber, slotTo)
             }
         }
     }

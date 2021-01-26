@@ -1,5 +1,6 @@
 package me.zeroeightsix.kami.util.items
 
+import me.zeroeightsix.kami.util.Wrapper
 import net.minecraft.block.Block
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.Container
@@ -126,6 +127,9 @@ fun <T : Slot> Iterable<T>.filterByID(itemID: Int, predicate: (ItemStack) -> Boo
 fun <T : Slot> Iterable<T>.filterByStack(predicate: (ItemStack) -> Boolean = { true }) =
     filter { predicate(it.stack) }
 
+fun Slot.toHotbarSlotOrNull() =
+    if (this.slotNumber in 36..44 && this.inventory == Wrapper.player?.inventory) HotbarSlot(this)
+    else null
 
 class HotbarSlot(slot: Slot) : Slot(slot.inventory, slot.slotIndex, slot.xPos, slot.yPos) {
     init {
