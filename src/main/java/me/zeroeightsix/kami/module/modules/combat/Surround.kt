@@ -69,7 +69,7 @@ internal object Surround : Module(
 
 
         safeListener<TickEvent.ClientTickEvent> {
-            if (getObby() == -1) return@safeListener
+            if (getObby() == null) return@safeListener
             if (isDisabled) {
                 enableInHoleCheck()
                 return@safeListener

@@ -57,7 +57,7 @@ internal object AutoTrap : Module(
             if (job.isActiveOrFalse) {
                 getObby()?.let {
                     PlayerPacketManager.spoofHotbar(it.hotbarSlot)
-                }
+                } ?: return@safeListener
                 PlayerPacketManager.addPacket(AutoTrap, PlayerPacketManager.PlayerPacket(rotating = false))
             } else if (CombatManager.isOnTopPriority(AutoTrap)) {
                 PlayerPacketManager.resetHotbar()
