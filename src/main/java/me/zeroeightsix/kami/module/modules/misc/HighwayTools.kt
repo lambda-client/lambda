@@ -26,7 +26,7 @@ import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
-import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
+import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
 import net.minecraft.block.BlockLiquid
@@ -114,8 +114,7 @@ internal object HighwayTools : Module(
     private var startingDirection = Direction.NORTH
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
-    private val blueprint = ArrayList<Pair<BlockPos, Block>>()
-    private val blueprintNew = LinkedHashMap<BlockPos, Block>()
+    private val blueprint = LinkedHashMap<BlockPos, Block>()
     private var sortedTasks: List<BlockTask> = emptyList()
 
     // State
@@ -151,62 +150,90 @@ internal object HighwayTools : Module(
 
     init {
         onEnable {
-            if (mc.player == null) {
-                disable()
-                return@onEnable
-            }
+            runSafeR {
+                /* Turn on inventory manager if the users wants us to control it */
+                if (toggleInventoryManager && InventoryManager.isDisabled) {
+                    InventoryManager.enable()
+                }
 
-            /* Turn on inventory manager if the users wants us to control it */
-            if (toggleInventoryManager && InventoryManager.isDisabled) InventoryManager.enable()
+                /* Turn on Auto Obsidian if the user wants us to control it. */
+                if (toggleAutoObsidian && AutoObsidian.isDisabled && mode != Mode.TUNNEL) {
+                    AutoObsidian.enable()
+                }
 
-            /* Turn on Auto Obsidian if the user wants us to control it. */
-            if (toggleAutoObsidian && AutoObsidian.isDisabled && mode != Mode.TUNNEL) {
-                AutoObsidian.enable()
-            }
+                startingBlockPos = Companion.mc.player.flooredPosition
+                currentBlockPos = startingBlockPos
+                startingDirection = Direction.fromEntity(Companion.mc.player)
 
-            startingBlockPos = mc.player.flooredPosition
-            currentBlockPos = startingBlockPos
-            startingDirection = Direction.fromEntity(mc.player)
+                startTime = System.currentTimeMillis()
+                totalBlocksPlaced = 0
+                totalBlocksDestroyed = 0
 
-            startTime = System.currentTimeMillis()
-            totalBlocksPlaced = 0
-            totalBlocksDestroyed = 0
+                baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
+                BaritoneUtils.settings?.allowPlace?.value = false
 
-            baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
-            BaritoneUtils.settings?.allowPlace?.value = false
+                if (!goalRender) {
+                    baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
+                    BaritoneUtils.settings?.renderGoal?.value = false
+                }
 
-            if (!goalRender) {
-                baritoneSettingRenderGoal = BaritoneUtils.settings?.renderGoal?.value ?: true
-                BaritoneUtils.settings?.renderGoal?.value = false
-            }
-
-            runSafe {
                 refreshData()
                 printEnable()
-            }
+            } ?: disable()
         }
 
         onDisable {
-            if (mc.player == null) return@onDisable
+            runSafe {
+                /* Turn off inventory manager if the users wants us to control it */
+                if (toggleInventoryManager && InventoryManager.isEnabled) {
+                    InventoryManager.disable()
+                }
 
-            active = false
+                /* Turn off auto obsidian if the user wants us to control it */
+                if (toggleAutoObsidian && AutoObsidian.isEnabled) {
+                    AutoObsidian.disable()
+                }
 
-            BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
-            if (!goalRender) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
+                BaritoneUtils.settings?.allowPlace?.value = baritoneSettingAllowPlace
+                if (!goalRender) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
 
-            /* Turn off inventory manager if the users wants us to control it */
-            if (toggleInventoryManager && InventoryManager.isEnabled) InventoryManager.disable()
+                active = false
+                lastTask = null
 
-            /* Turn off auto obsidian if the user wants us to control it */
-            if (toggleAutoObsidian && AutoObsidian.isEnabled) {
-                AutoObsidian.disable()
+                printDisable()
+            }
+        }
+    }
+
+    private fun printEnable() {
+        if (info) {
+            MessageSendHelper.sendRawChatMessage("    §9> §7Direction: §a${startingDirection.displayName}§r")
+
+            if (startingDirection.isDiagonal) {
+                MessageSendHelper.sendRawChatMessage("    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
+            } else {
+                if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
+                    MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.x}§r")
+                } else {
+                    MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.z}§r")
+                }
             }
 
-            lastTask = null
-
-            printDisable()
+            if (startingBlockPos.y in 117..119 && mode != Mode.TUNNEL) {
+                MessageSendHelper.sendRawChatMessage("    §9> §cCheck coordinate Y / altitude and make sure to move around Y 120 for the correct height")
+            }
         }
+    }
 
+    private fun printDisable() {
+        if (info) {
+            MessageSendHelper.sendRawChatMessage("    §9> §7Placed blocks: §a$totalBlocksPlaced§r")
+            MessageSendHelper.sendRawChatMessage("    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r")
+            MessageSendHelper.sendRawChatMessage("    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
+        }
+    }
+
+    init {
         safeListener<PacketEvent.Receive> {
             if (it.packet !is SPacketBlockChange) return@safeListener
 
@@ -261,15 +288,16 @@ internal object HighwayTools : Module(
         renderer.clear()
         renderer.aFilled = if (filled) aFilled else 0
         renderer.aOutline = if (outline) aOutline else 0
+
         for (blockTask in pendingTasks) {
             if (blockTask.taskState == TaskState.DONE) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
+
         for (blockTask in doneTasks) {
             if (blockTask.block == Blocks.AIR) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
-//        renderer.add(world.getBlockState(currentBlockPos).getSelectedBoundingBox(world, currentBlockPos), ColorHolder(0, 0, 255))
     }
 
     private fun SafeClientEvent.updateFood() {
@@ -304,10 +332,10 @@ internal object HighwayTools : Module(
         pendingTasks.clear()
         lastTask = null
 
-        blueprintNew.clear()
+        blueprint.clear()
         generateBluePrint(originPos)
 
-        for ((pos, block) in blueprintNew) {
+        for ((pos, block) in blueprint) {
             if (block == Blocks.AIR) {
                 addTaskClear(pos)
             } else {
@@ -363,8 +391,8 @@ internal object HighwayTools : Module(
                 if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
             }
             if (mode == Mode.TUNNEL) {
-                blueprintNew[basePos.add(zDirection.directionVec.multiply(1))] = fillerMat
-                blueprintNew[basePos.add(zDirection.directionVec.multiply(2))] = fillerMat
+                blueprint[basePos.add(zDirection.directionVec.multiply(1))] = fillerMat
+                blueprint[basePos.add(zDirection.directionVec.multiply(2))] = fillerMat
             }
 
             pickTasksInRange()
@@ -377,7 +405,7 @@ internal object HighwayTools : Module(
         val eyePos = player.getPositionEyes(1f)
         val startBlocker = startingBlockPos.add(startingDirection.clockwise(4).directionVec.multiply(maxReach.toInt() - 1))
 
-        blueprintNew.keys.removeIf {
+        blueprint.keys.removeIf {
             eyePos.distanceTo(it) > maxReach - 0.7 || startBlocker.distanceTo(it) < maxReach
         }
     }
@@ -395,9 +423,9 @@ internal object HighwayTools : Module(
                 }
 
                 if (mode == Mode.HIGHWAY) {
-                    blueprintNew[pos] = Blocks.AIR
+                    blueprint[pos] = Blocks.AIR
                 } else {
-                    if (!(isRail(w) && h == 0 && !cornerBlock)) blueprintNew[pos.up()] = Blocks.AIR
+                    if (!(isRail(w) && h == 0 && !cornerBlock)) blueprint[pos.up()] = Blocks.AIR
                 }
             }
         }
@@ -411,10 +439,10 @@ internal object HighwayTools : Module(
             if (mode == Mode.HIGHWAY && isRail(w)) {
                 val startHeight = if (cornerBlock) 0 else 1
                 for (y in startHeight..railingHeight) {
-                    blueprintNew[pos.up(y)] = material
+                    blueprint[pos.up(y)] = material
                 }
             } else {
-                blueprintNew[pos] = material
+                blueprint[pos] = material
             }
         }
     }
@@ -429,7 +457,7 @@ internal object HighwayTools : Module(
                 val z = w2 - buildWidth / 2
                 val pos = basePos.add(x, 0, z)
 
-                blueprintNew[pos] = material
+                blueprint[pos] = material
             }
         }
 
@@ -442,7 +470,7 @@ internal object HighwayTools : Module(
                     val z = w2 - buildWidth / 2
                     val pos = basePos.add(x, y, z)
 
-                    blueprintNew[pos] = Blocks.AIR
+                    blueprint[pos] = Blocks.AIR
                 }
             }
         }
@@ -546,7 +574,7 @@ internal object HighwayTools : Module(
                 }
                 else -> {
                     if (debugMessages != DebugMessages.OFF) {
-                        sendChatMessage("Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
+                        MessageSendHelper.sendChatMessage("Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
                     }
                     refreshData()
                     return false
@@ -580,7 +608,7 @@ internal object HighwayTools : Module(
                 doPlace(blockTask)
             }
             TaskState.PENDING_BROKEN, TaskState.PENDING_PLACED -> {
-                if (debugMessages == DebugMessages.ALL) sendChatMessage("$chatName Currently waiting for blockState updates...")
+                if (debugMessages == DebugMessages.ALL) MessageSendHelper.sendChatMessage("$chatName Currently waiting for blockState updates...")
 //                blockTask.onStuck()
             }
         }
@@ -715,7 +743,7 @@ internal object HighwayTools : Module(
             }
             else -> {
                 if (!isPlaceable(blockTask.blockPos)) {
-                    if (debugMessages != DebugMessages.OFF) sendChatMessage("Invalid place position: " + blockTask.blockPos)
+                    if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: " + blockTask.blockPos)
                     refreshData()
                     return
                 }
@@ -756,7 +784,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.swapOrMoveBlock(blockTask: BlockTask): Boolean {
         return if (!swapToBlock(blockTask.block)) {
             if (!swapToBlockOrMove(blockTask.block)) {
-                sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
+                MessageSendHelper.sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 disable()
             }
@@ -766,7 +794,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask) : Boolean {
+    private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask): Boolean {
         val slotFrom = player.inventorySlots.asReversed().maxByOrNull {
             val stack = it.stack
             if (stack.isEmpty) {
@@ -921,7 +949,7 @@ internal object HighwayTools : Module(
             ?: run {
                 if (illegalPlacements) {
                     if (debugMessages == DebugMessages.ALL) {
-                        sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                        MessageSendHelper.sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
                         getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
                     }
                 } else {
@@ -970,11 +998,11 @@ internal object HighwayTools : Module(
     }
 
     private fun isInsideSelection(pos: BlockPos): Boolean {
-        return blueprintNew.containsKey(pos)
+        return blueprint.containsKey(pos)
     }
 
     private fun isInsideBlueprint(pos: BlockPos): Boolean {
-        return blueprintNew[pos]?.let { it != Blocks.AIR } ?: false
+        return blueprint[pos]?.let { it != Blocks.AIR } ?: false
     }
 
     private fun isInsideBuild(pos: BlockPos): Boolean {
@@ -993,43 +1021,7 @@ internal object HighwayTools : Module(
 
             for (b in ignoreBlocks) append("\n        §9> §7${b!!.registryName}")
 
-            sendChatMessage(toString())
-        }
-    }
-
-    private fun printEnable() {
-        if (info) {
-            StringBuilder(2).run {
-                append("$chatName Module started." +
-                    "\n    §9> §7Direction: §a${startingDirection.displayName}§r")
-
-                if (startingDirection.isDiagonal) {
-                    append("\n    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
-                } else {
-                    if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
-                        append("\n    §9> §7Coordinate: §a${startingBlockPos.x}§r")
-                    } else {
-                        append("\n    §9> §7Coordinate: §a${startingBlockPos.z}§r")
-                    }
-                }
-                if (startingBlockPos.y in 117..119 && mode != Mode.TUNNEL) append("\n    §9> §cCheck coordinate Y / altitude and make sure to move around Y 120 for the correct height")
-                sendChatMessage(toString())
-            }
-        }
-    }
-
-    private fun printDisable() {
-        if (info) {
-            StringBuilder(2).run {
-                append(
-                    "$chatName Module stopped." +
-                        "\n    §9> §7Placed blocks: §a$totalBlocksPlaced§r" +
-                        "\n    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r"
-                )
-                append("\n    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
-
-                sendChatMessage(toString())
-            }
+            MessageSendHelper.sendChatMessage(toString())
         }
     }
 
@@ -1037,12 +1029,14 @@ internal object HighwayTools : Module(
     private fun getBlueprintStats(): Pair<Int, Int> {
         var materialUsed = 0
         var fillerMatUsed = 0
+
         for ((_, b) in blueprint) {
             when (b) {
                 material -> materialUsed++
                 fillerMat -> fillerMatUsed++
             }
         }
+
         return Pair(materialUsed / 2, fillerMatUsed / 2)
     }
 
