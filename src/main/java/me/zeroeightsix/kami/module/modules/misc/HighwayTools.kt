@@ -74,9 +74,9 @@ internal object HighwayTools : Module(
     private val cornerBlock by setting("CornerBlock", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
 
     // behavior settings
-    private val tickDelayPlace by setting("TickDelayPlace", 1, 1..20, 1, { page == Page.BEHAVIOR })
+    private val tickDelayPlace by setting("TickDelayPlace", 2, 1..20, 1, { page == Page.BEHAVIOR })
     private val tickDelayBreak by setting("TickDelayBreak", 1, 1..20, 1, { page == Page.BEHAVIOR })
-    private val taskTimeoutTicks by setting("TaskTimeoutTicks", 3, 0..16, 1, { page == Page.BEHAVIOR })
+    private val taskTimeoutTicks by setting("TaskTimeoutTicks", 5, 0..16, 1, { page == Page.BEHAVIOR })
     private val interacting by setting("InteractMode", InteractMode.SPOOF, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
