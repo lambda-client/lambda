@@ -45,7 +45,6 @@ object KamiEventBus : AbstractAsyncEventBus() {
     }
 
     private fun invokeSerial(event: Any, isProfilerEvent: Boolean) {
-
         subscribedListeners[event.javaClass]?.forEach {
             if (isProfilerEvent) Wrapper.minecraft.profiler.startSection(it.ownerName)
 
@@ -57,12 +56,16 @@ object KamiEventBus : AbstractAsyncEventBus() {
     }
 
     private fun invokeParallel(event: Any) {
-        runBlocking {
-            coroutineScope {
-                subscribedListenersAsync[event.javaClass]?.forEach {
-                    launch(Dispatchers.Default) {
-                        @Suppress("UNCHECKED_CAST") // IDE meme
-                        (it as AsyncListener<Any>).function.invoke(event)
+        val listeners = subscribedListenersAsync[event.javaClass] ?: return
+
+        if (listeners.isNotEmpty()) {
+            runBlocking {
+                coroutineScope {
+                    listeners.forEach {
+                        launch(Dispatchers.Default) {
+                            @Suppress("UNCHECKED_CAST") // IDE meme
+                            (it as AsyncListener<Any>).function.invoke(event)
+                        }
                     }
                 }
             }
