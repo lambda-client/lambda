@@ -607,11 +607,15 @@ internal object HighwayTools : Module(
             }.thenBy {
                 it.stuckTicks / 2
             }.thenBy {
+                startingBlockPos.distanceTo(it.blockPos)
+            }.thenBy {
                 eyePos.distanceTo(it.blockPos)
             }.thenBy {
                 lastHitVec?.distanceTo(it.blockPos)
             }
         )
+
+        // ToDo: We need a function that makes a score out of all parameters
     }
 
     private fun SafeClientEvent.checkStuckTimeout(blockTask: BlockTask): Boolean {
