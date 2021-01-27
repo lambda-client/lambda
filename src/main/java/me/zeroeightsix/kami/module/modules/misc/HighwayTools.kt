@@ -75,7 +75,7 @@ internal object HighwayTools : Module(
     // behavior settings
     private val tickDelayPlace by setting("TickDelayPlace", 2, 1..20, 1, { page == Page.BEHAVIOR })
     private val tickDelayBreak by setting("TickDelayBreak", 1, 1..20, 1, { page == Page.BEHAVIOR })
-    private val taskTimeoutTicks by setting("TaskTimeoutTicks", 5, 0..16, 1, { page == Page.BEHAVIOR })
+    private val taskTimeoutTicks by setting("TaskTimeoutTicks", 5, 0..20, 1, { page == Page.BEHAVIOR })
     private val interacting by setting("RotationMode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
@@ -528,22 +528,6 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun SafeClientEvent.sortTasks() {
-        sortedTasks = pendingTasks.values.sortedWith(
-            compareBy<BlockTask> {
-                it.taskState.ordinal
-            }.thenBy {
-                it.stuckTicks
-            }.thenBy {
-                startingBlockPos.distanceTo(it.blockPos)
-            }.thenBy {
-                player.distanceTo(it.blockPos)
-            }.thenBy {
-                lastHitVec?.distanceTo(it.blockPos)
-            }
-        )
-    }
-
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isNotEmpty()) {
 
@@ -575,8 +559,25 @@ internal object HighwayTools : Module(
         }
     }
 
+    private fun SafeClientEvent.sortTasks() {
+        val eyePos = mc.player.getPositionEyes(1.0f)
+
+        sortedTasks = pendingTasks.values.sortedWith(
+            compareBy<BlockTask> {
+                it.taskState.ordinal
+            }.thenBy {
+                it.stuckTicks / 20
+            }.thenBy {
+                eyePos.distanceTo(it.blockPos)
+            }.thenBy {
+                lastHitVec?.distanceTo(it.blockPos)
+            }
+        )
+    }
+
     private fun SafeClientEvent.checkStuckTimeout(blockTask: BlockTask): Boolean {
         val timeout = blockTask.taskState.stuckTimeout
+
         if (blockTask.stuckTicks > timeout) {
             when (blockTask.taskState) {
                 TaskState.PENDING_BROKEN -> {
@@ -621,8 +622,10 @@ internal object HighwayTools : Module(
                 doPlace(blockTask)
             }
             TaskState.PENDING_BROKEN, TaskState.PENDING_PLACED -> {
-                if (debugMessages == DebugMessages.ALL) MessageSendHelper.sendChatMessage("$chatName Currently waiting for blockState updates...")
-//                blockTask.onStuck()
+                if (debugMessages == DebugMessages.ALL) {
+                    MessageSendHelper.sendChatMessage("$chatName Currently waiting for blockState updates...")
+                }
+                blockTask.onStuck()
             }
         }
     }
@@ -906,13 +909,13 @@ internal object HighwayTools : Module(
         blockTask.updateState(TaskState.PENDING_BROKEN)
 
         defaultScope.launch {
-            delay(10L)
+            delay(20L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
 
-            delay(40L)
+            delay(30L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
                 player.swingArm(EnumHand.MAIN_HAND)
@@ -938,7 +941,7 @@ internal object HighwayTools : Module(
         }
 
         defaultScope.launch {
-            delay(10L)
+            delay(20L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(action, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
@@ -978,7 +981,7 @@ internal object HighwayTools : Module(
         }
 
         defaultScope.launch {
-            delay(10L)
+            delay(20L)
             onMainThreadSafe {
                 val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
                 connection.sendPacket(placePacket)
@@ -986,7 +989,7 @@ internal object HighwayTools : Module(
             }
 
             if (currentBlock in blackList) {
-                delay(10L)
+                delay(20L)
                 onMainThreadSafe {
                     connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
                 }
@@ -1123,7 +1126,9 @@ internal object HighwayTools : Module(
         fun updateState(state: TaskState) {
             if (state == taskState) return
             taskState = state
-            if (taskState == TaskState.PLACE && state == TaskState.PLACED) onUpdate()
+            if (state == TaskState.DONE || state == TaskState.PLACED || state == TaskState.BROKEN) {
+                onUpdate()
+            }
         }
 
         fun updateMaterial(material: Block) {
