@@ -77,7 +77,7 @@ internal object HighwayTools : Module(
 
     // behavior settings
     private val interacting by setting("Rotation Mode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
-    private val fastMining by setting("Fast Mining", false, { page == Page.BEHAVIOR })
+    private val fastBreak by setting("Fast Break", false, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR })
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR })
@@ -1048,12 +1048,12 @@ internal object HighwayTools : Module(
     private suspend fun sendMiningPackets(pos: BlockPos, side: EnumFacing) {
         onMainThreadSafe {
             connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
-            if (fastMining) connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
+            if (fastBreak) connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
 
             player.swingArm(EnumHand.MAIN_HAND)
         }
 
-        if (!fastMining) {
+        if (!fastBreak) {
             delay(20L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
