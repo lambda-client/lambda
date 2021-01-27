@@ -35,6 +35,7 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
+import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
@@ -809,12 +810,14 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.swapOrMoveBlock(blockTask: BlockTask): Boolean {
-        return if (!swapToBlock(blockTask.block)) {
-            if (!swapToBlockOrMove(blockTask.block)) {
-                MessageSendHelper.sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
-                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
-            }
+        val success = swapToBlockOrMove(blockTask.block, predicateSlot = {
+            it.item is ItemBlock
+        })
+
+        return if (!success) {
+            MessageSendHelper.sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
+            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
             false
         } else {
             true
