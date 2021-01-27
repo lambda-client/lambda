@@ -989,11 +989,6 @@ internal object HighwayTools : Module(
             delay(20L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
-                player.swingArm(EnumHand.MAIN_HAND)
-            }
-
-            delay(30L)
-            onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
@@ -1006,13 +1001,7 @@ internal object HighwayTools : Module(
     }
 
     /* Dispatches a thread to mine any non-netherrack blocks generically */
-    private fun mineBlockNormal(blockTask: BlockTask, facing: EnumFacing) {
-        val action = if (blockTask.taskState == TaskState.BREAKING) {
-            CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK
-        } else {
-            CPacketPlayerDigging.Action.START_DESTROY_BLOCK
-        }
-
+    private fun mineBlockNormal(blockTask: BlockTask, side: EnumFacing) {
         if (blockTask.taskState == TaskState.BREAK) {
             blockTask.updateState(TaskState.BREAKING)
         }
@@ -1020,7 +1009,8 @@ internal object HighwayTools : Module(
         defaultScope.launch {
             delay(20L)
             onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(action, blockTask.blockPos, facing))
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
         }
