@@ -49,8 +49,7 @@ internal object ElytraFlight : Module(
 
     /* Acceleration */
     private val accelerateStartSpeed by setting("StartSpeed", 100, 0..100, 5, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
-    private val accelerateTime by setting("AccelerateTime", 0.0f, 0.0f..10.0f, 0.25f, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
-    private val autoReset by setting("AutoReset", false, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
+    private val accelerateTime by setting("AccelerateTime", 0.0f, 0.0f..20.0f, 0.25f, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
 
     /* Spoof Pitch */
     private val spoofPitch by setting("SpoofPitch", true, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
@@ -87,9 +86,9 @@ internal object ElytraFlight : Module(
     private val downSpeedCreative by setting("DownSpeedCR", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.CREATIVE && page == Page.MODE_SETTINGS })
 
     /* Packet */
-    private val speedPacket by setting("SpeedP", 1.8f, 0.0f..10.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
+    private val speedPacket by setting("SpeedP", 1.8f, 0.0f..20.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
     private val fallSpeedPacket by setting("FallSpeedP", 0.00001f, 0.0f..0.3f, 0.01f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
-    private val downSpeedPacket by setting("DownSpeedP", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
+    private val downSpeedPacket by setting("DownSpeedP", 1.0f, 0.1f..5.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
     /* End of Mode Settings */
 
     private enum class ElytraFlightMode {
@@ -328,12 +327,10 @@ internal object ElytraFlight : Module(
             boosting -> (if (ncpStrict) min(speedControl, 2.0f) else speedControl).toDouble()
 
             accelerateTime != 0.0f && accelerateStartSpeed != 100 -> {
-                speedPercentage = when {
-                    mc.gameSettings.keyBindSprint.isKeyDown -> 100.0f
-                    autoReset && speedPercentage >= 100.0f -> accelerateStartSpeed.toFloat()
-                    else -> min(speedPercentage + (100.0f - accelerateStartSpeed.toFloat()) / (accelerateTime * 20), 100.0f)
-                }
-                getSettingSpeed() * (speedPercentage / 100.0) * (cos((speedPercentage / 100.0) * PI) * -0.5 + 0.5)
+                speedPercentage = min(speedPercentage + (100.0f - accelerateStartSpeed) / (accelerateTime * 20.0f), 100.0f)
+                val speedMultiplier = speedPercentage / 100.0
+
+                getSettingSpeed() * speedMultiplier * (cos(speedMultiplier * PI) * -0.5 + 0.5)
             }
 
             else -> getSettingSpeed().toDouble()
