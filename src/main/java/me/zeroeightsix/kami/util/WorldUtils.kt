@@ -4,9 +4,10 @@ import kotlinx.coroutines.delay
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
-import me.zeroeightsix.kami.util.math.corners
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.math.faceCorners
 import me.zeroeightsix.kami.util.threads.runSafeSuspend
+import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemBlock
@@ -20,6 +21,9 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import org.kamiblue.commons.extension.add
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 import kotlin.math.floor
 
 object WorldUtils {
@@ -130,41 +134,41 @@ object WorldUtils {
         return Vec3d(vec.x * 0.5 + 0.5, vec.y * 0.5 + 0.5, vec.z * 0.5 + 0.5)
     }
 
-    fun SafeClientEvent.rayTraceHitVec(pos: BlockPos): RayTraceResult? {
-        val eyePos = player.getPositionEyes(1f)
-        val bb = world.getBlockState(pos).getSelectedBoundingBox(world, pos)
+    /**
+     * Get the "visible" sides related to player's eye position
+     *
+     * Reverse engineered from HauseMaster's anti cheat plugin
+     */
+    fun SafeClientEvent.getVisibleSides(pos: BlockPos): Set<EnumFacing> {
+        val visibleSides = EnumSet.noneOf(EnumFacing::class.java)
 
-        return world.rayTraceBlocks(eyePos, bb.center, false, false, true)?.takeIf {
-            it.isEqualTo(pos)
-        } ?: bb.corners(0.95).mapNotNull { corner ->
-            world.rayTraceBlocks(eyePos, corner, false, false, true)?.takeIf { it.isEqualTo(pos) }
-        }.minByOrNull {
-            it.hitVec?.distanceTo(eyePos) ?: 69420.0
-        }
+        val blockState = world.getBlockState(pos)
+        val eyePos = player.getPositionEyes(1.0f)
+        val blockCenter = pos.toVec3dCenter()
+
+        return visibleSides
+            .checkAxis(blockState, eyePos.x - blockCenter.x, EnumFacing.WEST, EnumFacing.EAST)
+            .checkAxis(blockState, eyePos.y - blockCenter.y, EnumFacing.DOWN, EnumFacing.UP)
+            .checkAxis(blockState, eyePos.z - blockCenter.z, EnumFacing.NORTH, EnumFacing.SOUTH)
     }
 
-    fun SafeClientEvent.rayTracePlaceVec(pos: BlockPos) : RayTraceResult? {
-        val eyePos = player.getPositionEyes(1f)
-        val possibleTraces = mutableListOf<RayTraceResult>()
-
-        for (side in EnumFacing.values()) {
-            val offPos = pos.offset(side)
-            val blockState = world.getBlockState(offPos)
-            if (!blockState.isFullBlock) continue
-            val bb = blockState.getSelectedBoundingBox(world, offPos)
-            val rt = bb.faceCorners(side.opposite, 0.85).mapNotNull { corner ->
-                world.rayTraceBlocks(eyePos, corner, false, false, false)?.takeIf {
-                    it.isEqualTo(offPos) && it.sideHit == side.opposite
+    private fun EnumSet<EnumFacing>.checkAxis(blockState: IBlockState, diff: Double, negativeSide: EnumFacing, positiveSide: EnumFacing) =
+        this.apply {
+            when {
+                diff < -0.5 -> {
+                    add(negativeSide)
                 }
-            }.minByOrNull {
-                it.hitVec?.distanceTo(eyePos) ?: 69420.0
+                diff > 0.5 -> {
+                    add(positiveSide)
+                }
+                else -> {
+                    if (!blockState.isFullBlock) {
+                        add(negativeSide)
+                        add(positiveSide)
+                    }
+                }
             }
-            possibleTraces.add(rt)
         }
-        return possibleTraces.minByOrNull { it.hitVec?.distanceTo(eyePos) ?: 69420.0 }
-    }
-
-    private fun RayTraceResult.isEqualTo(pos: BlockPos) = typeOfHit == RayTraceResult.Type.BLOCK && blockPos == pos
 
     suspend fun SafeClientEvent.buildStructure(
         placeSpeed: Float,
@@ -217,24 +221,32 @@ object WorldUtils {
         blockPos: BlockPos,
         attempts: Int = 3,
         range: Float = 4.25f,
+        visibleSideCheck: Boolean = false,
         sides: Array<EnumFacing> = EnumFacing.values(),
         toIgnore: HashSet<BlockPos> = HashSet()
     ): Pair<EnumFacing, BlockPos>? {
+        val eyePos = player.getPositionEyes(1.0f)
+
         for (side in sides) {
             val pos = blockPos.offset(side)
+
             if (!toIgnore.add(pos)) continue
             if (world.getBlockState(pos).material.isReplaceable) continue
-            if (player.getPositionEyes(1f).distanceTo(Vec3d(pos).add(getHitVecOffset(side))) > range) continue
+            if (eyePos.distanceTo(Vec3d(pos).add(getHitVecOffset(side))) > range) continue
+            if (visibleSideCheck && !getVisibleSides(pos).contains(side.opposite)) continue
+
             return Pair(side.opposite, pos)
         }
+
         if (attempts > 1) {
             toIgnore.add(blockPos)
             for (side in sides) {
                 val pos = blockPos.offset(side)
                 if (!isPlaceable(pos)) continue
-                return getNeighbour(pos, attempts - 1, range, sides, toIgnore) ?: continue
+                return getNeighbour(pos, attempts - 1, range, visibleSideCheck, sides, toIgnore) ?: continue
             }
         }
+
         return null
     }
 

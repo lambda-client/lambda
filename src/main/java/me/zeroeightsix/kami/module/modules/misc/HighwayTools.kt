@@ -14,9 +14,8 @@ import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
+import me.zeroeightsix.kami.util.WorldUtils.getNeighbour
 import me.zeroeightsix.kami.util.WorldUtils.isPlaceable
-import me.zeroeightsix.kami.util.WorldUtils.rayTraceHitVec
-import me.zeroeightsix.kami.util.WorldUtils.rayTracePlaceVec
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
 import me.zeroeightsix.kami.util.items.*
@@ -25,6 +24,7 @@ import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -41,6 +41,7 @@ import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -222,13 +223,11 @@ internal object HighwayTools : Module(
                         prev.block != Blocks.AIR &&
                         new.block == Blocks.AIR -> {
                         task.updateState(TaskState.BROKEN)
-                        sortTasks()
                     }
                     task.taskState == TaskState.PENDING_PLACED &&
                         (task.block == material || task.block == fillerMat)
                         && task.block == new.block -> {
                         task.updateState(TaskState.PLACED)
-                        sortTasks()
                     }
                 }
             }
@@ -859,7 +858,7 @@ internal object HighwayTools : Module(
             return
         }
 
-        val rayTraceResult = rayTraceHitVec(blockTask.blockPos)
+        val rayTraceResult = AxisAlignedBB(blockTask.blockPos).calculateIntercept(player.getPositionEyes(1.0f), blockTask.blockPos.toVec3dCenter())
 
         if (rayTraceResult == null) {
             blockTask.onStuck()
@@ -876,25 +875,26 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun SafeClientEvent.dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
+    private fun dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
         waitTicks = tickDelayBreak
         defaultScope.launch {
             blockTask.updateState(TaskState.PENDING_BROKEN)
-            sortTasks()
+
             delay(10L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
+
             delay(40L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
+
             delay(50L * taskTimeoutTicks)
             if (blockTask.taskState == TaskState.PENDING_BROKEN) {
                 blockTask.updateState(TaskState.BREAK)
-                sortTasks()
             }
         }
     }
@@ -921,43 +921,43 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
-        val rayTraceResult = rayTracePlaceVec(blockTask.blockPos)
-
-        if (rayTraceResult == null) {
-            if (illegalPlacements) {
-                if (debugMessages == DebugMessages.ALL) {
-                    sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
-                    // ToDo: Actually place through wall
+        val pair = getNeighbour(blockTask.blockPos, 1, maxReach, true)
+            ?: run {
+                if (illegalPlacements) {
+                    if (debugMessages == DebugMessages.ALL) {
+                        sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                        getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
+                    }
+                } else {
+                    blockTask.onStuck()
                 }
-            } else {
-                blockTask.onStuck()
+                return
             }
-            return
-        }
 
-        lastHitVec = rayTraceResult.hitVec
+        val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
+        lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
         rotateTimer.reset()
 
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
         defaultScope.launch {
             blockTask.updateState(TaskState.PENDING_PLACED)
-            sortTasks()
+
             delay(10L)
             onMainThreadSafe {
-                val offsetHitVec = lastHitVec ?: return@onMainThreadSafe
-                val placePacket = CPacketPlayerTryUseItemOnBlock(rayTraceResult.blockPos, rayTraceResult.sideHit, EnumHand.MAIN_HAND, offsetHitVec.x.toFloat(), offsetHitVec.y.toFloat(), offsetHitVec.z.toFloat())
+                val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
                 connection.sendPacket(placePacket)
                 player.swingArm(EnumHand.MAIN_HAND)
             }
+
             delay(10L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
+
             delay(50L * taskTimeoutTicks)
             if (blockTask.taskState == TaskState.PENDING_PLACED) {
                 blockTask.updateState(TaskState.PLACE)
-                sortTasks()
             }
         }
     }
