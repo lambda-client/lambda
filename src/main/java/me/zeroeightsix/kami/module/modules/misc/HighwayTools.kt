@@ -67,30 +67,30 @@ internal object HighwayTools : Module(
     private val page by setting("Page", Page.BUILD)
 
     // build settings
-    private val clearSpace by setting("ClearSpace", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val clearHeight by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace })
-    private val buildWidth by setting("Width", 5, 1..9, 1, { page == Page.BUILD })
+    private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace })
+    private val width by setting("Width", 5, 1..9, 1, { page == Page.BUILD })
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val railingHeight by setting("RailingHeight", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val cornerBlock by setting("CornerBlock", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
+    private val railingHeight by setting("Railing Height", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY })
+    private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
 
     // behavior settings
-    private val interacting by setting("RotationMode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
-    private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
-    private val toggleInventoryManager by setting("ToggleInvManager", true, { page == Page.BEHAVIOR })
-    private val toggleAutoObsidian by setting("ToggleAutoObsidian", true, { page == Page.BEHAVIOR })
-    private val tickDelayPlace by setting("TickDelayPlace", 2, 1..20, 1, { page == Page.BEHAVIOR })
-    private val tickDelayBreak by setting("TickDelayBreak", 1, 1..20, 1, { page == Page.BEHAVIOR })
-    private val taskTimeoutTicks by setting("TaskTimeoutTicks", 5, 0..20, 1, { page == Page.BEHAVIOR })
-    private val rubberBandTimeout by setting("RubberBandTimeout", 5, 1..20, 1, { page == Page.BEHAVIOR })
+    private val interacting by setting("Rotation Mode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
+    private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR })
+    private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR })
+    private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR })
+    private val placeDelay by setting("Place Delay", 2, 1..20, 1, { page == Page.BEHAVIOR })
+    private val breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
+    private val taskTimeout by setting("Task Timeout", 5, 0..20, 1, { page == Page.BEHAVIOR })
+    private val rubberbandTimeout by setting("Rubberband Timeout", 5, 1..20, 1, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
 
     // config
-    private val fakeSounds by setting("Sounds", true, { page == Page.CONFIG })
-    private val info by setting("ShowInfo", true, { page == Page.CONFIG })
-    private val printDebug by setting("ShowQueue", false, { page == Page.CONFIG })
-    private val debugMessages by setting("Debug", DebugMessages.IMPORTANT, { page == Page.CONFIG })
-    private val goalRender by setting("GoalRender", false, { page == Page.CONFIG })
+    private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG })
+    private val info by setting("Show Info", true, { page == Page.CONFIG })
+    private val printDebug by setting("Show Queue", false, { page == Page.CONFIG })
+    private val debugMessages by setting("Debug Messages", DebugMessages.IMPORTANT, { page == Page.CONFIG })
+    private val goalRender by setting("Goal Render", false, { page == Page.CONFIG })
     private val filled by setting("Filled", true, { page == Page.CONFIG })
     private val outline by setting("Outline", true, { page == Page.CONFIG })
     private val aFilled by setting("FilledAlpha", 26, 0..255, 1, { filled && page == Page.CONFIG })
@@ -136,7 +136,7 @@ internal object HighwayTools : Module(
     private val blueprint = LinkedHashMap<BlockPos, Block>()
 
     // State
-    private val rubberBandTimer = TickTimer(TimeUnit.TICKS)
+    private val rubberbandTimer = TickTimer(TimeUnit.TICKS)
     private var active = false
     private var waitTicks = 0
 
@@ -282,7 +282,7 @@ internal object HighwayTools : Module(
                     }
                 }
                 is SPacketPlayerPosLook -> {
-                    rubberBandTimer.reset()
+                    rubberbandTimer.reset()
                 }
             }
         }
@@ -297,7 +297,7 @@ internal object HighwayTools : Module(
             updateRenderer()
             updateFood()
 
-            if (!rubberBandTimer.tick(rubberBandTimeout.toLong(), false)) {
+            if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false)) {
                 return@safeListener
             }
 
@@ -435,9 +435,9 @@ internal object HighwayTools : Module(
     private fun generateClear(basePos: BlockPos, xDirection: Direction) {
         if (!clearSpace) return
 
-        for (w in 0 until buildWidth) {
-            for (h in 0 until clearHeight) {
-                val x = w - buildWidth / 2
+        for (w in 0 until width) {
+            for (h in 0 until height) {
+                val x = w - width / 2
                 val pos = basePos.add(xDirection.directionVec.multiply(x)).up(h)
 
                 if (mode == Mode.HIGHWAY && h == 0 && isRail(w)) {
@@ -454,8 +454,8 @@ internal object HighwayTools : Module(
     }
 
     private fun generateBase(basePos: BlockPos, xDirection: Direction) {
-        for (w in 0 until buildWidth) {
-            val x = w - buildWidth / 2
+        for (w in 0 until width) {
+            val x = w - width / 2
             val pos = basePos.add(xDirection.directionVec.multiply(x))
 
             if (mode == Mode.HIGHWAY && isRail(w)) {
@@ -469,14 +469,14 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun isRail(w: Int) = railing && w !in 1 until buildWidth - 1
+    private fun isRail(w: Int) = railing && w !in 1 until width - 1
 
     private fun generateFlat(basePos: BlockPos) {
         // Base
-        for (w1 in 0 until buildWidth) {
-            for (w2 in 0 until buildWidth) {
-                val x = w1 - buildWidth / 2
-                val z = w2 - buildWidth / 2
+        for (w1 in 0 until width) {
+            for (w2 in 0 until width) {
+                val x = w1 - width / 2
+                val z = w2 - width / 2
                 val pos = basePos.add(x, 0, z)
 
                 blueprint[pos] = material
@@ -485,11 +485,11 @@ internal object HighwayTools : Module(
 
         // Clear
         if (!clearSpace) return
-        for (w1 in -buildWidth..buildWidth) {
-            for (w2 in -buildWidth..buildWidth) {
-                for (y in 1 until clearHeight) {
-                    val x = w1 - buildWidth / 2
-                    val z = w2 - buildWidth / 2
+        for (w1 in -width..width) {
+            for (w2 in -width..width) {
+                for (y in 1 until height) {
+                    val x = w1 - width / 2
+                    val z = w2 - width / 2
                     val pos = basePos.add(x, y, z)
 
                     blueprint[pos] = Blocks.AIR
@@ -673,7 +673,7 @@ internal object HighwayTools : Module(
         if (update) {
             when (world.getBlockState(blockTask.blockPos).block) {
                 Blocks.AIR -> {
-                    waitTicks = tickDelayBreak
+                    waitTicks = breakDelay
                     if (blockTask.block == material || blockTask.block == fillerMat) {
                         blockTask.updateState(TaskState.PLACE)
                     } else {
@@ -848,7 +848,7 @@ internal object HighwayTools : Module(
         val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
         val currentBlock = world.getBlockState(pair.second).block
 
-        waitTicks = tickDelayPlace
+        waitTicks = placeDelay
         blockTask.updateState(TaskState.PENDING_PLACED)
 
         if (currentBlock in blackList) {
@@ -870,7 +870,7 @@ internal object HighwayTools : Module(
                 }
             }
 
-            delay(50L * taskTimeoutTicks)
+            delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_PLACED) {
                 blockTask.updateState(TaskState.PLACE)
             }
@@ -982,7 +982,7 @@ internal object HighwayTools : Module(
     }
 
     private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
-        waitTicks = tickDelayBreak
+        waitTicks = breakDelay
         blockTask.updateState(TaskState.PENDING_BROKEN)
 
         defaultScope.launch {
@@ -998,7 +998,7 @@ internal object HighwayTools : Module(
                 player.swingArm(EnumHand.MAIN_HAND)
             }
 
-            delay(50L * taskTimeoutTicks)
+            delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_BROKEN) {
                 blockTask.updateState(TaskState.BREAK)
             }
