@@ -184,7 +184,7 @@ internal object HighwayTools : Module(
                     AutoObsidian.enable()
                 }
 
-                startingBlockPos = Companion.mc.player.flooredPosition
+                startingBlockPos = player.flooredPosition
                 currentBlockPos = startingBlockPos
                 startingDirection = Direction.fromEntity(Companion.mc.player)
 
@@ -605,9 +605,9 @@ internal object HighwayTools : Module(
             compareBy<BlockTask> {
                 it.taskState.ordinal
             }.thenBy {
-                it.stuckTicks / 2
+                it.stuckTicks / 5
             }.thenBy {
-                startingBlockPos.distanceTo(it.blockPos)
+                startingBlockPos.distanceTo(it.blockPos).toInt() / 2
             }.thenBy {
                 eyePos.distanceTo(it.blockPos)
             }.thenBy {
@@ -1255,7 +1255,7 @@ internal object HighwayTools : Module(
         LIQUID_FLOW(80, 80, ColorHolder(120, 41, 240)),
         BREAKING(100, 100, ColorHolder(240, 222, 60)),
         BREAK(20, 20, ColorHolder(222, 0, 0)),
-        PLACE(20, 10, ColorHolder(35, 188, 254)),
+        PLACE(20, 20, ColorHolder(35, 188, 254)),
         PENDING_BROKEN(100, 100, ColorHolder(0, 0, 0)),
         PENDING_PLACED(100, 100, ColorHolder(0, 0, 0))
     }
