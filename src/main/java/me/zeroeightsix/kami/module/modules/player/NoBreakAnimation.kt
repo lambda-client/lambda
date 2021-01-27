@@ -58,7 +58,7 @@ internal object NoBreakAnimation : Module(
         }
     }
 
-    fun resetMining() {
+    private fun resetMining() {
         isMining = false
         lastPos = null
         lastFacing = null

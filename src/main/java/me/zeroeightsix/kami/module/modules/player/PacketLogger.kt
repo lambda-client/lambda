@@ -75,7 +75,6 @@ internal object PacketLogger : Module(
                 synchronized(this) {
                     lines.add("Tick Pulse - Realtime: ${logTimeFormatter.format(LocalTime.now())} - Runtime: ${System.currentTimeMillis() - start}ms\n")
                 }
-
             }
 
             /* Don't let lines get too big, write periodically to the file */
@@ -87,7 +86,6 @@ internal object PacketLogger : Module(
         safeListener<ConnectionEvent.Disconnect> {
             disable()
         }
-
 
         safeListener<PacketEvent.Receive>(Int.MIN_VALUE) {
             if (ignoreCancelled && it.cancelled) return@safeListener
