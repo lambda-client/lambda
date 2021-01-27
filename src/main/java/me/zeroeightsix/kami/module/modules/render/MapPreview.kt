@@ -1,10 +1,9 @@
 package me.zeroeightsix.kami.module.modules.render
 
-import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors
 import me.zeroeightsix.kami.mixin.client.gui.MixinGuiScreen
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.module.modules.client.GuiColors
 import me.zeroeightsix.kami.util.graphics.GlStateUtils.useVbo
 import me.zeroeightsix.kami.util.graphics.RenderUtils2D.drawRectFilled
 import me.zeroeightsix.kami.util.graphics.RenderUtils2D.drawRectOutline
@@ -12,6 +11,8 @@ import me.zeroeightsix.kami.util.graphics.VertexHelper
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter.getFontHeight
 import me.zeroeightsix.kami.util.graphics.font.FontRenderAdapter.getStringWidth
 import me.zeroeightsix.kami.util.math.Vec2d
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.item.ItemMap
@@ -23,17 +24,16 @@ import java.awt.Color
 /**
  * @see MixinGuiScreen.renderToolTip
  */
-@Module.Info(
+internal object MapPreview : Module(
     name = "MapPreview",
-    category = Module.Category.RENDER,
+    category = Category.RENDER,
     description = "Previews maps when hovering over them"
-)
-object MapPreview : Module() {
+) {
     private val mapBackground = ResourceLocation("textures/map/map_background.png")
 
-    private val showName = register(Settings.b("ShowName", false))
-    val frame = register(Settings.b("ShowFrame", true))
-    val scale = register(Settings.doubleBuilder("Size").withRange(0.0, 10.0).withValue(5.0).build())
+    private val showName = setting("ShowName", true)
+    private val frame = setting("ShowFrame", true)
+    val scale = setting("Scale", 5.0, 0.0..10.0, 0.1)
 
     @JvmStatic
     fun getMapData(itemStack: ItemStack): MapData? {
@@ -41,10 +41,26 @@ object MapPreview : Module() {
     }
 
     @JvmStatic
-    fun drawMap(stack: ItemStack, mapData: MapData) {
+    fun drawMap(stack: ItemStack, mapData: MapData, originalX: Int, originalY: Int) {
+        val x = originalX + 6.0
+        val y = originalY + 6.0
+        val scale = scale.value / 5.0
+
+        GlStateManager.pushMatrix()
+        GlStateManager.color(1f, 1f, 1f)
+        RenderHelper.enableGUIStandardItemLighting()
+        GlStateManager.disableDepth()
+
+        GlStateManager.translate(x, y, 0.0)
+        GlStateManager.scale(scale, scale, 0.0)
+
         drawMapFrame()
         mc.entityRenderer.mapItemRenderer.renderMap(mapData, false)
         drawMapName(stack)
+
+        GlStateManager.enableDepth()
+        RenderHelper.disableStandardItemLighting()
+        GlStateManager.popMatrix()
     }
 
     private fun drawMapFrame() {
@@ -74,8 +90,8 @@ object MapPreview : Module() {
         )
 
         // Draw the background
-        drawRectFilled(vertexHelper, backgroundX, backgroundY, ColorHolder(KamiGuiColors.GuiC.windowFilled.color))
-        drawRectOutline(vertexHelper, backgroundX, backgroundY, 1.5f, ColorHolder(KamiGuiColors.GuiC.windowOutline.color))
+        drawRectFilled(vertexHelper, backgroundX, backgroundY, GuiColors.backGround)
+        drawRectOutline(vertexHelper, backgroundX, backgroundY, 1.5f, GuiColors.outline)
 
         // Draw the name
         mc.fontRenderer.drawStringWithShadow(stack.displayName, 2f, -15f, Color.WHITE.rgb)

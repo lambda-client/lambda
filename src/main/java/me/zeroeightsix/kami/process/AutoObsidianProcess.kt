@@ -12,13 +12,17 @@ object AutoObsidianProcess : IBaritoneProcess {
     }
 
     override fun priority(): Double {
-        return 2.0
+        return 3.0
     }
 
     override fun onLostControl() {}
 
     override fun displayName0(): String {
-        return "AutoObsidian: " + AutoObsidian.state.displayName
+        return if (AutoObsidian.state != AutoObsidian.State.SEARCHING) {
+            "AutoObsidian: ${AutoObsidian.state.displayName}"
+        } else {
+            "AutoObsidian: Searching-${AutoObsidian.searchingState.displayName}"
+        }
     }
 
     override fun isActive(): Boolean {

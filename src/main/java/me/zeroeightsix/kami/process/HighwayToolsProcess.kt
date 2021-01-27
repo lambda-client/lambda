@@ -1,6 +1,5 @@
 package me.zeroeightsix.kami.process
 
-import baritone.api.pathing.goals.GoalNear
 import baritone.api.process.IBaritoneProcess
 import baritone.api.process.PathingCommand
 import baritone.api.process.PathingCommandType
@@ -24,25 +23,22 @@ object HighwayToolsProcess : IBaritoneProcess {
     override fun onLostControl() {}
 
     override fun displayName0(): String {
-        val ht = HighwayTools
-        val processName = if (ht.pendingTasks.size > 0 && !ht.pathing) {
-            ht.pendingTasks.peek().toString()
-        } else if (ht.pathing) {
-            "Moving to Position: (${ht.getNextWalkableBlock().asString()})"
-        } else {
-            "Manual mode"
-        }
+        val lastTask = HighwayTools.lastTask
+
+        val processName = HighwayTools.goal?.goalPos?.asString()
+            ?: lastTask?.toString()
+            ?: "Thinking"
+
         return "HighwayTools: $processName"
     }
 
     override fun isActive(): Boolean {
-        return HighwayTools.isEnabled
+        return HighwayTools.isActive()
     }
 
-    override fun onTick(p0: Boolean, p1: Boolean): PathingCommand? {
-        val ht = HighwayTools
-        return if (ht.baritoneMode.value) {
-            PathingCommand(GoalNear(ht.getNextWalkableBlock(), 0), PathingCommandType.SET_GOAL_AND_PATH)
-        } else PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
+    override fun onTick(p0: Boolean, p1: Boolean): PathingCommand {
+        return HighwayTools.goal?.let {
+            PathingCommand(it, PathingCommandType.SET_GOAL_AND_PATH)
+        } ?: PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
     }
 }

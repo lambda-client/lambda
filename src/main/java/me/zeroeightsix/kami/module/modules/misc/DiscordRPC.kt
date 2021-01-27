@@ -3,35 +3,36 @@ package me.zeroeightsix.kami.module.modules.misc
 import club.minnced.discord.rpc.DiscordEventHandlers
 import club.minnced.discord.rpc.DiscordRichPresence
 import me.zeroeightsix.kami.KamiMod
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.event.events.ShutdownEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.client.InfoOverlay
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.InfoCalculator
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
+import me.zeroeightsix.kami.util.TpsCalculator
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.BackgroundJob
 import me.zeroeightsix.kami.util.threads.BackgroundScope
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.Minecraft
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.capeapi.CapeType
+import org.kamiblue.commons.utils.MathUtils
 import org.kamiblue.event.listener.listener
 
-@Module.Info(
+internal object DiscordRPC : Module(
     name = "DiscordRPC",
-    category = Module.Category.MISC,
+    category = Category.MISC,
     description = "Discord Rich Presence",
     enabledByDefault = true
-)
-object DiscordRPC : Module() {
-    private val line1Left = register(Settings.e<LineInfo>("Line1Left", LineInfo.VERSION)) // details left
-    private val line1Right = register(Settings.e<LineInfo>("Line1Right", LineInfo.USERNAME)) // details right
-    private val line2Left = register(Settings.e<LineInfo>("Line2Left", LineInfo.SERVER_IP)) // state left
-    private val line2Right = register(Settings.e<LineInfo>("Line2Right", LineInfo.HEALTH)) // state right
-    private val coordsConfirm = register(Settings.booleanBuilder("CoordsConfirm").withValue(false).withVisibility { showCoordsConfirm() })
+) {
+    private val line1Left by setting("Line1Left", LineInfo.VERSION) // details left
+    private val line1Right by setting("Line1Right", LineInfo.USERNAME) // details right
+    private val line2Left by setting("Line2Left", LineInfo.SERVER_IP) // state left
+    private val line2Right by setting("Line2Right", LineInfo.HEALTH) // state right
+    private val coordsConfirm by setting("CoordsConfirm", false, { showCoordsConfirm() })
 
     private enum class LineInfo {
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, HIGHWAY__WORK, NONE
@@ -43,17 +44,17 @@ object DiscordRPC : Module() {
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val job = BackgroundJob("Discord RPC", 5000L) { updateRPC() }
 
-    override fun onEnable() {
-        start()
-    }
-
-    override fun onDisable() {
-        end()
-    }
-
     init {
-        listener<SafeTickEvent> {
-            if (showCoordsConfirm() && !coordsConfirm.value && timer.tick(10L)) {
+        onEnable {
+            start()
+        }
+
+        onDisable {
+            end()
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
+            if (showCoordsConfirm() && !coordsConfirm && timer.tick(10L)) {
                 MessageSendHelper.sendWarningMessage("$chatName Warning: In order to use the coords option please enable the coords confirmation option. " +
                     "This will display your coords on the discord rpc. " +
                     "Do NOT use this if you do not want your coords displayed")
@@ -88,15 +89,15 @@ object DiscordRPC : Module() {
     }
 
     private fun showCoordsConfirm(): Boolean {
-        return line1Left.value == LineInfo.COORDS
-            || line2Left.value == LineInfo.COORDS
-            || line1Right.value == LineInfo.COORDS
-            || line2Right.value == LineInfo.COORDS
+        return line1Left == LineInfo.COORDS
+            || line2Left == LineInfo.COORDS
+            || line1Right == LineInfo.COORDS
+            || line2Right == LineInfo.COORDS
     }
 
     private fun updateRPC() {
-        presence.details = getLine(line1Left.value) + getSeparator(0) + getLine(line1Right.value)
-        presence.state = getLine(line2Left.value) + getSeparator(1) + getLine(line2Right.value)
+        presence.details = getLine(line1Left) + getSeparator(0) + getLine(line1Right)
+        presence.state = getLine(line2Left) + getSeparator(1) + getLine(line2Right)
         rpc.Discord_UpdatePresence(presence)
     }
 
@@ -134,11 +135,11 @@ object DiscordRPC : Module() {
                 InfoCalculator.getServerType()
             }
             LineInfo.COORDS -> {
-                if (mc.player != null && coordsConfirm.value) "(${mc.player.positionVector.toBlockPos().asString()})"
+                if (mc.player != null && coordsConfirm) "(${mc.player.positionVector.toBlockPos().asString()})"
                 else "No Coords"
             }
             LineInfo.SPEED -> {
-                if (mc.player != null) InfoOverlay.calcSpeedWithUnit(1)
+                if (mc.player != null) "${InfoCalculator.speed(false)} m/s"
                 else "No Speed"
             }
             LineInfo.HELD_ITEM -> {
@@ -148,7 +149,7 @@ object DiscordRPC : Module() {
                 "${Minecraft.getDebugFPS()} FPS"
             }
             LineInfo.TPS -> {
-                if (mc.player != null) "${InfoCalculator.tps(1)} tps"
+                if (mc.player != null) "${MathUtils.round(TpsCalculator.tickRate, 1)} tps"
                 else "No Tps"
             }
             else -> {
@@ -159,9 +160,9 @@ object DiscordRPC : Module() {
 
     private fun getSeparator(line: Int): String {
         return if (line == 0) {
-            if (line1Left.value == LineInfo.NONE || line1Right.value == LineInfo.NONE) " " else " | "
+            if (line1Left == LineInfo.NONE || line1Right == LineInfo.NONE) " " else " | "
         } else {
-            if (line2Left.value == LineInfo.NONE || line2Right.value == LineInfo.NONE) " " else " | "
+            if (line2Left == LineInfo.NONE || line2Right == LineInfo.NONE) " " else " | "
         }
     }
 

@@ -4,7 +4,7 @@ import baritone.api.event.events.ChatEvent
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.manager.managers.MessageManager
-import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.AbstractModule
 import me.zeroeightsix.kami.util.BaritoneUtils
 import me.zeroeightsix.kami.util.TaskState
 import me.zeroeightsix.kami.util.Wrapper
@@ -16,17 +16,14 @@ import java.util.regex.Pattern
 object MessageSendHelper {
     private val mc = Wrapper.minecraft
 
-    @JvmStatic
     fun sendChatMessage(message: String) {
         sendRawChatMessage(coloredName('9') + message)
     }
 
-    @JvmStatic
     fun sendWarningMessage(message: String) {
         sendRawChatMessage(coloredName('6') + message)
     }
 
-    @JvmStatic
     fun sendErrorMessage(message: String) {
         sendRawChatMessage(coloredName('4') + message)
     }
@@ -44,7 +41,7 @@ object MessageSendHelper {
         val prevValue = chatControl?.value
         chatControl?.value = true
 
-        val event = ChatEvent(args.joinToString(separator = " "))
+        val event = ChatEvent(args.joinToString(" "))
         BaritoneUtils.primary?.gameEventHandler?.onSendChatMessage(event)
         if (!event.isCancelled && args[0] != "damn") { // don't remove the 'damn', it's critical code that will break everything if you remove it
             sendBaritoneMessage("Invalid Command! Please view possible commands at https://github.com/cabaletta/baritone/blob/master/USAGE.md")
@@ -59,7 +56,7 @@ object MessageSendHelper {
 
     fun Any.sendServerMessage(message: String?): TaskState {
         if (message.isNullOrBlank()) return TaskState(true)
-        val priority = if (this is Module) modulePriority else 0
+        val priority = if (this is AbstractModule) modulePriority else 0
         return MessageManager.addMessageToQueue(message, this, priority)
     }
 

@@ -1,59 +1,57 @@
 package me.zeroeightsix.kami.module.modules.player
 
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Settings
-import org.kamiblue.event.listener.listener
 import me.zeroeightsix.kami.util.math.Vec2f
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
+import kotlin.collections.ArrayDeque
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
-@Module.Info(
-        name = "ViewLock",
-        category = Module.Category.PLAYER,
-        description = "Locks your camera view"
-)
-object ViewLock : Module() {
+internal object ViewLock : Module(
+    name = "ViewLock",
+    category = Category.PLAYER,
+    description = "Locks your camera view"
+) {
 
-    private val yaw = register(Settings.b("Yaw", true))
-    private val pitch = register(Settings.b("Pitch", true))
-    private val autoYaw = register(Settings.booleanBuilder("AutoYaw").withValue(true).withVisibility { yaw.value })
-    private val autoPitch = register(Settings.booleanBuilder("AutoPitch").withValue(true).withVisibility { pitch.value })
-    private val disableMouseYaw = register(Settings.booleanBuilder("DisableMouseYaw").withValue(true).withVisibility { yaw.value && yaw.value })
-    private val disableMousePitch = register(Settings.booleanBuilder("DisableMousePitch").withValue(true).withVisibility { pitch.value && pitch.value })
-    private val specificYaw = register(Settings.floatBuilder("SpecificYaw").withValue(180.0f).withRange(-180.0f, 180.0f).withStep(1.0f).withVisibility { !autoYaw.value && yaw.value })
-    private val specificPitch = register(Settings.floatBuilder("SpecificPitch").withValue(0.0f).withRange(-90.0f, 90.0f).withStep(1.0f).withVisibility { !autoPitch.value && pitch.value })
-    private val yawSlice = register(Settings.integerBuilder("YawSlice").withValue(8).withRange(2, 32).withStep(1).withVisibility { autoYaw.value && yaw.value })
-    private val pitchSlice = register(Settings.integerBuilder("PitchSlice").withValue(5).withRange(2, 32).withStep(1).withVisibility { autoPitch.value && pitch.value })
+    private val yaw = setting("Yaw", true)
+    private val pitch = setting("Pitch", true)
+    private val autoYaw = setting("AutoYaw", true, { yaw.value })
+    private val autoPitch = setting("AutoPitch", true, { pitch.value })
+    private val disableMouseYaw = setting("DisableMouseYaw", true, { yaw.value && yaw.value })
+    private val disableMousePitch = setting("DisableMousePitch", true, { pitch.value && pitch.value })
+    private val specificYaw = setting("SpecificYaw", 180.0f, -180.0f..180.0f, 1.0f, { !autoYaw.value && yaw.value })
+    private val specificPitch = setting("SpecificPitch", 0.0f, -90.0f..90.0f, 1.0f, { !autoPitch.value && pitch.value })
+    private val yawSlice = setting("YawSlice", 8, 2..32, 1, { autoYaw.value && yaw.value })
+    private val pitchSlice = setting("PitchSlice", 5, 2..32, 1, { autoPitch.value && pitch.value })
 
     private var yawSnap = 0
     private var pitchSnap = 0
-    private val deltaXQueue = LinkedList<Pair<Float, Long>>()
-    private val deltaYQueue = LinkedList<Pair<Float, Long>>()
+    private val deltaXQueue = ArrayDeque<Pair<Float, Long>>()
+    private val deltaYQueue = ArrayDeque<Pair<Float, Long>>()
     private var pitchSliceAngle = 1.0f
     private var yawSliceAngle = 1.0f
 
-    override fun onEnable() {
-        yawSliceAngle = 360.0f / yawSlice.value
-        pitchSliceAngle = 180.0f / (pitchSlice.value - 1)
-        if (autoYaw.value || autoPitch.value) snapToNext()
-    }
-
     init {
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) return@listener
+        onEnable {
+            yawSliceAngle = 360.0f / yawSlice.value
+            pitchSliceAngle = 180.0f / (pitchSlice.value - 1)
+            if (autoYaw.value || autoPitch.value) snapToNext()
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@safeListener
             if (autoYaw.value || autoPitch.value) {
                 snapToSlice()
             }
             if (yaw.value && !autoYaw.value) {
-                mc.player.rotationYaw = specificYaw.value
+                player.rotationYaw = specificYaw.value
             }
             if (pitch.value && !autoPitch.value) {
-                mc.player.rotationPitch = specificPitch.value
+                player.rotationPitch = specificPitch.value
             }
         }
     }
@@ -64,12 +62,12 @@ object ViewLock : Module() {
         changeDirection(yawChange, pitchChange)
 
         return Vec2f(
-                if (yaw.value && disableMouseYaw.value) 0.0f else deltaX,
-                if (pitch.value && disableMousePitch.value) 0.0f else deltaY
+            if (yaw.value && disableMouseYaw.value) 0.0f else deltaX,
+            if (pitch.value && disableMousePitch.value) 0.0f else deltaY
         )
     }
 
-    private fun handleDelta(delta: Float, list: LinkedList<Pair<Float, Long>>, slice: Float): Int {
+    private fun handleDelta(delta: Float, list: ArrayDeque<Pair<Float, Long>>, slice: Float): Int {
         val currentTime = System.currentTimeMillis()
         list.add(Pair(delta * 0.15f, currentTime))
 
@@ -78,8 +76,8 @@ object ViewLock : Module() {
             list.clear()
             sign(sum).toInt()
         } else {
-            while (list.peek().second < currentTime - 500) {
-                list.remove()
+            while (list.first().second < currentTime - 500) {
+                list.removeFirstOrNull()
             }
             0
         }
@@ -113,17 +111,19 @@ object ViewLock : Module() {
     }
 
     init {
-        yawSlice.settingListener = Setting.SettingListeners {
+        yawSlice.listeners.add {
             yawSliceAngle = 360.0f / yawSlice.value
             if (isEnabled && autoYaw.value) snapToNext()
         }
 
-        pitchSlice.settingListener = Setting.SettingListeners {
+        pitchSlice.listeners.add {
             pitchSliceAngle = 180.0f / (pitchSlice.value - 1)
             if (isEnabled && autoPitch.value) snapToNext()
         }
 
-        autoPitch.settingListener = Setting.SettingListeners { if (isEnabled && autoPitch.value) snapToNext() }
-        autoYaw.settingListener = Setting.SettingListeners { if (isEnabled && autoYaw.value) snapToNext() }
+        with({ _: Boolean, it: Boolean -> if (isEnabled && it) snapToNext() }) {
+            autoPitch.valueListeners.add(this)
+            autoYaw.valueListeners.add(this)
+        }
     }
 }

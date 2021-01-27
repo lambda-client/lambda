@@ -3,7 +3,7 @@ package me.zeroeightsix.kami.command
 import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.ClientExecuteEvent
 import me.zeroeightsix.kami.event.SafeExecuteEvent
-import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.AbstractModule
 import me.zeroeightsix.kami.module.modules.client.CommandConfig
 import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.threads.defaultScope
@@ -16,6 +16,7 @@ import org.kamiblue.command.AbstractArg
 import org.kamiblue.command.CommandBuilder
 import org.kamiblue.command.utils.BuilderBlock
 import org.kamiblue.command.utils.ExecuteBlock
+import java.io.File
 
 abstract class ClientCommand(
     name: String,
@@ -28,7 +29,7 @@ abstract class ClientCommand(
     @CommandBuilder
     protected fun AbstractArg<*>.module(
         name: String,
-        block: BuilderBlock<Module>
+        block: BuilderBlock<AbstractModule>
     ) {
         arg(ModuleArg(name), block)
     }
@@ -63,6 +64,22 @@ abstract class ClientCommand(
         block: BuilderBlock<BlockPos>
     ) {
         arg(BlockPosArg(name), block)
+    }
+
+    @CommandBuilder
+    protected fun AbstractArg<*>.baritoneBlock(
+        name: String,
+        block: BuilderBlock<Block>
+    ) {
+        arg(BaritoneBlockArg(name), block)
+    }
+
+    @CommandBuilder
+    protected fun AbstractArg<*>.schematic(
+        name: String,
+        file: BuilderBlock<File>
+    ) {
+        arg(SchematicArg(name), file)
     }
 
     @CommandBuilder

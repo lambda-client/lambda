@@ -6,8 +6,8 @@ import me.zeroeightsix.kami.mixin.client.world.MixinBlockLiquid
 import me.zeroeightsix.kami.mixin.extension.packetMotionX
 import me.zeroeightsix.kami.mixin.extension.packetMotionY
 import me.zeroeightsix.kami.mixin.extension.packetMotionZ
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
 import net.minecraft.network.play.server.SPacketEntityVelocity
 import net.minecraft.network.play.server.SPacketExplosion
 import org.kamiblue.event.listener.listener
@@ -15,15 +15,14 @@ import org.kamiblue.event.listener.listener
 /**
  * @see MixinBlockLiquid.modifyAcceleration
  */
-@Module.Info(
-        name = "Velocity",
-        description = "Modify knock back impact",
-        category = Module.Category.MOVEMENT
-)
-object Velocity : Module() {
-    private val noPush = register(Settings.b("NoPush", true))
-    private val horizontal = register(Settings.floatBuilder("Horizontal").withValue(0f).withRange(-5f, 5f))
-    private val vertical = register(Settings.floatBuilder("Vertical").withValue(0f).withRange(-5f, 5f))
+internal object Velocity : Module(
+    name = "Velocity",
+    description = "Modify knock back impact",
+    category = Category.MOVEMENT
+) {
+    private val noPush = setting("NoPush", true)
+    private val horizontal = setting("Horizontal", 0f, -5f..5f, 0.05f)
+    private val vertical = setting("Vertical", 0f, -5f..5f, 0.05f)
 
     init {
         listener<PacketEvent.Receive> {

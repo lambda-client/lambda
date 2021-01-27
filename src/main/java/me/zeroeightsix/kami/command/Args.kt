@@ -1,9 +1,11 @@
 package me.zeroeightsix.kami.command
 
+import kotlinx.coroutines.Dispatchers
 import me.zeroeightsix.kami.manager.managers.UUIDManager
-import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.AbstractModule
 import me.zeroeightsix.kami.module.ModuleManager
-import me.zeroeightsix.kami.util.Wrapper
+import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.threads.runSafeR
 import net.minecraft.block.Block
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -12,22 +14,25 @@ import org.kamiblue.command.AbstractArg
 import org.kamiblue.command.AutoComplete
 import org.kamiblue.command.DynamicPrefixMatch
 import org.kamiblue.command.StaticPrefixMatch
+import java.io.File
 import java.util.*
 import kotlin.streams.toList
 
 class ModuleArg(
     override val name: String
-) : AbstractArg<Module>(), AutoComplete by StaticPrefixMatch(allAlias) {
+) : AbstractArg<AbstractModule>(), AutoComplete by DynamicPrefixMatch(::allAlias) {
 
-    override suspend fun convertToType(string: String?): Module? {
+    override suspend fun convertToType(string: String?): AbstractModule? {
         return ModuleManager.getModuleOrNull(string)
     }
 
     private companion object {
-        val allAlias = ModuleManager.getModules().stream()
-            .flatMap { Arrays.stream(it.alias) }
-            .sorted()
-            .toList()
+        val allAlias by CachedValue(5L, TimeUnit.SECONDS) {
+            ModuleManager.modules.stream()
+                .flatMap { Arrays.stream(arrayOf(it.name, *it.alias)) }
+                .sorted()
+                .toList()
+        }
     }
 
 }
@@ -62,12 +67,58 @@ class BlockArg(
     }
 
     private companion object {
-        val allBlockNames = ArrayList<String>().run {
+        val allBlockNames = ArrayList<String>().apply {
             Block.REGISTRY.keys.forEach {
                 add(it.toString())
                 add(it.path)
             }
-            sorted()
+            sort()
+        }
+    }
+}
+
+class BaritoneBlockArg(
+    override val name: String
+) : AbstractArg<Block>(), AutoComplete by StaticPrefixMatch(baritoneBlockNames) {
+
+    override suspend fun convertToType(string: String?): Block? {
+        if (string == null) return null
+        return Block.getBlockFromName(string)
+    }
+
+    private companion object {
+        val baritoneBlockNames = ArrayList<String>().apply {
+            BaritoneUtils.baritoneCachedBlocks.forEach { block ->
+                block.registryName?.let {
+                    add(it.toString())
+                    add(it.path)
+                }
+            }
+            sort()
+        }
+    }
+}
+
+class SchematicArg(
+    override val name: String
+) : AbstractArg<File>(), AutoComplete by DynamicPrefixMatch(::schematicFiles) {
+
+    override suspend fun convertToType(string: String?): File? {
+        if (string == null) return null
+
+        val nameWithoutExt = string.removeSuffix(".schematic")
+        val file = File("schematics").listFiles()?.filter {
+            it.exists() && it.isFile && it.name.equals("$nameWithoutExt.schematic", true)
+        } // this stupid find and search is required because ext4 is case sensitive (Linux)
+
+        return file?.firstOrNull()
+    }
+
+    private companion object {
+        val schematicFolder = File("schematics")
+
+        val schematicFiles by AsyncCachedValue(5L, TimeUnit.SECONDS, Dispatchers.IO) {
+            schematicFolder.listFiles()?.map { it.name } ?: emptyList<String>()
         }
     }
 }
@@ -97,19 +148,23 @@ class PlayerArg(
     override val name: String
 ) : AbstractArg<PlayerProfile>(), AutoComplete by DynamicPrefixMatch(::playerInfoMap) {
 
+    override suspend fun checkType(string: String?): Boolean {
+        return !string.isNullOrBlank()
+    }
+
     override suspend fun convertToType(string: String?): PlayerProfile? {
         return UUIDManager.getByString(string)
     }
 
     private companion object {
-        val playerInfoMap: Collection<String>?
-            get() {
-                val playerInfoMap = Wrapper.minecraft.connection?.playerInfoMap ?: return null
-                return playerInfoMap.stream()
+        val playerInfoMap by CachedValue(3L, TimeUnit.SECONDS) {
+            runSafeR {
+                connection.playerInfoMap.stream()
                     .map { it.gameProfile.name }
                     .sorted()
                     .toList()
             }
+        }
     }
 
 }

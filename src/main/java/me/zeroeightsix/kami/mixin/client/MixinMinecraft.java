@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.mixin.client;
 
-import me.zeroeightsix.kami.KamiMod;
 import me.zeroeightsix.kami.event.KamiEventBus;
 import me.zeroeightsix.kami.event.events.GuiEvent;
-import me.zeroeightsix.kami.event.events.ShutdownEvent;
+import me.zeroeightsix.kami.event.events.RenderEvent;
+import me.zeroeightsix.kami.gui.mc.KamiGuiUpdateNotification;
 import me.zeroeightsix.kami.module.modules.combat.CrystalAura;
-import me.zeroeightsix.kami.util.ConfigUtils;
+import me.zeroeightsix.kami.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -62,23 +62,26 @@ public class MixinMinecraft {
         return screenEvent1.getScreen();
     }
 
+    @Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/shader/Framebuffer;framebufferRender(II)V"))
+    public void runGameLoop(CallbackInfo ci) {
+        KamiEventBus.INSTANCE.post(new RenderEvent());
+    }
+
     @Inject(method = "run", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;displayCrashReport(Lnet/minecraft/crash/CrashReport;)V", shift = At.Shift.BEFORE))
     public void displayCrashReport(CallbackInfo info) {
-        save();
+        Wrapper.saveAndShutdown();
     }
 
     @Inject(method = "shutdown", at = @At("HEAD"))
     public void shutdown(CallbackInfo info) {
-        save();
+        Wrapper.saveAndShutdown();
     }
 
-    private void save() {
-        if (!KamiMod.isReady()) return;
-
-        ShutdownEvent.INSTANCE.post();
-        System.out.println("Shutting down: saving KAMI configuration");
-        ConfigUtils.INSTANCE.saveAll();
-        System.out.println("Configuration saved.");
+    @Inject(method = "init", at = @At("TAIL"))
+    public void init(CallbackInfo info) {
+        if (KamiGuiUpdateNotification.Companion.getLatest() != null && !KamiGuiUpdateNotification.Companion.isLatest()) {
+            Wrapper.getMinecraft().displayGuiScreen(new KamiGuiUpdateNotification());
+        }
     }
 
 }

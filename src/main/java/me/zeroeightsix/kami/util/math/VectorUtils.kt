@@ -5,6 +5,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
+import org.kamiblue.commons.extension.PI_FLOAT
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
 import kotlin.math.*
@@ -63,6 +64,19 @@ object VectorUtils {
         return IntRange((d1 - d2).floorToInt(), (d1 + d2).ceilToInt())
     }
 
+    fun Vec2f.toViewVec(): Vec3d {
+        val rotationRad = toRadians()
+        val yaw = -rotationRad.x - PI_FLOAT
+        val pitch = -rotationRad.y
+
+        val cosYaw = cos(yaw)
+        val sinYaw = sin(yaw)
+        val cosPitch = -cos(pitch)
+        val sinPitch = sin(pitch)
+
+        return Vec3d((sinYaw * cosPitch).toDouble(), sinPitch.toDouble(), (cosYaw * cosPitch).toDouble())
+    }
+
     fun Vec3d.toBlockPos(): BlockPos {
         return BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
     }
@@ -72,7 +86,7 @@ object VectorUtils {
     }
 
     fun Vec3i.toVec3d(offSet: Vec3d): Vec3d {
-        return Vec3d(x+ offSet.x, y + offSet.y, z + offSet.z)
+        return Vec3d(x + offSet.x, y + offSet.y, z + offSet.z)
     }
 
     fun Vec3i.toVec3d(xOffset: Double, yOffset: Double, zOffset: Double): Vec3d {
@@ -126,4 +140,12 @@ object VectorUtils {
     fun Vec3i.multiply(multiplier: Int): Vec3i {
         return Vec3i(x * multiplier, y * multiplier, z * multiplier)
     }
+
+    infix operator fun Vec3d.times(vec3d: Vec3d): Vec3d = Vec3d(x * vec3d.x, y * vec3d.y, z * vec3d.z)
+
+    infix operator fun Vec3d.times(multiplier: Double): Vec3d = Vec3d(x * multiplier, y * multiplier, z * multiplier)
+
+    infix operator fun Vec3d.plus(vec3d: Vec3d): Vec3d = add(vec3d)
+
+    infix operator fun Vec3d.minus(vec3d: Vec3d): Vec3d = subtract(vec3d)
 }

@@ -5,7 +5,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.ClientCommand
-import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.AbstractModule
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import java.io.File
@@ -19,8 +20,8 @@ object GenerateWebsiteCommand : ClientCommand(
 
     init {
         executeAsync {
-            val modulesList = ModuleManager.getModules()
-            val moduleMap = TreeMap<Module.Category, MutableList<Module>>()
+            val modulesList = ModuleManager.modules
+            val moduleMap = TreeMap<Category, MutableList<AbstractModule>>()
             modulesList.groupByTo(moduleMap) { it.category }
 
             coroutineScope {
@@ -41,7 +42,7 @@ object GenerateWebsiteCommand : ClientCommand(
                             it.appendLine("    <summary>$category (${modules.size})</summary>")
                             it.appendLine("    <p><ul>")
                             for (module in modules) {
-                                it.appendLine("        <li>${module.name.value}<p><i>${module.description}</i></p></li>")
+                                it.appendLine("        <li>${module.name}<p><i>${module.description}</i></p></li>")
                             }
                             it.appendLine("    </ul></p>")
                             it.appendLine("</details>")

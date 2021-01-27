@@ -1,31 +1,33 @@
 package me.zeroeightsix.kami.module.modules.player
 
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.event.SafeClientEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.InventoryUtils
-import me.zeroeightsix.kami.util.InventoryUtils.getEmptySlotContainer
 import me.zeroeightsix.kami.util.TickTimer
+import me.zeroeightsix.kami.util.items.*
+import me.zeroeightsix.kami.util.threads.runSafe
+import me.zeroeightsix.kami.util.threads.safeListener
+import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiEnchantment
 import net.minecraft.client.gui.GuiMerchant
 import net.minecraft.client.gui.GuiRepair
 import net.minecraft.client.gui.inventory.*
 import net.minecraft.init.Items
-import org.kamiblue.event.listener.listener
+import net.minecraft.item.ItemShulkerBox
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
-@Module.Info(
-        name = "ChestStealer",
-        category = Module.Category.PLAYER,
-        description = "Automatically steal items from containers"
-)
-object ChestStealer : Module() {
-    val stealMode: Setting<StealMode> = register(Settings.e<StealMode>("StealMode", StealMode.TOGGLE))
-    private val movingMode = register(Settings.e<MovingMode>("MovingMode", MovingMode.QUICK_MOVE))
-    private val ignoreEjectItem = register(Settings.b("IgnoresEjectItem", false))
-    private val delay = register(Settings.integerBuilder("Delay(ms)").withValue(250).withRange(0, 1000).build())
+internal object ChestStealer : Module(
+    name = "ChestStealer",
+    category = Category.PLAYER,
+    description = "Automatically steal or store items from containers"
+) {
+    val mode = setting("Mode", Mode.TOGGLE)
+    private val movingMode = setting("MovingMode", MovingMode.QUICK_MOVE)
+    private val ignoreEjectItem = setting("IgnoresEjectItem", false, description = "Ignore AutoEject items in InventoryManager")
+    private val delay = setting("Delay", 250, 0..1000, 25, description = "Move stack delay in ms")
+    private val onlyShulkers = setting("OnlyShulkers", false, description = "Only move shulker boxes")
 
-    enum class StealMode {
+    enum class Mode {
         ALWAYS, TOGGLE, MANUAL
     }
 
@@ -33,70 +35,140 @@ object ChestStealer : Module() {
         QUICK_MOVE, PICKUP, THROW
     }
 
+    private enum class ContainerMode(val offset: Int) {
+        STEAL(36), STORE(0)
+    }
+
     var stealing = false
+    var storing = false
     val timer = TickTimer()
 
     init {
-        listener<SafeTickEvent> {
-            stealing = if (isContainerOpen() && (stealing || stealMode.value == StealMode.ALWAYS)) {
-                steal(getStealingSlot())
+        safeListener<TickEvent.ClientTickEvent> {
+            stealing = if (isContainerOpen() && (stealing || mode.value == Mode.ALWAYS)) {
+                stealOrStore(getStealingSlot(), ContainerMode.STEAL)
+            } else {
+                false
+            }
+
+            storing = if (isContainerOpen() && (storing || mode.value == Mode.ALWAYS)) {
+                stealOrStore(getStoringSlot(), ContainerMode.STORE)
             } else {
                 false
             }
         }
     }
 
-    fun canSteal(): Boolean {
+    private fun SafeClientEvent.canSteal(): Boolean {
         return getStealingSlot() != null
     }
 
-    fun isContainerOpen(): Boolean {
-        return mc.player.openContainer != null
-                && isValidGui()
+    private fun SafeClientEvent.canStore(): Boolean {
+        return getStoringSlot() != null
+    }
+
+    private fun SafeClientEvent.isContainerOpen(): Boolean {
+        return player.openContainer != null
+            && isValidGui()
     }
 
     fun isValidGui(): Boolean {
         return mc.currentScreen !is GuiEnchantment
-                && mc.currentScreen !is GuiMerchant
-                && mc.currentScreen !is GuiRepair
-                && mc.currentScreen !is GuiBeacon
-                && mc.currentScreen !is GuiCrafting
-                && mc.currentScreen !is GuiContainerCreative
-                && mc.currentScreen !is GuiInventory
+            && mc.currentScreen !is GuiMerchant
+            && mc.currentScreen !is GuiRepair
+            && mc.currentScreen !is GuiBeacon
+            && mc.currentScreen !is GuiCrafting
+            && mc.currentScreen !is GuiContainerCreative
+            && mc.currentScreen !is GuiInventory
     }
 
-    private fun steal(slot: Int?): Boolean {
+    @JvmStatic
+    fun updateButton(button: GuiButton, left: Int, size: Int, top: Int) {
+        runSafe {
+            if (isEnabled && isContainerOpen()) {
+                if (button.id == 696969) {
+                    val str = if (stealing) {
+                        "Stop"
+                    } else {
+                        "Steal"
+                    }
+
+                    button.x = left + size + 2
+                    button.y = top + 2
+                    button.enabled = canSteal() and !storing
+                    button.visible = true
+                    button.displayString = str
+                } else if (button.id == 420420) {
+                    val str = if (storing) {
+                        "Stop"
+                    } else {
+                        "Store"
+                    }
+
+                    button.x = left + size + 2
+                    button.y = top + 24
+                    button.enabled = canStore() and !stealing
+                    button.visible = true
+                    button.displayString = str
+                }
+            } else {
+                button.visible = false
+            }
+        }
+    }
+
+    private fun SafeClientEvent.stealOrStore(slot: Int?, containerMode: ContainerMode): Boolean {
         if (slot == null) return false
+
         val size = getContainerSlotSize()
-        val slotTo = getEmptySlotContainer(size, size + 35) ?: return false
-        val windowID = mc.player.openContainer.windowId
+        val rangeStart = if (containerMode == ContainerMode.STEAL) size else 0
+        val slotTo = player.openContainer.getSlots(rangeStart until size + containerMode.offset).firstEmpty()
+            ?: return false
+        val windowID = player.openContainer.windowId
 
         if (timer.tick(delay.value.toLong())) {
             when (movingMode.value) {
-                MovingMode.QUICK_MOVE -> InventoryUtils.quickMoveSlot(windowID, slot)
-                MovingMode.PICKUP -> InventoryUtils.moveToSlot(windowID, slot, slotTo)
-                MovingMode.THROW -> InventoryUtils.throwAllInSlot(windowID, slot)
-                else -> {
-                }
+                MovingMode.QUICK_MOVE -> quickMoveSlot(windowID, slot)
+                MovingMode.PICKUP -> moveToSlot(windowID, slot, slotTo.slotNumber)
+                MovingMode.THROW -> throwAllInSlot(windowID, slot)
             }
         }
+
         return true
     }
 
-    private fun getStealingSlot(): Int? {
-        val container = mc.player.openContainer.inventory
-        val ejectList = InventoryManager.ejectArrayList
+    private fun SafeClientEvent.getStealingSlot(): Int? {
+        val container = player.openContainer.inventory
+
         for (slot in 0 until getContainerSlotSize()) {
-            val item = container[slot].getItem()
+            val item = container[slot].item
             if (item == Items.AIR) continue
-            if (ignoreEjectItem.value && ejectList.contains(item.registryName.toString())) continue
-            return slot
+            if (ignoreEjectItem.value && InventoryManager.ejectList.contains(item.registryName.toString())) continue
+            if (!onlyShulkers.value || item is ItemShulkerBox) {
+                return slot
+            }
         }
+
         return null
     }
 
-    private fun getContainerSlotSize(): Int {
+    private fun SafeClientEvent.getStoringSlot(): Int? {
+        val container = player.openContainer.inventory
+        val size = getContainerSlotSize()
+
+        for (slot in size until size + 36) {
+            val item = container[slot].item
+            if (item == Items.AIR) continue
+            if (!onlyShulkers.value || item is ItemShulkerBox) {
+                return slot
+            }
+        }
+
+        return null
+    }
+
+    private fun SafeClientEvent.getContainerSlotSize(): Int {
         if (mc.currentScreen !is GuiContainer) return 0
-        return mc.player.openContainer.inventorySlots.size - 36
+        return player.openContainer.inventorySlots.size - 36
     }
 }

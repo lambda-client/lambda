@@ -4,13 +4,13 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.runSafe
+import me.zeroeightsix.kami.util.threads.runSafeR
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.init.Blocks
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -32,31 +32,30 @@ import kotlin.collections.HashSet
 import kotlin.math.log2
 import kotlin.math.roundToInt
 
-@Module.Info(
-    name = "Notebot",
-    category = Module.Category.MISC,
+internal object NoteBot : Module(
+    name = "NoteBot",
+    category = Category.MISC,
     description = "Plays music with note blocks; put songs as .mid files in .minecraft/kamiblue/songs"
-)
-object NoteBot : Module() {
+) {
 
-    private val togglePlay = register(Settings.b("TogglePlay", false))
-    private val reloadSong = register(Settings.b("ReloadSong", false))
-    private val channel1 = register(Settings.e<NoteBlockEvent.Instrument>("Channel1", NoteBlockEvent.Instrument.PIANO))
-    private val channel2 = register(Settings.e<NoteBlockEvent.Instrument>("Channel2", NoteBlockEvent.Instrument.PIANO))
-    private val channel3 = register(Settings.e<NoteBlockEvent.Instrument>("Channel3", NoteBlockEvent.Instrument.PIANO))
-    private val channel4 = register(Settings.e<NoteBlockEvent.Instrument>("Channel4", NoteBlockEvent.Instrument.PIANO))
-    private val channel5 = register(Settings.e<NoteBlockEvent.Instrument>("Channel5", NoteBlockEvent.Instrument.PIANO))
-    private val channel6 = register(Settings.e<NoteBlockEvent.Instrument>("Channel6", NoteBlockEvent.Instrument.PIANO))
-    private val channel7 = register(Settings.e<NoteBlockEvent.Instrument>("Channel7", NoteBlockEvent.Instrument.PIANO))
-    private val channel8 = register(Settings.e<NoteBlockEvent.Instrument>("Channel8", NoteBlockEvent.Instrument.PIANO))
-    private val channel9 = register(Settings.e<NoteBlockEvent.Instrument>("Channel9", NoteBlockEvent.Instrument.PIANO))
-    private val channel11 = register(Settings.e<NoteBlockEvent.Instrument>("Channel11", NoteBlockEvent.Instrument.PIANO))
-    private val channel12 = register(Settings.e<NoteBlockEvent.Instrument>("Channel12", NoteBlockEvent.Instrument.PIANO))
-    private val channel13 = register(Settings.e<NoteBlockEvent.Instrument>("Channel13", NoteBlockEvent.Instrument.PIANO))
-    private val channel14 = register(Settings.e<NoteBlockEvent.Instrument>("Channel14", NoteBlockEvent.Instrument.PIANO))
-    private val channel15 = register(Settings.e<NoteBlockEvent.Instrument>("Channel15", NoteBlockEvent.Instrument.PIANO))
-    private val channel16 = register(Settings.e<NoteBlockEvent.Instrument>("Channel16", NoteBlockEvent.Instrument.PIANO))
-    private val songName = register(Settings.stringBuilder("SongName").withValue("Unchanged"))
+    private val togglePlay = setting("TogglePlay", false)
+    private val reloadSong = setting("ReloadSong", false)
+    private val channel1 = setting("Channel1", NoteBlockEvent.Instrument.PIANO)
+    private val channel2 = setting("Channel2", NoteBlockEvent.Instrument.PIANO)
+    private val channel3 = setting("Channel3", NoteBlockEvent.Instrument.PIANO)
+    private val channel4 = setting("Channel4", NoteBlockEvent.Instrument.PIANO)
+    private val channel5 = setting("Channel5", NoteBlockEvent.Instrument.PIANO)
+    private val channel6 = setting("Channel6", NoteBlockEvent.Instrument.PIANO)
+    private val channel7 = setting("Channel7", NoteBlockEvent.Instrument.PIANO)
+    private val channel8 = setting("Channel8", NoteBlockEvent.Instrument.PIANO)
+    private val channel9 = setting("Channel9", NoteBlockEvent.Instrument.PIANO)
+    private val channel11 = setting("Channel11", NoteBlockEvent.Instrument.PIANO)
+    private val channel12 = setting("Channel12", NoteBlockEvent.Instrument.PIANO)
+    private val channel13 = setting("Channel13", NoteBlockEvent.Instrument.PIANO)
+    private val channel14 = setting("Channel14", NoteBlockEvent.Instrument.PIANO)
+    private val channel15 = setting("Channel15", NoteBlockEvent.Instrument.PIANO)
+    private val channel16 = setting("Channel16", NoteBlockEvent.Instrument.PIANO)
+    private val songName = setting("SongName", "Unchanged")
 
     private var noteSequence = TreeMap<Long, ArrayList<Note>>()
     private var startTime = 0L
@@ -80,20 +79,19 @@ object NoteBot : Module() {
         channel13, channel14, channel15, channel16
     )
 
-    override fun onEnable() {
-        if (mc.world == null || mc.player == null) {
-            disable()
-            return
-        }
+    init {
+        onEnable {
+            runSafeR {
+                if (player.isCreative) {
+                    MessageSendHelper.sendChatMessage("You are in creative mode and cannot play music.")
+                    disable()
+                    return@runSafeR
+                }
 
-        if (mc.player.isCreative) {
-            MessageSendHelper.sendChatMessage("You are in creative mode and cannot play music.")
-            disable()
-            return
+                loadSong()
+                scanNoteBlocks()
+            } ?: disable()
         }
-
-        loadSong()
-        scanNoteBlocks()
     }
 
     private fun loadSong() {
@@ -163,8 +161,8 @@ object NoteBot : Module() {
     }
 
     init {
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) return@listener
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@safeListener
 
             runSafe {
                 if (noteBlocks.isNotEmpty()) {
@@ -299,7 +297,7 @@ object NoteBot : Module() {
     }
 
     init {
-        togglePlay.settingListener = Setting.SettingListeners {
+        togglePlay.listeners.add {
             if (togglePlay.value) {
                 if (isEnabled) {
                     playingSong = !playingSong
@@ -310,7 +308,7 @@ object NoteBot : Module() {
             }
         }
 
-        reloadSong.settingListener = Setting.SettingListeners {
+        reloadSong.listeners.add {
             if (reloadSong.value) {
                 if (isEnabled) loadSong()
                 reloadSong.value = false

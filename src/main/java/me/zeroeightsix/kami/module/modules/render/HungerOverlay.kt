@@ -1,11 +1,10 @@
 package me.zeroeightsix.kami.module.modules.render
 
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.foodValue
 import me.zeroeightsix.kami.util.graphics.GlStateUtils
-import me.zeroeightsix.kami.util.saturation
+import me.zeroeightsix.kami.util.items.foodValue
+import me.zeroeightsix.kami.util.items.saturation
 import net.minecraft.client.gui.Gui
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.init.MobEffects
@@ -20,15 +19,14 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.min
 
-@Module.Info(
-        name = "HungerOverlay",
-        description = "Displays a helpful overlay over your hunger bar.",
-        category = Module.Category.RENDER
-)
-object HungerOverlay : Module() {
-    private val saturationOverlay: Setting<Boolean> = register(Settings.booleanBuilder("SaturationOverlay").withValue(true))
-    private val foodHungerOverlay: Setting<Boolean> = register(Settings.booleanBuilder("FoodHungerOverlay").withValue(true))
-    private val foodSaturationOverlay: Setting<Boolean> = register(Settings.booleanBuilder("FoodSaturationOverlay").withValue(true))
+internal object HungerOverlay : Module(
+    name = "HungerOverlay",
+    description = "Displays a helpful overlay over your hunger bar.",
+    category = Category.RENDER
+) {
+    private val saturationOverlay = setting("SaturationOverlay", true)
+    private val foodHungerOverlay = setting("FoodHungerOverlay", true)
+    private val foodSaturationOverlay = setting("FoodSaturationOverlay", true)
 
     private val icons = ResourceLocation("kamiblue/textures/hungeroverlay.png")
 

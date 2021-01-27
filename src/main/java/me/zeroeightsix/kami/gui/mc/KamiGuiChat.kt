@@ -2,10 +2,9 @@ package me.zeroeightsix.kami.gui.mc
 
 import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.command.CommandManager
-import me.zeroeightsix.kami.gui.kami.theme.kami.KamiGuiColors
 import me.zeroeightsix.kami.mixin.extension.historyBuffer
 import me.zeroeightsix.kami.mixin.extension.sentHistoryCursor
-import me.zeroeightsix.kami.util.color.ColorHolder
+import me.zeroeightsix.kami.module.modules.client.GuiColors
 import me.zeroeightsix.kami.util.graphics.GlStateUtils
 import me.zeroeightsix.kami.util.graphics.RenderUtils2D
 import me.zeroeightsix.kami.util.graphics.VertexHelper
@@ -14,7 +13,7 @@ import me.zeroeightsix.kami.util.threads.defaultScope
 import net.minecraft.client.gui.GuiChat
 import org.kamiblue.command.AbstractArg
 import org.kamiblue.command.AutoComplete
-import org.kamiblue.commons.extension.stream
+import org.kamiblue.command.GreedyStringArg
 import org.lwjgl.input.Keyboard
 import kotlin.math.min
 
@@ -90,7 +89,7 @@ class KamiGuiChat(
     private suspend fun autoComplete() {
         val string = inputField.text.removePrefix(CommandManager.prefix)
         val parsedArgs = runCatching { CommandManager.parseArguments(string) }.getOrNull() ?: return
-        var argCount = parsedArgs.size
+        var argCount = parsedArgs.size - 1
         val inputName = parsedArgs[0]
 
         // If the string ends with only one space (typing the next arg), adds 1 to the arg count
@@ -99,20 +98,31 @@ class KamiGuiChat(
         }
 
         // Run commandAutoComplete() and return if there are only one arg
-        if (argCount == 1) {
+        if (argCount == 0) {
             commandAutoComplete(inputName)
             return
         }
 
+        val ignoredStringArg = getArgTypeForAtIndex(parsedArgs, argCount, true)
+        val withStringArg = getArgTypeForAtIndex(parsedArgs, argCount, false)
+
         // Get available arg types for current arg index
-        val args = getArgTypeForAtIndex(parsedArgs, argCount - 1) ?: return
+        val args = ignoredStringArg
+            ?: withStringArg
+            ?: return
+
+        val both = if (ignoredStringArg != null && withStringArg != null) {
+            ignoredStringArg + withStringArg
+        } else {
+            args
+        }
 
         // Get the current input string
-        val inputString = parsedArgs.getOrNull(argCount - 1)
+        val inputString = parsedArgs.getOrNull(argCount)
 
         if (inputString.isNullOrEmpty()) {
             // If we haven't input anything yet, prints list of available arg types
-            if (args.isNotEmpty()) cachePredict = args.toSet().joinToString("/")
+            if (args.isNotEmpty()) cachePredict = both.distinct().joinToString("/")
             return
         }
 
@@ -132,22 +142,26 @@ class KamiGuiChat(
     private fun commandAutoComplete(inputName: String) {
         // Since we are doing multiple operation in a chain
         // It would worth the payoff of using Stream
-        CommandManager.getCommands().stream()
-            .flatMap { it.allNames.stream() }
+        CommandManager.getCommands()
+            .flatMap { it.allNames.toList() }
             .filter { it.length >= inputName.length && it.startsWith(inputName) }
-            .sorted()
-            .findFirst()
-            .orElse(null)
+            .minOrNull()
             ?.let {
                 cachePredict = it.substring(min(inputName.length, it.length))
                 canAutoComplete = true
             }
     }
 
-    private suspend fun getArgTypeForAtIndex(parsedArgs: Array<String>, argIndex: Int): List<AbstractArg<*>>? {
+    private suspend fun getArgTypeForAtIndex(parsedArgs: Array<String>, argIndex: Int, ignoreStringArg: Boolean): List<AbstractArg<*>>? {
         // Get the command for input name, map the arg trees to the count of match args
         val command = CommandManager.getCommandOrNull(parsedArgs[0]) ?: return null
-        val treeMatchedCounts = command.finalArgs.map { it.countArgs(parsedArgs) to it }
+        val treeMatchedCounts = command.finalArgs.mapNotNull {
+            if (ignoreStringArg && it.getArgTree().getOrNull(argIndex) is GreedyStringArg) {
+                null
+            } else {
+                it.countArgs(parsedArgs) to it
+            }
+        }
 
         // Get the max matched number of args, filter all trees that has less matched args
         // And map to the current arg in the tree if exists
@@ -175,7 +189,7 @@ class KamiGuiChat(
         val vertexHelper = VertexHelper(GlStateUtils.useVbo())
         val pos1 = Vec2d(inputField.x - 2.0, inputField.y - 2.0)
         val pos2 = pos1.plus(inputField.width.toDouble(), inputField.height.toDouble())
-        RenderUtils2D.drawRectOutline(vertexHelper, pos1, pos2, 1.5f, ColorHolder(KamiGuiColors.GuiC.windowOutline.color))
+        RenderUtils2D.drawRectOutline(vertexHelper, pos1, pos2, 1.5f, GuiColors.primary)
     }
 
 }

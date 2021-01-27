@@ -1,25 +1,25 @@
 package me.zeroeightsix.kami.module.modules.combat
 
+import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.MovementUtils
+import me.zeroeightsix.kami.util.MovementUtils.setSpeed
 import me.zeroeightsix.kami.util.MovementUtils.speed
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketUseEntity
-import org.kamiblue.event.listener.listener
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
-@Module.Info(
-        name = "Criticals",
-        category = Module.Category.COMBAT,
-        description = "Always do critical attacks"
-)
-object Criticals : Module() {
-    private val mode = register(Settings.e<CriticalMode>("Mode", CriticalMode.PACKET))
-    private val miniJump = register(Settings.booleanBuilder("MiniJump").withValue(true).withVisibility { mode.value == CriticalMode.DELAY }.build())
+internal object Criticals : Module(
+    name = "Criticals",
+    category = Category.COMBAT,
+    description = "Always do critical attacks"
+) {
+    private val mode = setting("Mode", CriticalMode.PACKET)
+    private val miniJump = setting("MiniJump", true, { mode.value == CriticalMode.DELAY })
 
     private enum class CriticalMode {
         PACKET, DELAY
@@ -31,15 +31,20 @@ object Criticals : Module() {
     private var swingPacket = CPacketAnimation()
 
     init {
-        listener<PacketEvent.Send> {
-            if (mc.player == null || !(it.packet is CPacketAnimation || it.packet is CPacketUseEntity)) return@listener
-            if (mc.player.isInWater || mc.player.isInLava || !mc.player.onGround) return@listener /* Don't run if player is sprinting or weapon is still in cooldown */
+        onDisable {
+            delayTick = 0
+        }
+
+        safeListener<PacketEvent.Send> {
+            if (it.packet !is CPacketAnimation && it.packet !is CPacketUseEntity) return@safeListener
+
+            if (player.isInWater || player.isInLava || !player.onGround) return@safeListener /* Don't run if player is sprinting or weapon is still in cooldown */
 
             if (it.packet is CPacketUseEntity && it.packet.action == CPacketUseEntity.Action.ATTACK) {
-                val target = it.packet.getEntityFromWorld(mc.world)
-                if (target == null || target !is EntityLivingBase) return@listener
-                mc.player.isSprinting = false
-                if (mc.player.speed > 0.2) MovementUtils.setSpeed(0.2)
+                val target = it.packet.getEntityFromWorld(world)
+                if (target == null || target !is EntityLivingBase) return@safeListener
+                player.isSprinting = false
+                if (player.speed > 0.2) setSpeed(0.2)
                 if (mode.value == CriticalMode.PACKET) {
                     packetMode()
                 } else {
@@ -50,15 +55,15 @@ object Criticals : Module() {
             }
         }
 
-        listener<SafeTickEvent> {
+        safeListener<TickEvent.ClientTickEvent> {
             /* Sends attack packet and swing packet when falling */
             if (mode.value == CriticalMode.DELAY && delayTick != 0) {
-                mc.player.isSprinting = false
-                if (mc.player.speed > 0.2) MovementUtils.setSpeed(0.2)
-                if (mc.player.motionY < -0.1 && delayTick in 1..15) {
+                player.isSprinting = false
+                if (player.speed > 0.2) setSpeed(0.2)
+                if (player.motionY < -0.1 && delayTick in 1..15) {
                     sendingPacket = true
-                    mc.connection!!.sendPacket(attackPacket)
-                    mc.connection!!.sendPacket(swingPacket)
+                    connection.sendPacket(attackPacket)
+                    connection.sendPacket(swingPacket)
                     delayTick = 16
                 }
                 if (delayTick in 1..19) {
@@ -70,10 +75,10 @@ object Criticals : Module() {
         }
     }
 
-    private fun packetMode() {
+    private fun SafeClientEvent.packetMode() {
         /* lol Minecraft checks for criticals if you're not on a block so just say you're not */
-        mc.player.connection.sendPacket(CPacketPlayer.Position(mc.player.posX, mc.player.posY + 0.1f, mc.player.posZ, false))
-        mc.player.connection.sendPacket(CPacketPlayer.Position(mc.player.posX, mc.player.posY, mc.player.posZ, false))
+        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1f, player.posZ, false))
+        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY, player.posZ, false))
     }
 
     private fun delayModeAttack(event: PacketEvent) {
@@ -104,9 +109,5 @@ object Criticals : Module() {
                 sendingPacket = false
             }
         }
-    }
-
-    override fun onDisable() {
-        delayTick = 0
     }
 }

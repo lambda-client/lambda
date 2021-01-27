@@ -3,21 +3,29 @@ package me.zeroeightsix.kami.module.modules.player
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.Phase
+import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.OnUpdateWalkingPlayerEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerTravelEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.mixin.client.entity.MixinEntity
+import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.prevPosVector
+import me.zeroeightsix.kami.util.WorldUtils.getNeighbour
 import me.zeroeightsix.kami.util.WorldUtils.placeBlock
-import me.zeroeightsix.kami.util.math.RotationUtils
+import me.zeroeightsix.kami.util.items.HotbarSlot
+import me.zeroeightsix.kami.util.items.firstItem
+import me.zeroeightsix.kami.util.items.hotbarSlots
+import me.zeroeightsix.kami.util.items.swapToSlot
+import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.Vec2f
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
 import me.zeroeightsix.kami.util.threads.defaultScope
 import me.zeroeightsix.kami.util.threads.onMainThreadSafe
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketPlayerPosLook
@@ -32,19 +40,18 @@ import kotlin.math.roundToInt
 /**
  * @see MixinEntity.isSneaking
  */
-@Module.Info(
+internal object Scaffold : Module(
     name = "Scaffold",
-    category = Module.Category.PLAYER,
+    category = Category.PLAYER,
     description = "Places blocks under you",
     modulePriority = 500
-)
-object Scaffold : Module() {
-    private val tower = register(Settings.b("Tower", true))
-    private val spoofHotbar = register(Settings.b("SpoofHotbar", true))
-    val safeWalk = register(Settings.b("SafeWalk", true))
-    private val sneak = register(Settings.b("Sneak", true))
-    private val delay = register(Settings.integerBuilder("Delay").withValue(2).withRange(1, 10).withStep(1))
-    private val maxRange = register(Settings.integerBuilder("MaxRange").withValue(1).withRange(0, 3).withStep(1))
+) {
+    private val tower by setting("Tower", true)
+    private val spoofHotbar by setting("SpoofHotbar", true)
+    val safeWalk by setting("SafeWalk", true)
+    private val sneak by setting("Sneak", true)
+    private val delay by setting("Delay", 2, 1..10, 1)
+    private val maxRange by setting("MaxRange", 1, 0..3, 1)
 
     private var lastRotation = Vec2f.ZERO
     private var placeInfo: Pair<EnumFacing, BlockPos>? = null
@@ -57,23 +64,23 @@ object Scaffold : Module() {
         return isEnabled && inactiveTicks <= 5
     }
 
-    override fun onDisable() {
-        placeInfo = null
-        inactiveTicks = 69
-    }
-
     init {
+        onDisable {
+            placeInfo = null
+            inactiveTicks = 69
+        }
+
         listener<PacketEvent.Receive> {
             if (it.packet !is SPacketPlayerPosLook) return@listener
             rubberBandTimer.reset()
         }
 
-        listener<PlayerTravelEvent> {
-            if (mc.player == null || !tower.value || !mc.gameSettings.keyBindJump.isKeyDown || inactiveTicks > 5 || !isHoldingBlock) return@listener
+        safeListener<PlayerTravelEvent> {
+            if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || inactiveTicks > 5 || !isHoldingBlock) return@safeListener
             if (rubberBandTimer.tick(10, false)) {
-                if (shouldTower) mc.player.motionY = 0.41999998688697815
-            } else if (mc.player.fallDistance <= 2.0f) {
-                mc.player.motionY = -0.169
+                if (shouldTower) player.motionY = 0.41999998688697815
+            } else if (player.fallDistance <= 2.0f) {
+                player.motionY = -0.169
             }
         }
     }
@@ -81,21 +88,23 @@ object Scaffold : Module() {
     private val isHoldingBlock: Boolean
         get() = PlayerPacketManager.getHoldingItemStack().item is ItemBlock
 
-    private val shouldTower: Boolean
-        get() = !mc.player.onGround
-            && mc.player.posY - floor(mc.player.posY) <= 0.1
+    private val SafeClientEvent.shouldTower: Boolean
+        get() = !player.onGround
+            && player.posY - floor(player.posY) <= 0.1
+
     init {
-        listener<OnUpdateWalkingPlayerEvent> { event ->
-            if (mc.world == null || mc.player == null || event.phase != Phase.PRE) return@listener
+        safeListener<OnUpdateWalkingPlayerEvent> { event ->
+            if (event.phase != Phase.PRE) return@safeListener
+
             inactiveTicks++
             placeInfo = calcNextPos()?.let {
-                WorldUtils.getNeighbour(it, 1, sides = arrayOf(EnumFacing.DOWN))
-                    ?: WorldUtils.getNeighbour(it, 3, sides = EnumFacing.HORIZONTALS)
+                getNeighbour(it, 1, sides = arrayOf(EnumFacing.DOWN))
+                    ?: getNeighbour(it, 3, sides = EnumFacing.HORIZONTALS)
             }
 
             placeInfo?.let {
                 val hitVec = WorldUtils.getHitVec(it.second, it.first)
-                lastRotation = RotationUtils.getRotationTo(hitVec)
+                lastRotation = getRotationTo(hitVec)
                 swapAndPlace(it.second, it.first)
             }
 
@@ -103,25 +112,25 @@ object Scaffold : Module() {
                 PlayerPacketManager.resetHotbar()
             } else if (isHoldingBlock) {
                 val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = lastRotation)
-                PlayerPacketManager.addPacket(this, packet)
+                PlayerPacketManager.addPacket(this@Scaffold, packet)
             }
         }
     }
 
-    private fun calcNextPos(): BlockPos? {
-        val posVec = mc.player.positionVector
+    private fun SafeClientEvent.calcNextPos(): BlockPos? {
+        val posVec = player.positionVector
         val blockPos = posVec.toBlockPos()
         return checkPos(blockPos)
             ?: run {
-                val realMotion = posVec.subtract(mc.player.prevPosVector)
+                val realMotion = posVec.subtract(player.prevPosVector)
                 val nextPos = blockPos.add(roundToRange(realMotion.x), 0, roundToRange(realMotion.z))
                 checkPos(nextPos)
             }
     }
 
-    private fun checkPos(blockPos: BlockPos): BlockPos? {
+    private fun SafeClientEvent.checkPos(blockPos: BlockPos): BlockPos? {
         val center = Vec3d(blockPos.x + 0.5, blockPos.y.toDouble(), blockPos.z + 0.5)
-        val rayTraceResult = mc.world.rayTraceBlocks(
+        val rayTraceResult = world.rayTraceBlocks(
             center,
             center.subtract(0.0, 0.5, 0.0),
             false,
@@ -132,20 +141,20 @@ object Scaffold : Module() {
     }
 
     private fun roundToRange(value: Double) =
-        (value * 2.5 * maxRange.value).roundToInt().coerceAtMost(maxRange.value)
+        (value * 2.5 * maxRange).roundToInt().coerceAtMost(maxRange)
 
-    private fun swapAndPlace(pos: BlockPos, side: EnumFacing) {
+    private fun SafeClientEvent.swapAndPlace(pos: BlockPos, side: EnumFacing) {
         getBlockSlot()?.let { slot ->
-            if (spoofHotbar.value) PlayerPacketManager.spoofHotbar(slot)
-            else InventoryUtils.swapSlot(slot)
+            if (spoofHotbar) PlayerPacketManager.spoofHotbar(slot.hotbarSlot)
+            else swapToSlot(slot)
 
             inactiveTicks = 0
 
-            if (placeTimer.tick(delay.value.toLong())) {
-                val shouldSneak = sneak.value && !mc.player.isSneaking
+            if (placeTimer.tick(delay.toLong())) {
+                val shouldSneak = sneak && !player.isSneaking
                 defaultScope.launch {
                     if (shouldSneak) {
-                        mc.player?.let {
+                        player.let {
                             it.connection.sendPacket(CPacketEntityAction(it, CPacketEntityAction.Action.START_SNEAKING))
                         }
                     }
@@ -161,14 +170,9 @@ object Scaffold : Module() {
         }
     }
 
-    private fun getBlockSlot(): Int? {
-        mc.playerController.updateController()
-        for (i in 0..8) {
-            val itemStack = mc.player.inventory.mainInventory[i]
-            if (itemStack.isEmpty || itemStack.item !is ItemBlock) continue
-            return i
-        }
-        return null
+    private fun SafeClientEvent.getBlockSlot(): HotbarSlot? {
+        playerController.syncCurrentPlayItem()
+        return player.hotbarSlots.firstItem<ItemBlock, HotbarSlot>()
     }
 
 }

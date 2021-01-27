@@ -3,10 +3,8 @@ package me.zeroeightsix.kami.module.modules.render
 import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.event.events.ChunkEvent
 import me.zeroeightsix.kami.event.events.RenderWorldEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Setting.SettingListeners
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.EntityUtils.getInterpolatedPos
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
@@ -15,6 +13,7 @@ import me.zeroeightsix.kami.util.graphics.GlStateUtils
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.Minecraft
 import net.minecraft.world.chunk.Chunk
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -27,48 +26,48 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.LinkedHashSet
 
-@Module.Info(
-        name = "NewChunks",
-        description = "Highlights newly generated chunks",
-        category = Module.Category.RENDER
-)
-object NewChunks : Module() {
-    private val relative = register(Settings.b("Relative", true))
-    private val autoClear = register(Settings.b("AutoClear", true))
-    private val saveNewChunks = register(Settings.b("SaveNewChunks", false))
-    private val saveOption = register(Settings.enumBuilder(SaveOption::class.java, "SaveOption").withValue(SaveOption.EXTRA_FOLDER).withVisibility { saveNewChunks.value })
-    private val saveInRegionFolder = register(Settings.booleanBuilder("InRegion").withValue(false).withVisibility { saveNewChunks.value })
-    private val alsoSaveNormalCoords = register(Settings.booleanBuilder("SaveNormalCoords").withValue(false).withVisibility { saveNewChunks.value })
-    private val closeFile = register(Settings.booleanBuilder("CloseFile").withValue(false).withVisibility { saveNewChunks.value })
-    private val renderMode = register(Settings.e<RenderMode>("RenderMode", RenderMode.BOTH))
-    private val yOffset = register(Settings.integerBuilder("YOffset").withValue(0).withRange(-256, 256).withStep(4).withVisibility { isWorldMode })
-    private val customColor = register(Settings.booleanBuilder("CustomColor").withValue(false).withVisibility { isWorldMode })
-    private val red = register(Settings.integerBuilder("Red").withRange(0, 255).withValue(255).withStep(1).withVisibility { customColor.value && isWorldMode })
-    private val green = register(Settings.integerBuilder("Green").withRange(0, 255).withValue(255).withStep(1).withVisibility { customColor.value && isWorldMode })
-    private val blue = register(Settings.integerBuilder("Blue").withRange(0, 255).withValue(255).withStep(1).withVisibility { customColor.value && isWorldMode })
-    private val range = register(Settings.integerBuilder("RenderRange").withValue(256).withRange(64, 1024).withStep(64))
-    val radarScale = register(Settings.doubleBuilder("RadarScale").withRange(1.0, 10.0).withValue(2.0).withStep(0.1).withVisibility { isRadarMode })
-    private val removeMode = register(Settings.e<RemoveMode>("RemoveMode", RemoveMode.MAX_NUM))
-    private val maxNum = register(Settings.integerBuilder("MaxNum").withRange(1000, 100_000).withValue(10_000).withStep(1000).withVisibility { removeMode.value == RemoveMode.MAX_NUM })
+internal object NewChunks : Module(
+    name = "NewChunks",
+    description = "Highlights newly generated chunks",
+    category = Category.RENDER
+) {
+    private val relative = setting("Relative", true)
+    private val autoClear = setting("AutoClear", true)
+    private val saveNewChunks = setting("SaveNewChunks", false)
+    private val saveOption = setting("SaveOption", SaveOption.EXTRA_FOLDER, { saveNewChunks.value })
+    private val saveInRegionFolder = setting("InRegion", false, { saveNewChunks.value })
+    private val alsoSaveNormalCoords = setting("SaveNormalCoords", false, { saveNewChunks.value })
+    private val closeFile = setting("CloseFile", false, { saveNewChunks.value })
+    private val renderMode = setting("RenderMode", RenderMode.BOTH)
+    private val yOffset = setting("YOffset", 0, -256..256, 4, { isWorldMode })
+    private val customColor = setting("CustomColor", false, { isWorldMode })
+    private val red = setting("Red", 255, 0..255, 1, { customColor.value && isWorldMode })
+    private val green = setting("Green", 255, 0..255, 1, { customColor.value && isWorldMode })
+    private val blue = setting("Blue", 255, 0..255, 1, { customColor.value && isWorldMode })
+    private val range = setting("RenderRange", 256, 64..1024, 64)
+    val radarScale = setting("RadarScale", 2.0, 1.0..10.0, 0.1, { isRadarMode })
+    private val removeMode = setting("RemoveMode", RemoveMode.MAX_NUM)
+    private val maxNum = setting("MaxNum", 10000, 1000..100000, 1000, { removeMode.value == RemoveMode.MAX_NUM })
 
     private var lastSetting = LastSetting()
     private var logWriter: PrintWriter? = null
     private val timer = TickTimer(TimeUnit.MINUTES)
-    val chunks = HashSet<Chunk>()
-
-    override fun onDisable() {
-        logWriterClose()
-        chunks.clear()
-        MessageSendHelper.sendChatMessage("$chatName Saved and cleared chunks!")
-    }
-
-    override fun onEnable() {
-        timer.reset()
-    }
+    private val chunks = LinkedHashSet<Chunk>()
 
     init {
-        listener<SafeTickEvent> {
+        onEnable {
+            timer.reset()
+        }
+
+        onDisable {
+            logWriterClose()
+            chunks.clear()
+            MessageSendHelper.sendChatMessage("$chatName Saved and cleared chunks!")
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
             if (it.phase == TickEvent.Phase.END && autoClear.value && timer.tick(10L)) {
                 chunks.clear()
                 MessageSendHelper.sendChatMessage("$chatName Cleared chunks!")
@@ -200,7 +199,7 @@ object NewChunks : Module() {
             }
             file = File(file, "newChunkLogs")
             val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date())
-            file = File(file, mc.getSession().username + "_" + date + ".csv") // maybe dont safe the name actually. But I also dont want to make another option...
+            file = File(file, mc.session.username + "_" + date + ".csv") // maybe dont safe the name actually. But I also dont want to make another option...
             val rV = file.toPath()
             try {
                 if (!Files.exists(rV)) { // ovsly always...
@@ -309,14 +308,14 @@ object NewChunks : Module() {
         fun testChange(): Boolean {
             // these somehow include the test whether its null
             return saveOption.value != lastSaveOption
-                    || saveInRegionFolder.value != lastInRegion
-                    || alsoSaveNormalCoords.value != lastSaveNormal
-                    || dimension != mc.player.dimension
-                    || mc.currentServerData?.serverIP != ip
+                || saveInRegionFolder.value != lastInRegion
+                || alsoSaveNormalCoords.value != lastSaveNormal
+                || dimension != mc.player.dimension
+                || mc.currentServerData?.serverIP != ip
         }
 
         private fun update() {
-            lastSaveOption = saveOption.value as SaveOption
+            lastSaveOption = saveOption.value
             lastInRegion = saveInRegionFolder.value
             lastSaveNormal = alsoSaveNormalCoords.value
             dimension = mc.player.dimension
@@ -325,8 +324,8 @@ object NewChunks : Module() {
     }
 
     init {
-        closeFile.settingListener = SettingListeners {
-            if (closeFile.value) {
+        closeFile.valueListeners.add { _, it ->
+            if (it) {
                 logWriterClose()
                 MessageSendHelper.sendChatMessage("$chatName Saved file!")
                 closeFile.value = false

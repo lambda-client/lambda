@@ -1,11 +1,11 @@
 package me.zeroeightsix.kami.event
 
-import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.CommandManager
-import me.zeroeightsix.kami.event.events.*
-import me.zeroeightsix.kami.gui.kami.KamiGUI
+import me.zeroeightsix.kami.event.events.BaritoneCommandEvent
+import me.zeroeightsix.kami.event.events.ConnectionEvent
+import me.zeroeightsix.kami.event.events.RenderWorldEvent
+import me.zeroeightsix.kami.event.events.ResolutionUpdateEvent
 import me.zeroeightsix.kami.gui.mc.KamiGuiChat
-import me.zeroeightsix.kami.gui.rgui.component.container.use.Frame
 import me.zeroeightsix.kami.module.ModuleManager
 import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.graphics.KamiTessellator
@@ -13,7 +13,6 @@ import me.zeroeightsix.kami.util.graphics.ProjectionUtils
 import me.zeroeightsix.kami.util.text.MessageDetection
 import net.minecraftforge.client.event.*
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
-import net.minecraftforge.event.entity.player.AttackEntityEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent
 import net.minecraftforge.event.world.ChunkEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
@@ -31,41 +30,30 @@ object ForgeEventProcessor {
 
     @SubscribeEvent
     fun onTick(event: TickEvent.ClientTickEvent) {
-        KamiEventBus.post(event)
-
-        if (mc.world != null && mc.player != null) {
-            SafeTickEvent(event.phase).also {
-                KamiEventBus.post(it)
-            }
+        if (event.phase == TickEvent.Phase.START) {
+            mc.profiler.startSection("kbTickPre")
+        } else {
+            mc.profiler.startSection("kbTickPost")
         }
 
-        if (event.phase == TickEvent.Phase.END) {
-            if (prevWidth != mc.displayWidth || prevHeight != mc.displayHeight) {
-                prevWidth = mc.displayWidth
-                prevHeight = mc.displayHeight
-                KamiEventBus.post(ResolutionUpdateEvent(mc.displayWidth, mc.displayHeight))
-                for (component in KamiMod.INSTANCE.guiManager.children) {
-                    if (component !is Frame) continue
-                    KamiGUI.dock(component)
-                }
-            }
-            if (mc.world != null && mc.player != null) {
-                KamiMod.INSTANCE.guiManager.callTick(KamiMod.INSTANCE.guiManager)
-            }
+        KamiEventBus.postProfiler(event)
+
+        if (event.phase == TickEvent.Phase.END && (prevWidth != mc.displayWidth || prevHeight != mc.displayHeight)) {
+            prevWidth = mc.displayWidth
+            prevHeight = mc.displayHeight
+            KamiEventBus.post(ResolutionUpdateEvent(mc.displayWidth, mc.displayHeight))
         }
+
+        mc.profiler.endSection()
     }
 
     @SubscribeEvent
+    @Suppress("UNUSED_PARAMETER")
     fun onWorldRender(event: RenderWorldLastEvent) {
         ProjectionUtils.updateMatrix()
-
-        mc.profiler.startSection("KamiWorldRender")
-
         KamiTessellator.prepareGL()
         KamiEventBus.post(RenderWorldEvent())
         KamiTessellator.releaseGL()
-
-        mc.profiler.endSection()
     }
 
     @SubscribeEvent
@@ -131,18 +119,8 @@ object ForgeEventProcessor {
     }
 
     @SubscribeEvent
-    fun onPlayerPush(event: PlayerSPPushOutOfBlocksEvent) {
-        KamiEventBus.post(event)
-    }
-
-    @SubscribeEvent
     fun onLeftClickBlock(event: PlayerInteractEvent.LeftClickBlock) {
         KamiEventBus.post(event)
-    }
-
-    @SubscribeEvent
-    fun onAttackEntity(entityEvent: AttackEntityEvent) {
-        KamiEventBus.post(entityEvent)
     }
 
     @SubscribeEvent

@@ -1,50 +1,54 @@
 package me.zeroeightsix.kami.module.modules.player
 
 import baritone.api.pathing.goals.GoalTwoBlocks
+import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
 import me.zeroeightsix.kami.event.events.PlayerAttackEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.MovementUtils.calcMoveYaw
 import me.zeroeightsix.kami.util.math.RotationUtils
+import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
+import me.zeroeightsix.kami.util.threads.onMainThreadSafe
+import me.zeroeightsix.kami.util.threads.runSafeR
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.entity.MoverType
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.network.play.client.CPacketUseEntity
 import net.minecraft.util.MovementInput
 import net.minecraft.util.MovementInputFromOptions
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.commons.extension.floorToInt
 import org.kamiblue.commons.extension.toRadian
 import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.min
-import kotlin.math.sin
+import kotlin.math.*
 
-@Module.Info(
+internal object Freecam : Module(
     name = "Freecam",
-    category = Module.Category.PLAYER,
+    category = Category.PLAYER,
     description = "Leave your body and transcend into the realm of the gods"
-)
-object Freecam : Module() {
-    private val directionMode = register(Settings.e<FlightMode>("FlightMode", FlightMode.CREATIVE))
-    private val horizontalSpeed = register(Settings.floatBuilder("HorizontalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f))
-    private val verticalSpeed = register(Settings.floatBuilder("VerticalSpeed").withValue(20f).withRange(1f, 50f).withStep(1f).withVisibility { directionMode.value == FlightMode.CREATIVE })
-    private val autoRotate = register(Settings.b("AutoRotate", true))
-    private val arrowKeyMove = register(Settings.b("ArrowKeyMove", true))
-    private val disableOnDisconnect = register(Settings.b("DisconnectDisable", true))
-    private val leftClickCome = register(Settings.b("LeftClickCome", true))
+) {
+    private val directionMode = setting("FlightMode", FlightMode.CREATIVE)
+    private val horizontalSpeed = setting("HorizontalSpeed", 20f, 1f..50f, 1f)
+    private val verticalSpeed = setting("VerticalSpeed", 20f, 1f..50f, 1f)
+    private val autoRotate = setting("AutoRotate", true)
+    private val arrowKeyMove = setting("ArrowKeyMove", true)
+    private val disableOnDisconnect = setting("DisconnectDisable", true)
+    private val leftClickCome = setting("LeftClickCome", true)
 
     private enum class FlightMode(override val displayName: String) : DisplayEnum {
         CREATIVE("Creative"),
@@ -57,54 +61,56 @@ object Freecam : Module() {
 
     private const val ENTITY_ID = -6969420
 
-    override fun onDisable() {
-        mc.renderChunksMany = true
-        resetCameraGuy()
-        resetMovementInput(mc.player?.movementInput)
-    }
-
-    override fun onEnable() {
-        mc.renderChunksMany = false
-    }
-
     init {
+        onEnable {
+            mc.renderChunksMany = false
+        }
+
+        onDisable {
+            mc.renderChunksMany = true
+            resetCameraGuy()
+            resetMovementInput(mc.player?.movementInput)
+        }
+
         listener<ConnectionEvent.Disconnect> {
             prevThirdPersonViewSetting = -1
             if (disableOnDisconnect.value) disable()
             else cameraGuy = null
         }
 
-        listener<PacketEvent.Send> {
-            if (mc.world == null || it.packet !is CPacketUseEntity) return@listener
+        safeListener<PacketEvent.Send> {
+            if (it.packet !is CPacketUseEntity) return@safeListener
             // Don't interact with self
-            if (it.packet.getEntityFromWorld(mc.world) == mc.player) it.cancel()
+            if (it.packet.getEntityFromWorld(world) == player) it.cancel()
         }
 
         listener<PlayerAttackEvent> {
             if (it.entity == mc.player) it.cancel()
         }
 
-        listener<InputEvent.KeyInputEvent> {
-            if (mc.world == null || mc.player == null) return@listener
+        safeListener<InputEvent.KeyInputEvent> {
             // Force it to stay in first person lol
             if (mc.gameSettings.keyBindTogglePerspective.isKeyDown) mc.gameSettings.thirdPersonView = 2
         }
 
-        listener<SafeTickEvent> {
-            if (it.phase != TickEvent.Phase.END) return@listener
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@safeListener
 
-            if (mc.player.isDead || mc.player.health <= 0.0f) {
+            if (player.isDead || player.health <= 0.0f) {
                 if (cameraGuy != null) resetCameraGuy()
-                return@listener
+                return@safeListener
             }
 
-            if (cameraGuy == null && mc.player.ticksExisted > 20) spawnCameraGuy()
+            if (cameraGuy == null && player.ticksExisted > 5) spawnCameraGuy()
         }
 
-        listener<InputUpdateEvent>(9999) {
-            if (it.movementInput !is MovementInputFromOptions || BaritoneUtils.isPathing || BaritoneUtils.isActive) return@listener
+        safeListener<InputUpdateEvent>(9999) {
+            if (it.movementInput !is MovementInputFromOptions || BaritoneUtils.isPathing) return@safeListener
 
             resetMovementInput(it.movementInput)
+
+            if (BaritoneUtils.isActive) return@safeListener
+
             if (autoRotate.value) updatePlayerRotation()
             if (arrowKeyMove.value) updatePlayerMovement()
         }
@@ -123,6 +129,26 @@ object Freecam : Module() {
         }
     }
 
+    @JvmStatic
+    val renderChunkOffset
+        get() = runSafeR {
+            BlockPos(
+                (player.posX / 16).floorToInt() * 16,
+                (player.posY / 16).floorToInt() * 16,
+                (player.posZ / 16).floorToInt() * 16
+            )
+        }
+
+    @JvmStatic
+    fun getRenderViewEntity(renderViewEntity: EntityPlayer): EntityPlayer {
+        val player = mc.player
+        return if (isEnabled && player != null) {
+            player
+        } else {
+            renderViewEntity
+        }
+    }
+
     private fun resetMovementInput(movementInput: MovementInput?) {
         if (movementInput !is MovementInputFromOptions) return
         movementInput.apply {
@@ -137,17 +163,17 @@ object Freecam : Module() {
         }
     }
 
-    private fun spawnCameraGuy() {
+    private fun SafeClientEvent.spawnCameraGuy() {
         // Create a cloned player
-        cameraGuy = FakeCamera(mc.player).also {
+        cameraGuy = FakeCamera(world, player).also {
             // Add it to the world
-            mc.world?.addEntityToWorld(ENTITY_ID, it)
+            world.addEntityToWorld(ENTITY_ID, it)
 
             // Set the render view entity to our camera guy
             mc.renderViewEntity = it
 
             // Reset player movement input
-            resetMovementInput(mc.player?.movementInput)
+            resetMovementInput(player.movementInput)
 
             // Stores prev third person view setting
             prevThirdPersonViewSetting = mc.gameSettings.thirdPersonView
@@ -155,58 +181,55 @@ object Freecam : Module() {
         }
     }
 
-    private fun updatePlayerRotation() {
+    private fun SafeClientEvent.updatePlayerRotation() {
         mc.objectMouseOver?.let {
             val hitVec = it.hitVec
             if (it.typeOfHit == RayTraceResult.Type.MISS || hitVec == null) return
-            val rotation = RotationUtils.getRotationTo(hitVec)
-            mc.player?.apply {
+            val rotation = getRotationTo(hitVec)
+            player.apply {
                 rotationYaw = rotation.x
                 rotationPitch = rotation.y
             }
         }
     }
 
-    private fun updatePlayerMovement() {
-        mc.player?.let { player ->
-            cameraGuy?.let {
-                val forward = Keyboard.isKeyDown(Keyboard.KEY_UP) to Keyboard.isKeyDown(Keyboard.KEY_DOWN)
-                val strafe = Keyboard.isKeyDown(Keyboard.KEY_LEFT) to Keyboard.isKeyDown(Keyboard.KEY_RIGHT)
-                val movementInput = calcMovementInput(forward, strafe, false to false)
+    private fun SafeClientEvent.updatePlayerMovement() {
+        cameraGuy?.let {
+            val forward = Keyboard.isKeyDown(Keyboard.KEY_UP) to Keyboard.isKeyDown(Keyboard.KEY_DOWN)
+            val strafe = Keyboard.isKeyDown(Keyboard.KEY_LEFT) to Keyboard.isKeyDown(Keyboard.KEY_RIGHT)
+            val movementInput = calcMovementInput(forward, strafe, false to false)
 
-                val yawDiff = player.rotationYaw - it.rotationYaw
-                val yawRad = MovementUtils.calcMoveYaw(yawDiff, movementInput.first, movementInput.second).toFloat()
-                val inputTotal = min(abs(movementInput.first) + abs(movementInput.second), 1f)
+            val yawDiff = player.rotationYaw - it.rotationYaw
+            val yawRad = calcMoveYaw(yawDiff, movementInput.first, movementInput.second).toFloat()
+            val inputTotal = min(abs(movementInput.first) + abs(movementInput.second), 1f)
 
-                player.movementInput?.apply {
-                    moveForward = cos(yawRad) * inputTotal
-                    moveStrafe = sin(yawRad) * inputTotal
+            player.movementInput?.apply {
+                moveForward = cos(yawRad) * inputTotal
+                moveStrafe = sin(yawRad) * inputTotal
 
-                    forwardKeyDown = moveForward > 0f
-                    backKeyDown = moveForward < 0f
-                    leftKeyDown = moveStrafe < 0f
-                    rightKeyDown = moveStrafe > 0f
+                forwardKeyDown = moveForward > 0f
+                backKeyDown = moveForward < 0f
+                leftKeyDown = moveStrafe < 0f
+                rightKeyDown = moveStrafe > 0f
 
-                    jump = Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)
-                }
+                jump = Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)
             }
         }
     }
 
     private fun resetCameraGuy() {
-        mc.addScheduledTask {
-            if (mc.player == null) return@addScheduledTask
-            mc.world?.removeEntityFromWorld(ENTITY_ID)
-            mc.renderViewEntity = mc.player
-            cameraGuy = null
+        cameraGuy = null
+        onMainThreadSafe {
+            world.removeEntityFromWorld(ENTITY_ID)
+            mc.renderViewEntity = player
             mc.renderGlobal.loadRenderers()
             if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
         }
     }
 
-    private class FakeCamera(val player: EntityPlayerSP) : EntityOtherPlayerMP(mc.world, mc.session.profile) {
+    private class FakeCamera(world: WorldClient, val player: EntityPlayerSP) : EntityOtherPlayerMP(world, mc.session.profile) {
         init {
-            copyLocationAndAnglesFrom(mc.player)
+            copyLocationAndAnglesFrom(player)
             capabilities.allowFlying = true
             capabilities.isFlying = true
         }

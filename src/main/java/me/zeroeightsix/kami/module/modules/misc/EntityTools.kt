@@ -1,7 +1,7 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import net.minecraft.entity.Entity
@@ -11,13 +11,12 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.kamiblue.event.listener.listener
 import org.lwjgl.input.Mouse
 
-@Module.Info(
-        name = "EntityTools",
-        category = Module.Category.MISC,
-        description = "Right click entities to perform actions on them"
-)
-object EntityTools : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.INFO))
+internal object EntityTools : Module(
+    name = "EntityTools",
+    category = Category.MISC,
+    description = "Right click entities to perform actions on them"
+) {
+    private val mode = setting("Mode", Mode.INFO)
 
     private enum class Mode {
         DELETE, INFO
@@ -37,9 +36,6 @@ object EntityTools : Module() {
                     Mode.INFO -> {
                         val tag = NBTTagCompound().apply { mc.objectMouseOver.entityHit.writeToNBT(this) }
                         MessageSendHelper.sendChatMessage("""$chatName &6Entity Tags:$tag""".trimIndent())
-                    }
-                    else -> {
-
                     }
                 }
             }

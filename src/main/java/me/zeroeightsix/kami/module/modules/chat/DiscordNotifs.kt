@@ -6,36 +6,35 @@ import me.zeroeightsix.kami.KamiMod
 import me.zeroeightsix.kami.command.CommandManager
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.module.modules.client.InfoOverlay
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
-import me.zeroeightsix.kami.util.TimeUtils.getFinalTime
+import me.zeroeightsix.kami.util.TimeUtils
 import me.zeroeightsix.kami.util.text.*
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.network.play.server.SPacketChat
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 
-@Module.Info(
-        name = "DiscordNotifs",
-        category = Module.Category.CHAT,
-        description = "Sends your chat to a set Discord channel"
-)
-object DiscordNotifs : Module() {
-    private val timeout = register(Settings.b("Timeout", true))
-    private val timeoutTime = register(Settings.integerBuilder("Seconds").withValue(10).withRange(0, 120).withStep(5).withVisibility { timeout.value })
-    private val time = register(Settings.b("Timestamp", true))
-    private val importantPings = register(Settings.b("ImportantPings", false))
-    private val disconnect = register(Settings.b("DisconnectMsgs", true))
-    private val all = register(Settings.b("AllMessages", false))
-    private val direct = register(Settings.booleanBuilder("DMs").withValue(true).withVisibility { !all.value })
-    private val queue = register(Settings.booleanBuilder("QueuePosition").withValue(true).withVisibility { !all.value })
-    private val restart = register(Settings.booleanBuilder("RestartMsgs").withValue(true).withVisibility { !all.value })
+internal object DiscordNotifs : Module(
+    name = "DiscordNotifs",
+    category = Category.CHAT,
+    description = "Sends your chat to a set Discord channel"
+) {
+    private val timeout = setting("Timeout", true)
+    private val timeoutTime = setting("Seconds", 10, 0..120, 5, { timeout.value })
+    private val time = setting("Timestamp", true)
+    private val importantPings = setting("ImportantPings", false)
+    private val disconnect = setting("DisconnectMsgs", true)
+    private val all = setting("AllMessages", false)
+    private val direct = setting("DMs", true, { !all.value })
+    private val queue = setting("QueuePosition", true, { !all.value })
+    private val restart = setting("RestartMsgs", true, { !all.value })
 
-    val url = register(Settings.s("URL", "unchanged"))
-    val pingID = register(Settings.s("PingID", "unchanged"))
-    val avatar = register(Settings.s("Avatar", KamiMod.GITHUB_LINK + "assets/raw/assets/assets/icons/kami.png"))
+    val url = setting("URL", "unchanged")
+    val pingID = setting("PingID", "unchanged")
+    val avatar = setting("Avatar", KamiMod.GITHUB_LINK + "/assets/raw/assets/assets/icons/kamiGithub.png")
 
     private val server: String get() = mc.currentServerData?.serverIP ?: "the server"
     private val timer = TickTimer(TimeUnit.SECONDS)
@@ -61,7 +60,7 @@ object DiscordNotifs : Module() {
         }
 
         /* Always on status code */
-        listener<SafeTickEvent> {
+        safeListener<TickEvent.ClientTickEvent> {
             if (url.value == "unchanged") {
                 MessageSendHelper.sendErrorMessage(chatName + " You must first set a webhook url with the " +
                     formatValue("${CommandManager.prefix}discordnotifs") +
@@ -81,7 +80,6 @@ object DiscordNotifs : Module() {
             || direct.value && MessageDetection.Direct.ANY detect message
             || restart.value && MessageDetection.Server.RESTART detect message
             || queue.value && MessageDetection.Server.QUEUE detect message
-            || importantPings.value && MessageDetection.Server.QUEUE detect message
     }
 
     private fun getMessageType(message: String, server: String): String {
@@ -92,9 +90,9 @@ object DiscordNotifs : Module() {
     }
 
     private fun timeout(message: String) = !timeout.value
-            || restart.value && MessageDetection.Server.RESTART detect message
-            || direct.value && MessageDetection.Direct.ANY detect message
-            || timer.tick(timeoutTime.value.toLong())
+        || restart.value && MessageDetection.Server.RESTART detect message
+        || direct.value && MessageDetection.Direct.ANY detect message
+        || timer.tick(timeoutTime.value.toLong())
 
     /* Text formatting and misc methods */
     private fun getPingID(message: String) = if (message == "KamiBlueMessageType1"
@@ -108,10 +106,9 @@ object DiscordNotifs : Module() {
         return if (!importantPings.value) "" else "<@!" + pingID.value + ">: "
     }
 
-    private fun getTime(): String {
-        return if (!time.value) ""
-        else "[" + getFinalTime(InfoOverlay.timeUnitSetting.value, InfoOverlay.timeTypeSetting.value, InfoOverlay.doLocale.value) + "] "
-    }
+    private fun getTime() =
+        if (!time.value) ""
+        else ChatTimestamp.time
 
     private fun sendMessage(content: String, avatarUrl: String) {
         val tm = TemmieWebhook(url.value)

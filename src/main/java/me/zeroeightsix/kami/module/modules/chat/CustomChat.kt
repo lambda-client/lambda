@@ -1,31 +1,28 @@
 package me.zeroeightsix.kami.module.modules.chat
 
-import me.zeroeightsix.kami.command.CommandManager
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.manager.managers.MessageManager.newMessageModifier
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.TimeUnit
 import me.zeroeightsix.kami.util.text.MessageDetection
 import me.zeroeightsix.kami.util.text.MessageSendHelper
-import me.zeroeightsix.kami.util.text.formatValue
-import org.kamiblue.event.listener.listener
+import me.zeroeightsix.kami.util.threads.safeListener
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.min
 
-@Module.Info(
+internal object CustomChat : Module(
     name = "CustomChat",
-    category = Module.Category.CHAT,
+    category = Category.CHAT,
     description = "Add a custom ending to your message!",
-    showOnArray = Module.ShowOnArray.OFF,
+    showOnArray = false,
     modulePriority = 200
-)
-object CustomChat : Module() {
-    private val textMode = register(Settings.e<TextMode>("Message", TextMode.JAPANESE))
-    private val decoMode = register(Settings.e<DecoMode>("Separator", DecoMode.NONE))
-    private val commands = register(Settings.b("Commands", false))
-    private val spammer = register(Settings.b("Spammer", false))
-    val customText = register(Settings.s("CustomText", "unchanged"))
+) {
+    private val textMode by setting("Message", TextMode.JAPANESE)
+    private val decoMode by setting("Separator", DecoMode.NONE)
+    private val commands by setting("Commands", false)
+    private val spammer by setting("Spammer", false)
+    private val customText by setting("CustomText", "Default")
 
     private enum class DecoMode {
         SEPARATOR, CLASSIC, NONE
@@ -35,12 +32,11 @@ object CustomChat : Module() {
         NAME, ON_TOP, WEBSITE, JAPANESE, CUSTOM
     }
 
-    val isCustomMode get() = textMode.value == TextMode.CUSTOM
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val modifier = newMessageModifier(
         filter = {
-            (commands.value || MessageDetection.Command.ANY detectNot it.packet.message)
-                && (spammer.value || it.source !is Spammer)
+            (commands || MessageDetection.Command.ANY detectNot it.packet.message)
+                && (spammer || it.source !is Spammer)
         },
         modifier = {
             val message = it.packet.message + getFull()
@@ -48,36 +44,34 @@ object CustomChat : Module() {
         }
     )
 
-    override fun onEnable() {
-        modifier.enable()
+    init {
+        onEnable {
+            modifier.enable()
+        }
+
+        onDisable {
+            modifier.disable()
+        }
     }
 
-    override fun onDisable() {
-        modifier.disable()
-    }
-
-    private fun getText() = when (textMode.value) {
+    private fun getText() = when (textMode) {
         TextMode.NAME -> "ᴋᴀᴍɪ ʙʟᴜᴇ"
         TextMode.ON_TOP -> "ᴋᴀᴍɪ ʙʟᴜᴇ ᴏɴ ᴛᴏᴘ"
         TextMode.WEBSITE -> "ｋａｍｉｂｌｕｅ．ｏｒｇ"
         TextMode.JAPANESE -> "上にカミブルー"
-        TextMode.CUSTOM -> customText.value
-        else -> ""
+        TextMode.CUSTOM -> customText
     }
 
-    private fun getFull() = when (decoMode.value) {
+    private fun getFull() = when (decoMode) {
         DecoMode.NONE -> " " + getText()
         DecoMode.CLASSIC -> " \u00ab " + getText() + " \u00bb"
         DecoMode.SEPARATOR -> " | " + getText()
-        else -> ""
     }
 
     init {
-        listener<SafeTickEvent> {
-            if (timer.tick(5L) && textMode.value == TextMode.CUSTOM && customText.value.equals("unchanged", ignoreCase = true)) {
-                MessageSendHelper.sendErrorMessage("$chatName In order to use the custom suffix, please run the " +
-                    formatValue("${CommandManager.prefix}set CustomChat CustomText \"text here\"") +
-                    " command to change it")
+        safeListener<TickEvent.ClientTickEvent> {
+            if (timer.tick(5L) && textMode == TextMode.CUSTOM && customText.equals("Default", ignoreCase = true)) {
+                MessageSendHelper.sendWarningMessage("$chatName Warning: In order to use the custom $name, please change the CustomText setting in ClickGUI")
             }
         }
     }

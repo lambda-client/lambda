@@ -1,9 +1,9 @@
 package me.zeroeightsix.kami.module.modules.movement
 
-import me.zeroeightsix.kami.event.events.SafeTickEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.text.MessageSendHelper
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.init.Items
@@ -12,30 +12,29 @@ import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemArmor
 import net.minecraft.item.ItemElytra
 import net.minecraft.item.ItemStack
-import org.kamiblue.event.listener.listener
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
-@Module.Info(
-        name = "ElytraReplace",
-        description = "Automatically swap and replace your chestplate and elytra.",
-        category = Module.Category.MOVEMENT
-)
-object ElytraReplace : Module() {
-    private val inventoryMode = register(Settings.b("Inventory", false))
-    private val autoChest = register(Settings.b("AutoChest", false))
-    private val elytraFlightCheck = register(Settings.b("ElytraFlightCheck", true))
-    private val logToChat = register(Settings.booleanBuilder("MissingWarning").withValue(false))
-    private val playSound = register(Settings.booleanBuilder("PlaySound").withValue(false).withVisibility { logToChat.value })
-    private val logThreshold = register(Settings.integerBuilder("WarningThreshold").withValue(2).withRange(1, 10).withVisibility { logToChat.value })
-    private val threshold = register(Settings.integerBuilder("DamageThreshold").withValue(20).withRange(1, 200).withStep(1))
+internal object ElytraReplace : Module(
+    name = "ElytraReplace",
+    description = "Automatically swap and replace your chestplate and elytra.",
+    category = Category.MOVEMENT
+) {
+    private val inventoryMode = setting("Inventory", false)
+    private val autoChest = setting("AutoChest", false)
+    private val elytraFlightCheck = setting("ElytraFlightCheck", true)
+    private val logToChat = setting("MissingWarning", false)
+    private val playSound = setting("PlaySound", false, { logToChat.value })
+    private val logThreshold = setting("WarningThreshold", 2, 1..10, 1, { logToChat.value })
+    private val threshold = setting("DamageThreshold", 7, 1..50, 1)
 
     private var elytraCount = 0
     private var chestPlateCount = 0
     private var shouldSendFinalWarning = true
 
     init {
-        listener<SafeTickEvent> {
+        safeListener<TickEvent.ClientTickEvent> {
             if (!inventoryMode.value && mc.currentScreen is GuiContainer) {
-                return@listener
+                return@safeListener
             }
 
             getElytraChestCount()
@@ -44,12 +43,12 @@ object ElytraReplace : Module() {
                 sendFinalElytraWarning()
             }
 
-            if (mc.player.onGround && autoChest.value) {
+            if (player.onGround && autoChest.value) {
                 swapToChest()
             } else if (shouldAttemptElytraSwap()) {
                 var shouldSwap = isCurrentElytraBroken()
                 if (autoChest.value) {
-                    shouldSwap = shouldSwap || !(mc.player.inventory.armorInventory[2].item === Items.ELYTRA) // if current elytra broken or no elytra found in chest area
+                    shouldSwap = shouldSwap || !(player.inventory.armorInventory[2].item === Items.ELYTRA) // if current elytra broken or no elytra found in chest area
                 }
 
                 if (shouldSwap) {
@@ -108,9 +107,9 @@ object ElytraReplace : Module() {
             return
         } else { // swap chestplate from inventory with whatever you were wearing, if you're already wearing non-armor in chest slot
             mc.playerController.windowClick(0, 6, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             mc.playerController.windowClick(0, slot, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             return
         }
     }
@@ -138,9 +137,9 @@ object ElytraReplace : Module() {
             true
         } else { // switch non-broken elytra with whatever was previously in the chest slot
             mc.playerController.windowClick(0, 6, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             mc.playerController.windowClick(0, slot, 0,
-                    ClickType.QUICK_MOVE, mc.player)
+                ClickType.QUICK_MOVE, mc.player)
             true
         }
     }

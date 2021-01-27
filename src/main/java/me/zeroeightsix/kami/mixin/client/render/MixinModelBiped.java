@@ -24,8 +24,13 @@ public abstract class MixinModelBiped extends ModelBase {
     @Shadow public ModelRenderer bipedLeftLeg;
     @Shadow public ModelBiped.ArmPose leftArmPose;
     @Shadow public ModelBiped.ArmPose rightArmPose;
-    @Shadow protected abstract EnumHandSide getMainHand(Entity entityIn);
-    @Shadow protected abstract ModelRenderer getArmForSide(EnumHandSide side);
+
+    @Shadow
+    protected abstract EnumHandSide getMainHand(Entity entityIn);
+
+    @Shadow
+    protected abstract ModelRenderer getArmForSide(EnumHandSide side);
+
     @Shadow public ModelRenderer bipedHeadwear;
 
     @Inject(method = "setRotationAngles", at = @At("HEAD"), cancellable = true)
@@ -68,6 +73,9 @@ public abstract class MixinModelBiped extends ModelBase {
                 case ITEM:
                     this.bipedLeftArm.rotateAngleX = this.bipedLeftArm.rotateAngleX * 0.5F - ((float) Math.PI / 10F);
                     this.bipedLeftArm.rotateAngleY = 0.0F;
+                    break;
+                default:
+                    // don't do anything
             }
 
             switch (this.rightArmPose) {
@@ -81,6 +89,9 @@ public abstract class MixinModelBiped extends ModelBase {
                 case ITEM:
                     this.bipedRightArm.rotateAngleX = this.bipedRightArm.rotateAngleX * 0.5F - ((float) Math.PI / 10F);
                     this.bipedRightArm.rotateAngleY = 0.0F;
+                    break;
+                default:
+                    // don't do anything
             }
 
             if (this.swingProgress > 0.0F) {

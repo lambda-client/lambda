@@ -1,15 +1,16 @@
 package me.zeroeightsix.kami.module.modules.misc
 
+import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.PacketEvent
-import me.zeroeightsix.kami.event.events.SafeTickEvent
 import me.zeroeightsix.kami.mixin.extension.rightClickMouse
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
-import me.zeroeightsix.kami.setting.Settings
 import me.zeroeightsix.kami.util.TickTimer
 import me.zeroeightsix.kami.util.WorldUtils.isWater
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.init.Items
 import net.minecraft.network.play.server.SPacketSoundEffect
-import org.kamiblue.event.listener.listener
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Math.random
 import kotlin.math.abs
 
@@ -19,18 +20,17 @@ import kotlin.math.abs
  * Updated by l1ving on 26/05/20
  * Updated by Xiaro on 22/08/20
  */
-@Module.Info(
-        name = "AutoFish",
-        category = Module.Category.MISC,
-        description = "Automatically catch fish"
-)
-object AutoFish : Module() {
-    private val mode = register(Settings.e<Mode>("Mode", Mode.BOUNCE))
-    private val autoCast = register(Settings.b("AutoCast", true))
-    private val castDelay = register(Settings.integerBuilder("AutoCastDelay(s)").withValue(5).withRange(1, 20).withVisibility { autoCast.value })
-    private val catchDelay = register(Settings.integerBuilder("CatchDelay(ms)").withValue(300).withRange(50, 2000))
-    private val recastDelay = register(Settings.integerBuilder("RecastDelay(ms)").withValue(450).withRange(50, 2000))
-    private val variation = register(Settings.integerBuilder("Variation(ms)").withValue(100).withRange(0, 1000))
+internal object AutoFish : Module(
+    name = "AutoFish",
+    category = Category.MISC,
+    description = "Automatically catch fish"
+) {
+    private val mode = setting("Mode", Mode.BOUNCE)
+    private val autoCast = setting("AutoCast", true)
+    private val castDelay = setting("AutoCastDelay(s)", 5, 1..20, 1, { autoCast.value })
+    private val catchDelay = setting("CatchDelay(ms)", 300, 50..2000, 50)
+    private val recastDelay = setting("RecastDelay(ms)", 450, 50..2000, 50)
+    private val variation = setting("Variation(ms)", 100, 0..1000, 50)
 
     @Suppress("UNUSED")
     private enum class Mode {
@@ -42,19 +42,19 @@ object AutoFish : Module() {
     private val timer = TickTimer()
 
     init {
-        listener<PacketEvent.Receive> {
-            if (mc.player == null || mc.player.fishEntity == null || !isStabled()) return@listener
-            if (mode.value == Mode.BOUNCE || it.packet !is SPacketSoundEffect) return@listener
+        safeListener<PacketEvent.Receive> {
+            if (player.fishEntity == null || !isStabled()) return@safeListener
+            if (mode.value == Mode.BOUNCE || it.packet !is SPacketSoundEffect) return@safeListener
             if (isSplash(it.packet)) catch()
         }
 
-        listener<SafeTickEvent> {
-            if (mc.player.heldItemMainhand.item != Items.FISHING_ROD) { // If not holding a fishing rod then don't do anything
+        safeListener<TickEvent.ClientTickEvent> {
+            if (player.heldItemMainhand.item != Items.FISHING_ROD) { // If not holding a fishing rod then don't do anything
                 reset()
-                return@listener
+                return@safeListener
             }
 
-            if (mc.player.fishEntity == null) {
+            if (player.fishEntity == null) {
                 if (recasting) { // Recast the fishing rod
                     if (timer.tick(recastDelay.value.toLong())) {
                         mc.rightClickMouse()
@@ -80,39 +80,39 @@ object AutoFish : Module() {
                 reset()
             }
         }
+
+        onToggle {
+            reset()
+        }
     }
 
-    override fun onToggle() {
-        reset()
+    private fun SafeClientEvent.isStabled(): Boolean {
+        if (player.fishEntity?.isAirBorne != false || recasting) return false
+        return abs(player.fishEntity!!.motionX) + abs(player.fishEntity!!.motionZ) < 0.01
     }
 
-    private fun isStabled(): Boolean {
-        if (mc.player.fishEntity == null || mc.player.fishEntity!!.isAirBorne || recasting) return false
-        return abs(mc.player.fishEntity!!.motionX) + abs(mc.player.fishEntity!!.motionZ) < 0.01
-    }
-
-    private fun isOnWater(): Boolean {
-        if (mc.player.fishEntity == null || mc.player.fishEntity!!.isAirBorne) return false
-        val pos = mc.player.fishEntity!!.position
+    private fun SafeClientEvent.isOnWater(): Boolean {
+        if (player.fishEntity?.isAirBorne != false) return false
+        val pos = player.fishEntity!!.position
         return isWater(pos) || isWater(pos.down())
     }
 
-    private fun isSplash(packet: SPacketSoundEffect): Boolean {
-        if (mode.value == Mode.SPLASH && mc.player.fishEntity!!.getDistance(packet.x, packet.y, packet.z) > 2) return false
+    private fun SafeClientEvent.isSplash(packet: SPacketSoundEffect): Boolean {
+        if (mode.value == Mode.SPLASH && (player.fishEntity?.getDistance(packet.x, packet.y, packet.z)
+                ?: 69420.0) > 2) return false
         val soundName = packet.sound.soundName.toString().toLowerCase()
         return (mode.value != Mode.SPLASH && isAnySplash(soundName)) || soundName.contains("entity.bobber.splash")
     }
 
     private fun isAnySplash(soundName: String): Boolean {
         return soundName.contains("entity.generic.splash")
-                || soundName.contains("entity.generic.splash")
-                || soundName.contains("entity.hostile.splash")
-                || soundName.contains("entity.player.splash")
+            || soundName.contains("entity.hostile.splash")
+            || soundName.contains("entity.player.splash")
     }
 
-    private fun isBouncing(): Boolean {
-        if (mc.player.fishEntity == null || !isOnWater()) return false
-        return mc.player.fishEntity!!.motionY !in -0.05..0.05
+    private fun SafeClientEvent.isBouncing(): Boolean {
+        if (player.fishEntity == null || !isOnWater()) return false
+        return (player.fishEntity?.motionY ?: 911.0) !in -0.05..0.05
     }
 
     private fun catch() {

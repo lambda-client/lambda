@@ -7,12 +7,10 @@ import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.mixin.extension.rotationPitch
 import me.zeroeightsix.kami.mixin.extension.tickLength
 import me.zeroeightsix.kami.mixin.extension.timer
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
 import me.zeroeightsix.kami.module.modules.player.LagNotifier
-import me.zeroeightsix.kami.setting.Setting
-import me.zeroeightsix.kami.setting.Setting.SettingListeners
-import me.zeroeightsix.kami.setting.Settings
-import me.zeroeightsix.kami.util.MovementUtils
+import me.zeroeightsix.kami.util.MovementUtils.calcMoveYaw
 import me.zeroeightsix.kami.util.MovementUtils.speed
 import me.zeroeightsix.kami.util.WorldUtils.getGroundPos
 import me.zeroeightsix.kami.util.WorldUtils.isLiquidBelow
@@ -29,69 +27,68 @@ import net.minecraft.network.play.server.SPacketPlayerPosLook
 import org.kamiblue.commons.extension.toRadian
 import kotlin.math.*
 
-@Module.Info(
+// TODO: Rewrite
+internal object ElytraFlight : Module(
     name = "ElytraFlight",
     description = "Allows infinite and way easier Elytra flying",
-    category = Module.Category.MOVEMENT,
+    category = Category.MOVEMENT,
     modulePriority = 1000
-)
-object ElytraFlight : Module() {
-    private val mode = register(Settings.enumBuilder(ElytraFlightMode::class.java).withName("Mode").withValue(ElytraFlightMode.CONTROL))
-    private val page = register(Settings.e<Page>("Page", Page.GENERIC_SETTINGS))
-    private val durabilityWarning = register(Settings.booleanBuilder("DurabilityWarning").withValue(true).withVisibility { page.value == Page.GENERIC_SETTINGS })
-    private val threshold = register(Settings.integerBuilder("Broken%").withValue(5).withRange(1, 50).withStep(1).withVisibility { durabilityWarning.value && page.value == Page.GENERIC_SETTINGS })
-    private val autoLanding = register(Settings.booleanBuilder("AutoLanding").withValue(false).withVisibility { page.value == Page.GENERIC_SETTINGS })
+) {
+    private val mode = setting("Mode", ElytraFlightMode.CONTROL)
+    private val page by setting("Page", Page.GENERIC_SETTINGS)
+    private val durabilityWarning by setting("DurabilityWarning", true, { page == Page.GENERIC_SETTINGS })
+    private val threshold by setting("Broken%", 5, 1..50, 1, { durabilityWarning && page == Page.GENERIC_SETTINGS })
+    private var autoLanding by setting("AutoLanding", false, { page == Page.GENERIC_SETTINGS })
 
     /* Generic Settings */
     /* Takeoff */
-    private val easyTakeOff = register(Settings.booleanBuilder("EasyTakeoff").withValue(true).withVisibility { page.value == Page.GENERIC_SETTINGS })
-    private val timerControl = register(Settings.booleanBuilder("TakeoffTimer").withValue(true).withVisibility { easyTakeOff.value && page.value == Page.GENERIC_SETTINGS })
-    private val highPingOptimize = register(Settings.booleanBuilder("HighPingOptimize").withValue(false).withVisibility { easyTakeOff.value && page.value == Page.GENERIC_SETTINGS })
-    private val minTakeoffHeight = register(Settings.floatBuilder("MinTakeoffHeight").withValue(0.5f).withRange(0.0f, 1.5f).withStep(0.1f).withVisibility { easyTakeOff.value && !highPingOptimize.value && page.value == Page.GENERIC_SETTINGS })
+    private val easyTakeOff by setting("EasyTakeoff", true, { page == Page.GENERIC_SETTINGS })
+    private val timerControl by setting("TakeoffTimer", true, { easyTakeOff && page == Page.GENERIC_SETTINGS })
+    private val highPingOptimize by setting("HighPingOptimize", false, { easyTakeOff && page == Page.GENERIC_SETTINGS })
+    private val minTakeoffHeight by setting("MinTakeoffHeight", 0.5f, 0.0f..1.5f, 0.1f, { easyTakeOff && !highPingOptimize && page == Page.GENERIC_SETTINGS })
 
     /* Acceleration */
-    private val accelerateStartSpeed = register(Settings.integerBuilder("StartSpeed").withValue(100).withRange(0, 100).withVisibility { mode.value != ElytraFlightMode.BOOST && page.value == Page.GENERIC_SETTINGS })
-    private val accelerateTime = register(Settings.floatBuilder("AccelerateTime").withValue(0.0f).withRange(0.0f, 10.0f).withVisibility { mode.value != ElytraFlightMode.BOOST && page.value == Page.GENERIC_SETTINGS })
-    private val autoReset = register(Settings.booleanBuilder("AutoReset").withValue(false).withVisibility { mode.value != ElytraFlightMode.BOOST && page.value == Page.GENERIC_SETTINGS })
+    private val accelerateStartSpeed by setting("StartSpeed", 100, 0..100, 5, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
+    private val accelerateTime by setting("AccelerateTime", 0.0f, 0.0f..20.0f, 0.25f, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
 
     /* Spoof Pitch */
-    private val spoofPitch = register(Settings.booleanBuilder("SpoofPitch").withValue(true).withVisibility { mode.value != ElytraFlightMode.BOOST && page.value == Page.GENERIC_SETTINGS })
-    private val blockInteract = register(Settings.booleanBuilder("BlockInteract").withValue(false).withVisibility { spoofPitch.value && mode.value != ElytraFlightMode.BOOST && page.value == Page.GENERIC_SETTINGS })
-    private val forwardPitch = register(Settings.integerBuilder("ForwardPitch").withValue(0).withRange(-90, 90).withStep(5).withVisibility { spoofPitch.value && mode.value != ElytraFlightMode.BOOST && page.value == Page.GENERIC_SETTINGS })
+    private val spoofPitch by setting("SpoofPitch", true, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
+    private val blockInteract by setting("BlockInteract", false, { spoofPitch && mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
+    private val forwardPitch by setting("ForwardPitch", 0, -90..90, 5, { spoofPitch && mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
 
     /* Extra */
-    val elytraSounds: Setting<Boolean> = register(Settings.booleanBuilder("ElytraSounds").withValue(true).withVisibility { page.value == Page.GENERIC_SETTINGS })
-    private val swingSpeed = register(Settings.floatBuilder("SwingSpeed").withValue(1.0f).withRange(0.0f, 2.0f).withVisibility { page.value == Page.GENERIC_SETTINGS && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) })
-    private val swingAmount = register(Settings.floatBuilder("SwingAmount").withValue(0.8f).withRange(0.0f, 2.0f).withVisibility { page.value == Page.GENERIC_SETTINGS && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) })
+    val elytraSounds by setting("ElytraSounds", true, { page == Page.GENERIC_SETTINGS })
+    private val swingSpeed by setting("SwingSpeed", 1.0f, 0.0f..2.0f, 0.1f, { page == Page.GENERIC_SETTINGS && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) })
+    private val swingAmount by setting("SwingAmount", 0.8f, 0.0f..2.0f, 0.1f, { page == Page.GENERIC_SETTINGS && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET) })
     /* End of Generic Settings */
 
     /* Mode Settings */
     /* Boost */
-    private val speedBoost = register(Settings.floatBuilder("SpeedB").withValue(1.0f).withRange(0.0f, 10.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.BOOST && page.value == Page.MODE_SETTINGS })
-    private val upSpeedBoost = register(Settings.floatBuilder("UpSpeedB").withValue(1.0f).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.BOOST && page.value == Page.MODE_SETTINGS })
-    private val downSpeedBoost = register(Settings.floatBuilder("DownSpeedB").withValue(1.0f).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.BOOST && page.value == Page.MODE_SETTINGS })
+    private val speedBoost by setting("SpeedB", 1.0f, 0.0f..10.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
+    private val upSpeedBoost by setting("UpSpeedB", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
+    private val downSpeedBoost by setting("DownSpeedB", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
 
     /* Control */
-    private val boostPitchControl = register(Settings.integerBuilder("BaseBoostPitch").withValue(20).withRange(0, 90).withStep(5).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val ncpStrict = register(Settings.booleanBuilder("NCPStrict").withValue(true).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val legacyLookBoost = register(Settings.booleanBuilder("LegacyLookBoost").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val altitudeHoldControl = register(Settings.booleanBuilder("AutoControlAltitude").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val dynamicDownSpeed = register(Settings.booleanBuilder("DynamicDownSpeed").withValue(false).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val speedControl = register(Settings.floatBuilder("SpeedC").withValue(1.81f).withRange(0.0f, 10.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val fallSpeedControl = register(Settings.floatBuilder("FallSpeedC").withValue(0.00000000000003f).withRange(0.0f, 0.3f).withStep(0.01f).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val downSpeedControl = register(Settings.floatBuilder("DownSpeedC").withValue(1.0f).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.CONTROL && page.value == Page.MODE_SETTINGS })
-    private val fastDownSpeedControl = register(Settings.floatBuilder("DynamicDownSpeedC").withValue(2.0f).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.CONTROL && dynamicDownSpeed.value && page.value == Page.MODE_SETTINGS })
+    private val boostPitchControl by setting("BaseBoostPitch", 20, 0..90, 5, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val ncpStrict by setting("NCPStrict", true, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val legacyLookBoost by setting("LegacyLookBoost", false, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val altitudeHoldControl by setting("AutoControlAltitude", false, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val dynamicDownSpeed by setting("DynamicDownSpeed", false, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val speedControl by setting("SpeedC", 1.81f, 0.0f..10.0f, 0.1f, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val fallSpeedControl by setting("FallSpeedC", 0.00000000000003f, 0.0f..0.3f, 0.01f, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val downSpeedControl by setting("DownSpeedC", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
+    private val fastDownSpeedControl by setting("DynamicDownSpeedC", 2.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.CONTROL && dynamicDownSpeed && page == Page.MODE_SETTINGS })
 
     /* Creative */
-    private val speedCreative = register(Settings.floatBuilder("SpeedCR").withValue(1.8f).withRange(0.0f, 10.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.CREATIVE && page.value == Page.MODE_SETTINGS })
-    private val fallSpeedCreative = register(Settings.floatBuilder("FallSpeedCR").withValue(0.00001f).withRange(0.0f, 0.3f).withStep(0.01f).withVisibility { mode.value == ElytraFlightMode.CREATIVE && page.value == Page.MODE_SETTINGS })
-    private val upSpeedCreative = register(Settings.floatBuilder("UpSpeedCR").withValue(1.0f).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.CREATIVE && page.value == Page.MODE_SETTINGS })
-    private val downSpeedCreative = register(Settings.floatBuilder("DownSpeedCR").withValue(1.0f).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.CREATIVE && page.value == Page.MODE_SETTINGS })
+    private val speedCreative by setting("SpeedCR", 1.8f, 0.0f..10.0f, 0.1f, { mode.value == ElytraFlightMode.CREATIVE && page == Page.MODE_SETTINGS })
+    private val fallSpeedCreative by setting("FallSpeedCR", 0.00001f, 0.0f..0.3f, 0.01f, { mode.value == ElytraFlightMode.CREATIVE && page == Page.MODE_SETTINGS })
+    private val upSpeedCreative by setting("UpSpeedCR", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.CREATIVE && page == Page.MODE_SETTINGS })
+    private val downSpeedCreative by setting("DownSpeedCR", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.CREATIVE && page == Page.MODE_SETTINGS })
 
     /* Packet */
-    private val speedPacket = register(Settings.floatBuilder("SpeedP").withValue(1.8f).withRange(0.0f, 10.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.PACKET && page.value == Page.MODE_SETTINGS })
-    private val fallSpeedPacket = register(Settings.floatBuilder("FallSpeedP").withValue(0.00001f).withRange(0.0f, 0.3f).withStep(0.01f).withVisibility { mode.value == ElytraFlightMode.PACKET && page.value == Page.MODE_SETTINGS })
-    private val downSpeedPacket = register(Settings.floatBuilder("DownSpeedP").withValue(1.0f).withRange(1.0f, 5.0f).withStep(0.1f).withVisibility { mode.value == ElytraFlightMode.PACKET && page.value == Page.MODE_SETTINGS })
+    private val speedPacket by setting("SpeedP", 1.8f, 0.0f..20.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
+    private val fallSpeedPacket by setting("FallSpeedP", 0.00001f, 0.0f..0.3f, 0.01f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
+    private val downSpeedPacket by setting("DownSpeedP", 1.0f, 0.1f..5.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
     /* End of Mode Settings */
 
     private enum class ElytraFlightMode {
@@ -107,7 +104,7 @@ object ElytraFlight : Module() {
     private var elytraDurability = 0
     private var outOfDurability = false
     private var wasInLiquid = false
-    var isFlying = false
+    private var isFlying = false
     private var isPacketFlying = false
     private var isStandingStillH = false
     private var isStandingStill = false
@@ -140,7 +137,7 @@ object ElytraFlight : Module() {
             if (player.isSpectator) return@safeListener
             stateUpdate(it)
             if (elytraIsEquipped && elytraDurability > 1) {
-                if (autoLanding.value) {
+                if (autoLanding) {
                     landing(it)
                     return@safeListener
                 }
@@ -177,12 +174,12 @@ object ElytraFlight : Module() {
 
             /* Elytra Durability Warning, runs when player is in the air and durability changed */
             if (!player.onGround && oldDurability != elytraDurability) {
-                if (durabilityWarning.value && elytraDurability > 1 && elytraDurability < threshold.value * armorSlot.maxDamage / 100) {
+                if (durabilityWarning && elytraDurability > 1 && elytraDurability < threshold * armorSlot.maxDamage / 100) {
                     mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     sendChatMessage("$chatName Warning: Elytra has " + (elytraDurability - 1) + " durability remaining")
                 } else if (elytraDurability <= 1 && !outOfDurability) {
                     outOfDurability = true
-                    if (durabilityWarning.value) {
+                    if (durabilityWarning) {
                         mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                         sendChatMessage("$chatName Elytra is out of durability, holding player in the air")
                     }
@@ -210,14 +207,14 @@ object ElytraFlight : Module() {
         isStandingStill = isStandingStillH && !player.movementInput.jump && !player.movementInput.sneak
 
         /* Reset acceleration */
-        if (!isFlying || isStandingStill) speedPercentage = accelerateStartSpeed.value.toFloat()
+        if (!isFlying || isStandingStill) speedPercentage = accelerateStartSpeed.toFloat()
 
         /* Modify leg swing */
         if (shouldSwing()) {
             player.prevLimbSwingAmount = player.limbSwingAmount
-            player.limbSwing += swingSpeed.value
+            player.limbSwing += swingSpeed
             val speedRatio = (player.speed / getSettingSpeed()).toFloat()
-            player.limbSwingAmount += ((speedRatio * swingAmount.value) - player.limbSwingAmount) * 0.4f
+            player.limbSwingAmount += ((speedRatio * swingAmount) - player.limbSwingAmount) * 0.4f
         }
     }
 
@@ -242,14 +239,14 @@ object ElytraFlight : Module() {
         when {
             player.onGround -> {
                 sendChatMessage("$chatName Landed!")
-                autoLanding.value = false
+                autoLanding = false
                 return
             }
             isLiquidBelow() -> {
                 sendChatMessage("$chatName Liquid below, disabling.")
-                autoLanding.value = false
+                autoLanding = false
             }
-            LagNotifier.paused && LagNotifier.pauseTakeoff.value -> {
+            LagNotifier.paused && LagNotifier.pauseTakeoff -> {
                 holdPlayer(event)
             }
             player.capabilities.isFlying || !player.isElytraFlying || isPacketFlying -> {
@@ -280,27 +277,31 @@ object ElytraFlight : Module() {
     /* The best takeoff method <3 */
     private fun SafeClientEvent.takeoff(event: PlayerTravelEvent) {
         /* Pause Takeoff if server is lagging, player is in water/lava, or player is on ground */
-        val timerSpeed = if (highPingOptimize.value) 400.0f else 200.0f
-        val height = if (highPingOptimize.value) 0.0f else minTakeoffHeight.value
+        val timerSpeed = if (highPingOptimize) 400.0f else 200.0f
+        val height = if (highPingOptimize) 0.0f else minTakeoffHeight
         val closeToGround = player.posY <= getGroundPos().y + height && !wasInLiquid && !mc.isSingleplayer
-        if (!easyTakeOff.value || (LagNotifier.paused && LagNotifier.pauseTakeoff.value) || player.onGround) {
-            if (LagNotifier.paused && LagNotifier.pauseTakeoff.value && player.posY - getGroundPos().y > 4.0f) holdPlayer(event) /* Holds player in the air if server is lagging and the distance is enough for taking fall damage */
+
+        if (!easyTakeOff || (LagNotifier.paused && LagNotifier.pauseTakeoff) || player.onGround) {
+            if (LagNotifier.paused && LagNotifier.pauseTakeoff && player.posY - getGroundPos().y > 4.0f) holdPlayer(event) /* Holds player in the air if server is lagging and the distance is enough for taking fall damage */
             reset(player.onGround)
             return
         }
-        if (player.motionY < 0 && !highPingOptimize.value || player.motionY < -0.02) {
+
+        if (player.motionY < 0 && !highPingOptimize || player.motionY < -0.02) {
             if (closeToGround) {
                 mc.timer.tickLength = 25.0f
                 return
             }
-            if (!highPingOptimize.value && !wasInLiquid && !mc.isSingleplayer) { /* Cringe moment when you use elytra flight in single player world */
+
+            if (!highPingOptimize && !wasInLiquid && !mc.isSingleplayer) { /* Cringe moment when you use elytra flight in single player world */
                 event.cancel()
                 player.setVelocity(0.0, -0.02, 0.0)
             }
-            if (timerControl.value && !mc.isSingleplayer) mc.timer.tickLength = timerSpeed * 2.0f
+
+            if (timerControl && !mc.isSingleplayer) mc.timer.tickLength = timerSpeed * 2.0f
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_FALL_FLYING))
             hoverTarget = player.posY + 0.2
-        } else if (highPingOptimize.value && !closeToGround) {
+        } else if (highPingOptimize && !closeToGround) {
             mc.timer.tickLength = timerSpeed
         }
     }
@@ -310,8 +311,8 @@ object ElytraFlight : Module() {
      *
      *  @return Yaw in radians based on player rotation yaw and movement input
      */
-    private fun getYaw(): Double {
-        val yawRad = MovementUtils.calcMoveYaw()
+    private fun SafeClientEvent.getYaw(): Double {
+        val yawRad = calcMoveYaw()
         packetYaw = Math.toDegrees(yawRad).toFloat()
         return yawRad
     }
@@ -323,15 +324,13 @@ object ElytraFlight : Module() {
      */
     private fun getSpeed(boosting: Boolean): Double {
         return when {
-            boosting -> (if (ncpStrict.value) min(speedControl.value, 2.0f) else speedControl.value).toDouble()
+            boosting -> (if (ncpStrict) min(speedControl, 2.0f) else speedControl).toDouble()
 
-            accelerateTime.value != 0.0f && accelerateStartSpeed.value != 100 -> {
-                speedPercentage = when {
-                    mc.gameSettings.keyBindSprint.isKeyDown -> 100.0f
-                    autoReset.value && speedPercentage >= 100.0f -> accelerateStartSpeed.value.toFloat()
-                    else -> min(speedPercentage + (100.0f - accelerateStartSpeed.value.toFloat()) / (accelerateTime.value * 20), 100.0f)
-                }
-                getSettingSpeed() * (speedPercentage / 100.0) * (cos((speedPercentage / 100.0) * PI) * -0.5 + 0.5)
+            accelerateTime != 0.0f && accelerateStartSpeed != 100 -> {
+                speedPercentage = min(speedPercentage + (100.0f - accelerateStartSpeed) / (accelerateTime * 20.0f), 100.0f)
+                val speedMultiplier = speedPercentage / 100.0
+
+                getSettingSpeed() * speedMultiplier * (cos(speedMultiplier * PI) * -0.5 + 0.5)
             }
 
             else -> getSettingSpeed().toDouble()
@@ -340,11 +339,10 @@ object ElytraFlight : Module() {
 
     private fun getSettingSpeed(): Float {
         return when (mode.value) {
-            ElytraFlightMode.BOOST -> speedBoost.value
-            ElytraFlightMode.CONTROL -> speedControl.value
-            ElytraFlightMode.CREATIVE -> speedCreative.value
-            ElytraFlightMode.PACKET -> speedPacket.value
-            else -> 0.0f
+            ElytraFlightMode.BOOST -> speedBoost
+            ElytraFlightMode.CONTROL -> speedControl
+            ElytraFlightMode.CREATIVE -> speedCreative
+            ElytraFlightMode.PACKET -> speedPacket
         }
     }
 
@@ -357,38 +355,38 @@ object ElytraFlight : Module() {
     /* Boost mode */
     private fun SafeClientEvent.boostMode() {
         val yaw = player.rotationYaw.toDouble().toRadian()
-        player.motionX -= player.movementInput.moveForward * sin(yaw) * speedBoost.value / 20
-        if (player.movementInput.jump) player.motionY += upSpeedBoost.value / 15 else if (player.movementInput.sneak) player.motionY -= downSpeedBoost.value / 15
-        player.motionZ += player.movementInput.moveForward * cos(yaw) * speedBoost.value / 20
+        player.motionX -= player.movementInput.moveForward * sin(yaw) * speedBoost / 20
+        if (player.movementInput.jump) player.motionY += upSpeedBoost / 15 else if (player.movementInput.sneak) player.motionY -= downSpeedBoost / 15
+        player.motionZ += player.movementInput.moveForward * cos(yaw) * speedBoost / 20
     }
 
     /* Control Mode */
     private fun SafeClientEvent.controlMode(event: PlayerTravelEvent) {
         /* States and movement input */
         val currentSpeed = sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)
-        val moveUp = if (!legacyLookBoost.value) player.movementInput.jump else player.rotationPitch < -10.0f && !isStandingStillH
-        val moveDown = if (InventoryMove.isEnabled && !InventoryMove.sneak.value && mc.currentScreen != null || moveUp) false else player.movementInput.sneak
+        val moveUp = if (!legacyLookBoost) player.movementInput.jump else player.rotationPitch < -10.0f && !isStandingStillH
+        val moveDown = if (InventoryMove.isEnabled && !InventoryMove.sneak && mc.currentScreen != null || moveUp) false else player.movementInput.sneak
 
         /* Dynamic down speed */
-        val calcDownSpeed = if (dynamicDownSpeed.value) {
-            val minDownSpeed = min(downSpeedControl.value, fastDownSpeedControl.value).toDouble()
-            val maxDownSpeed = max(downSpeedControl.value, fastDownSpeedControl.value).toDouble()
+        val calcDownSpeed = if (dynamicDownSpeed) {
+            val minDownSpeed = min(downSpeedControl, fastDownSpeedControl).toDouble()
+            val maxDownSpeed = max(downSpeedControl, fastDownSpeedControl).toDouble()
             if (player.rotationPitch > 0) {
                 player.rotationPitch / 90.0 * (maxDownSpeed - minDownSpeed) + minDownSpeed
             } else minDownSpeed
-        } else downSpeedControl.value.toDouble()
+        } else downSpeedControl.toDouble()
 
         /* Hover */
         if (hoverTarget < 0.0 || moveUp) hoverTarget = player.posY else if (moveDown) hoverTarget = player.posY - calcDownSpeed
-        hoverState = (if (hoverState) player.posY < hoverTarget else player.posY < hoverTarget - 0.1) && altitudeHoldControl.value
+        hoverState = (if (hoverState) player.posY < hoverTarget else player.posY < hoverTarget - 0.1) && altitudeHoldControl
 
         /* Set velocity */
         if (!isStandingStillH || moveUp) {
             if ((moveUp || hoverState) && (currentSpeed >= 0.8 || player.motionY > 1.0)) {
                 upwardFlight(currentSpeed, getYaw())
             } else if (!isStandingStillH || moveUp) { /* Runs when pressing wasd */
-                packetPitch = forwardPitch.value.toFloat()
-                player.motionY = -fallSpeedControl.value.toDouble()
+                packetPitch = forwardPitch.toFloat()
+                player.motionY = -fallSpeedControl.toDouble()
                 setSpeed(getYaw(), moveUp)
                 boostingTick = 0
             }
@@ -400,13 +398,13 @@ object ElytraFlight : Module() {
     }
 
     private fun SafeClientEvent.upwardFlight(currentSpeed: Double, yaw: Double) {
-        val multipliedSpeed = 0.128 * min(speedControl.value, 2.0f)
+        val multipliedSpeed = 0.128 * min(speedControl, 2.0f)
         val strictPitch = Math.toDegrees(asin((multipliedSpeed - sqrt(multipliedSpeed * multipliedSpeed - 0.0348)) / 0.12)).toFloat()
-        val basePitch = if (ncpStrict.value && strictPitch < boostPitchControl.value && !strictPitch.isNaN()) -strictPitch
-        else -boostPitchControl.value.toFloat()
+        val basePitch = if (ncpStrict && strictPitch < boostPitchControl && !strictPitch.isNaN()) -strictPitch
+        else -boostPitchControl.toFloat()
         val targetPitch = if (player.rotationPitch < 0.0f) {
-            max(player.rotationPitch * (90.0f - boostPitchControl.value.toFloat()) / 90.0f - boostPitchControl.value.toFloat(), -90.0f)
-        } else -boostPitchControl.value.toFloat()
+            max(player.rotationPitch * (90.0f - boostPitchControl.toFloat()) / 90.0f - boostPitchControl.toFloat(), -90.0f)
+        } else -boostPitchControl.toFloat()
 
         packetPitch = if (packetPitch <= basePitch && boostingTick > 2) {
             if (packetPitch < targetPitch) packetPitch += 17.0f
@@ -441,15 +439,15 @@ object ElytraFlight : Module() {
             return
         }
 
-        packetPitch = forwardPitch.value.toFloat()
+        packetPitch = forwardPitch.toFloat()
         player.capabilities.isFlying = true
         player.capabilities.flySpeed = getSpeed(false).toFloat()
 
         val motionY = when {
             isStandingStill -> 0.0
-            player.movementInput.jump -> upSpeedCreative.value.toDouble()
-            player.movementInput.sneak -> -downSpeedCreative.value.toDouble()
-            else -> -fallSpeedCreative.value.toDouble()
+            player.movementInput.jump -> upSpeedCreative.toDouble()
+            player.movementInput.sneak -> -downSpeedCreative.toDouble()
+            else -> -fallSpeedCreative.toDouble()
         }
         player.setVelocity(0.0, motionY, 0.0) /* Remove the creative flight acceleration and set the motionY */
     }
@@ -463,13 +461,13 @@ object ElytraFlight : Module() {
         if (!isStandingStillH) { /* Runs when pressing wasd */
             setSpeed(getYaw(), false)
         } else player.setVelocity(0.0, 0.0, 0.0)
-        player.motionY = (if (player.movementInput.sneak) -downSpeedPacket.value else -fallSpeedPacket.value).toDouble()
+        player.motionY = (if (player.movementInput.sneak) -downSpeedPacket else -fallSpeedPacket).toDouble()
 
         event.cancel()
     }
 
     fun shouldSwing(): Boolean {
-        return isEnabled && isFlying && !autoLanding.value && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
+        return isEnabled && isFlying && !autoLanding && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
     }
 
     private fun SafeClientEvent.spoofRotation() {
@@ -477,15 +475,15 @@ object ElytraFlight : Module() {
         val packet = PlayerPacketManager.PlayerPacket(rotating = true)
         var rotation = Vec2f(player)
 
-        if (autoLanding.value) {
+        if (autoLanding) {
             rotation = Vec2f(rotation.x, -20f)
         } else if (mode.value != ElytraFlightMode.BOOST) {
             if (!isStandingStill && mode.value != ElytraFlightMode.CREATIVE) rotation = Vec2f(packetYaw, rotation.y)
-            if (spoofPitch.value) {
+            if (spoofPitch) {
                 if (!isStandingStill) rotation = Vec2f(rotation.x, packetPitch)
 
                 /* Cancels rotation packets if player is not moving and not clicking */
-                val cancelRotation = isStandingStill && ((!mc.gameSettings.keyBindUseItem.isKeyDown && !mc.gameSettings.keyBindAttack.isKeyDown && blockInteract.value) || !blockInteract.value)
+                val cancelRotation = isStandingStill && ((!mc.gameSettings.keyBindUseItem.isKeyDown && !mc.gameSettings.keyBindAttack.isKeyDown && blockInteract) || !blockInteract)
                 if (cancelRotation) {
                     packet.rotating = false
                 }
@@ -496,19 +494,19 @@ object ElytraFlight : Module() {
         PlayerPacketManager.addPacket(this@ElytraFlight, packet)
     }
 
-    override fun onDisable() {
-        runSafe { reset(true) }
-    }
-
-    override fun onEnable() {
-        autoLanding.value = false
-        speedPercentage = accelerateStartSpeed.value.toFloat() /* For acceleration */
-        hoverTarget = -1.0 /* For control mode */
-    }
-
     init {
+        onEnable {
+            autoLanding = false
+            speedPercentage = accelerateStartSpeed.toFloat() /* For acceleration */
+            hoverTarget = -1.0 /* For control mode */
+        }
+
+        onDisable {
+            runSafe { reset(true) }
+        }
+
         /* Reset isFlying states when switching mode */
-        mode.settingListener = SettingListeners {
+        mode.listeners.add {
             runSafe { reset(true) }
         }
     }

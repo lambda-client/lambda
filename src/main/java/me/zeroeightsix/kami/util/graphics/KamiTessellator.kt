@@ -34,7 +34,6 @@ object KamiTessellator : Tessellator(0x200000) {
     /**
      * Setup Gl states
      */
-    @JvmStatic
     fun prepareGL() {
         GlStateManager.pushMatrix()
         glLineWidth(1f)
@@ -53,9 +52,7 @@ object KamiTessellator : Tessellator(0x200000) {
     /**
      * Reverts Gl states
      */
-    @JvmStatic
     fun releaseGL() {
-        GlStateManager.enableLighting()
         GlStateManager.enableTexture2D()
         GlStateManager.enableDepth()
         GlStateManager.disableBlend()
@@ -73,7 +70,6 @@ object KamiTessellator : Tessellator(0x200000) {
     /**
      * Begins VBO buffer with [mode]
      */
-    @JvmStatic
     fun begin(mode: Int) {
         buffer.begin(mode, DefaultVertexFormats.POSITION_COLOR)
     }
@@ -81,7 +77,6 @@ object KamiTessellator : Tessellator(0x200000) {
     /**
      * Draws vertexes in the buffer
      */
-    @JvmStatic
     fun render() {
         draw()
     }
@@ -110,7 +105,6 @@ object KamiTessellator : Tessellator(0x200000) {
      * @param a Alpha
      * @param sides Sides to be drawn
      */
-    @JvmStatic
     fun drawBox(box: AxisAlignedBB, color: ColorHolder, a: Int, sides: Int) {
         val vertexList = ArrayList<Vec3d>()
 
@@ -148,7 +142,6 @@ object KamiTessellator : Tessellator(0x200000) {
      * @param a Alpha
      * @param thickness Thickness of the line
      */
-    @JvmStatic
     fun drawLineTo(position: Vec3d, color: ColorHolder, a: Int, thickness: Float) {
         GlStateManager.glLineWidth(thickness)
         buffer.pos(camPos.x, camPos.y, camPos.z).color(color.r, color.g, color.b, a).endVertex()
@@ -166,7 +159,6 @@ object KamiTessellator : Tessellator(0x200000) {
      * @param sides Sides to draw outline
      * @param thickness Thickness of the outline
      */
-    @JvmStatic
     fun drawOutline(box: AxisAlignedBB, color: ColorHolder, a: Int, sides: Int, thickness: Float) {
         val vertexList = LinkedHashSet<Pair<Vec3d, Vec3d>>()
         GlStateManager.glLineWidth(thickness)

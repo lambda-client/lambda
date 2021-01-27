@@ -18,6 +18,7 @@
     "accessor.gui.AccessorGuiEditSign",
     "accessor.network.AccessorCPacketChatMessage",
     "accessor.network.AccessorCPacketPlayer",
+    "accessor.network.AccessorCPacketUseEntity",
     "accessor.network.AccessorSPacketChat",
     "accessor.network.AccessorSPacketEntityVelocity",
     "accessor.network.AccessorSPacketExplosion",
@@ -33,9 +34,9 @@
     "entity.MixinEntityPig",
     "gui.MixinGuiChat",
     "gui.MixinGuiContainer",
+    "gui.MixinGuiIngameForge",
     "gui.MixinGuiIngameMenu",
     "gui.MixinGuiInventory",
-    "gui.MixinGuiMainMenu",
     "gui.MixinGuiNewChat",
     "gui.MixinGuiPlayerTabOverlay",
     "gui.MixinGuiScreen",
@@ -69,7 +70,6 @@
     "world.MixinBlockLiquid",
     "world.MixinBlockSoulSand",
     "world.MixinBlockWeb",
-    "world.MixinChunkCache",
     "world.MixinWorld"
   ]
 }

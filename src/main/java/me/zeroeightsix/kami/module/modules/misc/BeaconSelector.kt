@@ -2,17 +2,17 @@ package me.zeroeightsix.kami.module.modules.misc
 
 import io.netty.buffer.Unpooled
 import me.zeroeightsix.kami.event.events.PacketEvent
+import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
 import net.minecraft.network.PacketBuffer
 import net.minecraft.network.play.client.CPacketCustomPayload
 import org.kamiblue.event.listener.listener
 
-@Module.Info(
-        name = "BeaconSelector",
-        category = Module.Category.MISC,
-        description = "Choose any of the 5 beacon effects regardless of beacon base height"
-)
-object BeaconSelector : Module() {
+internal object BeaconSelector : Module(
+    name = "BeaconSelector",
+    category = Category.MISC,
+    description = "Choose any of the 5 beacon effects regardless of beacon base height"
+) {
     private var doCancelPacket = true
     var effect = -1
 

@@ -3,15 +3,18 @@ package me.zeroeightsix.kami.manager.managers
 import me.zeroeightsix.kami.event.events.ConnectionEvent
 import me.zeroeightsix.kami.event.events.RenderOverlayEvent
 import me.zeroeightsix.kami.manager.Manager
-import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.mixin.extension.syncCurrentPlayItem
+import me.zeroeightsix.kami.module.AbstractModule
 import me.zeroeightsix.kami.util.*
+import me.zeroeightsix.kami.util.items.clickSlot
+import me.zeroeightsix.kami.util.items.removeHoldingItem
+import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.inventory.ClickType
 import org.kamiblue.event.listener.listener
 import java.util.*
 
 object PlayerInventoryManager : Manager {
-    private val mc = Wrapper.minecraft
     private val timer = TickTimer()
     private val lockObject = Any()
     private val actionQueue = TreeSet<InventoryTask>(Comparator.reverseOrder())
@@ -20,18 +23,18 @@ object PlayerInventoryManager : Manager {
     private var currentTask: InventoryTask? = null
 
     init {
-        listener<RenderOverlayEvent>(0) {
-            if (mc.player == null || !timer.tick((1000.0f / TpsCalculator.tickRate).toLong())) return@listener
+        safeListener<RenderOverlayEvent>(0) {
+            if (!timer.tick((1000.0f / TpsCalculator.tickRate).toLong())) return@safeListener
 
-            if (!mc.player.inventory.getItemStack().isEmpty()) {
+            if (!player.inventory.itemStack.isEmpty) {
                 if (mc.currentScreen is GuiContainer) timer.reset(250L) // Wait for 5 extra ticks if player is moving item
-                else InventoryUtils.removeHoldingItem()
-                return@listener
+                else removeHoldingItem()
+                return@safeListener
             }
 
             getTaskOrNext()?.nextInfo()?.let {
-                InventoryUtils.inventoryClick(it.windowId, it.slot, it.mouseButton, it.type)
-                mc.playerController?.updateController()
+                clickSlot(it.windowId, it.slot, it.mouseButton, it.type)
+                playerController.syncCurrentPlayItem()
             }
 
             if (actionQueue.isEmpty()) currentId = 0
@@ -44,13 +47,13 @@ object PlayerInventoryManager : Manager {
     }
 
     private fun getTaskOrNext() =
-            currentTask?.let {
-                if (!it.isDone) it
-                else null
-            } ?: synchronized(lockObject) {
-                actionQueue.removeIf { it.isDone }
-                actionQueue.firstOrNull()
-            }
+        currentTask?.let {
+            if (!it.isDone) it
+            else null
+        } ?: synchronized(lockObject) {
+            actionQueue.removeIf { it.isDone }
+            actionQueue.firstOrNull()
+        }
 
     /**
      * Adds a new task to the inventory manager
@@ -59,25 +62,25 @@ object PlayerInventoryManager : Manager {
      *
      * @return [TaskState] representing the state of this task
      */
-    fun Module.addInventoryTask(vararg clickInfo: ClickInfo) =
-            InventoryTask(currentId++, modulePriority, clickInfo).let {
-                actionQueue.add(it)
-                it.taskState
-            }
+    fun AbstractModule.addInventoryTask(vararg clickInfo: ClickInfo) =
+        InventoryTask(currentId++, modulePriority, clickInfo).let {
+            actionQueue.add(it)
+            it.taskState
+        }
 
     private data class InventoryTask(
-            private val id: Int,
-            private val priority: Int,
-            private val infoArray: Array<out ClickInfo>,
-            val taskState: TaskState = TaskState(),
-            private var index: Int = 0
+        private val id: Int,
+        private val priority: Int,
+        private val infoArray: Array<out ClickInfo>,
+        val taskState: TaskState = TaskState(),
+        private var index: Int = 0
     ) : Comparable<InventoryTask> {
         val isDone get() = taskState.done
 
         fun nextInfo() =
-                infoArray.getOrNull(index++).also {
-                    if (it == null) taskState.done = true
-                }
+            infoArray.getOrNull(index++).also {
+                if (it == null) taskState.done = true
+            }
 
 
         override fun compareTo(other: InventoryTask): Int {
