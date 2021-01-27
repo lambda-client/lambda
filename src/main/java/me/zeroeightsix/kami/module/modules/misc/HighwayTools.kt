@@ -597,7 +597,7 @@ internal object HighwayTools : Module(
             compareBy<BlockTask> {
                 it.taskState.ordinal
             }.thenBy {
-                it.stuckTicks / 20
+                it.stuckTicks / 2
             }.thenBy {
                 eyePos.distanceTo(it.blockPos)
             }.thenBy {
