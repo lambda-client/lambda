@@ -12,7 +12,7 @@ import me.zeroeightsix.kami.util.MovementUtils.calcMoveYaw
 import me.zeroeightsix.kami.util.math.RotationUtils
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toBlockPos
-import me.zeroeightsix.kami.util.threads.runSafe
+import me.zeroeightsix.kami.util.threads.onMainThreadSafe
 import me.zeroeightsix.kami.util.threads.runSafeR
 import me.zeroeightsix.kami.util.threads.safeListener
 import net.minecraft.client.entity.EntityOtherPlayerMP
@@ -101,7 +101,7 @@ internal object Freecam : Module(
                 return@safeListener
             }
 
-            if (cameraGuy == null && player.ticksExisted > 20) spawnCameraGuy()
+            if (cameraGuy == null && player.ticksExisted > 5) spawnCameraGuy()
         }
 
         safeListener<InputUpdateEvent>(9999) {
@@ -218,14 +218,12 @@ internal object Freecam : Module(
     }
 
     private fun resetCameraGuy() {
-        mc.addScheduledTask {
-            runSafe {
-                world.removeEntityFromWorld(ENTITY_ID)
-                mc.renderViewEntity = player
-                cameraGuy = null
-                mc.renderGlobal.loadRenderers()
-                if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
-            }
+        cameraGuy = null
+        onMainThreadSafe {
+            world.removeEntityFromWorld(ENTITY_ID)
+            mc.renderViewEntity = player
+            mc.renderGlobal.loadRenderers()
+            if (prevThirdPersonViewSetting != -1) mc.gameSettings.thirdPersonView = prevThirdPersonViewSetting
         }
     }
 
