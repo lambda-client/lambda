@@ -678,15 +678,15 @@ internal object HighwayTools : Module(
             when (world.getBlockState(blockTask.blockPos).block) {
                 Blocks.AIR -> {
                     waitTicks = breakDelay
-                    if (blockTask.block == material || blockTask.block == fillerMat) {
-                        blockTask.updateState(TaskState.PLACE)
-                    } else {
-                        blockTask.updateState(TaskState.DONE)
-                    }
+                    blockTask.updateState(TaskState.BROKEN)
                 }
                 is BlockLiquid -> {
-                    var filler = fillerMat
-                    if (isInsideBlueprintBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
+                    val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) {
+                        material
+                    } else {
+                        fillerMat
+                    }
+
                     if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                         blockTask.updateState(TaskState.LIQUID_FLOW)
                         blockTask.updateMaterial(filler)
@@ -705,17 +705,16 @@ internal object HighwayTools : Module(
         if (update) {
             when (world.getBlockState(blockTask.blockPos).block) {
                 Blocks.AIR -> {
-                    if (blockTask.block != Blocks.AIR) {
-                        blockTask.updateState(TaskState.PLACE)
-                    } else {
-                        blockTask.updateState(TaskState.DONE)
+                    totalBlocksDestroyed++
+
+                    if (blockTask.block == Blocks.AIR) {
                         if (fakeSounds) {
                             val soundType = blockTask.block.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
-                            onMainThread {
-                                world.playSound(player, blockTask.blockPos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                            }
+                            world.playSound(player, blockTask.blockPos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
                         }
-                        totalBlocksDestroyed++
+                        blockTask.updateState(TaskState.DONE)
+                    } else {
+                        blockTask.updateState(TaskState.PLACE)
                     }
                 }
                 else -> {
@@ -761,14 +760,15 @@ internal object HighwayTools : Module(
             when (world.getBlockState(blockTask.blockPos).block) {
                 Blocks.AIR -> {
                     if (blockTask.block == Blocks.AIR) {
-                        blockTask.updateState(TaskState.DONE)
+                        blockTask.updateState(TaskState.BROKEN)
                     } else {
                         blockTask.updateState(TaskState.PLACE)
                     }
                 }
                 is BlockLiquid -> {
-                    var filler = fillerMat
-                    if (isInsideBlueprintBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
+                    val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) material
+                    else fillerMat
+
                     if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                         blockTask.updateState(TaskState.LIQUID_FLOW)
                         blockTask.updateMaterial(filler)
@@ -787,21 +787,34 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.doPlace(blockTask: BlockTask, update: Boolean) {
         if (update) {
-            val block = world.getBlockState(blockTask.blockPos).block
+            val currentBlock = world.getBlockState(blockTask.blockPos).block
 
-            when {
-                block == material && block == blockTask.block -> {
-                    blockTask.updateState(TaskState.PLACED)
+            when(blockTask.block) {
+                material -> {
+                    if (currentBlock == material) {
+                        blockTask.updateState(TaskState.PLACED)
+                    } else if (currentBlock != Blocks.AIR) {
+                        blockTask.updateState(TaskState.BREAK)
+                    }
                 }
-                block == fillerMat && block == blockTask.block -> {
-                    blockTask.updateState(TaskState.PLACED)
+                fillerMat -> {
+                    if (currentBlock != Blocks.AIR && currentBlock !is BlockLiquid) {
+                        blockTask.updateState(TaskState.PLACED)
+                    }
+                }
+                Blocks.AIR -> {
+                    if (currentBlock != Blocks.AIR) {
+                        blockTask.updateState(TaskState.BREAK)
+                    } else {
+                        blockTask.updateState(TaskState.BROKEN)
+                    }
                 }
             }
+
         } else {
             if (!isPlaceable(blockTask.blockPos)) {
                 if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
                 pendingTasks.remove(blockTask.blockPos)
-                refreshData()
                 return
             }
 
