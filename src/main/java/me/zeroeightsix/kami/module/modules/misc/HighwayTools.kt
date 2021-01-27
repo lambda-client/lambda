@@ -82,7 +82,7 @@ internal object HighwayTools : Module(
     private val placeDelay by setting("Place Delay", 2, 1..20, 1, { page == Page.BEHAVIOR })
     private val breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val taskTimeout by setting("Task Timeout", 5, 0..20, 1, { page == Page.BEHAVIOR })
-    private val rubberbandTimeout by setting("Rubberband Timeout", 5, 1..20, 1, { page == Page.BEHAVIOR })
+    private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
 
     // config
