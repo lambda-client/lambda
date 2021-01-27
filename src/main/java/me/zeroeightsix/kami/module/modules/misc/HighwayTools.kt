@@ -39,6 +39,7 @@ import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.network.play.server.SPacketBlockChange
+import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
@@ -73,14 +74,15 @@ internal object HighwayTools : Module(
     private val cornerBlock by setting("CornerBlock", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
 
     // behavior settings
+    private val interacting by setting("RotationMode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
+    private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
+    private val toggleInventoryManager by setting("ToggleInvManager", true, { page == Page.BEHAVIOR })
+    private val toggleAutoObsidian by setting("ToggleAutoObsidian", true, { page == Page.BEHAVIOR })
     private val tickDelayPlace by setting("TickDelayPlace", 2, 1..20, 1, { page == Page.BEHAVIOR })
     private val tickDelayBreak by setting("TickDelayBreak", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val taskTimeoutTicks by setting("TaskTimeoutTicks", 5, 0..20, 1, { page == Page.BEHAVIOR })
-    private val interacting by setting("RotationMode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
-    private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
+    private val rubberBandTimeout by setting("RubberBandTimeout", 5, 1..20, 1, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
-    private val toggleInventoryManager by setting("ToggleInvManager", true, { page == Page.BEHAVIOR })
-    private val toggleAutoObsidian by setting("ToggleAutoObsidian", true, { page == Page.BEHAVIOR })
 
     // config
     private val fakeSounds by setting("Sounds", true, { page == Page.CONFIG })
@@ -133,6 +135,7 @@ internal object HighwayTools : Module(
     private val blueprint = LinkedHashMap<BlockPos, Block>()
 
     // State
+    private val rubberBandTimer = TickTimer(TimeUnit.TICKS)
     private var active = false
     private var waitTicks = 0
 
@@ -252,28 +255,33 @@ internal object HighwayTools : Module(
 
     init {
         safeListener<PacketEvent.Receive> {
-            if (it.packet !is SPacketBlockChange) return@safeListener
+            when (it.packet) {
+                is SPacketBlockChange -> {
+                    val pos = it.packet.blockPosition
+                    if (!isInsideBlueprint(pos)) return@safeListener
 
-            val pos = it.packet.blockPosition
-            if (!isInsideBlueprint(pos)) return@safeListener
+                    val prev = world.getBlockState(pos)
+                    val new = it.packet.getBlockState()
 
-            val prev = world.getBlockState(pos)
-            val new = it.packet.getBlockState()
+                    if (prev.block != new.block) {
+                        val task = pendingTasks[pos] ?: return@safeListener
 
-            if (prev.block != new.block) {
-                val task = pendingTasks[pos] ?: return@safeListener
-
-                when {
-                    task.taskState == TaskState.PENDING_BROKEN &&
-                        prev.block != Blocks.AIR &&
-                        new.block == Blocks.AIR -> {
-                        task.updateState(TaskState.BROKEN)
+                        when {
+                            task.taskState == TaskState.PENDING_BROKEN &&
+                                prev.block != Blocks.AIR &&
+                                new.block == Blocks.AIR -> {
+                                task.updateState(TaskState.BROKEN)
+                            }
+                            task.taskState == TaskState.PENDING_PLACED &&
+                                (task.block == material || task.block == fillerMat)
+                                && task.block == new.block -> {
+                                task.updateState(TaskState.PLACED)
+                            }
+                        }
                     }
-                    task.taskState == TaskState.PENDING_PLACED &&
-                        (task.block == material || task.block == fillerMat)
-                        && task.block == new.block -> {
-                        task.updateState(TaskState.PLACED)
-                    }
+                }
+                is SPacketPlayerPosLook -> {
+                    rubberBandTimer.reset()
                 }
             }
         }
@@ -285,15 +293,21 @@ internal object HighwayTools : Module(
         safeListener<TickEvent.ClientTickEvent> { event ->
             if (event.phase != TickEvent.Phase.START) return@safeListener
 
+            updateRenderer()
+            updateFood()
+
+            if (!rubberBandTimer.tick(rubberBandTimeout.toLong(), false)) {
+                return@safeListener
+            }
+
+            if (player.flooredPosition.distanceTo(currentBlockPos) > 2 || AutoObsidian.isActive() || AutoEat.eating) {
+                return@safeListener
+            }
+
             if (!active) {
                 active = true
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
             }
-
-            updateRenderer()
-            updateFood()
-
-            if (player.flooredPosition.distanceTo(currentBlockPos) > 2 || AutoObsidian.isActive() || AutoEat.eating) return@safeListener
 
             doPathing()
             runTasks()
