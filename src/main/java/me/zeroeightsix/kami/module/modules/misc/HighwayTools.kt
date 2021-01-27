@@ -49,7 +49,6 @@ import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
 import kotlin.collections.LinkedHashMap
 
 /**
@@ -115,7 +114,6 @@ internal object HighwayTools : Module(
     private var currentBlockPos = BlockPos(0, -1, 0)
     private var startingBlockPos = BlockPos(0, -1, 0)
     private val blueprint = LinkedHashMap<BlockPos, Block>()
-    private var sortedTasks: List<BlockTask> = emptyList()
 
     // State
     private var active = false
@@ -129,8 +127,9 @@ internal object HighwayTools : Module(
     var goal: GoalNear? = null; private set
 
     // Tasks
-    private val pendingTasks = HashSet<BlockTask>()
-    private val doneTasks = ArrayList<BlockTask>()
+    private val pendingTasks = LinkedHashMap<BlockPos, BlockTask>()
+    private val doneTasks = LinkedHashMap<BlockPos, BlockTask>()
+    private var sortedTasks: List<BlockTask> = emptyList()
     var lastTask: BlockTask? = null; private set
 
     // Stats
@@ -198,6 +197,7 @@ internal object HighwayTools : Module(
                 if (!goalRender) BaritoneUtils.settings?.renderGoal?.value = baritoneSettingRenderGoal
 
                 active = false
+                goal = null
                 lastTask = null
 
                 printDisable()
@@ -238,13 +238,14 @@ internal object HighwayTools : Module(
             if (it.packet !is SPacketBlockChange) return@safeListener
 
             val pos = it.packet.blockPosition
-            if (!isInsideSelection(pos)) return@safeListener
+            if (!isInsideBlueprint(pos)) return@safeListener
 
             val prev = world.getBlockState(pos)
             val new = it.packet.getBlockState()
 
-            if (isInsideBuild(pos) && prev.block != new.block) {
-                val task = getTaskFromPos(pos)
+            if (prev.block != new.block) {
+                val task = pendingTasks[pos] ?: return@safeListener
+
                 when {
                     task.taskState == TaskState.PENDING_BROKEN &&
                         prev.block != Blocks.AIR &&
@@ -289,12 +290,12 @@ internal object HighwayTools : Module(
         renderer.aFilled = if (filled) aFilled else 0
         renderer.aOutline = if (outline) aOutline else 0
 
-        for (blockTask in pendingTasks) {
+        for (blockTask in pendingTasks.values) {
             if (blockTask.taskState == TaskState.DONE) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
 
-        for (blockTask in doneTasks) {
+        for (blockTask in doneTasks.values) {
             if (blockTask.block == Blocks.AIR) continue
             renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
         }
@@ -368,16 +369,6 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun getTaskFromPos(pos: BlockPos): BlockTask {
-        for (task in pendingTasks) {
-            if (task.blockPos == pos) return task
-        }
-        for (task in doneTasks) {
-            if (task.blockPos == pos) return task
-        }
-        return BlockTask(BlockPos(0, -1, 0), TaskState.DONE, Blocks.AIR)
-    }
-
     private fun SafeClientEvent.generateBluePrint(feetPos: BlockPos) {
         val basePos = feetPos.down()
 
@@ -403,10 +394,9 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.pickTasksInRange() {
         val eyePos = player.getPositionEyes(1f)
-        val startBlocker = startingBlockPos.add(startingDirection.clockwise(4).directionVec.multiply(maxReach.toInt() - 1))
 
         blueprint.keys.removeIf {
-            eyePos.distanceTo(it) > maxReach - 0.7 || startBlocker.distanceTo(it) < maxReach
+            eyePos.distanceTo(it) > maxReach - 0.7
         }
     }
 
@@ -477,46 +467,52 @@ internal object HighwayTools : Module(
     }
 
     private fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
-        pendingTasks.add(BlockTask(blockPos, taskState, material))
+        pendingTasks[blockPos] = (BlockTask(blockPos, taskState, material))
     }
 
     private fun addTaskToDone(blockPos: BlockPos, material: Block) {
-        doneTasks.add(BlockTask(blockPos, TaskState.DONE, material))
+        doneTasks[blockPos] = (BlockTask(blockPos, TaskState.DONE, material))
     }
 
     private fun SafeClientEvent.doPathing() {
         val nextPos = getNextPos()
 
-        if (player.flooredPosition.distanceTo(nextPos) < 2) {
+        if (player.flooredPosition.distanceTo(nextPos) < 2.0) {
             currentBlockPos = nextPos
-            goal = GoalNear(nextPos, 0)
-        } else {
-            goal = GoalNear(nextPos, 0)
         }
+
+        goal = GoalNear(nextPos, 0)
     }
 
     private fun SafeClientEvent.getNextPos(): BlockPos {
         var nextPos = currentBlockPos
 
         val possiblePos = currentBlockPos.add(startingDirection.directionVec)
-        if (getTaskFromPos(possiblePos).taskState != TaskState.DONE ||
-            getTaskFromPos(possiblePos.up()).taskState != TaskState.DONE ||
-            getTaskFromPos(possiblePos.down()).taskState != TaskState.DONE) return nextPos
-        if (checkFOMO(possiblePos.up())) nextPos = possiblePos
+
+        if (!isTaskDoneOrNull(possiblePos) ||
+            !isTaskDoneOrNull(possiblePos.up()) ||
+            !isTaskDoneOrNull(possiblePos.down())) return nextPos
+
+        if (checkTasks(possiblePos.up())) nextPos = possiblePos
 
         if (currentBlockPos != nextPos) refreshData()
+
         return nextPos
     }
 
-    private fun checkFOMO(origin: BlockPos): Boolean {
-        for (task in pendingTasks) {
-            if (task.taskState != TaskState.DONE && origin.distanceTo(task.blockPos) > maxReach - 1.0) return false
+    private fun isTaskDoneOrNull(pos: BlockPos) =
+        (pendingTasks[pos] ?: doneTasks[pos])?.let {
+            it.taskState == TaskState.DONE
+        } ?: true
+
+    private fun checkTasks(pos: BlockPos): Boolean {
+        return pendingTasks.values.all {
+            it.taskState == TaskState.DONE || pos.distanceTo(it.blockPos) < maxReach - 2.0
         }
-        return true
     }
 
     private fun SafeClientEvent.sortTasks() {
-        sortedTasks = pendingTasks.sortedWith(
+        sortedTasks = pendingTasks.values.sortedWith(
             compareBy<BlockTask> {
                 it.taskState.ordinal
             }.thenBy {
@@ -615,8 +611,8 @@ internal object HighwayTools : Module(
     }
 
     private fun doDone(blockTask: BlockTask) {
-        pendingTasks.remove(blockTask)
-        doneTasks.add(blockTask)
+        pendingTasks[blockTask.blockPos]
+        doneTasks[blockTask.blockPos] = blockTask
     }
 
     private fun SafeClientEvent.doBreaking(blockTask: BlockTask) {
@@ -631,7 +627,7 @@ internal object HighwayTools : Module(
             }
             is BlockLiquid -> {
                 var filler = fillerMat
-                if (isInsideBlueprint(blockTask.blockPos) || fillerMatLeft == 0) filler = material
+                if (isInsideBlueprintBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
                 if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     blockTask.updateState(TaskState.LIQUID_FLOW)
                     blockTask.updateMaterial(filler)
@@ -712,7 +708,7 @@ internal object HighwayTools : Module(
             }
             is BlockLiquid -> {
                 var filler = fillerMat
-                if (isInsideBlueprint(blockTask.blockPos) || fillerMatLeft == 0) filler = material
+                if (isInsideBlueprintBuild(blockTask.blockPos) || fillerMatLeft == 0) filler = material
                 if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
                     blockTask.updateState(TaskState.LIQUID_FLOW)
                     blockTask.updateMaterial(filler)
@@ -755,7 +751,7 @@ internal object HighwayTools : Module(
 
                 placeBlock(blockTask)
 
-                if (blockTask.taskState != TaskState.PLACE && isInsideSelection(blockTask.blockPos)) {
+                if (blockTask.taskState != TaskState.PLACE && isInsideBlueprint(blockTask.blockPos)) {
                     blockTask.updateMaterial(Blocks.AIR)
                 }
 
@@ -767,7 +763,7 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.checkDoneTasks(): Boolean {
-        for (blockTask in doneTasks) {
+        for (blockTask in doneTasks.values) {
             val block = world.getBlockState(blockTask.blockPos).block
             if (ignoreBlocks.contains(block)) continue
 
@@ -841,13 +837,13 @@ internal object HighwayTools : Module(
 
                 foundLiquid = true
                 val found = ArrayList<Triple<BlockTask, TaskState, Block>>()
-                val filler = if (isInsideBlueprint(neighbour)) material else fillerMat
+                val filler = if (isInsideBlueprintBuild(neighbour)) material else fillerMat
 
-                for (bt in pendingTasks) {
-                    if (bt.blockPos == neighbour) {
+                for (task in pendingTasks.values) {
+                    if (task.blockPos == neighbour) {
                         when (isFlowing) {
-                            false -> found.add(Triple(bt, TaskState.LIQUID_SOURCE, filler))
-                            true -> found.add(Triple(bt, TaskState.LIQUID_FLOW, filler))
+                            false -> found.add(Triple(task, TaskState.LIQUID_SOURCE, filler))
+                            true -> found.add(Triple(task, TaskState.LIQUID_FLOW, filler))
                         }
                     }
                 }
@@ -997,19 +993,12 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun isInsideSelection(pos: BlockPos): Boolean {
+    private fun isInsideBlueprint(pos: BlockPos): Boolean {
         return blueprint.containsKey(pos)
     }
 
-    private fun isInsideBlueprint(pos: BlockPos): Boolean {
+    private fun isInsideBlueprintBuild(pos: BlockPos): Boolean {
         return blueprint[pos]?.let { it != Blocks.AIR } ?: false
-    }
-
-    private fun isInsideBuild(pos: BlockPos): Boolean {
-        for (task in pendingTasks) {
-            if (task.blockPos == pos) return true
-        }
-        return false
     }
 
     fun printSettings() {
@@ -1109,7 +1098,7 @@ internal object HighwayTools : Module(
         message.add("Pending Tasks:")
         addTaskToMessageList(message, sortedTasks)
         message.add("Done Tasks:")
-        addTaskToMessageList(message, doneTasks)
+        addTaskToMessageList(message, doneTasks.values)
         return message
     }
 
