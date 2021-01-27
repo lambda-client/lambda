@@ -417,8 +417,9 @@ internal object HighwayTools : Module(
                 if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
             }
             if (mode == Mode.TUNNEL) {
-                blueprint[basePos.add(zDirection.directionVec.multiply(1))] = fillerMat
-                blueprint[basePos.add(zDirection.directionVec.multiply(2))] = fillerMat
+                for (x in 1..maxReach.floorToInt()) {
+                    blueprint[basePos.add(zDirection.directionVec.multiply(x))] = fillerMat
+                }
             }
 
             pickTasksInRange()
