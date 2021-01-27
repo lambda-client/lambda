@@ -15,6 +15,7 @@ import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.blackList
+import me.zeroeightsix.kami.util.WorldUtils.getMiningSide
 import me.zeroeightsix.kami.util.WorldUtils.getNeighbour
 import me.zeroeightsix.kami.util.WorldUtils.isPlaceable
 import me.zeroeightsix.kami.util.color.ColorHolder
@@ -25,7 +26,6 @@ import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
-import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper.sendChatMessage
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -42,7 +42,6 @@ import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
-import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -859,37 +858,35 @@ internal object HighwayTools : Module(
             return
         }
 
-        val rayTraceResult = AxisAlignedBB(blockTask.blockPos).calculateIntercept(player.getPositionEyes(1.0f), blockTask.blockPos.toVec3dCenter())
-
-        if (rayTraceResult == null) {
+        val side = getMiningSide(blockTask.blockPos) ?: run {
             blockTask.onStuck()
             return
         }
 
-        val side = rayTraceResult.sideHit
-        lastHitVec = rayTraceResult.hitVec
+        lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
         rotateTimer.reset()
 
         when (world.getBlockState(blockTask.blockPos).block) {
-            Blocks.NETHERRACK -> dispatchInstantBreakThread(blockTask, side)
-            else -> dispatchGenericMineThread(blockTask, side)
+            Blocks.NETHERRACK -> mineBlockInstant(blockTask, side)
+            else -> mineBlockNormal(blockTask, side)
         }
     }
 
-    private fun dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
+    private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
         waitTicks = tickDelayBreak
+
         defaultScope.launch {
             blockTask.updateState(TaskState.PENDING_BROKEN)
 
             delay(10L)
             onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
 
             delay(40L)
             onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, facing))
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
 
@@ -901,7 +898,7 @@ internal object HighwayTools : Module(
     }
 
     /* Dispatches a thread to mine any non-netherrack blocks generically */
-    private fun dispatchGenericMineThread(blockTask: BlockTask, facing: EnumFacing) {
+    private fun mineBlockNormal(blockTask: BlockTask, facing: EnumFacing) {
         val action = if (blockTask.taskState == TaskState.BREAKING) {
             CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK
         } else {

@@ -134,6 +134,14 @@ object WorldUtils {
         return Vec3d(vec.x * 0.5 + 0.5, vec.y * 0.5 + 0.5, vec.z * 0.5 + 0.5)
     }
 
+    fun SafeClientEvent.getMiningSide(pos: BlockPos) : EnumFacing? {
+        val eyePos = player.getPositionEyes(1.0f)
+
+        return getVisibleSides(pos)
+            .filter { !world.getBlockState(pos.offset(it)).isFullCube }
+            .minByOrNull { eyePos.distanceTo(getHitVec(pos, it)) }
+    }
+
     /**
      * Get the "visible" sides related to player's eye position
      *
@@ -142,17 +150,17 @@ object WorldUtils {
     fun SafeClientEvent.getVisibleSides(pos: BlockPos): Set<EnumFacing> {
         val visibleSides = EnumSet.noneOf(EnumFacing::class.java)
 
-        val blockState = world.getBlockState(pos)
+        val isFullCube = world.getBlockState(pos).isFullCube
         val eyePos = player.getPositionEyes(1.0f)
         val blockCenter = pos.toVec3dCenter()
 
         return visibleSides
-            .checkAxis(blockState, eyePos.x - blockCenter.x, EnumFacing.WEST, EnumFacing.EAST)
-            .checkAxis(blockState, eyePos.y - blockCenter.y, EnumFacing.DOWN, EnumFacing.UP)
-            .checkAxis(blockState, eyePos.z - blockCenter.z, EnumFacing.NORTH, EnumFacing.SOUTH)
+            .checkAxis(eyePos.x - blockCenter.x, EnumFacing.WEST, EnumFacing.EAST, isFullCube)
+            .checkAxis(eyePos.y - blockCenter.y, EnumFacing.DOWN, EnumFacing.UP, true)
+            .checkAxis(eyePos.z - blockCenter.z, EnumFacing.NORTH, EnumFacing.SOUTH, isFullCube)
     }
 
-    private fun EnumSet<EnumFacing>.checkAxis(blockState: IBlockState, diff: Double, negativeSide: EnumFacing, positiveSide: EnumFacing) =
+    private fun EnumSet<EnumFacing>.checkAxis(diff: Double, negativeSide: EnumFacing, positiveSide: EnumFacing, bothIfInRange: Boolean) =
         this.apply {
             when {
                 diff < -0.5 -> {
@@ -162,7 +170,7 @@ object WorldUtils {
                     add(positiveSide)
                 }
                 else -> {
-                    if (!blockState.isFullBlock) {
+                    if (bothIfInRange) {
                         add(negativeSide)
                         add(positiveSide)
                     }
