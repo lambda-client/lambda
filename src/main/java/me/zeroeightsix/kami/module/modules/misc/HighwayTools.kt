@@ -74,8 +74,8 @@ internal object HighwayTools : Module(
     private val cornerBlock by setting("CornerBlock", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
 
     // behavior settings
-    private val tickDelayPlace by setting("TickDelayPlace", 3, 0..16, 1, { page == Page.BEHAVIOR })
-    private val tickDelayBreak by setting("TickDelayBreak", 1, 0..16, 1, { page == Page.BEHAVIOR })
+    private val tickDelayPlace by setting("TickDelayPlace", 1, 1..20, 1, { page == Page.BEHAVIOR })
+    private val tickDelayBreak by setting("TickDelayBreak", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val taskTimeoutTicks by setting("TaskTimeoutTicks", 3, 0..16, 1, { page == Page.BEHAVIOR })
     private val interacting by setting("InteractMode", InteractMode.SPOOF, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
@@ -376,6 +376,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.pickTasksInRange() {
         val eyePos = player.getPositionEyes(1f)
         val startBlocker = startingBlockPos.add(startingDirection.clockwise(4).directionVec.multiply(maxReach.toInt() - 1))
+
         blueprintNew.keys.removeIf {
             eyePos.distanceTo(it) > maxReach - 0.7 || startBlocker.distanceTo(it) < maxReach
         }
@@ -504,38 +505,23 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isNotEmpty()) {
-            if (waitTicks > 0) {
-                waitTicks--
-                return
-            }
 
-//          (startingBlockPos.distanceTo(player.position) / startingBlockPos.distanceTo(it.blockPos)) * player.distanceTo(it.blockPos) * (lastHitVec.distanceTo(it.blockPos) * 2)
-
+            waitTicks--
             sortTasks()
 
-            val firstTask = sortedTasks[0]
+            for (task in sortedTasks) {
+                if (!checkStuckTimeout(task)) return
+                if (task.taskState != TaskState.DONE && waitTicks > 0) return
 
-            val timeout = firstTask.taskState.stuckTimeout
-            if (firstTask.stuckTicks > timeout) {
-                when (firstTask.taskState) {
-                    TaskState.PENDING_BROKEN -> firstTask.updateState(TaskState.BREAK)
-                    TaskState.PENDING_PLACED -> firstTask.updateState(TaskState.PLACE)
-                    else -> {
-                        if (debugMessages != DebugMessages.OFF) {
-                            sendChatMessage("Stuck while ${firstTask.taskState}@(${firstTask.blockPos.asString()}) for more then $timeout ticks (${firstTask.stuckTicks}), refreshing data.")
-                        }
-                        refreshData()
+                doTask(task)
+
+                when (task.taskState) {
+                    TaskState.DONE, TaskState.BROKEN, TaskState.PLACED -> {
+                        continue
                     }
-                }
-            }
-
-            doTask(firstTask)
-
-            when (firstTask.taskState) {
-                TaskState.DONE,
-                TaskState.BROKEN,
-                TaskState.PLACED -> runTasks()
-                else -> {
+                    else -> {
+                        break
+                    }
                 }
             }
         } else {
@@ -546,6 +532,29 @@ internal object HighwayTools : Module(
                 refreshData()
             }
         }
+    }
+
+    private fun SafeClientEvent.checkStuckTimeout(blockTask: BlockTask): Boolean {
+        val timeout = blockTask.taskState.stuckTimeout
+        if (blockTask.stuckTicks > timeout) {
+            when (blockTask.taskState) {
+                TaskState.PENDING_BROKEN -> {
+                    blockTask.updateState(TaskState.BREAK)
+                }
+                TaskState.PENDING_PLACED -> {
+                    blockTask.updateState(TaskState.PLACE)
+                }
+                else -> {
+                    if (debugMessages != DebugMessages.OFF) {
+                        sendChatMessage("Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
+                    }
+                    refreshData()
+                    return false
+                }
+            }
+        }
+
+        return true
     }
 
     private fun SafeClientEvent.doTask(blockTask: BlockTask) {
