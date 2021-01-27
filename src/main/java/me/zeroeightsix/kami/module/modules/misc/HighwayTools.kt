@@ -682,23 +682,21 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.doPlaced(blockTask: BlockTask) {
-        val block = world.getBlockState(blockTask.blockPos).block
+        val currentBlock = world.getBlockState(blockTask.blockPos).block
 
         when {
-            blockTask.block == block && block != Blocks.AIR -> {
+            blockTask.block == currentBlock && currentBlock != Blocks.AIR -> {
                 blockTask.updateState(TaskState.DONE)
                 if (fakeSounds) {
-                    val soundType = block.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
-                    onMainThread {
-                        world.playSound(player, blockTask.blockPos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                    }
+                    val soundType = currentBlock.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
+                    world.playSound(player, blockTask.blockPos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
                 }
                 totalBlocksPlaced++
             }
-            blockTask.block == Blocks.AIR && block != Blocks.AIR -> {
+            blockTask.block == currentBlock && currentBlock == Blocks.AIR -> {
                 blockTask.updateState(TaskState.BREAK)
             }
-            blockTask.block == block && block == Blocks.AIR -> {
+            blockTask.block == Blocks.AIR && currentBlock != Blocks.AIR -> {
                 blockTask.updateState(TaskState.BREAK)
             }
             else -> {
@@ -767,12 +765,6 @@ internal object HighwayTools : Module(
                 }
 
                 placeBlock(blockTask)
-
-                if (blockTask.taskState != TaskState.PLACE && isInsideBlueprint(blockTask.blockPos)) {
-                    blockTask.updateMaterial(Blocks.AIR)
-                }
-
-                blockTask.updateState(TaskState.PLACED)
             }
         }
     }
@@ -914,7 +906,6 @@ internal object HighwayTools : Module(
         blockTask.updateState(TaskState.PENDING_BROKEN)
 
         defaultScope.launch {
-
             delay(10L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
