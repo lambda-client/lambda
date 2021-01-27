@@ -524,7 +524,7 @@ internal object HighwayTools : Module(
 
     private fun checkTasks(pos: BlockPos): Boolean {
         return pendingTasks.values.all {
-            it.taskState == TaskState.DONE || pos.distanceTo(it.blockPos) < maxReach - 2.0
+            it.taskState == TaskState.DONE || pos.distanceTo(it.blockPos) < maxReach - 1.0
         }
     }
 
