@@ -14,6 +14,7 @@ import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
+import me.zeroeightsix.kami.util.WorldUtils.blackList
 import me.zeroeightsix.kami.util.WorldUtils.getNeighbour
 import me.zeroeightsix.kami.util.WorldUtils.isPlaceable
 import me.zeroeightsix.kami.util.color.ColorHolder
@@ -934,25 +935,36 @@ internal object HighwayTools : Module(
                 return
             }
 
-        val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
         lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
         rotateTimer.reset()
 
-        connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
+        dispatchGenericPlaceThread(blockTask, pair)
+    }
+
+    private fun SafeClientEvent.dispatchGenericPlaceThread(blockTask: BlockTask, pair: Pair<EnumFacing, BlockPos>) {
+        val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
 
         defaultScope.launch {
             blockTask.updateState(TaskState.PENDING_PLACED)
 
-            delay(10L)
+            if (world.getBlockState(pair.second).block in blackList) {
+                delay(10L)
+                onMainThreadSafe {
+                    connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
+                }
+            }
+
             onMainThreadSafe {
                 val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
                 connection.sendPacket(placePacket)
                 player.swingArm(EnumHand.MAIN_HAND)
             }
 
-            delay(10L)
-            onMainThreadSafe {
-                connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
+            if (world.getBlockState(pair.second).block in blackList) {
+                delay(10L)
+                onMainThreadSafe {
+                    connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
+                }
             }
 
             delay(50L * taskTimeoutTicks)
