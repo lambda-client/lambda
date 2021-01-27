@@ -642,30 +642,30 @@ internal object HighwayTools : Module(
         return true
     }
 
-    private fun SafeClientEvent.doTask(blockTask: BlockTask, update: Boolean) {
-        if (!update) blockTask.onTick()
+    private fun SafeClientEvent.doTask(blockTask: BlockTask, updateOnly: Boolean) {
+        if (!updateOnly) blockTask.onTick()
 
         when (blockTask.taskState) {
             TaskState.DONE -> {
-                doDone(blockTask, update)
+                doDone(blockTask)
             }
             TaskState.BREAKING -> {
-                doBreaking(blockTask, update)
+                doBreaking(blockTask, updateOnly)
             }
             TaskState.BROKEN -> {
-                doBroken(blockTask, update)
+                doBroken(blockTask, updateOnly)
             }
             TaskState.PLACED -> {
-                doPlaced(blockTask, update)
+                doPlaced(blockTask)
             }
             TaskState.BREAK -> {
-                doBreak(blockTask, update)
+                doBreak(blockTask, updateOnly)
             }
             TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
-                doPlace(blockTask, update)
+                doPlace(blockTask, updateOnly)
             }
             TaskState.PENDING_BROKEN, TaskState.PENDING_PLACED -> {
-                if (!update && debugMessages == DebugMessages.ALL) {
+                if (!updateOnly && debugMessages == DebugMessages.ALL) {
                     MessageSendHelper.sendChatMessage("$chatName Currently waiting for blockState updates...")
                 }
                 blockTask.onStuck()
@@ -673,151 +673,154 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun doDone(blockTask: BlockTask, update: Boolean) {
-        if (update) {
-            pendingTasks[blockTask.blockPos]
-            doneTasks[blockTask.blockPos] = blockTask
-        }
+    private fun doDone(blockTask: BlockTask) {
+        pendingTasks[blockTask.blockPos]
+        doneTasks[blockTask.blockPos] = blockTask
     }
 
-    private fun SafeClientEvent.doBreaking(blockTask: BlockTask, update: Boolean) {
-        if (update) {
-            when (world.getBlockState(blockTask.blockPos).block) {
-                Blocks.AIR -> {
-                    waitTicks = breakDelay
-                    blockTask.updateState(TaskState.BROKEN)
-                }
-                is BlockLiquid -> {
-                    val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) {
-                        material
-                    } else {
-                        fillerMat
-                    }
-
-                    if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
-                        blockTask.updateState(TaskState.LIQUID_FLOW)
-                        blockTask.updateMaterial(filler)
-                    } else {
-                        blockTask.updateState(TaskState.LIQUID_SOURCE)
-                        blockTask.updateMaterial(filler)
-                    }
-                }
+    private fun SafeClientEvent.doBreaking(blockTask: BlockTask, updateOnly: Boolean) {
+        when (world.getBlockState(blockTask.blockPos).block) {
+            Blocks.AIR -> {
+                waitTicks = breakDelay
+                blockTask.updateState(TaskState.BROKEN)
+                return
             }
-        } else {
+            is BlockLiquid -> {
+                val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) {
+                    material
+                } else {
+                    fillerMat
+                }
+
+                if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
+                    blockTask.updateState(TaskState.LIQUID_FLOW)
+                    blockTask.updateMaterial(filler)
+                } else {
+                    blockTask.updateState(TaskState.LIQUID_SOURCE)
+                    blockTask.updateMaterial(filler)
+                }
+
+                return
+            }
+        }
+
+        if (!updateOnly) {
             mineBlock(blockTask)
         }
     }
 
-    private fun SafeClientEvent.doBroken(blockTask: BlockTask, update: Boolean) {
-        if (update) {
-            when (world.getBlockState(blockTask.blockPos).block) {
-                Blocks.AIR -> {
-                    totalBlocksDestroyed++
+    private fun SafeClientEvent.doBroken(blockTask: BlockTask, updateOnly: Boolean) {
+        when (world.getBlockState(blockTask.blockPos).block) {
+            Blocks.AIR -> {
+                totalBlocksDestroyed++
 
-                    if (blockTask.block == Blocks.AIR) {
-                        if (fakeSounds) {
-                            val soundType = blockTask.block.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
-                            world.playSound(player, blockTask.blockPos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                        }
-                        blockTask.updateState(TaskState.DONE)
-                    } else {
-                        blockTask.updateState(TaskState.PLACE)
-                    }
-                }
-                else -> {
-                    blockTask.updateState(TaskState.BREAK)
-                }
-            }
-        }
-    }
-
-    private fun SafeClientEvent.doPlaced(blockTask: BlockTask, update: Boolean) {
-        if (update) {
-            val currentBlock = world.getBlockState(blockTask.blockPos).block
-
-            when {
-                blockTask.block == currentBlock && currentBlock != Blocks.AIR -> {
-                    blockTask.updateState(TaskState.DONE)
+                if (blockTask.block == Blocks.AIR) {
                     if (fakeSounds) {
-                        val soundType = currentBlock.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
-                        world.playSound(player, blockTask.blockPos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                        val soundType = blockTask.block.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
+                        world.playSound(player, blockTask.blockPos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
                     }
-                    totalBlocksPlaced++
-                }
-                blockTask.block == currentBlock && currentBlock == Blocks.AIR -> {
-                    blockTask.updateState(TaskState.BREAK)
-                }
-                blockTask.block == Blocks.AIR && currentBlock != Blocks.AIR -> {
-                    blockTask.updateState(TaskState.BREAK)
-                }
-                else -> {
+                    blockTask.updateState(TaskState.DONE)
+                } else {
                     blockTask.updateState(TaskState.PLACE)
                 }
             }
+            else -> {
+                blockTask.updateState(TaskState.BREAK)
+            }
         }
     }
 
-    private fun SafeClientEvent.doBreak(blockTask: BlockTask, update: Boolean) {
+    private fun SafeClientEvent.doPlaced(blockTask: BlockTask) {
+        val currentBlock = world.getBlockState(blockTask.blockPos).block
+
+        when {
+            blockTask.block == currentBlock && currentBlock != Blocks.AIR -> {
+                blockTask.updateState(TaskState.DONE)
+                if (fakeSounds) {
+                    val soundType = currentBlock.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
+                    world.playSound(player, blockTask.blockPos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                }
+                totalBlocksPlaced++
+            }
+            blockTask.block == currentBlock && currentBlock == Blocks.AIR -> {
+                blockTask.updateState(TaskState.BREAK)
+            }
+            blockTask.block == Blocks.AIR && currentBlock != Blocks.AIR -> {
+                blockTask.updateState(TaskState.BREAK)
+            }
+            else -> {
+                blockTask.updateState(TaskState.PLACE)
+            }
+        }
+    }
+
+    private fun SafeClientEvent.doBreak(blockTask: BlockTask, updateOnly: Boolean) {
         // ignore blocks
         if (blockTask.block != Blocks.AIR && ignoreBlocks.contains(blockTask.block)) {
             blockTask.updateState(TaskState.DONE)
         }
 
-        if (update) {
-            when (world.getBlockState(blockTask.blockPos).block) {
-                Blocks.AIR -> {
-                    if (blockTask.block == Blocks.AIR) {
-                        blockTask.updateState(TaskState.BROKEN)
-                    } else {
-                        blockTask.updateState(TaskState.PLACE)
-                    }
-                }
-                is BlockLiquid -> {
-                    val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) material
-                    else fillerMat
-
-                    if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
-                        blockTask.updateState(TaskState.LIQUID_FLOW)
-                        blockTask.updateMaterial(filler)
-                    } else {
-                        blockTask.updateState(TaskState.LIQUID_SOURCE)
-                        blockTask.updateMaterial(filler)
-                    }
+        when (world.getBlockState(blockTask.blockPos).block) {
+            Blocks.AIR -> {
+                if (blockTask.block == Blocks.AIR) {
+                    blockTask.updateState(TaskState.BROKEN)
+                    return
+                } else {
+                    blockTask.updateState(TaskState.PLACE)
+                    return
                 }
             }
-        } else {
+            is BlockLiquid -> {
+                val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) material
+                else fillerMat
+
+                if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
+                    blockTask.updateState(TaskState.LIQUID_FLOW)
+                    blockTask.updateMaterial(filler)
+                } else {
+                    blockTask.updateState(TaskState.LIQUID_SOURCE)
+                    blockTask.updateMaterial(filler)
+                }
+            }
+        }
+
+        if (!updateOnly) {
             if (handleLiquid(blockTask)) return
             swapOrMoveBestTool(blockTask)
             mineBlock(blockTask)
         }
     }
 
-    private fun SafeClientEvent.doPlace(blockTask: BlockTask, update: Boolean) {
-        if (update) {
-            val currentBlock = world.getBlockState(blockTask.blockPos).block
+    private fun SafeClientEvent.doPlace(blockTask: BlockTask, updateOnly: Boolean) {
+        val currentBlock = world.getBlockState(blockTask.blockPos).block
 
-            when(blockTask.block) {
-                material -> {
-                    if (currentBlock == material) {
-                        blockTask.updateState(TaskState.PLACED)
-                    } else if (currentBlock != Blocks.AIR) {
-                        blockTask.updateState(TaskState.BREAK)
-                    }
-                }
-                fillerMat -> {
-                    if (currentBlock != Blocks.AIR && currentBlock !is BlockLiquid) {
-                        blockTask.updateState(TaskState.PLACED)
-                    }
-                }
-                Blocks.AIR -> {
-                    if (currentBlock != Blocks.AIR) {
-                        blockTask.updateState(TaskState.BREAK)
-                    } else {
-                        blockTask.updateState(TaskState.BROKEN)
-                    }
+        when (blockTask.block) {
+            material -> {
+                if (currentBlock == material) {
+                    blockTask.updateState(TaskState.PLACED)
+                    return
+                } else if (currentBlock != Blocks.AIR) {
+                    blockTask.updateState(TaskState.BREAK)
+                    return
                 }
             }
-        } else {
+            fillerMat -> {
+                if (currentBlock != Blocks.AIR && currentBlock !is BlockLiquid) {
+                    blockTask.updateState(TaskState.PLACED)
+                    return
+                }
+            }
+            Blocks.AIR -> {
+                if (currentBlock != Blocks.AIR) {
+                    blockTask.updateState(TaskState.BREAK)
+                } else {
+                    blockTask.updateState(TaskState.BROKEN)
+                }
+                return
+            }
+        }
+
+        if (!updateOnly) {
             if (!isPlaceable(blockTask.blockPos)) {
                 if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
                 pendingTasks.remove(blockTask.blockPos)
