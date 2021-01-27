@@ -821,6 +821,59 @@ internal object HighwayTools : Module(
         }
     }
 
+    private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
+        val pair = getNeighbour(blockTask.blockPos, 1, maxReach, true)
+            ?: run {
+                if (illegalPlacements) {
+                    if (debugMessages == DebugMessages.ALL) {
+                        MessageSendHelper.sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                    }
+                    getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
+                } else {
+                    blockTask.onStuck()
+                    return
+                }
+            }
+
+        lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
+        rotateTimer.reset()
+
+        placeBlockNormal(blockTask, pair)
+    }
+
+    private fun SafeClientEvent.placeBlockNormal(blockTask: BlockTask, pair: Pair<EnumFacing, BlockPos>) {
+        val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
+        val currentBlock = world.getBlockState(pair.second).block
+
+        waitTicks = tickDelayPlace
+        blockTask.updateState(TaskState.PENDING_PLACED)
+
+        if (currentBlock in blackList) {
+            connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
+        }
+
+        defaultScope.launch {
+            delay(20L)
+            onMainThreadSafe {
+                val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+                connection.sendPacket(placePacket)
+                player.swingArm(EnumHand.MAIN_HAND)
+            }
+
+            if (currentBlock in blackList) {
+                delay(20L)
+                onMainThreadSafe {
+                    connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
+                }
+            }
+
+            delay(50L * taskTimeoutTicks)
+            if (blockTask.taskState == TaskState.PENDING_PLACED) {
+                blockTask.updateState(TaskState.PLACE)
+            }
+        }
+    }
+
     private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask): Boolean {
         val slotFrom = player.inventorySlots.asReversed().maxByOrNull {
             val stack = it.stack
@@ -966,59 +1019,6 @@ internal object HighwayTools : Module(
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(action, blockTask.blockPos, facing))
                 player.swingArm(EnumHand.MAIN_HAND)
-            }
-        }
-    }
-
-    private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
-        val pair = getNeighbour(blockTask.blockPos, 1, maxReach, true)
-            ?: run {
-                if (illegalPlacements) {
-                    if (debugMessages == DebugMessages.ALL) {
-                        MessageSendHelper.sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
-                    }
-                    getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
-                } else {
-                    blockTask.onStuck()
-                    return
-                }
-            }
-
-        lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
-        rotateTimer.reset()
-
-        placeBlockNormal(blockTask, pair)
-    }
-
-    private fun SafeClientEvent.placeBlockNormal(blockTask: BlockTask, pair: Pair<EnumFacing, BlockPos>) {
-        val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
-        val currentBlock = world.getBlockState(pair.second).block
-
-        waitTicks = tickDelayPlace
-        blockTask.updateState(TaskState.PENDING_PLACED)
-
-        if (currentBlock in blackList) {
-            connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
-        }
-
-        defaultScope.launch {
-            delay(20L)
-            onMainThreadSafe {
-                val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
-                connection.sendPacket(placePacket)
-                player.swingArm(EnumHand.MAIN_HAND)
-            }
-
-            if (currentBlock in blackList) {
-                delay(20L)
-                onMainThreadSafe {
-                    connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
-                }
-            }
-
-            delay(50L * taskTimeoutTicks)
-            if (blockTask.taskState == TaskState.PENDING_PLACED) {
-                blockTask.updateState(TaskState.PLACE)
             }
         }
     }

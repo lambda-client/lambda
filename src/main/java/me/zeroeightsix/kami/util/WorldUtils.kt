@@ -153,9 +153,9 @@ object WorldUtils {
         val blockCenter = pos.toVec3dCenter()
 
         return visibleSides
-            .checkAxis(eyePos.x - blockCenter.x, EnumFacing.WEST, EnumFacing.EAST, isFullCube)
+            .checkAxis(eyePos.x - blockCenter.x, EnumFacing.WEST, EnumFacing.EAST, !isFullCube)
             .checkAxis(eyePos.y - blockCenter.y, EnumFacing.DOWN, EnumFacing.UP, true)
-            .checkAxis(eyePos.z - blockCenter.z, EnumFacing.NORTH, EnumFacing.SOUTH, isFullCube)
+            .checkAxis(eyePos.z - blockCenter.z, EnumFacing.NORTH, EnumFacing.SOUTH, !isFullCube)
     }
 
     private fun EnumSet<EnumFacing>.checkAxis(diff: Double, negativeSide: EnumFacing, positiveSide: EnumFacing, bothIfInRange: Boolean) =
@@ -234,14 +234,14 @@ object WorldUtils {
         val eyePos = player.getPositionEyes(1.0f)
 
         for (side in sides) {
-            val pos = blockPos.offset(side)
+            val offsetPos = blockPos.offset(side)
 
-            if (!toIgnore.add(pos)) continue
-            if (world.getBlockState(pos).material.isReplaceable) continue
-            if (eyePos.distanceTo(Vec3d(pos).add(getHitVecOffset(side))) > range) continue
-            if (visibleSideCheck && !getVisibleSides(pos).contains(side.opposite)) continue
+            if (!toIgnore.add(offsetPos)) continue
+            if (world.getBlockState(offsetPos).material.isReplaceable) continue
+            if (eyePos.distanceTo(getHitVec(blockPos, side)) > range) continue
+            if (visibleSideCheck && !getVisibleSides(offsetPos).contains(side.opposite)) continue
 
-            return Pair(side.opposite, pos)
+            return Pair(side.opposite, offsetPos)
         }
 
         if (attempts > 1) {
