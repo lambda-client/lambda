@@ -264,22 +264,25 @@ internal object HighwayTools : Module(
                     val pos = it.packet.blockPosition
                     if (!isInsideBlueprint(pos)) return@safeListener
 
-                    val prev = world.getBlockState(pos)
-                    val new = it.packet.getBlockState()
+                    val prev = world.getBlockState(pos).block
+                    val new = it.packet.getBlockState().block
 
-                    if (prev.block != new.block) {
+                    if (prev != new) {
                         val task = pendingTasks[pos] ?: return@safeListener
 
-                        when {
-                            task.taskState == TaskState.PENDING_BROKEN &&
-                                prev.block != Blocks.AIR &&
-                                new.block == Blocks.AIR -> {
-                                task.updateState(TaskState.BROKEN)
+                        when (task.taskState) {
+                            TaskState.PENDING_BROKEN, TaskState.BREAKING -> {
+                                if (new == Blocks.AIR) {
+                                    task.updateState(TaskState.BROKEN)
+                                }
                             }
-                            task.taskState == TaskState.PENDING_PLACED &&
-                                (task.block == material || task.block == fillerMat)
-                                && task.block == new.block -> {
-                                task.updateState(TaskState.PLACED)
+                            TaskState.PENDING_PLACED -> {
+                                if (task.block != Blocks.AIR && task.block == new) {
+                                    task.updateState(TaskState.PLACED)
+                                }
+                            }
+                            else -> {
+                                // Ignored
                             }
                         }
                     }
@@ -810,7 +813,6 @@ internal object HighwayTools : Module(
                     }
                 }
             }
-
         } else {
             if (!isPlaceable(blockTask.blockPos)) {
                 if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
