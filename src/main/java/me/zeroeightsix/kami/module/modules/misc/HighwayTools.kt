@@ -564,7 +564,7 @@ internal object HighwayTools : Module(
             TaskState.PLACED -> {
                 doPlaced(blockTask)
             }
-            TaskState.EMERGENCY_BREAK, TaskState.BREAK -> {
+            TaskState.BREAK -> {
                 doBreak(blockTask)
             }
             TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
@@ -660,8 +660,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.doBreak(blockTask: BlockTask) {
 
         // ignore blocks
-        if (blockTask.taskState != TaskState.EMERGENCY_BREAK
-            && blockTask.block != Blocks.AIR
+        if (blockTask.block != Blocks.AIR
             && ignoreBlocks.contains(blockTask.block)) {
             blockTask.updateState(TaskState.DONE)
         }
@@ -687,13 +686,7 @@ internal object HighwayTools : Module(
                 }
             }
             else -> {
-                // liquid search around the breaking block
-                if (blockTask.taskState != TaskState.EMERGENCY_BREAK) {
-                    if (handleLiquid(blockTask)) {
-                        blockTask.updateState(TaskState.EMERGENCY_BREAK)
-                        return
-                    }
-                }
+                if (handleLiquid(blockTask)) return
 
                 inventoryProcessor(blockTask)
 
@@ -751,7 +744,7 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.inventoryProcessor(blockTask: BlockTask) {
         when (blockTask.taskState) {
-            TaskState.BREAK, TaskState.EMERGENCY_BREAK -> {
+            TaskState.BREAK -> {
                 swapOrMoveBestTool(blockTask)
             }
             TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
@@ -905,7 +898,7 @@ internal object HighwayTools : Module(
             CPacketPlayerDigging.Action.START_DESTROY_BLOCK
         }
 
-        if (blockTask.taskState == TaskState.BREAK || blockTask.taskState == TaskState.EMERGENCY_BREAK) {
+        if (blockTask.taskState == TaskState.BREAK) {
             blockTask.updateState(TaskState.BREAKING)
         }
 
@@ -1179,7 +1172,6 @@ internal object HighwayTools : Module(
         LIQUID_SOURCE(100, 100, ColorHolder(120, 41, 240)),
         LIQUID_FLOW(80, 80, ColorHolder(120, 41, 240)),
         BREAKING(100, 100, ColorHolder(240, 222, 60)),
-        EMERGENCY_BREAK(20, 20, ColorHolder(220, 41, 140)),
         BREAK(20, 20, ColorHolder(222, 0, 0)),
         PLACE(20, 10, ColorHolder(35, 188, 254)),
         PENDING_BROKEN(100, 100, ColorHolder(0, 0, 0)),
