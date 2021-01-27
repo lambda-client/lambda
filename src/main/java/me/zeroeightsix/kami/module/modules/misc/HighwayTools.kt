@@ -86,7 +86,7 @@ internal object HighwayTools : Module(
     private val maxBreaks by setting("Multi Break", 1, 1..8, 1, { page == Page.BEHAVIOR })
     private val taskTimeout by setting("Task Timeout", 5, 0..20, 1, { page == Page.BEHAVIOR })
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR })
-    private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
+    private val maxReach by setting("MaxReach", 5.4f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
 
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG })
