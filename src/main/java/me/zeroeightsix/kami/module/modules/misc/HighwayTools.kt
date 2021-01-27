@@ -221,26 +221,14 @@ internal object HighwayTools : Module(
                     task.taskState == TaskState.PENDING_BROKEN &&
                         prev.block != Blocks.AIR &&
                         new.block == Blocks.AIR -> {
-                        totalBlocksDestroyed++
                         task.updateState(TaskState.BROKEN)
-                        if (fakeSounds) {
-                            val soundType = prev.block.getSoundType(prev, world, pos, player)
-                            onMainThread {
-                                world.playSound(player, pos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                            }
-                        }
+                        sortTasks()
                     }
                     task.taskState == TaskState.PENDING_PLACED &&
                         (task.block == material || task.block == fillerMat)
                         && task.block == new.block -> {
-                        totalBlocksPlaced++
                         task.updateState(TaskState.PLACED)
-                        if (fakeSounds) {
-                            val soundType = new.block.getSoundType(new, world, pos, player)
-                            onMainThread {
-                                world.playSound(player, pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-                            }
-                        }
+                        sortTasks()
                     }
                 }
             }
@@ -499,6 +487,22 @@ internal object HighwayTools : Module(
         return true
     }
 
+    private fun SafeClientEvent.sortTasks() {
+        sortedTasks = pendingTasks.sortedWith(
+            compareBy<BlockTask> {
+                it.taskState.ordinal
+            }.thenBy {
+                it.stuckTicks
+            }.thenBy {
+                startingBlockPos.distanceTo(it.blockPos)
+            }.thenBy {
+                player.distanceTo(it.blockPos)
+            }.thenBy {
+                lastHitVec?.distanceTo(it.blockPos)
+            }
+        )
+    }
+
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isNotEmpty()) {
             if (waitTicks > 0) {
@@ -508,19 +512,7 @@ internal object HighwayTools : Module(
 
 //          (startingBlockPos.distanceTo(player.position) / startingBlockPos.distanceTo(it.blockPos)) * player.distanceTo(it.blockPos) * (lastHitVec.distanceTo(it.blockPos) * 2)
 
-            sortedTasks = pendingTasks.sortedWith(
-                compareBy<BlockTask> {
-                    it.taskState.ordinal
-                }.thenBy {
-                    it.stuckTicks
-                }.thenBy {
-                    startingBlockPos.distanceTo(it.blockPos)
-                }.thenBy {
-                    player.distanceTo(it.blockPos)
-                }.thenBy {
-                    lastHitVec?.distanceTo(it.blockPos)
-                }
-            )
+            sortTasks()
 
             val firstTask = sortedTasks[0]
 
@@ -625,6 +617,13 @@ internal object HighwayTools : Module(
                     blockTask.updateState(TaskState.PLACE)
                 } else {
                     blockTask.updateState(TaskState.DONE)
+                    if (fakeSounds) {
+                        val soundType = blockTask.block.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
+                        onMainThread {
+                            world.playSound(player, blockTask.blockPos, soundType.breakSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                        }
+                    }
+                    totalBlocksDestroyed++
                 }
             }
             else -> {
@@ -639,6 +638,13 @@ internal object HighwayTools : Module(
         when {
             blockTask.block == block && block != Blocks.AIR -> {
                 blockTask.updateState(TaskState.DONE)
+                if (fakeSounds) {
+                    val soundType = block.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
+                    onMainThread {
+                        world.playSound(player, blockTask.blockPos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
+                    }
+                }
+                totalBlocksPlaced++
             }
             blockTask.block == Blocks.AIR && block != Blocks.AIR -> {
                 blockTask.updateState(TaskState.BREAK)
@@ -870,10 +876,11 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
+    private fun SafeClientEvent.dispatchInstantBreakThread(blockTask: BlockTask, facing: EnumFacing) {
         waitTicks = tickDelayBreak
         defaultScope.launch {
             blockTask.updateState(TaskState.PENDING_BROKEN)
+            sortTasks()
             delay(10L)
             onMainThreadSafe {
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, facing))
@@ -885,7 +892,10 @@ internal object HighwayTools : Module(
                 player.swingArm(EnumHand.MAIN_HAND)
             }
             delay(50L * taskTimeoutTicks)
-            if (blockTask.taskState == TaskState.PENDING_BROKEN) blockTask.updateState(TaskState.BREAK)
+            if (blockTask.taskState == TaskState.PENDING_BROKEN) {
+                blockTask.updateState(TaskState.BREAK)
+                sortTasks()
+            }
         }
     }
 
@@ -932,6 +942,7 @@ internal object HighwayTools : Module(
 
         defaultScope.launch {
             blockTask.updateState(TaskState.PENDING_PLACED)
+            sortTasks()
             delay(10L)
             onMainThreadSafe {
                 val offsetHitVec = lastHitVec ?: return@onMainThreadSafe
@@ -944,7 +955,10 @@ internal object HighwayTools : Module(
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
             delay(50L * taskTimeoutTicks)
-            if (blockTask.taskState == TaskState.PENDING_PLACED) blockTask.updateState(TaskState.PLACE)
+            if (blockTask.taskState == TaskState.PENDING_PLACED) {
+                blockTask.updateState(TaskState.PLACE)
+                sortTasks()
+            }
         }
     }
 
