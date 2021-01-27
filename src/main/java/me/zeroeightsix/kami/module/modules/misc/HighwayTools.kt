@@ -952,12 +952,12 @@ internal object HighwayTools : Module(
                 if (illegalPlacements) {
                     if (debugMessages == DebugMessages.ALL) {
                         MessageSendHelper.sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
-                        getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
                     }
+                    getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
                 } else {
                     blockTask.onStuck()
+                    return
                 }
-                return
             }
 
         lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
