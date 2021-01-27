@@ -76,7 +76,7 @@ internal object HighwayTools : Module(
     private val tickDelayPlace by setting("TickDelayPlace", 2, 1..20, 1, { page == Page.BEHAVIOR })
     private val tickDelayBreak by setting("TickDelayBreak", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val taskTimeoutTicks by setting("TaskTimeoutTicks", 5, 0..16, 1, { page == Page.BEHAVIOR })
-    private val interacting by setting("InteractMode", InteractMode.SPOOF, { page == Page.BEHAVIOR })
+    private val interacting by setting("RotationMode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("IllegalPlacements", false, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("ToggleInvManager", true, { page == Page.BEHAVIOR })
@@ -92,6 +92,23 @@ internal object HighwayTools : Module(
     private val outline by setting("Outline", true, { page == Page.CONFIG })
     private val aFilled by setting("FilledAlpha", 26, 0..255, 1, { filled && page == Page.CONFIG })
     private val aOutline by setting("OutlineAlpha", 91, 0..255, 1, { outline && page == Page.CONFIG })
+
+    private enum class Mode {
+        HIGHWAY, FLAT, TUNNEL
+    }
+
+    private enum class Page {
+        BUILD, BEHAVIOR, CONFIG
+    }
+
+    @Suppress("UNUSED")
+    private enum class RotationMode {
+        OFF, SPOOF, VIEW_LOCK
+    }
+
+    private enum class DebugMessages {
+        OFF, IMPORTANT, ALL
+    }
 
     // internal settings
     val ignoreBlocks = hashSetOf(
@@ -314,16 +331,16 @@ internal object HighwayTools : Module(
         val rotation = lastHitVec?.let { getRotationTo(it) } ?: return
 
         when (interacting) {
-            InteractMode.SPOOF -> {
+            RotationMode.SPOOF -> {
                 val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
                 PlayerPacketManager.addPacket(this@HighwayTools, packet)
             }
-            InteractMode.VIEW_LOCK -> {
+            RotationMode.VIEW_LOCK -> {
                 player.rotationYaw = rotation.x
                 player.rotationPitch = rotation.y
             }
             else -> {
-
+                // RotationMode.OFF
             }
         }
     }
@@ -1164,31 +1181,6 @@ internal object HighwayTools : Module(
         PLACE(20, 10, ColorHolder(35, 188, 254)),
         PENDING_BROKEN(100, 100, ColorHolder(0, 0, 0)),
         PENDING_PLACED(100, 100, ColorHolder(0, 0, 0))
-    }
-
-    private enum class DebugMessages {
-        OFF,
-        IMPORTANT,
-        ALL
-    }
-
-    private enum class Mode {
-        HIGHWAY,
-        FLAT,
-        TUNNEL
-    }
-
-    private enum class Page {
-        BUILD,
-        BEHAVIOR,
-        CONFIG
-    }
-
-    @Suppress("UNUSED")
-    private enum class InteractMode {
-        OFF,
-        SPOOF,
-        VIEW_LOCK
     }
 
 }
