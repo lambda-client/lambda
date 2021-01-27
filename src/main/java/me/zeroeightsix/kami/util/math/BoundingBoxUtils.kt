@@ -1,10 +1,13 @@
 package me.zeroeightsix.kami.util.math
 
+import me.zeroeightsix.kami.util.Wrapper
 import me.zeroeightsix.kami.util.math.VectorUtils.plus
 import me.zeroeightsix.kami.util.math.VectorUtils.times
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3d
+import me.zeroeightsix.kami.util.math.VectorUtils.toViewVec
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.AxisAlignedBB
+import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 
 val AxisAlignedBB.xLength get() = maxX - minX
@@ -35,4 +38,32 @@ fun AxisAlignedBB.side(side: EnumFacing, scale: Double = 0.5): Vec3d {
     val lengths = lengths
     val sideDirectionVec = side.directionVec.toVec3d()
     return lengths * sideDirectionVec * scale + center
+}
+
+/**
+ * Check if a block is in sight
+ *
+ * Reverse engineered from HauseMaster's anti cheat plugin
+ */
+fun AxisAlignedBB.isInSight(
+    posFrom: Vec3d = Wrapper.player?.getPositionEyes(1.0f) ?: Vec3d.ZERO,
+    rotation: Vec2f = Wrapper.player?.let { Vec2f(it) } ?: Vec2f.ZERO,
+    range: Double = 4.25,
+    tolerance: Double = 1.05
+) = isInSight(posFrom, rotation.toViewVec(), range, tolerance)
+
+/**
+ * Check if a block is in sight
+ *
+ * Reverse engineered from HauseMaster's anti cheat plugin
+ */
+fun AxisAlignedBB.isInSight(
+    posFrom: Vec3d,
+    viewVec: Vec3d,
+    range: Double = 4.25,
+    tolerance: Double = 1.05
+): RayTraceResult? {
+    val sightEnd = posFrom.add(viewVec.scale(range))
+
+    return grow(tolerance - 1.0).calculateIntercept(posFrom, sightEnd)
 }

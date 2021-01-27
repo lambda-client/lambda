@@ -44,6 +44,7 @@ import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -76,11 +77,13 @@ internal object HighwayTools : Module(
 
     // behavior settings
     private val interacting by setting("Rotation Mode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
+    private val fastMining by setting("Fast Mining", false, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR })
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR })
     private val placeDelay by setting("Place Delay", 2, 1..20, 1, { page == Page.BEHAVIOR })
     private val breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
+    private val maxBreaks by setting("Multi Break", 1, 1..8, 1, { page == Page.BEHAVIOR })
     private val taskTimeout by setting("Task Timeout", 5, 0..20, 1, { page == Page.BEHAVIOR })
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.5f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
@@ -988,20 +991,44 @@ internal object HighwayTools : Module(
 
         defaultScope.launch {
             delay(20L)
-            onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
-                player.swingArm(EnumHand.MAIN_HAND)
-            }
+            sendMiningPackets(blockTask.blockPos, side)
 
-            delay(20L)
-            onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
-                player.swingArm(EnumHand.MAIN_HAND)
+            if (maxBreaks > 1) {
+                tryMultiBreak(blockTask)
             }
 
             delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_BROKEN) {
                 blockTask.updateState(TaskState.BREAK)
+            }
+        }
+    }
+
+    private fun tryMultiBreak(blockTask: BlockTask) {
+        runSafe {
+            val eyePos = player.getPositionEyes(1.0f)
+            val viewVec = lastHitVec.subtract(eyePos).normalize()
+            var breakCount = 1
+
+            for (task in sortedTasks) {
+                if (breakCount >= maxBreaks) break
+
+                if (task == blockTask) continue
+                if (task.taskState != TaskState.BREAK) continue
+                if (world.getBlockState(task.blockPos).block != Blocks.NETHERRACK) continue
+
+                val box = AxisAlignedBB(task.blockPos)
+                val rayTraceResult = box.isInSight(eyePos, viewVec) ?: continue
+                breakCount++
+
+                defaultScope.launch {
+                    sendMiningPackets(task.blockPos, rayTraceResult.sideHit)
+
+                    delay(50L * taskTimeout)
+                    if (blockTask.taskState == TaskState.PENDING_BROKEN) {
+                        blockTask.updateState(TaskState.BREAK)
+                    }
+                }
             }
         }
     }
@@ -1014,14 +1041,22 @@ internal object HighwayTools : Module(
 
         defaultScope.launch {
             delay(20L)
-            onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
-                player.swingArm(EnumHand.MAIN_HAND)
-            }
+            sendMiningPackets(blockTask.blockPos, side)
+        }
+    }
 
+    private suspend fun sendMiningPackets(pos: BlockPos, side: EnumFacing) {
+        onMainThreadSafe {
+            connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
+            if (fastMining) connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
+
+            player.swingArm(EnumHand.MAIN_HAND)
+        }
+
+        if (!fastMining) {
             delay(20L)
             onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
+                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
                 player.swingArm(EnumHand.MAIN_HAND)
             }
         }
@@ -1042,7 +1077,7 @@ internal object HighwayTools : Module(
                 "\n    §9> §rFiller material: §7${fillerMat.localizedName}" +
                 "\n    §9> §rIgnored Blocks:")
 
-            for (b in ignoreBlocks) append("\n        §9> §7${b!!.registryName}")
+            for (b in ignoreBlocks) append("\n        §9> §7${b.registryName}")
 
             MessageSendHelper.sendChatMessage(toString())
         }
