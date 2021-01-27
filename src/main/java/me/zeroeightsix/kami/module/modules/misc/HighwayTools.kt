@@ -667,7 +667,6 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.doBreak(blockTask: BlockTask) {
-
         // ignore blocks
         if (blockTask.block != Blocks.AIR
             && ignoreBlocks.contains(blockTask.block)) {
@@ -697,7 +696,7 @@ internal object HighwayTools : Module(
             else -> {
                 if (handleLiquid(blockTask)) return
 
-                inventoryProcessor(blockTask)
+                swapOrMoveBestTool(blockTask)
 
                 mineBlock(blockTask)
             }
@@ -721,7 +720,10 @@ internal object HighwayTools : Module(
                     return
                 }
 
-                inventoryProcessor(blockTask)
+                if (!swapOrMoveBlock(blockTask)) {
+                    blockTask.onStuck()
+                    return
+                }
 
                 placeBlock(blockTask)
 
@@ -751,29 +753,20 @@ internal object HighwayTools : Module(
         return true
     }
 
-    private fun SafeClientEvent.inventoryProcessor(blockTask: BlockTask) {
-        when (blockTask.taskState) {
-            TaskState.BREAK -> {
-                swapOrMoveBestTool(blockTask)
+    private fun SafeClientEvent.swapOrMoveBlock(blockTask: BlockTask): Boolean {
+        return if (!swapToBlock(blockTask.block)) {
+            if (!swapToBlockOrMove(blockTask.block)) {
+                sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                disable()
             }
-            TaskState.PLACE, TaskState.LIQUID_FLOW, TaskState.LIQUID_SOURCE -> {
-                if (!swapToBlock(blockTask.block)) {
-                    if (!swapToBlockOrMove(Blocks.ENDER_CHEST)) {
-                        sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
-                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                        disable()
-                        blockTask.onStuck()
-                    }
-                    return
-                }
-            }
-            else -> {
-                blockTask.onStuck()
-            }
+            false
+        } else {
+            true
         }
     }
 
-    private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask) {
+    private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask) : Boolean {
         val slotFrom = player.inventorySlots.asReversed().maxByOrNull {
             val stack = it.stack
             if (stack.isEmpty) {
@@ -792,13 +785,16 @@ internal object HighwayTools : Module(
             }
         }
 
-        if (slotFrom != null) {
+        return if (slotFrom != null) {
             slotFrom.toHotbarSlotOrNull()?.let {
                 swapToSlot(it)
             } ?: run {
                 val slotTo = player.hotbarSlots.firstEmpty()?.hotbarSlot ?: 0
                 moveToHotbar(slotFrom.slotNumber, slotTo)
             }
+            true
+        } else {
+            false
         }
     }
 
