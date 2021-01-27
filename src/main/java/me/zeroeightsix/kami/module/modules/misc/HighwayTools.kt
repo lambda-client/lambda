@@ -529,16 +529,25 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.runTasks() {
-        if (pendingTasks.isNotEmpty()) {
-
+        if (pendingTasks.isEmpty()) {
+            if (checkDoneTasks()) {
+                doneTasks.clear()
+                refreshData(currentBlockPos.add(startingDirection.directionVec))
+            } else {
+                refreshData()
+            }
+        } else {
             waitTicks--
+            for (task in pendingTasks.values) {
+                doTask(task, true)
+            }
             sortTasks()
 
             for (task in sortedTasks) {
                 if (!checkStuckTimeout(task)) return
                 if (task.taskState != TaskState.DONE && waitTicks > 0) return
 
-                doTask(task)
+                doTask(task, false)
 
                 when (task.taskState) {
                     TaskState.DONE, TaskState.BROKEN, TaskState.PLACED -> {
@@ -549,14 +558,22 @@ internal object HighwayTools : Module(
                     }
                 }
             }
-        } else {
-            if (checkDoneTasks()) {
-                doneTasks.clear()
-                refreshData(currentBlockPos.add(startingDirection.directionVec))
-            } else {
-                refreshData()
-            }
         }
+    }
+
+    private fun SafeClientEvent.checkDoneTasks(): Boolean {
+        for (blockTask in doneTasks.values) {
+            val block = world.getBlockState(blockTask.blockPos).block
+            if (ignoreBlocks.contains(block)) continue
+
+            when {
+                blockTask.block == material && block != material -> return false
+                mode == Mode.TUNNEL && blockTask.block == fillerMat && block != fillerMat -> return false
+                blockTask.block == Blocks.AIR && block != Blocks.AIR -> return false
+            }
+
+        }
+        return true
     }
 
     private fun SafeClientEvent.sortTasks() {
@@ -599,15 +616,15 @@ internal object HighwayTools : Module(
         return true
     }
 
-    private fun SafeClientEvent.doTask(blockTask: BlockTask) {
-        blockTask.onTick()
+    private fun SafeClientEvent.doTask(blockTask: BlockTask, updateOnly: Boolean) {
+        if (!updateOnly) blockTask.onTick()
 
         when (blockTask.taskState) {
             TaskState.DONE -> {
                 doDone(blockTask)
             }
             TaskState.BREAKING -> {
-                doBreaking(blockTask)
+                doBreaking(blockTask, updateOnly)
             }
             TaskState.BROKEN -> {
                 doBroken(blockTask)
@@ -616,13 +633,13 @@ internal object HighwayTools : Module(
                 doPlaced(blockTask)
             }
             TaskState.BREAK -> {
-                doBreak(blockTask)
+                doBreak(blockTask, updateOnly)
             }
             TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
-                doPlace(blockTask)
+                doPlace(blockTask, updateOnly)
             }
             TaskState.PENDING_BROKEN, TaskState.PENDING_PLACED -> {
-                if (debugMessages == DebugMessages.ALL) {
+                if (!updateOnly && debugMessages == DebugMessages.ALL) {
                     MessageSendHelper.sendChatMessage("$chatName Currently waiting for blockState updates...")
                 }
                 blockTask.onStuck()
@@ -635,7 +652,7 @@ internal object HighwayTools : Module(
         doneTasks[blockTask.blockPos] = blockTask
     }
 
-    private fun SafeClientEvent.doBreaking(blockTask: BlockTask) {
+    private fun SafeClientEvent.doBreaking(blockTask: BlockTask, updateOnly: Boolean) {
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 waitTicks = tickDelayBreak
@@ -657,7 +674,9 @@ internal object HighwayTools : Module(
                 }
             }
             else -> {
-                mineBlock(blockTask)
+                if (!updateOnly) {
+                    mineBlock(blockTask)
+                }
             }
         }
     }
@@ -708,7 +727,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun SafeClientEvent.doBreak(blockTask: BlockTask) {
+    private fun SafeClientEvent.doBreak(blockTask: BlockTask, updateOnly: Boolean) {
         // ignore blocks
         if (blockTask.block != Blocks.AIR
             && ignoreBlocks.contains(blockTask.block)) {
@@ -736,16 +755,16 @@ internal object HighwayTools : Module(
                 }
             }
             else -> {
-                if (handleLiquid(blockTask)) return
-
-                swapOrMoveBestTool(blockTask)
-
-                mineBlock(blockTask)
+                if (!updateOnly) {
+                    if (handleLiquid(blockTask)) return
+                    swapOrMoveBestTool(blockTask)
+                    mineBlock(blockTask)
+                }
             }
         }
     }
 
-    private fun SafeClientEvent.doPlace(blockTask: BlockTask) {
+    private fun SafeClientEvent.doPlace(blockTask: BlockTask, updateOnly: Boolean) {
         val block = world.getBlockState(blockTask.blockPos).block
 
         when {
@@ -756,35 +775,22 @@ internal object HighwayTools : Module(
                 blockTask.updateState(TaskState.PLACED)
             }
             else -> {
-                if (!isPlaceable(blockTask.blockPos)) {
-                    if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: " + blockTask.blockPos)
-                    refreshData()
-                    return
-                }
+                if (!updateOnly) {
+                    if (!isPlaceable(blockTask.blockPos)) {
+                        if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: " + blockTask.blockPos)
+                        refreshData()
+                        return
+                    }
 
-                if (!swapOrMoveBlock(blockTask)) {
-                    blockTask.onStuck()
-                    return
-                }
+                    if (!swapOrMoveBlock(blockTask)) {
+                        blockTask.onStuck()
+                        return
+                    }
 
-                placeBlock(blockTask)
+                    placeBlock(blockTask)
+                }
             }
         }
-    }
-
-    private fun SafeClientEvent.checkDoneTasks(): Boolean {
-        for (blockTask in doneTasks.values) {
-            val block = world.getBlockState(blockTask.blockPos).block
-            if (ignoreBlocks.contains(block)) continue
-
-            when {
-                blockTask.block == material && block != material -> return false
-                mode == Mode.TUNNEL && blockTask.block == fillerMat && block != fillerMat -> return false
-                blockTask.block == Blocks.AIR && block != Blocks.AIR -> return false
-            }
-
-        }
-        return true
     }
 
     private fun SafeClientEvent.swapOrMoveBlock(blockTask: BlockTask): Boolean {
