@@ -795,7 +795,8 @@ internal object HighwayTools : Module(
             }
         } else {
             if (!isPlaceable(blockTask.blockPos)) {
-                if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: " + blockTask.blockPos)
+                if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
+                pendingTasks.remove(blockTask.blockPos)
                 refreshData()
                 return
             }
