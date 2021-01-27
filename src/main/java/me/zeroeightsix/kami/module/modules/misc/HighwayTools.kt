@@ -69,15 +69,14 @@ internal object HighwayTools : Module(
 
     // build settings
     private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace })
     private val width by setting("Width", 5, 1..9, 1, { page == Page.BUILD })
+    private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace })
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY })
     private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) })
 
     // behavior settings
     private val interacting by setting("Rotation Mode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
-    private val fastBreak by setting("Fast Break", false, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR })
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR })
@@ -1071,17 +1070,8 @@ internal object HighwayTools : Module(
     private suspend fun sendMiningPackets(pos: BlockPos, side: EnumFacing) {
         onMainThreadSafe {
             connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
-            if (fastBreak) connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
-
+            connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
             player.swingArm(EnumHand.MAIN_HAND)
-        }
-
-        if (!fastBreak) {
-            delay(20L)
-            onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
-                player.swingArm(EnumHand.MAIN_HAND)
-            }
         }
     }
 
