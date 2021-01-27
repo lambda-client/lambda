@@ -765,7 +765,7 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask) {
-        val slotFrom = player.inventorySlots.maxByOrNull {
+        val slotFrom = player.inventorySlots.asReversed().maxByOrNull {
             val stack = it.stack
             if (stack.isEmpty) {
                 0.0f
