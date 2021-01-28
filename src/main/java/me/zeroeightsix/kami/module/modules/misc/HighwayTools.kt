@@ -69,7 +69,7 @@ internal object HighwayTools : Module(
 
     // build settings
     private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
-    private val width by setting("Width", 5, 1..9, 1, { page == Page.BUILD })
+    private val width by setting("Width", 6, 1..9, 1, { page == Page.BUILD })
     private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace })
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY })
@@ -82,7 +82,7 @@ internal object HighwayTools : Module(
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR })
     private val placeDelay by setting("Place Delay", 2, 1..20, 1, { page == Page.BEHAVIOR })
     private val breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
-    private val maxBreaks by setting("Multi Break", 1, 1..8, 1, { page == Page.BEHAVIOR })
+    private val maxBreaks by setting("Multi Break", 5, 1..8, 1, { page == Page.BEHAVIOR })
     private val taskTimeout by setting("Task Timeout", 5, 0..20, 1, { page == Page.BEHAVIOR })
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 5.4f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
