@@ -159,10 +159,13 @@ internal object HighwayTools : Module(
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
     private var startTime = 0L
+    private var runtimeMilliSeconds = 0
     private var prevFood = 0
     private var foodLoss = 1
     private var materialLeft = 0
     private var fillerMatLeft = 0
+    private var lastDurability = 0
+    private var durabilityUsages = 0
 
     private val renderer = ESPRenderer()
 
@@ -313,6 +316,8 @@ internal object HighwayTools : Module(
             if (!active) {
                 active = true
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
+            } else {
+                runtimeMilliSeconds += 50
             }
 
             doPathing()
@@ -652,7 +657,7 @@ internal object HighwayTools : Module(
                 doBreaking(blockTask, updateOnly)
             }
             TaskState.BROKEN -> {
-                doBroken(blockTask, updateOnly)
+                doBroken(blockTask)
             }
             TaskState.PLACED -> {
                 doPlaced(blockTask)
@@ -708,7 +713,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun SafeClientEvent.doBroken(blockTask: BlockTask, updateOnly: Boolean) {
+    private fun SafeClientEvent.doBroken(blockTask: BlockTask) {
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 totalBlocksDestroyed++
@@ -1067,7 +1072,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    private suspend fun sendMiningPackets(pos: BlockPos, side: EnumFacing) {
+    private fun sendMiningPackets(pos: BlockPos, side: EnumFacing) {
         onMainThreadSafe {
             connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
             connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
@@ -1096,21 +1101,6 @@ internal object HighwayTools : Module(
         }
     }
 
-    // ToDo: Update to new dynamic blueprint
-    private fun getBlueprintStats(): Pair<Int, Int> {
-        var materialUsed = 0
-        var fillerMatUsed = 0
-
-        for ((_, b) in blueprint) {
-            when (b) {
-                material -> materialUsed++
-                fillerMat -> fillerMatUsed++
-            }
-        }
-
-        return Pair(materialUsed / 2, fillerMatUsed / 2)
-    }
-
     fun SafeClientEvent.gatherStatistics(): List<String> {
         val currentTask = if (sortedTasks.isNotEmpty()) {
             sortedTasks[0]
@@ -1118,26 +1108,31 @@ internal object HighwayTools : Module(
             null
         }
 
+        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + 1
+
         materialLeft = player.allSlots.countBlock(material)
         fillerMatLeft = player.allSlots.countBlock(fillerMat)
         val indirectMaterialLeft = 8 * player.allSlots.countBlock(Blocks.ENDER_CHEST)
 
-        val blueprintStats = getBlueprintStats()
+        val pavingLeft = materialLeft / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
 
-        val pavingLeft = materialLeft / (blueprintStats.first + 1)
-        val pavingLeftAll = (materialLeft + indirectMaterialLeft) / (blueprintStats.first + 1)
+        // ToDo: Cache shulker count
+        val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
 
-        val runtimeSec = ((System.currentTimeMillis() - startTime) / 1000) + 0.0001
+        val runtimeSec = (runtimeMilliSeconds / 1000) + 0.0001
         val seconds = (runtimeSec % 60).toInt().toString().padStart(2, '0')
         val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
         val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
 
-        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt()
+        val secLeftRefillInv = pavingLeft / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
+        val secondsLeftRefillInv = (secLeftRefillInv % 60).toInt().toString().padStart(2, '0')
+        val minutesLeftRefillInv = ((secLeftRefillInv % 3600) / 60).toInt().toString().padStart(2, '0')
+        val hoursLeftRefillInv = (secLeftRefillInv / 3600).toInt().toString().padStart(2, '0')
 
-        val secLeft = runtimeSec / (distanceDone * pavingLeftAll + 0.0001)
-        val secondsLeft = (secLeft % 60).toInt().toString().padStart(2, '0')
-        val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2, '0')
-        val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2, '0')
+        val secLeftRefillShulker = pavingLeftAll / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
+        val secondsLeftRefillShulker = (secLeftRefillShulker % 60).toInt().toString().padStart(2, '0')
+        val minutesLeftRefillShulker = ((secLeftRefillShulker % 3600) / 60).toInt().toString().padStart(2, '0')
+        val hoursLeftRefillShulker = (secLeftRefillShulker / 3600).toInt().toString().padStart(2, '0')
 
         val statistics = mutableListOf(
             "§rPerformance",
@@ -1157,15 +1152,16 @@ internal object HighwayTools : Module(
             "    §7Status: §9${currentTask?.taskState}",
             "    §7Target state: §9${currentTask?.block?.localizedName}",
             "    §7Position: §9(${currentTask?.blockPos?.asString()})",
-            "§rDebug",
             "    §7Stuck ticks: §9${currentTask?.stuckTicks.toString()}",
-//            "    §7Pathing: §9$pathing",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
             "    §7${fillerMat.localizedName} (filler material): §9$fillerMatLeft",
-//            "    §7Paving distance left: §9$pavingLeftAll",
-//            "    §7Estimated destination: §9(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft))})",
-//            "    §7ETA: §9$hoursLeft:$minutesLeft:$secondsLeft"
+            "    §7Paving distance left: §9${pavingLeftAll.toInt()}",
+            "    §7Paving distance left till refill: §9${pavingLeft.toInt()}",
+            "    §7Estimated refill position: §9(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})",
+            "    §7Estimated destination: §9(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeftAll.toInt())).asString()})",
+            "    §7ETA for inventory refill: §9$hoursLeftRefillInv:$minutesLeftRefillInv:$secondsLeftRefillInv",
+            "    §7ETA for shulker refill: §9$hoursLeftRefillShulker:$minutesLeftRefillShulker:$secondsLeftRefillShulker"
         )
 
         if (printDebug) {
