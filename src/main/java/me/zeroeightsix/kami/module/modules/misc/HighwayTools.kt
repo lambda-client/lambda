@@ -77,15 +77,16 @@ internal object HighwayTools : Module(
 
     // behavior settings
     private val interacting by setting("Rotation Mode", RotationMode.SPOOF, { page == Page.BEHAVIOR })
+    private val dynamicDelay by setting("Dynamic Place Delay", true, { page == Page.BEHAVIOR })
+    private var placeDelay by setting("Place Delay", 3, 1..20, 1, { page == Page.BEHAVIOR })
+    private var breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR })
+    private val maxBreaks by setting("Multi Break", 3, 1..8, 1, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR })
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR })
-    private val placeDelay by setting("Place Delay", 2, 1..20, 1, { page == Page.BEHAVIOR })
-    private val breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
-    private val maxBreaks by setting("Multi Break", 5, 1..8, 1, { page == Page.BEHAVIOR })
-    private val taskTimeout by setting("Task Timeout", 5, 0..20, 1, { page == Page.BEHAVIOR })
+    private val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR })
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR })
-    private val maxReach by setting("MaxReach", 5.4f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
+    private val maxReach by setting("MaxReach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
 
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG })
@@ -141,6 +142,7 @@ internal object HighwayTools : Module(
     private val rubberbandTimer = TickTimer(TimeUnit.TICKS)
     private var active = false
     private var waitTicks = 0
+    private var extraPlaceDelay = 0
 
     // Rotation
     private var lastHitVec = Vec3d.ZERO
@@ -158,7 +160,6 @@ internal object HighwayTools : Module(
     // Stats
     private var totalBlocksPlaced = 0
     private var totalBlocksDestroyed = 0
-    private var startTime = 0L
     private var runtimeMilliSeconds = 0
     private var prevFood = 0
     private var foodLoss = 1
@@ -190,7 +191,6 @@ internal object HighwayTools : Module(
                 currentBlockPos = startingBlockPos
                 startingDirection = Direction.fromEntity(Companion.mc.player)
 
-                startTime = System.currentTimeMillis()
                 totalBlocksPlaced = 0
                 totalBlocksDestroyed = 0
 
@@ -305,11 +305,9 @@ internal object HighwayTools : Module(
             updateRenderer()
             updateFood()
 
-            if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false)) {
-                return@safeListener
-            }
-
-            if (player.flooredPosition.distanceTo(currentBlockPos) > 2 || AutoObsidian.isActive() || AutoEat.eating) {
+            if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
+                AutoObsidian.isActive() ||
+                AutoEat.eating) {
                 return@safeListener
             }
 
@@ -439,7 +437,7 @@ internal object HighwayTools : Module(
         val eyePos = player.getPositionEyes(1f)
 
         blueprint.keys.removeIf {
-            eyePos.distanceTo(it) > maxReach - 0.7
+            eyePos.distanceTo(it) > maxReach - 0.3
         }
     }
 
@@ -619,7 +617,7 @@ internal object HighwayTools : Module(
             }
         )
 
-        // ToDo: We need a function that makes a score out of all parameters
+        // ToDo: We need a function that makes a score out of last 3 parameters
     }
 
     private fun SafeClientEvent.checkStuckTimeout(blockTask: BlockTask): Boolean {
@@ -637,6 +635,9 @@ internal object HighwayTools : Module(
                     if (debugMessages != DebugMessages.OFF) {
                         MessageSendHelper.sendChatMessage("Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
                     }
+
+                    if (dynamicDelay && blockTask.taskState == TaskState.PLACE && extraPlaceDelay < 10) extraPlaceDelay += 1
+
                     refreshData()
                     return false
                 }
@@ -739,12 +740,15 @@ internal object HighwayTools : Module(
 
         when {
             blockTask.block == currentBlock && currentBlock != Blocks.AIR -> {
+                totalBlocksPlaced++
+
+                if (dynamicDelay && extraPlaceDelay > 0) extraPlaceDelay -= 1
+
                 blockTask.updateState(TaskState.DONE)
                 if (fakeSounds) {
                     val soundType = currentBlock.getSoundType(world.getBlockState(blockTask.blockPos), world, blockTask.blockPos, player)
                     world.playSound(player, blockTask.blockPos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
                 }
-                totalBlocksPlaced++
             }
             blockTask.block == currentBlock && currentBlock == Blocks.AIR -> {
                 blockTask.updateState(TaskState.BREAK)
@@ -760,7 +764,7 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.doBreak(blockTask: BlockTask, updateOnly: Boolean) {
         // ignore blocks
-        if (blockTask.block != Blocks.AIR && ignoreBlocks.contains(blockTask.block)) {
+        if (ignoreBlocks.contains(world.getBlockState(blockTask.blockPos).block)) {
             blockTask.updateState(TaskState.DONE)
         }
 
@@ -879,7 +883,7 @@ internal object HighwayTools : Module(
         val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
         val currentBlock = world.getBlockState(pair.second).block
 
-        waitTicks = placeDelay
+        waitTicks = placeDelay + extraPlaceDelay
         blockTask.updateState(TaskState.PENDING_PLACED)
 
         if (currentBlock in blackList) {
@@ -904,6 +908,7 @@ internal object HighwayTools : Module(
             delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_PLACED) {
                 blockTask.updateState(TaskState.PLACE)
+                if (dynamicDelay && extraPlaceDelay < 10) extraPlaceDelay += 1
             }
         }
     }
@@ -1148,6 +1153,7 @@ internal object HighwayTools : Module(
             "    §7Blocks placed: §9$totalBlocksPlaced".padStart(6, '0'),
             "    §7Material: §9${material.localizedName}",
             "    §7Filler: §9${fillerMat.localizedName}",
+            "    §7Delays: §9Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)",
             "§rTask",
             "    §7Status: §9${currentTask?.taskState}",
             "    §7Target state: §9${currentTask?.block?.localizedName}",
@@ -1181,7 +1187,7 @@ internal object HighwayTools : Module(
     }
 
     private fun addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
-        for (blockTask in tasks) list.add("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold}, Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
+        for (blockTask in tasks) list.add("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold} Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
     }
 
     class BlockTask(
@@ -1237,8 +1243,8 @@ internal object HighwayTools : Module(
         DONE(69420, 0x22, ColorHolder(50, 50, 50)),
         BROKEN(1000, 1000, ColorHolder(111, 0, 0)),
         PLACED(1000, 1000, ColorHolder(53, 222, 66)),
-        LIQUID_SOURCE(100, 100, ColorHolder(120, 41, 240)),
-        LIQUID_FLOW(80, 80, ColorHolder(120, 41, 240)),
+        LIQUID_SOURCE(100, 100, ColorHolder(114, 27, 255)),
+        LIQUID_FLOW(100, 100, ColorHolder(68, 27, 255)),
         BREAKING(100, 100, ColorHolder(240, 222, 60)),
         BREAK(20, 20, ColorHolder(222, 0, 0)),
         PLACE(20, 20, ColorHolder(35, 188, 254)),
