@@ -273,12 +273,12 @@ internal object HighwayTools : Module(
                         val task = pendingTasks[pos] ?: return@safeListener
 
                         when (task.taskState) {
-                            TaskState.PENDING_BROKEN, TaskState.BREAKING -> {
+                            TaskState.PENDING_BREAK, TaskState.BREAKING -> {
                                 if (new == Blocks.AIR) {
                                     task.updateState(TaskState.BROKEN)
                                 }
                             }
-                            TaskState.PENDING_PLACED -> {
+                            TaskState.PENDING_PLACE -> {
                                 if (task.block != Blocks.AIR && task.block == new) {
                                     task.updateState(TaskState.PLACED)
                                 }
@@ -625,10 +625,10 @@ internal object HighwayTools : Module(
 
         if (blockTask.stuckTicks > timeout) {
             when (blockTask.taskState) {
-                TaskState.PENDING_BROKEN -> {
+                TaskState.PENDING_BREAK -> {
                     blockTask.updateState(TaskState.BREAK)
                 }
-                TaskState.PENDING_PLACED -> {
+                TaskState.PENDING_PLACE -> {
                     blockTask.updateState(TaskState.PLACE)
                 }
                 else -> {
@@ -669,7 +669,7 @@ internal object HighwayTools : Module(
             TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
                 doPlace(blockTask, updateOnly)
             }
-            TaskState.PENDING_BROKEN, TaskState.PENDING_PLACED -> {
+            TaskState.PENDING_BREAK, TaskState.PENDING_PLACE -> {
                 if (!updateOnly && debugMessages == DebugMessages.ALL) {
                     MessageSendHelper.sendChatMessage("$chatName Currently waiting for blockState updates...")
                 }
@@ -884,7 +884,7 @@ internal object HighwayTools : Module(
         val currentBlock = world.getBlockState(pair.second).block
 
         waitTicks = placeDelay + extraPlaceDelay
-        blockTask.updateState(TaskState.PENDING_PLACED)
+        blockTask.updateState(TaskState.PENDING_PLACE)
 
         if (currentBlock in blackList) {
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
@@ -906,7 +906,7 @@ internal object HighwayTools : Module(
             }
 
             delay(50L * taskTimeout)
-            if (blockTask.taskState == TaskState.PENDING_PLACED) {
+            if (blockTask.taskState == TaskState.PENDING_PLACE) {
                 blockTask.updateState(TaskState.PLACE)
                 if (dynamicDelay && extraPlaceDelay < 10) extraPlaceDelay += 1
             }
@@ -1019,7 +1019,7 @@ internal object HighwayTools : Module(
 
     private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
         waitTicks = breakDelay
-        blockTask.updateState(TaskState.PENDING_BROKEN)
+        blockTask.updateState(TaskState.PENDING_BREAK)
 
         defaultScope.launch {
             delay(20L)
@@ -1030,7 +1030,7 @@ internal object HighwayTools : Module(
             }
 
             delay(50L * taskTimeout)
-            if (blockTask.taskState == TaskState.PENDING_BROKEN) {
+            if (blockTask.taskState == TaskState.PENDING_BREAK) {
                 blockTask.updateState(TaskState.BREAK)
             }
         }
@@ -1057,7 +1057,7 @@ internal object HighwayTools : Module(
                     sendMiningPackets(task.blockPos, rayTraceResult.sideHit)
 
                     delay(50L * taskTimeout)
-                    if (blockTask.taskState == TaskState.PENDING_BROKEN) {
+                    if (blockTask.taskState == TaskState.PENDING_BREAK) {
                         blockTask.updateState(TaskState.BREAK)
                     }
                 }
@@ -1155,9 +1155,9 @@ internal object HighwayTools : Module(
             "    §7Filler: §9${fillerMat.localizedName}",
             "    §7Delays: §9Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)",
             "§rTask",
-            "    §7Status: §9${currentTask?.taskState}",
-            "    §7Target state: §9${currentTask?.block?.localizedName}",
-            "    §7Position: §9(${currentTask?.blockPos?.asString()})",
+            "    §7Status: §9${currentTask?.taskState ?: "N/A"}",
+            "    §7Target state: §9${currentTask?.block?.localizedName ?: "N/A"}",
+            "    §7Position: §9(${currentTask?.blockPos?.asString() ?: "N/A"})",
             "    §7Stuck ticks: §9${currentTask?.stuckTicks.toString()}",
             "§rEstimations",
             "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
@@ -1248,8 +1248,8 @@ internal object HighwayTools : Module(
         BREAKING(100, 100, ColorHolder(240, 222, 60)),
         BREAK(20, 20, ColorHolder(222, 0, 0)),
         PLACE(20, 20, ColorHolder(35, 188, 254)),
-        PENDING_BROKEN(100, 100, ColorHolder(0, 0, 0)),
-        PENDING_PLACED(100, 100, ColorHolder(0, 0, 0))
+        PENDING_BREAK(100, 100, ColorHolder(0, 0, 0)),
+        PENDING_PLACE(100, 100, ColorHolder(0, 0, 0))
     }
 
 }
