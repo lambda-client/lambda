@@ -18,6 +18,6 @@ public interface AccessorPlayerControllerMP {
     int getCurrentPlayerItem();
 
     @Invoker("syncCurrentPlayItem")
-    void invokeSyncCurrentPlayItem();
+    void kb_invokeSyncCurrentPlayItem(); // Mixin bug #430 https://github.com/SpongePowered/Mixin/issues/430
 
 }

@@ -11,4 +11,4 @@ var PlayerControllerMP.blockHitDelay: Int
 
 val PlayerControllerMP.currentPlayerItem: Int get() = (this as AccessorPlayerControllerMP).currentPlayerItem
 
-fun PlayerControllerMP.syncCurrentPlayItem() = (this as AccessorPlayerControllerMP).invokeSyncCurrentPlayItem()
+fun PlayerControllerMP.syncCurrentPlayItem() = (this as AccessorPlayerControllerMP).kb_invokeSyncCurrentPlayItem()
