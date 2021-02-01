@@ -23,7 +23,7 @@ object WorldTime : LabelHud(
     }
 
     override fun SafeClientEvent.updateText() {
-        displayText.add("World Time: ", secondaryColor)
+        displayText.add("World Time ", secondaryColor)
 
         val ticks = getWorldTimeTicks()
 
