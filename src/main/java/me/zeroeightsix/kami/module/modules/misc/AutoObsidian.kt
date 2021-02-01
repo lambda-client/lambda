@@ -60,7 +60,7 @@ internal object AutoObsidian : Module(
     private val searchShulker by setting("SearchShulker", false)
     private val leaveEmptyShulkers by setting("LeaveEmptyShulkers", true, { searchShulker })
     private val autoRefill by setting("AutoRefill", false, { fillMode != FillMode.INFINITE })
-    private val threshold by setting("RefillThreshold", 8, 1..63, 1, { autoRefill && fillMode != FillMode.INFINITE })
+    val threshold by setting("RefillThreshold", 32, 1..63, 1, { autoRefill && fillMode != FillMode.INFINITE })
     private val targetStacks by setting("TargetStacks", 1, 1..20, 1, { fillMode == FillMode.TARGET_STACKS })
     private val delayTicks by setting("DelayTicks", 5, 0..10, 1)
     private val rotationMode by setting("RotationMode", RotationMode.SPOOF)

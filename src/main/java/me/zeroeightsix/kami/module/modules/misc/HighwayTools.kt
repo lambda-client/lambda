@@ -9,6 +9,8 @@ import me.zeroeightsix.kami.event.events.RenderWorldEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
 import me.zeroeightsix.kami.module.Category
 import me.zeroeightsix.kami.module.Module
+import me.zeroeightsix.kami.module.modules.client.Hud.primaryColor
+import me.zeroeightsix.kami.module.modules.client.Hud.secondaryColor
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
@@ -20,6 +22,7 @@ import me.zeroeightsix.kami.util.WorldUtils.getNeighbour
 import me.zeroeightsix.kami.util.WorldUtils.isPlaceable
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
+import me.zeroeightsix.kami.util.graphics.font.TextComponent
 import me.zeroeightsix.kami.util.items.*
 import me.zeroeightsix.kami.util.math.*
 import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
@@ -35,12 +38,14 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
+import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketPlayerPosLook
+import net.minecraft.network.play.server.SPacketSetSlot
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
@@ -88,6 +93,13 @@ internal object HighwayTools : Module(
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR })
     private val maxReach by setting("MaxReach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR })
 
+    // stats
+    private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS })
+    private val showPerformance by setting("Show Performance", true, { page == Page.STATS })
+    private val showEnvironment by setting("Show Environment", true, { page == Page.STATS })
+    private val showTask by setting("Show Task", true, { page == Page.STATS })
+    private val showEstimations by setting("Show Estimations", true, { page == Page.STATS })
+
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG })
     private val info by setting("Show Info", true, { page == Page.CONFIG })
@@ -104,7 +116,7 @@ internal object HighwayTools : Module(
     }
 
     private enum class Page {
-        BUILD, BEHAVIOR, CONFIG
+        BUILD, BEHAVIOR, STATS, CONFIG
     }
 
     @Suppress("UNUSED")
@@ -165,7 +177,7 @@ internal object HighwayTools : Module(
     private var foodLoss = 1
     private var materialLeft = 0
     private var fillerMatLeft = 0
-    private var lastDurability = 0
+    private var lastToolDamage = 0
     private var durabilityUsages = 0
 
     private val renderer = ESPRenderer()
@@ -235,18 +247,20 @@ internal object HighwayTools : Module(
         if (info) {
             MessageSendHelper.sendRawChatMessage("    §9> §7Direction: §a${startingDirection.displayName}§r")
 
-            if (startingDirection.isDiagonal) {
-                MessageSendHelper.sendRawChatMessage("    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
-            } else {
-                if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
-                    MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.x}§r")
+            if (!anonymizeStats) {
+                if (startingDirection.isDiagonal) {
+                    MessageSendHelper.sendRawChatMessage("    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
                 } else {
-                    MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.z}§r")
+                    if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
+                        MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.x}§r")
+                    } else {
+                        MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.z}§r")
+                    }
                 }
             }
 
-            if (startingBlockPos.y in 117..119 && mode != Mode.TUNNEL) {
-                MessageSendHelper.sendRawChatMessage("    §9> §cCheck coordinate Y / altitude and make sure to move around Y 120 for the correct height")
+            if (startingBlockPos.y != 120 && mode != Mode.TUNNEL) {
+                MessageSendHelper.sendRawChatMessage("    §9> §cCheck altitude and make sure to build at Y 120 for the correct height")
             }
         }
     }
@@ -291,6 +305,13 @@ internal object HighwayTools : Module(
                 }
                 is SPacketPlayerPosLook -> {
                     rubberbandTimer.reset()
+                }
+                is SPacketSetSlot -> {
+                    val currentToolDamage = it.packet.stack.itemDamage
+                    if (lastToolDamage < currentToolDamage) {
+                        durabilityUsages += currentToolDamage - lastToolDamage
+                        lastToolDamage = it.packet.stack.itemDamage
+                    }
                 }
             }
         }
@@ -633,7 +654,11 @@ internal object HighwayTools : Module(
                 }
                 else -> {
                     if (debugMessages != DebugMessages.OFF) {
-                        MessageSendHelper.sendChatMessage("Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
+                        if (!anonymizeStats) {
+                            MessageSendHelper.sendChatMessage("Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
+                        } else {
+                            MessageSendHelper.sendChatMessage("Stuck while ${blockTask.taskState} for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
+                        }
                     }
 
                     if (dynamicDelay && blockTask.taskState == TaskState.PLACE && extraPlaceDelay < 10) extraPlaceDelay += 1
@@ -864,7 +889,11 @@ internal object HighwayTools : Module(
             ?: run {
                 if (illegalPlacements) {
                     if (debugMessages == DebugMessages.ALL) {
-                        MessageSendHelper.sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                        if (!anonymizeStats) {
+                            MessageSendHelper.sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
+                        } else {
+                            MessageSendHelper.sendChatMessage("Trying to place through wall")
+                        }
                     }
                     getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
                 } else {
@@ -913,8 +942,8 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask): Boolean {
-        val slotFrom = player.inventorySlots.asReversed().maxByOrNull {
+    private fun SafeClientEvent.getBestTool(blockTask: BlockTask): Slot? {
+        return player.inventorySlots.asReversed().maxByOrNull {
             val stack = it.stack
             if (stack.isEmpty) {
                 0.0f
@@ -931,6 +960,10 @@ internal object HighwayTools : Module(
                 speed
             }
         }
+    }
+
+    private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask): Boolean {
+        val slotFrom = getBestTool(blockTask)
 
         return if (slotFrom != null) {
             slotFrom.toHotbarSlotOrNull()?.let {
@@ -1106,7 +1139,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    fun SafeClientEvent.gatherStatistics(): List<String> {
+    fun SafeClientEvent.gatherStatistics(displayText: TextComponent) {
         val currentTask = if (sortedTasks.isNotEmpty()) {
             sortedTasks[0]
         } else {
@@ -1122,72 +1155,87 @@ internal object HighwayTools : Module(
         val pavingLeft = materialLeft / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
 
         // ToDo: Cache shulker count
-        val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
+//        val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
 
         val runtimeSec = (runtimeMilliSeconds / 1000) + 0.0001
         val seconds = (runtimeSec % 60).toInt().toString().padStart(2, '0')
         val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
         val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
 
-        val secLeftRefillInv = pavingLeft / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
+        val secLeftRefillInv = (pavingLeft - AutoObsidian.threshold) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
         val secondsLeftRefillInv = (secLeftRefillInv % 60).toInt().toString().padStart(2, '0')
         val minutesLeftRefillInv = ((secLeftRefillInv % 3600) / 60).toInt().toString().padStart(2, '0')
         val hoursLeftRefillInv = (secLeftRefillInv / 3600).toInt().toString().padStart(2, '0')
 
-        val secLeftRefillShulker = pavingLeftAll / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
-        val secondsLeftRefillShulker = (secLeftRefillShulker % 60).toInt().toString().padStart(2, '0')
-        val minutesLeftRefillShulker = ((secLeftRefillShulker % 3600) / 60).toInt().toString().padStart(2, '0')
-        val hoursLeftRefillShulker = (secLeftRefillShulker / 3600).toInt().toString().padStart(2, '0')
-
-        val statistics = mutableListOf(
-            "§rPerformance",
-            "    §7Runtime: §9$hours:$minutes:$seconds",
-            "    §7Placements per second: §9%.2f".format(totalBlocksPlaced / runtimeSec),
-            "    §7Breaks per second: §9%.2f".format(totalBlocksDestroyed / runtimeSec),
-            "    §7Distance per hour: §9%.2f".format((startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec) * 60 * 60),
-            "    §7One food loss per §9${totalBlocksDestroyed / foodLoss}§7 blocks mined",
-            "§rEnvironment",
-            "    §7Starting coordinates: §9(${startingBlockPos.asString()})",
-            "    §7Direction: §9${startingDirection.displayName}",
-            "    §7Blocks destroyed: §9$totalBlocksDestroyed".padStart(6, '0'),
-            "    §7Blocks placed: §9$totalBlocksPlaced".padStart(6, '0'),
-            "    §7Material: §9${material.localizedName}",
-            "    §7Filler: §9${fillerMat.localizedName}",
-            "    §7Delays: §9Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)",
-            "§rTask",
-            "    §7Status: §9${currentTask?.taskState ?: "N/A"}",
-            "    §7Target state: §9${currentTask?.block?.localizedName ?: "N/A"}",
-            "    §7Position: §9(${currentTask?.blockPos?.asString() ?: "N/A"})",
-            "    §7Stuck ticks: §9${currentTask?.stuckTicks.toString()}",
-            "§rEstimations",
-            "    §7${material.localizedName} (main material): §9$materialLeft + ($indirectMaterialLeft)",
-            "    §7${fillerMat.localizedName} (filler material): §9$fillerMatLeft",
-            "    §7Paving distance left: §9${pavingLeftAll.toInt()}",
-            "    §7Paving distance left till refill: §9${pavingLeft.toInt()}",
-            "    §7Estimated refill position: §9(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})",
-            "    §7Estimated destination: §9(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeftAll.toInt())).asString()})",
-            "    §7ETA for inventory refill: §9$hoursLeftRefillInv:$minutesLeftRefillInv:$secondsLeftRefillInv",
-            "    §7ETA for shulker refill: §9$hoursLeftRefillShulker:$minutesLeftRefillShulker:$secondsLeftRefillShulker"
-        )
-
-        if (printDebug) {
-            statistics.addAll(getQueue())
+        if (showPerformance) {
+            displayText.addLine("Performance", primaryColor)
+            displayText.add("    Runtime:", primaryColor)
+            displayText.addLine("$hours:$minutes:$seconds", secondaryColor)
+            displayText.add("    Placements / s:", primaryColor)
+            displayText.addLine("%.2f".format(totalBlocksPlaced / runtimeSec), secondaryColor)
+            displayText.add("    Breaks / s:", primaryColor)
+            displayText.addLine("%.2f".format(totalBlocksDestroyed / runtimeSec), secondaryColor)
+            displayText.add("    Distance / h:", primaryColor)
+            displayText.addLine("%.2f".format(startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec * 60 * 60), secondaryColor)
+            displayText.add("    Food level loss / h:", primaryColor)
+            displayText.addLine("%.2f".format(totalBlocksDestroyed / foodLoss.toDouble()), secondaryColor)
+            displayText.add("    Pickaxes / h:", primaryColor)
+            displayText.addLine("%.2f".format((durabilityUsages / runtimeSec) * 60 * 60 / 1561), secondaryColor)
         }
 
-        return statistics
+        if (showEnvironment) {
+            displayText.addLine("Environment", primaryColor)
+            if (!anonymizeStats) displayText.add("    Starting coordinates:", primaryColor)
+            if (!anonymizeStats) displayText.addLine("(${startingBlockPos.asString()})", secondaryColor)
+            displayText.add("    Direction:", primaryColor)
+            displayText.addLine(startingDirection.displayName, secondaryColor)
+            displayText.add("    Blocks placed / destroyed:", primaryColor)
+            displayText.addLine("$totalBlocksDestroyed".padStart(6, '0') + " / $totalBlocksPlaced".padStart(6, '0'), secondaryColor)
+            displayText.add("    Materials:", primaryColor)
+            displayText.addLine("Main(${material.localizedName}) Filler(${fillerMat.localizedName})", secondaryColor)
+            displayText.add("    Delays:", primaryColor)
+            displayText.addLine("Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)", secondaryColor)
+        }
+
+        if (showTask && currentTask != null) {
+            displayText.addLine("Task", primaryColor)
+            displayText.add("    Status:", primaryColor)
+            displayText.addLine("${currentTask.taskState}", secondaryColor)
+            displayText.add("    Target block:", primaryColor)
+            displayText.addLine(currentTask.block.localizedName, secondaryColor)
+            if (!anonymizeStats) displayText.add("    Position:", primaryColor)
+            if (!anonymizeStats) displayText.addLine(currentTask.blockPos.asString(), secondaryColor)
+            displayText.add("    Ticks stuck:", primaryColor)
+            displayText.addLine("${currentTask.stuckTicks}", secondaryColor)
+        }
+
+        if (showEstimations && mode == Mode.HIGHWAY) {
+            displayText.addLine("Estimations", primaryColor)
+            displayText.add("    ${material.localizedName}:", primaryColor)
+            displayText.addLine("Direct($materialLeft) Indirect($indirectMaterialLeft)", secondaryColor)
+            displayText.add("    ${fillerMat.localizedName}:", primaryColor)
+            displayText.addLine("$fillerMatLeft", secondaryColor)
+            displayText.add("    Distance left:", primaryColor)
+            displayText.addLine("${pavingLeft.toInt()}", secondaryColor)
+            displayText.add("    Destination:", primaryColor)
+            displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})", secondaryColor)
+            displayText.add("    ETA:", primaryColor)
+            displayText.addLine("$hoursLeftRefillInv:$minutesLeftRefillInv:$secondsLeftRefillInv", secondaryColor)
+        }
+
+//        MessageSendHelper.sendChatMessage(StatList.MINE_BLOCK_STATS.toString())
+
+        if (printDebug) {
+            displayText.addLine("Pending", primaryColor)
+            addTaskComponentList(displayText, sortedTasks)
+
+            displayText.addLine("Done", primaryColor)
+            addTaskComponentList(displayText, doneTasks.values)
+        }
     }
 
-    private fun getQueue(): List<String> {
-        val message = ArrayList<String>()
-        message.add("Pending Tasks:")
-        addTaskToMessageList(message, sortedTasks)
-        message.add("Done Tasks:")
-        addTaskToMessageList(message, doneTasks.values)
-        return message
-    }
-
-    private fun addTaskToMessageList(list: ArrayList<String>, tasks: Collection<BlockTask>) {
-        for (blockTask in tasks) list.add("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold} Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
+    private fun addTaskComponentList(displayText: TextComponent, tasks: Collection<BlockTask>) {
+        for (blockTask in tasks) displayText.add("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold} Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
     }
 
     class BlockTask(

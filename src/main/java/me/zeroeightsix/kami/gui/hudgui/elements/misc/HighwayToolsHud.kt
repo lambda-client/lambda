@@ -10,9 +10,6 @@ object HighwayToolsHud : LabelHud(
     description = "Hud for HighwayTools module"
 ) {
     override fun SafeClientEvent.updateText() {
-        val list = gatherStatistics()
-        for (line in list) {
-            displayText.addLine(line)
-        }
+        gatherStatistics(displayText)
     }
 }
