@@ -1186,7 +1186,7 @@ internal object HighwayTools : Module(
             null
         }
 
-        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + 1
+        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + totalDistance + 1
 
         materialLeft = player.allSlots.countBlock(material)
         fillerMatLeft = player.allSlots.countBlock(fillerMat)
@@ -1202,7 +1202,7 @@ internal object HighwayTools : Module(
         val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
         val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
 
-        val secLeftRefillInv = (pavingLeft - AutoObsidian.threshold) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
+        val secLeftRefillInv = (pavingLeft - AutoObsidian.threshold).coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
         val secondsLeftRefillInv = (secLeftRefillInv % 60).toInt().toString().padStart(2, '0')
         val minutesLeftRefillInv = ((secLeftRefillInv % 3600) / 60).toInt().toString().padStart(2, '0')
         val hoursLeftRefillInv = (secLeftRefillInv / 3600).toInt().toString().padStart(2, '0')
@@ -1263,8 +1263,8 @@ internal object HighwayTools : Module(
             displayText.addLine("$fillerMatLeft", secondaryColor)
             displayText.add("    Distance left:", primaryColor)
             displayText.addLine("${pavingLeft.toInt()}", secondaryColor)
-            displayText.add("    Destination:", primaryColor)
-            displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})", secondaryColor)
+            if (!anonymizeStats) displayText.add("    Destination:", primaryColor)
+            if (!anonymizeStats) displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})", secondaryColor)
             displayText.add("    ETA:", primaryColor)
             displayText.addLine("$hoursLeftRefillInv:$minutesLeftRefillInv:$secondsLeftRefillInv", secondaryColor)
         }
