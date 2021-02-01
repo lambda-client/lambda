@@ -855,7 +855,13 @@ internal object HighwayTools : Module(
 
         if (!updateOnly) {
             if (!isPlaceable(blockTask.blockPos)) {
-                if (debugMessages != DebugMessages.OFF) MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
+                if (debugMessages != DebugMessages.OFF) {
+                    if (!anonymizeStats) {
+                        MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
+                    } else {
+                        MessageSendHelper.sendChatMessage("Invalid place position. Removing task")
+                    }
+                }
                 pendingTasks.remove(blockTask.blockPos)
                 return
             }
@@ -1190,7 +1196,7 @@ internal object HighwayTools : Module(
             displayText.add("    Direction:", primaryColor)
             displayText.addLine(startingDirection.displayName, secondaryColor)
             displayText.add("    Blocks placed / destroyed:", primaryColor)
-            displayText.addLine("$totalBlocksDestroyed".padStart(6, '0') + " / $totalBlocksPlaced".padStart(6, '0'), secondaryColor)
+            displayText.addLine("$totalBlocksDestroyed".padStart(6, '0') + " / " + "$totalBlocksPlaced".padStart(6, '0'), secondaryColor)
             displayText.add("    Materials:", primaryColor)
             displayText.addLine("Main(${material.localizedName}) Filler(${fillerMat.localizedName})", secondaryColor)
             displayText.add("    Delays:", primaryColor)
