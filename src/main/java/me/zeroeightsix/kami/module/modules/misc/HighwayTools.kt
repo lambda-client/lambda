@@ -348,6 +348,9 @@ internal object HighwayTools : Module(
                 while (rollingAveragePlaces.isNotEmpty() && System.currentTimeMillis() - rollingAveragePlaces.first() > 1000L * rollingAverageRange) {
                     rollingAveragePlaces.removeFirst()
                 }
+                while (rollingAverageBreaks.isNotEmpty() && System.currentTimeMillis() - rollingAverageBreaks.first() > 1000L * rollingAverageRange) {
+                    rollingAverageBreaks.removeFirst()
+                }
             }
 
             doPathing()
