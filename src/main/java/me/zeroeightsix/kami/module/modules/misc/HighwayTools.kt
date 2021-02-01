@@ -14,6 +14,7 @@ import me.zeroeightsix.kami.module.modules.client.Hud.secondaryColor
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
+import me.zeroeightsix.kami.setting.settings.impl.collection.CollectionSetting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.blackList
@@ -67,10 +68,22 @@ internal object HighwayTools : Module(
     name = "HighwayTools",
     description = "Be the grief a step a head.",
     category = Category.MISC,
+    alias = arrayOf("HT", "HWT"),
     modulePriority = 10
 ) {
     private val mode by setting("Mode", Mode.HIGHWAY)
     private val page by setting("Page", Page.BUILD)
+
+    val defaultIgnoreList = hashSetOf(
+        Blocks.STANDING_SIGN,
+        Blocks.WALL_SIGN,
+        Blocks.STANDING_BANNER,
+        Blocks.WALL_BANNER,
+        Blocks.BEDROCK,
+        Blocks.END_PORTAL,
+        Blocks.END_PORTAL_FRAME,
+        Blocks.PORTAL
+    )
 
     // build settings
     private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY })
@@ -99,6 +112,7 @@ internal object HighwayTools : Module(
     private val showEnvironment by setting("Show Environment", true, { page == Page.STATS })
     private val showTask by setting("Show Task", true, { page == Page.STATS })
     private val showEstimations by setting("Show Estimations", true, { page == Page.STATS })
+    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreList, { false }))
 
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG })
@@ -129,16 +143,6 @@ internal object HighwayTools : Module(
     }
 
     // internal settings
-    val ignoreBlocks = hashSetOf(
-        Blocks.STANDING_SIGN,
-        Blocks.WALL_SIGN,
-        Blocks.STANDING_BANNER,
-        Blocks.WALL_BANNER,
-        Blocks.BEDROCK,
-        Blocks.END_PORTAL,
-        Blocks.END_PORTAL_FRAME,
-        Blocks.PORTAL
-    )
     var material: Block = Blocks.OBSIDIAN
     var fillerMat: Block = Blocks.NETHERRACK
     private var baritoneSettingAllowPlace = false
@@ -202,9 +206,6 @@ internal object HighwayTools : Module(
                 startingBlockPos = player.flooredPosition
                 currentBlockPos = startingBlockPos
                 startingDirection = Direction.fromEntity(Companion.mc.player)
-
-                totalBlocksPlaced = 0
-                totalBlocksDestroyed = 0
 
                 baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
                 BaritoneUtils.settings?.allowPlace?.value = false
@@ -329,7 +330,8 @@ internal object HighwayTools : Module(
             if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
                 AutoObsidian.isActive() ||
                 AutoEat.eating) {
-                return@safeListener
+                    refreshData()
+                    return@safeListener
             }
 
             if (!active) {
@@ -1135,11 +1137,11 @@ internal object HighwayTools : Module(
     fun printSettings() {
         StringBuilder(ignoreBlocks.size + 1).run {
             append("$chatName Settings" +
-                "\n    §9> §rMain material: §7${material.localizedName}" +
-                "\n    §9> §rFiller material: §7${fillerMat.localizedName}" +
-                "\n    §9> §rIgnored Blocks:")
+                "\n §9> §rMain material: §7${material.localizedName}" +
+                "\n §9> §rFiller material: §7${fillerMat.localizedName}" +
+                "\n §9> §rIgnored Blocks:")
 
-            for (b in ignoreBlocks) append("\n        §9> §7${b.registryName}")
+            for (b in ignoreBlocks) append("\n     §9> §7${b.registryName}")
 
             MessageSendHelper.sendChatMessage(toString())
         }
@@ -1191,7 +1193,7 @@ internal object HighwayTools : Module(
 
         if (showEnvironment) {
             displayText.addLine("Environment", primaryColor)
-            if (!anonymizeStats) displayText.add("    Starting coordinates:", primaryColor)
+            if (!anonymizeStats) displayText.add("    Start:", primaryColor)
             if (!anonymizeStats) displayText.addLine("(${startingBlockPos.asString()})", secondaryColor)
             displayText.add("    Direction:", primaryColor)
             displayText.addLine(startingDirection.displayName, secondaryColor)
@@ -1210,13 +1212,13 @@ internal object HighwayTools : Module(
             displayText.add("    Target block:", primaryColor)
             displayText.addLine(currentTask.block.localizedName, secondaryColor)
             if (!anonymizeStats) displayText.add("    Position:", primaryColor)
-            if (!anonymizeStats) displayText.addLine(currentTask.blockPos.asString(), secondaryColor)
+            if (!anonymizeStats) displayText.addLine("(${currentTask.blockPos.asString()})", secondaryColor)
             displayText.add("    Ticks stuck:", primaryColor)
             displayText.addLine("${currentTask.stuckTicks}", secondaryColor)
         }
 
         if (showEstimations && mode == Mode.HIGHWAY) {
-            displayText.addLine("Estimations", primaryColor)
+            displayText.addLine("Next refill", primaryColor)
             displayText.add("    ${material.localizedName}:", primaryColor)
             displayText.addLine("Direct($materialLeft) Indirect($indirectMaterialLeft)", secondaryColor)
             displayText.add("    ${fillerMat.localizedName}:", primaryColor)
@@ -1241,7 +1243,7 @@ internal object HighwayTools : Module(
     }
 
     private fun addTaskComponentList(displayText: TextComponent, tasks: Collection<BlockTask>) {
-        for (blockTask in tasks) displayText.add("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold} Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
+        for (blockTask in tasks) displayText.addLine("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold} Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
     }
 
     class BlockTask(
