@@ -14,7 +14,6 @@ import me.zeroeightsix.kami.module.modules.client.Hud.secondaryColor
 import me.zeroeightsix.kami.module.modules.player.AutoEat
 import me.zeroeightsix.kami.module.modules.player.InventoryManager
 import me.zeroeightsix.kami.process.HighwayToolsProcess
-import me.zeroeightsix.kami.setting.settings.impl.collection.CollectionSetting
 import me.zeroeightsix.kami.util.*
 import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.blackList
@@ -59,6 +58,7 @@ import org.kamiblue.commons.extension.floorToInt
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.LinkedHashMap
+import kotlin.random.Random.Default.nextInt
 
 /**
  * @author Avanatiker
@@ -74,7 +74,7 @@ internal object HighwayTools : Module(
     private val mode by setting("Mode", Mode.HIGHWAY)
     private val page by setting("Page", Page.BUILD)
 
-    val defaultIgnoreList = hashSetOf(
+    val ignoreBlocks = hashSetOf(
         Blocks.STANDING_SIGN,
         Blocks.WALL_SIGN,
         Blocks.STANDING_BANNER,
@@ -99,6 +99,7 @@ internal object HighwayTools : Module(
     private var placeDelay by setting("Place Delay", 3, 1..20, 1, { page == Page.BEHAVIOR })
     private var breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR })
+    private val multiBuilding by setting("Multi Builder", false, { page == Page.BEHAVIOR })
     private val maxBreaks by setting("Multi Break", 3, 1..8, 1, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR })
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR })
@@ -112,7 +113,7 @@ internal object HighwayTools : Module(
     private val showEnvironment by setting("Show Environment", true, { page == Page.STATS })
     private val showTask by setting("Show Task", true, { page == Page.STATS })
     private val showEstimations by setting("Show Estimations", true, { page == Page.STATS })
-    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreList, { false }))
+//    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreList, { false }))
 
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG })
@@ -174,8 +175,11 @@ internal object HighwayTools : Module(
     var lastTask: BlockTask? = null; private set
 
     // Stats
+    private val rollingAveragePlaces = ArrayDeque<Long>()
+    private val rollingAverageBreaks = ArrayDeque<Long>()
     private var totalBlocksPlaced = 0
-    private var totalBlocksDestroyed = 0
+    private var totalBlocksBroken = 0
+    private var totalDistance = 0.0
     private var runtimeMilliSeconds = 0
     private var prevFood = 0
     private var foodLoss = 1
@@ -238,6 +242,7 @@ internal object HighwayTools : Module(
                 active = false
                 goal = null
                 lastTask = null
+                totalDistance += startingBlockPos.distanceTo(currentBlockPos)
 
                 printDisable()
             }
@@ -269,7 +274,7 @@ internal object HighwayTools : Module(
     private fun printDisable() {
         if (info) {
             MessageSendHelper.sendRawChatMessage("    §9> §7Placed blocks: §a$totalBlocksPlaced§r")
-            MessageSendHelper.sendRawChatMessage("    §9> §7Destroyed blocks: §a$totalBlocksDestroyed§r")
+            MessageSendHelper.sendRawChatMessage("    §9> §7Destroyed blocks: §a$totalBlocksBroken§r")
             MessageSendHelper.sendRawChatMessage("    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
         }
     }
@@ -309,7 +314,7 @@ internal object HighwayTools : Module(
                 }
                 is SPacketSetSlot -> {
                     val currentToolDamage = it.packet.stack.itemDamage
-                    if (lastToolDamage < currentToolDamage) {
+                    if (lastToolDamage < currentToolDamage && currentToolDamage - lastToolDamage < 100) {
                         durabilityUsages += currentToolDamage - lastToolDamage
                         lastToolDamage = it.packet.stack.itemDamage
                     }
@@ -339,6 +344,9 @@ internal object HighwayTools : Module(
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
             } else {
                 runtimeMilliSeconds += 50
+                while (rollingAveragePlaces.isNotEmpty() && System.currentTimeMillis() - rollingAveragePlaces.first() > 60000L) {
+                    rollingAveragePlaces.removeFirst()
+                }
             }
 
             doPathing()
@@ -445,8 +453,16 @@ internal object HighwayTools : Module(
                 if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
             }
             if (mode == Mode.TUNNEL) {
-                for (x in 1..maxReach.floorToInt()) {
-                    blueprint[basePos.add(zDirection.directionVec.multiply(x))] = fillerMat
+                if (startingDirection.isDiagonal) {
+                    for (x in 1..maxReach.floorToInt()) {
+                        blueprint[basePos.add(zDirection.directionVec.multiply(x))] = fillerMat
+                    }
+                } else {
+                    for (x in 1..maxReach.floorToInt()) {
+                        val pos = basePos.add(zDirection.directionVec.multiply(x))
+                        blueprint[pos] = fillerMat
+                        blueprint[pos.add(startingDirection.clockwise(4).directionVec)] = fillerMat
+                    }
                 }
             }
 
@@ -626,21 +642,35 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.sortTasks() {
         val eyePos = mc.player.getPositionEyes(1.0f)
 
-        sortedTasks = pendingTasks.values.sortedWith(
-            compareBy<BlockTask> {
-                it.taskState.ordinal
-            }.thenBy {
-                it.stuckTicks / 5
-            }.thenBy {
-                startingBlockPos.distanceTo(it.blockPos).toInt() / 2
-            }.thenBy {
-                eyePos.distanceTo(it.blockPos)
-            }.thenBy {
-                lastHitVec?.distanceTo(it.blockPos)
-            }
-        )
+        if (multiBuilding) {
+            sortedTasks = pendingTasks.values.sortedWith(
+                compareBy<BlockTask> {
+                    it.taskState.ordinal
+                }.thenBy {
+                    it.stuckTicks / 5
+                }.thenBy {
+                    nextInt()
+                }
+            )
+        } else {
+            sortedTasks = pendingTasks.values.sortedWith(
+                compareBy<BlockTask> {
+                    it.taskState.ordinal
+                }.thenBy {
+                    it.stuckTicks / 5
+                }.thenBy {
+                    startingBlockPos.distanceTo(it.blockPos).toInt() / 2
+                }.thenBy {
+                    eyePos.distanceTo(it.blockPos)
+                }.thenBy {
+                    lastHitVec?.distanceTo(it.blockPos)
+                }
+            )
+        }
+
 
         // ToDo: We need a function that makes a score out of last 3 parameters
+        nextInt()
     }
 
     private fun SafeClientEvent.checkStuckTimeout(blockTask: BlockTask): Boolean {
@@ -744,7 +774,8 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.doBroken(blockTask: BlockTask) {
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
-                totalBlocksDestroyed++
+                totalBlocksBroken++
+                rollingAverageBreaks.add(System.currentTimeMillis())
 
                 if (blockTask.block == Blocks.AIR) {
                     if (fakeSounds) {
@@ -768,6 +799,7 @@ internal object HighwayTools : Module(
         when {
             blockTask.block == currentBlock && currentBlock != Blocks.AIR -> {
                 totalBlocksPlaced++
+                rollingAveragePlaces.add(System.currentTimeMillis())
 
                 if (dynamicDelay && extraPlaceDelay > 0) extraPlaceDelay -= 1
 
@@ -1179,14 +1211,20 @@ internal object HighwayTools : Module(
             displayText.addLine("Performance", primaryColor)
             displayText.add("    Runtime:", primaryColor)
             displayText.addLine("$hours:$minutes:$seconds", secondaryColor)
-            displayText.add("    Placements / s:", primaryColor)
+            displayText.addLine("    Placements / s:", primaryColor)
+            displayText.add("      Continuous:", primaryColor)
             displayText.addLine("%.2f".format(totalBlocksPlaced / runtimeSec), secondaryColor)
-            displayText.add("    Breaks / s:", primaryColor)
-            displayText.addLine("%.2f".format(totalBlocksDestroyed / runtimeSec), secondaryColor)
+            displayText.add("      Rolling average:", primaryColor)
+            displayText.addLine("%.2f".format(rollingAveragePlaces.size / 60.0), secondaryColor)
+            displayText.addLine("    Breaks / s:", primaryColor)
+            displayText.add("      Continuous:", primaryColor)
+            displayText.addLine("%.2f".format(totalBlocksBroken / runtimeSec), secondaryColor)
+            displayText.add("      Rolling average:", primaryColor)
+            displayText.addLine("%.2f".format(rollingAverageBreaks.size / 60.0), secondaryColor)
             displayText.add("    Distance / h:", primaryColor)
             displayText.addLine("%.2f".format(startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec * 60 * 60), secondaryColor)
             displayText.add("    Food level loss / h:", primaryColor)
-            displayText.addLine("%.2f".format(totalBlocksDestroyed / foodLoss.toDouble()), secondaryColor)
+            displayText.addLine("%.2f".format(totalBlocksBroken / foodLoss.toDouble()), secondaryColor)
             displayText.add("    Pickaxes / h:", primaryColor)
             displayText.addLine("%.2f".format((durabilityUsages / runtimeSec) * 60 * 60 / 1561), secondaryColor)
         }
@@ -1198,7 +1236,7 @@ internal object HighwayTools : Module(
             displayText.add("    Direction:", primaryColor)
             displayText.addLine(startingDirection.displayName, secondaryColor)
             displayText.add("    Blocks placed / destroyed:", primaryColor)
-            displayText.addLine("$totalBlocksDestroyed".padStart(6, '0') + " / " + "$totalBlocksPlaced".padStart(6, '0'), secondaryColor)
+            displayText.addLine("$totalBlocksBroken".padStart(6, '0') + " / " + "$totalBlocksPlaced".padStart(6, '0'), secondaryColor)
             displayText.add("    Materials:", primaryColor)
             displayText.addLine("Main(${material.localizedName}) Filler(${fillerMat.localizedName})", secondaryColor)
             displayText.add("    Delays:", primaryColor)
@@ -1230,6 +1268,8 @@ internal object HighwayTools : Module(
             displayText.add("    ETA:", primaryColor)
             displayText.addLine("$hoursLeftRefillInv:$minutesLeftRefillInv:$secondsLeftRefillInv", secondaryColor)
         }
+
+//        displayText.addLine("by Constructor#9948 aka Avanatiker", primaryColor)
 
 //        MessageSendHelper.sendChatMessage(StatList.MINE_BLOCK_STATS.toString())
 
