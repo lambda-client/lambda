@@ -3,10 +3,10 @@ package me.zeroeightsix.kami.gui.hudgui.elements.misc
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.event.events.RenderEvent
 import me.zeroeightsix.kami.gui.hudgui.LabelHud
-import me.zeroeightsix.kami.mixin.extension.tickLength
-import me.zeroeightsix.kami.mixin.extension.timer
 import me.zeroeightsix.kami.setting.GuiConfig.setting
-import net.minecraftforge.fml.common.gameevent.TickEvent
+import me.zeroeightsix.kami.util.TickTimer
+import me.zeroeightsix.kami.util.graphics.AnimationUtils
+import net.minecraft.client.Minecraft
 import org.kamiblue.event.listener.listener
 import kotlin.math.max
 import kotlin.math.min
@@ -22,50 +22,56 @@ object FPS : LabelHud(
     private val showMin = setting("ShowMin", false)
     private val showMax = setting("ShowMax", false)
 
-    private var fpsCounter = 0
-    private val fptList = IntArray(20)
-    private var fptIndex = 0
-    private val fpsList = IntArray(300)
-    private var fpsIndex = 0
+    private val timer = TickTimer()
+    private var prevFps = 0
+    private var currentFps = 0
+
+    private val longFps = IntArray(10)
+    private var longFpsIndex = 0
+
+    private var prevAvgFps = 0
+    private var currentAvgFps = 0
 
     init {
         listener<RenderEvent> {
-            fpsCounter++
-        }
+            if (timer.tick(1000L)) {
+                prevFps = currentFps
+                currentFps = Minecraft.getDebugFPS()
 
-        listener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.END) return@listener
-            fptList[fptIndex] = ((fpsCounter * (1000.0f / mc.timer.tickLength)).roundToInt())
-            fptIndex = (fptIndex + 1) % 20
-            fpsCounter = 0
+                longFps[longFpsIndex] = currentFps
+                longFpsIndex = (longFpsIndex + 1) % 10
+
+                prevAvgFps = currentAvgFps
+                currentAvgFps = longFps.average().roundToInt()
+            }
         }
     }
 
     override fun SafeClientEvent.updateText() {
-        val fps = fptList.average().roundToInt()
-        fpsList[fpsIndex] = fps
-        fpsIndex = (fpsIndex + 1) % 300
+        val deltaTime = AnimationUtils.toDeltaTimeFloat(timer.time) / 1000.0f
+        val fps = (prevFps + (currentFps - prevFps) * deltaTime).roundToInt()
+        val avg = (prevAvgFps + (currentAvgFps - prevAvgFps) * deltaTime).roundToInt()
 
-        var avg = 0
         var min = 6969
         var max = 0
-        for (value in fpsList) {
-            avg += value
-            if (min != 0) min = min(value, min)
+        for (value in longFps) {
+            if (value != 0) min = min(value, min)
             max = max(value, max)
         }
-        avg /= 300
 
         displayText.add("FPS", secondaryColor)
         displayText.add(fps.toString(), primaryColor)
+
         if (showAverage.value) {
             displayText.add("AVG", secondaryColor)
             displayText.add(avg.toString(), primaryColor)
         }
+
         if (showMin.value) {
             displayText.add("MIN", secondaryColor)
             displayText.add(min.toString(), primaryColor)
         }
+
         if (showMax.value) {
             displayText.add("MAX", secondaryColor)
             displayText.add(max.toString(), primaryColor)
