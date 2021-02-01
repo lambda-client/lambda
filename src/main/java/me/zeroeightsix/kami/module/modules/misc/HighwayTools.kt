@@ -74,7 +74,7 @@ internal object HighwayTools : Module(
     private val mode by setting("Mode", Mode.HIGHWAY)
     private val page by setting("Page", Page.BUILD)
 
-    val ignoreBlocks = hashSetOf(
+    val ignoreBlocks = linkedSetOf(
         Blocks.STANDING_SIGN,
         Blocks.WALL_SIGN,
         Blocks.STANDING_BANNER,
@@ -109,6 +109,7 @@ internal object HighwayTools : Module(
 
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS })
+    private val rollingAverageRange by setting("Rolling Average Seconds", 60.0f, 1.0f..3600.0f, 1.0f, { page == Page.STATS })
     private val showPerformance by setting("Show Performance", true, { page == Page.STATS })
     private val showEnvironment by setting("Show Environment", true, { page == Page.STATS })
     private val showTask by setting("Show Task", true, { page == Page.STATS })
@@ -344,7 +345,7 @@ internal object HighwayTools : Module(
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
             } else {
                 runtimeMilliSeconds += 50
-                while (rollingAveragePlaces.isNotEmpty() && System.currentTimeMillis() - rollingAveragePlaces.first() > 60000L) {
+                while (rollingAveragePlaces.isNotEmpty() && System.currentTimeMillis() - rollingAveragePlaces.first() > 1000L * rollingAverageRange) {
                     rollingAveragePlaces.removeFirst()
                 }
             }
@@ -643,13 +644,14 @@ internal object HighwayTools : Module(
         val eyePos = mc.player.getPositionEyes(1.0f)
 
         if (multiBuilding) {
+            for (task in pendingTasks.values) task.shuffle()
             sortedTasks = pendingTasks.values.sortedWith(
                 compareBy<BlockTask> {
                     it.taskState.ordinal
                 }.thenBy {
                     it.stuckTicks / 5
                 }.thenBy {
-                    nextInt()
+                    it.shuffle
                 }
             )
         } else {
@@ -1215,12 +1217,12 @@ internal object HighwayTools : Module(
             displayText.add("      Continuous:", primaryColor)
             displayText.addLine("%.2f".format(totalBlocksPlaced / runtimeSec), secondaryColor)
             displayText.add("      Rolling average:", primaryColor)
-            displayText.addLine("%.2f".format(rollingAveragePlaces.size / 60.0), secondaryColor)
+            displayText.addLine("%.2f".format(rollingAveragePlaces.size / rollingAverageRange), secondaryColor)
             displayText.addLine("    Breaks / s:", primaryColor)
             displayText.add("      Continuous:", primaryColor)
             displayText.addLine("%.2f".format(totalBlocksBroken / runtimeSec), secondaryColor)
             displayText.add("      Rolling average:", primaryColor)
-            displayText.addLine("%.2f".format(rollingAverageBreaks.size / 60.0), secondaryColor)
+            displayText.addLine("%.2f".format(rollingAverageBreaks.size / rollingAverageRange), secondaryColor)
             displayText.add("    Distance / h:", primaryColor)
             displayText.addLine("%.2f".format(startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec * 60 * 60), secondaryColor)
             displayText.add("    Food level loss / h:", primaryColor)
@@ -1293,6 +1295,7 @@ internal object HighwayTools : Module(
     ) {
         private var ranTicks = 0
         var stuckTicks = 0; private set
+        var shuffle = 0
 
         fun updateState(state: TaskState) {
             if (state == taskState) return
@@ -1317,6 +1320,10 @@ internal object HighwayTools : Module(
 
         fun onStuck() {
             stuckTicks++
+        }
+
+        fun shuffle() {
+            shuffle = nextInt(0, 1000)
         }
 
         private fun onUpdate() {
