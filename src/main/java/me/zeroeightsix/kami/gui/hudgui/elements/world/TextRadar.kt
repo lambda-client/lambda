@@ -5,9 +5,11 @@ import me.zeroeightsix.kami.gui.hudgui.LabelHud
 import me.zeroeightsix.kami.manager.managers.FriendManager
 import me.zeroeightsix.kami.module.modules.combat.AntiBot
 import me.zeroeightsix.kami.setting.GuiConfig.setting
+import me.zeroeightsix.kami.util.AsyncCachedValue
 import me.zeroeightsix.kami.util.color.ColorGradient
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.color.DyeColors
+import me.zeroeightsix.kami.util.threads.runSafeR
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
 import org.kamiblue.commons.utils.MathUtils
@@ -23,6 +25,7 @@ object TextRadar : LabelHud(
     private val combatPotion by setting("CombatPotion", true)
     private val distance by setting("Distance", true)
     private val friend by setting("Friend", true)
+    private val maxEntries by setting("Max Entries", 8, 4..32, 1)
     private val range by setting("Range", 64, 16..256, 2)
 
     private val healthColorGradient = ColorGradient(
@@ -39,23 +42,36 @@ object TextRadar : LabelHud(
         300f to ColorHolder(150, 0, 0)
     )
 
+    private val cacheList by AsyncCachedValue(50L) {
+        runSafeR {
+            val list = world.playerEntities.toList().asSequence()
+                .filter { it != null && !it.isDead && it.health > 0.0f }
+                .filter { it != player && it != mc.renderViewEntity }
+                .filter { !AntiBot.isBot(it) }
+                .filter { friend || !FriendManager.isFriend(it.name) }
+                .map { it to player.getDistance(it) }
+                .filter { it.second <= range }
+                .sortedBy { it.second }
+                .toList()
+
+            remainingEntries = list.size - maxEntries
+            list.take(maxEntries)
+        } ?: emptyList()
+    }
+    private var remainingEntries = 0
+
     override fun SafeClientEvent.updateText() {
-        world.playerEntities.asSequence()
-            .filter { it != null && !it.isDead && it.health > 0.0f }
-            .filter { it != player && it != mc.renderViewEntity }
-            .filter { !AntiBot.isBot(it) }
-            .filter { friend || !FriendManager.isFriend(it.name) }
-            .map { it to player.getDistance(it) }
-            .filter { it.second <= range }
-            .sortedBy { it.second }
-            .forEach {
-                addHealth(it.first)
-                addName(it.first)
-                addPing(it.first)
-                addPotion(it.first)
-                addDist(it.second)
-                displayText.currentLine++
-            }
+        cacheList.forEach {
+            addHealth(it.first)
+            addName(it.first)
+            addPing(it.first)
+            addPotion(it.first)
+            addDist(it.second)
+            displayText.currentLine++
+        }
+        if (remainingEntries > 0) {
+            displayText.addLine("...and $remainingEntries more")
+        }
     }
 
     private fun addHealth(player: EntityPlayer) {

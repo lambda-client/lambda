@@ -1,14 +1,15 @@
 package me.zeroeightsix.kami.gui.hudgui.elements.world
 
-import kotlinx.coroutines.launch
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.gui.hudgui.LabelHud
 import me.zeroeightsix.kami.setting.GuiConfig.setting
+import me.zeroeightsix.kami.util.AsyncCachedValue
+import me.zeroeightsix.kami.util.CachedValue
 import me.zeroeightsix.kami.util.EntityUtils.isHostile
 import me.zeroeightsix.kami.util.EntityUtils.isNeutral
 import me.zeroeightsix.kami.util.EntityUtils.isPassive
 import me.zeroeightsix.kami.util.items.originalName
-import me.zeroeightsix.kami.util.threads.defaultScope
+import me.zeroeightsix.kami.util.threads.runSafe
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.*
 import net.minecraft.entity.player.EntityPlayer
@@ -27,19 +28,13 @@ object EntityList : LabelHud(
     private val passive by setting("Passive Mobs", true)
     private val neutral by setting("Neutral Mobs", true)
     private val hostile by setting("Hostile Mobs", true)
-    private val range by setting("Range", 64, 16..128, 1)
+    private val maxEntries by setting("Max Entries", 8, 4..32, 1)
+    private val range by setting("Range", 64, 16..256, 16, fineStep = 1)
 
-    private var cacheMap: Map<String, Int> = emptyMap()
+    private val cacheMap by AsyncCachedValue(50L) {
+        val map = TreeMap<String, Int>()
 
-    override fun SafeClientEvent.updateText() {
-        for ((name, count) in cacheMap) {
-            displayText.add(name, primaryColor)
-            displayText.addLine("x$count", secondaryColor)
-        }
-
-        defaultScope.launch {
-            val map = TreeMap<String, Int>()
-
+        runSafe {
             for (entity in world.loadedEntityList.toList()) {
                 if (entity == null) continue
                 if (entity == player || entity == mc.renderViewEntity) continue
@@ -49,7 +44,7 @@ object EntityList : LabelHud(
                 if (!neutral && entity.isNeutral) continue
                 if (!hostile && entity.isHostile) continue
 
-                if (mc.player.getDistance(entity) > range) continue
+                if (player.getDistance(entity) > range) continue
 
                 val name = entity.entityListName
 
@@ -59,8 +54,20 @@ object EntityList : LabelHud(
                     map[name] = map.getOrDefault(name, 0) + 1
                 }
             }
+        }
 
-            cacheMap = map
+        remainingEntries = map.size - maxEntries
+        map.entries.take(maxEntries)
+    }
+    private var remainingEntries = 0
+
+    override fun SafeClientEvent.updateText() {
+        for ((name, count) in cacheMap) {
+            displayText.add(name, primaryColor)
+            displayText.addLine("x$count", secondaryColor)
+        }
+        if (remainingEntries > 0) {
+            displayText.addLine("...and $remainingEntries more")
         }
     }
 
