@@ -11,7 +11,7 @@ object Direction : LabelHud(
 ) {
 
     override fun SafeClientEvent.updateText() {
-        val entity = mc.renderViewEntity ?: mc.player ?: return
+        val entity = mc.renderViewEntity ?: player
         val direction = Direction.fromEntity(entity)
         displayText.add(direction.displayName, secondaryColor)
         displayText.add("(${direction.displayNameXY})", primaryColor)

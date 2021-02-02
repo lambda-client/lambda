@@ -34,7 +34,7 @@ object PlayerSpeed : LabelHud(
         averageSpeed *= speedUnit.multiplier
         averageSpeed = MathUtils.round(averageSpeed, 2)
 
-        displayText.add(averageSpeed.toString(), primaryColor)
+        displayText.add("%.2f".format(averageSpeed), primaryColor)
         displayText.add(speedUnit.displayName, secondaryColor)
     }
 
