@@ -38,8 +38,8 @@ internal object LagNotifier : Module(
     private val timeout by setting("Timeout", 3.5f, 0.0f..10.0f, 0.5f)
 
     private val pingTimer = TickTimer(TimeUnit.SECONDS)
-    private var lastPacketTimer = TickTimer()
-    private var lastRubberBandTimer = TickTimer()
+    private val lastPacketTimer = TickTimer()
+    private val lastRubberBandTimer = TickTimer()
     private var text = ""
 
     var paused = false; private set
@@ -62,14 +62,15 @@ internal object LagNotifier : Module(
         }
 
         safeListener<TickEvent.ClientTickEvent> {
-            if ((mc.currentScreen != null && mc.currentScreen !is GuiChat) || mc.isIntegratedServerRunning) {
-                if (mc.isIntegratedServerRunning) unpause()
+            if (mc.isIntegratedServerRunning) {
+                unpause()
                 text = ""
             } else {
                 val timeoutMillis = (timeout * 1000.0f).toLong()
                 when {
                     lastPacketTimer.tick(timeoutMillis, false) -> {
                         if (pingTimer.tick(1L)) WebUtils.update()
+
                         text = if (WebUtils.isInternetDown) "Your internet is offline! "
                         else "Server Not Responding! "
 
@@ -82,7 +83,6 @@ internal object LagNotifier : Module(
                     }
                     else -> {
                         unpause()
-                        mc.currentScreen
                     }
                 }
             }
@@ -91,7 +91,7 @@ internal object LagNotifier : Module(
         safeListener<PacketEvent.Receive>(2000) {
             lastPacketTimer.reset()
 
-            if (!detectRubberBand || it.packet !is SPacketPlayerPosLook) return@safeListener
+            if (!detectRubberBand || it.packet !is SPacketPlayerPosLook || player.ticksExisted < 20) return@safeListener
 
             val dist = Vec3d(it.packet.x, it.packet.y, it.packet.z).subtract(player.positionVector).length()
             val rotationDiff = Vec2f(it.packet.yaw, it.packet.pitch).minus(Vec2f(player)).length()
@@ -100,8 +100,8 @@ internal object LagNotifier : Module(
         }
 
         listener<ConnectionEvent.Connect> {
-            lastPacketTimer.reset(5000L)
-            lastRubberBandTimer.reset(5000L)
+            lastPacketTimer.reset(69420L)
+            lastRubberBandTimer.reset(-69420L)
         }
     }
 

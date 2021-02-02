@@ -9,7 +9,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import okhttp3.OkHttpClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,9 +23,9 @@ public class KamiMod {
 
     public static final String NAME = "KAMI Blue";
     public static final String ID = "kamiblue";
-    public static final String VERSION = "2.01.xx-dev"; // Used for debugging. R.MM.DD-hash format.
-    public static final String VERSION_SIMPLE = "2.01.xx-dev"; // Shown to the user. R.MM.DD[-beta] format.
-    public static final String VERSION_MAJOR = "2.01.01"; // Used for update checking. RR.MM.01 format.
+    public static final String VERSION = "2.02.xx-dev"; // Used for debugging. R.MM.DD-hash format.
+    public static final String VERSION_SIMPLE = "2.02.xx-dev"; // Shown to the user. R.MM.DD[-beta] format.
+    public static final String VERSION_MAJOR = "2.02.01"; // Used for update checking. RR.MM.01 format.
     public static final int BUILD_NUMBER = -1; // Do not remove, currently unused but will be used in the future.
 
     public static final String APP_ID = "638403216278683661";
@@ -43,8 +42,6 @@ public class KamiMod {
 
     @Mod.Instance
     public static KamiMod INSTANCE;
-
-    private static final OkHttpClient httpClient = new OkHttpClient();
 
     private static boolean ready = false;
 
@@ -81,10 +78,6 @@ public class KamiMod {
 
     public static boolean isReady() {
         return ready;
-    }
-
-    public static OkHttpClient getHttpClient() {
-        return httpClient;
     }
 
 }

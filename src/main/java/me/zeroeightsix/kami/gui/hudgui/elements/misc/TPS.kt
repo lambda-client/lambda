@@ -18,9 +18,7 @@ object TPS : LabelHud(
         tpsList[tpsIndex] = TpsCalculator.tickRate
         tpsIndex = (tpsIndex + 1) % 20
 
-        val tps = MathUtils.round(tpsList.average(), 2)
-
-        displayText.add("$tps", primaryColor)
+        displayText.add("%.2f".format(tpsList.average()), primaryColor)
         displayText.add("tps", secondaryColor)
     }
 
