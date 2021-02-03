@@ -3,6 +3,7 @@ package me.zeroeightsix.kami.util
 import kotlinx.coroutines.delay
 import me.zeroeightsix.kami.event.SafeClientEvent
 import me.zeroeightsix.kami.manager.managers.PlayerPacketManager
+import me.zeroeightsix.kami.module.modules.misc.HighwayTools
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.threads.runSafeSuspend
@@ -246,6 +247,7 @@ object WorldUtils {
 
         if (attempts > 1) {
             toIgnore.add(blockPos)
+            HighwayTools.addTaskToPending(blockPos, HighwayTools.TaskState.LIQUID_SOURCE, HighwayTools.fillerMat)
             for (side in sides) {
                 val pos = blockPos.offset(side)
                 if (!isPlaceable(pos)) continue

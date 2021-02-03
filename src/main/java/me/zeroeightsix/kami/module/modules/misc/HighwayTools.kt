@@ -19,6 +19,7 @@ import me.zeroeightsix.kami.util.EntityUtils.flooredPosition
 import me.zeroeightsix.kami.util.WorldUtils.blackList
 import me.zeroeightsix.kami.util.WorldUtils.getMiningSide
 import me.zeroeightsix.kami.util.WorldUtils.getNeighbour
+import me.zeroeightsix.kami.util.WorldUtils.isLiquid
 import me.zeroeightsix.kami.util.WorldUtils.isPlaceable
 import me.zeroeightsix.kami.util.color.ColorHolder
 import me.zeroeightsix.kami.util.graphics.*
@@ -29,6 +30,7 @@ import me.zeroeightsix.kami.util.math.CoordinateConverter.asString
 import me.zeroeightsix.kami.util.math.RotationUtils.getRotationTo
 import me.zeroeightsix.kami.util.math.VectorUtils.distanceTo
 import me.zeroeightsix.kami.util.math.VectorUtils.multiply
+import me.zeroeightsix.kami.util.math.VectorUtils.toVec3dCenter
 import me.zeroeightsix.kami.util.text.MessageSendHelper
 import me.zeroeightsix.kami.util.threads.*
 import net.minecraft.block.Block
@@ -40,6 +42,7 @@ import net.minecraft.init.Enchantments
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemBlock
+import net.minecraft.item.ItemPickaxe
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
@@ -99,6 +102,8 @@ internal object HighwayTools : Module(
     private var placeDelay by setting("Place Delay", 3, 1..20, 1, { page == Page.BEHAVIOR })
     private var breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR })
+    private val bridging by setting("Bridging", true, { page == Page.BEHAVIOR })
+    private var placementSearch by setting("Place Deep Search", 1, 1..20, 1, { page == Page.BEHAVIOR })
     private val multiBuilding by setting("Multi Builder", false, { page == Page.BEHAVIOR })
     private val maxBreaks by setting("Multi Break", 3, 1..8, 1, { page == Page.BEHAVIOR })
     private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR })
@@ -252,22 +257,22 @@ internal object HighwayTools : Module(
 
     private fun printEnable() {
         if (info) {
-            MessageSendHelper.sendRawChatMessage("    §9> §7Direction: §a${startingDirection.displayName}§r")
+            MessageSendHelper.sendRawChatMessage("    §9> §7Direction: §a${startingDirection.displayName} / ${startingDirection.displayNameXY}§r")
 
             if (!anonymizeStats) {
                 if (startingDirection.isDiagonal) {
-                    MessageSendHelper.sendRawChatMessage("    §9> §7Coordinates: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
+                    MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
                 } else {
                     if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
-                        MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.x}§r")
+                        MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.x}§r")
                     } else {
-                        MessageSendHelper.sendRawChatMessage("    §9> §7Coordinate: §a${startingBlockPos.z}§r")
+                        MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.z}§r")
                     }
                 }
             }
 
             if (startingBlockPos.y != 120 && mode != Mode.TUNNEL) {
-                MessageSendHelper.sendRawChatMessage("    §9> §cCheck altitude and make sure to build at Y 120 for the correct height")
+                MessageSendHelper.sendRawChatMessage("    §9> §cCheck altitude and make sure to build at Y: 120 for the correct height")
             }
         }
     }
@@ -317,8 +322,8 @@ internal object HighwayTools : Module(
                     val currentToolDamage = it.packet.stack.itemDamage
                     if (lastToolDamage < currentToolDamage && currentToolDamage - lastToolDamage < 100) {
                         durabilityUsages += currentToolDamage - lastToolDamage
-                        lastToolDamage = it.packet.stack.itemDamage
                     }
+                    lastToolDamage = it.packet.stack.itemDamage
                 }
             }
         }
@@ -364,6 +369,8 @@ internal object HighwayTools : Module(
         renderer.clear()
         renderer.aFilled = if (filled) aFilled else 0
         renderer.aOutline = if (outline) aOutline else 0
+
+//        renderer.add(world.getBlockState(currentBlockPos).getSelectedBoundingBox(world, currentBlockPos), ColorHolder(255, 255, 255))
 
         for (blockTask in pendingTasks.values) {
             if (blockTask.taskState == TaskState.DONE) continue
@@ -550,7 +557,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
+    fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
         pendingTasks[blockPos] = (BlockTask(blockPos, taskState, material))
     }
 
@@ -597,12 +604,8 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.runTasks() {
         if (pendingTasks.isEmpty()) {
-            if (checkDoneTasks()) {
-                doneTasks.clear()
-                refreshData(currentBlockPos.add(startingDirection.directionVec))
-            } else {
-                refreshData()
-            }
+            if (checkDoneTasks()) doneTasks.clear()
+            refreshData()
         } else {
             waitTicks--
             for (task in pendingTasks.values) {
@@ -712,6 +715,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.doTask(blockTask: BlockTask, updateOnly: Boolean) {
         if (!updateOnly) blockTask.onTick()
 
+        // ToDo: Choose place task with least attempts
         when (blockTask.taskState) {
             TaskState.DONE -> {
                 doDone(blockTask)
@@ -866,29 +870,42 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.doPlace(blockTask: BlockTask, updateOnly: Boolean) {
         val currentBlock = world.getBlockState(blockTask.blockPos).block
 
+        if (bridging && player.positionVector.distanceTo(currentBlockPos) < 1 && shouldBridge()) {
+            val factor = if (startingDirection.isDiagonal) {
+                0.51
+            } else {
+                0.505
+            }
+            val target = currentBlockPos.toVec3dCenter().add(Vec3d(startingDirection.directionVec).scale(factor))
+            player.motionX = (target.x - player.posX).coerceIn(-0.2, 0.2)
+            player.motionZ = (target.z - player.posZ).coerceIn(-0.2, 0.2)
+        }
+
         when (blockTask.block) {
             material -> {
                 if (currentBlock == material) {
                     blockTask.updateState(TaskState.PLACED)
                     return
-                } else if (currentBlock != Blocks.AIR) {
+                } else if (currentBlock != Blocks.AIR && !isLiquid(blockTask.blockPos)) {
                     blockTask.updateState(TaskState.BREAK)
                     return
                 }
             }
             fillerMat -> {
-                if (currentBlock != Blocks.AIR && currentBlock !is BlockLiquid) {
+                if (currentBlock != Blocks.AIR && !isLiquid(blockTask.blockPos)) {
                     blockTask.updateState(TaskState.PLACED)
                     return
                 }
             }
             Blocks.AIR -> {
-                if (currentBlock != Blocks.AIR) {
-                    blockTask.updateState(TaskState.BREAK)
-                } else {
-                    blockTask.updateState(TaskState.BROKEN)
+                if (!isLiquid(blockTask.blockPos)) {
+                    if (currentBlock != Blocks.AIR) {
+                        blockTask.updateState(TaskState.BREAK)
+                    } else {
+                        blockTask.updateState(TaskState.BROKEN)
+                    }
+                    return
                 }
-                return
             }
         }
 
@@ -930,7 +947,7 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
-        val pair = getNeighbour(blockTask.blockPos, 1, maxReach, true)
+        val pair = getNeighbour(blockTask.blockPos, placementSearch, maxReach, true)
             ?: run {
                 if (illegalPlacements) {
                     if (debugMessages == DebugMessages.ALL) {
@@ -940,7 +957,7 @@ internal object HighwayTools : Module(
                             MessageSendHelper.sendChatMessage("Trying to place through wall")
                         }
                     }
-                    getNeighbour(blockTask.blockPos, 1, maxReach) ?: return
+                    getNeighbour(blockTask.blockPos, placementSearch, maxReach) ?: return
                 } else {
                     blockTask.onStuck()
                     return
@@ -985,6 +1002,19 @@ internal object HighwayTools : Module(
                 if (dynamicDelay && extraPlaceDelay < 10) extraPlaceDelay += 1
             }
         }
+    }
+
+    private fun SafeClientEvent.shouldBridge(): Boolean {
+        var containsPlace = false
+        for (task in sortedTasks) {
+            if (task.taskState == TaskState.PLACE) {
+                containsPlace = true
+                getNeighbour(task.blockPos, placementSearch, maxReach, true)
+                    ?: continue
+                return false
+            }
+        }
+        return containsPlace
     }
 
     private fun SafeClientEvent.getBestTool(blockTask: BlockTask): Slot? {
@@ -1089,9 +1119,10 @@ internal object HighwayTools : Module(
         lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
         rotateTimer.reset()
 
-        when (world.getBlockState(blockTask.blockPos).block) {
-            Blocks.NETHERRACK -> mineBlockInstant(blockTask, side)
-            else -> mineBlockNormal(blockTask, side)
+        if (world.getBlockState(blockTask.blockPos).getPlayerRelativeBlockHardness(player, world, blockTask.blockPos) > 2.8) {
+            mineBlockInstant(blockTask, side)
+        } else {
+            mineBlockNormal(blockTask, side)
         }
     }
 
@@ -1191,28 +1222,14 @@ internal object HighwayTools : Module(
             null
         }
 
-        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + totalDistance + 1
-
-        materialLeft = player.allSlots.countBlock(material)
-        fillerMatLeft = player.allSlots.countBlock(fillerMat)
-        val indirectMaterialLeft = 8 * player.allSlots.countBlock(Blocks.ENDER_CHEST)
-
-        val pavingLeft = materialLeft / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
-
-        // ToDo: Cache shulker count
-//        val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
-
         val runtimeSec = (runtimeMilliSeconds / 1000) + 0.0001
-        val seconds = (runtimeSec % 60).toInt().toString().padStart(2, '0')
-        val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
-        val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
-
-        val secLeftRefillInv = (pavingLeft - AutoObsidian.threshold).coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
-        val secondsLeftRefillInv = (secLeftRefillInv % 60).toInt().toString().padStart(2, '0')
-        val minutesLeftRefillInv = ((secLeftRefillInv % 3600) / 60).toInt().toString().padStart(2, '0')
-        val hoursLeftRefillInv = (secLeftRefillInv / 3600).toInt().toString().padStart(2, '0')
+        val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + totalDistance
 
         if (showPerformance) {
+            val seconds = (runtimeSec % 60).toInt().toString().padStart(2, '0')
+            val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
+            val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
+
             displayText.addLine("Performance", primaryColor)
             displayText.add("    Runtime:", primaryColor)
             displayText.addLine("$hours:$minutes:$seconds", secondaryColor)
@@ -1227,7 +1244,7 @@ internal object HighwayTools : Module(
             displayText.add("      Rolling average:", primaryColor)
             displayText.addLine("%.2f".format(rollingAverageBreaks.size / rollingAverageRange), secondaryColor)
             displayText.add("    Distance / h:", primaryColor)
-            displayText.addLine("%.2f".format(startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec * 60 * 60), secondaryColor)
+            displayText.addLine("%.2f".format(distanceDone / runtimeSec * 60 * 60), secondaryColor)
             displayText.add("    Food level loss / h:", primaryColor)
             displayText.addLine("%.2f".format(totalBlocksBroken / foodLoss.toDouble()), secondaryColor)
             displayText.add("    Pickaxes / h:", primaryColor)
@@ -1239,9 +1256,9 @@ internal object HighwayTools : Module(
             if (!anonymizeStats) displayText.add("    Start:", primaryColor)
             if (!anonymizeStats) displayText.addLine("(${startingBlockPos.asString()})", secondaryColor)
             displayText.add("    Direction:", primaryColor)
-            displayText.addLine(startingDirection.displayName, secondaryColor)
+            displayText.addLine("${startingDirection.displayName} / ${startingDirection.displayNameXY}", secondaryColor)
             displayText.add("    Blocks placed / destroyed:", primaryColor)
-            displayText.addLine("$totalBlocksBroken".padStart(6, '0') + " / " + "$totalBlocksPlaced".padStart(6, '0'), secondaryColor)
+            displayText.addLine("$totalBlocksPlaced".padStart(6, '0') + " / " + "$totalBlocksBroken".padStart(6, '0'), secondaryColor)
             displayText.add("    Materials:", primaryColor)
             displayText.addLine("Main(${material.localizedName}) Filler(${fillerMat.localizedName})", secondaryColor)
             displayText.add("    Delays:", primaryColor)
@@ -1260,18 +1277,60 @@ internal object HighwayTools : Module(
             displayText.addLine("${currentTask.stuckTicks}", secondaryColor)
         }
 
-        if (showEstimations && mode == Mode.HIGHWAY) {
-            displayText.addLine("Next refill", primaryColor)
-            displayText.add("    ${material.localizedName}:", primaryColor)
-            displayText.addLine("Direct($materialLeft) Indirect($indirectMaterialLeft)", secondaryColor)
-            displayText.add("    ${fillerMat.localizedName}:", primaryColor)
-            displayText.addLine("$fillerMatLeft", secondaryColor)
-            displayText.add("    Distance left:", primaryColor)
-            displayText.addLine("${pavingLeft.toInt()}", secondaryColor)
-            if (!anonymizeStats) displayText.add("    Destination:", primaryColor)
-            if (!anonymizeStats) displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})", secondaryColor)
-            displayText.add("    ETA:", primaryColor)
-            displayText.addLine("$hoursLeftRefillInv:$minutesLeftRefillInv:$secondsLeftRefillInv", secondaryColor)
+        if (showEstimations) {
+            when (mode) {
+                Mode.HIGHWAY, Mode.FLAT -> {
+                    materialLeft = player.allSlots.countBlock(material)
+                    fillerMatLeft = player.allSlots.countBlock(fillerMat)
+                    val indirectMaterialLeft = 8 * player.allSlots.countBlock(Blocks.ENDER_CHEST)
+
+                    val pavingLeft = materialLeft / (totalBlocksPlaced.coerceAtLeast(1) / distanceDone.coerceAtLeast(1.0))
+
+                    // ToDo: Cache shulker count
+//                  val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
+
+                    val secLeft = (pavingLeft - AutoObsidian.threshold).coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
+                    val secondsLeft = (secLeft % 60).toInt().toString().padStart(2, '0')
+                    val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2, '0')
+                    val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2, '0')
+
+                    displayText.addLine("Next refill", primaryColor)
+                    displayText.add("    ${material.localizedName}:", primaryColor)
+                    if (material == Blocks.OBSIDIAN) {
+                        displayText.addLine("Direct($materialLeft) Indirect($indirectMaterialLeft)", secondaryColor)
+                    } else {
+                        displayText.addLine("$materialLeft", secondaryColor)
+                    }
+                    displayText.add("    ${fillerMat.localizedName}:", primaryColor)
+                    displayText.addLine("$fillerMatLeft", secondaryColor)
+                    displayText.add("    Distance left:", primaryColor)
+                    displayText.addLine("${pavingLeft.toInt()}", secondaryColor)
+                    if (!anonymizeStats) displayText.add("    Destination:", primaryColor)
+                    if (!anonymizeStats) displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})", secondaryColor)
+                    displayText.add("    ETA:", primaryColor)
+                    displayText.addLine("$hoursLeft:$minutesLeft:$secondsLeft", secondaryColor)
+                }
+                Mode.TUNNEL -> {
+                    val pickaxesLeft = player.allSlots.countItem<ItemPickaxe>()
+
+                    val tunnelingLeft = (pickaxesLeft * 1561) / (durabilityUsages.coerceAtLeast(1) / distanceDone.coerceAtLeast(1.0))
+
+                    val secLeft = tunnelingLeft.coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
+                    val secondsLeft = (secLeft % 60).toInt().toString().padStart(2, '0')
+                    val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2, '0')
+                    val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2, '0')
+
+                    displayText.addLine("Destination:", primaryColor)
+                    displayText.add("    Pickaxes:", primaryColor)
+                    displayText.addLine("$pickaxesLeft", secondaryColor)
+                    displayText.add("    Distance left:", primaryColor)
+                    displayText.addLine("${tunnelingLeft.toInt()}", secondaryColor)
+                    if (!anonymizeStats) displayText.add("    Destination:", primaryColor)
+                    if (!anonymizeStats) displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(tunnelingLeft.toInt())).asString()})", secondaryColor)
+                    displayText.add("    ETA:", primaryColor)
+                    displayText.addLine("$hoursLeft:$minutesLeft:$secondsLeft", secondaryColor)
+                }
+            }
         }
 
 //        displayText.addLine("by Constructor#9948 aka Avanatiker", primaryColor)
