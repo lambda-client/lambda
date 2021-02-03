@@ -1,0 +1,15 @@
+package org.kamiblue.client.gui.hudgui.elements.misc
+
+import org.kamiblue.client.event.SafeClientEvent
+import org.kamiblue.client.gui.hudgui.LabelHud
+import org.kamiblue.client.module.modules.misc.HighwayTools.gatherStatistics
+
+object HighwayToolsHud : LabelHud(
+    name = "HighwayTools",
+    category = Category.MISC,
+    description = "Hud for HighwayTools module"
+) {
+    override fun SafeClientEvent.updateText() {
+        gatherStatistics(displayText)
+    }
+}
