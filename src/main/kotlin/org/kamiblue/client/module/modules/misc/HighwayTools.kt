@@ -611,6 +611,7 @@ internal object HighwayTools : Module(
         return nextPos
     }
 
+    // ToDo: Check correctly if not in blueprint to avoid baritone stuck
     private fun isTaskDoneOrNull(pos: BlockPos) =
         (pendingTasks[pos] ?: doneTasks[pos])?.let {
             it.taskState == TaskState.DONE
