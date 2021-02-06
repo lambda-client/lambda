@@ -2,6 +2,17 @@ package org.kamiblue.client.module.modules.combat
 
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityLivingBase
+import net.minecraft.entity.item.EntityEnderCrystal
+import net.minecraft.entity.passive.AbstractHorse
+import net.minecraft.entity.passive.EntityTameable
+import net.minecraft.item.ItemFood
+import net.minecraft.item.ItemPickaxe
+import net.minecraft.util.EnumHand
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.RenderOverlayEvent
 import org.kamiblue.client.manager.managers.CombatManager
@@ -23,17 +34,6 @@ import org.kamiblue.client.util.threads.defaultScope
 import org.kamiblue.client.util.threads.isActiveOrFalse
 import org.kamiblue.client.util.threads.runSafeR
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.entity.Entity
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.item.EntityEnderCrystal
-import net.minecraft.entity.passive.AbstractHorse
-import net.minecraft.entity.passive.EntityTameable
-import net.minecraft.item.ItemFood
-import net.minecraft.item.ItemPickaxe
-import net.minecraft.util.EnumHand
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.event.listener.listener
 import org.lwjgl.opengl.GL11.*

@@ -1,5 +1,7 @@
 package org.kamiblue.client.manager.managers
 
+import net.minecraft.client.gui.inventory.GuiContainer
+import net.minecraft.inventory.ClickType
 import org.kamiblue.client.event.events.ConnectionEvent
 import org.kamiblue.client.event.events.RenderOverlayEvent
 import org.kamiblue.client.manager.Manager
@@ -9,8 +11,6 @@ import org.kamiblue.client.util.*
 import org.kamiblue.client.util.items.clickSlot
 import org.kamiblue.client.util.items.removeHoldingItem
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.gui.inventory.GuiContainer
-import net.minecraft.inventory.ClickType
 import org.kamiblue.event.listener.listener
 import java.util.*
 

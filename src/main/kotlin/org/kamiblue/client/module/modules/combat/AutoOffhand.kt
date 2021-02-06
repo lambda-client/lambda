@@ -1,5 +1,16 @@
 package org.kamiblue.client.module.modules.combat
 
+import net.minecraft.client.gui.inventory.GuiContainer
+import net.minecraft.entity.item.EntityEnderCrystal
+import net.minecraft.entity.monster.EntityMob
+import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.init.MobEffects
+import net.minecraft.inventory.Slot
+import net.minecraft.item.*
+import net.minecraft.network.play.server.SPacketConfirmTransaction
+import net.minecraft.potion.PotionUtils
+import net.minecraftforge.fml.common.gameevent.InputEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.manager.managers.CombatManager
@@ -14,17 +25,6 @@ import org.kamiblue.client.util.combat.CrystalUtils.calcCrystalDamage
 import org.kamiblue.client.util.items.*
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.gui.inventory.GuiContainer
-import net.minecraft.entity.item.EntityEnderCrystal
-import net.minecraft.entity.monster.EntityMob
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.init.MobEffects
-import net.minecraft.inventory.Slot
-import net.minecraft.item.*
-import net.minecraft.network.play.server.SPacketConfirmTransaction
-import net.minecraft.potion.PotionUtils
-import net.minecraftforge.fml.common.gameevent.InputEvent
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.next
 import org.lwjgl.input.Keyboard
 import kotlin.math.ceil

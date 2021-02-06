@@ -1,5 +1,14 @@
 package org.kamiblue.client.module.modules.player
 
+import net.minecraft.client.settings.KeyBinding
+import net.minecraft.init.Items
+import net.minecraft.inventory.Slot
+import net.minecraft.item.ItemBlock
+import net.minecraft.item.ItemFood
+import net.minecraft.item.ItemStack
+import net.minecraft.item.ItemTool
+import net.minecraft.util.EnumHand
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
@@ -11,15 +20,6 @@ import org.kamiblue.client.util.combat.CombatUtils
 import org.kamiblue.client.util.items.*
 import org.kamiblue.client.util.threads.runSafe
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.settings.KeyBinding
-import net.minecraft.init.Items
-import net.minecraft.inventory.Slot
-import net.minecraft.item.ItemBlock
-import net.minecraft.item.ItemFood
-import net.minecraft.item.ItemStack
-import net.minecraft.item.ItemTool
-import net.minecraft.util.EnumHand
-import net.minecraftforge.fml.common.gameevent.TickEvent
 
 internal object AutoEat : Module(
     name = "AutoEat",

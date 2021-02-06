@@ -1,5 +1,9 @@
 package org.kamiblue.client.gui.hudgui.elements.combat
 
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.init.Items
+import net.minecraft.item.ItemStack
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.gui.hudgui.HudElement
 import org.kamiblue.client.setting.GuiConfig.setting
 import org.kamiblue.client.util.color.ColorGradient
@@ -12,10 +16,6 @@ import org.kamiblue.client.util.graphics.font.VAlign
 import org.kamiblue.client.util.items.allSlots
 import org.kamiblue.client.util.items.countItem
 import org.kamiblue.client.util.threads.safeAsyncListener
-import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.init.Items
-import net.minecraft.item.ItemStack
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.utils.MathUtils
 import kotlin.math.max
 

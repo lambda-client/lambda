@@ -1,5 +1,14 @@
 package org.kamiblue.client.event
 
+import net.minecraftforge.client.event.*
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
+import net.minecraftforge.event.entity.player.PlayerInteractEvent
+import net.minecraftforge.event.world.ChunkEvent
+import net.minecraftforge.fml.common.eventhandler.EventPriority
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import net.minecraftforge.fml.common.gameevent.InputEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.kamiblue.client.command.CommandManager
 import org.kamiblue.client.event.events.BaritoneCommandEvent
 import org.kamiblue.client.event.events.ConnectionEvent
@@ -11,15 +20,6 @@ import org.kamiblue.client.util.Wrapper
 import org.kamiblue.client.util.graphics.KamiTessellator
 import org.kamiblue.client.util.graphics.ProjectionUtils
 import org.kamiblue.client.util.text.MessageDetection
-import net.minecraftforge.client.event.*
-import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
-import net.minecraftforge.event.entity.player.PlayerInteractEvent
-import net.minecraftforge.event.world.ChunkEvent
-import net.minecraftforge.fml.common.eventhandler.EventPriority
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-import net.minecraftforge.fml.common.gameevent.InputEvent
-import net.minecraftforge.fml.common.gameevent.TickEvent
-import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.lwjgl.input.Keyboard
 import java.util.*
 

@@ -1,5 +1,9 @@
 package org.kamiblue.client.module.modules.combat
 
+import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.network.play.server.SPacketEntityStatus
+import net.minecraft.util.text.TextFormatting
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.KamiMod
 import org.kamiblue.client.event.events.ConnectionEvent
 import org.kamiblue.client.event.events.PacketEvent
@@ -10,10 +14,6 @@ import org.kamiblue.client.util.color.EnumTextColor
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.text.MessageSendHelper.sendServerMessage
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.network.play.server.SPacketEntityStatus
-import net.minecraft.util.text.TextFormatting
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayList

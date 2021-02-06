@@ -3,10 +3,10 @@ package org.kamiblue.client.manager.managers
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import org.kamiblue.capeapi.PlayerProfile
 import org.kamiblue.client.KamiMod
 import org.kamiblue.client.manager.Manager
 import org.kamiblue.client.util.ConfigUtils
-import org.kamiblue.capeapi.PlayerProfile
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter

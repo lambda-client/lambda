@@ -1,6 +1,9 @@
 package org.kamiblue.client.module.modules.misc
 
 import com.mojang.authlib.GameProfile
+import net.minecraft.client.entity.EntityOtherPlayerMP
+import net.minecraft.util.math.BlockPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.events.ConnectionEvent
 import org.kamiblue.client.manager.managers.WaypointManager
 import org.kamiblue.client.module.Category
@@ -12,11 +15,7 @@ import org.kamiblue.client.util.math.CoordinateConverter.asString
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.onMainThread
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.entity.EntityOtherPlayerMP
-import net.minecraft.util.math.BlockPos
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.event.listener.asyncListener
-import org.kamiblue.event.listener.listener
 
 internal object LogoutLogger : Module(
     name = "LogoutLogger",

@@ -1,5 +1,7 @@
 package org.kamiblue.client.gui.hudgui.elements.client
 
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.gui.hudgui.HudElement
 import org.kamiblue.client.module.AbstractModule
 import org.kamiblue.client.module.ModuleManager
@@ -17,8 +19,6 @@ import org.kamiblue.client.util.graphics.font.HAlign
 import org.kamiblue.client.util.graphics.font.TextComponent
 import org.kamiblue.client.util.graphics.font.VAlign
 import org.kamiblue.client.util.threads.safeAsyncListener
-import net.minecraft.client.renderer.GlStateManager
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.sumByFloat
 import org.kamiblue.commons.interfaces.DisplayEnum
 import org.lwjgl.opengl.GL11.*

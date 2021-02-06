@@ -1,5 +1,11 @@
 package org.kamiblue.client.module.modules.combat
 
+import net.minecraft.init.Items
+import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
+import net.minecraft.util.EnumHand
+import net.minecraft.util.math.AxisAlignedBB
+import net.minecraft.util.math.BlockPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.event.events.RenderOverlayEvent
 import org.kamiblue.client.event.events.RenderWorldEvent
@@ -17,12 +23,6 @@ import org.kamiblue.client.util.graphics.ProjectionUtils
 import org.kamiblue.client.util.graphics.font.FontRenderAdapter
 import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.init.Items
-import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
-import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.utils.MathUtils
 import org.kamiblue.event.listener.listener
 import org.lwjgl.opengl.GL11.*

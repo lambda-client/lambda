@@ -1,11 +1,5 @@
 package org.kamiblue.client.util.combat
 
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.event.events.ConnectionEvent
-import org.kamiblue.client.mixin.extension.attackDamage
-import org.kamiblue.client.util.items.swapToSlot
-import org.kamiblue.client.util.threads.safeListener
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.EntityLivingBase
@@ -21,6 +15,12 @@ import net.minecraft.item.ItemTool
 import net.minecraft.util.CombatRules
 import net.minecraft.util.DamageSource
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.client.event.KamiEventBus
+import org.kamiblue.client.event.SafeClientEvent
+import org.kamiblue.client.event.events.ConnectionEvent
+import org.kamiblue.client.mixin.extension.attackDamage
+import org.kamiblue.client.util.items.swapToSlot
+import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.event.listener.listener
 import kotlin.math.max
 import kotlin.math.round

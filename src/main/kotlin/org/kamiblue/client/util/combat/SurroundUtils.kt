@@ -1,15 +1,15 @@
 package org.kamiblue.client.util.combat
 
-import org.kamiblue.client.event.ClientEvent
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.util.EntityUtils.flooredPosition
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.threads.toSafe
 import net.minecraft.block.Block
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import org.kamiblue.client.event.ClientEvent
+import org.kamiblue.client.event.SafeClientEvent
+import org.kamiblue.client.util.EntityUtils.flooredPosition
+import org.kamiblue.client.util.Wrapper
+import org.kamiblue.client.util.threads.toSafe
 import kotlin.math.round
 
 /**

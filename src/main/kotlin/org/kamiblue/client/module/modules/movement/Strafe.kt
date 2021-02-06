@@ -1,5 +1,6 @@
 package org.kamiblue.client.module.modules.movement
 
+import net.minecraft.client.settings.KeyBinding
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PlayerTravelEvent
 import org.kamiblue.client.mixin.extension.tickLength
@@ -14,7 +15,6 @@ import org.kamiblue.client.util.MovementUtils.speed
 import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.TimeUnit
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.settings.KeyBinding
 import kotlin.math.cos
 import kotlin.math.sin
 

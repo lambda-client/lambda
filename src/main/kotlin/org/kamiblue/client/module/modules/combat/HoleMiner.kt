@@ -1,5 +1,13 @@
 package org.kamiblue.client.module.modules.combat
 
+import net.minecraft.entity.Entity
+import net.minecraft.init.Blocks
+import net.minecraft.init.Items
+import net.minecraft.network.play.client.CPacketPlayerDigging
+import net.minecraft.util.EnumFacing
+import net.minecraft.util.EnumHand
+import net.minecraft.util.math.BlockPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.manager.managers.CombatManager
 import org.kamiblue.client.manager.managers.PlayerPacketManager
@@ -17,14 +25,6 @@ import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.runSafeR
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.entity.Entity
-import net.minecraft.init.Blocks
-import net.minecraft.init.Items
-import net.minecraft.network.play.client.CPacketPlayerDigging
-import net.minecraft.util.EnumFacing
-import net.minecraft.util.EnumHand
-import net.minecraft.util.math.BlockPos
-import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @CombatManager.CombatModule
 internal object HoleMiner : Module(

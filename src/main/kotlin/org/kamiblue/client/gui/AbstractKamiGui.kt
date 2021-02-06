@@ -1,5 +1,10 @@
 package org.kamiblue.client.gui
 
+import net.minecraft.client.gui.GuiScreen
+import net.minecraft.client.gui.ScaledResolution
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.util.ResourceLocation
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.events.RenderOverlayEvent
 import org.kamiblue.client.gui.rgui.WindowComponent
 import org.kamiblue.client.gui.rgui.windows.ColorPicker
@@ -15,11 +20,6 @@ import org.kamiblue.client.util.graphics.font.FontRenderAdapter
 import org.kamiblue.client.util.math.Vec2d
 import org.kamiblue.client.util.math.Vec2f
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.client.gui.ScaledResolution
-import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.util.ResourceLocation
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*

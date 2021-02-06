@@ -1,14 +1,14 @@
 package org.kamiblue.client.util.graphics.font
 
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.client.renderer.Tessellator
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats
+import net.minecraft.util.text.TextFormatting
 import org.kamiblue.client.KamiMod
 import org.kamiblue.client.module.modules.client.CustomFont
 import org.kamiblue.client.util.color.ColorHolder
 import org.kamiblue.client.util.color.DyeColors
 import org.kamiblue.client.util.graphics.GlStateUtils
-import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.client.renderer.Tessellator
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats
-import net.minecraft.util.text.TextFormatting
 import org.lwjgl.opengl.GL11.*
 import java.awt.Font
 
