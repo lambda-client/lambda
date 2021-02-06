@@ -37,7 +37,7 @@ import kotlin.math.roundToInt
 internal object NoteBot : Module(
     name = "NoteBot",
     category = Category.MISC,
-    description = "Plays music with note blocks; put songs as .mid files in .minecraft/kamiblue/songs"
+    description = "Plays music with note blocks; put .mid or .nbs songs in .minecraft/kamiblue/songs"
 ) {
 
     private val togglePlay = setting("Toggle Play", false)
