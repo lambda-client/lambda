@@ -1,11 +1,15 @@
 package org.kamiblue.client.gui.hudgui.elements.misc
 
-import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.event.events.MouseClickEvent
+import org.kamiblue.client.event.events.RenderEvent
 import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.threads.safeListener
+import org.kamiblue.client.setting.GuiConfig.setting
+import org.kamiblue.client.util.TickTimer
+import org.kamiblue.client.util.graphics.AnimationUtils
 import org.kamiblue.event.listener.asyncListener
+import org.kamiblue.event.listener.listener
+import org.lwjgl.input.Mouse
 
 object CPS : LabelHud(
     name = "CPS",
@@ -13,25 +17,38 @@ object CPS : LabelHud(
     description = "Display your clicks per second."
 ) {
 
-    private var clicks = HashSet<Long>()
+    private val averageSpeedTime by setting("Average Speed Time", 2.0f, 1.0f..5.0f, 0.1f, description = "The period of time to measure, in seconds")
 
-    override fun SafeClientEvent.updateText() {
-        displayText.add(clicks.size.toString(), primaryColor)
-
-        displayText.add("CPS", secondaryColor)
-    }
+    private val timer = TickTimer()
+    private val clicks = ArrayDeque<Long>()
+    private var currentCps = 0.0f
+    private var prevCps = 0.0f
 
     init {
-        asyncListener<MouseClickEvent> {
-            if ((it.buttonState) and (it.mouseButton == 0)) {
+        listener<InputEvent.MouseInputEvent> {
+            if (Mouse.getEventButtonState() && Mouse.getEventButton() == 0) {
                 clicks.add(System.currentTimeMillis())
             }
         }
 
-        safeListener<TickEvent.ClientTickEvent> {
-            // This needs to happen whenever running else it will continue to show a score after clicking has stopped.
-            clicks.removeIf { it < System.currentTimeMillis() - 1000 }
+        asyncListener<RenderEvent> {
+            if ((currentCps == 0.0f && clicks.size > 0) || timer.tick(1000L)) {
+                val removeTime = System.currentTimeMillis() - (averageSpeedTime * 1000.0f).toLong()
+                while (clicks.isNotEmpty() && clicks.first() < removeTime) {
+                    clicks.removeFirst()
+                }
+
+                prevCps = currentCps
+                currentCps = clicks.size / averageSpeedTime
+            }
         }
     }
 
+    override fun SafeClientEvent.updateText() {
+        val deltaTime = AnimationUtils.toDeltaTimeFloat(timer.time) / 1000.0f
+        val cps = (prevCps + (currentCps - prevCps) * deltaTime)
+
+        displayText.add("%.2f".format(cps), primaryColor)
+        displayText.add("CPS", secondaryColor)
+    }
 }
