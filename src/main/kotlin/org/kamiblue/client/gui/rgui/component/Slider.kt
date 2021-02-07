@@ -61,22 +61,27 @@ open class Slider(
     private fun setupDescription() {
         displayDescription.clear()
         if (description.isNotBlank()) {
+            val stringBuilder = StringBuilder()
             val spaceWidth = FontRenderAdapter.getStringWidth(" ")
             var lineWidth = -spaceWidth
-            var lineString = ""
 
             for (string in description.split(' ')) {
-                lineWidth += FontRenderAdapter.getStringWidth(string) + spaceWidth
-                if (lineWidth > 169) {
-                    displayDescription.addLine(lineString.trimEnd())
-                    lineWidth = -spaceWidth
-                    lineString = ""
+                val wordWidth = FontRenderAdapter.getStringWidth(string) + spaceWidth
+                val newWidth = lineWidth + wordWidth
+
+                lineWidth = if (newWidth > 169.0f) {
+                    displayDescription.addLine(stringBuilder.toString())
+                    stringBuilder.clear()
+                    -spaceWidth + wordWidth
                 } else {
-                    lineString += "$string "
+                    newWidth
                 }
+
+                stringBuilder.append(string)
+                stringBuilder.append(' ')
             }
 
-            if (lineString.isNotBlank()) displayDescription.addLine(lineString)
+            if (stringBuilder.isNotEmpty()) displayDescription.addLine(stringBuilder.toString())
         }
     }
 
