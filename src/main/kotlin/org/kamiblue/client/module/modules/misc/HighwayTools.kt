@@ -364,15 +364,7 @@ internal object HighwayTools : Module(
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
             } else {
                 runtimeMilliSeconds += 50
-                while (simpleMovingAveragePlaces.isNotEmpty() && System.currentTimeMillis() - simpleMovingAveragePlaces.first() > 1000L * simpleMovingAverageRange) {
-                    simpleMovingAveragePlaces.removeFirst()
-                }
-                while (simpleMovingAverageBreaks.isNotEmpty() && System.currentTimeMillis() - simpleMovingAverageBreaks.first() > 1000L * simpleMovingAverageRange) {
-                    simpleMovingAverageBreaks.removeFirst()
-                }
-                while (simpleMovingAverageDistance.isNotEmpty() && System.currentTimeMillis() - simpleMovingAverageDistance.first() > 1000L * simpleMovingAverageRange) {
-                    simpleMovingAverageDistance.removeFirst()
-                }
+                updateDequeues()
             }
 
             doPathing()
@@ -405,6 +397,18 @@ internal object HighwayTools : Module(
         if (currentFood != prevFood) {
             if (currentFood < prevFood) foodLoss++
             prevFood = currentFood
+        }
+    }
+
+    private fun updateDequeues() {
+        while (simpleMovingAveragePlaces.isNotEmpty() && System.currentTimeMillis() - simpleMovingAveragePlaces.first() > 1000L * simpleMovingAverageRange) {
+            simpleMovingAveragePlaces.removeFirst()
+        }
+        while (simpleMovingAverageBreaks.isNotEmpty() && System.currentTimeMillis() - simpleMovingAverageBreaks.first() > 1000L * simpleMovingAverageRange) {
+            simpleMovingAverageBreaks.removeFirst()
+        }
+        while (simpleMovingAverageDistance.isNotEmpty() && System.currentTimeMillis() - simpleMovingAverageDistance.first() > 1000L * simpleMovingAverageRange) {
+            simpleMovingAverageDistance.removeFirst()
         }
     }
 
