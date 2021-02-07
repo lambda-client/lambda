@@ -36,7 +36,7 @@ internal object Tracers : Module(
     private val neutral = setting("Neutral Mobs", true, { page.value == Page.ENTITY_TYPE && mobs.value })
     private val hostile = setting("Hostile Mobs", true, { page.value == Page.ENTITY_TYPE && mobs.value })
     private val invisible = setting("Invisible", true, { page.value == Page.ENTITY_TYPE })
-    private val range = setting("Range", 64, 8..256, 8, { page.value == Page.ENTITY_TYPE })
+    private val range = setting("Range", 64, 8..512, 8, { page.value == Page.ENTITY_TYPE })
 
     /* Color settings */
     private val colorPlayer = setting("Player Color", DyeColors.KAMI, { page.value == Page.COLOR })
