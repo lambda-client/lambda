@@ -997,7 +997,7 @@ internal object HighwayTools : Module(
             return
         } else {
             for (pair in neighbours) {
-                addTaskToPending(pair.second, TaskState.PLACE, fillerMat)
+                if (pair != neighbours.last()) addTaskToPending(pair.second, TaskState.PLACE, fillerMat)
             }
 
             lastHitVec = WorldUtils.getHitVec(neighbours.last().second, neighbours.last().first)

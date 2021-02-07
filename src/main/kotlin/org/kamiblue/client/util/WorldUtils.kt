@@ -281,7 +281,7 @@ object WorldUtils {
             return candidates
         }
 
-        if (attempts > 1 && candidates.isEmpty()) {
+        if (attempts > 1) {
             toIgnore.add(blockPos)
             for (side in sides) {
                 val pos = blockPos.offset(side)
