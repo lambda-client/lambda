@@ -44,6 +44,7 @@ import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.TimeUnit
 import org.kamiblue.client.util.WorldUtils
 import org.kamiblue.client.util.WorldUtils.blackList
+import org.kamiblue.client.util.WorldUtils.getBetterNeighbour
 import org.kamiblue.client.util.WorldUtils.getMiningSide
 import org.kamiblue.client.util.WorldUtils.getNeighbour
 import org.kamiblue.client.util.WorldUtils.isLiquid
@@ -692,6 +693,16 @@ internal object HighwayTools : Module(
                 }.thenBy {
                     it.stuckTicks / 5
                 }.thenBy {
+                    when (it.taskState) {
+                        TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
+                            getBetterNeighbour(it.blockPos, placementSearch, maxReach, true).size
+                        }
+                        TaskState.BREAK -> { // ToDo: Check for most block interceptions when kick issue solved
+                            0
+                        }
+                        else -> 0
+                    }
+                }.thenBy { // ToDo: We need a function that makes a score out of those 3 parameters
                     startingBlockPos.distanceTo(it.blockPos).toInt() / 2
                 }.thenBy {
                     eyePos.distanceTo(it.blockPos)
@@ -700,10 +711,6 @@ internal object HighwayTools : Module(
                 }
             )
         }
-
-
-        // ToDo: We need a function that makes a score out of last 3 parameters
-        nextInt()
     }
 
     private fun SafeClientEvent.checkStuckTimeout(blockTask: BlockTask): Boolean {
@@ -972,27 +979,32 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
-        val pair = getNeighbour(blockTask.blockPos, placementSearch, maxReach, true)
-            ?: run {
-                if (illegalPlacements) {
-                    if (debugMessages == DebugMessages.ALL) {
-                        if (!anonymizeStats) {
-                            MessageSendHelper.sendChatMessage("Trying to place through wall ${blockTask.blockPos}")
-                        } else {
-                            MessageSendHelper.sendChatMessage("Trying to place through wall")
-                        }
-                    }
-                    getNeighbour(blockTask.blockPos, placementSearch, maxReach) ?: return
+        val neighbours = if (illegalPlacements) {
+            getBetterNeighbour(blockTask.blockPos, 1, maxReach)
+        } else {
+            getBetterNeighbour(blockTask.blockPos, placementSearch, maxReach, true)
+        }
+
+        if (neighbours.isEmpty()) {
+            if (debugMessages == DebugMessages.ALL) {
+                if (!anonymizeStats) {
+                    MessageSendHelper.sendChatMessage("No neighbours found for ${blockTask.blockPos}")
                 } else {
-                    blockTask.onStuck()
-                    return
+                    MessageSendHelper.sendChatMessage("No neighbours found")
                 }
             }
+            blockTask.onStuck()
+            return
+        } else {
+            for (pair in neighbours) {
+                addTaskToPending(pair.second, TaskState.PLACE, fillerMat)
+            }
 
-        lastHitVec = WorldUtils.getHitVec(pair.second, pair.first)
-        rotateTimer.reset()
+            lastHitVec = WorldUtils.getHitVec(neighbours.last().second, neighbours.last().first)
+            rotateTimer.reset()
 
-        placeBlockNormal(blockTask, pair)
+            placeBlockNormal(blockTask, neighbours.last())
+        }
     }
 
     private fun SafeClientEvent.placeBlockNormal(blockTask: BlockTask, pair: Pair<EnumFacing, BlockPos>) {

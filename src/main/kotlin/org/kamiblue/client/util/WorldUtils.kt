@@ -20,6 +20,7 @@ import org.kamiblue.client.util.math.RotationUtils.getRotationTo
 import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.threads.runSafeSuspend
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 import kotlin.math.floor
 
@@ -247,7 +248,6 @@ object WorldUtils {
 
         if (attempts > 1) {
             toIgnore.add(blockPos)
-            HighwayTools.addTaskToPending(blockPos, HighwayTools.TaskState.LIQUID_SOURCE, HighwayTools.fillerMat)
             for (side in sides) {
                 val pos = blockPos.offset(side)
                 if (!isPlaceable(pos)) continue
@@ -256,6 +256,42 @@ object WorldUtils {
         }
 
         return null
+    }
+
+    fun SafeClientEvent.getBetterNeighbour(
+        blockPos: BlockPos,
+        attempts: Int = 3,
+        range: Float = 4.25f,
+        visibleSideCheck: Boolean = false,
+        sides: Array<EnumFacing> = EnumFacing.values(),
+        toIgnore: HashSet<BlockPos> = HashSet()
+    ): ArrayList<Pair<EnumFacing, BlockPos>> {
+        val eyePos = player.getPositionEyes(1.0f)
+        val candidates = arrayListOf<Pair<EnumFacing, BlockPos>>()
+
+        for (side in sides) {
+            val offsetPos = blockPos.offset(side)
+
+            if (!toIgnore.add(offsetPos)) continue
+            if (world.getBlockState(offsetPos).material.isReplaceable) continue
+            if (eyePos.distanceTo(getHitVec(blockPos, side)) > range) continue
+            if (visibleSideCheck && !getVisibleSides(offsetPos).contains(side.opposite)) continue
+
+            candidates.add(Pair(side.opposite, offsetPos))
+            return candidates
+        }
+
+        if (attempts > 1 && candidates.isEmpty()) {
+            toIgnore.add(blockPos)
+            for (side in sides) {
+                val pos = blockPos.offset(side)
+                if (!isPlaceable(pos)) continue
+                candidates.addAll(getBetterNeighbour(pos, attempts - 1, range, visibleSideCheck, sides, toIgnore))
+                return candidates
+            }
+        }
+
+        return candidates
     }
 
     /**
