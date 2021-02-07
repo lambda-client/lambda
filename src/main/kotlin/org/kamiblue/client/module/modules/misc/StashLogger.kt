@@ -2,6 +2,12 @@ package org.kamiblue.client.module.modules.misc
 
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.init.SoundEvents
+import net.minecraft.tileentity.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.manager.managers.WaypointManager
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
@@ -14,12 +20,6 @@ import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.defaultScope
 import org.kamiblue.client.util.threads.onMainThread
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.audio.PositionedSoundRecord
-import net.minecraft.init.SoundEvents
-import net.minecraft.tileentity.*
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.ChunkPos
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet

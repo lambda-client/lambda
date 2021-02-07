@@ -1,9 +1,5 @@
 package org.kamiblue.client.util.combat
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.math.VectorUtils
-import org.kamiblue.client.util.math.VectorUtils.distanceTo
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityEnderCrystal
@@ -14,6 +10,10 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.Explosion
+import org.kamiblue.client.event.SafeClientEvent
+import org.kamiblue.client.util.Wrapper
+import org.kamiblue.client.util.math.VectorUtils
+import org.kamiblue.client.util.math.VectorUtils.distanceTo
 import kotlin.math.max
 
 object CrystalUtils {

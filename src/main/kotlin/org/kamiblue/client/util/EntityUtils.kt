@@ -1,8 +1,5 @@
 package org.kamiblue.client.util
 
-import org.kamiblue.client.manager.managers.FriendManager
-import org.kamiblue.client.util.items.id
-import org.kamiblue.client.util.math.VectorUtils.toBlockPos
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
@@ -18,6 +15,9 @@ import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
+import org.kamiblue.client.manager.managers.FriendManager
+import org.kamiblue.client.util.items.id
+import org.kamiblue.client.util.math.VectorUtils.toBlockPos
 import kotlin.math.floor
 
 object EntityUtils {

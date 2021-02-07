@@ -2,15 +2,6 @@ package org.kamiblue.client.module.modules.client
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import org.kamiblue.client.KamiMod
-import org.kamiblue.client.module.Category
-import org.kamiblue.client.module.Module
-import org.kamiblue.client.module.modules.misc.DiscordRPC
-import org.kamiblue.client.util.EntityUtils
-import org.kamiblue.client.util.color.ColorConverter
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.color.DyeColors
-import org.kamiblue.client.util.threads.BackgroundScope
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.model.ModelElytra
 import net.minecraft.client.renderer.GlStateManager
@@ -26,6 +17,15 @@ import net.minecraft.util.math.MathHelper
 import org.kamiblue.capeapi.Cape
 import org.kamiblue.capeapi.CapeType
 import org.kamiblue.capeapi.CapeUser
+import org.kamiblue.client.KamiMod
+import org.kamiblue.client.module.Category
+import org.kamiblue.client.module.Module
+import org.kamiblue.client.module.modules.misc.DiscordRPC
+import org.kamiblue.client.util.EntityUtils
+import org.kamiblue.client.util.color.ColorConverter
+import org.kamiblue.client.util.color.ColorHolder
+import org.kamiblue.client.util.color.DyeColors
+import org.kamiblue.client.util.threads.BackgroundScope
 import org.kamiblue.commons.utils.ConnectionUtils
 import java.util.*
 import kotlin.collections.HashMap

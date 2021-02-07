@@ -1,6 +1,9 @@
 package org.kamiblue.client.util.text
 
 import baritone.api.event.events.ChatEvent
+import net.minecraft.util.text.ITextComponent
+import net.minecraft.util.text.TextComponentBase
+import net.minecraft.util.text.TextFormatting
 import org.kamiblue.client.KamiMod
 import org.kamiblue.client.command.CommandManager
 import org.kamiblue.client.manager.managers.MessageManager
@@ -8,9 +11,6 @@ import org.kamiblue.client.module.AbstractModule
 import org.kamiblue.client.util.BaritoneUtils
 import org.kamiblue.client.util.TaskState
 import org.kamiblue.client.util.Wrapper
-import net.minecraft.util.text.ITextComponent
-import net.minecraft.util.text.TextComponentBase
-import net.minecraft.util.text.TextFormatting
 import java.util.regex.Pattern
 
 object MessageSendHelper {

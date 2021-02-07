@@ -1,11 +1,11 @@
 package org.kamiblue.client.event
 
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.util.Wrapper
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.PlayerControllerMP
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.network.NetHandlerPlayClient
+import org.kamiblue.client.command.CommandManager
+import org.kamiblue.client.util.Wrapper
 import org.kamiblue.command.ExecuteEvent
 import org.kamiblue.command.IExecuteEvent
 

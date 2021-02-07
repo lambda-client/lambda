@@ -1,6 +1,11 @@
 package org.kamiblue.client.module.modules.render
 
 import kotlinx.coroutines.runBlocking
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats
+import net.minecraft.network.play.server.SPacketChunkData
+import net.minecraft.world.chunk.Chunk
+import net.minecraftforge.event.world.ChunkEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.event.events.RenderWorldEvent
 import org.kamiblue.client.module.Category
@@ -14,15 +19,9 @@ import org.kamiblue.client.util.graphics.KamiTessellator
 import org.kamiblue.client.util.math.VectorUtils.distanceTo
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.onMainThread
-import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats
-import net.minecraft.network.play.server.SPacketChunkData
-import net.minecraft.world.chunk.Chunk
-import net.minecraftforge.event.world.ChunkEvent
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.util.threads.safeAsyncListener
+import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.event.listener.asyncListener
-import org.kamiblue.event.listener.listener
 import org.lwjgl.opengl.GL11.*
 import java.io.*
 import java.util.*

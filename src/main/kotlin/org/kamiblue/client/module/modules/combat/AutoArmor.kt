@@ -1,5 +1,11 @@
 package org.kamiblue.client.module.modules.combat
 
+import net.minecraft.client.gui.inventory.GuiContainer
+import net.minecraft.init.Items
+import net.minecraft.inventory.ClickType
+import net.minecraft.item.ItemArmor
+import net.minecraft.item.ItemStack
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.manager.managers.PlayerInventoryManager
 import org.kamiblue.client.manager.managers.PlayerInventoryManager.addInventoryTask
@@ -8,12 +14,6 @@ import org.kamiblue.client.module.Module
 import org.kamiblue.client.util.*
 import org.kamiblue.client.util.items.removeHoldingItem
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.client.gui.inventory.GuiContainer
-import net.minecraft.init.Items
-import net.minecraft.inventory.ClickType
-import net.minecraft.item.ItemArmor
-import net.minecraft.item.ItemStack
-import net.minecraftforge.fml.common.gameevent.TickEvent
 
 internal object AutoArmor : Module(
     name = "AutoArmor",

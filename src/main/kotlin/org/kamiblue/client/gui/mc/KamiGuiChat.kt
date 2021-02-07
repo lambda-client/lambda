@@ -1,6 +1,7 @@
 package org.kamiblue.client.gui.mc
 
 import kotlinx.coroutines.launch
+import net.minecraft.client.gui.GuiChat
 import org.kamiblue.client.command.CommandManager
 import org.kamiblue.client.mixin.extension.historyBuffer
 import org.kamiblue.client.mixin.extension.sentHistoryCursor
@@ -10,7 +11,6 @@ import org.kamiblue.client.util.graphics.RenderUtils2D
 import org.kamiblue.client.util.graphics.VertexHelper
 import org.kamiblue.client.util.math.Vec2d
 import org.kamiblue.client.util.threads.defaultScope
-import net.minecraft.client.gui.GuiChat
 import org.kamiblue.command.AbstractArg
 import org.kamiblue.command.AutoComplete
 import org.kamiblue.command.GreedyStringArg

@@ -1,13 +1,13 @@
 package org.kamiblue.client.manager.managers
 
+import net.minecraft.entity.EntityLivingBase
+import net.minecraft.entity.item.EntityEnderCrystal
+import net.minecraft.util.math.BlockPos
 import org.kamiblue.client.manager.Manager
 import org.kamiblue.client.module.AbstractModule
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.ModuleManager
 import org.kamiblue.client.util.MotionTracker
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.item.EntityEnderCrystal
-import net.minecraft.util.math.BlockPos
 
 object CombatManager : Manager {
     private val combatModules: List<AbstractModule>

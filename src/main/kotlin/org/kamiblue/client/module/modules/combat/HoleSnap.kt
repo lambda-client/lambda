@@ -1,5 +1,8 @@
 package org.kamiblue.client.module.modules.combat
 
+import net.minecraft.network.play.server.SPacketPlayerPosLook
+import net.minecraft.util.math.BlockPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.module.Category
@@ -12,9 +15,6 @@ import org.kamiblue.client.util.math.VectorUtils.distanceTo
 import org.kamiblue.client.util.math.VectorUtils.toBlockPos
 import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.network.play.server.SPacketPlayerPosLook
-import net.minecraft.util.math.BlockPos
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.toRadian
 import org.kamiblue.event.listener.listener

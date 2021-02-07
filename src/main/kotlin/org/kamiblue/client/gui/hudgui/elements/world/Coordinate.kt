@@ -1,10 +1,10 @@
 package org.kamiblue.client.gui.hudgui.elements.world
 
+import net.minecraft.util.math.Vec3d
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.gui.hudgui.LabelHud
 import org.kamiblue.client.setting.GuiConfig.setting
 import org.kamiblue.client.util.graphics.font.TextComponent
-import net.minecraft.util.math.Vec3d
 
 object Coordinate : LabelHud(
     name = "Coordinate",

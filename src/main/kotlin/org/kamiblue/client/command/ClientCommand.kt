@@ -1,6 +1,10 @@
 package org.kamiblue.client.command
 
 import kotlinx.coroutines.launch
+import net.minecraft.block.Block
+import net.minecraft.item.Item
+import net.minecraft.util.math.BlockPos
+import org.kamiblue.capeapi.PlayerProfile
 import org.kamiblue.client.event.ClientExecuteEvent
 import org.kamiblue.client.event.SafeExecuteEvent
 import org.kamiblue.client.module.AbstractModule
@@ -8,10 +12,6 @@ import org.kamiblue.client.module.modules.client.CommandConfig
 import org.kamiblue.client.util.Wrapper
 import org.kamiblue.client.util.threads.defaultScope
 import org.kamiblue.client.util.threads.toSafe
-import net.minecraft.block.Block
-import net.minecraft.item.Item
-import net.minecraft.util.math.BlockPos
-import org.kamiblue.capeapi.PlayerProfile
 import org.kamiblue.command.AbstractArg
 import org.kamiblue.command.CommandBuilder
 import org.kamiblue.command.utils.BuilderBlock

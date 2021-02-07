@@ -64,14 +64,6 @@ object ConfigCommand : ClientCommand(
                 }
             }
 
-            literal("set") {
-                string("name") { nameArg ->
-                    execute("Change preset") {
-                        configTypeArg.value.setPreset(nameArg.value)
-                    }
-                }
-            }
-
             literal("copy", "ctrl+c", "ctrtc") {
                 string("name") { nameArg ->
                     execute("Copy current preset to specific preset") {
