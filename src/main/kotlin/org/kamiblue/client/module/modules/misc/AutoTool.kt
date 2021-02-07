@@ -15,12 +15,6 @@ import org.kamiblue.client.util.combat.CombatUtils
 import org.kamiblue.client.util.combat.CombatUtils.equipBestWeapon
 import org.kamiblue.client.util.items.swapToSlot
 import org.kamiblue.client.util.threads.safeListener
-import net.minecraft.block.state.IBlockState
-import net.minecraft.enchantment.EnchantmentHelper
-import net.minecraft.entity.EntityLivingBase
-import net.minecraft.init.Enchantments
-import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.util.items.hotbarSlots
 import org.lwjgl.input.Mouse
 

@@ -13,11 +13,13 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
+import org.kamiblue.client.event.SafeClientEvent
+import org.kamiblue.client.manager.managers.PlayerPacketManager
 import org.kamiblue.client.module.modules.misc.HighwayTools
+import org.kamiblue.client.util.math.RotationUtils.getRotationTo
 import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
-import org.kamiblue.commons.extension.add
+import org.kamiblue.client.util.threads.runSafeSuspend
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
 import kotlin.math.floor
 
@@ -84,7 +86,9 @@ object WorldUtils {
         for (x in xArray) {
             for (z in zArray) {
                 val result = rayTraceToGround(Vec3d(x, boundingBox.minY, z), stopOnLiquid)
-                results.add(result)
+                if (result != null) {
+                    results.add(result)
+                }
             }
         }
 
