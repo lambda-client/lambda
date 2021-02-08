@@ -33,6 +33,7 @@ import org.kamiblue.client.module.Module
 import org.kamiblue.client.process.AutoObsidianProcess
 import org.kamiblue.client.util.*
 import org.kamiblue.client.util.EntityUtils.getDroppedItem
+import org.kamiblue.client.util.EntityUtils.getDroppedItems
 import org.kamiblue.client.util.WorldUtils.getNeighbour
 import org.kamiblue.client.util.WorldUtils.isPlaceable
 import org.kamiblue.client.util.WorldUtils.placeBlock
@@ -46,9 +47,9 @@ import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.defaultScope
 import org.kamiblue.client.util.threads.onMainThreadSafe
 import org.kamiblue.client.util.threads.safeListener
-import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
+import kotlin.math.ceil
 
 internal object AutoObsidian : Module(
     name = "AutoObsidian",
@@ -193,7 +194,7 @@ internal object AutoObsidian : Module(
             }
 
             if (state != State.COLLECTING && searchingState != SearchingState.COLLECTING) {
-                goal = if (player.getDistanceSqToCenter(placingPos) > 2.0) {
+                goal = if (player.getDistanceSqToCenter(placingPos) > 4.0) {
                     GoalNear(placingPos, 2)
                 } else {
                     null
@@ -201,8 +202,8 @@ internal object AutoObsidian : Module(
             }
         }
 
-        updateMainState()
         updateSearchingState()
+        updateMainState()
     }
 
     private fun SafeClientEvent.updatePlacingPos() {
@@ -264,7 +265,7 @@ internal object AutoObsidian : Module(
     }
 
     private fun SafeClientEvent.startPlacing() =
-        if (player.inventorySlots.countBlock(Blocks.ENDER_CHEST) == 0) {
+        if (searchShulker && player.inventorySlots.countBlock(Blocks.ENDER_CHEST) == 0) {
             State.SEARCHING
         } else {
             State.PLACING
@@ -283,31 +284,35 @@ internal object AutoObsidian : Module(
     /**
      * @return `true` if can still place more ender chest
      */
-    private fun SafeClientEvent.checkObbyCount(): Boolean {
-        val inventory = player.allSlots.countBlock(Blocks.OBSIDIAN)
-        val dropped = EntityUtils.getDroppedItems(Blocks.OBSIDIAN.id, 8.0f).sumBy { it.item.count }
-
-        return when (fillMode) {
+    private fun SafeClientEvent.checkObbyCount() =
+        when (fillMode) {
             FillMode.TARGET_STACKS -> {
-                ((inventory + dropped) / 8.0f).ceilToInt() / 8 <= targetStacks
+                val total = countInventory() + countDropped()
+                ceil(total / 8.0f) / 8.0f < targetStacks
             }
             FillMode.FILL_INVENTORY -> {
-                countEmptySlots() - dropped >= 8
+                countEmptySlots() - countDropped() >= 8
             }
             FillMode.INFINITE -> {
                 true
             }
         }
-    }
+
+    private fun SafeClientEvent.countInventory() =
+        player.inventorySlots.countBlock(Blocks.OBSIDIAN)
+
+    private fun SafeClientEvent.countDropped() =
+        getDroppedItems(Blocks.OBSIDIAN.id, 8.0f).sumBy { it.item.count }
 
     private fun SafeClientEvent.countEmptySlots(): Int {
-        return player.inventory?.mainInventory?.sumBy {
+        return player.inventorySlots.sumBy {
+            val stack = it.stack
             when {
-                it.isEmpty -> 64
-                it.item.id == Blocks.OBSIDIAN.id -> 64 - it.count
+                stack.isEmpty -> 64
+                stack.item == Blocks.OBSIDIAN -> 64 - stack.count
                 else -> 0
             }
-        } ?: 0
+        }
     }
 
     private fun SafeClientEvent.updateSearchingState() {
@@ -530,9 +535,10 @@ internal object AutoObsidian : Module(
         }
     }
 
-    private fun collectDroppedItem(itemId: Int) {
-        goal = if (getDroppedItem(itemId, 8.0f) != null) {
-            GoalNear(getDroppedItem(itemId, 8.0f), 0)
+    private fun SafeClientEvent.collectDroppedItem(itemId: Int) {
+        val droppedItem = getDroppedItem(itemId, 8.0f)
+        goal = if (droppedItem != null) {
+            GoalNear(droppedItem, 0)
         } else {
             null
         }
