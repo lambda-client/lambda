@@ -4,6 +4,7 @@ import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.minecraft.block.BlockEnderChest
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.audio.PositionedSoundRecord
@@ -14,7 +15,6 @@ import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
-import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemShulkerBox
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -113,7 +113,7 @@ internal object AutoObsidian : Module(
     private var lastMiningSide = EnumFacing.UP
     private var canInstantMine = false
 
-    private val tickTimer = TickTimer(TimeUnit.TICKS)
+    private val delayTimer = TickTimer(TimeUnit.TICKS)
     private val rotateTimer = TickTimer(TimeUnit.TICKS)
     private val shulkerOpenTimer = TickTimer(TimeUnit.TICKS)
     private val miningTimer = TickTimer(TimeUnit.TICKS)
@@ -191,7 +191,7 @@ internal object AutoObsidian : Module(
     }
 
     private fun SafeClientEvent.runAutoObby() {
-        if (!tickTimer.tick(delayTicks.toLong())) return
+        if (!delayTimer.tick(delayTicks.toLong())) return
 
         updateState()
         when (state) {
@@ -427,12 +427,21 @@ internal object AutoObsidian : Module(
             shulkerID = hotbarSlot.stack.item.id
             swapToSlot(hotbarSlot)
         } else {
-            if (!swapToItemOrMove<ItemShulkerBox>()) {
+            val moved = swapToItemOrMove<ItemShulkerBox>(
+                predicateSlot = {
+                    val item = it.item
+                    val block = item.block
+                    item != Items.DIAMOND_PICKAXE && block !is BlockEnderChest
+                }
+            )
+
+            if (!moved) {
                 MessageSendHelper.sendChatMessage("$chatName No shulker box was found in inventory, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 disable()
             }
 
+            onInventoryOperation()
             return
         }
 
@@ -443,12 +452,21 @@ internal object AutoObsidian : Module(
 
     private fun SafeClientEvent.placeEnderChest(pos: BlockPos) {
         if (!swapToBlock(Blocks.ENDER_CHEST)) {
-            if (!swapToBlockOrMove(Blocks.ENDER_CHEST)) {
+            val moved = swapToBlockOrMove(
+                Blocks.ENDER_CHEST,
+                predicateSlot = {
+                    val item = it.item
+                    val block = item.block
+                    item != Items.DIAMOND_PICKAXE && block !is BlockShulkerBox
+                }
+            )
+            if (!moved) {
                 MessageSendHelper.sendChatMessage("$chatName No ender chest was found in inventory, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 disable()
             }
 
+            onInventoryOperation()
             return
         }
 
@@ -528,7 +546,7 @@ internal object AutoObsidian : Module(
     }
 
     private fun SafeClientEvent.mineBlock(pos: BlockPos) {
-        swapToValidPickaxe()
+        if (!swapToValidPickaxe()) return
 
         val center = pos.toVec3dCenter()
         val diff = player.getPositionEyes(1.0f).subtract(center)
@@ -563,34 +581,40 @@ internal object AutoObsidian : Module(
      * Swaps the active hotbar slot to one which has a valid pickaxe (i.e. non-silk touch). If there is no valid pickaxe,
      * disable the module.
      */
-    private fun SafeClientEvent.swapToValidPickaxe() {
+    private fun SafeClientEvent.swapToValidPickaxe(): Boolean {
         val swapped = swapToItem(Items.DIAMOND_PICKAXE) {
             EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
         }
 
         if (!swapped) {
-            val slotFrom = getInventoryNonSilkTouchPick()
-                ?: run {
-                    MessageSendHelper.sendChatMessage("No valid pickaxe was found in inventory.")
-                    mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    disable()
-                    return
+            val moved = swapToItemOrMove(
+                Items.DIAMOND_PICKAXE,
+                predicateItem = {
+                    EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
+                },
+                predicateSlot = {
+                    val item = it.item
+                    val block = item.block
+                    block !is BlockShulkerBox && block !is BlockEnderChest
                 }
+            )
 
-            val slotTo = player.hotbarSlots.firstEmpty()?.hotbarSlot ?: 0
+            if (!moved) {
+                MessageSendHelper.sendChatMessage("No valid pickaxe was found in inventory.")
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                disable()
+            }
 
-            moveToHotbar(slotFrom.slotNumber, slotTo)
+            onInventoryOperation()
+            return false
         }
+
+        return true
     }
 
-    /**
-     * Gets the first non-hotbar slot of a diamond pickaxe that does not have the silk touch enchantment.
-     * @return The position of the pickaxe. -1 if there is no match.
-     */
-    private fun SafeClientEvent.getInventoryNonSilkTouchPick(): Slot? {
-        return player.storageSlots.firstItem(Items.DIAMOND_PICKAXE) {
-            EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
-        }
+    private fun SafeClientEvent.onInventoryOperation() {
+        delayTimer.reset(20L)
+        playerController.updateController()
     }
 
     private fun SafeClientEvent.collectDroppedItem(itemId: Int) {
