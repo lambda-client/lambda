@@ -1343,7 +1343,7 @@ internal object HighwayTools : Module(
                 // ToDo: Cache shulker count
 //                  val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
 
-                val secLeft = (pavingLeft - AutoObsidian.threshold).coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
+                val secLeft = (pavingLeft).coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
                 val secondsLeft = (secLeft % 60).toInt().toString().padStart(2, '0')
                 val minutesLeft = ((secLeft % 3600) / 60).toInt().toString().padStart(2, '0')
                 val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2, '0')
