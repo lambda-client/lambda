@@ -435,7 +435,11 @@ internal object AutoObsidian : Module(
                 }
             }
         } else {
-            val side = EnumFacing.getDirectionFromEntityLiving(pos, player)
+            val center = pos.toVec3dCenter()
+            val diff = player.getPositionEyes(1.0f).subtract(center)
+            val normalizedVec = diff.normalize()
+
+            val side = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
             val hitVecOffset = WorldUtils.getHitVecOffset(side)
 
             lastHitVec = WorldUtils.getHitVec(pos, side)
@@ -487,8 +491,12 @@ internal object AutoObsidian : Module(
     private fun SafeClientEvent.mineBlock(pos: BlockPos) {
         swapToValidPickaxe()
 
-        val side = EnumFacing.getDirectionFromEntityLiving(pos, player)
-        lastHitVec = WorldUtils.getHitVec(pos, side)
+        val center = pos.toVec3dCenter()
+        val diff = player.getPositionEyes(1.0f).subtract(center)
+        val normalizedVec = diff.normalize()
+        val side = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
+
+        lastHitVec = center
         rotateTimer.reset()
 
         defaultScope.launch {
