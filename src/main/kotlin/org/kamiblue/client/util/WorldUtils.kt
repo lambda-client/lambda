@@ -15,7 +15,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.manager.managers.PlayerPacketManager
-import org.kamiblue.client.module.modules.misc.HighwayTools
+import org.kamiblue.client.util.items.isFullBox
 import org.kamiblue.client.util.math.RotationUtils.getRotationTo
 import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.threads.runSafeSuspend
@@ -138,7 +138,7 @@ object WorldUtils {
         val eyePos = player.getPositionEyes(1.0f)
 
         return getVisibleSides(pos)
-            .filter { !world.getBlockState(pos.offset(it)).isFullCube }
+            .filter { !world.getBlockState(pos.offset(it)).isFullBox }
             .minByOrNull { eyePos.distanceTo(getHitVec(pos, it)) }
     }
 
@@ -150,14 +150,14 @@ object WorldUtils {
     fun SafeClientEvent.getVisibleSides(pos: BlockPos): Set<EnumFacing> {
         val visibleSides = EnumSet.noneOf(EnumFacing::class.java)
 
-        val isFullCube = world.getBlockState(pos).isFullCube
+        val isFullBox = world.getBlockState(pos).isFullBox
         val eyePos = player.getPositionEyes(1.0f)
         val blockCenter = pos.toVec3dCenter()
 
         return visibleSides
-            .checkAxis(eyePos.x - blockCenter.x, EnumFacing.WEST, EnumFacing.EAST, !isFullCube)
+            .checkAxis(eyePos.x - blockCenter.x, EnumFacing.WEST, EnumFacing.EAST, !isFullBox)
             .checkAxis(eyePos.y - blockCenter.y, EnumFacing.DOWN, EnumFacing.UP, true)
-            .checkAxis(eyePos.z - blockCenter.z, EnumFacing.NORTH, EnumFacing.SOUTH, !isFullCube)
+            .checkAxis(eyePos.z - blockCenter.z, EnumFacing.NORTH, EnumFacing.SOUTH, !isFullBox)
     }
 
     private fun EnumSet<EnumFacing>.checkAxis(diff: Double, negativeSide: EnumFacing, positiveSide: EnumFacing, bothIfInRange: Boolean) =
