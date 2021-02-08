@@ -3,7 +3,6 @@ package org.kamiblue.client.module.modules.misc
 import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import net.minecraft.block.Block
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
@@ -1219,13 +1218,11 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun sendMiningPackets(pos: BlockPos, side: EnumFacing) {
-        runBlocking {
-            onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
-                player.swingArm(EnumHand.MAIN_HAND)
-            }
+    private suspend fun sendMiningPackets(pos: BlockPos, side: EnumFacing) {
+        onMainThreadSafe {
+            connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
+            connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
+            player.swingArm(EnumHand.MAIN_HAND)
         }
     }
 
