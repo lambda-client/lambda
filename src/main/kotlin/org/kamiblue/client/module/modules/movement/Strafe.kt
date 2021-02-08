@@ -26,10 +26,10 @@ internal object Strafe : Module(
     description = "Improves control in air"
 ) {
 
-    private val mode = setting("Mode", SpeedBoost.NCP)
+    private val mode by setting("Mode", SpeedBoost.NCP)
     private val page by setting("Page", Page.GENERIC_SETTINGS)
 
-    /* Common Settings */
+    /* Generic Settings */
     private val airSpeedBoost by setting("Air Speed Boost", true, { page == Page.GENERIC_SETTINGS })
     private val groundSpeedBoost by setting("Ground Speed Boost", true, { page == Page.GENERIC_SETTINGS })
     private val timerBoost by setting("Timer Boost", true, { page == Page.GENERIC_SETTINGS })
@@ -37,12 +37,12 @@ internal object Strafe : Module(
     private val onHoldingSprint by setting("On Holding Sprint", false, { page == Page.GENERIC_SETTINGS })
     private val cancelInertia by setting("Cancel Inertia", false, { page == Page.GENERIC_SETTINGS })
 
-    /* NCP */
-    private val ncpStrict by setting("NCP Strict", false, { mode.value == SpeedBoost.NCP && page == Page.MODE_SETTINGS })
+    /* NCP Mode */
+    private val ncpStrict by setting("NCP Strict", false, { mode == SpeedBoost.NCP && page == Page.MODE_SETTINGS })
 
-    /* Custom */
-    private val customSpeed by setting("Speed", 0.28, 0.0..1.0, 0.01, { mode.value == SpeedBoost.CUSTOM && page == Page.MODE_SETTINGS })
-    private val customSpeedAlways by setting("Always Use Specified Speed", false, { mode.value == SpeedBoost.CUSTOM && page == Page.MODE_SETTINGS })
+    /* Custom Mode */
+    private val settingSpeed by setting("Speed", 0.28, 0.0..1.0, 0.01, { mode == SpeedBoost.CUSTOM && page == Page.MODE_SETTINGS })
+    private val constantSpeed by setting("Constant Speed", false, { mode == SpeedBoost.CUSTOM && page == Page.MODE_SETTINGS })
 
     private enum class SpeedBoost {
         NCP, CUSTOM
@@ -72,6 +72,7 @@ internal object Strafe : Module(
             }
 
             setSpeed(getSpeed())
+
             if (airSpeedBoost) player.jumpMovementFactor = 0.029f
             if (timerBoost) mc.timer.tickLength = 45.87155914306640625f
             if (autoJump) jump()
@@ -94,13 +95,14 @@ internal object Strafe : Module(
 
     private fun SafeClientEvent.jump() {
         if (player.onGround && jumpTicks <= 0) {
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.keyCode, false)
-            player.motionY = 0.41
             if (player.isSprinting) {
                 val yaw = calcMoveYaw()
                 player.motionX -= sin(yaw) * 0.2
                 player.motionZ += cos(yaw) * 0.2
             }
+
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.keyCode, false)
+            player.motionY = 0.41
             player.isAirBorne = true
             jumpTicks = 5
         }
@@ -108,20 +110,30 @@ internal object Strafe : Module(
         jumpTicks--
     }
 
-    private fun SafeClientEvent.getSpeed() = when (mode.value) {
+    private fun SafeClientEvent.getSpeed() = when (mode) {
         SpeedBoost.NCP -> {
-            if (groundSpeedBoost && player.onGround && !(player.isInWater || player.isInWeb))
-                applySpeedPotionEffects(if (ncpStrict) 0.26 else 0.28)
-            else
+            if (shouldBoostGroundSpeed) {
+                val speed = if (ncpStrict) 0.26 else 0.28
+                applySpeedPotionEffects(speed)
+            } else {
                 player.speed
+            }
         }
         SpeedBoost.CUSTOM -> {
-            if (customSpeedAlways)
-                customSpeed
-            else if (groundSpeedBoost && player.onGround && !(player.isInWater || player.isInWeb))
-                applySpeedPotionEffects(customSpeed)
-            else
-                player.speed
+            when {
+                constantSpeed -> {
+                    settingSpeed
+                }
+                shouldBoostGroundSpeed -> {
+                    applySpeedPotionEffects(settingSpeed)
+                }
+                else -> {
+                    player.speed
+                }
+            }
         }
     }
+
+    private val SafeClientEvent.shouldBoostGroundSpeed
+        get() = groundSpeedBoost && player.onGround && !(player.isInWater || player.isInWeb)
 }
