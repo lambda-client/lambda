@@ -995,7 +995,7 @@ internal object HighwayTools : Module(
                     MessageSendHelper.sendChatMessage("No neighbours found")
                 }
             }
-            blockTask.onStuck()
+            blockTask.stuck(20)
             return
         } else {
             for (pair in neighbours) {
@@ -1433,6 +1433,10 @@ internal object HighwayTools : Module(
 
         fun onStuck() {
             stuckTicks++
+        }
+
+        fun stuck(weight: Int) {
+            stuckTicks += weight
         }
 
         fun shuffle() {
