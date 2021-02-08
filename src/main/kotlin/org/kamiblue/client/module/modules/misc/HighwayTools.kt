@@ -46,9 +46,9 @@ import org.kamiblue.client.util.WorldUtils
 import org.kamiblue.client.util.WorldUtils.blackList
 import org.kamiblue.client.util.WorldUtils.getBetterNeighbour
 import org.kamiblue.client.util.WorldUtils.getMiningSide
-import org.kamiblue.client.util.WorldUtils.getNeighbour
 import org.kamiblue.client.util.WorldUtils.isLiquid
 import org.kamiblue.client.util.WorldUtils.isPlaceable
+import org.kamiblue.client.util.WorldUtils.shulkerList
 import org.kamiblue.client.util.color.ColorHolder
 import org.kamiblue.client.util.graphics.ESPRenderer
 import org.kamiblue.client.util.graphics.font.TextComponent
@@ -110,10 +110,10 @@ internal object HighwayTools : Module(
     private var breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR }, description = "Sets the delay ticks between break tasks")
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     private val bridging by setting("Bridging", true, { page == Page.BEHAVIOR }, description = "Tries to bridge / scaffold when stuck placing")
-    private var placementSearch by setting("Place Deep Search", 1, 1..20, 1, { page == Page.BEHAVIOR }, description = "Attempts to find a support block for placing against")
+    private var placementSearch by setting("Place Deep Search", 2, 1..20, 1, { page == Page.BEHAVIOR }, description = "Attempts to find a support block for placing against")
     private val multiBuilding by setting("Shuffle Tasks", false, { page == Page.BEHAVIOR }, description = "Only activate when working with several players")
     private val maxBreaks by setting("Multi Break", 3, 1..8, 1, { page == Page.BEHAVIOR }, description = "Breaks multiple instant breaking blocks per tick in view")
-    private val toggleInventoryManager by setting("Toggle InvManager", true, { page == Page.BEHAVIOR }, description = "Activates InventoryManager on enable")
+    private val toggleInventoryManager by setting("Toggle InvManager", false, { page == Page.BEHAVIOR }, description = "Activates InventoryManager on enable")
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR }, description = "Activates AutoObsidian on enable")
     private val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR }, description = "Timeout for waiting for the server to try again")
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag")
@@ -209,6 +209,8 @@ internal object HighwayTools : Module(
     }
 
     init {
+        ignoreBlocks.addAll(shulkerList)
+
         onEnable {
             runSafeR {
                 /* Turn on inventory manager if the users wants us to control it */
@@ -509,7 +511,7 @@ internal object HighwayTools : Module(
         val eyePos = player.getPositionEyes(1f)
 
         blueprint.keys.removeIf {
-            eyePos.distanceTo(it) > maxReach - 0.3
+            eyePos.distanceTo(it) > maxReach - 0.7
         }
     }
 
@@ -980,7 +982,7 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
         val neighbours = if (illegalPlacements) {
-            getBetterNeighbour(blockTask.blockPos, 1, maxReach)
+            getBetterNeighbour(blockTask.blockPos, placementSearch, maxReach)
         } else {
             getBetterNeighbour(blockTask.blockPos, placementSearch, maxReach, true)
         }
@@ -1046,9 +1048,7 @@ internal object HighwayTools : Module(
         for (task in sortedTasks) {
             if (task.taskState == TaskState.PLACE) {
                 containsPlace = true
-                getNeighbour(task.blockPos, placementSearch, maxReach, true)
-                    ?: continue
-                return false
+                if (getBetterNeighbour(task.blockPos, placementSearch, maxReach, true).isNotEmpty()) return false
             }
         }
         return containsPlace
@@ -1133,10 +1133,6 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.mineBlock(blockTask: BlockTask) {
-        if (blockTask.blockPos == player.flooredPosition.down()) {
-            blockTask.updateState(TaskState.DONE)
-            return
-        }
 
         /* For fire, we just need to mine the top of the block below the fire */
         /* ToDo: This will not work if the top of the block which the fire is on is not visible */
@@ -1271,8 +1267,6 @@ internal object HighwayTools : Module(
         if (showEstimations) gatherEstimations(displayText, runtimeSec, distanceDone)
 
 //        displayText.addLine("by Constructor#9948 aka Avanatiker", primaryColor)
-
-//        MessageSendHelper.sendChatMessage(StatList.MINE_BLOCK_STATS.toString())
 
         if (printDebug) {
             displayText.addLine("Pending", primaryColor)
