@@ -2,6 +2,7 @@ package org.kamiblue.client.util
 
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
+import net.minecraft.init.MobEffects
 import org.kamiblue.client.event.SafeClientEvent
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -44,4 +45,9 @@ object MovementUtils {
         player.motionX = -sin(yaw) * speed
         player.motionZ = cos(yaw) * speed
     }
+
+    fun SafeClientEvent.applySpeedPotionEffects(speed: Double) =
+        player.getActivePotionEffect(MobEffects.SPEED)?.let {
+            speed * (1.0 + (it.amplifier + 1) * 0.2)
+        } ?: speed
 }
