@@ -12,5 +12,5 @@ val Block.id: Int get() = Block.getIdFromBlock(this)
 
 val IBlockState.isFullBox: Boolean
     get() = Wrapper.world?.let {
-        this.getBoundingBox(it, BlockPos.ORIGIN)
+        this.getCollisionBoundingBox(it, BlockPos.ORIGIN)
     } == Block.FULL_BLOCK_AABB
