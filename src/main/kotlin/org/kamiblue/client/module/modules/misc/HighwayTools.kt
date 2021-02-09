@@ -111,7 +111,7 @@ internal object HighwayTools : Module(
     private var breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR }, description = "Sets the delay ticks between break tasks")
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     private val bridging by setting("Bridging", true, { page == Page.BEHAVIOR }, description = "Tries to bridge / scaffold when stuck placing")
-    private var placementSearch by setting("Place Deep Search", 2, 1..20, 1, { page == Page.BEHAVIOR }, description = "Attempts to find a support block for placing against")
+    private var placementSearch by setting("Place Deep Search", 1, 1..20, 1, { page == Page.BEHAVIOR }, description = "Attempts to find a support block for placing against")
     private val multiBuilding by setting("Shuffle Tasks", false, { page == Page.BEHAVIOR }, description = "Only activate when working with several players")
     private val maxBreaks by setting("Multi Break", 3, 1..8, 1, { page == Page.BEHAVIOR }, description = "Breaks multiple instant breaking blocks per tick in view")
     private val toggleInventoryManager by setting("Toggle InvManager", false, { page == Page.BEHAVIOR }, description = "Activates InventoryManager on enable")
