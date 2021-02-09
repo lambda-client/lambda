@@ -326,8 +326,13 @@ internal object AutoObsidian : Module(
     private fun SafeClientEvent.checkObbyCount() =
         when (fillMode) {
             FillMode.TARGET_STACKS -> {
-                val total = countInventory() + countDropped()
-                ceil(total / 8.0f) / 8.0f < targetStacks
+                val empty = countEmptySlots()
+                val dropped = countDropped()
+                val total = countInventory() + dropped
+
+                val hasEmptySlots = empty - dropped >= 8
+                val belowTarget = ceil(total / 8.0f) / 8.0f < targetStacks
+                hasEmptySlots && belowTarget
             }
             FillMode.FILL_INVENTORY -> {
                 countEmptySlots() - countDropped() >= 8
@@ -348,7 +353,7 @@ internal object AutoObsidian : Module(
             val stack = it.stack
             when {
                 stack.isEmpty -> 64
-                stack.item == Blocks.OBSIDIAN -> 64 - stack.count
+                stack.item.block == Blocks.OBSIDIAN -> 64 - stack.count
                 else -> 0
             }
         }
