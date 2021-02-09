@@ -997,25 +997,29 @@ internal object HighwayTools : Module(
             getBetterNeighbour(blockTask.blockPos, placementSearch, maxReach, true)
         }
 
-        if (neighbours.isEmpty()) {
-            if (debugMessages == DebugMessages.ALL) {
-                if (!anonymizeStats) {
-                    MessageSendHelper.sendChatMessage("No neighbours found for ${blockTask.blockPos}")
-                } else {
-                    MessageSendHelper.sendChatMessage("No neighbours found")
+        when (neighbours.size) {
+            0 -> {
+                if (debugMessages == DebugMessages.ALL) {
+                    if (!anonymizeStats) {
+                        MessageSendHelper.sendChatMessage("No neighbours found for ${blockTask.blockPos}")
+                    } else {
+                        MessageSendHelper.sendChatMessage("No neighbours found")
+                    }
+                }
+                blockTask.stuck(20)
+                return
+            }
+            1 -> {
+                lastHitVec = WorldUtils.getHitVec(neighbours.last().second, neighbours.last().first)
+                rotateTimer.reset()
+
+                placeBlockNormal(blockTask, neighbours.last())
+            }
+            else -> {
+                for (pair in neighbours) {
+                    addTaskToPending(pair.second, TaskState.PLACE, fillerMat)
                 }
             }
-            blockTask.stuck(20)
-            return
-        } else {
-            for (pair in neighbours) {
-                if (pair != neighbours.last()) addTaskToPending(pair.second, TaskState.PLACE, fillerMat)
-            }
-
-            lastHitVec = WorldUtils.getHitVec(neighbours.last().second, neighbours.last().first)
-            rotateTimer.reset()
-
-            placeBlockNormal(blockTask, neighbours.last())
         }
     }
 
@@ -1133,8 +1137,8 @@ internal object HighwayTools : Module(
                     }
                 } else {
                     for (triple in found) {
-                        blockTask.updateState(triple.second)
-                        blockTask.updateMaterial(triple.third)
+                        triple.first.updateState(triple.second)
+                        triple.first.updateMaterial(triple.third)
                     }
                 }
             }
