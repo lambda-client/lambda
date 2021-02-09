@@ -1006,7 +1006,7 @@ internal object HighwayTools : Module(
                         MessageSendHelper.sendChatMessage("No neighbours found")
                     }
                 }
-                blockTask.stuck(20)
+                blockTask.stuck(21)
                 return
             }
             1 -> {
