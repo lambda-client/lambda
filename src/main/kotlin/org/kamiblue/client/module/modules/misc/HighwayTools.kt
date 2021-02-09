@@ -1027,7 +1027,11 @@ internal object HighwayTools : Module(
         val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
         val currentBlock = world.getBlockState(pair.second).block
 
-        waitTicks = placeDelay + extraPlaceDelay
+        waitTicks = if (dynamicDelay) {
+            placeDelay + extraPlaceDelay
+        } else {
+            placeDelay
+        }
         blockTask.updateState(TaskState.PENDING_PLACE)
 
         if (currentBlock in blackList) {
@@ -1320,7 +1324,11 @@ internal object HighwayTools : Module(
         displayText.add("    Materials:", primaryColor)
         displayText.addLine("Main(${material.localizedName}) Filler(${fillerMat.localizedName})", secondaryColor)
         displayText.add("    Delays:", primaryColor)
-        displayText.addLine("Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)", secondaryColor)
+        if (dynamicDelay) {
+            displayText.addLine("Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)", secondaryColor)
+        } else {
+            displayText.addLine("Place($placeDelay) Break($breakDelay)", secondaryColor)
+        }
     }
 
     private fun gatherTask(displayText: TextComponent) {
