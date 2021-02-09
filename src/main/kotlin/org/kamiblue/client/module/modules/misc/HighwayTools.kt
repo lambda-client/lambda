@@ -34,6 +34,8 @@ import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
 import org.kamiblue.client.module.modules.client.Hud.primaryColor
 import org.kamiblue.client.module.modules.client.Hud.secondaryColor
+import org.kamiblue.client.module.modules.movement.AntiHunger
+import org.kamiblue.client.module.modules.movement.Velocity
 import org.kamiblue.client.module.modules.player.AutoEat
 import org.kamiblue.client.module.modules.player.InventoryManager
 import org.kamiblue.client.process.HighwayToolsProcess
@@ -290,6 +292,15 @@ internal object HighwayTools : Module(
             if (startingBlockPos.y != 120 && mode != Mode.TUNNEL) {
                 MessageSendHelper.sendRawChatMessage("    §9> §cCheck altitude and make sure to build at Y: 120 for the correct height")
             }
+
+            if (AntiHunger.isEnabled) {
+                MessageSendHelper.sendRawChatMessage("    §9> §cAntiHunger does slow down block interactions.")
+            }
+
+            if (multiBuilding && Velocity.isDisabled) {
+                MessageSendHelper.sendRawChatMessage("    §9> §cMake sure to enable Velocity to not get pushed from your mates.")
+            }
+
         }
     }
 
@@ -580,7 +591,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
+    private fun addTaskToPending(blockPos: BlockPos, taskState: TaskState, material: Block) {
         pendingTasks[blockPos] = (BlockTask(blockPos, taskState, material))
     }
 
@@ -621,7 +632,7 @@ internal object HighwayTools : Module(
     private fun isTaskDoneOrNull(pos: BlockPos) =
         (pendingTasks[pos] ?: doneTasks[pos])?.let {
             it.taskState == TaskState.DONE
-        } ?: true
+        } ?: false
 
     private fun checkTasks(pos: BlockPos): Boolean {
         return pendingTasks.values.all {
