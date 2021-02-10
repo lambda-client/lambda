@@ -9,6 +9,7 @@ import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
+import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemBlock
@@ -119,6 +120,7 @@ internal object HighwayTools : Module(
     private val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR }, description = "Timeout for waiting for the server to try again")
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag")
     private val maxReach by setting("Max Reach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR }, description = "Sets the range of the blueprint. Decrease when tasks fail!")
+    private val emptyDisable by setting("Disable on no tool", false, { page == Page.BEHAVIOR }, description = "Disables module when pickaxes are out")
 
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
@@ -367,9 +369,10 @@ internal object HighwayTools : Module(
 
             if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
                 AutoObsidian.isActive() ||
-                AutoEat.eating) {
-                    refreshData()
-                    return@safeListener
+                AutoEat.eating ||
+                player.isCreative && player.serverBrand.contains("2b2t")) {
+                refreshData()
+                return@safeListener
             }
 
             if (!active) {
@@ -614,9 +617,9 @@ internal object HighwayTools : Module(
 
         val possiblePos = currentBlockPos.add(startingDirection.directionVec)
 
-        if (!isTaskDoneOrNull(possiblePos) ||
-            !isTaskDoneOrNull(possiblePos.up()) ||
-            !isTaskDoneOrNull(possiblePos.down())) return nextPos
+        if (!isTaskDoneOrNull(possiblePos, false) ||
+            !isTaskDoneOrNull(possiblePos.up(), false) ||
+            !isTaskDoneOrNull(possiblePos.down(), true)) return nextPos
 
         if (checkTasks(possiblePos.up())) nextPos = possiblePos
 
@@ -628,11 +631,16 @@ internal object HighwayTools : Module(
         return nextPos
     }
 
-    // ToDo: Check correctly if not in blueprint to avoid baritone stuck
-    private fun isTaskDoneOrNull(pos: BlockPos) =
+    private fun SafeClientEvent.isTaskDoneOrNull(pos: BlockPos, solid: Boolean) =
         (pendingTasks[pos] ?: doneTasks[pos])?.let {
             it.taskState == TaskState.DONE
-        } ?: false
+        } ?: run {
+            if (solid) {
+                !isPlaceable(pos, true)
+            } else {
+                world.isAirBlock(pos)
+            }
+        }
 
     private fun checkTasks(pos: BlockPos): Boolean {
         return pendingTasks.values.all {
@@ -1096,6 +1104,11 @@ internal object HighwayTools : Module(
         val slotFrom = getBestTool(blockTask)
 
         return if (slotFrom != null) {
+            if (emptyDisable && slotFrom.stack.item != Items.DIAMOND_PICKAXE) {
+                MessageSendHelper.sendChatMessage("$chatName No ${Items.DIAMOND_PICKAXE} was found in inventory, disable")
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                disable()
+            }
             slotFrom.toHotbarSlotOrNull()?.let {
                 swapToSlot(it)
             } ?: run {
@@ -1271,6 +1284,7 @@ internal object HighwayTools : Module(
 
         val runtimeSec = (runtimeMilliSeconds / 1000) + 0.0001
         val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + totalDistance
+
 //        val statList = Gson().fromJson(StatList.MINE_BLOCK_STATS[0], Any::class.java)
 //        MessageSendHelper.sendChatMessage(statList)
 
