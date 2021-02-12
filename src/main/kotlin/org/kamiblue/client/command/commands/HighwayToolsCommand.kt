@@ -6,7 +6,7 @@ import org.kamiblue.client.util.text.MessageSendHelper
 
 object HighwayToolsCommand : ClientCommand(
     name = "highwaytools",
-    alias = arrayOf("ht"),
+    alias = arrayOf("ht", "hwt", "high"),
     description = "Customize settings of HighwayTools."
 ) {
 
