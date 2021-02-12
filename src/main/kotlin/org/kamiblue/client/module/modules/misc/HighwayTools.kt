@@ -83,7 +83,6 @@ internal object HighwayTools : Module(
     alias = arrayOf("HT", "HWT"),
     modulePriority = 10
 ) {
-    private val mode by setting("Mode", Mode.HIGHWAY, description = "Choose the structure")
     private val page by setting("Page", Page.BUILD, description = "Switch between the setting pages")
 
     val ignoreBlocks = linkedSetOf(
@@ -98,6 +97,7 @@ internal object HighwayTools : Module(
     )
 
     // build settings
+    private val mode by setting("Mode", Mode.HIGHWAY, { page == Page.BUILD }, description = "Choose the structure")
     private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Clears out the tunnel if necessary")
     private val width by setting("Width", 6, 1..11, 1, { page == Page.BUILD }, description = "Sets the width of blueprint")
     private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace }, description = "Sets height of blueprint")
@@ -371,7 +371,8 @@ internal object HighwayTools : Module(
             if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
                 AutoObsidian.isActive() ||
                 AutoEat.eating ||
-                player.isCreative && player.serverBrand.contains("2b2t")) {
+                player.isCreative && player.serverBrand.contains("2b2t") ||
+                !isEnabled) {
                 refreshData()
                 return@safeListener
             }
@@ -398,14 +399,14 @@ internal object HighwayTools : Module(
 
 //        renderer.add(world.getBlockState(currentBlockPos).getSelectedBoundingBox(world, currentBlockPos), ColorHolder(255, 255, 255))
 
-        for (blockTask in pendingTasks.values) {
-            if (blockTask.taskState == TaskState.DONE) continue
-            renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
+        pendingTasks.values.forEach {
+            if (it.taskState == TaskState.DONE) return@forEach
+            renderer.add(world.getBlockState(it.blockPos).getSelectedBoundingBox(world, it.blockPos), it.taskState.color)
         }
 
-        for (blockTask in doneTasks.values) {
-            if (blockTask.block == Blocks.AIR) continue
-            renderer.add(world.getBlockState(blockTask.blockPos).getSelectedBoundingBox(world, blockTask.blockPos), blockTask.taskState.color)
+        doneTasks.values.forEach {
+            if (it.block == Blocks.AIR) return@forEach
+            renderer.add(world.getBlockState(it.blockPos).getSelectedBoundingBox(world, it.blockPos), it.taskState.color)
         }
     }
 
@@ -456,7 +457,7 @@ internal object HighwayTools : Module(
         blueprint.clear()
         generateBluePrint(originPos)
 
-        for ((pos, block) in blueprint) {
+        blueprint.forEach { (pos, block) ->
             if (block == Blocks.AIR) {
                 addTaskClear(pos)
             } else {
@@ -655,8 +656,8 @@ internal object HighwayTools : Module(
             refreshData()
         } else {
             waitTicks--
-            for (task in pendingTasks.values) {
-                doTask(task, true)
+            pendingTasks.values.forEach {
+                doTask(it, true)
             }
             sortTasks()
 
@@ -697,7 +698,8 @@ internal object HighwayTools : Module(
         val eyePos = mc.player.getPositionEyes(1.0f)
 
         if (multiBuilding) {
-            for (task in pendingTasks.values) task.shuffle()
+            pendingTasks.values.forEach{ it.shuffle() }
+
             sortedTasks = pendingTasks.values.sortedWith(
                 compareBy<BlockTask> {
                     it.taskState.ordinal
@@ -1025,8 +1027,8 @@ internal object HighwayTools : Module(
                 placeBlockNormal(blockTask, neighbours.last())
             }
             else -> {
-                for (pair in neighbours) {
-                    addTaskToPending(pair.second, TaskState.PLACE, fillerMat)
+                neighbours.forEach {
+                    addTaskToPending(it.second, TaskState.PLACE, fillerMat)
                 }
             }
         }
@@ -1154,9 +1156,9 @@ internal object HighwayTools : Module(
                         true -> addTaskToPending(neighbour, TaskState.LIQUID_FLOW, filler)
                     }
                 } else {
-                    for (triple in found) {
-                        triple.first.updateState(triple.second)
-                        triple.first.updateMaterial(triple.third)
+                    found.forEach {
+                        it.first.updateState(it.second)
+                        it.first.updateMaterial(it.third)
                     }
                 }
             }
@@ -1280,7 +1282,9 @@ internal object HighwayTools : Module(
                 "\n §9> §rFiller material: §7${fillerMat.localizedName}" +
                 "\n §9> §rIgnored Blocks:")
 
-            for (b in ignoreBlocks) append("\n     §9> §7${b.registryName}")
+            ignoreBlocks.forEach {
+                append("\n     §9> §7${it.registryName}")
+            }
 
             MessageSendHelper.sendChatMessage(toString())
         }
@@ -1439,7 +1443,9 @@ internal object HighwayTools : Module(
     }
 
     private fun addTaskComponentList(displayText: TextComponent, tasks: Collection<BlockTask>) {
-        for (blockTask in tasks) displayText.addLine("    ${blockTask.block.localizedName}@(${blockTask.blockPos.asString()}) State: ${blockTask.taskState} Timings: (Threshold: ${blockTask.taskState.stuckThreshold} Timeout: ${blockTask.taskState.stuckTimeout}) Priority: ${blockTask.taskState.ordinal} Stuck: ${blockTask.stuckTicks}")
+        tasks.forEach {
+            displayText.addLine("    ${it.block.localizedName}@(${it.blockPos.asString()}) State: ${it.taskState} Timings: (Threshold: ${it.taskState.stuckThreshold} Timeout: ${it.taskState.stuckTimeout}) Priority: ${it.taskState.ordinal} Stuck: ${it.stuckTicks}")
+        }
     }
 
     class BlockTask(
