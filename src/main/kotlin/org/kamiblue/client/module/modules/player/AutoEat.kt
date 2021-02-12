@@ -33,7 +33,7 @@ internal object AutoEat : Module(
 
     private val timer = TickTimer(TimeUnit.TICKS)
     private var lastSlot = -1
-    private var eating = false
+    var eating = false
 
     init {
         onDisable {
