@@ -1229,6 +1229,8 @@ internal object HighwayTools : Module(
 
                 val box = AxisAlignedBB(task.blockPos)
                 val rayTraceResult = box.isInSight(eyePos, viewVec) ?: continue
+
+                if (handleLiquid(task)) break
                 breakCount++
 
                 defaultScope.launch {
