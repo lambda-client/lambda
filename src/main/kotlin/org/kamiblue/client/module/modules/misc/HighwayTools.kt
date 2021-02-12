@@ -1139,11 +1139,11 @@ internal object HighwayTools : Module(
                 val found = ArrayList<Triple<BlockTask, TaskState, Block>>()
                 val filler = if (isInsideBlueprintBuild(neighbour)) material else fillerMat
 
-                for (task in pendingTasks.values) {
-                    if (task.blockPos == neighbour) {
+                pendingTasks.values.forEach{
+                    if (it.blockPos == neighbour) {
                         when (isFlowing) {
-                            false -> found.add(Triple(task, TaskState.LIQUID_SOURCE, filler))
-                            true -> found.add(Triple(task, TaskState.LIQUID_FLOW, filler))
+                            false -> found.add(Triple(it, TaskState.LIQUID_SOURCE, filler))
+                            true -> found.add(Triple(it, TaskState.LIQUID_FLOW, filler))
                         }
                     }
                 }
