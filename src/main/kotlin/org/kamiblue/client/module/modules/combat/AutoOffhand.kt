@@ -20,7 +20,6 @@ import org.kamiblue.client.util.*
 import org.kamiblue.client.util.combat.CombatUtils
 import org.kamiblue.client.util.combat.CombatUtils.calcDamageFromMob
 import org.kamiblue.client.util.combat.CombatUtils.calcDamageFromPlayer
-import org.kamiblue.client.util.combat.CrystalUtils.calcCrystalDamage
 import org.kamiblue.client.util.items.*
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.safeListener
@@ -206,16 +205,17 @@ internal object AutoOffhand : Module(
             if (entity !is EntityMob && entity !is EntityPlayer && entity !is EntityEnderCrystal) continue
             if (player.getDistance(entity) > 10.0f) continue
 
-            if (mob && entity is EntityMob) {
-                maxDamage = max(calcDamageFromMob(entity), maxDamage)
-            }
-
-            if (this@AutoOffhand.player && entity is EntityPlayer) {
-                maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
-            }
-
-            if (crystal && entity is EntityEnderCrystal) {
-                maxDamage = max(calcCrystalDamage(entity, player), maxDamage)
+            when {
+                mob && entity is EntityMob -> {
+                    maxDamage = max(calcDamageFromMob(entity), maxDamage)
+                }
+                this@AutoOffhand.player && entity is EntityPlayer -> {
+                    maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
+                }
+                crystal && entity is EntityEnderCrystal -> {
+                    val damage = CombatManager.crystalMap[entity] ?: continue
+                    maxDamage = max(damage.second, maxDamage)
+                }
             }
         }
 

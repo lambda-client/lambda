@@ -22,24 +22,24 @@ import org.kamiblue.client.util.items.hotbarSlots
 import org.kamiblue.client.util.items.swapToSlot
 import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.event.listener.listener
+import java.util.*
 import kotlin.math.max
 import kotlin.math.round
 
 object CombatUtils {
-    private val cachedArmorValues = HashMap<EntityLivingBase, Pair<Float, Float>>()
+    private val cachedArmorValues = WeakHashMap<EntityLivingBase, Pair<Float, Float>>()
 
     fun SafeClientEvent.calcDamageFromPlayer(entity: EntityPlayer, assumeCritical: Boolean = false): Float {
         val itemStack = entity.heldItemMainhand
         var damage = itemStack.attackDamage
-
         if (assumeCritical) damage *= 1.5f
+
         return calcDamage(player, damage)
     }
 
     fun SafeClientEvent.calcDamageFromMob(entity: EntityMob): Float {
         var damage = entity.getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).attributeValue.toFloat()
-
-        damage += EnchantmentHelper.getModifierForCreature(entity.heldItemMainhand, player.creatureAttribute)
+        damage += EnchantmentHelper.getModifierForCreature(entity.heldItemMainhand, entity.creatureAttribute)
 
         return calcDamage(player, damage)
     }
@@ -56,14 +56,12 @@ object CombatUtils {
             }
         }
 
-        if (entity is EntityPlayer) {
-            damage *= getProtectionModifier(entity, source)
-        }
+        damage *= getProtectionModifier(entity, source)
 
         return if (roundDamage) round(damage) else damage
     }
 
-    fun getProtectionModifier(entity: EntityPlayer, damageSource: DamageSource): Float {
+    private fun getProtectionModifier(entity: EntityLivingBase, damageSource: DamageSource): Float {
         var modifier = 0
 
         for (armor in entity.armorInventoryList.toList()) {
@@ -75,13 +73,15 @@ object CombatUtils {
                 val id = compoundTag.getInteger("id")
                 val level = compoundTag.getInteger("lvl")
 
-                Enchantment.getEnchantmentByID(id)?.let { modifier += it.calcModifierDamage(level, damageSource) }
+                Enchantment.getEnchantmentByID(id)?.let {
+                    modifier += it.calcModifierDamage(level, damageSource)
+                }
             }
         }
 
         modifier = modifier.coerceIn(0, 20)
 
-        return (1.0f - modifier / 25.0f)
+        return 1.0f - modifier / 25.0f
     }
 
     fun SafeClientEvent.equipBestWeapon(preferWeapon: PreferWeapon = PreferWeapon.NONE) {
