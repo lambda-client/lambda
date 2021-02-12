@@ -48,6 +48,7 @@ import org.kamiblue.client.util.WorldUtils
 import org.kamiblue.client.util.WorldUtils.blackList
 import org.kamiblue.client.util.WorldUtils.getBetterNeighbour
 import org.kamiblue.client.util.WorldUtils.getMiningSide
+import org.kamiblue.client.util.WorldUtils.getVisibleSides
 import org.kamiblue.client.util.WorldUtils.isLiquid
 import org.kamiblue.client.util.WorldUtils.isPlaceable
 import org.kamiblue.client.util.WorldUtils.shulkerList
@@ -1169,9 +1170,13 @@ internal object HighwayTools : Module(
         /* ToDo: This will not work if the top of the block which the fire is on is not visible */
         if (blockTask.block == Blocks.FIRE) {
             val blockBelowFire = blockTask.blockPos.down()
-            playerController.clickBlock(blockBelowFire, EnumFacing.UP)
-            player.swingArm(EnumHand.MAIN_HAND)
-            blockTask.updateState(TaskState.BREAKING)
+            if (getVisibleSides(blockBelowFire).contains(EnumFacing.UP)) {
+                playerController.clickBlock(blockBelowFire, EnumFacing.UP)
+                player.swingArm(EnumHand.MAIN_HAND)
+                blockTask.updateState(TaskState.BREAKING)
+            } else {
+                blockTask.updateState(TaskState.LIQUID_FLOW)
+            }
             return
         }
 
