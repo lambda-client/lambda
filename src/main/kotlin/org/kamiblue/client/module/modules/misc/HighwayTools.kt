@@ -966,7 +966,7 @@ internal object HighwayTools : Module(
 
         if (!updateOnly) {
             if (!isPlaceable(blockTask.blockPos)) {
-                if (debugMessages != DebugMessages.OFF) {
+                if (debugMessages == DebugMessages.ALL) {
                     if (!anonymizeStats) {
                         MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
                     } else {
@@ -1331,7 +1331,7 @@ internal object HighwayTools : Module(
         displayText.add("    Breaks / s:", primaryColor)
         displayText.addLine("%.2f SMA(%.2f)".format(totalBlocksBroken / runtimeSec, simpleMovingAverageBreaks.size / simpleMovingAverageRange), secondaryColor)
         displayText.add("    Distance km / h:", primaryColor)
-        displayText.addLine("%.3f SMA(%.3f)".format((distanceDone / runtimeSec * 60 * 60) / 1000, ((simpleMovingAverageDistance.size / simpleMovingAverageRange) * 60 * 60) / 1000), secondaryColor)
+        displayText.addLine("%.3f SMA(%.3f)".format((distanceDone / runtimeSec * 60 * 60) / 1000, (simpleMovingAverageDistance.size / simpleMovingAverageRange * 60 * 60) / 1000), secondaryColor)
         displayText.add("    Food level loss / h:", primaryColor)
         displayText.addLine("%.2f".format(totalBlocksBroken / foodLoss.toDouble()), secondaryColor)
         displayText.add("    Pickaxes / h:", primaryColor)
