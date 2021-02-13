@@ -371,8 +371,7 @@ internal object HighwayTools : Module(
             if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
                 AutoObsidian.isActive() ||
                 AutoEat.eating ||
-                player.isCreative && player.serverBrand.contains("2b2t") ||
-                !isEnabled) {
+                player.isCreative && player.serverBrand.contains("2b2t")) {
                 refreshData()
                 return@safeListener
             }
