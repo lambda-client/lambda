@@ -99,6 +99,8 @@ internal object HighwayTools : Module(
     // build settings
     private val mode by setting("Mode", Mode.HIGHWAY, { page == Page.BUILD }, description = "Choose the structure")
     private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Clears out the tunnel if necessary")
+    private val cleanFloor by setting("Clean Floor", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels floor")
+    private val cleanWalls by setting("Clean Walls", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels walls")
     private val width by setting("Width", 6, 1..11, 1, { page == Page.BUILD }, description = "Sets the width of blueprint")
     private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace }, description = "Sets height of blueprint")
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Adds a railing / rim / border to the highway")
@@ -498,10 +500,12 @@ internal object HighwayTools : Module(
 
             for (x in -maxReach.floorToInt()..maxReach.ceilToInt()) {
                 val thisPos = basePos.add(zDirection.directionVec.multiply(x))
-                generateClear(thisPos, xDirection)
+                if (clearSpace) generateClear(thisPos, xDirection)
                 if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
+                if (mode == Mode.TUNNEL && cleanFloor) generateFloor(thisPos, xDirection)
+                if (mode == Mode.TUNNEL && cleanWalls) generateWalls(thisPos, xDirection)
             }
-            if (mode == Mode.TUNNEL) {
+            if (mode == Mode.TUNNEL && !cleanFloor) {
                 if (startingDirection.isDiagonal) {
                     for (x in 1..maxReach.floorToInt()) {
                         blueprint[basePos.add(zDirection.directionVec.multiply(x))] = fillerMat
@@ -530,8 +534,6 @@ internal object HighwayTools : Module(
     }
 
     private fun generateClear(basePos: BlockPos, xDirection: Direction) {
-        if (!clearSpace) return
-
         for (w in 0 until width) {
             for (h in 0 until height) {
                 val x = w - width / 2
@@ -563,6 +565,32 @@ internal object HighwayTools : Module(
             } else {
                 blueprint[pos] = material
             }
+        }
+    }
+
+    private fun generateFloor(basePos: BlockPos, xDirection: Direction) {
+        val wid = if (cornerBlock) {
+            width
+        } else {
+            width - 2
+        }
+        for (w in 0 until wid) {
+            val x = w - wid / 2
+            val pos = basePos.add(xDirection.directionVec.multiply(x))
+            blueprint[pos] = fillerMat
+        }
+    }
+
+    private fun generateWalls(basePos: BlockPos, xDirection: Direction) {
+        for (h in 0 until height) {
+            val cb = if (!cornerBlock && h == 0) {
+                1
+            } else {
+                0
+            }
+            val pos = basePos.add(xDirection.directionVec.multiply(width / 2 - cb)).up(h + 1)
+            blueprint[pos] = fillerMat
+            blueprint[pos.add(xDirection.clockwise(4).directionVec.multiply(width + 1))] = fillerMat
         }
     }
 
@@ -697,39 +725,44 @@ internal object HighwayTools : Module(
         val eyePos = mc.player.getPositionEyes(1.0f)
 
         if (multiBuilding) {
-            pendingTasks.values.forEach{ it.shuffle() }
+            pendingTasks.values.forEach { it.shuffle() }
 
             sortedTasks = pendingTasks.values.sortedWith(
                 compareBy<BlockTask> {
                     it.taskState.ordinal
                 }.thenBy {
-                    it.stuckTicks / 5
+                    it.stuckTicks
                 }.thenBy {
                     it.shuffle
                 }
             )
         } else {
+            pendingTasks.values.forEach {
+                when (it.taskState) {
+                    TaskState.PLACE -> it.sides = getBetterNeighbour(it.blockPos, placementSearch, maxReach, true).size
+//                    TaskState.BREAK ->
+                    else -> it.sides = 0
+                }
+
+                // ToDo: We need a function that makes a score out of those 3 parameters
+                it.startDistance = (startingBlockPos.distanceTo(it.blockPos) * 100.0).toInt()
+                it.eyeDistance = (eyePos.distanceTo(it.blockPos) * 100.0).toInt()
+                it.hitVecDistance = ((lastHitVec?.distanceTo(it.blockPos) ?: 0.0) * 100.0).toInt()
+            }
+
             sortedTasks = pendingTasks.values.sortedWith(
                 compareBy<BlockTask> {
                     it.taskState.ordinal
                 }.thenBy {
-                    it.stuckTicks / 5
+                    it.stuckTicks
                 }.thenBy {
-                    when (it.taskState) {
-                        TaskState.PLACE, TaskState.LIQUID_SOURCE, TaskState.LIQUID_FLOW -> {
-                            getBetterNeighbour(it.blockPos, placementSearch, maxReach, true).size
-                        }
-                        TaskState.BREAK -> { // ToDo: Check for most block interceptions when kick issue solved
-                            0
-                        }
-                        else -> 0
-                    }
-                }.thenBy { // ToDo: We need a function that makes a score out of those 3 parameters
-                    startingBlockPos.distanceTo(it.blockPos).toInt() / 2
+                    it.sides
                 }.thenBy {
-                    eyePos.distanceTo(it.blockPos)
+                    it.startDistance
                 }.thenBy {
-                    lastHitVec?.distanceTo(it.blockPos)
+                    it.eyeDistance
+                }.thenBy {
+                    it.hitVecDistance
                 }
             )
         }
@@ -811,7 +844,7 @@ internal object HighwayTools : Module(
                 return
             }
             is BlockLiquid -> {
-                val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) {
+                val filler = if (player.allSlots.countBlock(fillerMat) == 0 || isInsideBlueprintBuild(blockTask.blockPos)) {
                     material
                 } else {
                     fillerMat
@@ -901,7 +934,7 @@ internal object HighwayTools : Module(
                 }
             }
             is BlockLiquid -> {
-                val filler = if (fillerMatLeft == 0 || isInsideBlueprintBuild(blockTask.blockPos)) material
+                val filler = if (player.allSlots.countBlock(fillerMat) == 0 || isInsideBlueprintBuild(blockTask.blockPos)) material
                 else fillerMat
 
                 if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
@@ -933,6 +966,13 @@ internal object HighwayTools : Module(
             val target = currentBlockPos.toVec3dCenter().add(Vec3d(startingDirection.directionVec).scale(factor))
             player.motionX = (target.x - player.posX).coerceIn(-0.2, 0.2)
             player.motionZ = (target.z - player.posZ).coerceIn(-0.2, 0.2)
+        }
+
+        if ((blockTask.taskState == TaskState.LIQUID_FLOW ||
+                blockTask.taskState == TaskState.LIQUID_SOURCE) &&
+            !isLiquid(blockTask.blockPos)) {
+            blockTask.updateState(TaskState.DONE)
+            return
         }
 
         when (blockTask.block) {
@@ -1134,13 +1174,16 @@ internal object HighwayTools : Module(
                     it.block is BlockLiquid && it.getValue(BlockLiquid.LEVEL) != 0
                 }
 
-                if (player.distanceTo(neighbour) > maxReach) continue
+                if (player.distanceTo(neighbour) > maxReach) {
+                    blockTask.updateState(TaskState.DONE)
+                    return true
+                }
 
                 foundLiquid = true
                 val found = ArrayList<Triple<BlockTask, TaskState, Block>>()
                 val filler = if (isInsideBlueprintBuild(neighbour)) material else fillerMat
 
-                pendingTasks.values.forEach{
+                pendingTasks.values.forEach {
                     if (it.blockPos == neighbour) {
                         when (isFlowing) {
                             false -> found.add(Triple(it, TaskState.LIQUID_SOURCE, filler))
@@ -1271,7 +1314,7 @@ internal object HighwayTools : Module(
     }
 
     private fun isInsideBlueprintBuild(pos: BlockPos): Boolean {
-        return blueprint[pos]?.let { it != Blocks.AIR } ?: false
+        return blueprint[pos]?.let { it == material } ?: false
     }
 
     fun printSettings() {
@@ -1455,6 +1498,10 @@ internal object HighwayTools : Module(
         private var ranTicks = 0
         var stuckTicks = 0; private set
         var shuffle = 0
+        var sides = 0
+        var startDistance = 0
+        var eyeDistance = 0
+        var hitVecDistance = 0
 
         fun updateState(state: TaskState) {
             if (state == taskState) return
