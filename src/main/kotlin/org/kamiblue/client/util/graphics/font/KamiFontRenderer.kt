@@ -191,12 +191,10 @@ object KamiFontRenderer {
         buffer.pos(posX + charInfo.width, posY, 0.0).tex(charInfo.u2, charInfo.v1).color(color.r, color.g, color.b, color.a).endVertex()
     }
 
-    @JvmOverloads
     fun getFontHeight(scale: Float = 1f): Float {
         return (glyphArray[0].fontHeight * CustomFont.lineSpace * scale)
     }
 
-    @JvmOverloads
     fun getStringWidth(text: String, scale: Float = 1f): Float {
         var width = 0.0
         resetStyle()
