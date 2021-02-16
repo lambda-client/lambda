@@ -812,7 +812,6 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.doTask(blockTask: BlockTask, updateOnly: Boolean) {
         if (!updateOnly) blockTask.onTick()
 
-        // ToDo: Choose place task with least attempts
         when (blockTask.taskState) {
             TaskState.DONE -> {
                 doDone(blockTask)
@@ -1220,7 +1219,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.mineBlock(blockTask: BlockTask) {
 
         /* For fire, we just need to mine the top of the block below the fire */
-        /* ToDo: This will not work if the top of the block which the fire is on is not visible */
+        // ToDo: Fix placement issues
         if (world.getBlockState(blockTask.blockPos) == Blocks.FIRE) {
             val blockBelowFire = blockTask.blockPos.down()
             if (getVisibleSides(blockBelowFire).contains(EnumFacing.UP)) {
@@ -1256,6 +1255,7 @@ internal object HighwayTools : Module(
             delay(20L)
             sendMiningPackets(blockTask.blockPos, side)
 
+            // ToDo: Hard limit for TPS to avoid kicks
             if (maxBreaks > 1) {
                 tryMultiBreak(blockTask)
             }
@@ -1431,6 +1431,7 @@ internal object HighwayTools : Module(
                 val pavingLeft = materialLeft / (totalBlocksPlaced.coerceAtLeast(1) / distanceDone.coerceAtLeast(1.0))
 
                 // ToDo: Cache shulker count
+                
 //                  val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
 
                 val secLeft = (pavingLeft).coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
