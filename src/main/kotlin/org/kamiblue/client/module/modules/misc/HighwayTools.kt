@@ -39,6 +39,7 @@ import org.kamiblue.client.module.modules.movement.AntiHunger
 import org.kamiblue.client.module.modules.movement.Velocity
 import org.kamiblue.client.module.modules.player.AutoEat
 import org.kamiblue.client.module.modules.player.InventoryManager
+import org.kamiblue.client.module.modules.player.LagNotifier
 import org.kamiblue.client.process.HighwayToolsProcess
 import org.kamiblue.client.util.BaritoneUtils
 import org.kamiblue.client.util.EntityUtils.flooredPosition
@@ -115,9 +116,9 @@ internal object HighwayTools : Module(
     private var breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR }, description = "Sets the delay ticks between break tasks")
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     private val bridging by setting("Bridging", true, { page == Page.BEHAVIOR }, description = "Tries to bridge / scaffold when stuck placing")
-    private var placementSearch by setting("Place Deep Search", 1, 1..20, 1, { page == Page.BEHAVIOR }, description = "Attempts to find a support block for placing against")
+    private var placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "Attempts to find a support block for placing against")
     private val multiBuilding by setting("Shuffle Tasks", false, { page == Page.BEHAVIOR }, description = "Only activate when working with several players")
-    private val maxBreaks by setting("Multi Break", 3, 1..8, 1, { page == Page.BEHAVIOR }, description = "Breaks multiple instant breaking blocks per tick in view")
+    private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "Breaks multiple instant breaking blocks per tick in view")
     private val toggleInventoryManager by setting("Toggle InvManager", false, { page == Page.BEHAVIOR }, description = "Activates InventoryManager on enable")
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR }, description = "Activates AutoObsidian on enable")
     private val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR }, description = "Timeout for waiting for the server to try again")
@@ -300,6 +301,10 @@ internal object HighwayTools : Module(
 
             if (AntiHunger.isEnabled) {
                 MessageSendHelper.sendRawChatMessage("    §9> §cAntiHunger does slow down block interactions.")
+            }
+
+            if (LagNotifier.isDisabled) {
+                MessageSendHelper.sendRawChatMessage("    §9> §cYou should activate LagNotifier to make the bot stop on server lag.")
             }
 
             if (multiBuilding && Velocity.isDisabled) {
@@ -755,7 +760,7 @@ internal object HighwayTools : Module(
                     it.taskState.ordinal
                 }.thenBy {
                     it.stuckTicks
-                }.thenBy {
+                }.thenByDescending {
                     it.sides
                 }.thenBy {
                     it.startDistance
@@ -959,7 +964,7 @@ internal object HighwayTools : Module(
 
         if (bridging && player.positionVector.distanceTo(currentBlockPos) < 1 && shouldBridge()) {
             val factor = if (startingDirection.isDiagonal) {
-                0.51
+                0.555
             } else {
                 0.505
             }
@@ -1212,7 +1217,7 @@ internal object HighwayTools : Module(
 
         /* For fire, we just need to mine the top of the block below the fire */
         /* ToDo: This will not work if the top of the block which the fire is on is not visible */
-        if (blockTask.block == Blocks.FIRE) {
+        if (world.getBlockState(blockTask.blockPos) == Blocks.FIRE) {
             val blockBelowFire = blockTask.blockPos.down()
             if (getVisibleSides(blockBelowFire).contains(EnumFacing.UP)) {
                 playerController.clickBlock(blockBelowFire, EnumFacing.UP)
