@@ -41,6 +41,7 @@ import org.kamiblue.client.module.modules.player.AutoEat
 import org.kamiblue.client.module.modules.player.InventoryManager
 import org.kamiblue.client.module.modules.player.LagNotifier
 import org.kamiblue.client.process.HighwayToolsProcess
+import org.kamiblue.client.setting.settings.impl.collection.CollectionSetting
 import org.kamiblue.client.util.BaritoneUtils
 import org.kamiblue.client.util.EntityUtils.flooredPosition
 import org.kamiblue.client.util.TickTimer
@@ -86,15 +87,15 @@ internal object HighwayTools : Module(
 ) {
     private val page by setting("Page", Page.BUILD, description = "Switch between the setting pages")
 
-    val ignoreBlocks = linkedSetOf(
-        Blocks.STANDING_SIGN,
-        Blocks.WALL_SIGN,
-        Blocks.STANDING_BANNER,
-        Blocks.WALL_BANNER,
-        Blocks.BEDROCK,
-        Blocks.END_PORTAL,
-        Blocks.END_PORTAL_FRAME,
-        Blocks.PORTAL
+    private val defaultIgnoreBlocks = linkedSetOf(
+        "minecraft:standing_sign",
+        "minecraft:wall_sign",
+        "minecraft:standing_banner",
+        "minecraft:wall_banner",
+        "minecraft:bedrock",
+        "minecraft:end_portal",
+        "minecraft:end_portal_frame",
+        "minecraft:portal"
     )
 
     // build settings
@@ -107,7 +108,9 @@ internal object HighwayTools : Module(
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Adds a railing / rim / border to the highway")
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Sets height of railing")
     private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) }, description = "If activated will break the corner in tunnel or place a corner while paving")
-//    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreList, { false }))
+    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, { false }))
+    val materialSaved = setting("Material", "minecraft:obsidian", { false })
+    val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
 
     // behavior settings
     private val interacting by setting("Rotation Mode", RotationMode.SPOOF, { page == Page.BEHAVIOR }, description = "Force view client side, only server side or no interaction at all")
@@ -164,8 +167,8 @@ internal object HighwayTools : Module(
     }
 
     // internal settings
-    var material: Block = Blocks.OBSIDIAN
-    var fillerMat: Block = Blocks.NETHERRACK
+    var material: Block = Block.getBlockFromName(materialSaved.value) ?: Blocks.OBSIDIAN
+    var fillerMat: Block = Block.getBlockFromName(fillerMatSaved.value) ?: Blocks.NETHERRACK
     private var baritoneSettingAllowPlace = false
     private var baritoneSettingRenderGoal = false
 
@@ -216,7 +219,9 @@ internal object HighwayTools : Module(
     }
 
     init {
-        ignoreBlocks.addAll(shulkerList)
+        shulkerList.forEach {
+            ignoreBlocks.add(it.registryName.toString())
+        }
 
         onEnable {
             runSafeR {
@@ -714,7 +719,7 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.checkDoneTasks(): Boolean {
         for (blockTask in doneTasks.values) {
             val block = world.getBlockState(blockTask.blockPos).block
-            if (ignoreBlocks.contains(block)) continue
+            if (ignoreBlocks.contains(block.registryName.toString())) continue
 
             when {
                 blockTask.block == material && block != material -> return false
@@ -923,8 +928,7 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.doBreak(blockTask: BlockTask, updateOnly: Boolean) {
-        // ignore blocks
-        if (ignoreBlocks.contains(world.getBlockState(blockTask.blockPos).block)) {
+        if (ignoreBlocks.contains(world.getBlockState(blockTask.blockPos).block.registryName.toString())) {
             blockTask.updateState(TaskState.DONE)
         }
 
@@ -1330,7 +1334,7 @@ internal object HighwayTools : Module(
                 "\n §9> §rIgnored Blocks:")
 
             ignoreBlocks.forEach {
-                append("\n     §9> §7${it.registryName}")
+                append("\n     §9> §7$it")
             }
 
             MessageSendHelper.sendChatMessage(toString())

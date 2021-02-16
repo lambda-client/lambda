@@ -14,7 +14,7 @@ object HighwayToolsCommand : ClientCommand(
         literal("add", "new", "+") {
             block("block") { blockArg ->
                 execute("Add a block to ignore list") {
-                    val added = HighwayTools.ignoreBlocks.add(blockArg.value)
+                    val added = HighwayTools.ignoreBlocks.add(blockArg.value.registryName.toString())
                     if (added) {
                         HighwayTools.printSettings()
                         MessageSendHelper.sendChatMessage("Added &7${blockArg.value.localizedName}&r to ignore list.")
@@ -28,7 +28,7 @@ object HighwayToolsCommand : ClientCommand(
         literal("del", "rem", "-") {
             block("block") { blockArg ->
                 execute("Remove a block from ignore list") {
-                    val removed = HighwayTools.ignoreBlocks.remove(blockArg.value)
+                    val removed = HighwayTools.ignoreBlocks.remove(blockArg.value.registryName.toString())
                     if (removed) {
                         HighwayTools.printSettings()
                         MessageSendHelper.sendChatMessage("Removed &7${blockArg.value.localizedName}&r from ignore list.")
@@ -42,6 +42,7 @@ object HighwayToolsCommand : ClientCommand(
         literal("material", "mat") {
             block("block") { blockArg ->
                 execute("Set a block as main material") {
+                    HighwayTools.materialSaved.value = blockArg.value.registryName.toString()
                     HighwayTools.material = blockArg.value
                     MessageSendHelper.sendChatMessage("Set your building material to &7${blockArg.value.localizedName}&r.")
                 }
@@ -51,6 +52,7 @@ object HighwayToolsCommand : ClientCommand(
         literal("filler", "fil") {
             block("block") { blockArg ->
                 execute("Set a block as filler material") {
+                    HighwayTools.fillerMatSaved.value = blockArg.value.registryName.toString()
                     HighwayTools.fillerMat = blockArg.value
                     MessageSendHelper.sendChatMessage("Set your filling material to &7${blockArg.value.localizedName}&r.")
                 }
