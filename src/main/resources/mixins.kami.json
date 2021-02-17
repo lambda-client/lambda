@@ -23,6 +23,7 @@
     "accessor.network.AccessorSPacketEntityVelocity",
     "accessor.network.AccessorSPacketExplosion",
     "accessor.network.AccessorSPacketPosLook",
+    "accessor.player.AccessorEntityPlayerSP",
     "accessor.player.AccessorPlayerControllerMP",
     "accessor.render.AccessorRenderGlobal",
     "accessor.render.AccessorRenderManager",
