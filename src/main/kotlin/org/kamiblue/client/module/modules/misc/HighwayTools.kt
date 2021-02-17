@@ -103,6 +103,7 @@ internal object HighwayTools : Module(
     private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Clears out the tunnel if necessary")
     private val cleanFloor by setting("Clean Floor", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels floor")
     private val cleanWalls by setting("Clean Walls", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels walls")
+    private val cleanRoof by setting("Clean Roof", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels roof")
     private val width by setting("Width", 6, 1..11, 1, { page == Page.BUILD }, description = "Sets the width of blueprint")
     private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace }, description = "Sets height of blueprint")
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Adds a railing / rim / border to the highway")
@@ -514,6 +515,7 @@ internal object HighwayTools : Module(
                 if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
                 if (mode == Mode.TUNNEL && cleanFloor) generateFloor(thisPos, xDirection)
                 if (mode == Mode.TUNNEL && cleanWalls) generateWalls(thisPos, xDirection)
+                if (mode == Mode.TUNNEL && cleanRoof) generateRoof(thisPos, xDirection)
             }
             if (mode == Mode.TUNNEL && !cleanFloor) {
                 if (startingDirection.isDiagonal) {
@@ -603,6 +605,14 @@ internal object HighwayTools : Module(
             blueprint[pos.add(xDirection.clockwise(4).directionVec.multiply(width + 1))] = fillerMat
         }
     }
+    private fun generateRoof(basePos: BlockPos, xDirection: Direction) {
+        for (w in 0 until width) {
+            val x = w - width / 2
+            val pos = basePos.add(xDirection.directionVec.multiply(x))
+            blueprint[pos.up(height)] = fillerMat
+        }
+    }
+
 
     private fun isRail(w: Int) = railing && w !in 1 until width - 1
 
@@ -1431,7 +1441,7 @@ internal object HighwayTools : Module(
                 val pavingLeft = materialLeft / (totalBlocksPlaced.coerceAtLeast(1) / distanceDone.coerceAtLeast(1.0))
 
                 // ToDo: Cache shulker count
-                
+
 //                  val pavingLeftAll = (materialLeft + indirectMaterialLeft) / ((totalBlocksPlaced + 0.001) / (distanceDone + 0.001))
 
                 val secLeft = (pavingLeft).coerceAtLeast(0.0) / (startingBlockPos.distanceTo(currentBlockPos).toInt() / runtimeSec)
