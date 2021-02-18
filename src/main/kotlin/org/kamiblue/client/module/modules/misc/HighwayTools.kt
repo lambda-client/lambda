@@ -600,16 +600,15 @@ internal object HighwayTools : Module(
             } else {
                 0
             }
-            val pos = basePos.add(xDirection.directionVec.multiply(width / 2 - cb)).up(h + 1)
-            blueprint[pos] = fillerMat
-            blueprint[pos.add(xDirection.clockwise(4).directionVec.multiply(width + 1))] = fillerMat
+            blueprint[basePos.add(xDirection.directionVec.multiply(-1 - width / 2 + cb)).up(h + 1)] = fillerMat
+            blueprint[basePos.add(xDirection.directionVec.multiply(width - width / 2 - cb)).up(h + 1)] = fillerMat
         }
     }
     private fun generateRoof(basePos: BlockPos, xDirection: Direction) {
         for (w in 0 until width) {
             val x = w - width / 2
             val pos = basePos.add(xDirection.directionVec.multiply(x))
-            blueprint[pos.up(height)] = fillerMat
+            blueprint[pos.up(height + 1)] = fillerMat
         }
     }
 
@@ -1368,7 +1367,7 @@ internal object HighwayTools : Module(
 
         if (showEstimations) gatherEstimations(displayText, runtimeSec, distanceDone)
 
-//        displayText.addLine("by Constructor#9948 aka Avanatiker", primaryColor)
+//        displayText.addLine("by Constructor#9948 aka Avanatiker", primaryColor, size=8)
 
         if (printDebug) {
             displayText.addLine("Pending", primaryColor)
