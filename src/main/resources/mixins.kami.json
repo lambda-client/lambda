@@ -5,6 +5,7 @@
   "refmap": "mixins.kami.refmap.json",
   "client": [
     "MixinElytraSound",
+    "MixinKeyBinding",
     "MixinMinecraft",
     "MixinStateImplementation",
     "MixinTileEntityBeacon",
