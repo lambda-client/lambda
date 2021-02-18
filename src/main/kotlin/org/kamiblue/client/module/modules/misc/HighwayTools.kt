@@ -3,6 +3,9 @@ package org.kamiblue.client.module.modules.misc
 import baritone.api.pathing.goals.GoalNear
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import net.minecraft.block.Block
 import net.minecraft.block.BlockLiquid
 import net.minecraft.client.audio.PositionedSoundRecord
@@ -77,6 +80,7 @@ import kotlin.random.Random.Default.nextInt
 /**
  * @author Avanatiker
  * @since 20/08/2020
+ *
  */
 internal object HighwayTools : Module(
     name = "HighwayTools",
@@ -168,6 +172,7 @@ internal object HighwayTools : Module(
     }
 
     // internal settings
+    private val mutex = Mutex()
     var material: Block = Block.getBlockFromName(materialSaved.value) ?: Blocks.OBSIDIAN
     var fillerMat: Block = Block.getBlockFromName(fillerMatSaved.value) ?: Blocks.NETHERRACK
     private var baritoneSettingAllowPlace = false
@@ -383,8 +388,8 @@ internal object HighwayTools : Module(
 
             if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
                 AutoObsidian.isActive() ||
-                AutoEat.eating ||
-                player.isCreative && player.serverBrand.contains("2b2t")) {
+//                AutoEat.eating ||
+                (player.isCreative && player.serverBrand.contains("2b2t"))) {
                 refreshData()
                 return@safeListener
             }
@@ -672,7 +677,9 @@ internal object HighwayTools : Module(
         if (checkTasks(possiblePos.up())) nextPos = possiblePos
 
         if (currentBlockPos != nextPos) {
-            simpleMovingAverageDistance.add(System.currentTimeMillis())
+            for (x in 1 .. currentBlockPos.distanceTo(nextPos).toInt()) {
+                simpleMovingAverageDistance.add(System.currentTimeMillis())
+            }
             refreshData()
         }
 
@@ -746,15 +753,19 @@ internal object HighwayTools : Module(
         if (multiBuilding) {
             pendingTasks.values.forEach { it.shuffle() }
 
-            sortedTasks = pendingTasks.values.sortedWith(
-                compareBy<BlockTask> {
-                    it.taskState.ordinal
-                }.thenBy {
-                    it.stuckTicks
-                }.thenBy {
-                    it.shuffle
+            runBlocking {
+                mutex.withLock {
+                    sortedTasks = pendingTasks.values.sortedWith(
+                        compareBy<BlockTask> {
+                            it.taskState.ordinal
+                        }.thenBy {
+                            it.stuckTicks
+                        }.thenBy {
+                            it.shuffle
+                        }
+                    )
                 }
-            )
+            }
         } else {
             pendingTasks.values.forEach {
                 when (it.taskState) {
@@ -769,21 +780,25 @@ internal object HighwayTools : Module(
                 it.hitVecDistance = ((lastHitVec?.distanceTo(it.blockPos) ?: 0.0) * 100.0).toInt()
             }
 
-            sortedTasks = pendingTasks.values.sortedWith(
-                compareBy<BlockTask> {
-                    it.taskState.ordinal
-                }.thenBy {
-                    it.stuckTicks
-                }.thenByDescending {
-                    it.sides
-                }.thenBy {
-                    it.startDistance
-                }.thenBy {
-                    it.eyeDistance
-                }.thenBy {
-                    it.hitVecDistance
+            runBlocking {
+                mutex.withLock {
+                    sortedTasks = pendingTasks.values.sortedWith(
+                        compareBy<BlockTask> {
+                            it.taskState.ordinal
+                        }.thenBy {
+                            it.stuckTicks
+                        }.thenByDescending {
+                            it.sides
+                        }.thenBy {
+                            it.startDistance
+                        }.thenBy {
+                            it.eyeDistance
+                        }.thenBy {
+                            it.hitVecDistance
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 
@@ -1122,7 +1137,9 @@ internal object HighwayTools : Module(
 
             delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_PLACE) {
-                blockTask.updateState(TaskState.PLACE)
+                mutex.withLock {
+                    blockTask.updateState(TaskState.PLACE)
+                }
                 if (dynamicDelay && extraPlaceDelay < 10) extraPlaceDelay += 1
             }
         }
@@ -1271,7 +1288,9 @@ internal object HighwayTools : Module(
 
             delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_BREAK) {
-                blockTask.updateState(TaskState.BREAK)
+                mutex.withLock {
+                    blockTask.updateState(TaskState.BREAK)
+                }
             }
         }
     }
@@ -1300,7 +1319,9 @@ internal object HighwayTools : Module(
 
                     delay(50L * taskTimeout)
                     if (blockTask.taskState == TaskState.PENDING_BREAK) {
-                        blockTask.updateState(TaskState.BREAK)
+                        mutex.withLock {
+                            blockTask.updateState(TaskState.BREAK)
+                        }
                     }
                 }
             }
@@ -1585,4 +1606,3 @@ internal object HighwayTools : Module(
     }
 
 }
-
