@@ -124,15 +124,15 @@ internal object HighwayTools : Module(
     private var breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.BEHAVIOR }, description = "Sets the delay ticks between break tasks")
     private val illegalPlacements by setting("Illegal Placements", false, { page == Page.BEHAVIOR }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     private val bridging by setting("Bridging", true, { page == Page.BEHAVIOR }, description = "Tries to bridge / scaffold when stuck placing")
-    private var placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "Attempts to find a support block for placing against")
     private val multiBuilding by setting("Shuffle Tasks", false, { page == Page.BEHAVIOR }, description = "Only activate when working with several players")
-    private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "Breaks multiple instant breaking blocks per tick in view")
     private val toggleInventoryManager by setting("Toggle InvManager", false, { page == Page.BEHAVIOR }, description = "Activates InventoryManager on enable")
     private val toggleAutoObsidian by setting("Toggle AutoObsidian", true, { page == Page.BEHAVIOR }, description = "Activates AutoObsidian on enable")
     private val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR }, description = "Timeout for waiting for the server to try again")
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag")
     private val maxReach by setting("Max Reach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR }, description = "Sets the range of the blueprint. Decrease when tasks fail!")
     private val emptyDisable by setting("Disable on no tool", false, { page == Page.BEHAVIOR }, description = "Disables module when pickaxes are out")
+    private var placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
+    private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Breaks multiple instant breaking blocks per tick in view")
 
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
@@ -583,6 +583,7 @@ internal object HighwayTools : Module(
             val pos = basePos.add(xDirection.directionVec.multiply(x))
 
             if (mode == Mode.HIGHWAY && isRail(w)) {
+                if (!cornerBlock && startingDirection.isDiagonal) blueprint[pos] = fillerMat
                 val startHeight = if (cornerBlock) 0 else 1
                 for (y in startHeight..railingHeight) {
                     blueprint[pos.up(y)] = material
@@ -617,6 +618,7 @@ internal object HighwayTools : Module(
             blueprint[basePos.add(xDirection.directionVec.multiply(width - width / 2 - cb)).up(h + 1)] = fillerMat
         }
     }
+
     private fun generateRoof(basePos: BlockPos, xDirection: Direction) {
         for (w in 0 until width) {
             val x = w - width / 2
@@ -685,7 +687,7 @@ internal object HighwayTools : Module(
         if (checkTasks(possiblePos.up())) nextPos = possiblePos
 
         if (currentBlockPos != nextPos) {
-            for (x in 1 .. currentBlockPos.distanceTo(nextPos).toInt()) {
+            for (x in 1..currentBlockPos.distanceTo(nextPos).toInt()) {
                 simpleMovingAverageDistance.add(System.currentTimeMillis())
             }
             refreshData()
@@ -963,6 +965,13 @@ internal object HighwayTools : Module(
             blockTask.updateState(TaskState.DONE)
         }
 
+        if (blockTask.block == fillerMat &&
+            mode == Mode.HIGHWAY &&
+            world.getBlockState(blockTask.blockPos.up()).block == material) {
+            blockTask.updateState(TaskState.DONE)
+            return
+        }
+
         when (world.getBlockState(blockTask.blockPos).block) {
             Blocks.AIR -> {
                 if (blockTask.block == Blocks.AIR) {
@@ -1028,6 +1037,11 @@ internal object HighwayTools : Module(
             fillerMat -> {
                 if (currentBlock == fillerMat) {
                     blockTask.updateState(TaskState.PLACED)
+                    return
+                } else if (currentBlock != fillerMat &&
+                    mode == Mode.HIGHWAY &&
+                    world.getBlockState(blockTask.blockPos.up()).block == material) {
+                    blockTask.updateState(TaskState.DONE)
                     return
                 }
             }
@@ -1254,14 +1268,14 @@ internal object HighwayTools : Module(
 
         /* For fire, we just need to mine the top of the block below the fire */
         // ToDo: Fix placement issues
-        if (world.getBlockState(blockTask.blockPos) == Blocks.FIRE) {
+        if (world.getBlockState(blockTask.blockPos).block == Blocks.FIRE) {
             val blockBelowFire = blockTask.blockPos.down()
             if (getVisibleSides(blockBelowFire).contains(EnumFacing.UP)) {
                 playerController.clickBlock(blockBelowFire, EnumFacing.UP)
                 player.swingArm(EnumHand.MAIN_HAND)
                 blockTask.updateState(TaskState.BREAKING)
             } else {
-                blockTask.updateState(TaskState.LIQUID_FLOW)
+                blockTask.updateState(TaskState.PLACE)
             }
             return
         }
