@@ -1080,7 +1080,14 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.swapOrMoveBlock(blockTask: BlockTask): Boolean {
-        val success = swapToBlockOrMove(blockTask.block, predicateSlot = {
+        val useBlock = when {
+            player.allSlots.countBlock(blockTask.block) > 0 -> blockTask.block
+            player.allSlots.countBlock(material) > 0 -> material
+            player.allSlots.countBlock(fillerMat) > 0 -> fillerMat
+            else -> blockTask.block
+        }
+
+        val success = swapToBlockOrMove(useBlock, predicateSlot = {
             it.item is ItemBlock
         })
 
