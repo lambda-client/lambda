@@ -1026,7 +1026,7 @@ internal object HighwayTools : Module(
                 }
             }
             fillerMat -> {
-                if (currentBlock != Blocks.AIR && !isLiquid(blockTask.blockPos)) {
+                if (currentBlock == fillerMat) {
                     blockTask.updateState(TaskState.PLACED)
                     return
                 }
