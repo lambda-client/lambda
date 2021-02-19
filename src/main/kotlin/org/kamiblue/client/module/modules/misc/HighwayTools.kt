@@ -72,7 +72,6 @@ import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.*
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
-import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.LinkedHashMap
 import kotlin.random.Random.Default.nextInt
@@ -136,7 +135,7 @@ internal object HighwayTools : Module(
 
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
-    private val simpleMovingAverageRange by setting("Moving Average", 60f, 5f..600f, 5f, { page == Page.STATS }, description = "Sets the timeframe of the average in seconds")
+    private val simpleMovingAverageRange by setting("Moving Average", 60, 5..600, 5, { page == Page.STATS }, description = "Sets the timeframe of the average in seconds")
     private val showPerformance by setting("Show Performance", true, { page == Page.STATS }, description = "Toggles the Performance section in HUD")
     private val showEnvironment by setting("Show Environment", true, { page == Page.STATS }, description = "Toggles the Environment section in HUD")
     private val showTask by setting("Show Task", true, { page == Page.STATS }, description = "Toggles the Task section in HUD")
@@ -444,14 +443,16 @@ internal object HighwayTools : Module(
     }
 
     private fun updateDequeues() {
-        while (simpleMovingAveragePlaces.isNotEmpty() && System.currentTimeMillis() - simpleMovingAveragePlaces.first() > 1000L * simpleMovingAverageRange) {
-            simpleMovingAveragePlaces.removeFirst()
-        }
-        while (simpleMovingAverageBreaks.isNotEmpty() && System.currentTimeMillis() - simpleMovingAverageBreaks.first() > 1000L * simpleMovingAverageRange) {
-            simpleMovingAverageBreaks.removeFirst()
-        }
-        while (simpleMovingAverageDistance.isNotEmpty() && System.currentTimeMillis() - simpleMovingAverageDistance.first() > 1000L * simpleMovingAverageRange) {
-            simpleMovingAverageDistance.removeFirst()
+        val removeTime = System.currentTimeMillis() - simpleMovingAverageRange * 1000L
+
+        updateDeque(simpleMovingAveragePlaces, removeTime)
+        updateDeque(simpleMovingAverageBreaks, removeTime)
+        updateDeque(simpleMovingAverageDistance, removeTime)
+    }
+
+    private fun updateDeque(deque: ArrayDeque<Long>, removeTime: Long) {
+        while (deque.isNotEmpty() && deque.first() < removeTime) {
+            deque.removeFirst()
         }
     }
 
@@ -1429,23 +1430,23 @@ internal object HighwayTools : Module(
     }
 
     private fun gatherPerformance(displayText: TextComponent, runtimeSec: Double, distanceDone: Double) {
-        val seconds = (runtimeSec % 60).toInt().toString().padStart(2, '0')
-        val minutes = ((runtimeSec % 3600) / 60).toInt().toString().padStart(2, '0')
-        val hours = (runtimeSec / 3600).toInt().toString().padStart(2, '0')
+        val seconds = (runtimeSec % 60.0).toInt().toString().padStart(2, '0')
+        val minutes = ((runtimeSec % 3600.0) / 60.0).toInt().toString().padStart(2, '0')
+        val hours = (runtimeSec / 3600.0).toInt().toString().padStart(2, '0')
 
         displayText.addLine("Performance", primaryColor)
         displayText.add("    Runtime:", primaryColor)
         displayText.addLine("$hours:$minutes:$seconds", secondaryColor)
         displayText.add("    Placements / s: ", primaryColor)
-        displayText.addLine("%.2f SMA(%.2f)".format(totalBlocksPlaced / runtimeSec, simpleMovingAveragePlaces.size / simpleMovingAverageRange), secondaryColor)
+        displayText.addLine("%.2f SMA(%.2f)".format(totalBlocksPlaced / runtimeSec, simpleMovingAveragePlaces.size / simpleMovingAverageRange.toDouble()), secondaryColor)
         displayText.add("    Breaks / s:", primaryColor)
-        displayText.addLine("%.2f SMA(%.2f)".format(totalBlocksBroken / runtimeSec, simpleMovingAverageBreaks.size / simpleMovingAverageRange), secondaryColor)
+        displayText.addLine("%.2f SMA(%.2f)".format(totalBlocksBroken / runtimeSec, simpleMovingAverageBreaks.size / simpleMovingAverageRange.toDouble()), secondaryColor)
         displayText.add("    Distance km / h:", primaryColor)
-        displayText.addLine("%.3f SMA(%.3f)".format((distanceDone / runtimeSec * 60 * 60) / 1000, (simpleMovingAverageDistance.size / simpleMovingAverageRange * 60 * 60) / 1000), secondaryColor)
+        displayText.addLine("%.3f SMA(%.3f)".format((distanceDone / runtimeSec * 60.0 * 60.0) / 1000.0, (simpleMovingAverageDistance.size / simpleMovingAverageRange * 60.0 * 60.0) / 1000.0), secondaryColor)
         displayText.add("    Food level loss / h:", primaryColor)
         displayText.addLine("%.2f".format(totalBlocksBroken / foodLoss.toDouble()), secondaryColor)
         displayText.add("    Pickaxes / h:", primaryColor)
-        displayText.addLine("%.2f".format((durabilityUsages / runtimeSec) * 60 * 60 / 1561), secondaryColor)
+        displayText.addLine("%.2f".format((durabilityUsages / runtimeSec) * 60.0 * 60.0 / 1561.0), secondaryColor)
     }
 
     private fun gatherEnvironment(displayText: TextComponent) {
