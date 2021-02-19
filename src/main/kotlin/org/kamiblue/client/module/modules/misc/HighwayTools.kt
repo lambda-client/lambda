@@ -130,7 +130,6 @@ internal object HighwayTools : Module(
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag")
     private val maxReach by setting("Max Reach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR }, description = "Sets the range of the blueprint. Decrease when tasks fail!")
     private val emptyDisable by setting("Disable on no tool", false, { page == Page.BEHAVIOR }, description = "Disables module when pickaxes are out")
-    private val activateAntiAFK by setting("Activate AntiAFK on done", false, { page == Page.BEHAVIOR }, description = "Enables AntiAFK when out of materials")
     private val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
     private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Breaks multiple instant breaking blocks per tick in view")
 
@@ -1100,7 +1099,6 @@ internal object HighwayTools : Module(
             MessageSendHelper.sendChatMessage("$chatName No ${blockTask.block.localizedName} was found in inventory")
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
             disable()
-            if (activateAntiAFK) AntiAFK.enable()
             false
         } else {
             true
@@ -1219,7 +1217,6 @@ internal object HighwayTools : Module(
                 MessageSendHelper.sendChatMessage("$chatName No ${Items.DIAMOND_PICKAXE} was found in inventory, disable")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 disable()
-                if (activateAntiAFK) AntiAFK.enable()
             }
             slotFrom.toHotbarSlotOrNull()?.let {
                 swapToSlot(it)
