@@ -40,10 +40,10 @@ import org.kamiblue.client.module.modules.client.Hud.primaryColor
 import org.kamiblue.client.module.modules.client.Hud.secondaryColor
 import org.kamiblue.client.module.modules.movement.AntiHunger
 import org.kamiblue.client.module.modules.movement.Velocity
-import org.kamiblue.client.module.modules.player.AutoEat
 import org.kamiblue.client.module.modules.player.InventoryManager
 import org.kamiblue.client.module.modules.player.LagNotifier
 import org.kamiblue.client.process.HighwayToolsProcess
+import org.kamiblue.client.process.PauseProcess
 import org.kamiblue.client.setting.settings.impl.collection.CollectionSetting
 import org.kamiblue.client.util.BaritoneUtils
 import org.kamiblue.client.util.EntityUtils.flooredPosition
@@ -113,9 +113,9 @@ internal object HighwayTools : Module(
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Adds a railing / rim / border to the highway")
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Sets height of railing")
     private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) }, description = "If activated will break the corner in tunnel or place a corner while paving")
+    private val materialSaved = setting("Material", "minecraft:obsidian", { false })
+    private val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
     val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, { false }))
-    val materialSaved = setting("Material", "minecraft:obsidian", { false })
-    val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
 
     // behavior settings
     private val interacting by setting("Rotation Mode", RotationMode.SPOOF, { page == Page.BEHAVIOR }, description = "Force view client side, only server side or no interaction at all")
@@ -173,8 +173,16 @@ internal object HighwayTools : Module(
 
     // internal settings
     private val mutex = Mutex()
-    var material: Block = Block.getBlockFromName(materialSaved.value) ?: Blocks.OBSIDIAN
-    var fillerMat: Block = Block.getBlockFromName(fillerMatSaved.value) ?: Blocks.NETHERRACK
+    var material: Block
+        get() = Block.getBlockFromName(materialSaved.value) ?: Blocks.OBSIDIAN
+        set(value) {
+            materialSaved.value = value.registryName.toString()
+        }
+    var fillerMat: Block
+        get() = Block.getBlockFromName(fillerMatSaved.value) ?: Blocks.NETHERRACK
+        set(value) {
+            fillerMatSaved.value = value.registryName.toString()
+        }
     private var baritoneSettingAllowPlace = false
     private var baritoneSettingRenderGoal = false
 
@@ -387,8 +395,8 @@ internal object HighwayTools : Module(
             updateFood()
 
             if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
+                PauseProcess.isActive ||
                 AutoObsidian.isActive() ||
-//                AutoEat.eating ||
                 (player.isCreative && player.serverBrand.contains("2b2t"))) {
                 refreshData()
                 return@safeListener

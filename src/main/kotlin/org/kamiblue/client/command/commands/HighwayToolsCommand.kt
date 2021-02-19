@@ -42,7 +42,6 @@ object HighwayToolsCommand : ClientCommand(
         literal("material", "mat") {
             block("block") { blockArg ->
                 execute("Set a block as main material") {
-                    HighwayTools.materialSaved.value = blockArg.value.registryName.toString()
                     HighwayTools.material = blockArg.value
                     MessageSendHelper.sendChatMessage("Set your building material to &7${blockArg.value.localizedName}&r.")
                 }
@@ -52,7 +51,6 @@ object HighwayToolsCommand : ClientCommand(
         literal("filler", "fil") {
             block("block") { blockArg ->
                 execute("Set a block as filler material") {
-                    HighwayTools.fillerMatSaved.value = blockArg.value.registryName.toString()
                     HighwayTools.fillerMat = blockArg.value
                     MessageSendHelper.sendChatMessage("Set your filling material to &7${blockArg.value.localizedName}&r.")
                 }

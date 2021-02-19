@@ -32,7 +32,7 @@ internal object AutoEat : Module(
     private val pauseBaritone by setting("Pause Baritone", true)
 
     private var lastSlot = -1
-    var eating = false
+    private var eating = false
 
     override fun isActive(): Boolean {
         return isEnabled && eating
