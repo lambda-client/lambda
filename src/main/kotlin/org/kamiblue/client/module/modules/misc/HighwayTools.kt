@@ -965,12 +965,12 @@ internal object HighwayTools : Module(
         if (ignoreBlocks.contains(world.getBlockState(blockTask.blockPos).block.registryName.toString())) {
             blockTask.updateState(TaskState.DONE)
         }
-
-        if (blockTask.block == fillerMat &&
-            mode == Mode.HIGHWAY &&
-            world.getBlockState(blockTask.blockPos.up()).block == material) {
-            blockTask.updateState(TaskState.DONE)
-            return
+        if (blockTask.block == fillerMat && mode == Mode.HIGHWAY) {
+            if (world.getBlockState(blockTask.blockPos.up()).block == material ||
+                !isPlaceable(blockTask.blockPos)) {
+                blockTask.updateState(TaskState.DONE)
+                return
+            }
         }
 
         when (world.getBlockState(blockTask.blockPos).block) {
