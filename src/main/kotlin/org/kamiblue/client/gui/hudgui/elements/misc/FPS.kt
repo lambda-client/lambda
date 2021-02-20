@@ -8,6 +8,7 @@ import org.kamiblue.client.setting.GuiConfig.setting
 import org.kamiblue.client.util.CircularArray
 import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.graphics.AnimationUtils
+import org.kamiblue.event.listener.asyncListener
 import org.kamiblue.event.listener.listener
 import kotlin.math.max
 import kotlin.math.min
@@ -23,7 +24,7 @@ object FPS : LabelHud(
     private val showMin = setting("Show Min", false)
     private val showMax = setting("Show Max", false)
 
-    private val timer = TickTimer()
+    private var updateTime = 0L
     private var prevFps = 0
     private var currentFps = 0
 
@@ -33,21 +34,23 @@ object FPS : LabelHud(
     private var currentAvgFps = 0
 
     init {
-        listener<RenderEvent> {
-            if (timer.tick(1000L)) {
-                prevFps = currentFps
-                currentFps = Minecraft.getDebugFPS()
+        asyncListener<RenderEvent> {
+            val newFps = Minecraft.getDebugFPS()
+            if (newFps == currentFps) return@asyncListener
 
-                longFps.add(currentFps)
+            prevFps = currentFps
+            currentFps = newFps
 
-                prevAvgFps = currentAvgFps
-                currentAvgFps = longFps.average().roundToInt()
-            }
+            longFps.add(newFps)
+
+            prevAvgFps = currentAvgFps
+            currentAvgFps = longFps.average().roundToInt()
+            updateTime = System.currentTimeMillis()
         }
     }
 
     override fun SafeClientEvent.updateText() {
-        val deltaTime = AnimationUtils.toDeltaTimeFloat(timer.time) / 1000.0f
+        val deltaTime = AnimationUtils.toDeltaTimeFloat(updateTime) / 1000.0f
         val fps = (prevFps + (currentFps - prevFps) * deltaTime).roundToInt()
         val avg = (prevAvgFps + (currentAvgFps - prevAvgFps) * deltaTime).roundToInt()
 
