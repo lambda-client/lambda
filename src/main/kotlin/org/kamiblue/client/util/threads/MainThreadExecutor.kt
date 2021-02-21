@@ -1,6 +1,9 @@
 package org.kamiblue.client.util.threads
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.completeWith
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.kamiblue.client.event.KamiEventBus
@@ -25,10 +28,8 @@ object MainThreadExecutor {
 
         runBlocking {
             mutex.withLock {
-                coroutineScope {
-                    jobs.forEach {
-                        launch { it.run() }
-                    }
+                jobs.forEach {
+                    launch { it.run() }
                 }
                 jobs.clear()
             }
