@@ -2,13 +2,11 @@ package org.kamiblue.client.gui.hudgui.elements.misc
 
 import net.minecraft.client.Minecraft
 import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.event.events.RenderEvent
+import org.kamiblue.client.event.events.RunGameLoopEvent
 import org.kamiblue.client.gui.hudgui.LabelHud
 import org.kamiblue.client.setting.GuiConfig.setting
 import org.kamiblue.client.util.CircularArray
-import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.graphics.AnimationUtils
-import org.kamiblue.event.listener.asyncListener
 import org.kamiblue.event.listener.listener
 import kotlin.math.max
 import kotlin.math.min
@@ -34,9 +32,9 @@ object FPS : LabelHud(
     private var currentAvgFps = 0
 
     init {
-        asyncListener<RenderEvent> {
+        listener<RunGameLoopEvent.End> {
             val newFps = Minecraft.getDebugFPS()
-            if (newFps == currentFps) return@asyncListener
+            if (newFps == currentFps) return@listener
 
             prevFps = currentFps
             currentFps = newFps
