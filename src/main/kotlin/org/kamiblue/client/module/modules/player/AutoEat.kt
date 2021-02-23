@@ -15,7 +15,7 @@ import org.kamiblue.client.module.Module
 import org.kamiblue.client.process.PauseProcess.pauseBaritone
 import org.kamiblue.client.process.PauseProcess.unpauseBaritone
 import org.kamiblue.client.util.*
-import org.kamiblue.client.util.combat.CombatUtils
+import org.kamiblue.client.util.combat.CombatUtils.scaledHealth
 import org.kamiblue.client.util.items.*
 import org.kamiblue.client.util.threads.runSafe
 import org.kamiblue.client.util.threads.safeListener
@@ -86,7 +86,7 @@ internal object AutoEat : Module(
 
     private fun SafeClientEvent.shouldEat() =
         player.foodStats.foodLevel < belowHunger
-            || CombatUtils.getHealthSmart(player) < belowHealth
+            || player.scaledHealth < belowHealth
 
     private fun SafeClientEvent.eat(hand: EnumHand) {
         if (!eating || !player.isHandActive || player.activeHand != hand) {

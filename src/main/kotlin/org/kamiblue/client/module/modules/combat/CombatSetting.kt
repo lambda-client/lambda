@@ -160,8 +160,8 @@ internal object CombatSetting : Module(
     }
 
     private fun SafeClientEvent.updateTarget() {
-        with(CombatManager.getTopModule()) {
-            overrideRange = if (this is KillAura) this.range.value else range.value
+        CombatManager.getTopModule()?.let {
+            overrideRange = if (it is KillAura) it.range else range.value
         }
 
         getTargetList().let {
