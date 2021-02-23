@@ -53,7 +53,6 @@ import org.kamiblue.client.util.WorldUtils
 import org.kamiblue.client.util.WorldUtils.blackList
 import org.kamiblue.client.util.WorldUtils.getBetterNeighbour
 import org.kamiblue.client.util.WorldUtils.getMiningSide
-import org.kamiblue.client.util.WorldUtils.getVisibleSides
 import org.kamiblue.client.util.WorldUtils.isLiquid
 import org.kamiblue.client.util.WorldUtils.isPlaceable
 import org.kamiblue.client.util.WorldUtils.shulkerList
@@ -107,11 +106,12 @@ internal object HighwayTools : Module(
     private val cleanFloor by setting("Clean Floor", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels floor")
     private val cleanWalls by setting("Clean Walls", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels walls")
     private val cleanRoof by setting("Clean Roof", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels roof")
+    private val cleanCorner by setting("Clean Corner", false, { page == Page.BUILD && mode == Mode.TUNNEL && !cornerBlock }, description = "Cleans up the tunnels corner")
+    private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) }, description = "If activated will break the corner in tunnel or place a corner while paving")
     private val width by setting("Width", 6, 1..11, 1, { page == Page.BUILD }, description = "Sets the width of blueprint")
     private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace }, description = "Sets height of blueprint")
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Adds a railing / rim / border to the highway")
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Sets height of railing")
-    private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) }, description = "If activated will break the corner in tunnel or place a corner while paving")
     private val materialSaved = setting("Material", "minecraft:obsidian", { false })
     private val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
     val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, { false }))
@@ -329,6 +329,10 @@ internal object HighwayTools : Module(
                 MessageSendHelper.sendRawChatMessage("    §9> §cMake sure to enable Velocity to not get pushed from your mates.")
             }
 
+            if (material == fillerMat) {
+                MessageSendHelper.sendRawChatMessage("    §9> §cMake sure to use §aTunnel Mode§c instead of having same material for both main and filler!")
+            }
+
         }
     }
 
@@ -530,6 +534,7 @@ internal object HighwayTools : Module(
                     if (cleanFloor) generateFloor(thisPos, xDirection)
                     if (cleanWalls) generateWalls(thisPos, xDirection)
                     if (cleanRoof) generateRoof(thisPos, xDirection)
+                    if (cleanCorner && !cornerBlock) generateCorner(thisPos, xDirection)
                 } else {
                     generateBase(thisPos, xDirection)
                 }
@@ -612,14 +617,14 @@ internal object HighwayTools : Module(
     }
 
     private fun generateWalls(basePos: BlockPos, xDirection: Direction) {
-        for (h in 0 until height) {
-            val cb = if (!cornerBlock && h == 0) {
-                1
-            } else {
-                0
-            }
-            blueprint[basePos.add(xDirection.directionVec.multiply(-1 - width / 2 + cb)).up(h + 1)] = fillerMat
-            blueprint[basePos.add(xDirection.directionVec.multiply(width - width / 2 - cb)).up(h + 1)] = fillerMat
+        val cb = if (!cornerBlock) {
+            1
+        } else {
+            0
+        }
+        for (h in cb until height) {
+            blueprint[basePos.add(xDirection.directionVec.multiply(-1 - width / 2)).up(h + 1)] = fillerMat
+            blueprint[basePos.add(xDirection.directionVec.multiply(width - width / 2)).up(h + 1)] = fillerMat
         }
     }
 
@@ -631,6 +636,10 @@ internal object HighwayTools : Module(
         }
     }
 
+    private fun generateCorner(basePos: BlockPos, xDirection: Direction) {
+        blueprint[basePos.add(xDirection.directionVec.multiply(-1 - width / 2 + 1)).up()] = fillerMat
+        blueprint[basePos.add(xDirection.directionVec.multiply(width - width / 2 - 1)).up()] = fillerMat
+    }
 
     private fun isRail(w: Int) = railing && w !in 1 until width - 1
 
@@ -968,7 +977,8 @@ internal object HighwayTools : Module(
         if (ignoreBlocks.contains(world.getBlockState(blockTask.blockPos).block.registryName.toString())) {
             blockTask.updateState(TaskState.DONE)
         }
-        if (blockTask.block == fillerMat && mode == Mode.HIGHWAY) {
+
+        if (blockTask.block == fillerMat) {
             if (world.getBlockState(blockTask.blockPos.up()).block == material ||
                 !isPlaceable(blockTask.blockPos)) {
                 blockTask.updateState(TaskState.DONE)
@@ -1214,7 +1224,7 @@ internal object HighwayTools : Module(
 
         return if (slotFrom != null) {
             if (emptyDisable && slotFrom.stack.item != Items.DIAMOND_PICKAXE) {
-                MessageSendHelper.sendChatMessage("$chatName No ${Items.DIAMOND_PICKAXE} was found in inventory, disable")
+                MessageSendHelper.sendChatMessage("$chatName No ${Items.DIAMOND_PICKAXE.registryName} was found in inventory, disable")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                 disable()
             }
@@ -1276,34 +1286,34 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.mineBlock(blockTask: BlockTask) {
-
-        /* For fire, we just need to mine the top of the block below the fire */
-        // ToDo: Fix placement issues
         if (world.getBlockState(blockTask.blockPos).block == Blocks.FIRE) {
-            val blockBelowFire = blockTask.blockPos.down()
-            if (getVisibleSides(blockBelowFire).contains(EnumFacing.UP)) {
-                playerController.clickBlock(blockBelowFire, EnumFacing.UP)
-                player.swingArm(EnumHand.MAIN_HAND)
-                blockTask.updateState(TaskState.BREAKING)
-            } else {
+            val sides = getBetterNeighbour(blockTask.blockPos, 1, maxReach, true)
+            if (sides.isEmpty()) {
                 blockTask.updateState(TaskState.PLACE)
+                return
             }
-            return
-        }
 
-        val side = getMiningSide(blockTask.blockPos) ?: run {
-            blockTask.onStuck()
-            return
-        }
+            lastHitVec = WorldUtils.getHitVec(sides.last().second, sides.last().first)
+            rotateTimer.reset()
 
-        lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
-        rotateTimer.reset()
-
-        if (world.getBlockState(blockTask.blockPos).getPlayerRelativeBlockHardness(player, world, blockTask.blockPos) > 2.8) {
-            mineBlockInstant(blockTask, side)
+            mineBlockNormal(blockTask, sides.last().first)
         } else {
-            mineBlockNormal(blockTask, side)
+            val side = getMiningSide(blockTask.blockPos) ?: run {
+                blockTask.onStuck()
+                return
+            }
+
+            lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
+            rotateTimer.reset()
+
+            // ToDo: Check for tool dependent speed
+            if (world.getBlockState(blockTask.blockPos).getPlayerRelativeBlockHardness(player, world, blockTask.blockPos) > 2.8) {
+                mineBlockInstant(blockTask, side)
+            } else {
+                mineBlockNormal(blockTask, side)
+            }
         }
+
     }
 
     private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
