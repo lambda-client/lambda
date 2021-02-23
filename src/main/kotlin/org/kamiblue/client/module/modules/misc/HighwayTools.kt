@@ -1097,7 +1097,7 @@ internal object HighwayTools : Module(
         val useBlock = when {
             player.allSlots.countBlock(blockTask.block) > 0 -> blockTask.block
             player.allSlots.countBlock(material) > 0 -> material
-            player.allSlots.countBlock(fillerMat) > 0 -> fillerMat
+            player.allSlots.countBlock(fillerMat) > 0 && mode == Mode.TUNNEL -> fillerMat
             else -> blockTask.block
         }
 
