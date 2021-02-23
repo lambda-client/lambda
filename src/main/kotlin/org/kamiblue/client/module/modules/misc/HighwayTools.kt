@@ -1306,7 +1306,6 @@ internal object HighwayTools : Module(
             lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
             rotateTimer.reset()
 
-            // ToDo: Check for tool dependent speed
             if (world.getBlockState(blockTask.blockPos).getPlayerRelativeBlockHardness(player, world, blockTask.blockPos) > 2.8) {
                 mineBlockInstant(blockTask, side)
             } else {
