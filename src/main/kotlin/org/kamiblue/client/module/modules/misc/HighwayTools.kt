@@ -527,10 +527,13 @@ internal object HighwayTools : Module(
             for (x in -maxReach.floorToInt()..maxReach.ceilToInt()) {
                 val thisPos = basePos.add(zDirection.directionVec.multiply(x))
                 if (clearSpace) generateClear(thisPos, xDirection)
-                if (mode != Mode.TUNNEL) generateBase(thisPos, xDirection)
-                if (mode == Mode.TUNNEL && cleanFloor) generateFloor(thisPos, xDirection)
-                if (mode == Mode.TUNNEL && cleanWalls) generateWalls(thisPos, xDirection)
-                if (mode == Mode.TUNNEL && cleanRoof) generateRoof(thisPos, xDirection)
+                if (mode == Mode.TUNNEL) {
+                    if (cleanFloor) generateFloor(thisPos, xDirection)
+                    if (cleanWalls) generateWalls(thisPos, xDirection)
+                    if (cleanRoof) generateRoof(thisPos, xDirection)
+                } else {
+                    generateBase(thisPos, xDirection)
+                }
             }
             if (mode == Mode.TUNNEL && !cleanFloor) {
                 if (startingDirection.isDiagonal) {
