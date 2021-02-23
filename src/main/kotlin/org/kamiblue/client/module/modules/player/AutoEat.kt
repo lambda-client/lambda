@@ -12,7 +12,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
-import org.kamiblue.client.module.modules.combat.CombatSetting
 import org.kamiblue.client.process.PauseProcess.pauseBaritone
 import org.kamiblue.client.process.PauseProcess.unpauseBaritone
 import org.kamiblue.client.util.*
@@ -45,14 +44,31 @@ internal object AutoEat : Module(
         }
 
         safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.START || !player.isEntityAlive || CombatSetting.isActive()) return@safeListener
+            if (it.phase != TickEvent.Phase.START) return@safeListener
+
+            if (!player.isEntityAlive) {
+                if (eating) stopEating()
+                return@safeListener
+            }
 
             val hand = when {
-                !shouldEat() -> null // Null = stop eating
-                isValid(player.heldItemOffhand) -> EnumHand.OFF_HAND
-                isValid(player.heldItemMainhand) -> EnumHand.MAIN_HAND
-                swapToFood() -> return@safeListener // If we found valid food and moved the return and wait until next tick
-                else -> null // If we can't find any valid food then stop eating
+                !shouldEat() -> {
+                    null // Null = stop eating
+                }
+                isValid(player.heldItemOffhand) -> {
+                    EnumHand.OFF_HAND
+                }
+                isValid(player.heldItemMainhand) -> {
+                    EnumHand.MAIN_HAND
+                }
+                swapToFood() -> { // If we found valid food and moved
+                    // Set eating and pause then return and wait until next tick
+                    startEating()
+                    return@safeListener
+                }
+                else -> {
+                    null // If we can't find any valid food then stop eating
+                }
             }
 
             if (hand != null) {
@@ -73,15 +89,18 @@ internal object AutoEat : Module(
             || CombatUtils.getHealthSmart(player) < belowHealth
 
     private fun SafeClientEvent.eat(hand: EnumHand) {
-        if (pauseBaritone) pauseBaritone()
-
-        if (!eating || !player.isHandActive) {
+        if (!eating || !player.isHandActive || player.activeHand != hand) {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.keyCode, true)
 
             // Vanilla Minecraft prioritize offhand so we need to force it using the specific hand
             playerController.processRightClick(player, world, hand)
         }
 
+        startEating()
+    }
+
+    private fun startEating() {
+        if (pauseBaritone) pauseBaritone()
         eating = true
     }
 
