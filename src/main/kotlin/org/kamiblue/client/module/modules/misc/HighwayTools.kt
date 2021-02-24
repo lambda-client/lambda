@@ -360,12 +360,20 @@ internal object HighwayTools : Module(
                         when (task.taskState) {
                             TaskState.PENDING_BREAK, TaskState.BREAKING -> {
                                 if (new == Blocks.AIR) {
-                                    task.updateState(TaskState.BROKEN)
+                                    runBlocking {
+                                        mutex.withLock {
+                                            task.updateState(TaskState.BROKEN)
+                                        }
+                                    }
                                 }
                             }
                             TaskState.PENDING_PLACE -> {
                                 if (task.block != Blocks.AIR && task.block == new) {
-                                    task.updateState(TaskState.PLACED)
+                                    runBlocking {
+                                        mutex.withLock {
+                                            task.updateState(TaskState.PLACED)
+                                        }
+                                    }
                                 }
                             }
                             else -> {
