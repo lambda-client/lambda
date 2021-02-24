@@ -1,9 +1,8 @@
 package org.kamiblue.client.mixin.client.entity;
 
 import net.minecraft.entity.Entity;
-import org.kamiblue.client.event.KamiEventBus;
-import org.kamiblue.client.event.events.EntityCollisionEvent;
 import org.kamiblue.client.module.modules.movement.SafeWalk;
+import org.kamiblue.client.module.modules.movement.Velocity;
 import org.kamiblue.client.module.modules.player.Freecam;
 import org.kamiblue.client.module.modules.player.Scaffold;
 import org.kamiblue.client.util.Wrapper;
@@ -19,17 +18,9 @@ public class MixinEntity {
 
     @Shadow private int entityId;
 
-    @Redirect(method = "applyEntityCollision", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;addVelocity(DDD)V"))
-    public void addVelocity(Entity entity, double x, double y, double z) {
-        EntityCollisionEvent event = new EntityCollisionEvent(entity, x, y, z);
-        KamiEventBus.INSTANCE.post(event);
-        if (event.getCancelled()) return;
-
-        entity.motionX += x;
-        entity.motionY += y;
-        entity.motionZ += z;
-
-        entity.isAirBorne = true;
+    @Inject(method = "applyEntityCollision", at = @At("HEAD"), cancellable = true)
+    public void applyEntityCollisionHead(Entity entityIn, CallbackInfo ci) {
+        Velocity.handleApplyEntityCollision((Entity) (Object) this, entityIn, ci);
     }
 
     @Redirect(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;isSneaking()Z", ordinal = 0))
