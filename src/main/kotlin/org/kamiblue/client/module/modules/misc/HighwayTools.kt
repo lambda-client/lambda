@@ -71,8 +71,6 @@ import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.*
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
-import kotlin.collections.ArrayList
-import kotlin.collections.LinkedHashMap
 import kotlin.random.Random.Default.nextInt
 
 /**
@@ -171,7 +169,6 @@ internal object HighwayTools : Module(
     }
 
     // internal settings
-    private val mutex = Mutex()
     var material: Block
         get() = Block.getBlockFromName(materialSaved.value) ?: Blocks.OBSIDIAN
         set(value) {
@@ -225,6 +222,7 @@ internal object HighwayTools : Module(
     private var lastToolDamage = 0
     private var durabilityUsages = 0
 
+    private val mutex = Mutex()
     private val renderer = ESPRenderer()
 
     override fun isActive(): Boolean {
@@ -250,7 +248,7 @@ internal object HighwayTools : Module(
 
                 startingBlockPos = player.flooredPosition
                 currentBlockPos = startingBlockPos
-                startingDirection = Direction.fromEntity(Companion.mc.player)
+                startingDirection = Direction.fromEntity(player)
 
                 baritoneSettingAllowPlace = BaritoneUtils.settings?.allowPlace?.value ?: true
                 BaritoneUtils.settings?.allowPlace?.value = false
@@ -289,11 +287,9 @@ internal object HighwayTools : Module(
             }
         }
 
-        resetStats.listeners.add {
-            if (resetStats.value) {
-                resetStats()
-                resetStats.value = false
-            }
+        resetStats.consumers.add { _, it ->
+            if (it) resetStats()
+            false
         }
     }
 
@@ -387,9 +383,12 @@ internal object HighwayTools : Module(
                 }
                 is SPacketSetSlot -> {
                     val currentToolDamage = it.packet.stack.itemDamage
-                    if (lastToolDamage < currentToolDamage && currentToolDamage - lastToolDamage < 100) {
-                        durabilityUsages += currentToolDamage - lastToolDamage
+                    val duraUsage = currentToolDamage - lastToolDamage
+
+                    if (duraUsage in 1..100) {
+                        durabilityUsages += duraUsage
                     }
+
                     lastToolDamage = it.packet.stack.itemDamage
                 }
             }
@@ -740,9 +739,11 @@ internal object HighwayTools : Module(
             refreshData()
         } else {
             waitTicks--
+
             pendingTasks.values.forEach {
                 doTask(it, true)
             }
+
             sortTasks()
 
             for (task in sortedTasks) {
@@ -779,10 +780,11 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.sortTasks() {
-        val eyePos = mc.player.getPositionEyes(1.0f)
 
         if (multiBuilding) {
-            pendingTasks.values.forEach { it.shuffle() }
+            pendingTasks.values.forEach {
+                it.shuffle()
+            }
 
             runBlocking {
                 mutex.withLock {
@@ -798,17 +800,10 @@ internal object HighwayTools : Module(
                 }
             }
         } else {
-            pendingTasks.values.forEach {
-                when (it.taskState) {
-                    TaskState.PLACE -> it.sides = getBetterNeighbour(it.blockPos, placementSearch, maxReach, true).size
-//                    TaskState.BREAK ->
-                    else -> it.sides = 0
-                }
+            val eyePos = player.getPositionEyes(1.0f)
 
-                // ToDo: We need a function that makes a score out of those 3 parameters
-                it.startDistance = startingBlockPos.distanceTo(it.blockPos)
-                it.eyeDistance = eyePos.distanceTo(it.blockPos)
-                it.hitVecDistance = (lastHitVec?.distanceTo(it.blockPos) ?: 0.0)
+            pendingTasks.values.forEach {
+                it.prepareSortInfo(this, eyePos)
             }
 
             runBlocking {
@@ -1139,7 +1134,7 @@ internal object HighwayTools : Module(
                         MessageSendHelper.sendChatMessage("No neighbours found")
                     }
                 }
-                blockTask.stuck(21)
+                blockTask.onStuck(21)
                 return
             }
             1 -> {
@@ -1294,7 +1289,9 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.mineBlock(blockTask: BlockTask) {
-        if (world.getBlockState(blockTask.blockPos).block == Blocks.FIRE) {
+        val blockState = world.getBlockState(blockTask.blockPos)
+
+        if (blockState.block == Blocks.FIRE) {
             val sides = getBetterNeighbour(blockTask.blockPos, 1, maxReach, true)
             if (sides.isEmpty()) {
                 blockTask.updateState(TaskState.PLACE)
@@ -1314,13 +1311,12 @@ internal object HighwayTools : Module(
             lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
             rotateTimer.reset()
 
-            if (world.getBlockState(blockTask.blockPos).getPlayerRelativeBlockHardness(player, world, blockTask.blockPos) > 2.8) {
+            if (blockState.getPlayerRelativeBlockHardness(player, world, blockTask.blockPos) > 2.8) {
                 mineBlockInstant(blockTask, side)
             } else {
                 mineBlockNormal(blockTask, side)
             }
         }
-
     }
 
     private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
@@ -1422,8 +1418,6 @@ internal object HighwayTools : Module(
     }
 
     fun SafeClientEvent.gatherStatistics(displayText: TextComponent) {
-
-
         val runtimeSec = (runtimeMilliSeconds / 1000) + 0.0001
         val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + totalDistance
 
@@ -1587,14 +1581,15 @@ internal object HighwayTools : Module(
     ) {
         private var ranTicks = 0
         var stuckTicks = 0; private set
-        var shuffle = 0
-        var sides = 0
-        var startDistance = 0.0
-        var eyeDistance = 0.0
-        var hitVecDistance = 0.0
+        var shuffle = 0; private set
+        var sides = 0; private set
+        var startDistance = 0.0; private set
+        var eyeDistance = 0.0; private set
+        var hitVecDistance = 0.0; private set
 
         fun updateState(state: TaskState) {
             if (state == taskState) return
+
             taskState = state
             if (state == TaskState.DONE || state == TaskState.PLACED || state == TaskState.BROKEN) {
                 onUpdate()
@@ -1603,6 +1598,7 @@ internal object HighwayTools : Module(
 
         fun updateMaterial(material: Block) {
             if (material == block) return
+
             block = material
             onUpdate()
         }
@@ -1614,12 +1610,21 @@ internal object HighwayTools : Module(
             }
         }
 
-        fun onStuck() {
-            stuckTicks++
+        fun onStuck(weight: Int = 1) {
+            stuckTicks += weight
         }
 
-        fun stuck(weight: Int) {
-            stuckTicks += weight
+        fun prepareSortInfo(event: SafeClientEvent, eyePos: Vec3d) {
+            sides = when (taskState) {
+                TaskState.PLACE -> event.getBetterNeighbour(blockPos, placementSearch, maxReach, true).size
+                //TaskState.BREAK ->
+                else ->  0
+            }
+
+            // ToDo: We need a function that makes a score out of those 3 parameters
+            startDistance = startingBlockPos.distanceTo(blockPos)
+            eyeDistance = eyePos.distanceTo(blockPos)
+            hitVecDistance = (lastHitVec?.distanceTo(blockPos) ?: 0.0)
         }
 
         fun shuffle() {
