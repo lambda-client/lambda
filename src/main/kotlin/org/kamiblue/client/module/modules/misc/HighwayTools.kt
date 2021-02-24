@@ -45,11 +45,8 @@ import org.kamiblue.client.module.modules.player.LagNotifier
 import org.kamiblue.client.process.HighwayToolsProcess
 import org.kamiblue.client.process.PauseProcess
 import org.kamiblue.client.setting.settings.impl.collection.CollectionSetting
-import org.kamiblue.client.util.BaritoneUtils
+import org.kamiblue.client.util.*
 import org.kamiblue.client.util.EntityUtils.flooredPosition
-import org.kamiblue.client.util.TickTimer
-import org.kamiblue.client.util.TimeUnit
-import org.kamiblue.client.util.WorldUtils
 import org.kamiblue.client.util.WorldUtils.blackList
 import org.kamiblue.client.util.WorldUtils.getBetterNeighbour
 import org.kamiblue.client.util.WorldUtils.getMiningSide
@@ -206,6 +203,7 @@ internal object HighwayTools : Module(
     private val doneTasks = LinkedHashMap<BlockPos, BlockTask>()
     private var sortedTasks: List<BlockTask> = emptyList()
     var lastTask: BlockTask? = null; private set
+    private val packetLimiter = ArrayDeque<Long>()
 
     // Stats
     private val simpleMovingAveragePlaces = ArrayDeque<Long>()
@@ -459,6 +457,8 @@ internal object HighwayTools : Module(
         updateDeque(simpleMovingAveragePlaces, removeTime)
         updateDeque(simpleMovingAverageBreaks, removeTime)
         updateDeque(simpleMovingAverageDistance, removeTime)
+
+        updateDeque(packetLimiter, System.currentTimeMillis() - 1000L)
     }
 
     private fun updateDeque(deque: ArrayDeque<Long>, removeTime: Long) {
@@ -1317,6 +1317,8 @@ internal object HighwayTools : Module(
 
     private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
         waitTicks = breakDelay
+        packetLimiter.add(System.currentTimeMillis())
+        MessageSendHelper.sendChatMessage("${packetLimiter.size}")
         blockTask.updateState(TaskState.PENDING_BREAK)
 
         defaultScope.launch {
@@ -1325,7 +1327,14 @@ internal object HighwayTools : Module(
 
             // ToDo: Hard limit for TPS to avoid kicks
             if (maxBreaks > 1) {
-                tryMultiBreak(blockTask)
+                if (packetLimiter.size < TpsCalculator.tickRate) {
+                    tryMultiBreak(blockTask)
+                } else {
+                    if (debugMessages == DebugMessages.ALL) {
+                        MessageSendHelper.sendChatMessage("$chatName Dropped possible instant mine action @ TPS(${TpsCalculator.tickRate}) Actions(${packetLimiter.size})")
+                    }
+                }
+
             }
 
             delay(50L * taskTimeout)
@@ -1614,7 +1623,7 @@ internal object HighwayTools : Module(
             sides = when (taskState) {
                 TaskState.PLACE -> event.getBetterNeighbour(blockPos, placementSearch, maxReach, true).size
                 //TaskState.BREAK ->
-                else ->  0
+                else -> 0
             }
 
             // ToDo: We need a function that makes a score out of those 3 parameters
