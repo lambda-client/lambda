@@ -1245,46 +1245,42 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.handleLiquid(blockTask: BlockTask): Boolean {
         var foundLiquid = false
+
         for (side in EnumFacing.values()) {
-            val neighbour = blockTask.blockPos.offset(side)
-            val neighbourBlock = world.getBlockState(neighbour).block
+            val neighbourPos = blockTask.blockPos.offset(side)
 
-            if (neighbourBlock is BlockLiquid) {
-                val isFlowing = world.getBlockState(blockTask.blockPos).let {
-                    it.block is BlockLiquid && it.getValue(BlockLiquid.LEVEL) != 0
-                }
+            if (world.getBlockState(neighbourPos).block !is BlockLiquid) continue
 
-                if (player.distanceTo(neighbour) > maxReach) {
-                    blockTask.updateState(TaskState.DONE)
-                    return true
-                }
+            if (player.distanceTo(neighbourPos) > maxReach) {
+                blockTask.updateState(TaskState.DONE)
+                return true
+            }
 
-                foundLiquid = true
-                val found = ArrayList<Triple<BlockTask, TaskState, Block>>()
-                val filler = if (isInsideBlueprintBuild(neighbour)) material else fillerMat
+            foundLiquid = true
 
-                pendingTasks.values.forEach {
-                    if (it.blockPos == neighbour) {
-                        when (isFlowing) {
-                            false -> found.add(Triple(it, TaskState.LIQUID_SOURCE, filler))
-                            true -> found.add(Triple(it, TaskState.LIQUID_FLOW, filler))
-                        }
-                    }
-                }
+            val isFlowing = world.getBlockState(blockTask.blockPos).let {
+                it.block is BlockLiquid && it.getValue(BlockLiquid.LEVEL) != 0
+            }
 
-                if (found.isEmpty()) {
-                    when (isFlowing) {
-                        false -> addTaskToPending(neighbour, TaskState.LIQUID_SOURCE, filler)
-                        true -> addTaskToPending(neighbour, TaskState.LIQUID_FLOW, filler)
-                    }
+            val filler = if (isInsideBlueprintBuild(neighbourPos)) material else fillerMat
+
+            pendingTasks[neighbourPos]?.let {
+                if (isFlowing) {
+                    it.updateState(TaskState.LIQUID_FLOW)
                 } else {
-                    found.forEach {
-                        it.first.updateState(it.second)
-                        it.first.updateMaterial(it.third)
-                    }
+                    it.updateState(TaskState.LIQUID_FLOW)
+                }
+
+                it.updateMaterial(filler)
+            } ?: run {
+                if (isFlowing) {
+                    addTaskToPending(neighbourPos, TaskState.LIQUID_FLOW, filler)
+                } else {
+                    addTaskToPending(neighbourPos, TaskState.LIQUID_SOURCE, filler)
                 }
             }
         }
+
         return foundLiquid
     }
 
