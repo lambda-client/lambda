@@ -1,6 +1,7 @@
 package org.kamiblue.client.module.modules.misc
 
 import baritone.api.pathing.goals.GoalNear
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -23,6 +24,7 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.network.play.server.SPacketSetSlot
+import net.minecraft.stats.StatList
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
@@ -30,6 +32,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.kamiblue.client.KamiMod
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.event.events.RenderWorldEvent
@@ -68,6 +71,10 @@ import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.*
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
+import java.io.File
+import java.io.FileWriter
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.random.Random.Default.nextInt
 
 /**
@@ -127,6 +134,7 @@ internal object HighwayTools : Module(
     private val emptyDisable by setting("Disable on no tool", false, { page == Page.BEHAVIOR }, description = "Disables module when pickaxes are out")
     private val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
     private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Breaks multiple instant breaking blocks per tick in view")
+    private val limitFactor by setting("Limit Factor", 1.0f, 0.5f..2.0f, 0.01f, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Factor for TPS wich acts as limit for maximum breaks per second.")
 
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
@@ -136,6 +144,7 @@ internal object HighwayTools : Module(
     private val showTask by setting("Show Task", true, { page == Page.STATS }, description = "Toggles the Task section in HUD")
     private val showEstimations by setting("Show Estimations", true, { page == Page.STATS }, description = "Toggles the Estimations section in HUD")
     private val resetStats = setting("Reset Stats", false, { page == Page.STATS }, description = "Resets the stats")
+    private val safeStats = setting("Safe Stats", false, { page == Page.STATS }, description = "Safes the stats to json to /kamiblue/stats")
 
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG }, description = "Adds artificial sounds to the actions")
@@ -287,6 +296,11 @@ internal object HighwayTools : Module(
 
         resetStats.consumers.add { _, it ->
             if (it) resetStats()
+            false
+        }
+
+        safeStats.consumers.add { _, it ->
+            if (it) safeStats()
             false
         }
     }
@@ -1318,23 +1332,14 @@ internal object HighwayTools : Module(
     private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
         waitTicks = breakDelay
         packetLimiter.add(System.currentTimeMillis())
-        MessageSendHelper.sendChatMessage("${packetLimiter.size}")
         blockTask.updateState(TaskState.PENDING_BREAK)
 
         defaultScope.launch {
             delay(20L)
             sendMiningPackets(blockTask.blockPos, side)
 
-            // ToDo: Hard limit for TPS to avoid kicks
             if (maxBreaks > 1) {
-                if (packetLimiter.size < TpsCalculator.tickRate) {
-                    tryMultiBreak(blockTask)
-                } else {
-                    if (debugMessages == DebugMessages.ALL) {
-                        MessageSendHelper.sendChatMessage("$chatName Dropped possible instant mine action @ TPS(${TpsCalculator.tickRate}) Actions(${packetLimiter.size})")
-                    }
-                }
-
+                tryMultiBreak(blockTask)
             }
 
             delay(50L * taskTimeout)
@@ -1354,6 +1359,12 @@ internal object HighwayTools : Module(
 
             for (task in sortedTasks) {
                 if (breakCount >= maxBreaks) break
+                if (packetLimiter.size > TpsCalculator.tickRate * limitFactor) {
+                    if (debugMessages == DebugMessages.ALL) {
+                        MessageSendHelper.sendChatMessage("$chatName Dropped possible instant mine action @ TPS(${TpsCalculator.tickRate}) Actions(${packetLimiter.size})")
+                    }
+                    break
+                }
 
                 if (task == blockTask) continue
                 if (task.taskState != TaskState.BREAK) continue
@@ -1366,6 +1377,7 @@ internal object HighwayTools : Module(
                 breakCount++
 
                 defaultScope.launch {
+                    packetLimiter.add(System.currentTimeMillis())
                     sendMiningPackets(task.blockPos, rayTraceResult.sideHit)
 
                     delay(50L * taskTimeout)
@@ -1571,6 +1583,25 @@ internal object HighwayTools : Module(
         fillerMatLeft = 0
         lastToolDamage = 0
         durabilityUsages = 0
+    }
+
+    private fun safeStats() {
+        defaultScope.launch(Dispatchers.IO) {
+            val directory = "${KamiMod.DIRECTORY}stats"
+            val filename = "${DateTimeFormatter.ofPattern("HH-mm-ss_SSS").format(LocalTime.now())}.json"
+
+            try {
+                with(File(directory)) {
+                    if (!exists()) mkdir()
+                }
+
+                FileWriter("$directory/$filename", true).buffered().use {
+                    it.write(StatList.ALL_STATS.toString())
+                }
+            } catch (e: Exception) {
+                KamiMod.LOG.warn("$chatName Failed saving stats json!", e)
+            }
+        }
     }
 
     private fun addTaskComponentList(displayText: TextComponent, tasks: Collection<BlockTask>) {
