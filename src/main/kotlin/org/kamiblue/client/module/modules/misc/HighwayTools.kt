@@ -13,7 +13,6 @@ import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
-import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemBlock
@@ -131,10 +130,9 @@ internal object HighwayTools : Module(
     private val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR }, description = "Timeout for waiting for the server to try again")
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag")
     private val maxReach by setting("Max Reach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR }, description = "Sets the range of the blueprint. Decrease when tasks fail!")
-    private val emptyDisable by setting("Disable on no tool", false, { page == Page.BEHAVIOR }, description = "Disables module when pickaxes are out")
-    private val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
     private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Breaks multiple instant breaking blocks per tick in view")
-    private val limitFactor by setting("Limit Factor", 1.0f, 0.5f..2.0f, 0.01f, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Factor for TPS wich acts as limit for maximum breaks per second.")
+    private val limitFactor by setting("Limit Factor", 1.0f, 0.5f..2.0f, 0.01f, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Factor for TPS witch acts as limit for maximum breaks per second.")
+    private val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
 
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
@@ -144,7 +142,7 @@ internal object HighwayTools : Module(
     private val showTask by setting("Show Task", true, { page == Page.STATS }, description = "Toggles the Task section in HUD")
     private val showEstimations by setting("Show Estimations", true, { page == Page.STATS }, description = "Toggles the Estimations section in HUD")
     private val resetStats = setting("Reset Stats", false, { page == Page.STATS }, description = "Resets the stats")
-    private val safeStats = setting("Safe Stats", false, { page == Page.STATS }, description = "Safes the stats to json to /kamiblue/stats")
+    private val safeStats = setting("Safe Stats", false, { page == Page.STATS }, description = "Safes the stats as json to /kamiblue/stats")
 
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG }, description = "Adds artificial sounds to the actions")
@@ -395,10 +393,10 @@ internal object HighwayTools : Module(
                 }
                 is SPacketSetSlot -> {
                     val currentToolDamage = it.packet.stack.itemDamage
-                    val duraUsage = currentToolDamage - lastToolDamage
+                    val durabilityUsage = currentToolDamage - lastToolDamage
 
-                    if (duraUsage in 1..100) {
-                        durabilityUsages += duraUsage
+                    if (durabilityUsage in 1..100) {
+                        durabilityUsages += durabilityUsage
                     }
 
                     lastToolDamage = it.packet.stack.itemDamage
@@ -459,6 +457,11 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.updateFood() {
         val currentFood = player.foodStats.foodLevel
+        if (currentFood < 7.0) {
+            MessageSendHelper.sendChatMessage("$chatName Out of food, disabling")
+            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
+        }
         if (currentFood != prevFood) {
             if (currentFood < prevFood) foodLoss++
             prevFood = currentFood
@@ -1240,11 +1243,11 @@ internal object HighwayTools : Module(
         val slotFrom = getBestTool(blockTask)
 
         return if (slotFrom != null) {
-            if (emptyDisable && slotFrom.stack.item != Items.DIAMOND_PICKAXE) {
-                MessageSendHelper.sendChatMessage("$chatName No ${Items.DIAMOND_PICKAXE.registryName} was found in inventory, disable")
-                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
-            }
+//            if (emptyDisable && slotFrom.stack.item != Items.DIAMOND_PICKAXE) {
+//                MessageSendHelper.sendChatMessage("$chatName No ${Items.DIAMOND_PICKAXE.registryName} was found in inventory, disable")
+//                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+//                disable()
+//            }
             slotFrom.toHotbarSlotOrNull()?.let {
                 swapToSlot(it)
             } ?: run {
