@@ -72,11 +72,13 @@ internal object Strafe : Module(
                 return@safeListener
             }
 
-            if (!player.collidedHorizontally) setSpeed(getSpeed())
 
             if (airSpeedBoost) player.jumpMovementFactor = 0.029f
             if (timerBoost) mc.timer.tickLength = 45.87155914306640625f
-            if (autoJump) jump()
+            if (!player.collidedHorizontally) {
+                if (autoJump) jump()
+                setSpeed(getSpeed())
+            }
 
             strafeTimer.reset()
         }
