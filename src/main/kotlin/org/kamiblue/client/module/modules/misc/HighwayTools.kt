@@ -806,9 +806,9 @@ internal object HighwayTools : Module(
                 }
 
                 // ToDo: We need a function that makes a score out of those 3 parameters
-                it.startDistance = (startingBlockPos.distanceTo(it.blockPos) * 100.0).toInt()
-                it.eyeDistance = (eyePos.distanceTo(it.blockPos) * 100.0).toInt()
-                it.hitVecDistance = ((lastHitVec?.distanceTo(it.blockPos) ?: 0.0) * 100.0).toInt()
+                it.startDistance = startingBlockPos.distanceTo(it.blockPos)
+                it.eyeDistance = eyePos.distanceTo(it.blockPos)
+                it.hitVecDistance = (lastHitVec?.distanceTo(it.blockPos) ?: 0.0)
             }
 
             runBlocking {
@@ -1589,9 +1589,9 @@ internal object HighwayTools : Module(
         var stuckTicks = 0; private set
         var shuffle = 0
         var sides = 0
-        var startDistance = 0
-        var eyeDistance = 0
-        var hitVecDistance = 0
+        var startDistance = 0.0
+        var eyeDistance = 0.0
+        var hitVecDistance = 0.0
 
         fun updateState(state: TaskState) {
             if (state == taskState) return
