@@ -1095,9 +1095,9 @@ internal object HighwayTools : Module(
             if (!isPlaceable(blockTask.blockPos)) {
                 if (debugMessages == DebugMessages.ALL) {
                     if (!anonymizeStats) {
-                        MessageSendHelper.sendChatMessage("Invalid place position: ${blockTask.blockPos}. Removing task")
+                        MessageSendHelper.sendChatMessage("$chatName Invalid place position: ${blockTask.blockPos}. Removing task")
                     } else {
-                        MessageSendHelper.sendChatMessage("Invalid place position. Removing task")
+                        MessageSendHelper.sendChatMessage("$chatName Invalid place position. Removing task")
                     }
                 }
                 pendingTasks.remove(blockTask.blockPos)
@@ -1146,9 +1146,9 @@ internal object HighwayTools : Module(
             0 -> {
                 if (debugMessages == DebugMessages.ALL) {
                     if (!anonymizeStats) {
-                        MessageSendHelper.sendChatMessage("No neighbours found for ${blockTask.blockPos}")
+                        MessageSendHelper.sendChatMessage("$chatName No neighbours found for ${blockTask.blockPos}")
                     } else {
-                        MessageSendHelper.sendChatMessage("No neighbours found")
+                        MessageSendHelper.sendChatMessage("$chatName No neighbours found")
                     }
                 }
                 blockTask.onStuck(21)
