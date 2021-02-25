@@ -26,6 +26,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.EnumDifficulty
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.BlockBreakEvent
@@ -171,7 +172,10 @@ internal object AutoObsidian : Module(
         }
 
         safeListener<TickEvent.ClientTickEvent>(69) {
-            if (it.phase != TickEvent.Phase.START || PauseProcess.isActive) return@safeListener
+            if (it.phase != TickEvent.Phase.START || PauseProcess.isActive ||
+                (world.difficulty == EnumDifficulty.PEACEFUL &&
+                    player.dimension == 1 &&
+                    player.serverBrand.contains("2b2t"))) return@safeListener
 
             updateMiningMap()
             runAutoObby()

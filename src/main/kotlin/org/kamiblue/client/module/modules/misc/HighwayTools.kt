@@ -30,6 +30,7 @@ import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.EnumDifficulty
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.KamiMod
 import org.kamiblue.client.event.SafeClientEvent
@@ -417,7 +418,9 @@ internal object HighwayTools : Module(
             if (!rubberbandTimer.tick(rubberbandTimeout.toLong(), false) ||
                 PauseProcess.isActive ||
                 AutoObsidian.isActive() ||
-                (player.isCreative && player.serverBrand.contains("2b2t"))) {
+                (world.difficulty == EnumDifficulty.PEACEFUL &&
+                    player.dimension == 1 &&
+                    player.serverBrand.contains("2b2t"))) {
                 refreshData()
                 return@safeListener
             }
@@ -994,19 +997,29 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.doBreak(blockTask: BlockTask, updateOnly: Boolean) {
-        if (ignoreBlocks.contains(world.getBlockState(blockTask.blockPos).block.registryName.toString())) {
+        val currentBlock = world.getBlockState(blockTask.blockPos).block
+
+        if (ignoreBlocks.contains(currentBlock.registryName.toString())) {
             blockTask.updateState(TaskState.DONE)
         }
 
-        if (blockTask.block == fillerMat) {
-            if (world.getBlockState(blockTask.blockPos.up()).block == material ||
-                !isPlaceable(blockTask.blockPos)) {
-                blockTask.updateState(TaskState.DONE)
-                return
+        when (blockTask.block) {
+            fillerMat -> {
+                if (world.getBlockState(blockTask.blockPos.up()).block == material ||
+                    !isPlaceable(blockTask.blockPos)) {
+                    blockTask.updateState(TaskState.DONE)
+                    return
+                }
+            }
+            material -> {
+                if (currentBlock == material) {
+                    blockTask.updateState(TaskState.DONE)
+                    return
+                }
             }
         }
 
-        when (world.getBlockState(blockTask.blockPos).block) {
+        when (currentBlock) {
             Blocks.AIR -> {
                 if (blockTask.block == Blocks.AIR) {
                     blockTask.updateState(TaskState.BROKEN)
