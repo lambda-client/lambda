@@ -81,8 +81,8 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
 
     @ModifyArg(method = "setSprinting", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/AbstractClientPlayer;setSprinting(Z)V"), index = 0)
     public boolean modifySprinting(boolean sprinting) {
-        if (Sprint.INSTANCE.isEnabled() && Sprint.INSTANCE.shouldSprint()) {
-            return Sprint.INSTANCE.getSprinting();
+        if (Sprint.INSTANCE.isEnabled() && Sprint.shouldSprint()) {
+            return true;
         } else {
             return sprinting;
         }
