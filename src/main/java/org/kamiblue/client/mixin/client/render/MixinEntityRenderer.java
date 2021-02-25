@@ -91,14 +91,4 @@ public class MixinEntityRenderer {
             return entity.getEyeHeight();
         }
     }
-
-    @Redirect(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;turn(FF)V"))
-    public void turn(EntityPlayerSP player, float yaw, float pitch) {
-        if (ViewLock.INSTANCE.isEnabled() && Freecam.INSTANCE.isDisabled()) {
-            Vec2f rotation = ViewLock.INSTANCE.handleTurn(yaw, pitch);
-            player.turn(rotation.getX(), rotation.getY());
-        } else {
-            player.turn(yaw, pitch);
-        }
-    }
 }

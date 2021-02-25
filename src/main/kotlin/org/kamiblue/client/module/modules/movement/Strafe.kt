@@ -95,7 +95,6 @@ internal object Strafe : Module(
             && !player.isElytraFlying
             && !mc.gameSettings.keyBindSneak.isKeyDown
             && (!onHoldingSprint || mc.gameSettings.keyBindSprint.isKeyDown)
-            && !BaritoneUtils.isActive
             && !BaritoneUtils.isPathing
             && MovementUtils.isInputting
             && !(player.isInOrAboveLiquid || player.isInWeb)

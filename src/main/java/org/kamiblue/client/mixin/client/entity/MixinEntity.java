@@ -5,7 +5,7 @@ import net.minecraft.entity.MoverType;
 import org.kamiblue.client.module.modules.movement.SafeWalk;
 import org.kamiblue.client.module.modules.movement.Velocity;
 import org.kamiblue.client.module.modules.player.Freecam;
-import org.kamiblue.client.util.Wrapper;
+import org.kamiblue.client.module.modules.player.ViewLock;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -43,10 +43,9 @@ public abstract class MixinEntity {
     // Makes the camera guy instead of original player turn around when we move mouse
     @Inject(method = "turn", at = @At("HEAD"), cancellable = true)
     public void turn(float yaw, float pitch, CallbackInfo ci) {
-        if (Wrapper.getPlayer() != null && this.entityId != Wrapper.getPlayer().getEntityId()) return;
-        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null) {
-            Freecam.INSTANCE.getCameraGuy().turn(yaw, pitch);
-            ci.cancel();
-        }
+        Entity casted = (Entity) (Object) this;
+
+        if (Freecam.handleTurn(casted, yaw, pitch, ci)) return;
+        ViewLock.handleTurn(casted, yaw, pitch, ci);
     }
 }
