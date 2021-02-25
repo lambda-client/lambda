@@ -61,7 +61,6 @@ internal object Sprint : Module(
             !mc.gameSettings.keyBindSneak.isKeyDown
                 && !player.isElytraFlying
                 && player.foodStats.foodLevel > 6
-                && !BaritoneUtils.isActive
                 && !BaritoneUtils.isPathing
                 && checkMovementInput()
                 && (!checkFlying || !player.capabilities.isFlying)

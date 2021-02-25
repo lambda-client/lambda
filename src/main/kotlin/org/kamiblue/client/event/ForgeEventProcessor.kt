@@ -152,4 +152,10 @@ object ForgeEventProcessor {
     fun onClientConnect(event: FMLNetworkEvent.ClientConnectedToServerEvent) {
         KamiEventBus.post(ConnectionEvent.Connect())
     }
+
+    @SubscribeEvent
+    @Suppress("UNUSED_PARAMETER")
+    fun onFogDensity(event: EntityViewRenderEvent.FogDensity) {
+        KamiEventBus.post(event)
+    }
 }
