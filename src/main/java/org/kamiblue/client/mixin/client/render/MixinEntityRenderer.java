@@ -8,7 +8,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
 import org.kamiblue.client.event.KamiEventBus;
 import org.kamiblue.client.event.events.RenderOverlayEvent;
 import org.kamiblue.client.module.modules.movement.ElytraFlight;
@@ -21,6 +20,7 @@ import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -35,10 +35,13 @@ public class MixinEntityRenderer {
         KamiEventBus.INSTANCE.post(new RenderOverlayEvent());
     }
 
-    @Redirect(method = "orientCamera", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/WorldClient;rayTraceBlocks(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/RayTraceResult;"))
-    public RayTraceResult rayTraceBlocks(WorldClient world, Vec3d start, Vec3d end) {
-        if (CameraClip.INSTANCE.isEnabled()) return null;
-        else return world.rayTraceBlocks(start, end);
+    @ModifyVariable(method = "orientCamera", at = @At(value = "STORE", ordinal = 0), ordinal = 0)
+    public RayTraceResult orientCameraStoreRayTraceBlocks(RayTraceResult value) {
+        if (CameraClip.INSTANCE.isEnabled()) {
+            return null;
+        } else {
+            return value;
+        }
     }
 
     @Inject(method = "displayItemActivation", at = @At(value = "HEAD"), cancellable = true)
@@ -70,7 +73,7 @@ public class MixinEntityRenderer {
 
     @Inject(method = "orientCamera", at = @At("RETURN"))
     private void orientCameraStoreEyeHeight(float partialTicks, CallbackInfo ci) {
-        if (!ElytraFlight.INSTANCE.shouldSwing())return;
+        if (!ElytraFlight.INSTANCE.shouldSwing()) return;
         Entity entity = Wrapper.getMinecraft().getRenderViewEntity();
         if (entity != null) {
             GlStateManager.translate(0.0f, entity.getEyeHeight() - 0.4f, 0.0f);
