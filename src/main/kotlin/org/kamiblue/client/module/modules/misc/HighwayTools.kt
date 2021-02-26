@@ -17,6 +17,7 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemBlock
 import net.minecraft.item.ItemPickaxe
+import net.minecraft.network.play.client.CPacketClientStatus
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
@@ -138,12 +139,13 @@ internal object HighwayTools : Module(
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
     private val simpleMovingAverageRange by setting("Moving Average", 60, 5..600, 5, { page == Page.STATS }, description = "Sets the timeframe of the average in seconds")
+    private val statUpdateSpeed by setting("Update Speed Seconds", 60, 1..600, 5, { page == Page.STATS }, description = "Sets the frequency of the stat updating in seconds")
+    private val showSession by setting("Show Session", true, { page == Page.STATS }, description = "Toggles the Session section in HUD")
     private val showPerformance by setting("Show Performance", true, { page == Page.STATS }, description = "Toggles the Performance section in HUD")
     private val showEnvironment by setting("Show Environment", true, { page == Page.STATS }, description = "Toggles the Environment section in HUD")
     private val showTask by setting("Show Task", true, { page == Page.STATS }, description = "Toggles the Task section in HUD")
     private val showEstimations by setting("Show Estimations", true, { page == Page.STATS }, description = "Toggles the Estimations section in HUD")
     private val resetStats = setting("Reset Stats", false, { page == Page.STATS }, description = "Resets the stats")
-    private val safeStats = setting("Safe Stats", false, { page == Page.STATS }, description = "Safes the stats as json to /kamiblue/stats")
 
     // config
     private val fakeSounds by setting("Fake Sounds", true, { page == Page.CONFIG }, description = "Adds artificial sounds to the actions")
@@ -297,11 +299,6 @@ internal object HighwayTools : Module(
             if (it) resetStats()
             false
         }
-
-        safeStats.consumers.add { _, it ->
-            if (it) safeStats()
-            false
-        }
     }
 
     private fun printEnable() {
@@ -429,6 +426,9 @@ internal object HighwayTools : Module(
                 active = true
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
             } else {
+                if (runtimeMilliSeconds % (1000 * statUpdateSpeed) == 0) {
+                    connection.sendPacket(CPacketClientStatus(CPacketClientStatus.State.REQUEST_STATS))
+                }
                 runtimeMilliSeconds += 50
                 updateDequeues()
             }
@@ -1454,8 +1454,7 @@ internal object HighwayTools : Module(
         val runtimeSec = (runtimeMilliSeconds / 1000) + 0.0001
         val distanceDone = startingBlockPos.distanceTo(currentBlockPos).toInt() + totalDistance
 
-//        val statList = Gson().fromJson(StatList.MINE_BLOCK_STATS[0], Any::class.java)
-//        MessageSendHelper.sendChatMessage(statList)
+        if (showSession) gatherSession(displayText, runtimeSec)
 
         if (showPerformance) gatherPerformance(displayText, runtimeSec, distanceDone)
 
@@ -1476,36 +1475,66 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun gatherPerformance(displayText: TextComponent, runtimeSec: Double, distanceDone: Double) {
+    private fun SafeClientEvent.gatherSession(displayText: TextComponent, runtimeSec: Double) {
         val seconds = (runtimeSec % 60.0).toInt().toString().padStart(2, '0')
         val minutes = ((runtimeSec % 3600.0) / 60.0).toInt().toString().padStart(2, '0')
         val hours = (runtimeSec / 3600.0).toInt().toString().padStart(2, '0')
 
-        displayText.addLine("Performance", primaryColor)
+        displayText.addLine("Session", primaryColor)
+
         displayText.add("    Runtime:", primaryColor)
         displayText.addLine("$hours:$minutes:$seconds", secondaryColor)
+
+        displayText.add("    Direction:", primaryColor)
+        displayText.addLine("${startingDirection.displayName} / ${startingDirection.displayNameXY}", secondaryColor)
+
+        if (!anonymizeStats) displayText.add("    Start:", primaryColor)
+        if (!anonymizeStats) displayText.addLine("(${startingBlockPos.asString()})", secondaryColor)
+
+        displayText.add("    Session placed / destroyed:", primaryColor)
+        displayText.addLine("%,d".format(totalBlocksPlaced).padStart(7, '0') + " / " + "%,d".format(totalBlocksBroken).padStart(7, '0'), secondaryColor)
+
+        displayText.add("    ${material.localizedName} placed:", primaryColor)
+        StatList.getObjectUseStats(material.item)?.let {
+            displayText.addLine("%,d".format(player.statFileWriter.readStat(it)).padStart(11, '0'), secondaryColor)
+        }
+
+        displayText.add("    ${Blocks.NETHERRACK.localizedName} mined:", primaryColor)
+        StatList.getBlockStats(Blocks.NETHERRACK)?.let {
+            displayText.addLine("%,d".format(player.statFileWriter.readStat(it)).padStart(11, '0'), secondaryColor)
+        }
+
+        displayText.add("    ${Blocks.ENDER_CHEST.localizedName} mined:", primaryColor)
+        StatList.getBlockStats(Blocks.ENDER_CHEST)?.let {
+            displayText.addLine("%,d".format(player.statFileWriter.readStat(it)).padStart(11, '0'), secondaryColor)
+        }
+    }
+
+    private fun gatherPerformance(displayText: TextComponent, runtimeSec: Double, distanceDone: Double) {
+        displayText.addLine("Performance", primaryColor)
+
         displayText.add("    Placements / s: ", primaryColor)
         displayText.addLine("%.2f SMA(%.2f)".format(totalBlocksPlaced / runtimeSec, simpleMovingAveragePlaces.size / simpleMovingAverageRange.toDouble()), secondaryColor)
+
         displayText.add("    Breaks / s:", primaryColor)
         displayText.addLine("%.2f SMA(%.2f)".format(totalBlocksBroken / runtimeSec, simpleMovingAverageBreaks.size / simpleMovingAverageRange.toDouble()), secondaryColor)
+
         displayText.add("    Distance km / h:", primaryColor)
         displayText.addLine("%.3f SMA(%.3f)".format((distanceDone / runtimeSec * 60.0 * 60.0) / 1000.0, (simpleMovingAverageDistance.size / simpleMovingAverageRange * 60.0 * 60.0) / 1000.0), secondaryColor)
+
         displayText.add("    Food level loss / h:", primaryColor)
         displayText.addLine("%.2f".format(totalBlocksBroken / foodLoss.toDouble()), secondaryColor)
+
         displayText.add("    Pickaxes / h:", primaryColor)
         displayText.addLine("%.2f".format((durabilityUsages / runtimeSec) * 60.0 * 60.0 / 1561.0), secondaryColor)
     }
 
     private fun gatherEnvironment(displayText: TextComponent) {
         displayText.addLine("Environment", primaryColor)
-        if (!anonymizeStats) displayText.add("    Start:", primaryColor)
-        if (!anonymizeStats) displayText.addLine("(${startingBlockPos.asString()})", secondaryColor)
-        displayText.add("    Direction:", primaryColor)
-        displayText.addLine("${startingDirection.displayName} / ${startingDirection.displayNameXY}", secondaryColor)
-        displayText.add("    Blocks placed / destroyed:", primaryColor)
-        displayText.addLine("$totalBlocksPlaced".padStart(6, '0') + " / " + "$totalBlocksBroken".padStart(6, '0'), secondaryColor)
         displayText.add("    Materials:", primaryColor)
         displayText.addLine("Main(${material.localizedName}) Filler(${fillerMat.localizedName})", secondaryColor)
+        displayText.add("    Dimensions:", primaryColor)
+        displayText.addLine("Width($width) Height($height)", secondaryColor)
         displayText.add("    Delays:", primaryColor)
         if (dynamicDelay) {
             displayText.addLine("Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)", secondaryColor)
@@ -1599,25 +1628,6 @@ internal object HighwayTools : Module(
         fillerMatLeft = 0
         lastToolDamage = 0
         durabilityUsages = 0
-    }
-
-    private fun safeStats() {
-        defaultScope.launch(Dispatchers.IO) {
-            val directory = "${KamiMod.DIRECTORY}stats"
-            val filename = "${DateTimeFormatter.ofPattern("HH-mm-ss_SSS").format(LocalTime.now())}.json"
-
-            try {
-                with(File(directory)) {
-                    if (!exists()) mkdir()
-                }
-
-                FileWriter("$directory/$filename", true).buffered().use {
-                    it.write(StatList.ALL_STATS.toString())
-                }
-            } catch (e: Exception) {
-                KamiMod.LOG.warn("$chatName Failed saving stats json!", e)
-            }
-        }
     }
 
     private fun addTaskComponentList(displayText: TextComponent, tasks: Collection<BlockTask>) {

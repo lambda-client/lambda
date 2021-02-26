@@ -70,6 +70,7 @@ internal object AutoObsidian : Module(
     private val instantMiningDelay by setting("Instant Mining Delay", 10, 1..20, 1, { instantMining })
     private val threshold by setting("Refill Threshold", 32, 1..64, 1, { autoRefill && fillMode != FillMode.INFINITE })
     private val targetStacks by setting("Target Stacks", 1, 1..20, 1, { fillMode == FillMode.TARGET_STACKS })
+    private val noDisable by setting("No Disable", false)
     private val delayTicks by setting("Delay Ticks", 4, 1..10, 1)
     private val rotationMode by setting("Rotation Mode", RotationMode.SPOOF)
     private val maxReach by setting("Max Reach", 4.9f, 2.0f..6.0f, 0.1f)
@@ -283,7 +284,7 @@ internal object AutoObsidian : Module(
         } else {
             MessageSendHelper.sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-            disable()
+            if (!noDisable) disable()
         }
     }
 
@@ -462,7 +463,7 @@ internal object AutoObsidian : Module(
             if (!moved) {
                 MessageSendHelper.sendChatMessage("$chatName No shulker box was found in inventory, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
+                if (!noDisable) disable()
             }
 
             onInventoryOperation()
@@ -487,7 +488,7 @@ internal object AutoObsidian : Module(
             if (!moved) {
                 MessageSendHelper.sendChatMessage("$chatName No ender chest was found in inventory, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
+                if (!noDisable) disable()
             }
 
             onInventoryOperation()
@@ -512,7 +513,7 @@ internal object AutoObsidian : Module(
                 } else {
                     MessageSendHelper.sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
                     mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    disable()
+                    if (!noDisable) disable()
                 }
             }
         } else {
@@ -626,7 +627,7 @@ internal object AutoObsidian : Module(
             if (!moved) {
                 MessageSendHelper.sendChatMessage("No valid pickaxe was found in inventory.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                disable()
+                if (!noDisable) disable()
             }
 
             onInventoryOperation()
