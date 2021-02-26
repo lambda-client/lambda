@@ -304,6 +304,10 @@ internal object HighwayTools : Module(
             if (!anonymizeStats) {
                 if (startingDirection.isDiagonal) {
                     MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
+
+                    if (abs(startingBlockPos.x) != abs(startingBlockPos.z)) {
+                        MessageSendHelper.sendRawChatMessage("    §9> §cYou may have an offset to diagonal highway position!")
+                    }
                 } else {
                     if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
                         MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.x}§r")
@@ -311,9 +315,6 @@ internal object HighwayTools : Module(
                         MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.z}§r")
                     }
 
-                    if (abs(startingBlockPos.x) != abs(startingBlockPos.z)) {
-                        MessageSendHelper.sendRawChatMessage("    §9> §cYou may have an offset to diagonal highway position!")
-                    }
                 }
             }
 
@@ -532,7 +533,14 @@ internal object HighwayTools : Module(
                 addTaskToDone(pos, block)
             }
             blockState.material.isReplaceable -> {
-                addTaskToPending(pos, TaskState.PLACE, block)
+                if (mode == Mode.HIGHWAY &&
+                    startingDirection.isDiagonal &&
+                    world.getBlockState(pos.up()).block == material &&
+                    block == fillerMat) {
+                    addTaskToDone(pos, block)
+                } else {
+                    addTaskToPending(pos, TaskState.PLACE, block)
+                }
             }
             else -> {
                 if (mode == Mode.HIGHWAY &&
@@ -870,9 +878,9 @@ internal object HighwayTools : Module(
                 else -> {
                     if (debugMessages != DebugMessages.OFF) {
                         if (!anonymizeStats) {
-                            MessageSendHelper.sendChatMessage("Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
+                            MessageSendHelper.sendChatMessage("$chatName Stuck while ${blockTask.taskState}@(${blockTask.blockPos.asString()}) for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
                         } else {
-                            MessageSendHelper.sendChatMessage("Stuck while ${blockTask.taskState} for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
+                            MessageSendHelper.sendChatMessage("$chatName Stuck while ${blockTask.taskState} for more then $timeout ticks (${blockTask.stuckTicks}), refreshing data.")
                         }
                     }
 
