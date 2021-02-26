@@ -1525,10 +1525,13 @@ internal object HighwayTools : Module(
 
     private fun gatherEnvironment(displayText: TextComponent) {
         displayText.addLine("Environment", primaryColor)
+
         displayText.add("    Materials:", primaryColor)
         displayText.addLine("Main(${material.localizedName}) Filler(${fillerMat.localizedName})", secondaryColor)
+
         displayText.add("    Dimensions:", primaryColor)
         displayText.addLine("Width($width) Height($height)", secondaryColor)
+
         displayText.add("    Delays:", primaryColor)
         if (dynamicDelay) {
             displayText.addLine("Place(${placeDelay + extraPlaceDelay}) Break($breakDelay)", secondaryColor)
@@ -1540,12 +1543,16 @@ internal object HighwayTools : Module(
     private fun gatherTask(displayText: TextComponent) {
         sortedTasks.firstOrNull()?.let {
             displayText.addLine("Task", primaryColor)
+
             displayText.add("    Status:", primaryColor)
             displayText.addLine("${it.taskState}", secondaryColor)
+
             displayText.add("    Target block:", primaryColor)
             displayText.addLine(it.block.localizedName, secondaryColor)
+
             if (!anonymizeStats) displayText.add("    Position:", primaryColor)
             if (!anonymizeStats) displayText.addLine("(${it.blockPos.asString()})", secondaryColor)
+
             displayText.add("    Ticks stuck:", primaryColor)
             displayText.addLine("${it.stuckTicks}", secondaryColor)
         }
@@ -1571,17 +1578,22 @@ internal object HighwayTools : Module(
 
                 displayText.addLine("Next refill", primaryColor)
                 displayText.add("    ${material.localizedName}:", primaryColor)
+
                 if (material == Blocks.OBSIDIAN) {
                     displayText.addLine("Direct($materialLeft) Indirect($indirectMaterialLeft)", secondaryColor)
                 } else {
                     displayText.addLine("$materialLeft", secondaryColor)
                 }
+
                 displayText.add("    ${fillerMat.localizedName}:", primaryColor)
                 displayText.addLine("$fillerMatLeft", secondaryColor)
+
                 displayText.add("    Distance left:", primaryColor)
                 displayText.addLine("${pavingLeft.toInt()}", secondaryColor)
+
                 if (!anonymizeStats) displayText.add("    Destination:", primaryColor)
                 if (!anonymizeStats) displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(pavingLeft.toInt())).asString()})", secondaryColor)
+
                 displayText.add("    ETA:", primaryColor)
                 displayText.addLine("$hoursLeft:$minutesLeft:$secondsLeft", secondaryColor)
             }
@@ -1596,12 +1608,16 @@ internal object HighwayTools : Module(
                 val hoursLeft = (secLeft / 3600).toInt().toString().padStart(2, '0')
 
                 displayText.addLine("Destination:", primaryColor)
+
                 displayText.add("    Pickaxes:", primaryColor)
                 displayText.addLine("$pickaxesLeft", secondaryColor)
+
                 displayText.add("    Distance left:", primaryColor)
                 displayText.addLine("${tunnelingLeft.toInt()}", secondaryColor)
+
                 if (!anonymizeStats) displayText.add("    Destination:", primaryColor)
                 if (!anonymizeStats) displayText.addLine("(${currentBlockPos.add(startingDirection.directionVec.multiply(tunnelingLeft.toInt())).asString()})", secondaryColor)
+
                 displayText.add("    ETA:", primaryColor)
                 displayText.addLine("$hoursLeft:$minutesLeft:$secondsLeft", secondaryColor)
             }
