@@ -12,6 +12,7 @@ import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
+import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemBlock
@@ -133,7 +134,6 @@ internal object HighwayTools : Module(
     // stats
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
     private val simpleMovingAverageRange by setting("Moving Average", 60, 5..600, 5, { page == Page.STATS }, description = "Sets the timeframe of the average in seconds")
-    private val statUpdateSpeed by setting("Update Speed Seconds", 60, 1..600, 5, { page == Page.STATS }, description = "Sets the frequency of the stat updating in seconds")
     private val showSession by setting("Show Session", true, { page == Page.STATS }, description = "Toggles the Session section in HUD")
     private val showPerformance by setting("Show Performance", true, { page == Page.STATS }, description = "Toggles the Performance section in HUD")
     private val showEnvironment by setting("Show Environment", true, { page == Page.STATS }, description = "Toggles the Environment section in HUD")
@@ -420,7 +420,8 @@ internal object HighwayTools : Module(
                 active = true
                 BaritoneUtils.primary?.pathingControlManager?.registerProcess(HighwayToolsProcess)
             } else {
-                if (runtimeMilliSeconds % (1000 * statUpdateSpeed) == 0) {
+                // Cant update at higher frequency
+                if (runtimeMilliSeconds % 15000 == 0) {
                     connection.sendPacket(CPacketClientStatus(CPacketClientStatus.State.REQUEST_STATS))
                 }
                 runtimeMilliSeconds += 50
@@ -1486,22 +1487,44 @@ internal object HighwayTools : Module(
         if (!anonymizeStats) displayText.addLine("(${startingBlockPos.asString()})", secondaryColor)
 
         displayText.add("    Session placed / destroyed:", primaryColor)
-        displayText.addLine("%,d".format(totalBlocksPlaced).padStart(7, '0') + " / " + "%,d".format(totalBlocksBroken).padStart(7, '0'), secondaryColor)
+        displayText.addLine("%,d".format(totalBlocksPlaced) + " / " + "%,d".format(totalBlocksBroken), secondaryColor)
 
-        displayText.add("    ${material.localizedName} placed:", primaryColor)
-        StatList.getObjectUseStats(material.item)?.let {
-            displayText.addLine("%,d".format(player.statFileWriter.readStat(it)).padStart(11, '0'), secondaryColor)
+        if (mode == Mode.HIGHWAY || mode == Mode.FLAT) {
+            val matMined = StatList.getObjectUseStats(material.item)?.let {
+                player.statFileWriter.readStat(it)
+            } ?: 0
+            val enderMined = StatList.getBlockStats(Blocks.ENDER_CHEST)?.let {
+                player.statFileWriter.readStat(it)
+            } ?: 0
+
+            if (matMined > 0) {
+                displayText.add("    ${material.localizedName} placed:", primaryColor)
+                displayText.addLine("%,d".format(matMined), secondaryColor)
+            }
+
+            if (enderMined > 0) {
+                displayText.add("    ${Blocks.ENDER_CHEST.localizedName} mined:", primaryColor)
+                displayText.addLine("%,d".format(enderMined), secondaryColor)
+            }
         }
 
-        displayText.add("    ${Blocks.NETHERRACK.localizedName} mined:", primaryColor)
-        StatList.getBlockStats(Blocks.NETHERRACK)?.let {
-            displayText.addLine("%,d".format(player.statFileWriter.readStat(it)).padStart(11, '0'), secondaryColor)
+        val netherrackMined = StatList.getBlockStats(Blocks.NETHERRACK)?.let {
+            player.statFileWriter.readStat(it)
+        } ?: 0
+        val pickaxeBroken = StatList.getObjectBreakStats(Items.DIAMOND_PICKAXE)?.let {
+            player.statFileWriter.readStat(it)
+        } ?: 0
+
+        if (netherrackMined > 0) {
+            displayText.add("    ${Blocks.NETHERRACK.localizedName} mined:", primaryColor)
+            displayText.addLine("%,d".format(netherrackMined), secondaryColor)
         }
 
-        displayText.add("    ${Blocks.ENDER_CHEST.localizedName} mined:", primaryColor)
-        StatList.getBlockStats(Blocks.ENDER_CHEST)?.let {
-            displayText.addLine("%,d".format(player.statFileWriter.readStat(it)).padStart(11, '0'), secondaryColor)
+        if (pickaxeBroken > 0) {
+            displayText.add("    Diamond Pickaxe broken:", primaryColor)
+            displayText.addLine("%,d".format(pickaxeBroken), secondaryColor)
         }
+
     }
 
     private fun gatherPerformance(displayText: TextComponent, runtimeSec: Double, distanceDone: Double) {
