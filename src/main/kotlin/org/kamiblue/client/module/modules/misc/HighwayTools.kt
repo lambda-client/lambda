@@ -71,6 +71,7 @@ import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.*
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
+import kotlin.math.abs
 import kotlin.random.Random.Default.nextInt
 
 /**
@@ -131,7 +132,7 @@ internal object HighwayTools : Module(
     private val limitFactor by setting("Limit Factor", 1.0f, 0.5f..2.0f, 0.01f, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Factor for TPS witch acts as limit for maximum breaks per second.")
     private val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
 
-    // stats
+    // stat settings
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
     private val simpleMovingAverageRange by setting("Moving Average", 60, 5..600, 5, { page == Page.STATS }, description = "Sets the timeframe of the average in seconds")
     private val showSession by setting("Show Session", true, { page == Page.STATS }, description = "Toggles the Session section in HUD")
@@ -308,6 +309,10 @@ internal object HighwayTools : Module(
                         MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.x}§r")
                     } else {
                         MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.z}§r")
+                    }
+
+                    if (abs(startingBlockPos.x) != abs(startingBlockPos.z)) {
+                        MessageSendHelper.sendRawChatMessage("    §9> §cYou may have an offset to diagonal highway position!")
                     }
                 }
             }
@@ -530,7 +535,14 @@ internal object HighwayTools : Module(
                 addTaskToPending(pos, TaskState.PLACE, block)
             }
             else -> {
-                addTaskToPending(pos, TaskState.BREAK, block)
+                if (mode == Mode.HIGHWAY &&
+                    startingDirection.isDiagonal &&
+                    world.getBlockState(pos.up()).block == material &&
+                    block == fillerMat) {
+                    addTaskToDone(pos, block)
+                } else {
+                    addTaskToPending(pos, TaskState.BREAK, block)
+                }
             }
         }
     }
