@@ -135,6 +135,7 @@ internal object HighwayTools : Module(
     private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
     private val simpleMovingAverageRange by setting("Moving Average", 60, 5..600, 5, { page == Page.STATS }, description = "Sets the timeframe of the average in seconds")
     private val showSession by setting("Show Session", true, { page == Page.STATS }, description = "Toggles the Session section in HUD")
+    private val showLifeTime by setting("Show Lifetime", true, { page == Page.STATS }, description = "Toggles the Lifetime section in HUD")
     private val showPerformance by setting("Show Performance", true, { page == Page.STATS }, description = "Toggles the Performance section in HUD")
     private val showEnvironment by setting("Show Environment", true, { page == Page.STATS }, description = "Toggles the Environment section in HUD")
     private val showTask by setting("Show Task", true, { page == Page.STATS }, description = "Toggles the Task section in HUD")
@@ -1451,6 +1452,8 @@ internal object HighwayTools : Module(
 
         if (showSession) gatherSession(displayText, runtimeSec)
 
+        if (showLifeTime) gatherLifeTime(displayText)
+
         if (showPerformance) gatherPerformance(displayText, runtimeSec, distanceDone)
 
         if (showEnvironment) gatherEnvironment(displayText)
@@ -1470,7 +1473,7 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun SafeClientEvent.gatherSession(displayText: TextComponent, runtimeSec: Double) {
+    private fun gatherSession(displayText: TextComponent, runtimeSec: Double) {
         val seconds = (runtimeSec % 60.0).toInt().toString().padStart(2, '0')
         val minutes = ((runtimeSec % 3600.0) / 60.0).toInt().toString().padStart(2, '0')
         val hours = (runtimeSec / 3600.0).toInt().toString().padStart(2, '0')
@@ -1489,6 +1492,11 @@ internal object HighwayTools : Module(
         displayText.add("    Session placed / destroyed:", primaryColor)
         displayText.addLine("%,d".format(totalBlocksPlaced) + " / " + "%,d".format(totalBlocksBroken), secondaryColor)
 
+
+
+    }
+
+    private fun SafeClientEvent.gatherLifeTime(displayText: TextComponent) {
         if (mode == Mode.HIGHWAY || mode == Mode.FLAT) {
             val matMined = StatList.getObjectUseStats(material.item)?.let {
                 player.statFileWriter.readStat(it)
@@ -1524,7 +1532,6 @@ internal object HighwayTools : Module(
             displayText.add("    Diamond Pickaxe broken:", primaryColor)
             displayText.addLine("%,d".format(pickaxeBroken), secondaryColor)
         }
-
     }
 
     private fun gatherPerformance(displayText: TextComponent, runtimeSec: Double, distanceDone: Double) {
