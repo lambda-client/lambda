@@ -1497,6 +1497,8 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.gatherLifeTime(displayText: TextComponent) {
+        displayText.addLine("Lifetime", primaryColor)
+
         if (mode == Mode.HIGHWAY || mode == Mode.FLAT) {
             val matMined = StatList.getObjectUseStats(material.item)?.let {
                 player.statFileWriter.readStat(it)
