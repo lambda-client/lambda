@@ -532,27 +532,28 @@ internal object HighwayTools : Module(
             blockState.block == block -> {
                 addTaskToDone(pos, block)
             }
-            blockState.material.isReplaceable -> {
-                if (mode == Mode.HIGHWAY &&
-                    startingDirection.isDiagonal &&
-                    world.getBlockState(pos.up()).block == material &&
-                    block == fillerMat) {
+            isPlaceable(pos, true) -> {
+                if (checkSupport(pos, block)) {
                     addTaskToDone(pos, block)
                 } else {
                     addTaskToPending(pos, TaskState.PLACE, block)
                 }
             }
             else -> {
-                if (mode == Mode.HIGHWAY &&
-                    startingDirection.isDiagonal &&
-                    world.getBlockState(pos.up()).block == material &&
-                    block == fillerMat) {
+                if (checkSupport(pos, block)) {
                     addTaskToDone(pos, block)
                 } else {
                     addTaskToPending(pos, TaskState.BREAK, block)
                 }
             }
         }
+    }
+
+    private fun SafeClientEvent.checkSupport(pos: BlockPos, block: Block): Boolean {
+        return mode == Mode.HIGHWAY &&
+            startingDirection.isDiagonal &&
+            world.getBlockState(pos.up()).block == material &&
+            block == fillerMat
     }
 
     private fun SafeClientEvent.addTaskClear(pos: BlockPos) {
