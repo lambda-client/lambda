@@ -4,8 +4,6 @@ import net.minecraft.client.gui.ChatLine;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiNewChat;
 import net.minecraft.util.text.ITextComponent;
-import org.kamiblue.client.event.KamiEventBus;
-import org.kamiblue.client.event.events.PrintChatMessageEvent;
 import org.kamiblue.client.module.modules.chat.ExtraChatHistory;
 import org.kamiblue.client.module.modules.render.CleanGUI;
 import org.spongepowered.asm.mixin.Final;
@@ -20,9 +18,7 @@ import java.util.List;
 
 @Mixin(GuiNewChat.class)
 public abstract class MixinGuiNewChat {
-
     @Shadow @Final private List<ChatLine> chatLines;
-
     @Shadow @Final private List<ChatLine> drawnChatLines;
 
     @Redirect(method = "drawChat", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiNewChat;drawRect(IIIII)V"))
@@ -32,14 +28,8 @@ public abstract class MixinGuiNewChat {
         }
     }
 
-    @Inject(method = "printChatMessage", at = @At("HEAD"))
-    private void printChatMessage(ITextComponent chatComponent, CallbackInfo ci) {
-        KamiEventBus.INSTANCE.post(new PrintChatMessageEvent(chatComponent));
-    }
-
     @Inject(method = "setChatLine", at = @At(value = "INVOKE", target = "Ljava/util/List;size()I", ordinal = 0, remap = false), cancellable = true)
     public void setChatLineInvokeSize(ITextComponent chatComponent, int chatLineId, int updateCounter, boolean displayOnly, CallbackInfo ci) {
         ExtraChatHistory.handleSetChatLine(drawnChatLines, chatLines, chatComponent, chatLineId, updateCounter, displayOnly, ci);
     }
-
 }
