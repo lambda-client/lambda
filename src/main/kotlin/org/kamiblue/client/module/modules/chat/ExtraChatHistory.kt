@@ -27,14 +27,14 @@ internal object ExtraChatHistory : Module(
     ) {
         if (isDisabled) return
 
-        while (drawnChatLines.size > maxMessages) {
-            chatLines.removeLast()
+        while (drawnChatLines.isNotEmpty() && drawnChatLines.size > maxMessages) {
+            drawnChatLines.removeLast()
         }
 
         if (!displayOnly) {
             chatLines.add(0, ChatLine(updateCounter, chatComponent, chatLineId))
 
-            while (chatLines.size > maxMessages) {
+            while (chatLines.isNotEmpty() && chatLines.size > maxMessages) {
                 chatLines.removeLast()
             }
         }
