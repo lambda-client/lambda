@@ -1387,9 +1387,9 @@ internal object HighwayTools : Module(
 
                 if (handleLiquid(task)) break
                 breakCount++
+                packetLimiter.add(System.currentTimeMillis())
 
                 defaultScope.launch {
-                    packetLimiter.add(System.currentTimeMillis())
                     sendMiningPackets(task.blockPos, rayTraceResult.sideHit)
 
                     delay(50L * taskTimeout)
