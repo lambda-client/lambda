@@ -1497,16 +1497,24 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.gatherLifeTime(displayText: TextComponent) {
-        displayText.addLine("Lifetime", primaryColor)
+        val matMined = StatList.getObjectUseStats(material.item)?.let {
+            player.statFileWriter.readStat(it)
+        } ?: 0
+        val enderMined = StatList.getBlockStats(Blocks.ENDER_CHEST)?.let {
+            player.statFileWriter.readStat(it)
+        } ?: 0
+        val netherrackMined = StatList.getBlockStats(Blocks.NETHERRACK)?.let {
+            player.statFileWriter.readStat(it)
+        } ?: 0
+        val pickaxeBroken = StatList.getObjectBreakStats(Items.DIAMOND_PICKAXE)?.let {
+            player.statFileWriter.readStat(it)
+        } ?: 0
+
+        if (matMined + enderMined + netherrackMined + pickaxeBroken > 0) {
+            displayText.addLine("Lifetime", primaryColor)
+        }
 
         if (mode == Mode.HIGHWAY || mode == Mode.FLAT) {
-            val matMined = StatList.getObjectUseStats(material.item)?.let {
-                player.statFileWriter.readStat(it)
-            } ?: 0
-            val enderMined = StatList.getBlockStats(Blocks.ENDER_CHEST)?.let {
-                player.statFileWriter.readStat(it)
-            } ?: 0
-
             if (matMined > 0) {
                 displayText.add("    ${material.localizedName} placed:", primaryColor)
                 displayText.addLine("%,d".format(matMined), secondaryColor)
@@ -1517,13 +1525,6 @@ internal object HighwayTools : Module(
                 displayText.addLine("%,d".format(enderMined), secondaryColor)
             }
         }
-
-        val netherrackMined = StatList.getBlockStats(Blocks.NETHERRACK)?.let {
-            player.statFileWriter.readStat(it)
-        } ?: 0
-        val pickaxeBroken = StatList.getObjectBreakStats(Items.DIAMOND_PICKAXE)?.let {
-            player.statFileWriter.readStat(it)
-        } ?: 0
 
         if (netherrackMined > 0) {
             displayText.add("    ${Blocks.NETHERRACK.localizedName} mined:", primaryColor)
