@@ -16,7 +16,6 @@ import org.kamiblue.command.args.DynamicPrefixMatch
 import org.kamiblue.command.args.StaticPrefixMatch
 import java.io.File
 import java.util.*
-import kotlin.streams.toList
 
 class ModuleArg(
     override val name: String
@@ -28,8 +27,8 @@ class ModuleArg(
 
     private companion object {
         val allAlias by CachedValue(5L, TimeUnit.SECONDS) {
-            ModuleManager.modules.stream()
-                .flatMap { Arrays.stream(arrayOf(it.name, *it.alias)) }
+            ModuleManager.modules.asSequence()
+                .flatMap { sequenceOf(it.name, *it.alias) }
                 .sorted()
                 .toList()
         }
@@ -39,7 +38,7 @@ class ModuleArg(
 
 class BlockPosArg(
     override val name: String
-) : AbstractArg<BlockPos>(), AutoComplete by DynamicPrefixMatch({ playerPosString?.let { listOf(it) } }) {
+) : AbstractArg<BlockPos>(), AutoComplete by DynamicPrefixMatch(::playerPosString) {
 
     override suspend fun convertToType(string: String?): BlockPos? {
         if (string == null) return null
@@ -51,8 +50,8 @@ class BlockPosArg(
     }
 
     private companion object {
-        val playerPosString: String?
-            get() = Wrapper.player?.position?.let { "${it.x},${it.y},${it.z}" }
+        val playerPosString: List<String>?
+            get() = Wrapper.player?.position?.let { listOf("${it.x},${it.y},${it.z}") }
     }
 
 }
@@ -159,7 +158,7 @@ class PlayerArg(
     private companion object {
         val playerInfoMap by CachedValue(3L, TimeUnit.SECONDS) {
             runSafeR {
-                connection.playerInfoMap.stream()
+                connection.playerInfoMap.asSequence()
                     .map { it.gameProfile.name }
                     .sorted()
                     .toList()
