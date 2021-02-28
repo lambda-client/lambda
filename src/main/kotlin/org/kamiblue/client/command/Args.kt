@@ -5,6 +5,8 @@ import net.minecraft.block.Block
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
 import org.kamiblue.capeapi.PlayerProfile
+import org.kamiblue.client.gui.GuiManager
+import org.kamiblue.client.gui.hudgui.HudElement
 import org.kamiblue.client.manager.managers.UUIDManager
 import org.kamiblue.client.module.AbstractModule
 import org.kamiblue.client.module.ModuleManager
@@ -34,6 +36,23 @@ class ModuleArg(
         }
     }
 
+}
+
+class HudElementArg(
+    override val name: String
+) : AbstractArg<HudElement>(), AutoComplete by DynamicPrefixMatch(::allAlias) {
+    override suspend fun convertToType(string: String?): HudElement? {
+        return GuiManager.getHudElementOrNull(string)
+    }
+
+    private companion object {
+        val allAlias by CachedValue(5L, TimeUnit.SECONDS) {
+            GuiManager.hudElements.asSequence()
+                .flatMap { sequenceOf(it.name, *it.alias) }
+                .sorted()
+                .toList()
+        }
+    }
 }
 
 class BlockPosArg(
