@@ -101,14 +101,15 @@ internal object HighwayTools : Module(
 
     // build settings
     private val mode by setting("Mode", Mode.HIGHWAY, { page == Page.BUILD }, description = "Choose the structure")
-    private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Clears out the tunnel if necessary")
-    private val cleanFloor by setting("Clean Floor", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels floor")
-    private val cleanWalls by setting("Clean Walls", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels walls")
-    private val cleanRoof by setting("Clean Roof", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Cleans up the tunnels roof")
-    private val cleanCorner by setting("Clean Corner", false, { page == Page.BUILD && mode == Mode.TUNNEL && !cornerBlock }, description = "Cleans up the tunnels corner")
-    private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) }, description = "If activated will break the corner in tunnel or place a corner while paving")
     private val width by setting("Width", 6, 1..11, 1, { page == Page.BUILD }, description = "Sets the width of blueprint")
     private val height by setting("Height", 4, 1..6, 1, { page == Page.BUILD && clearSpace }, description = "Sets height of blueprint")
+    private val backfill by setting("Backfill", false, { page == Page.BUILD && mode == Mode.TUNNEL }, description = "Backfills tunnel")
+    private val clearSpace by setting("Clear Space", true, { page == Page.BUILD && mode == Mode.HIGHWAY}, description = "Clears out the tunnel if necessary")
+    private val cleanFloor by setting("Clean Floor", false, { page == Page.BUILD && mode == Mode.TUNNEL && !backfill }, description = "Cleans up the tunnels floor")
+    private val cleanWalls by setting("Clean Walls", false, { page == Page.BUILD && mode == Mode.TUNNEL && !backfill }, description = "Cleans up the tunnels walls")
+    private val cleanRoof by setting("Clean Roof", false, { page == Page.BUILD && mode == Mode.TUNNEL && !backfill }, description = "Cleans up the tunnels roof")
+    private val cleanCorner by setting("Clean Corner", false, { page == Page.BUILD && mode == Mode.TUNNEL && !cornerBlock && !backfill && width > 2 }, description = "Cleans up the tunnels corner")
+    private val cornerBlock by setting("Corner Block", false, { page == Page.BUILD && (mode == Mode.HIGHWAY || mode == Mode.TUNNEL) && !backfill && width > 2 }, description = "If activated will break the corner in tunnel or place a corner while paving")
     private val railing by setting("Railing", true, { page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Adds a railing / rim / border to the highway")
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { railing && page == Page.BUILD && mode == Mode.HIGHWAY }, description = "Sets height of railing")
     private val materialSaved = setting("Material", "minecraft:obsidian", { false })
@@ -129,7 +130,7 @@ internal object HighwayTools : Module(
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag")
     private val maxReach by setting("Max Reach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR }, description = "Sets the range of the blueprint. Decrease when tasks fail!")
     private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Breaks multiple instant breaking blocks per tick in view")
-    private val limitFactor by setting("Limit Factor", 1.0f, 0.5f..2.0f, 0.01f, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Factor for TPS witch acts as limit for maximum breaks per second.")
+    private val limitFactor by setting("Limit Factor", 1.0f, 0.5f..2.0f, 0.01f, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Factor for TPS which acts as limit for maximum breaks per second.")
     private val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
 
     // stat settings
@@ -336,6 +337,10 @@ internal object HighwayTools : Module(
 
             if (material == fillerMat) {
                 MessageSendHelper.sendRawChatMessage("    §9> §cMake sure to use §aTunnel Mode§c instead of having same material for both main and filler!")
+            }
+
+            if (mode == Mode.HIGHWAY && height < 3) {
+                MessageSendHelper.sendRawChatMessage("    §9> §cYou may increase the height to at least 3")
             }
 
         }
@@ -575,10 +580,14 @@ internal object HighwayTools : Module(
                 val thisPos = basePos.add(zDirection.directionVec.multiply(x))
                 if (clearSpace) generateClear(thisPos, xDirection)
                 if (mode == Mode.TUNNEL) {
-                    if (cleanFloor) generateFloor(thisPos, xDirection)
-                    if (cleanWalls) generateWalls(thisPos, xDirection)
-                    if (cleanRoof) generateRoof(thisPos, xDirection)
-                    if (cleanCorner && !cornerBlock) generateCorner(thisPos, xDirection)
+                    if (backfill) {
+                        generateBackfill(thisPos, xDirection)
+                    } else {
+                        if (cleanFloor) generateFloor(thisPos, xDirection)
+                        if (cleanWalls) generateWalls(thisPos, xDirection)
+                        if (cleanRoof) generateRoof(thisPos, xDirection)
+                        if (cleanCorner && !cornerBlock && width > 2) generateCorner(thisPos, xDirection)
+                    }
                 } else {
                     generateBase(thisPos, xDirection)
                 }
@@ -624,7 +633,7 @@ internal object HighwayTools : Module(
                 if (mode == Mode.HIGHWAY) {
                     blueprint[pos] = Blocks.AIR
                 } else {
-                    if (!(isRail(w) && h == 0 && !cornerBlock)) blueprint[pos.up()] = Blocks.AIR
+                    if (!(isRail(w) && h == 0 && !cornerBlock && width > 2)) blueprint[pos.up()] = Blocks.AIR
                 }
             }
         }
@@ -636,8 +645,8 @@ internal object HighwayTools : Module(
             val pos = basePos.add(xDirection.directionVec.multiply(x))
 
             if (mode == Mode.HIGHWAY && isRail(w)) {
-                if (!cornerBlock && startingDirection.isDiagonal) blueprint[pos] = fillerMat
-                val startHeight = if (cornerBlock) 0 else 1
+                if (!cornerBlock && width > 2 && startingDirection.isDiagonal) blueprint[pos] = fillerMat
+                val startHeight = if (cornerBlock && width > 2) 0 else 1
                 for (y in startHeight..railingHeight) {
                     blueprint[pos.up(y)] = material
                 }
@@ -648,7 +657,7 @@ internal object HighwayTools : Module(
     }
 
     private fun generateFloor(basePos: BlockPos, xDirection: Direction) {
-        val wid = if (cornerBlock) {
+        val wid = if (cornerBlock && width > 2) {
             width
         } else {
             width - 2
@@ -661,7 +670,7 @@ internal object HighwayTools : Module(
     }
 
     private fun generateWalls(basePos: BlockPos, xDirection: Direction) {
-        val cb = if (!cornerBlock) {
+        val cb = if (!cornerBlock && width > 2) {
             1
         } else {
             0
@@ -683,6 +692,19 @@ internal object HighwayTools : Module(
     private fun generateCorner(basePos: BlockPos, xDirection: Direction) {
         blueprint[basePos.add(xDirection.directionVec.multiply(-1 - width / 2 + 1)).up()] = fillerMat
         blueprint[basePos.add(xDirection.directionVec.multiply(width - width / 2 - 1)).up()] = fillerMat
+    }
+
+    private fun generateBackfill(basePos: BlockPos, xDirection: Direction) {
+        for (w in 0 until width) {
+            for (h in 0 until height) {
+                val x = w - width / 2
+                val pos = basePos.add(xDirection.directionVec.multiply(x)).up(h + 1)
+
+                if (startingBlockPos.distanceTo(pos) < startingBlockPos.distanceTo(currentBlockPos)) {
+                    blueprint[pos] = fillerMat
+                }
+            }
+        }
     }
 
     private fun isRail(w: Int) = railing && w !in 1 until width - 1
