@@ -616,7 +616,8 @@ internal object HighwayTools : Module(
         val eyePos = player.getPositionEyes(1f)
 
         blueprint.keys.removeIf {
-            eyePos.distanceTo(it) > maxReach - 0.7
+            eyePos.distanceTo(it) > maxReach - 0.7 ||
+            startingBlockPos.add(startingDirection.clockwise(4).directionVec.multiply(maxReach.toInt())).distanceTo(it) < maxReach - 1
         }
     }
 
