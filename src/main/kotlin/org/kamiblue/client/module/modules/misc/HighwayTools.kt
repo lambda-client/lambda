@@ -229,7 +229,7 @@ internal object HighwayTools : Module(
     private var lastToolDamage = 0
     private var durabilityUsages = 0
 
-    private val mutex = Mutex()
+    private val stateUpdateMutex = Mutex()
     private val renderer = ESPRenderer()
 
     override fun isActive(): Boolean {
@@ -373,7 +373,7 @@ internal object HighwayTools : Module(
                             TaskState.PENDING_BREAK, TaskState.BREAKING -> {
                                 if (new == Blocks.AIR) {
                                     runBlocking {
-                                        mutex.withLock {
+                                        stateUpdateMutex.withLock {
                                             task.updateState(TaskState.BROKEN)
                                         }
                                     }
@@ -382,7 +382,7 @@ internal object HighwayTools : Module(
                             TaskState.PENDING_PLACE -> {
                                 if (task.block != Blocks.AIR && task.block == new) {
                                     runBlocking {
-                                        mutex.withLock {
+                                        stateUpdateMutex.withLock {
                                             task.updateState(TaskState.PLACED)
                                         }
                                     }
@@ -853,7 +853,7 @@ internal object HighwayTools : Module(
             }
 
             runBlocking {
-                mutex.withLock {
+                stateUpdateMutex.withLock {
                     sortedTasks = pendingTasks.values.sortedWith(
                         compareBy<BlockTask> {
                             it.taskState.ordinal
@@ -873,7 +873,7 @@ internal object HighwayTools : Module(
             }
 
             runBlocking {
-                mutex.withLock {
+                stateUpdateMutex.withLock {
                     sortedTasks = pendingTasks.values.sortedWith(
                         compareBy<BlockTask> {
                             it.taskState.ordinal
@@ -1259,7 +1259,7 @@ internal object HighwayTools : Module(
 
             delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_PLACE) {
-                mutex.withLock {
+                stateUpdateMutex.withLock {
                     blockTask.updateState(TaskState.PLACE)
                 }
                 if (dynamicDelay && extraPlaceDelay < 10) extraPlaceDelay += 1
@@ -1409,7 +1409,7 @@ internal object HighwayTools : Module(
 
             delay(50L * taskTimeout)
             if (blockTask.taskState == TaskState.PENDING_BREAK) {
-                mutex.withLock {
+                stateUpdateMutex.withLock {
                     blockTask.updateState(TaskState.BREAK)
                 }
             }
@@ -1455,7 +1455,7 @@ internal object HighwayTools : Module(
 
                     delay(50L * taskTimeout)
                     if (blockTask.taskState == TaskState.PENDING_BREAK) {
-                        mutex.withLock {
+                        stateUpdateMutex.withLock {
                             blockTask.updateState(TaskState.BREAK)
                         }
                     }
@@ -1466,13 +1466,20 @@ internal object HighwayTools : Module(
 
     /* Dispatches a thread to mine any non-netherrack blocks generically */
     private fun mineBlockNormal(blockTask: BlockTask, side: EnumFacing) {
-        if (blockTask.taskState == TaskState.BREAK) {
-            blockTask.updateState(TaskState.BREAKING)
-        }
-
         defaultScope.launch {
             delay(20L)
-            sendMiningPackets(blockTask.blockPos, side)
+            if (blockTask.taskState == TaskState.BREAK) {
+                blockTask.updateState(TaskState.BREAKING)
+                onMainThreadSafe {
+                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
+                    player.swingArm(EnumHand.MAIN_HAND)
+                }
+            } else {
+                onMainThreadSafe {
+                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
+                    player.swingArm(EnumHand.MAIN_HAND)
+                }
+            }
         }
     }
 

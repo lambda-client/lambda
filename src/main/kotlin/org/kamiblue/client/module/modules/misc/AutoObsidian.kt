@@ -84,6 +84,7 @@ internal object AutoObsidian : Module(
     enum class State(override val displayName: String) : DisplayEnum {
         SEARCHING("Searching"),
         PLACING("Placing"),
+        PRE_MINING("Pre Mining"),
         MINING("Mining"),
         COLLECTING("Collecting"),
         DONE("Done")
@@ -92,6 +93,7 @@ internal object AutoObsidian : Module(
     enum class SearchingState(override val displayName: String) : DisplayEnum {
         PLACING("Placing"),
         OPENING("Opening"),
+        PRE_MINING("Pre Mining"),
         MINING("Mining"),
         COLLECTING("Collecting"),
         DONE("Done")
@@ -220,8 +222,11 @@ internal object AutoObsidian : Module(
             State.PLACING -> {
                 placeEnderChest(placingPos)
             }
+            State.PRE_MINING -> {
+                mineBlock(placingPos, true)
+            }
             State.MINING -> {
-                mineBlock(placingPos)
+                mineBlock(placingPos, false)
             }
             State.COLLECTING -> {
                 collectDroppedItem(Blocks.OBSIDIAN.id)
@@ -312,7 +317,7 @@ internal object AutoObsidian : Module(
                 startPlacing()
             }
             state == State.PLACING && !world.isAirBlock(placingPos) -> {
-                State.MINING
+                State.PRE_MINING
             }
             state == State.SEARCHING && searchingState == SearchingState.DONE && passCountCheck -> {
                 startPlacing()
@@ -401,14 +406,14 @@ internal object AutoObsidian : Module(
                     }
                     searchingState == SearchingState.OPENING
                         && (enderChestCount > 0 || player.inventorySlots.firstEmpty() == null) -> {
-                        SearchingState.MINING
+                        SearchingState.PRE_MINING
                     }
                     searchingState == SearchingState.PLACING && !world.isAirBlock(placingPos) -> {
                         if (world.getBlockState(placingPos).block is BlockShulkerBox) {
                             SearchingState.OPENING
                         } else {
                             // In case if the shulker wasn't placed due to server lag
-                            SearchingState.MINING
+                            SearchingState.PRE_MINING
                         }
                     }
                     else -> {
@@ -430,8 +435,11 @@ internal object AutoObsidian : Module(
                 SearchingState.OPENING -> {
                     openShulker(placingPos)
                 }
+                SearchingState.PRE_MINING -> {
+                    mineBlock(placingPos, true)
+                }
                 SearchingState.MINING -> {
-                    mineBlock(placingPos)
+                    mineBlock(placingPos, false)
                 }
                 SearchingState.COLLECTING -> {
                     collectDroppedItem(shulkerID)
@@ -508,7 +516,7 @@ internal object AutoObsidian : Module(
                 player.closeScreen()
             } else if (shulkerOpenTimer.tick(100, false)) { // Wait for maximum of 5 seconds
                 if (leaveEmptyShulkers && container.inventory.subList(0, 27).all { it.isEmpty }) {
-                    searchingState = SearchingState.MINING
+                    searchingState = SearchingState.PRE_MINING
                     player.closeScreen()
                 } else {
                     MessageSendHelper.sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
@@ -570,8 +578,8 @@ internal object AutoObsidian : Module(
         }
     }
 
-    private fun SafeClientEvent.mineBlock(pos: BlockPos) {
-        if (!swapToValidPickaxe()) return
+    private fun SafeClientEvent.mineBlock(pos: BlockPos, pre: Boolean) {
+        if (pre && !swapToValidPickaxe()) return
 
         val center = pos.toVec3dCenter()
         val diff = player.getPositionEyes(1.0f).subtract(center)
@@ -594,8 +602,12 @@ internal object AutoObsidian : Module(
         defaultScope.launch {
             delay(20L)
             onMainThreadSafe {
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
-                connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
+                if (pre) {
+                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
+                    if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
+                } else {
+                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
+                }
                 player.swingArm(EnumHand.MAIN_HAND)
                 lastMiningSide = side
             }
