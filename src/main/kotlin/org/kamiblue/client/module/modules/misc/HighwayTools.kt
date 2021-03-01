@@ -210,6 +210,8 @@ internal object HighwayTools : Module(
     private val doneTasks = LinkedHashMap<BlockPos, BlockTask>()
     private var sortedTasks: List<BlockTask> = emptyList()
     var lastTask: BlockTask? = null; private set
+
+    private val packetLimiterMutex = Mutex()
     private val packetLimiter = ArrayDeque<Long>()
 
     // Stats
@@ -485,7 +487,11 @@ internal object HighwayTools : Module(
         updateDeque(simpleMovingAverageBreaks, removeTime)
         updateDeque(simpleMovingAverageDistance, removeTime)
 
-        updateDeque(packetLimiter, System.currentTimeMillis() - 1000L)
+        runBlocking {
+            packetLimiterMutex.withLock {
+                updateDeque(packetLimiter, System.currentTimeMillis() - 1000L)
+            }
+        }
     }
 
     private fun updateDeque(deque: ArrayDeque<Long>, removeTime: Long) {
@@ -1387,10 +1393,13 @@ internal object HighwayTools : Module(
 
     private fun mineBlockInstant(blockTask: BlockTask, side: EnumFacing) {
         waitTicks = breakDelay
-        packetLimiter.add(System.currentTimeMillis())
         blockTask.updateState(TaskState.PENDING_BREAK)
 
         defaultScope.launch {
+            packetLimiterMutex.withLock {
+                packetLimiter.add(System.currentTimeMillis())
+            }
+
             delay(20L)
             sendMiningPackets(blockTask.blockPos, side)
 
@@ -1407,17 +1416,22 @@ internal object HighwayTools : Module(
         }
     }
 
-    private fun tryMultiBreak(blockTask: BlockTask) {
-        runSafe {
+    private suspend fun tryMultiBreak(blockTask: BlockTask) {
+        runSafeSuspend {
             val eyePos = player.getPositionEyes(1.0f)
             val viewVec = lastHitVec.subtract(eyePos).normalize()
             var breakCount = 1
 
             for (task in sortedTasks) {
                 if (breakCount >= maxBreaks) break
-                if (packetLimiter.size > TpsCalculator.tickRate * limitFactor) {
+
+                val size = packetLimiterMutex.withLock {
+                    packetLimiter.size
+                }
+
+                if (size > TpsCalculator.tickRate * limitFactor) {
                     if (debugMessages == DebugMessages.ALL) {
-                        MessageSendHelper.sendChatMessage("$chatName Dropped possible instant mine action @ TPS(${TpsCalculator.tickRate}) Actions(${packetLimiter.size})")
+                        MessageSendHelper.sendChatMessage("$chatName Dropped possible instant mine action @ TPS(${TpsCalculator.tickRate}) Actions(${size})")
                     }
                     break
                 }
@@ -1430,8 +1444,11 @@ internal object HighwayTools : Module(
                 val rayTraceResult = box.isInSight(eyePos, viewVec) ?: continue
 
                 if (handleLiquid(task)) break
+
                 breakCount++
-                packetLimiter.add(System.currentTimeMillis())
+                packetLimiterMutex.withLock {
+                    packetLimiter.add(System.currentTimeMillis())
+                }
 
                 defaultScope.launch {
                     sendMiningPackets(task.blockPos, rayTraceResult.sideHit)
