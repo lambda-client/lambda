@@ -52,6 +52,7 @@ import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.*
 import org.kamiblue.commons.interfaces.DisplayEnum
+import org.kamiblue.event.listener.asyncListener
 import org.kamiblue.event.listener.listener
 import kotlin.math.ceil
 
@@ -65,9 +66,10 @@ internal object AutoObsidian : Module(
     private val searchShulker by setting("Search Shulker", false)
     private val leaveEmptyShulkers by setting("Leave Empty Shulkers", true, { searchShulker })
     private val autoRefill by setting("Auto Refill", false, { fillMode != FillMode.INFINITE })
+    private val instantMining by setting("Instant Mining", true)
+    private val instantMiningDelay by setting("Instant Mining Delay", 10, 1..20, 1, { instantMining })
     private val threshold by setting("Refill Threshold", 32, 1..64, 1, { autoRefill && fillMode != FillMode.INFINITE })
     private val targetStacks by setting("Target Stacks", 1, 1..20, 1, { fillMode == FillMode.TARGET_STACKS })
-    private val noDisable by setting("No Disable", false)
     private val delayTicks by setting("Delay Ticks", 4, 1..10, 1)
     private val rotationMode by setting("Rotation Mode", RotationMode.SPOOF)
     private val maxReach by setting("Max Reach", 4.9f, 2.0f..6.0f, 0.1f)
@@ -143,8 +145,16 @@ internal object AutoObsidian : Module(
             }
         }
 
+        asyncListener<PacketEvent.PostSend> {
+            if (!instantMining || it.packet !is CPacketPlayerDigging) return@asyncListener
+
+            if (it.packet.position != placingPos || it.packet.facing != lastMiningSide) {
+                canInstantMine = false
+            }
+        }
+
         safeAsyncListener<PacketEvent.Receive> {
-            if (it.packet !is SPacketBlockChange) return@safeAsyncListener
+            if (!instantMining || it.packet !is SPacketBlockChange) return@safeAsyncListener
             if (it.packet.blockPosition != placingPos) return@safeAsyncListener
 
             val prevBlock = world.getBlockState(it.packet.blockPosition).block
@@ -278,7 +288,7 @@ internal object AutoObsidian : Module(
         } else {
             MessageSendHelper.sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-            if (!noDisable) disable()
+            disable()
         }
     }
 
@@ -460,7 +470,7 @@ internal object AutoObsidian : Module(
             if (!moved) {
                 MessageSendHelper.sendChatMessage("$chatName No shulker box was found in inventory, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                if (!noDisable) disable()
+                disable()
             }
 
             onInventoryOperation()
@@ -485,7 +495,7 @@ internal object AutoObsidian : Module(
             if (!moved) {
                 MessageSendHelper.sendChatMessage("$chatName No ender chest was found in inventory, disabling.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                if (!noDisable) disable()
+                disable()
             }
 
             onInventoryOperation()
@@ -510,7 +520,7 @@ internal object AutoObsidian : Module(
                 } else {
                     MessageSendHelper.sendChatMessage("$chatName No ender chest was found in shulker, disabling.")
                     mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                    if (!noDisable) disable()
+                    disable()
                 }
             }
         } else {
@@ -573,10 +583,20 @@ internal object AutoObsidian : Module(
         val center = pos.toVec3dCenter()
         val diff = player.getPositionEyes(1.0f).subtract(center)
         val normalizedVec = diff.normalize()
-        val side = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
+        var side = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
 
         lastHitVec = center
         rotateTimer.reset()
+
+        if (instantMining && canInstantMine) {
+            if (!miningTimer.tick(instantMiningDelay.toLong(), false)) return
+
+            if (!miningTimeoutTimer.tick(2L, false)) {
+                side = side.opposite
+            } else {
+                canInstantMine = false
+            }
+        }
 
         defaultScope.launch {
             delay(20L)
@@ -618,7 +638,7 @@ internal object AutoObsidian : Module(
             if (!moved) {
                 MessageSendHelper.sendChatMessage("No valid pickaxe was found in inventory.")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-                if (!noDisable) disable()
+                disable()
             }
 
             onInventoryOperation()
