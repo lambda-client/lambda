@@ -806,7 +806,7 @@ internal object HighwayTools : Module(
         } else {
             waitTicks--
 
-            pendingTasks.values.forEach {
+            pendingTasks.values.toList().forEach {
                 doTask(it, true)
             }
 
@@ -957,7 +957,7 @@ internal object HighwayTools : Module(
     }
 
     private fun doDone(blockTask: BlockTask) {
-        pendingTasks[blockTask.blockPos]
+        pendingTasks.remove(blockTask.blockPos)
         doneTasks[blockTask.blockPos] = blockTask
     }
 
