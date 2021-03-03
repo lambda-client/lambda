@@ -3,6 +3,7 @@ package org.kamiblue.client.util
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
 import net.minecraft.init.MobEffects
+import net.minecraft.util.MovementInput
 import org.kamiblue.client.event.SafeClientEvent
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -50,4 +51,18 @@ object MovementUtils {
         player.getActivePotionEffect(MobEffects.SPEED)?.let {
             speed * (1.0 + (it.amplifier + 1) * 0.2)
         } ?: speed
+
+    fun MovementInput.resetMove() {
+        moveForward = 0.0f
+        moveStrafe = 0.0f
+        forwardKeyDown = false
+        backKeyDown = false
+        leftKeyDown = false
+        rightKeyDown = false
+    }
+
+    fun MovementInput.resetJumpSneak() {
+        jump = false
+        sneak = false
+    }
 }

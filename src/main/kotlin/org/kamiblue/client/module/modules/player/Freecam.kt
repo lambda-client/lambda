@@ -25,6 +25,8 @@ import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
 import org.kamiblue.client.util.*
 import org.kamiblue.client.util.MovementUtils.calcMoveYaw
+import org.kamiblue.client.util.MovementUtils.resetJumpSneak
+import org.kamiblue.client.util.MovementUtils.resetMove
 import org.kamiblue.client.util.math.RotationUtils
 import org.kamiblue.client.util.math.RotationUtils.getRotationTo
 import org.kamiblue.client.util.math.VectorUtils.toBlockPos
@@ -168,16 +170,9 @@ internal object Freecam : Module(
     }
 
     private fun resetMovementInput(movementInput: MovementInput?) {
-        if (movementInput !is MovementInputFromOptions) return
-        movementInput.apply {
-            moveForward = 0f
-            moveStrafe = 0f
-            forwardKeyDown = false
-            backKeyDown = false
-            leftKeyDown = false
-            rightKeyDown = false
-            jump = false
-            sneak = false
+        if (movementInput is MovementInputFromOptions) {
+            movementInput.resetMove()
+            movementInput.resetJumpSneak()
         }
     }
 
