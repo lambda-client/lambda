@@ -14,6 +14,7 @@ import org.kamiblue.client.module.Module
 import org.kamiblue.client.module.modules.movement.Strafe
 import org.kamiblue.client.util.EntityUtils
 import org.kamiblue.client.util.EntityUtils.flooredPosition
+import org.kamiblue.client.util.MovementUtils.isCentered
 import org.kamiblue.client.util.MovementUtils.resetMove
 import org.kamiblue.client.util.MovementUtils.speed
 import org.kamiblue.client.util.combat.SurroundUtils
@@ -93,7 +94,7 @@ internal object HoleSnap : Module(
 
             getHole()?.let {
                 if (disableStrafe) Strafe.disable()
-                if ((airStrafe || player.onGround) && !isAboveHole(it)) {
+                if ((airStrafe || player.onGround) && !player.isCentered(it)) {
                     val playerPos = player.positionVector
                     val targetPos = Vec3d(it.x + 0.5, player.posY, it.z + 0.5)
 
@@ -140,10 +141,5 @@ internal object HoleSnap : Module(
 
         return if (closestHole.second != BlockPos.ORIGIN) closestHole.second.also { holePos = it }
         else null
-    }
-
-    private fun SafeClientEvent.isAboveHole(holePos: BlockPos): Boolean {
-        return player.posX in holePos.x + 0.31..holePos.x + 0.69
-            && player.posZ in holePos.z + 0.31..holePos.z + 0.69
     }
 }
