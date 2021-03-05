@@ -46,8 +46,9 @@ internal object Surround : Module(
         ONE_TIME, OUT_OF_HOLE
     }
 
+    private val toggleTimer = StopTimer(TimeUnit.TICKS)
+
     private var holePos: BlockPos? = null
-    private var toggleTimer = StopTimer(TimeUnit.TICKS)
     private var job: Job? = null
 
     override fun isActive(): Boolean {
@@ -55,26 +56,24 @@ internal object Surround : Module(
     }
 
     init {
-        onEnable {
-            toggleTimer.reset()
-        }
-
         onDisable {
             PlayerPacketManager.resetHotbar()
-            toggleTimer.reset()
             holePos = null
         }
 
+        onToggle {
+            toggleTimer.reset()
+        }
 
         safeListener<TickEvent.ClientTickEvent> {
             if (getObby() == null) return@safeListener
+
             if (isDisabled) {
                 enableInHoleCheck()
                 return@safeListener
             }
 
             // Following codes will not run if disabled
-
             // Update hole pos
             if (holePos == null || inHoleCheck()) {
                 holePos = player.positionVector.toBlockPos()
@@ -88,14 +87,14 @@ internal object Surround : Module(
                 toggleTimer.reset()
             }
 
-            // Centered check
-            if (!player.centerPlayer()) return@safeListener
-
             // Placeable
             if (!canRun()) {
                 if (autoDisable == AutoDisableMode.ONE_TIME) disable()
                 return@safeListener
             }
+
+            // Centered check
+            if (!player.centerPlayer()) return@safeListener
 
             if (disableStrafe) {
                 Strafe.disable()
@@ -155,11 +154,9 @@ internal object Surround : Module(
 
     private fun SafeClientEvent.canRun(): Boolean {
         val playerPos = player.positionVector.toBlockPos()
-        for (offset in SurroundUtils.surroundOffset) {
-            val pos = playerPos.add(offset)
-            if (isPlaceable(pos, true)) return true
+        return SurroundUtils.surroundOffset.any {
+            isPlaceable(playerPos.add(it), true)
         }
-        return false
     }
 
     private fun SafeClientEvent.runSurround() = defaultScope.launch {
