@@ -63,7 +63,7 @@ internal object HoleSnap : Module(
                 glDisable(GL_DEPTH_TEST)
                 KamiTessellator.begin(GL_LINES)
 
-                buffer.pos(posFrom.x, posFrom.y, posFrom.z).color(32, 255, 32, 2500).endVertex()
+                buffer.pos(posFrom.x, posFrom.y, posFrom.z).color(32, 255, 32, 255).endVertex()
                 buffer.pos(posTo.x, posTo.y, posTo.z).color(32, 255, 32, 255).endVertex()
 
                 KamiTessellator.render()
@@ -118,12 +118,12 @@ internal object HoleSnap : Module(
             || currentSpeed < 0.01 && checkHole(player) != SurroundUtils.HoleType.NONE
 
     private fun SafeClientEvent.getHole() =
-        if (player.ticksExisted % 10 == 0) findHole()
+        if (player.ticksExisted % 10 == 0 && player.flooredPosition != holePos) findHole()
         else holePos ?: findHole()
 
     private fun SafeClientEvent.findHole(): BlockPos? {
         var closestHole = Pair(69.69, BlockPos.ORIGIN)
-        val playerPos = player.positionVector.toBlockPos()
+        val playerPos = player.flooredPosition
         val ceilRange = range.ceilToInt()
         val posList = VectorUtils.getBlockPositionsInArea(playerPos.add(ceilRange, -1, ceilRange), playerPos.add(-ceilRange, -1, -ceilRange))
 
