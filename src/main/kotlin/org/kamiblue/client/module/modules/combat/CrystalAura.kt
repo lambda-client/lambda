@@ -1,7 +1,5 @@
 package org.kamiblue.client.module.modules.combat
 
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
@@ -48,7 +46,6 @@ import org.kamiblue.client.util.math.VectorUtils.toBlockPos
 import org.kamiblue.client.util.math.VectorUtils.toVec3d
 import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.threads.defaultScope
 import org.kamiblue.client.util.threads.runSafeR
 import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.commons.extension.synchronized
@@ -107,8 +104,6 @@ internal object CrystalAura : Module(
     private val autoForceExplode by setting("Auto Force Explode", true, { page == Page.EXPLODE_ONE })
     private val antiWeakness by setting("Anti Weakness", true, { page == Page.EXPLODE_ONE })
     private val packetExplode by setting("Packet Explode", true, { page == Page.EXPLODE_ONE })
-    private val predictExplode by setting("Predict Explode", false, { page == Page.EXPLODE_ONE })
-    private val predictDelay by setting("Predict Delay", 10, 0..200, 1, { page == Page.EXPLODE_ONE && predictExplode })
 
     /* Explode page two */
     private val minDamageE by setting("Min Damage Explode", 6.0f, 0.0f..10.0f, 0.25f, { page == Page.EXPLODE_TWO })
@@ -145,7 +140,6 @@ internal object CrystalAura : Module(
     private var hitTimer = 0
     private var hitCount = 0
     private var yawDiffIndex = 0
-    private var lastEntityID = 0
 
     var inactiveTicks = 20; private set
     val minDamage get() = max(minDamageP, minDamageE)
@@ -180,8 +174,6 @@ internal object CrystalAura : Module(
         safeListener<PacketEvent.Receive> { event ->
             when (event.packet) {
                 is SPacketSpawnObject -> {
-                    lastEntityID = event.packet.entityID
-
                     if (event.packet.type == 51) {
                         val vec3d = Vec3d(event.packet.x, event.packet.y, event.packet.z)
                         val pos = vec3d.toBlockPos()
@@ -294,34 +286,11 @@ internal object CrystalAura : Module(
 
             val crystalPos = pos.up()
             placedBBMap[crystalPos] = getCrystalBB(crystalPos) to System.currentTimeMillis()
-
-            if (predictExplode) {
-                defaultScope.launch {
-                    delay(predictDelay.toLong())
-
-                    synchronized(lockObject) {
-                        if (!placedBBMap.containsKey(crystalPos)) return@synchronized
-                        packetExplode(lastEntityID + 1, pos, crystalPos.toVec3d(0.5, 0.0, 0.5))
-                    }
-                }
-            }
         }
     }
 
-    private fun SafeClientEvent.preExplode(): Boolean {
-        if (antiWeakness && player.isPotionActive(MobEffects.WEAKNESS) && !isHoldingTool()) {
-            equipBestWeapon(allowTool = true)
-            PlayerPacketManager.resetHotbar()
-            return false
-        }
-
-        // Anticheat doesn't allow you attack right after changing item
-        if (System.currentTimeMillis() - PlayerPacketManager.lastSwapTime < swapDelay * 50) {
-            return false
-        }
-
-        return true
-    }
+    private fun SafeClientEvent.getPlacePacket(pos: BlockPos, hand: EnumHand) =
+        CPacketPlayerTryUseItemOnBlock(pos, getHitSide(pos), hand, 0.5f, placeOffset, 0.5f)
 
     private fun SafeClientEvent.packetExplode(entityID: Int, pos: BlockPos, vec3d: Vec3d) {
         if (!preExplode()) return
@@ -360,6 +329,21 @@ internal object CrystalAura : Module(
         }
     }
 
+    private fun SafeClientEvent.preExplode(): Boolean {
+        if (antiWeakness && player.isPotionActive(MobEffects.WEAKNESS) && !isHoldingTool()) {
+            equipBestWeapon(allowTool = true)
+            PlayerPacketManager.resetHotbar()
+            return false
+        }
+
+        // Anticheat doesn't allow you attack right after changing item
+        if (System.currentTimeMillis() - PlayerPacketManager.lastSwapTime < swapDelay * 50) {
+            return false
+        }
+
+        return true
+    }
+
     private fun SafeClientEvent.explodeDirect(packet: CPacketUseEntity, pos: Vec3d) {
         hitTimer = 0
         inactiveTicks = 0
@@ -368,9 +352,6 @@ internal object CrystalAura : Module(
         sendOrQueuePacket(packet)
         sendOrQueuePacket(CPacketAnimation(getHand() ?: EnumHand.OFF_HAND))
     }
-
-    private fun SafeClientEvent.getPlacePacket(pos: BlockPos, hand: EnumHand) =
-        CPacketPlayerTryUseItemOnBlock(pos, getHitSide(pos), hand, 0.5f, placeOffset, 0.5f)
 
     private fun SafeClientEvent.sendOrQueuePacket(packet: Packet<*>) {
         val yawDiff = abs(RotationUtils.normalizeAngle(PlayerPacketManager.serverSideRotation.x - getLastRotation().x))
