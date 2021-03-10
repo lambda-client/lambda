@@ -23,6 +23,7 @@ import org.kamiblue.client.event.Phase
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.OnUpdateWalkingPlayerEvent
 import org.kamiblue.client.event.events.PacketEvent
+import org.kamiblue.client.event.events.RunGameLoopEvent
 import org.kamiblue.client.manager.managers.CombatManager
 import org.kamiblue.client.manager.managers.PlayerPacketManager
 import org.kamiblue.client.mixin.extension.id
@@ -48,6 +49,7 @@ import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.runSafeR
 import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.commons.extension.synchronized
+import org.kamiblue.commons.interfaces.DisplayEnum
 import org.kamiblue.event.listener.listener
 import org.lwjgl.input.Keyboard
 import java.util.*
@@ -66,51 +68,53 @@ internal object CrystalAura : Module(
     modulePriority = 80
 ) {
     /* Settings */
-    private val page by setting("Page", Page.GENERAL)
+    private val page = setting("Page", Page.GENERAL)
 
     /* General */
-    private val noSuicideThreshold by setting("No Suicide", 8.0f, 0.0f..20.0f, 0.5f, { page == Page.GENERAL })
-    private val rotationTolerance by setting("Rotation Tolerance", 10, 5..50, 5, { page == Page.GENERAL })
-    private val maxYawSpeed by setting("Max YawSpeed", 50, 10..100, 5, { page == Page.GENERAL })
-    private val swingMode by setting("Swing Mode", SwingMode.CLIENT, { page == Page.GENERAL })
+    private val noSuicideThreshold by setting("No Suicide", 8.0f, 0.0f..20.0f, 0.5f, page.atValue(Page.GENERAL))
+    private val rotationTolerance by setting("Rotation Tolerance", 20, 5..50, 5, page.atValue(Page.GENERAL))
+    private val maxYawSpeed by setting("Max YawSpeed", 80, 10..100, 5, page.atValue(Page.GENERAL))
+    private val swingMode by setting("Swing Mode", SwingMode.CLIENT, page.atValue(Page.GENERAL))
 
     /* Force place */
-    private val bindForcePlace by setting("Bind Force Place", Bind(), { page == Page.FORCE_PLACE })
-    private val forcePlaceHealth by setting("Force Place Health", 6.0f, 0.0f..20.0f, 0.5f, { page == Page.FORCE_PLACE })
-    private val forcePlaceArmorDura by setting("Force Place Armor Dura", 5, 0..50, 1, { page == Page.FORCE_PLACE })
-    private val minDamageForcePlace by setting("Min Damage Force Place", 1.5f, 0.0f..10.0f, 0.25f, { page == Page.FORCE_PLACE })
+    private val bindForcePlace by setting("Bind Force Place", Bind(), page.atValue(Page.FORCE_PLACE))
+    private val forcePlaceHealth by setting("Force Place Health", 5.0f, 0.0f..20.0f, 0.5f, page.atValue(Page.FORCE_PLACE))
+    private val forcePlaceArmorDura by setting("Force Place Armor Dura", 3, 0..50, 1, page.atValue(Page.FORCE_PLACE))
+    private val minDamageForcePlace by setting("Min Damage Force Place", 1.5f, 0.0f..10.0f, 0.25f, page.atValue(Page.FORCE_PLACE))
 
     /* Place page one */
-    private val doPlace by setting("Place", true, { page == Page.PLACE_ONE })
-    private val autoSwap by setting("Auto  Swap", true, { page == Page.PLACE_ONE })
-    private val spoofHotbar by setting("Spoof Hotbar", false, { page == Page.PLACE_ONE && autoSwap })
-    private val placeSwing by setting("Place Swing", true, { page == Page.PLACE_ONE })
-    private val placeSync by setting("Place Sync", false, { page == Page.PLACE_ONE })
-    private val extraPlacePacket by setting("Extra Place Packet", false, { page == Page.PLACE_ONE })
+    private val doPlace by setting("Place", true, page.atValue(Page.PLACE_ONE))
+    private val autoSwap by setting("Auto Swap", true, page.atValue(Page.PLACE_ONE))
+    private val spoofHotbar by setting("Spoof Hotbar", false, page.atValue(Page.PLACE_ONE))
+    private val placeSwing by setting("Place Swing", true, page.atValue(Page.PLACE_ONE))
+    private val placeSync by setting("Place Sync", false, page.atValue(Page.PLACE_ONE))
+    private val extraPlacePacket by setting("Extra Place Packet", false, page.atValue(Page.PLACE_ONE))
 
     /* Place page two */
-    private val minDamageP by setting("Min Damage Place", 2.0f, 0.0f..10.0f, 0.25f, { page == Page.PLACE_TWO })
-    private val maxSelfDamageP by setting("Max Self Damage Place", 2.0f, 0.0f..10.0f, 0.25f, { page == Page.PLACE_TWO })
-    private val placeOffset by setting("Place Offset", 1.0f, 0f..1f, 0.05f, { page == Page.PLACE_TWO })
-    private val maxCrystal by setting("Max Crystal", 2, 1..5, 1, { page == Page.PLACE_TWO })
-    private val placeDelay by setting("Place Delay", 1, 1..10, 1, { page == Page.PLACE_TWO })
-    private val placeRange by setting("Place Range", 4.0f, 0.0f..5.0f, 0.25f, { page == Page.PLACE_TWO })
-    private val wallPlaceRange by setting("Wall Place Range", 2.0f, 0.0f..5.0f, 0.25f, { page == Page.PLACE_TWO })
+    private val minDamageP by setting("Min Damage Place", 4.75f, 0.0f..10.0f, 0.25f, page.atValue(Page.PLACE_TWO))
+    private val maxSelfDamageP by setting("Max Self Damage Place", 3.5f, 0.0f..10.0f, 0.25f, page.atValue(Page.PLACE_TWO))
+    private val placeOffset by setting("Place Offset", 1.0f, 0f..1f, 0.05f, page.atValue(Page.PLACE_TWO))
+    private val maxCrystal by setting("Max Crystal", 2, 1..5, 1, page.atValue(Page.PLACE_TWO))
+    private val placeDelayMode = setting("Place Delay Mode", PlaceDelayMode.TICKS, page.atValue(Page.PLACE_TWO))
+    private val placeDelayTick by setting("Place Delay Ticks", 1, 1..10, 1, page.atValue(Page.PLACE_TWO, placeDelayMode.atValue(PlaceDelayMode.TICKS)))
+    private val placeDelayMs by setting("Place Delay ms", 30, 10..500, 1, page.atValue(Page.PLACE_TWO, placeDelayMode.atValue(PlaceDelayMode.MS)))
+    private val placeRange by setting("Place Range", 4.25f, 0.0f..5.0f, 0.25f, page.atValue(Page.PLACE_TWO))
+    private val wallPlaceRange by setting("Wall Place Range", 3.5f, 0.0f..5.0f, 0.25f, page.atValue(Page.PLACE_TWO))
 
     /* Explode page one */
-    private val doExplode by setting("Explode", true, { page == Page.EXPLODE_ONE })
-    private val autoForceExplode by setting("Auto Force Explode", true, { page == Page.EXPLODE_ONE })
-    private val antiWeakness by setting("Anti Weakness", true, { page == Page.EXPLODE_ONE })
-    private val packetExplode by setting("Packet Explode", true, { page == Page.EXPLODE_ONE })
+    private val doExplode by setting("Explode", true, page.atValue(Page.EXPLODE_ONE))
+    private val autoForceExplode by setting("Auto Force Explode", true, page.atValue(Page.EXPLODE_ONE))
+    private val antiWeakness by setting("Anti Weakness", true, page.atValue(Page.EXPLODE_ONE))
+    private val packetExplode by setting("Packet Explode", true, page.atValue(Page.EXPLODE_ONE))
 
     /* Explode page two */
-    private val minDamageE by setting("Min Damage Explode", 6.0f, 0.0f..10.0f, 0.25f, { page == Page.EXPLODE_TWO })
-    private val maxSelfDamageE by setting("Max Self Damage Explode", 3.0f, 0.0f..10.0f, 0.25f, { page == Page.EXPLODE_TWO })
-    private val swapDelay by setting("Swap Delay", 10, 1..50, 1, { page == Page.EXPLODE_TWO })
-    private val hitDelay by setting("Hit Delay", 1, 1..10, 1, { page == Page.EXPLODE_TWO })
-    private val hitAttempts by setting("Hit Attempts", 4, 0..8, 1, { page == Page.EXPLODE_TWO })
-    private val explodeRange by setting("Explode Range", 4.0f, 0.0f..5.0f, 0.25f, { page == Page.EXPLODE_TWO })
-    private val wallExplodeRange by setting("Wall Explode Range", 2.0f, 0.0f..5.0f, 0.25f, { page == Page.EXPLODE_TWO })
+    private val minDamageE by setting("Min Damage Explode", 5.0f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
+    private val maxSelfDamageE by setting("Max Self Damage Explode", 3.5f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
+    private val swapDelay by setting("Swap Delay", 10, 1..50, 1, page.atValue(Page.EXPLODE_TWO))
+    private val hitDelay by setting("Hit Delay", 1, 1..10, 1, page.atValue(Page.EXPLODE_TWO))
+    private val hitAttempts by setting("Hit Attempts", 4, 0..8, 1, page.atValue(Page.EXPLODE_TWO))
+    private val explodeRange by setting("Explode Range", 4.25f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
+    private val wallExplodeRange by setting("Wall Explode Range", 3.5f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
     /* End of settings */
 
     private enum class Page {
@@ -122,18 +126,25 @@ internal object CrystalAura : Module(
         CLIENT, PACKET
     }
 
+    @Suppress("UNUSED")
+    private enum class PlaceDelayMode(override val displayName: String) : DisplayEnum {
+        TICKS("Ticks"),
+        MS("ms")
+    }
+
     /* Variables */
     private val placedBBMap = HashMap<BlockPos, Pair<AxisAlignedBB, Long>>().synchronized() // <CrystalBoundingBox, Added Time>
     private val ignoredList = Collections.newSetFromMap<EntityEnderCrystal>(WeakHashMap())
     private val packetList = ArrayList<Packet<*>>(3)
     private val yawDiffList = FloatArray(20)
+    private val placeTimerMs = TickTimer()
 
     private var placeMap = emptyMap<BlockPos, CombatManager.CrystalDamage>()
     private var crystalMap = emptyMap<EntityEnderCrystal, CombatManager.CrystalDamage>()
     private var lastCrystal: EntityEnderCrystal? = null
     private var lastLookAt = Vec3d.ZERO
     private var forcePlacing = false
-    private var placeTimer = 0
+    private var placeTimerTicks = 0
     private var hitTimer = 0
     private var hitCount = 0
     private var yawDiffIndex = 0
@@ -152,9 +163,11 @@ internal object CrystalAura : Module(
         }
 
         onDisable {
+            placeTimerMs.reset(-69420L)
+
             lastCrystal = null
             forcePlacing = false
-            placeTimer = 0
+
             hitTimer = 0
             hitCount = 0
             inactiveTicks = 10
@@ -203,6 +216,16 @@ internal object CrystalAura : Module(
             }
         }
 
+        safeListener<RunGameLoopEvent.Tick> {
+            if (placeDelayMode.value == PlaceDelayMode.MS
+                && CombatManager.isOnTopPriority(CrystalAura)
+                && !CombatSetting.pause
+                && packetList.size == 0
+                && canPlace()) {
+                place()
+            }
+        }
+
         safeListener<OnUpdateWalkingPlayerEvent> {
             if (!CombatManager.isOnTopPriority(CrystalAura) || CombatSetting.pause) return@safeListener
 
@@ -222,8 +245,8 @@ internal object CrystalAura : Module(
         safeListener<TickEvent.ClientTickEvent>(2000) {
             if (it.phase == TickEvent.Phase.START) {
                 inactiveTicks++
+                placeTimerTicks++
                 hitTimer++
-                placeTimer++
                 updateYawSpeed()
             }
 
@@ -280,7 +303,8 @@ internal object CrystalAura : Module(
                 return
             }
 
-            placeTimer = 0
+            placeTimerMs.reset()
+            placeTimerTicks = 0
             inactiveTicks = 0
             lastLookAt = Vec3d(pos).add(0.5, placeOffset.toDouble(), 0.5)
 
@@ -377,9 +401,13 @@ internal object CrystalAura : Module(
     /* Placing */
     private fun SafeClientEvent.canPlace() =
         doPlace
-            && placeTimer > placeDelay
+            && checkTimer()
             && player.allSlots.countItem(Items.END_CRYSTAL) > 0
             && countValidCrystal() < maxCrystal
+
+    private fun checkTimer() =
+        if (placeDelayMode.value == PlaceDelayMode.TICKS) placeTimerTicks > placeDelayTick
+        else placeTimerMs.tick(placeDelayMs, false)
 
     @Suppress("UnconditionalJumpStatementInLoop") // The linter is wrong here, it will continue until it's supposed to return
     private fun SafeClientEvent.getPlacingPos(): BlockPos? {
