@@ -33,7 +33,6 @@ import org.kamiblue.client.util.*
 import org.kamiblue.client.util.WorldUtils.getHitSide
 import org.kamiblue.client.util.combat.CombatUtils.equipBestWeapon
 import org.kamiblue.client.util.combat.CombatUtils.scaledHealth
-import org.kamiblue.client.util.combat.CrystalUtils.calcCrystalDamage
 import org.kamiblue.client.util.combat.CrystalUtils.canPlaceCollide
 import org.kamiblue.client.util.combat.CrystalUtils.getCrystalBB
 import org.kamiblue.client.util.combat.CrystalUtils.getCrystalList
@@ -54,7 +53,6 @@ import org.lwjgl.input.Keyboard
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.collections.HashSet
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -126,10 +124,9 @@ internal object CrystalAura : Module(
 
     /* Variables */
     private val placedBBMap = HashMap<BlockPos, Pair<AxisAlignedBB, Long>>().synchronized() // <CrystalBoundingBox, Added Time>
-    private val ignoredList = HashSet<EntityEnderCrystal>()
+    private val ignoredList = Collections.newSetFromMap<EntityEnderCrystal>(WeakHashMap())
     private val packetList = ArrayList<Packet<*>>(3)
     private val yawDiffList = FloatArray(20)
-    private val lockObject = Any()
 
     private var placeMap = emptyMap<BlockPos, CombatManager.CrystalDamage>()
     private var crystalMap = emptyMap<EntityEnderCrystal, CombatManager.CrystalDamage>()
@@ -161,6 +158,11 @@ internal object CrystalAura : Module(
             hitTimer = 0
             hitCount = 0
             inactiveTicks = 10
+
+            placedBBMap.clear()
+            synchronized(packetList) {
+                packetList.clear()
+            }
             PlayerPacketManager.resetHotbar()
         }
 
@@ -202,15 +204,15 @@ internal object CrystalAura : Module(
         }
 
         safeListener<OnUpdateWalkingPlayerEvent> {
-            if (!CombatManager.isOnTopPriority(this@CrystalAura) || CombatSetting.pause) return@safeListener
+            if (!CombatManager.isOnTopPriority(CrystalAura) || CombatSetting.pause) return@safeListener
 
             if (it.phase == Phase.PRE && inactiveTicks <= 20 && lastLookAt != Vec3d.ZERO) {
                 val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = getLastRotation())
-                PlayerPacketManager.addPacket(this@CrystalAura, packet)
+                PlayerPacketManager.addPacket(CrystalAura, packet)
             }
 
             if (it.phase == Phase.POST) {
-                synchronized(lockObject) {
+                synchronized(packetList) {
                     for (packet in packetList) sendPacketDirect(packet)
                     packetList.clear()
                 }
@@ -248,7 +250,9 @@ internal object CrystalAura : Module(
         placeMap = CombatManager.placeMap
         crystalMap = CombatManager.crystalMap
 
-        placedBBMap.values.removeIf { System.currentTimeMillis() - it.second > max(InfoCalculator.ping(), 100) }
+        synchronized(placedBBMap) {
+            placedBBMap.values.removeIf { System.currentTimeMillis() - it.second > max(InfoCalculator.ping(), 100) }
+        }
 
         if (inactiveTicks > 20) {
             if (getPlacingPos() == null && placedBBMap.isNotEmpty()) {
@@ -306,7 +310,7 @@ internal object CrystalAura : Module(
             packetAction = CPacketUseEntity.Action.ATTACK
         }
 
-        synchronized(lockObject) {
+        synchronized(packetList) {
             explodeDirect(attackPacket, vec3d)
         }
     }
@@ -355,8 +359,13 @@ internal object CrystalAura : Module(
 
     private fun SafeClientEvent.sendOrQueuePacket(packet: Packet<*>) {
         val yawDiff = abs(RotationUtils.normalizeAngle(PlayerPacketManager.serverSideRotation.x - getLastRotation().x))
-        if (yawDiff < rotationTolerance) sendPacketDirect(packet)
-        else packetList.add(packet)
+        if (yawDiff < rotationTolerance) {
+            sendPacketDirect(packet)
+        } else {
+            synchronized(packetList) {
+                packetList.add(packet)
+            }
+        }
     }
 
     private fun SafeClientEvent.sendPacketDirect(packet: Packet<*>) {
@@ -378,18 +387,18 @@ internal object CrystalAura : Module(
 
         val eyePos = player.getPositionEyes(1f)
 
-        for ((pos, calculation) in placeMap) {
+        for ((pos, crystalDamage) in placeMap) {
             // Damage check
-            if (!noSuicideCheck(calculation.selfDamage)) continue
-            if (!checkDamagePlace(calculation.targetDamage, calculation.selfDamage)) continue
+            if (!noSuicideCheck(crystalDamage.selfDamage)) continue
+            if (!checkDamagePlace(crystalDamage)) continue
 
             // Distance check
-            if (calculation.distance > placeRange) continue
+            if (crystalDamage.distance > placeRange) continue
 
             // Wall distance check
             val rayTraceResult = world.rayTraceBlocks(eyePos, pos.toVec3dCenter())
             val hitBlockPos = rayTraceResult?.blockPos ?: pos
-            if (hitBlockPos.distanceTo(pos) > 1.0 && calculation.distance > wallPlaceRange) continue
+            if (hitBlockPos.distanceTo(pos) > 1.0 && crystalDamage.distance > wallPlaceRange) continue
 
             // Collide check
             if (!canPlaceCollide(pos)) continue
@@ -397,7 +406,11 @@ internal object CrystalAura : Module(
             // Place sync
             if (placeSync) {
                 val bb = getCrystalBB(pos.up())
-                if (placedBBMap.values.any { it.first.intersects(bb) }) continue
+                val intercepted = synchronized(placedBBMap) {
+                    placedBBMap.values.any { it.first.intersects(bb) }
+                }
+
+                if (intercepted) continue
             }
 
             // Yaw speed check
@@ -412,8 +425,9 @@ internal object CrystalAura : Module(
     /**
      * @return True if passed placing damage check
      */
-    private fun checkDamagePlace(damage: Float, selfDamage: Float) =
-        (shouldFacePlace(damage) || damage >= minDamageP) && (selfDamage <= maxSelfDamageP)
+    private fun checkDamagePlace(crystalDamage: CombatManager.CrystalDamage) =
+        (crystalDamage.selfDamage <= maxSelfDamageP)
+            && (shouldFacePlace(crystalDamage.targetDamage) || crystalDamage.targetDamage >= minDamageP)
     /* End of placing */
 
     /* Exploding */
@@ -483,24 +497,25 @@ internal object CrystalAura : Module(
     private fun SafeClientEvent.countValidCrystal(): Int {
         var count = 0
         CombatManager.target?.let {
-            val eyePos = player.getPositionEyes(1f)
-
             if (placeSync) {
-                for ((_, pair) in placedBBMap) {
-                    val pos = pair.first.center.subtract(0.0, 1.0, 0.0)
-                    if (pos.distanceTo(eyePos) > placeRange) continue
-                    val damage = calcCrystalDamage(pos, it)
-                    val selfDamage = calcCrystalDamage(pos, player)
-                    if (!checkDamagePlace(damage, selfDamage)) continue
-                    count++
+                synchronized(placedBBMap) {
+                    for ((pos, _) in placedBBMap) {
+                        val crystalDamage = placeMap[pos] ?: continue
+
+                        if (crystalDamage.distance > placeRange) continue
+                        if (!checkDamagePlace(crystalDamage)) continue
+
+                        count++
+                    }
                 }
             }
 
-            for ((crystal, calculation) in crystalMap) {
+            for ((crystal, crystalDamage) in crystalMap) {
+                if (crystalDamage.distance > placeRange) continue
                 if (ignoredList.contains(crystal)) continue
-                if (!checkDamagePlace(calculation.targetDamage, calculation.selfDamage)) continue
-                if (crystal.positionVector.distanceTo(eyePos) > placeRange) continue
+                if (!checkDamagePlace(crystalDamage)) continue
                 if (!checkYawSpeed(getRotationToEntity(crystal).x)) continue
+
                 count++
             }
         }
