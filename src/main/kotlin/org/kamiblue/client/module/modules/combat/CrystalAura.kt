@@ -306,7 +306,7 @@ internal object CrystalAura : Module(
             placeTimerMs.reset()
             placeTimerTicks = 0
             inactiveTicks = 0
-            lastLookAt = Vec3d(pos).add(0.5, placeOffset.toDouble(), 0.5)
+            lastLookAt = pos.toVec3d(0.5, placeOffset.toDouble(), 0.5)
 
             sendOrQueuePacket(getPlacePacket(pos, hand))
             if (extraPlacePacket) sendOrQueuePacket(getPlacePacket(pos, hand))
@@ -442,7 +442,7 @@ internal object CrystalAura : Module(
             }
 
             // Yaw speed check
-            val hitVec = pos.toVec3d().add(0.5, placeOffset.toDouble(), 0.5)
+            val hitVec = pos.toVec3d(0.5, placeOffset.toDouble(), 0.5)
             if (!checkYawSpeed(getRotationTo(hitVec).x)) continue
 
             return pos
