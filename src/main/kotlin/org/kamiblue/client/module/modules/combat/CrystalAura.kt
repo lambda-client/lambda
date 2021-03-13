@@ -1,5 +1,6 @@
 package org.kamiblue.client.module.modules.combat
 
+import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
@@ -26,7 +27,12 @@ import org.kamiblue.client.event.events.OnUpdateWalkingPlayerEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.event.events.RunGameLoopEvent
 import org.kamiblue.client.manager.managers.CombatManager
+import org.kamiblue.client.manager.managers.HotbarManager
+import org.kamiblue.client.manager.managers.HotbarManager.resetHotbar
+import org.kamiblue.client.manager.managers.HotbarManager.serverSideItem
+import org.kamiblue.client.manager.managers.HotbarManager.spoofHotbar
 import org.kamiblue.client.manager.managers.PlayerPacketManager
+import org.kamiblue.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import org.kamiblue.client.mixin.extension.id
 import org.kamiblue.client.mixin.extension.packetAction
 import org.kamiblue.client.module.Category
@@ -177,7 +183,7 @@ internal object CrystalAura : Module(
             synchronized(packetList) {
                 packetList.clear()
             }
-            PlayerPacketManager.resetHotbar()
+            resetHotbar()
         }
 
         listener<InputEvent.KeyInputEvent> {
@@ -231,8 +237,9 @@ internal object CrystalAura : Module(
             if (!CombatManager.isOnTopPriority(CrystalAura) || CombatSetting.pause) return@safeListener
 
             if (it.phase == Phase.PRE && inactiveTicks <= 20 && lastLookAt != Vec3d.ZERO) {
-                val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = getLastRotation())
-                PlayerPacketManager.addPacket(CrystalAura, packet)
+                sendPlayerPacket {
+                    rotate(getLastRotation())
+                }
             }
 
             if (it.phase == Phase.POST) {
@@ -258,8 +265,13 @@ internal object CrystalAura : Module(
             }
 
             if (it.phase == TickEvent.Phase.END) {
-                if (inactiveTicks > 5 || getHand() == EnumHand.OFF_HAND) PlayerPacketManager.resetHotbar()
-                if (inactiveTicks > 20) resetRotation()
+                if (getHand() == EnumHand.OFF_HAND) {
+                    resetHotbar()
+                }
+                if (inactiveTicks > 20) {
+                    resetHotbar()
+                    resetRotation()
+                }
             }
         }
     }
@@ -292,22 +304,15 @@ internal object CrystalAura : Module(
 
     private fun SafeClientEvent.place() {
         getPlacingPos()?.let { pos ->
+            swapToCrystal()
+
             val hand = getHand()
-
-            if (hand == null) {
-                if (autoSwap) {
-                    player.hotbarSlots.firstItem(Items.END_CRYSTAL)?.let {
-                        if (spoofHotbar) PlayerPacketManager.spoofHotbar(it.hotbarSlot)
-                        else swapToSlot(it)
-                    }
-                }
-                return
-            }
-
-            placeTimerMs.reset()
-            placeTimerTicks = 0
             inactiveTicks = 0
             lastLookAt = pos.toVec3d(0.5, placeOffset.toDouble(), 0.5)
+
+            if (hand == null) return
+            placeTimerMs.reset()
+            placeTimerTicks = 0
 
             sendOrQueuePacket(getPlacePacket(pos, hand))
             if (extraPlacePacket) sendOrQueuePacket(getPlacePacket(pos, hand))
@@ -317,6 +322,28 @@ internal object CrystalAura : Module(
             placedBBMap[crystalPos] = getCrystalBB(crystalPos) to System.currentTimeMillis()
         }
     }
+
+    private fun SafeClientEvent.swapToCrystal() {
+        if (autoSwap && player.heldItemOffhand.item != Items.END_CRYSTAL) {
+            if (spoofHotbar) {
+                val slot = if (player.serverSideItem.item == Items.END_CRYSTAL) HotbarManager.serverSideHotbar
+                else player.getCrystalSlot()?.hotbarSlot
+
+                if (slot != null) {
+                    spoofHotbar(slot, 1000L)
+                }
+            } else {
+                if (player.serverSideItem.item != Items.END_CRYSTAL) {
+                    player.getCrystalSlot()?.let {
+                        swapToSlot(it)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun EntityPlayerSP.getCrystalSlot() =
+        this.hotbarSlots.firstItem(Items.END_CRYSTAL)
 
     private fun SafeClientEvent.getPlacePacket(pos: BlockPos, hand: EnumHand): CPacketPlayerTryUseItemOnBlock {
         val side = getClosestVisibleSide(pos) ?: EnumFacing.UP
@@ -363,12 +390,12 @@ internal object CrystalAura : Module(
     private fun SafeClientEvent.preExplode(): Boolean {
         if (antiWeakness && player.isPotionActive(MobEffects.WEAKNESS) && !isHoldingTool()) {
             equipBestWeapon(allowTool = true)
-            PlayerPacketManager.resetHotbar()
+            resetHotbar()
             return false
         }
 
         // Anticheat doesn't allow you attack right after changing item
-        if (System.currentTimeMillis() - PlayerPacketManager.lastSwapTime < swapDelay * 50) {
+        if (System.currentTimeMillis() - HotbarManager.swapTime < swapDelay * 50L) {
             return false
         }
 
@@ -492,12 +519,9 @@ internal object CrystalAura : Module(
 
     /* General */
     private fun SafeClientEvent.getHand(): EnumHand? {
-        val serverSideItem = if (spoofHotbar) player.inventory.getStackInSlot(PlayerPacketManager.serverSideHotbar).item else null
-
         return when (Items.END_CRYSTAL) {
             player.heldItemOffhand.item -> EnumHand.OFF_HAND
-            player.heldItemMainhand.item -> EnumHand.MAIN_HAND
-            serverSideItem -> EnumHand.MAIN_HAND
+            player.serverSideItem.item -> EnumHand.MAIN_HAND
             else -> null
         }
     }

@@ -14,7 +14,11 @@ import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.OnUpdateWalkingPlayerEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.event.events.PlayerTravelEvent
+import org.kamiblue.client.manager.managers.HotbarManager.resetHotbar
+import org.kamiblue.client.manager.managers.HotbarManager.serverSideItem
+import org.kamiblue.client.manager.managers.HotbarManager.spoofHotbar
 import org.kamiblue.client.manager.managers.PlayerPacketManager
+import org.kamiblue.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import org.kamiblue.client.mixin.client.entity.MixinEntity
 import org.kamiblue.client.mixin.extension.syncCurrentPlayItem
 import org.kamiblue.client.module.Category
@@ -56,7 +60,7 @@ internal object Scaffold : Module(
     private val delay by setting("Delay", 2, 1..10, 1)
     private val maxRange by setting("Max Range", 1, 0..3, 1)
 
-    private var lastRotation = Vec2f.ZERO
+    private var lastHitVec: Vec3d? = null
     private var placeInfo: PlaceInfo? = null
     private var inactiveTicks = 69
 
@@ -88,8 +92,8 @@ internal object Scaffold : Module(
         }
     }
 
-    private val isHoldingBlock: Boolean
-        get() = PlayerPacketManager.getHoldingItemStack().item is ItemBlock
+    private val SafeClientEvent.isHoldingBlock: Boolean
+        get() = player.serverSideItem.item is ItemBlock
 
     private val SafeClientEvent.shouldTower: Boolean
         get() = !player.onGround
@@ -106,15 +110,18 @@ internal object Scaffold : Module(
             }
 
             placeInfo?.let {
-                lastRotation = getRotationTo(it.hitVec)
+                lastHitVec = it.hitVec
                 swapAndPlace(it)
             }
 
             if (inactiveTicks > 5) {
-                PlayerPacketManager.resetHotbar()
+                resetHotbar()
             } else if (isHoldingBlock) {
-                val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = lastRotation)
-                PlayerPacketManager.addPacket(this@Scaffold, packet)
+                lastHitVec?.let {
+                    sendPlayerPacket {
+                        rotate(getRotationTo(it))
+                    }
+                }
             }
         }
     }
@@ -147,7 +154,7 @@ internal object Scaffold : Module(
 
     private fun SafeClientEvent.swapAndPlace(placeInfo: PlaceInfo) {
         getBlockSlot()?.let { slot ->
-            if (spoofHotbar) PlayerPacketManager.spoofHotbar(slot.hotbarSlot)
+            if (spoofHotbar) spoofHotbar(slot)
             else swapToSlot(slot)
 
             inactiveTicks = 0
