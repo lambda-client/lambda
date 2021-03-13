@@ -7,7 +7,6 @@ import org.kamiblue.client.event.events.RenderRadarEvent
 import org.kamiblue.client.gui.hudgui.HudElement
 import org.kamiblue.client.manager.managers.FriendManager
 import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.setting.GuiConfig.setting
 import org.kamiblue.client.util.EntityUtils
 import org.kamiblue.client.util.EntityUtils.isNeutral
 import org.kamiblue.client.util.EntityUtils.isPassive
@@ -29,9 +28,6 @@ internal object Radar : HudElement(
     description = "Shows entities and new chunks"
 ) {
 
-    private val radarScale by setting("Radar scale", 3f, 1f..10f, 0.1f)
-
-    /* Entity type settings */
     private val players = setting("Players", true)
     private val passive = setting("Passive Mobs", false)
     private val neutral = setting("Neutral Mobs", true)
@@ -45,9 +41,10 @@ internal object Radar : HudElement(
 
     override fun renderHud(vertexHelper: VertexHelper) {
         super.renderHud(vertexHelper)
+
         runSafe {
             drawBorder(vertexHelper)
-            post(RenderRadarEvent(vertexHelper, radius, radarScale)) // Let other modules display radar elements
+            post(RenderRadarEvent(vertexHelper, radius, scale)) // Let other modules display radar elements
             drawEntities(vertexHelper)
             drawLabels()
         }
@@ -65,10 +62,11 @@ internal object Radar : HudElement(
 
         val playerTargets = arrayOf(players.value, true, true) // Enable friends and sleeping
         val mobTargets = arrayOf(true, passive.value, neutral.value, hostile.value) // Enable mobs
-        for (entity in EntityUtils.getTargetList(playerTargets, mobTargets, invisible.value, radius * radarScale, ignoreSelf = true)) {
+
+        for (entity in EntityUtils.getTargetList(playerTargets, mobTargets, invisible.value, radius * scale, ignoreSelf = true)) {
             val entityPosDelta = entity.position.subtract(player.position)
             if (abs(entityPosDelta.y) > 30) continue
-            drawCircleFilled(vertexHelper, Vec2d(entityPosDelta.x.toDouble(), entityPosDelta.z.toDouble()).div(radarScale.toDouble()), 2.5 / radarScale, color = getColor(entity))
+            drawCircleFilled(vertexHelper, Vec2d(entityPosDelta.x.toDouble(), entityPosDelta.z.toDouble()).div(scale.toDouble()), 2.5 / scale, color = getColor(entity))
         }
     }
 
