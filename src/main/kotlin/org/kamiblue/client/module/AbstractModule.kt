@@ -3,9 +3,12 @@ package org.kamiblue.client.module
 import net.minecraft.client.Minecraft
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.event.events.ModuleToggleEvent
+import org.kamiblue.client.gui.clickgui.KamiClickGui
+import org.kamiblue.client.module.modules.client.ClickGUI
 import org.kamiblue.client.setting.configs.NameableConfig
 import org.kamiblue.client.setting.settings.AbstractSetting
 import org.kamiblue.client.setting.settings.SettingRegister
+import org.kamiblue.client.setting.settings.impl.number.IntegerSetting
 import org.kamiblue.client.setting.settings.impl.other.BindSetting
 import org.kamiblue.client.setting.settings.impl.primitive.BooleanSetting
 import org.kamiblue.client.util.Bind
@@ -31,9 +34,11 @@ abstract class AbstractModule(
     private val enabled = BooleanSetting("Enabled", false, { false }).also(::addSetting)
     private val visible = BooleanSetting("Visible", showOnArray).also(::addSetting)
     private val default = BooleanSetting("Default", false, { settingList.isNotEmpty() }).also(::addSetting)
+    val priorityForGui = IntegerSetting("Priority In GUI", 0, 0..1000, 50, { ClickGUI.sortBy.value == ClickGUI.SortByOptions.CUSTOM }, fineStep = 1).also(::addSetting)
+    val clicks = IntegerSetting("Clicks", 0, 0..Int.MAX_VALUE, 1, { false }).also(::addSetting) // Not nice, however easiest way to save it.
 
     val fullSettingList get() = config.getSettings(this)
-    val settingList: List<AbstractSetting<*>> get() = fullSettingList.filter { it != bind && it != enabled && it != visible && it != default }
+    val settingList: List<AbstractSetting<*>> get() = fullSettingList.filter { it != bind && it != enabled && it != visible && it != default && it != clicks }
 
     val isEnabled: Boolean get() = enabled.value || alwaysEnabled
     val isDisabled: Boolean get() = !isEnabled
@@ -51,9 +56,11 @@ abstract class AbstractModule(
 
     fun toggle() {
         enabled.value = !enabled.value
+        if (enabled.value) clicks.value++
     }
 
     fun enable() {
+        clicks.value++
         enabled.value = true
     }
 
@@ -115,6 +122,10 @@ abstract class AbstractModule(
                 MessageSendHelper.sendChatMessage("$chatName Set to defaults!")
             }
         }
+
+        priorityForGui.listeners.add { KamiClickGui.reorderModules() }
+
+        // clicks is deliberately not re-organised when changed.
     }
 
     protected companion object {
