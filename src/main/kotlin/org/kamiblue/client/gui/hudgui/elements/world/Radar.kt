@@ -23,7 +23,7 @@ import org.lwjgl.opengl.GL11.glTranslated
 import kotlin.math.abs
 import kotlin.math.min
 
-object Radar : HudElement(
+internal object Radar : HudElement(
     name = "Radar",
     category = Category.WORLD,
     description = "Shows entities and new chunks"
