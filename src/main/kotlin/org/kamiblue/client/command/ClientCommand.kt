@@ -7,7 +7,7 @@ import net.minecraft.util.math.BlockPos
 import org.kamiblue.capeapi.PlayerProfile
 import org.kamiblue.client.event.ClientExecuteEvent
 import org.kamiblue.client.event.SafeExecuteEvent
-import org.kamiblue.client.gui.hudgui.HudElement
+import org.kamiblue.client.gui.hudgui.AbstractHudElement
 import org.kamiblue.client.module.AbstractModule
 import org.kamiblue.client.module.modules.client.CommandConfig
 import org.kamiblue.client.util.Wrapper
@@ -38,7 +38,7 @@ abstract class ClientCommand(
     @CommandBuilder
     protected inline fun AbstractArg<*>.hudElement(
         name: String,
-        block: BuilderBlock<HudElement>
+        block: BuilderBlock<AbstractHudElement>
     ) {
         arg(HudElementArg(name), block)
     }
@@ -115,7 +115,7 @@ abstract class ClientCommand(
 
     protected companion object {
         val mc = Wrapper.minecraft
-        val prefix: String get() = CommandConfig.prefix.value
+        val prefix: String get() = CommandConfig.prefix
     }
 
 }

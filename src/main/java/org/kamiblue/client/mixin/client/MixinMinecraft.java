@@ -21,6 +21,7 @@ import org.kamiblue.client.mixin.client.accessor.player.AccessorEntityPlayerSP;
 import org.kamiblue.client.mixin.client.accessor.player.AccessorPlayerControllerMP;
 import org.kamiblue.client.module.modules.combat.CrystalAura;
 import org.kamiblue.client.module.modules.player.BlockInteraction;
+import org.kamiblue.client.plugin.PluginError;
 import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,9 +30,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Created by 086 on 17/11/2017.
- */
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft {
 
@@ -162,6 +160,7 @@ public abstract class MixinMinecraft {
         if (KamiGuiUpdateNotification.Companion.getLatest() != null && !KamiGuiUpdateNotification.Companion.isLatest()) {
             Wrapper.getMinecraft().displayGuiScreen(new KamiGuiUpdateNotification());
         }
+        PluginError.Companion.displayErrors();
     }
 
 }
