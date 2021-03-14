@@ -1048,14 +1048,16 @@ internal object HighwayTools : Module(
     private fun SafeClientEvent.doBreak(blockTask: BlockTask, updateOnly: Boolean) {
         val currentBlock = world.getBlockState(blockTask.blockPos).block
 
-        if (ignoreBlocks.contains(currentBlock.registryName.toString())) {
+        if (ignoreBlocks.contains(currentBlock.registryName.toString()) &&
+            !isInsideBlueprintBuild(blockTask.blockPos)) {
             blockTask.updateState(TaskState.DONE)
         }
 
         when (blockTask.block) {
             fillerMat -> {
                 if (world.getBlockState(blockTask.blockPos.up()).block == material ||
-                    !world.isPlaceable(blockTask.blockPos)) {
+                    (!world.isPlaceable(blockTask.blockPos) &&
+                        world.getCollisionBox(blockTask.blockPos) != null)) {
                     blockTask.updateState(TaskState.DONE)
                     return
                 }
@@ -1496,7 +1498,11 @@ internal object HighwayTools : Module(
     }
 
     private fun isInsideBlueprintBuild(pos: BlockPos): Boolean {
-        return blueprint[pos]?.let { it == material } ?: false
+        val mat = when (mode) {
+            Mode.HIGHWAY, Mode.FLAT -> material
+            Mode.TUNNEL -> fillerMat
+        }
+        return blueprint[pos]?.let { it == mat } ?: false
     }
 
     fun printSettings() {
