@@ -72,7 +72,6 @@ import kotlin.random.Random.Default.nextInt
 /**
  * @author Avanatiker
  * @since 20/08/2020
- *
  */
 internal object HighwayTools : Module(
     name = "HighwayTools",
@@ -125,11 +124,13 @@ internal object HighwayTools : Module(
     private val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag")
     private val maxReach by setting("Max Reach", 4.9f, 1.0f..6.0f, 0.1f, { page == Page.BEHAVIOR }, description = "Sets the range of the blueprint. Decrease when tasks fail!")
     private val maxBreaks by setting("Multi Break", 1, 1..5, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Breaks multiple instant breaking blocks per tick in view")
+    private val limitOrigin by setting("Limited by", LimitMode.FIXED, { page == Page.BEHAVIOR }, description = "Changes the origin of limit: Client / Server TPS")
     private val limitFactor by setting("Limit Factor", 1.0f, 0.5f..2.0f, 0.01f, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Factor for TPS which acts as limit for maximum breaks per second.")
+    private val emptyDisable by setting("Disable on no Tools", true, { page == Page.BEHAVIOR }, description = "Disables when no pickaxes are left")
     private val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BEHAVIOR }, description = "EXPERIMENTAL: Attempts to find a support block for placing against")
 
     // stat settings
-    private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat.")
+    private val anonymizeStats by setting("Anonymize", false, { page == Page.STATS }, description = "Censors all coordinates in HUD and Chat")
     private val simpleMovingAverageRange by setting("Moving Average", 60, 5..600, 5, { page == Page.STATS }, description = "Sets the timeframe of the average in seconds")
     private val showSession by setting("Show Session", true, { page == Page.STATS }, description = "Toggles the Session section in HUD")
     private val showLifeTime by setting("Show Lifetime", true, { page == Page.STATS }, description = "Toggles the Lifetime section in HUD")
@@ -161,6 +162,10 @@ internal object HighwayTools : Module(
     @Suppress("UNUSED")
     private enum class RotationMode {
         OFF, SPOOF, VIEW_LOCK
+    }
+
+    private enum class LimitMode {
+        FIXED, SERVER
     }
 
     private enum class DebugMessages {
@@ -301,16 +306,16 @@ internal object HighwayTools : Module(
 
             if (!anonymizeStats) {
                 if (startingDirection.isDiagonal) {
-                    MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.x} ${startingBlockPos.z}§r")
+                    MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a%,d %,d§r".format(startingBlockPos.x, startingBlockPos.z))
 
                     if (abs(startingBlockPos.x) != abs(startingBlockPos.z)) {
                         MessageSendHelper.sendRawChatMessage("    §9> §cYou may have an offset to diagonal highway position!")
                     }
                 } else {
                     if (startingDirection == Direction.NORTH || startingDirection == Direction.SOUTH) {
-                        MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.x}§r")
+                        MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a%,d§r".format(startingBlockPos.x))
                     } else {
-                        MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a${startingBlockPos.z}§r")
+                        MessageSendHelper.sendRawChatMessage("    §9> §7Axis offset: §a%,d§r".format(startingBlockPos.z))
                     }
 
                 }
@@ -345,9 +350,9 @@ internal object HighwayTools : Module(
 
     private fun printDisable() {
         if (info) {
-            MessageSendHelper.sendRawChatMessage("    §9> §7Placed blocks: §a$totalBlocksPlaced§r")
-            MessageSendHelper.sendRawChatMessage("    §9> §7Destroyed blocks: §a$totalBlocksBroken§r")
-            MessageSendHelper.sendRawChatMessage("    §9> §7Distance: §a${startingBlockPos.distanceTo(currentBlockPos).toInt()}§r")
+            MessageSendHelper.sendRawChatMessage("    §9> §7Placed blocks: §a%,d§r".format(totalBlocksPlaced))
+            MessageSendHelper.sendRawChatMessage("    §9> §7Destroyed blocks: §a%,d§r".format(totalBlocksBroken))
+            MessageSendHelper.sendRawChatMessage("    §9> §7Distance: §a%,d§r".format(startingBlockPos.distanceTo(currentBlockPos).toInt()))
         }
     }
 
@@ -420,7 +425,9 @@ internal object HighwayTools : Module(
                 AutoObsidian.isActive() ||
                 (world.difficulty == EnumDifficulty.PEACEFUL &&
                     player.dimension == 1 &&
-                    player.serverBrand.contains("2b2t"))) {
+                    @Suppress("UNNECESSARY_SAFE_CALL")
+                    player.serverBrand?.contains("2b2t") == true
+                    )) {
                 refreshData()
                 return@safeListener
             }
@@ -578,7 +585,7 @@ internal object HighwayTools : Module(
             val zDirection = startingDirection
             val xDirection = zDirection.clockwise(if (zDirection.isDiagonal) 1 else 2)
 
-            for (x in -maxReach.floorToInt()..maxReach.ceilToInt()) {
+            for (x in -maxReach.floorToInt() * 2..maxReach.ceilToInt() * 2) {
                 val thisPos = basePos.add(zDirection.directionVec.multiply(x))
                 if (clearSpace) generateClear(thisPos, xDirection)
                 if (mode == Mode.TUNNEL) {
@@ -594,16 +601,16 @@ internal object HighwayTools : Module(
                     generateBase(thisPos, xDirection)
                 }
             }
-            if (mode == Mode.TUNNEL && !cleanFloor) {
+            if (mode == Mode.TUNNEL && (!cleanFloor || backfill)) {
                 if (startingDirection.isDiagonal) {
-                    for (x in 1..maxReach.floorToInt()) {
-                        blueprint[basePos.add(zDirection.directionVec.multiply(x))] = fillerMat
-                    }
-                } else {
-                    for (x in 1..maxReach.floorToInt()) {
+                    for (x in 0..maxReach.floorToInt()) {
                         val pos = basePos.add(zDirection.directionVec.multiply(x))
                         blueprint[pos] = fillerMat
-                        blueprint[pos.add(startingDirection.clockwise(4).directionVec)] = fillerMat
+                        blueprint[pos.add(startingDirection.clockwise(7).directionVec)] = fillerMat
+                    }
+                } else {
+                    for (x in 0..maxReach.floorToInt()) {
+                        blueprint[basePos.add(zDirection.directionVec.multiply(x))] = fillerMat
                     }
                 }
             }
@@ -1265,14 +1272,11 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.shouldBridge(): Boolean {
-        var containsPlace = false
-        for (task in sortedTasks) {
-            if (task.taskState == TaskState.PLACE) {
-                containsPlace = true
-                if (getNeighbourSequence(task.blockPos, placementSearch, maxReach, true).isNotEmpty()) return false
+        return world.isAirBlock(currentBlockPos.add(startingDirection.directionVec).down()) &&
+            !sortedTasks.any {
+                it.taskState == TaskState.PLACE &&
+                    getNeighbourSequence(it.blockPos, placementSearch, maxReach, true).isNotEmpty()
             }
-        }
-        return containsPlace
     }
 
     private fun SafeClientEvent.getBestTool(blockTask: BlockTask): Slot? {
@@ -1296,14 +1300,15 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask): Boolean {
+        if (emptyDisable && player.allSlots.countItem(Items.DIAMOND_PICKAXE) == 0) {
+            MessageSendHelper.sendChatMessage("$chatName No Diamond Pickaxe was found in inventory, disable")
+            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            disable()
+        }
+
         val slotFrom = getBestTool(blockTask)
 
         return if (slotFrom != null) {
-//            if (emptyDisable && slotFrom.stack.item != Items.DIAMOND_PICKAXE) {
-//                MessageSendHelper.sendChatMessage("$chatName No ${Items.DIAMOND_PICKAXE.registryName} was found in inventory, disable")
-//                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-//                disable()
-//            }
             slotFrom.toHotbarSlotOrNull()?.let {
                 swapToSlot(it)
             } ?: run {
@@ -1426,9 +1431,14 @@ internal object HighwayTools : Module(
                     packetLimiter.size
                 }
 
-                if (size > TpsCalculator.tickRate * limitFactor) {
+                val limit = when (limitOrigin) {
+                    LimitMode.FIXED -> 20.0f
+                    LimitMode.SERVER -> TpsCalculator.tickRate
+                }
+
+                if (size > limit * limitFactor) {
                     if (debugMessages == DebugMessages.ALL) {
-                        MessageSendHelper.sendChatMessage("$chatName Dropped possible instant mine action @ TPS(${TpsCalculator.tickRate}) Actions(${size})")
+                        MessageSendHelper.sendChatMessage("$chatName Dropped possible instant mine action @ TPS($limit) Actions(${size})")
                     }
                     break
                 }
@@ -1463,20 +1473,13 @@ internal object HighwayTools : Module(
 
     /* Dispatches a thread to mine any non-netherrack blocks generically */
     private fun mineBlockNormal(blockTask: BlockTask, side: EnumFacing) {
+        if (blockTask.taskState == TaskState.BREAK) {
+            blockTask.updateState(TaskState.BREAKING)
+        }
+
         defaultScope.launch {
             delay(20L)
-            if (blockTask.taskState == TaskState.BREAK) {
-                blockTask.updateState(TaskState.BREAKING)
-                onMainThreadSafe {
-                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockTask.blockPos, side))
-                    player.swingArm(EnumHand.MAIN_HAND)
-                }
-            } else {
-                onMainThreadSafe {
-                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockTask.blockPos, side))
-                    player.swingArm(EnumHand.MAIN_HAND)
-                }
-            }
+            sendMiningPackets(blockTask.blockPos, side)
         }
     }
 
