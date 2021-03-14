@@ -36,7 +36,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.event.events.RenderWorldEvent
-import org.kamiblue.client.manager.managers.PlayerPacketManager
+import org.kamiblue.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
 import org.kamiblue.client.module.modules.client.Hud.primaryColor
@@ -50,12 +50,6 @@ import org.kamiblue.client.process.PauseProcess
 import org.kamiblue.client.setting.settings.impl.collection.CollectionSetting
 import org.kamiblue.client.util.*
 import org.kamiblue.client.util.EntityUtils.flooredPosition
-import org.kamiblue.client.util.WorldUtils.blackList
-import org.kamiblue.client.util.WorldUtils.getBetterNeighbour
-import org.kamiblue.client.util.WorldUtils.getMiningSide
-import org.kamiblue.client.util.WorldUtils.isLiquid
-import org.kamiblue.client.util.WorldUtils.isPlaceable
-import org.kamiblue.client.util.WorldUtils.shulkerList
 import org.kamiblue.client.util.color.ColorHolder
 import org.kamiblue.client.util.graphics.ESPRenderer
 import org.kamiblue.client.util.graphics.font.TextComponent
@@ -69,6 +63,7 @@ import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.math.isInSight
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.*
+import org.kamiblue.client.util.world.*
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
 import kotlin.math.abs
@@ -506,8 +501,9 @@ internal object HighwayTools : Module(
 
         when (interacting) {
             RotationMode.SPOOF -> {
-                val packet = PlayerPacketManager.PlayerPacket(rotating = true, rotation = rotation)
-                PlayerPacketManager.addPacket(this@HighwayTools, packet)
+                sendPlayerPacket {
+                    rotate(rotation)
+                }
             }
             RotationMode.VIEW_LOCK -> {
                 player.rotationYaw = rotation.x
@@ -543,7 +539,7 @@ internal object HighwayTools : Module(
             blockState.block == block -> {
                 addTaskToDone(pos, block)
             }
-            isPlaceable(pos, true) -> {
+            world.isPlaceable(pos, true) -> {
                 if (checkSupport(pos, block)) {
                     addTaskToDone(pos, block)
                 } else {
@@ -787,7 +783,7 @@ internal object HighwayTools : Module(
             it.taskState == TaskState.DONE
         } ?: run {
             if (solid) {
-                !isPlaceable(pos, true)
+                !world.isPlaceable(pos, true)
             } else {
                 world.isAirBlock(pos)
             }
@@ -1052,7 +1048,7 @@ internal object HighwayTools : Module(
         when (blockTask.block) {
             fillerMat -> {
                 if (world.getBlockState(blockTask.blockPos.up()).block == material ||
-                    !isPlaceable(blockTask.blockPos)) {
+                    !world.isPlaceable(blockTask.blockPos)) {
                     blockTask.updateState(TaskState.DONE)
                     return
                 }
@@ -1112,7 +1108,7 @@ internal object HighwayTools : Module(
 
         if ((blockTask.taskState == TaskState.LIQUID_FLOW ||
                 blockTask.taskState == TaskState.LIQUID_SOURCE) &&
-            !isLiquid(blockTask.blockPos)) {
+            !world.isLiquid(blockTask.blockPos)) {
             blockTask.updateState(TaskState.DONE)
             return
         }
@@ -1122,7 +1118,7 @@ internal object HighwayTools : Module(
                 if (currentBlock == material) {
                     blockTask.updateState(TaskState.PLACED)
                     return
-                } else if (currentBlock != Blocks.AIR && !isLiquid(blockTask.blockPos)) {
+                } else if (currentBlock != Blocks.AIR && !world.isLiquid(blockTask.blockPos)) {
                     blockTask.updateState(TaskState.BREAK)
                     return
                 }
@@ -1139,7 +1135,7 @@ internal object HighwayTools : Module(
                 }
             }
             Blocks.AIR -> {
-                if (!isLiquid(blockTask.blockPos)) {
+                if (!world.isLiquid(blockTask.blockPos)) {
                     if (currentBlock != Blocks.AIR) {
                         blockTask.updateState(TaskState.BREAK)
                     } else {
@@ -1151,7 +1147,7 @@ internal object HighwayTools : Module(
         }
 
         if (!updateOnly) {
-            if (!isPlaceable(blockTask.blockPos)) {
+            if (!world.isPlaceable(blockTask.blockPos)) {
                 if (debugMessages == DebugMessages.ALL) {
                     if (!anonymizeStats) {
                         MessageSendHelper.sendChatMessage("$chatName Invalid place position: ${blockTask.blockPos}. Removing task")
@@ -1196,9 +1192,9 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.placeBlock(blockTask: BlockTask) {
         val neighbours = if (illegalPlacements) {
-            getBetterNeighbour(blockTask.blockPos, placementSearch, maxReach)
+            getNeighbourSequence(blockTask.blockPos, placementSearch, maxReach)
         } else {
-            getBetterNeighbour(blockTask.blockPos, placementSearch, maxReach, true)
+            getNeighbourSequence(blockTask.blockPos, placementSearch, maxReach, true)
         }
 
         when (neighbours.size) {
@@ -1214,22 +1210,23 @@ internal object HighwayTools : Module(
                 return
             }
             1 -> {
-                lastHitVec = WorldUtils.getHitVec(neighbours.last().second, neighbours.last().first)
+                val last = neighbours.last()
+                lastHitVec = getHitVec(last.pos, last.side)
                 rotateTimer.reset()
 
-                placeBlockNormal(blockTask, neighbours.last())
+                placeBlockNormal(blockTask, last.pos, last.side)
             }
             else -> {
                 neighbours.forEach {
-                    addTaskToPending(it.second, TaskState.PLACE, fillerMat)
+                    addTaskToPending(it.pos, TaskState.PLACE, fillerMat)
                 }
             }
         }
     }
 
-    private fun SafeClientEvent.placeBlockNormal(blockTask: BlockTask, pair: Pair<EnumFacing, BlockPos>) {
-        val hitVecOffset = WorldUtils.getHitVecOffset(pair.first)
-        val currentBlock = world.getBlockState(pair.second).block
+    private fun SafeClientEvent.placeBlockNormal(blockTask: BlockTask, placePos: BlockPos, side: EnumFacing) {
+        val hitVecOffset = getHitVecOffset(side)
+        val currentBlock = world.getBlockState(placePos).block
 
         waitTicks = if (dynamicDelay) {
             placeDelay + extraPlaceDelay
@@ -1238,19 +1235,19 @@ internal object HighwayTools : Module(
         }
         blockTask.updateState(TaskState.PENDING_PLACE)
 
-        if (currentBlock in blackList) {
+        if (currentBlock in blockBlacklist) {
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
         }
 
         defaultScope.launch {
             delay(20L)
             onMainThreadSafe {
-                val placePacket = CPacketPlayerTryUseItemOnBlock(pair.second, pair.first, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+                val placePacket = CPacketPlayerTryUseItemOnBlock(placePos, side, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
                 connection.sendPacket(placePacket)
                 player.swingArm(EnumHand.MAIN_HAND)
             }
 
-            if (currentBlock in blackList) {
+            if (currentBlock in blockBlacklist) {
                 delay(20L)
                 onMainThreadSafe {
                     connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
@@ -1272,7 +1269,7 @@ internal object HighwayTools : Module(
         for (task in sortedTasks) {
             if (task.taskState == TaskState.PLACE) {
                 containsPlace = true
-                if (getBetterNeighbour(task.blockPos, placementSearch, maxReach, true).isNotEmpty()) return false
+                if (getNeighbourSequence(task.blockPos, placementSearch, maxReach, true).isNotEmpty()) return false
             }
         }
         return containsPlace
@@ -1364,23 +1361,23 @@ internal object HighwayTools : Module(
         val blockState = world.getBlockState(blockTask.blockPos)
 
         if (blockState.block == Blocks.FIRE) {
-            val sides = getBetterNeighbour(blockTask.blockPos, 1, maxReach, true)
+            val sides = getNeighbourSequence(blockTask.blockPos, 1, maxReach, true)
             if (sides.isEmpty()) {
                 blockTask.updateState(TaskState.PLACE)
                 return
             }
 
-            lastHitVec = WorldUtils.getHitVec(sides.last().second, sides.last().first)
+            lastHitVec = getHitVec(sides.last().pos, sides.last().side)
             rotateTimer.reset()
 
-            mineBlockNormal(blockTask, sides.last().first)
+            mineBlockNormal(blockTask, sides.last().side)
         } else {
             val side = getMiningSide(blockTask.blockPos) ?: run {
                 blockTask.onStuck()
                 return
             }
 
-            lastHitVec = WorldUtils.getHitVec(blockTask.blockPos, side)
+            lastHitVec = getHitVec(blockTask.blockPos, side)
             rotateTimer.reset()
 
             if (blockState.getPlayerRelativeBlockHardness(player, world, blockTask.blockPos) > 2.8) {
@@ -1789,7 +1786,9 @@ internal object HighwayTools : Module(
 
         fun prepareSortInfo(event: SafeClientEvent, eyePos: Vec3d) {
             sides = when (taskState) {
-                TaskState.PLACE -> event.getBetterNeighbour(blockPos, placementSearch, maxReach, true).size
+                TaskState.PLACE -> {
+                    event.getNeighbourSequence(blockPos, placementSearch, maxReach, true).size
+                }
                 //TaskState.BREAK ->
                 else -> 0
             }
