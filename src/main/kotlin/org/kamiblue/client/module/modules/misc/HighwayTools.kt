@@ -14,6 +14,7 @@ import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
+import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemBlock
 import net.minecraft.item.ItemPickaxe
@@ -787,7 +788,7 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.isTaskDoneOrNull(pos: BlockPos, solid: Boolean) =
         (pendingTasks[pos] ?: doneTasks[pos])?.let {
-            it.taskState == TaskState.DONE
+            it.taskState == TaskState.DONE && world.getBlockState(pos).block != Blocks.PORTAL
         } ?: run {
             if (solid) {
                 !world.isPlaceable(pos, true)
@@ -917,7 +918,16 @@ internal object HighwayTools : Module(
                         }
                     }
 
-                    if (dynamicDelay && blockTask.taskState == TaskState.PLACE && extraPlaceDelay < 10) extraPlaceDelay += 1
+                    if (blockTask.taskState == TaskState.PLACE) {
+                        if (dynamicDelay && extraPlaceDelay < 10) extraPlaceDelay += 1
+
+                        // is supposed to click the itemstack in selected slot
+//                        player.hotbarSlots.firstByStack {
+//                            player.heldItemMainhand == it
+//                        }?.let {
+//                            playerController.windowClick(player.openContainer.windowId, it.slotIndex, 0, ClickType.PICKUP, player)
+//                        }
+                    }
 
                     refreshData()
                     return false
@@ -1571,7 +1581,7 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.gatherLifeTime(displayText: TextComponent) {
-        val matMined = StatList.getObjectUseStats(material.item)?.let {
+        val matPlaced = StatList.getObjectUseStats(material.item)?.let {
             player.statFileWriter.readStat(it)
         } ?: 0
         val enderMined = StatList.getBlockStats(Blocks.ENDER_CHEST)?.let {
@@ -1584,14 +1594,14 @@ internal object HighwayTools : Module(
             player.statFileWriter.readStat(it)
         } ?: 0
 
-        if (matMined + enderMined + netherrackMined + pickaxeBroken > 0) {
+        if (matPlaced + enderMined + netherrackMined + pickaxeBroken > 0) {
             displayText.addLine("Lifetime", primaryColor)
         }
 
         if (mode == Mode.HIGHWAY || mode == Mode.FLAT) {
-            if (matMined > 0) {
+            if (matPlaced > 0) {
                 displayText.add("    ${material.localizedName} placed:", primaryColor)
-                displayText.addLine("%,d".format(matMined), secondaryColor)
+                displayText.addLine("%,d".format(matPlaced), secondaryColor)
             }
 
             if (enderMined > 0) {

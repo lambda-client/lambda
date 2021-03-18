@@ -55,8 +55,12 @@ private fun SafeClientEvent.getNeighbourSequence(
             val newSequence = ArrayList(sequence)
             newSequence.add(placeInfo)
 
-            return getNeighbourSequence(eyePos, newPos, attempts - 1, range, visibleSideCheck, sides, newSequence, toIgnore)
-                ?: continue
+            val neigh = getNeighbourSequence(eyePos, newPos, attempts - 1, range, visibleSideCheck, sides, newSequence, toIgnore)
+            if (neigh.isNotEmpty()) {
+                return neigh
+            } else {
+                continue
+            }
         }
     }
 
