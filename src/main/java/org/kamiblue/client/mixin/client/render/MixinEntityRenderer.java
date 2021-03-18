@@ -12,7 +12,6 @@ import org.kamiblue.client.module.modules.player.BlockInteraction;
 import org.kamiblue.client.module.modules.render.AntiFog;
 import org.kamiblue.client.module.modules.render.AntiOverlay;
 import org.kamiblue.client.module.modules.render.CameraClip;
-import org.kamiblue.client.module.modules.render.NoHurtCam;
 import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -38,9 +37,9 @@ public class MixinEntityRenderer {
     }
 
     @Inject(method = "displayItemActivation", at = @At(value = "HEAD"), cancellable = true)
-    public void displayItemActivation(ItemStack stack, CallbackInfo callbackInfo) {
+    public void displayItemActivation(ItemStack stack, CallbackInfo ci) {
         if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getTotems().getValue()) {
-            callbackInfo.cancel();
+            ci.cancel();
         }
     }
 
@@ -52,8 +51,10 @@ public class MixinEntityRenderer {
     }
 
     @Inject(method = "hurtCameraEffect", at = @At("HEAD"), cancellable = true)
-    public void hurtCameraEffect(float ticks, CallbackInfo info) {
-        if (NoHurtCam.INSTANCE.isEnabled()) info.cancel();
+    public void hurtCameraEffect(float ticks, CallbackInfo ci) {
+        if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getHurtCamera().getValue()) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "getMouseOver", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPositionEyes(F)Lnet/minecraft/util/math/Vec3d;", shift = At.Shift.BEFORE), cancellable = true)
