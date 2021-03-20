@@ -1059,7 +1059,11 @@ internal object HighwayTools : Module(
         val currentBlock = world.getBlockState(blockTask.blockPos).block
 
         if (ignoreBlocks.contains(currentBlock.registryName.toString()) &&
-            !isInsideBlueprintBuild(blockTask.blockPos)) {
+            !isInsideBlueprintBuild(blockTask.blockPos) ||
+            currentBlock == Blocks.PORTAL ||
+            currentBlock == Blocks.END_PORTAL ||
+            currentBlock == Blocks.END_PORTAL_FRAME ||
+            currentBlock == Blocks.BEDROCK) {
             blockTask.updateState(TaskState.DONE)
         }
 
