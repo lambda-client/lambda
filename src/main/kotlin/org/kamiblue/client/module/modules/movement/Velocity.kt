@@ -26,7 +26,7 @@ internal object Velocity : Module(
     name = "Velocity",
     alias = arrayOf("Knockback", "AntiKnockBack", "NoPush"),
     category = Category.MOVEMENT,
-    description = "Modify player velocity",
+    description = "Modify player knockback by altering velocity",
 ) {
     private val horizontal by setting("Horizontal", 0f, -5f..5f, 0.05f)
     private val vertical by setting("Vertical", 0f, -5f..5f, 0.05f)
