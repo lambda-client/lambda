@@ -595,7 +595,7 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.refreshData(originPos: BlockPos = currentBlockPos) {
         moveState = MovementState.RUNNING
-//        pendingTasks.clear()
+        pendingTasks.clear()
         doneTasks.clear()
         inventoryTasks.clear()
         lastTask = null
@@ -1837,6 +1837,7 @@ internal object HighwayTools : Module(
         return if (player.inventorySlots.firstEmpty() == null) {
             getEjectSlot()?.let {
                 throwAllInSlot(it)
+//                connection.sendPacket(CPacketCloseWindow(0))
             }
             false
         } else {
@@ -1864,6 +1865,7 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.updateCurrentSlot() {
         clickSlot(0, player.inventory.currentItem + 36, 0, ClickType.PICKUP)
+//        connection.sendPacket(CPacketCloseWindow(0))
         runBlocking {
             onMainThreadSafe { playerController.updateController() }
         }
