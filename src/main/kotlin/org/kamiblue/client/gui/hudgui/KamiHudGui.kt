@@ -78,7 +78,7 @@ object KamiHudGui : AbstractKamiGui<HudSettingWindow, AbstractHudElement>() {
     }
 
     override fun keyTyped(typedChar: Char, keyCode: Int) {
-        if (keyCode == Keyboard.KEY_ESCAPE || HudEditor.bind.value.isDown(keyCode) && !searching) {
+        if (keyCode == Keyboard.KEY_ESCAPE || HudEditor.bind.value.isDown(keyCode) && !searching && settingWindow?.listeningChild == null) {
             HudEditor.disable()
         } else {
             super.keyTyped(typedChar, keyCode)
