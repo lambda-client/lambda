@@ -166,7 +166,7 @@ internal object InventoryManager : Module(
         moveToSlot(slotFrom, slotTo)
     }
 
-    fun SafeClientEvent.eject() {
+    private fun SafeClientEvent.eject() {
         getEjectSlot()?.let {
             throwAllInSlot(it)
         }
