@@ -23,7 +23,8 @@ class Bind(
     val isEmpty get() = key !in 1..255
 
     fun isDown(eventKey: Int): Boolean {
-        return !isEmpty
+        return eventKey != 0
+            && !isEmpty
             && key == eventKey
             && synchronized(this) { modifierKeys.all { isModifierKeyDown(eventKey, it) } }
     }
