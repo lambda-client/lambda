@@ -24,6 +24,7 @@ internal object ClickGUI : Module(
     val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f)
     val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f)
     val showModifiedInBold by setting("Show Modified In Bold", false, description = "Display modified settings in a bold font")
+    private val resetComponents = setting("Reset Positions", false)
     val sortBy = setting("Sort By", SortByOptions.ALPHABETICALLY)
 
     private var prevScale = scaleSetting.value / 100.0f
@@ -62,6 +63,12 @@ internal object ClickGUI : Module(
         }
 
         sortBy.listeners.add { KamiClickGui.reorderModules() }
+
+        resetComponents.listeners.add {
+            KamiClickGui.windowList.forEach {
+                it.resetPosition()
+            }
+        }
     }
 
     private fun getRoundedScale(): Float {

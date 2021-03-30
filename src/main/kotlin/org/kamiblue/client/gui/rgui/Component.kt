@@ -31,14 +31,18 @@ open class Component(
     protected val dockingHSetting = setting("Docking H", HAlign.LEFT)
     protected val dockingVSetting = setting("Docking V", VAlign.TOP)
 
-    var width by setting("Width", widthIn, 0.0f..69420.911f, 0.1f, { false }, { _, it -> it.coerceIn(minWidth, max(scaledDisplayWidth, minWidth)) })
-    var height by setting("Height", heightIn, 0.0f..69420.911f, 0.1f, { false }, { _, it -> it.coerceIn(minHeight, max(scaledDisplayHeight, minHeight)) })
+    private var widthSetting = setting("Width", widthIn, 0.0f..69420.911f, 0.1f, { false }, { _, it -> it.coerceIn(minWidth, max(scaledDisplayWidth, minWidth)) })
+    private var heightSetting = setting("Height", heightIn, 0.0f..69420.911f, 0.1f, { false }, { _, it -> it.coerceIn(minHeight, max(scaledDisplayHeight, minHeight)) })
 
-    protected var relativePosX by setting("Pos X", posXIn, -69420.911f..69420.911f, 0.1f, { false },
+    private var relativePosXSetting = setting("Pos X", posXIn, -69420.911f..69420.911f, 0.1f, { false },
         { _, it -> if (this is WindowComponent && KamiMod.ready) absToRelativeX(relativeToAbsX(it).coerceIn(1.0f, max(scaledDisplayWidth - width - 1.0f, 1.0f))) else it })
-    protected var relativePosY by setting("Pos Y", posYIn, -69420.911f..69420.911f, 0.1f, { false },
+    private var relativePosYSetting = setting("Pos Y", posYIn, -69420.911f..69420.911f, 0.1f, { false },
         { _, it -> if (this is WindowComponent && KamiMod.ready) absToRelativeY(relativeToAbsY(it).coerceIn(1.0f, max(scaledDisplayHeight - height - 1.0f, 1.0f))) else it })
 
+    var width by widthSetting
+    var height by heightSetting
+    var relativePosX by relativePosXSetting
+    var relativePosY by relativePosYSetting
     var dockingH by dockingHSetting
     var dockingV by dockingVSetting
 
@@ -129,6 +133,13 @@ open class Component(
         NONE(""),
         CLICK_GUI("click_gui"),
         HUD_GUI("hud_gui")
+    }
+
+    fun resetPosition() {
+        widthSetting.resetValue()
+        heightSetting.resetValue()
+        relativePosXSetting.resetValue()
+        relativePosYSetting.resetValue()
     }
 
 }
