@@ -49,5 +49,5 @@ sed -i "s|jar_url:.*|jar_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_MAJOR/re
 sed -i "s|jar_sig_url:.*|jar_sig_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_MAJOR/releases/download/$3/kamiblue-$3.jar.sig|g" _config.yml
 sed -i "s|beta_jar_url:.*|beta_jar_url: https://github.com/$KAMI_OWNER/$KAMI_REPO_NIGHTLY/releases/download/$2/$1|g" _config.yml
 
-git commit -am "[bump] Release $2" || exit $?
+git commit -am "bump: Release $2" || exit $?
 git push origin master
