@@ -16,6 +16,7 @@ import java.nio.channels.Channels
 object WebUtils {
     var isInternetDown = false; private set
 
+    // TODO: Make a manager for this across modules
     fun update() {
         isInternetDown = try {
             Socket().use { socket ->

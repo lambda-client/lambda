@@ -31,6 +31,7 @@ internal object Queue2B2T : LabelHud(
         safeListener<TickEvent.ClientTickEvent> {
             if (dataUpdateTimer.tick(15L)) {
                 updateQueueData()
+                WebUtils.update()
             }
         }
     }
@@ -44,11 +45,16 @@ internal object Queue2B2T : LabelHud(
             hasShownWarning.value = true
         }
 
-        displayText.add("Priority: ", primaryColor)
-        displayText.add("${queueData.priority}", secondaryColor)
-        displayText.add("Regular: ", primaryColor)
-        displayText.addLine("${queueData.regular}", secondaryColor)
-        displayText.add("Last updated ${queueData.getLastUpdate()} ago", primaryColor)
+        if (WebUtils.isInternetDown) {
+            displayText.addLine("Cannot connect to 2bqueue.info", primaryColor)
+            displayText.add("Make sure your internet is working!", primaryColor)
+        } else {
+            displayText.add("Priority: ", primaryColor)
+            displayText.add("${queueData.priority}", secondaryColor)
+            displayText.add("Regular: ", primaryColor)
+            displayText.addLine("${queueData.regular}", secondaryColor)
+            displayText.add(queueData.getLastUpdate(), primaryColor)
+        }
     }
 
     private fun updateQueueData() {
@@ -58,7 +64,7 @@ internal object Queue2B2T : LabelHud(
         } catch (e: Exception) {
             KamiMod.LOG.debug("Exception in ${this.javaClass.simpleName}", e)
             return
-        }
+        } ?: return // Gson is not null-safe
 
         // Instead of overwriting the object, copy the values
         // This is because of the lastUpdateCache
