@@ -27,6 +27,14 @@ internal object Queue2B2T : LabelHud(
     private val dataUpdateTimer = TickTimer(TimeUnit.SECONDS)
 
     private val hasShownWarning = setting("Has Shown Warning", false, { false })
+    private val show by setting("Show", Show.BOTH)
+
+    private enum class Show {
+        BOTH, PRIORITY, REGULAR
+    }
+
+    private val showPriority get() = show == Show.BOTH || show == Show.PRIORITY
+    private val showRegular get() = show == Show.BOTH || show == Show.REGULAR
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
@@ -49,10 +57,17 @@ internal object Queue2B2T : LabelHud(
             displayText.addLine("Cannot connect to 2bqueue.info", primaryColor)
             displayText.add("Make sure your internet is working!", primaryColor)
         } else {
-            displayText.add("Priority: ", primaryColor)
-            displayText.add("${queueData.priority}", secondaryColor)
-            displayText.add("Regular: ", primaryColor)
-            displayText.addLine("${queueData.regular}", secondaryColor)
+            if (showPriority) {
+                displayText.add("Priority: ", primaryColor)
+                displayText.add("${queueData.priority}", secondaryColor)
+            }
+
+            if (showRegular) {
+                displayText.add("Regular: ", primaryColor)
+                displayText.add("${queueData.regular}", secondaryColor)
+            }
+
+            displayText.addLine("", primaryColor)
             displayText.add("Last updated ${queueData.getLastUpdate()} ago", primaryColor)
         }
     }
