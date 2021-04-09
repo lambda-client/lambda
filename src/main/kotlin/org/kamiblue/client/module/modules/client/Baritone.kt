@@ -79,7 +79,6 @@ internal object Baritone : Module(
             it.allowParkour.value = allowParkour.value
             it.allowParkourPlace.value = allowParkourPlace.value
             it.enterPortal.value = !avoidPortals.value
-            it.mapArtMode.value = mapArtMode.value
             it.renderGoal.value = renderGoal.value
             it.failureTimeoutMS.value = failureTimeout.value * 1000L
             it.blockReachDistance.value = blockReachDistance.value
