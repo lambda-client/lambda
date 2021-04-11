@@ -6,6 +6,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.KamiMod
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.gui.hudgui.LabelHud
+import org.kamiblue.client.manager.managers.NetworkManager
 import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.TimeUnit
 import org.kamiblue.client.util.WebUtils
@@ -26,6 +27,14 @@ internal object Queue2B2T : LabelHud(
     private val dataUpdateTimer = TickTimer(TimeUnit.SECONDS)
 
     private val hasShownWarning = setting("Has Shown Warning", false, { false })
+    private val show by setting("Show", Show.BOTH)
+
+    private enum class Show {
+        BOTH, PRIORITY, REGULAR
+    }
+
+    private val showPriority get() = show == Show.BOTH || show == Show.PRIORITY
+    private val showRegular get() = show == Show.BOTH || show == Show.REGULAR
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
@@ -39,16 +48,28 @@ internal object Queue2B2T : LabelHud(
         if (!hasShownWarning.value) {
             MessageSendHelper.sendWarningMessage(
                 "This module uses an external API, 2bqueue.info, which is operated by Tycrek at the time of writing." +
-                "If you do not trust this external API / have not verified the safety yourself, disable this HUD component."
+                    "If you do not trust this external API / have not verified the safety yourself, disable this HUD component."
             )
             hasShownWarning.value = true
         }
 
-        displayText.add("Priority: ", primaryColor)
-        displayText.add("${queueData.priority}", secondaryColor)
-        displayText.add("Regular: ", primaryColor)
-        displayText.addLine("${queueData.regular}", secondaryColor)
-        displayText.add("Last updated ${queueData.getLastUpdate()} ago", primaryColor)
+        if (NetworkManager.isOffline) {
+            displayText.addLine("Cannot connect to 2bqueue.info", primaryColor)
+            displayText.add("Make sure your internet is working!", primaryColor)
+        } else {
+            if (showPriority) {
+                displayText.add("Priority: ", primaryColor)
+                displayText.add("${queueData.priority}", secondaryColor)
+            }
+
+            if (showRegular) {
+                displayText.add("Regular: ", primaryColor)
+                displayText.add("${queueData.regular}", secondaryColor)
+            }
+
+            displayText.addLine("", primaryColor)
+            displayText.add("Last updated ${queueData.getLastUpdate()} ago", primaryColor)
+        }
     }
 
     private fun updateQueueData() {
@@ -58,7 +79,7 @@ internal object Queue2B2T : LabelHud(
         } catch (e: Exception) {
             KamiMod.LOG.debug("Exception in ${this.javaClass.simpleName}", e)
             return
-        }
+        } ?: return // Gson is not null-safe
 
         // Instead of overwriting the object, copy the values
         // This is because of the lastUpdateCache
