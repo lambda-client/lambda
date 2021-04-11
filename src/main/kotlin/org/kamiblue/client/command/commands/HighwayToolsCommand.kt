@@ -2,6 +2,7 @@ package org.kamiblue.client.command.commands
 
 import org.kamiblue.client.command.ClientCommand
 import org.kamiblue.client.module.modules.misc.HighwayTools
+import org.kamiblue.client.util.math.CoordinateConverter.asString
 import org.kamiblue.client.util.text.MessageSendHelper
 
 object HighwayToolsCommand : ClientCommand(
@@ -35,6 +36,37 @@ object HighwayToolsCommand : ClientCommand(
                     } else {
                         MessageSendHelper.sendChatMessage("&7${blockArg.value.localizedName}&r is not yet ignored.")
                     }
+                }
+            }
+        }
+
+        literal("from", "start") {
+            blockPos("position") { blockPosArg ->
+                execute("Sets starting coordinates") {
+                    // ToDo: Make starting position for next instance
+//                    HighwayTools.startingPos = blockPosArg.value
+                }
+            }
+        }
+
+        literal("to", "stop") {
+            blockPos("position") { blockPosArg ->
+                execute("Sets stopping coordinates and starts bot") {
+                    if (HighwayTools.isEnabled) {
+                        MessageSendHelper.sendChatMessage("Run this command when the bot is not running")
+                    } else {
+                        HighwayTools.targetBlockPos = blockPosArg.value
+                        MessageSendHelper.sendChatMessage("Started HighwayTools with target @(${blockPosArg.value.asString()})")
+                        HighwayTools.enable()
+                    }
+                }
+            }
+        }
+
+        literal("distance") {
+            int("distance") { distanceArg ->
+                execute("Set the target distance until the bot stops") {
+                    HighwayTools.distancePending = distanceArg.value
                 }
             }
         }
