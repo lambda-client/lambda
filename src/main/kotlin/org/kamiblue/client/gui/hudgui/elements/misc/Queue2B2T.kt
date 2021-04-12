@@ -77,7 +77,6 @@ internal object Queue2B2T : LabelHud(
             val json = WebUtils.getUrlContents(apiUrl)
             gson.fromJson(json, QueueData::class.java)
         } catch (e: Exception) {
-            KamiMod.LOG.debug("Exception in ${this.javaClass.simpleName}", e)
             return
         } ?: return // Gson is not null-safe
 
