@@ -50,11 +50,4 @@ public abstract class MixinEntity {
         if (Freecam.handleTurn(casted, yaw, pitch, ci)) return;
         ViewLock.handleTurn(casted, yaw, pitch, ci);
     }
-
-    @Inject(method = "getBrightnessForRender", at = @At("HEAD"), cancellable = true)
-    public void getBrightnessForRender(CallbackInfoReturnable<Integer> cir) {
-        if (Xray.INSTANCE.isEnabled()) {
-            cir.setReturnValue(15);
-        }
-    }
 }
