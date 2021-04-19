@@ -67,9 +67,13 @@
     "render.MixinRenderPlayer",
     "render.MixinTileEntityRendererDispatcher",
     "render.MixinTileEntitySignRenderer",
+    "render.MixinTileRendererDispatcher",
     "render.MixinViewFrustum",
     "render.MixinVisGraph",
+    "world.MixinBlock",
+    "world.MixinBlockFluidRenderer",
     "world.MixinBlockLiquid",
+    "world.MixinBlockModelRenderer",
     "world.MixinBlockSoulSand",
     "world.MixinBlockWeb",
     "world.MixinWorld"
