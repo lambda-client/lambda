@@ -32,8 +32,9 @@ internal object AutoLog : Module(
     alwaysListening = true
 ) {
     private val disableMode by setting("Disable Mode", DisableMode.ALWAYS)
-    private val health by setting("Health", 10, 6..36, 1)
+    private val health by setting("Health", true)
     private val crystals by setting("Crystals", false)
+    private val healthAmount by setting("Min Health", 10, 6..36, 1, { health || crystals }, description = "Applies to both the Health and Crystals option")
     private val creeper by setting("Creepers", true)
     private val creeperDistance by setting("Creeper Distance", 5, 1..10, 1, { creeper })
     private val totem by setting("Totem", false)
@@ -52,7 +53,7 @@ internal object AutoLog : Module(
             if (isDisabled || it.phase != TickEvent.Phase.END) return@safeListener
 
             when {
-                player.scaledHealth < health -> log(HEALTH)
+                health && player.scaledHealth < healthAmount -> log(HEALTH, num = player.scaledHealth)
                 totem && checkTotems() -> log(TOTEM)
                 crystals && checkCrystals() -> log(END_CRYSTAL)
                 creeper && checkCreeper() -> {
@@ -73,7 +74,7 @@ internal object AutoLog : Module(
 
     private fun SafeClientEvent.checkCrystals(): Boolean {
         val maxSelfDamage = CombatManager.crystalMap.values.maxOfOrNull { it.selfDamage } ?: 0.0f
-        return player.scaledHealth - maxSelfDamage < health
+        return player.scaledHealth - maxSelfDamage < healthAmount
     }
 
     private fun SafeClientEvent.checkCreeper(): Boolean {
@@ -99,8 +100,8 @@ internal object AutoLog : Module(
         return false
     }
 
-    private fun SafeClientEvent.log(reason: Reasons, additionalInfo: String = "") {
-        val reasonText = getReason(reason, additionalInfo)
+    private fun SafeClientEvent.log(reason: Reasons, additionalInfo: String = "", num: Float = 0.0f) {
+        val reasonText = getReason(reason, additionalInfo, num)
         val screen = getScreen() // do this before disconnecting
 
         mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
@@ -116,12 +117,14 @@ internal object AutoLog : Module(
         GuiMultiplayer(GuiMainMenu())
     }
 
-    private fun getReason(reason: Reasons, additionalInfo: String) = when (reason) {
-        HEALTH -> arrayOf("Health went below ${health}!")
+    private fun getReason(reason: Reasons, additionalInfo: String, num: Float) = when (reason) {
+        HEALTH -> arrayOf("Health went below ${healthAmount}!")
         TOTEM -> arrayOf("Less then ${totemMessage(minTotems)}!")
         CREEPER -> arrayOf("Creeper came near you!", "It was $additionalInfo blocks away")
         PLAYER -> arrayOf("Player $additionalInfo came within $playerDistance blocks range!")
-        END_CRYSTAL -> arrayOf("An end crystal was placed too close to you!", "It would have done more then $health damage!")
+        END_CRYSTAL -> arrayOf("An end crystal was placed too close to you!",
+            "It would have done more than ${MathUtils.round(num - healthAmount, 1)} damage!"
+        )
     }
 
     private enum class Reasons {
