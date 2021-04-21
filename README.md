@@ -4,9 +4,13 @@
 
 ## 2021/04/20 This project is now archived indefinitely.
 
+All pull requests, issues or any other activity on the repositories of all KAMI Blue organizations will be ignored completely.
+
+Finally this project is in the bin 🗑️
+
 ## Contributing
 
-Please go to [kamiblue.org/contributing](https://kamiblue.org/contributing) for building / contributing instructions.
+Please go to [kamiblue.org/contributing](https://kamiblue.org/contributing) for building instructions.
 
 ## Thank you
 
