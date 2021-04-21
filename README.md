@@ -2,7 +2,7 @@
 [![build](https://github.com/kami-blue/client/workflows/gradle_build/badge.svg)](https://github.com/kami-blue/client/actions)
 [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
 
-## 2021/04/20 This project is now archived indefinitely.
+## 2021/04/21 This project is now archived indefinitely.
 
 All pull requests, issues or any other activity on the repositories of all KAMI Blue organizations will be ignored completely.
 
