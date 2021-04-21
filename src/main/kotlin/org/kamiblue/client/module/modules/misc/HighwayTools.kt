@@ -137,7 +137,7 @@ internal object HighwayTools : Module(
     private val storageManagement by setting("Manage Storage", false, { page == Page.STORAGE_MANAGEMENT }, description = "Choose to interact with container using only packets.")
     private val leaveEmptyShulkers by setting("Leave Empty Shulkers", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Does not break empty shulkers.")
     private val saveMaterial by setting("Save Material", 12, 0..64, 1, { page == Page.STORAGE_MANAGEMENT }, description = "How many material blocks are saved")
-    private val saveTools by setting("Save Tools", 1, 0..64, 1, { page == Page.STORAGE_MANAGEMENT }, description = "How many tools are saved")
+    private val saveTools by setting("Save Tools", 1, 0..36, 1, { page == Page.STORAGE_MANAGEMENT }, description = "How many tools are saved")
     private val disableMode by setting("Disable Mode", DisableMode.NONE, { page == Page.STORAGE_MANAGEMENT }, description = "Choose action when bot is out of materials or tools")
 
     // stat settings
@@ -459,9 +459,9 @@ internal object HighwayTools : Module(
                         if (event.packet.wasAccepted()) {
                             inventoryTasks.peek()?.let {
                                 it.inventoryState = InventoryState.DONE
-                                runBlocking {
-                                    onMainThreadSafe { playerController.updateController() }
-                                }
+//                                runBlocking {
+//                                    onMainThreadSafe { playerController.updateController() }
+//                                }
                             }
                         } else {
                             inventoryTasks.peek()?.let {
@@ -1022,6 +1022,9 @@ internal object HighwayTools : Module(
                 TaskState.PENDING_PLACE -> {
                     blockTask.updateState(TaskState.PLACE)
                 }
+                TaskState.PENDING_RESTOCK -> {
+                    blockTask.updateState(TaskState.DONE)
+                }
                 else -> {
                     if (debugMessages != DebugMessages.OFF) {
                         if (!anonymizeStats) {
@@ -1150,6 +1153,7 @@ internal object HighwayTools : Module(
                 }
                 blockTask.updateState(TaskState.DONE)
             } else {
+//                waitTicks = 20
                 blockTask.updateState(TaskState.BREAK)
             }
 
@@ -1735,14 +1739,30 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask): Boolean {
-
-        if (player.allSlots.countItem(Items.DIAMOND_PICKAXE) < saveTools &&
-            containerTask.taskState == TaskState.DONE) {
-            handleRestock(Items.DIAMOND_PICKAXE)
-            return false
+        // ToDo: Fix controller desync
+//        MessageSendHelper.sendChatMessage("${player.allSlots.countItem(Items.DIAMOND_PICKAXE)}")
+        if (player.allSlots.countItem(Items.DIAMOND_PICKAXE) <= saveTools) {
+            return when {
+                containerTask.taskState == TaskState.DONE -> {
+                    handleRestock(Items.DIAMOND_PICKAXE)
+                    false
+                }
+                (containerTask.taskState == TaskState.BREAK || containerTask.taskState == TaskState.BREAKING) &&
+                    containerTask.item == Items.DIAMOND_PICKAXE -> {
+                    containerTask.updateState(TaskState.OPEN_CONTAINER)
+                    false
+                }
+                else -> {
+                    swapOrMoveTool(blockTask)
+                }
+            }
         }
 
-        return getBestTool(blockTask)?.let { slotFrom ->
+        return swapOrMoveTool(blockTask)
+    }
+
+    private fun SafeClientEvent.swapOrMoveTool(blockTask: BlockTask) =
+        getBestTool(blockTask)?.let { slotFrom ->
             slotFrom.toHotbarSlotOrNull()?.let {
                 swapToSlot(it)
             } ?: run {
@@ -1753,7 +1773,6 @@ internal object HighwayTools : Module(
         } ?: run {
             false
         }
-    }
 
     private fun SafeClientEvent.handleRestock(item: Item) {
         getShulkerWith(item)?.let { slot ->
@@ -2236,7 +2255,6 @@ internal object HighwayTools : Module(
         var itemID = 0
         var inventory = emptyList<ItemStack>()
         var transactionID: Short = 0
-        var restockTries = 0
 
 //      var isBridge = false ToDo: Implement
 
