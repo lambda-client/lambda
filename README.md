@@ -1,14 +1,16 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/kami-blue/client/badge)](https://www.codefactor.io/repository/github/kami-blue/client)
 [![build](https://github.com/kami-blue/client/workflows/gradle_build/badge.svg)](https://github.com/kami-blue/client/actions)
 [![Discord Mine](https://img.shields.io/discord/573954110454366214?label=chat&logo=discord&logoColor=white)](https://discord.gg/KfpqwZB)
-[![HitCount](http://hits.dwyl.com/kami-blue/client.svg)](http://hits.dwyl.com/kami-blue/client)
-[![Paypal](https://img.shields.io/badge/paypal-donate-red?color=169bd7&logo=paypal)](https://kamiblue.org/donate)
 
-Please consider donating to help continue this project and get a unique cape in game.
+## 2021/04/21 This project is now archived indefinitely.
+
+All pull requests, issues or any other activity on the repositories of all KAMI Blue organizations will be ignored completely.
+
+Finally this project is in the bin 🗑️
 
 ## Contributing
 
-Please go to [kamiblue.org/contributing](https://kamiblue.org/contributing) for building / contributing instructions.
+Please go to [kamiblue.org/contributing](https://kamiblue.org/contributing) for building instructions.
 
 ## Thank you
 
