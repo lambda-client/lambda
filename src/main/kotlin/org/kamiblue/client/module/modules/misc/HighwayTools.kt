@@ -1258,6 +1258,7 @@ internal object HighwayTools : Module(
                         blockTask.updateState(TaskState.DONE)
                     }
                     blockTask == containerTask -> {
+                        moveState = MovementState.PICKUP
                         blockTask.updateState(TaskState.PICKUP)
                     }
                     else -> {
@@ -1533,11 +1534,16 @@ internal object HighwayTools : Module(
 
             mineBlockNormal(blockTask, sides.last().side)
         } else {
-            val side = getMiningSide(blockTask.blockPos) ?: run {
+            var side = getMiningSide(blockTask.blockPos) ?: run {
                 blockTask.onStuck()
                 return
             }
 
+            if (blockTask.primed && blockTask.destroy) {
+                side = side.opposite
+            } else {
+                blockTask.primed
+            }
             lastHitVec = getHitVec(blockTask.blockPos, side)
             rotateTimer.reset()
 
@@ -1761,9 +1767,7 @@ internal object HighwayTools : Module(
                 containerTask = BlockTask(pos, TaskState.PLACE, slot.stack.item.block, item)
                 containerTask.isShulker = true
             } ?: run {
-                MessageSendHelper.sendChatMessage("$chatName Cant find possible container position.")
-                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
-                disable()
+                disableNoPosition()
             }
         } ?: run {
             if (item.block == Blocks.OBSIDIAN) {
@@ -1773,24 +1777,24 @@ internal object HighwayTools : Module(
                             containerTask = BlockTask(pos, TaskState.PLACE, slot.stack.item.block, Blocks.ENDER_CHEST.item)
                             containerTask.isShulker = true
                         } ?: run {
-                            MessageSendHelper.sendChatMessage("$chatName Cant find possible container position.")
-                            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
-                            disable()
+                            disableNoPosition()
                         }
+                    } ?: run {
+                        MessageSendHelper.sendChatMessage("$chatName No shulker left containing ender chests (Getting material from e chests coming soon)")
+                        Companion.mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
+                        disable()
                     }
                 } else {
                     getRemotePos()?.let { pos ->
                         containerTask = BlockTask(pos, TaskState.PLACE, Blocks.ENDER_CHEST)
-//                        containerTask.isShulker = true
                         containerTask.destroy = true
+                        containerTask.itemID = Blocks.OBSIDIAN.id
                     } ?: run {
-                        MessageSendHelper.sendChatMessage("$chatName Cant find possible container position.")
-                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
-                        disable()
+                        disableNoPosition()
                     }
                 }
             } else {
-                MessageSendHelper.sendChatMessage("$chatName No shulker box with ${item.registryName} was found in inventory.")
+                MessageSendHelper.sendChatMessage("$chatName No shulker box with ${item.registryName} was found in inventory. (Getting material from e chests coming soon)")
                 mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
                 disable()
                 when (disableMode) {
@@ -1807,6 +1811,12 @@ internal object HighwayTools : Module(
                 }
             }
         }
+    }
+
+    private fun disableNoPosition() {
+        MessageSendHelper.sendChatMessage("$chatName Cant find possible container position.")
+        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
+        disable()
     }
 
     private fun SafeClientEvent.getRemotePos(): BlockPos? {
@@ -2275,6 +2285,7 @@ internal object HighwayTools : Module(
         var inventory = emptyList<ItemStack>()
         var transactionID: Short = 0
         var destroy = false
+        var primed = false
 
 //      var isBridge = false ToDo: Implement
 
