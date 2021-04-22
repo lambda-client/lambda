@@ -138,6 +138,7 @@ internal object HighwayTools : Module(
     private val leaveEmptyShulkers by setting("Leave Empty Shulkers", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Does not break empty shulkers.")
     private val saveMaterial by setting("Save Material", 12, 0..64, 1, { page == Page.STORAGE_MANAGEMENT }, description = "How many material blocks are saved")
     private val saveTools by setting("Save Tools", 1, 0..36, 1, { page == Page.STORAGE_MANAGEMENT }, description = "How many tools are saved")
+    private val saveEnder by setting("Save Ender Chests", 1, 0..64, 1, { page == Page.STORAGE_MANAGEMENT }, description = "How many ender chests are saved")
     private val disableMode by setting("Disable Mode", DisableMode.NONE, { page == Page.STORAGE_MANAGEMENT }, description = "Choose action when bot is out of materials or tools")
 
     // stat settings
@@ -459,9 +460,6 @@ internal object HighwayTools : Module(
                         if (event.packet.wasAccepted()) {
                             inventoryTasks.peek()?.let {
                                 it.inventoryState = InventoryState.DONE
-//                                runBlocking {
-//                                    onMainThreadSafe { playerController.updateController() }
-//                                }
                             }
                         } else {
                             inventoryTasks.peek()?.let {
@@ -1235,20 +1233,7 @@ internal object HighwayTools : Module(
                 return
             }
             is BlockLiquid -> {
-                val filler = if (player.allSlots.countBlock(fillerMat) == 0 || isInsideBlueprintBuild(blockTask.blockPos)) {
-                    material
-                } else {
-                    fillerMat
-                }
-
-                if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
-                    blockTask.updateState(TaskState.LIQUID_FLOW)
-                    blockTask.updateMaterial(filler)
-                } else {
-                    blockTask.updateState(TaskState.LIQUID_SOURCE)
-                    blockTask.updateMaterial(filler)
-                }
-
+                updateLiquidTask(blockTask)
                 return
             }
         }
@@ -1272,7 +1257,7 @@ internal object HighwayTools : Module(
                         }
                         blockTask.updateState(TaskState.DONE)
                     }
-                    blockTask.isShulker -> {
+                    blockTask == containerTask -> {
                         blockTask.updateState(TaskState.PICKUP)
                     }
                     else -> {
@@ -1296,8 +1281,12 @@ internal object HighwayTools : Module(
 
                 if (dynamicDelay && extraPlaceDelay > 0) extraPlaceDelay -= 1
 
-                if (blockTask.isShulker) {
-                    blockTask.updateState(TaskState.OPEN_CONTAINER)
+                if (blockTask == containerTask) {
+                    if (blockTask.destroy) {
+                        blockTask.updateState(TaskState.BREAK)
+                    } else {
+                        blockTask.updateState(TaskState.OPEN_CONTAINER)
+                    }
                 } else {
                     blockTask.updateState(TaskState.DONE)
                 }
@@ -1359,16 +1348,8 @@ internal object HighwayTools : Module(
                 }
             }
             is BlockLiquid -> {
-                val filler = if (player.allSlots.countBlock(fillerMat) == 0 || isInsideBlueprintBuild(blockTask.blockPos)) material
-                else fillerMat
-
-                if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
-                    blockTask.updateState(TaskState.LIQUID_FLOW)
-                    blockTask.updateMaterial(filler)
-                } else {
-                    blockTask.updateState(TaskState.LIQUID_SOURCE)
-                    blockTask.updateMaterial(filler)
-                }
+                updateLiquidTask(blockTask)
+                return
             }
         }
 
@@ -1707,8 +1688,9 @@ internal object HighwayTools : Module(
             return true
         } else {
             if (mode != Mode.TUNNEL &&
+                containerTask.taskState == TaskState.DONE &&
                 player.allSlots.countBlock(material) < saveMaterial) {
-                if (player.allSlots.countItem(Items.DIAMOND_PICKAXE) >= saveTools) {
+                if (player.allSlots.countItem(Items.DIAMOND_PICKAXE) > saveTools) {
                     handleRestock(material.item)
                 } else {
                     handleRestock(Items.DIAMOND_PICKAXE)
@@ -1740,7 +1722,6 @@ internal object HighwayTools : Module(
 
     private fun SafeClientEvent.swapOrMoveBestTool(blockTask: BlockTask): Boolean {
         // ToDo: Fix controller desync
-//        MessageSendHelper.sendChatMessage("${player.allSlots.countItem(Items.DIAMOND_PICKAXE)}")
         if (player.allSlots.countItem(Items.DIAMOND_PICKAXE) <= saveTools) {
             return when {
                 containerTask.taskState == TaskState.DONE -> {
@@ -1785,19 +1766,44 @@ internal object HighwayTools : Module(
                 disable()
             }
         } ?: run {
-            MessageSendHelper.sendChatMessage("$chatName No shulker box with ${item.registryName} was found in inventory.")
-            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
-            disable()
-            when (disableMode) {
-                DisableMode.ANTI_AFK -> {
-                    MessageSendHelper.sendChatMessage("$chatName Going into AFK mode.")
-                    AntiAFK.enable()
+            if (item.block == Blocks.OBSIDIAN) {
+                if (player.allSlots.countBlock(Blocks.ENDER_CHEST) <= saveEnder) {
+                    getShulkerWith(Blocks.ENDER_CHEST.item)?.let { slot ->
+                        getRemotePos()?.let { pos ->
+                            containerTask = BlockTask(pos, TaskState.PLACE, slot.stack.item.block, Blocks.ENDER_CHEST.item)
+                            containerTask.isShulker = true
+                        } ?: run {
+                            MessageSendHelper.sendChatMessage("$chatName Cant find possible container position.")
+                            mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
+                            disable()
+                        }
+                    }
+                } else {
+                    getRemotePos()?.let { pos ->
+                        containerTask = BlockTask(pos, TaskState.PLACE, Blocks.ENDER_CHEST)
+//                        containerTask.isShulker = true
+                        containerTask.destroy = true
+                    } ?: run {
+                        MessageSendHelper.sendChatMessage("$chatName Cant find possible container position.")
+                        mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
+                        disable()
+                    }
                 }
-                DisableMode.LOGOUT -> {
-                    MessageSendHelper.sendChatMessage("$chatName CAUTION: Logging of in X Minutes.")
-                }
-                DisableMode.NONE -> {
-                    // Nothing
+            } else {
+                MessageSendHelper.sendChatMessage("$chatName No shulker box with ${item.registryName} was found in inventory.")
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f))
+                disable()
+                when (disableMode) {
+                    DisableMode.ANTI_AFK -> {
+                        MessageSendHelper.sendChatMessage("$chatName Going into AFK mode.")
+                        AntiAFK.enable()
+                    }
+                    DisableMode.LOGOUT -> {
+                        MessageSendHelper.sendChatMessage("$chatName CAUTION: Logging of in X Minutes.")
+                    }
+                    DisableMode.NONE -> {
+                        // Nothing
+                    }
                 }
             }
         }
@@ -1947,6 +1953,19 @@ internal object HighwayTools : Module(
         }
 
         return foundLiquid
+    }
+
+    private fun SafeClientEvent.updateLiquidTask(blockTask: BlockTask) {
+        val filler = if (player.allSlots.countBlock(fillerMat) == 0 || isInsideBlueprintBuild(blockTask.blockPos)) material
+        else fillerMat
+
+        if (world.getBlockState(blockTask.blockPos).getValue(BlockLiquid.LEVEL) != 0) {
+            blockTask.updateState(TaskState.LIQUID_FLOW)
+            blockTask.updateMaterial(filler)
+        } else {
+            blockTask.updateState(TaskState.LIQUID_SOURCE)
+            blockTask.updateMaterial(filler)
+        }
     }
 
     private fun isInsideBlueprint(pos: BlockPos): Boolean {
@@ -2255,6 +2274,7 @@ internal object HighwayTools : Module(
         var itemID = 0
         var inventory = emptyList<ItemStack>()
         var transactionID: Short = 0
+        var destroy = false
 
 //      var isBridge = false ToDo: Implement
 

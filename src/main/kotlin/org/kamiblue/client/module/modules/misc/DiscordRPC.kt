@@ -34,7 +34,7 @@ internal object DiscordRPC : Module(
     private val highwayMode by setting("HighwayMode", false)
     private val line1Left by setting("Line 1 Left", LineInfo.VERSION, { !highwayMode }) // details left
     private val line1Right by setting("Line 1 Right", LineInfo.USERNAME, { !highwayMode }) // details right
-    private val line2Left by setting("Line 2 Left", LineInfo.SERVER_IP, { !highwayMode }) // state left
+    private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION, { !highwayMode }) // state left
     private val line2Right by setting("Line 2 Right", LineInfo.HEALTH, { !highwayMode }) // state right
     private val coordsConfirm by setting("Coords Confirm", false, { showCoordsConfirm() && !highwayMode })
 
