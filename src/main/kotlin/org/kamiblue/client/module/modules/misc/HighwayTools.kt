@@ -1842,20 +1842,20 @@ internal object HighwayTools : Module(
     }
 
     private fun SafeClientEvent.getRemotePos(): BlockPos? {
-        val eyePos = player.getPositionEyes(1f)
+        val origin = currentBlockPos.up().toVec3dCenter()
 
-        return VectorUtils.getBlockPosInSphere(eyePos, maxReach).asSequence()
+        return VectorUtils.getBlockPosInSphere(origin, maxReach).asSequence()
             .filter { pos ->
                 !isInsideBlueprintBuild(pos) &&
                     pos != currentBlockPos &&
                     world.isPlaceable(pos) &&
                     !world.getBlockState(pos.down()).isReplaceable &&
                     world.isAirBlock(pos.up()) &&
-                    world.rayTraceBlocks(eyePos, pos.toVec3dCenter())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
+                    world.rayTraceBlocks(origin, pos.toVec3dCenter())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
             }
             .sortedWith(
                 compareBy<BlockPos> {
-                    it.distanceSqToCenter(eyePos.x, eyePos.y, eyePos.z).ceilToInt()
+                    it.distanceSqToCenter(origin.x, origin.y, origin.z).ceilToInt()
                 }.thenBy {
                     it.y
                 }
