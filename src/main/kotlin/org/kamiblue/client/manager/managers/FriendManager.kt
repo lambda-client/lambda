@@ -4,7 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import org.kamiblue.capeapi.PlayerProfile
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.manager.Manager
 import org.kamiblue.client.util.ConfigUtils
 import org.kamiblue.commons.extension.synchronized
@@ -16,7 +16,7 @@ import kotlin.collections.LinkedHashSet
 
 object FriendManager : Manager {
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val file = File(KamiMod.DIRECTORY + "friends.json")
+    private val file = File(LambdaMod.DIRECTORY + "friends.json")
 
     private var friendFile = FriendFile()
     val friends= HashMap<String, PlayerProfile>().synchronized()
@@ -50,10 +50,10 @@ object FriendManager : Manager {
             friendFile = gson.fromJson(FileReader(file), object : TypeToken<FriendFile>() {}.type)
             friends.clear()
             friends.putAll(friendFile.friends.associateBy { it.name.toLowerCase() })
-            KamiMod.LOG.info("Friend loaded")
+            LambdaMod.LOG.info("Friend loaded")
             true
         } catch (e: Exception) {
-            KamiMod.LOG.warn("Failed loading friends", e)
+            LambdaMod.LOG.warn("Failed loading friends", e)
             false
         }
     }
@@ -63,10 +63,10 @@ object FriendManager : Manager {
             FileWriter(file, false).buffered().use {
                 gson.toJson(friendFile, it)
             }
-            KamiMod.LOG.info("Friends saved")
+            LambdaMod.LOG.info("Friends saved")
             true
         } catch (e: Exception) {
-            KamiMod.LOG.warn("Failed saving friends", e)
+            LambdaMod.LOG.warn("Failed saving friends", e)
             false
         }
     }

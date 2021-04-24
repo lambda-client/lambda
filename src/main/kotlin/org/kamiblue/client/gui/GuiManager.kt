@@ -2,7 +2,7 @@ package org.kamiblue.client.gui
 
 import kotlinx.coroutines.Deferred
 import org.kamiblue.client.AsyncLoader
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.gui.clickgui.KamiClickGui
 import org.kamiblue.client.gui.hudgui.AbstractHudElement
@@ -32,7 +32,7 @@ internal object GuiManager : AsyncLoader<List<Class<out AbstractHudElement>>> {
 
         val time = stopTimer.stop()
 
-        KamiMod.LOG.info("${list.size} hud elements found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} hud elements found, took ${time}ms")
         return list
     }
 
@@ -44,7 +44,7 @@ internal object GuiManager : AsyncLoader<List<Class<out AbstractHudElement>>> {
         }
 
         val time = stopTimer.stop()
-        KamiMod.LOG.info("${input.size} hud elements loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} hud elements loaded, took ${time}ms")
 
         KamiClickGui.onGuiClosed()
         KamiHudGui.onGuiClosed()

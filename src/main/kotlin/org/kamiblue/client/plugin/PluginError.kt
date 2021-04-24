@@ -1,6 +1,6 @@
 package org.kamiblue.client.plugin
 
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.gui.mc.KamiGuiPluginError
 import org.kamiblue.client.util.Wrapper
 
@@ -15,16 +15,16 @@ internal enum class PluginError {
 
         when (this) {
             HOT_RELOAD -> {
-                KamiMod.LOG.error("Plugin $loader cannot be hot reloaded.")
+                LambdaMod.LOG.error("Plugin $loader cannot be hot reloaded.")
             }
             DUPLICATE -> {
-                KamiMod.LOG.error("Duplicate plugin ${loader}.")
+                LambdaMod.LOG.error("Duplicate plugin ${loader}.")
             }
             UNSUPPORTED -> {
-                KamiMod.LOG.error("Unsupported plugin ${loader}. Required KAMI Blue version: ${loader.info.minApiVersion}")
+                LambdaMod.LOG.error("Unsupported plugin ${loader}. Required KAMI Blue version: ${loader.info.minApiVersion}")
             }
             REQUIRED_PLUGIN -> {
-                KamiMod.LOG.error("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
+                LambdaMod.LOG.error("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
             }
         }
 

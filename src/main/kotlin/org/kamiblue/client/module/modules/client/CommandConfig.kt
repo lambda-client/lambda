@@ -2,7 +2,7 @@ package org.kamiblue.client.module.modules.client
 
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.events.ModuleToggleEvent
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
@@ -25,7 +25,7 @@ internal object CommandConfig : Module(
 
     private val timer = TickTimer()
     private val prevTitle = Display.getTitle()
-    private const val title = "${KamiMod.NAME} ${KamiMod.KAMI_KATAKANA} ${KamiMod.VERSION_SIMPLE}"
+    private const val title = "${LambdaMod.NAME} ${LambdaMod.LAMBDA} ${LambdaMod.VERSION_SIMPLE}"
 
     init {
         listener<ModuleToggleEvent> {

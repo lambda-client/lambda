@@ -6,7 +6,7 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.*
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.events.ConnectionEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.mixin.extension.*
@@ -22,7 +22,6 @@ import org.kamiblue.event.listener.listener
 import java.io.*
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.*
 import kotlin.collections.ArrayList
 
 internal object PacketLogger : Module(
@@ -47,7 +46,7 @@ internal object PacketLogger : Module(
     private var lastTick = 0L
     private val timer = TickTimer(TimeUnit.SECONDS)
 
-    private const val directory = "${KamiMod.DIRECTORY}packetLogs"
+    private const val directory = "${LambdaMod.DIRECTORY}packetLogs"
     private var filename = ""
     private var lines = ArrayList<String>()
 
@@ -489,7 +488,7 @@ internal object PacketLogger : Module(
                     for (line in lines) it.write(line)
                 }
             } catch (e: Exception) {
-                KamiMod.LOG.warn("$chatName Failed saving packet log!", e)
+                LambdaMod.LOG.warn("$chatName Failed saving packet log!", e)
             }
         }
     }

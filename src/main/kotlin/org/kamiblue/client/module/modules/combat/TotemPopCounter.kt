@@ -4,7 +4,7 @@ import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.network.play.server.SPacketEntityStatus
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.events.ConnectionEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.manager.managers.FriendManager
@@ -18,7 +18,6 @@ import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.commons.extension.synchronized
 import org.kamiblue.event.listener.listener
 import java.util.*
-import kotlin.collections.LinkedHashMap
 
 internal object TotemPopCounter : Module(
     name = "TotemPopCounter",
@@ -112,7 +111,7 @@ internal object TotemPopCounter : Module(
 
     private fun plural(count: Int) = if (count == 1) "totem" else "totems"
 
-    private fun ending(self: Boolean): String = if (!self && thanksTo) " thanks to ${KamiMod.NAME} !" else "!"
+    private fun ending(self: Boolean): String = if (!self && thanksTo) " thanks to ${LambdaMod.NAME} !" else "!"
 
     private fun sendMessage(message: String, public: Boolean) {
         if (public) {

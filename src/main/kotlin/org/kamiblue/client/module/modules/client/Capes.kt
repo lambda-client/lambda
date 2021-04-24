@@ -16,11 +16,10 @@ import net.minecraft.entity.player.EnumPlayerModelParts
 import net.minecraft.init.Items
 import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.util.ResourceLocation
-import net.minecraft.util.math.MathHelper
 import org.kamiblue.capeapi.Cape
 import org.kamiblue.capeapi.CapeType
 import org.kamiblue.capeapi.CapeUser
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.gui.hudgui.elements.client.WaterMark
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
@@ -67,8 +66,8 @@ internal object Capes : Module(
 
     private suspend fun updateCapes() {
         val rawJson = withContext(Dispatchers.IO) {
-            ConnectionUtils.requestRawJsonFrom(KamiMod.CAPES_JSON) {
-                KamiMod.LOG.warn("Failed requesting capes", it)
+            ConnectionUtils.requestRawJsonFrom(LambdaMod.CAPES_JSON) {
+                LambdaMod.LOG.warn("Failed requesting capes", it)
             }
         } ?: return
 
@@ -92,9 +91,9 @@ internal object Capes : Module(
             updated = true
             WaterMark.visible = WaterMark.visible
             DiscordRPC.setCustomIcons(capeType)
-            KamiMod.LOG.info("Capes loaded")
+            LambdaMod.LOG.info("Capes loaded")
         } catch (e: Exception) {
-            KamiMod.LOG.warn("Failed parsing capes", e)
+            LambdaMod.LOG.warn("Failed parsing capes", e)
         }
     }
 

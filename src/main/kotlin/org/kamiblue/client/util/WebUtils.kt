@@ -1,6 +1,6 @@
 package org.kamiblue.client.util
 
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.commons.utils.ConnectionUtils
 import java.awt.Desktop
 import java.io.BufferedReader
@@ -16,7 +16,7 @@ object WebUtils {
         try {
             Desktop.getDesktop().browse(URI(url))
         } catch (e: IOException) {
-            KamiMod.LOG.error("Couldn't open link: $url")
+            LambdaMod.LOG.error("Couldn't open link: $url")
         }
     }
 

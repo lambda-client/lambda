@@ -14,30 +14,29 @@ import org.kamiblue.client.util.threads.BackgroundScope
 import java.io.File
 
 @Mod(
-    modid = KamiMod.ID,
-    name = KamiMod.NAME,
-    version = KamiMod.VERSION
+    modid = LambdaMod.ID,
+    name = LambdaMod.NAME,
+    version = LambdaMod.VERSION
 )
-class KamiMod {
+class LambdaMod {
 
     companion object {
-        const val NAME = "KAMI Blue"
-        const val ID = "kamiblue"
-        const val DIRECTORY = "kamiblue/"
+        const val NAME = "Lambda"
+        const val ID = "lambda"
+        const val DIRECTORY = "lambda/"
 
         const val VERSION = "2.04.xx-dev" // Used for debugging. R.MM.DD-hash format.
         const val VERSION_SIMPLE = "2.04.xx-dev" // Shown to the user. R.MM.DD[-beta] format.
         const val VERSION_MAJOR = "2.04.01" // Used for update checking. RR.MM.01 format.
-        const val BUILD_NUMBER = -1 // Do not remove, currently unused but will be used in the future.
 
-        const val APP_ID = "638403216278683661"
+        const val APP_ID = "835368493150502923"
 
-        const val DOWNLOADS_API = "https://kamiblue.org/api/v1/downloads.json"
-        const val CAPES_JSON = "https://raw.githubusercontent.com/kami-blue/cape-api/capes/capes.json"
-        const val GITHUB_LINK = "https://github.com/kami-blue"
-        const val WEBSITE_LINK = "https://kamiblue.org"
+        const val DOWNLOADS_API = "https://kamiblue.org/api/v1/downloads.json" // needs to be changed when domain is registered
+        const val CAPES_JSON = "https://raw.githubusercontent.com/lambda-client/cape-api/capes/capes.json"
+        const val GITHUB_LINK = "https://github.com/lambda-client/"
+        const val WEBSITE_LINK = "https://lambda-client.com"
 
-        const val KAMI_KATAKANA = "カミブル"
+        const val LAMBDA = "λ"
 
         val LOG: Logger = LogManager.getLogger(NAME)
 

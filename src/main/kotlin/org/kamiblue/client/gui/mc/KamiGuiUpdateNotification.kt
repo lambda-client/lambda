@@ -6,7 +6,7 @@ import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiMainMenu
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.util.text.TextFormatting
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.util.WebUtils
 import org.kamiblue.client.util.color.ColorConverter
 import org.kamiblue.client.util.threads.mainScope
@@ -32,7 +32,7 @@ class KamiGuiUpdateNotification : GuiScreen() {
     }
 
     override fun actionPerformed(button: GuiButton) {
-        if (button.id == 0) WebUtils.openWebLink(KamiMod.WEBSITE_LINK + "/download")
+        if (button.id == 0) WebUtils.openWebLink(LambdaMod.WEBSITE_LINK + "/download")
 
         mc.displayGuiScreen(GuiMainMenu())
     }
@@ -47,23 +47,23 @@ class KamiGuiUpdateNotification : GuiScreen() {
         fun updateCheck() {
             mainScope.launch {
                 try {
-                    KamiMod.LOG.info("Attempting KAMI Blue update check...")
+                    LambdaMod.LOG.info("Attempting KAMI Blue update check...")
 
                     val parser = JsonParser()
-                    val rawJson = ConnectionUtils.requestRawJsonFrom(KamiMod.DOWNLOADS_API) {
+                    val rawJson = ConnectionUtils.requestRawJsonFrom(LambdaMod.DOWNLOADS_API) {
                         throw it
                     }
 
                     latest = parser.parse(rawJson).asJsonObject.getAsJsonObject("stable")["name"].asString
-                    isLatest = latest.equals(KamiMod.VERSION_MAJOR)
+                    isLatest = latest.equals(LambdaMod.VERSION_MAJOR)
 
                     if (!isLatest) {
-                        KamiMod.LOG.warn("You are running an outdated version of KAMI Blue.\nCurrent: ${KamiMod.VERSION_MAJOR}\nLatest: $latest")
+                        LambdaMod.LOG.warn("You are running an outdated version of KAMI Blue.\nCurrent: ${LambdaMod.VERSION_MAJOR}\nLatest: $latest")
                     } else {
-                        KamiMod.LOG.info("Your KAMI Blue (" + KamiMod.VERSION_MAJOR + ") is up-to-date with the latest stable release.")
+                        LambdaMod.LOG.info("Your KAMI Blue (" + LambdaMod.VERSION_MAJOR + ") is up-to-date with the latest stable release.")
                     }
                 } catch (e: IOException) {
-                    KamiMod.LOG.error("Oes noes! An exception was thrown during the update check.", e)
+                    LambdaMod.LOG.error("Oes noes! An exception was thrown during the update check.", e)
                 }
             }
         }

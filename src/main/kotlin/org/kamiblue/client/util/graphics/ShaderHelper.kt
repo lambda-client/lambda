@@ -7,7 +7,7 @@ import net.minecraft.client.shader.ShaderGroup
 import net.minecraft.client.shader.ShaderLinkHelper
 import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.event.events.ResolutionUpdateEvent
 import org.kamiblue.client.util.Wrapper
@@ -24,12 +24,12 @@ class ShaderHelper(shaderIn: ResourceLocation, vararg frameBufferNames: String) 
     init {
         shader = when {
             !OpenGlHelper.shadersSupported -> {
-                KamiMod.LOG.warn("Shaders are unsupported by OpenGL!")
+                LambdaMod.LOG.warn("Shaders are unsupported by OpenGL!")
                 null
             }
 
             isIntegratedGraphics -> {
-                KamiMod.LOG.warn("Running on Intel Integrated Graphics!")
+                LambdaMod.LOG.warn("Running on Intel Integrated Graphics!")
                 null
             }
 
@@ -41,7 +41,7 @@ class ShaderHelper(shaderIn: ResourceLocation, vararg frameBufferNames: String) 
                         it.createBindFramebuffers(mc.displayWidth, mc.displayHeight)
                     }
                 } catch (e: Exception) {
-                    KamiMod.LOG.warn("Failed to load shaders")
+                    LambdaMod.LOG.warn("Failed to load shaders")
                     e.printStackTrace()
 
                     null
