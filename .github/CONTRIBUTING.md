@@ -1,7 +1,7 @@
-You are free to clone, modify KAMI Blue and make pull requests, provided you follow the [license](https://kamiblue.org/license).
+You are free to clone, modify Lambda and make pull requests, provided you follow the [license](https://lambda-client.com/license).
 
-Before contributing please see the [Code of Conduct](https://kamiblue.org/codeofconduct).
+Before contributing please see the [Code of Conduct](https://lambda-client.com/codeofconduct).
 
-See [Support](https://kamiblue.org/support) for help.
+See [Support](https://lambda-client.com/support) for help.
 
-See this [this](https://kamiblue.org/contributing) page for contributing instructions.
+See this [this](https://lambda-client.com/contributing) page for contributing instructions.
