@@ -68,6 +68,7 @@ import org.kamiblue.client.util.threads.*
 import org.kamiblue.client.util.world.*
 import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.floorToInt
+import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayDeque
 import kotlin.collections.LinkedHashMap
@@ -476,7 +477,7 @@ internal object HighwayTools : Module(
             }
         }
 
-        safeListener<RenderWorldEvent> {
+        listener<RenderWorldEvent> {
             renderer.render(false)
         }
 
