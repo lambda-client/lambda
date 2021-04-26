@@ -113,9 +113,9 @@ internal object DiscordRPC : Module(
                         pre = "mined"
                     }
                 }
-                presence.state = "$pre with ${KamiMod.VERSION_SIMPLE}"
+                presence.state = "$pre with ${LambdaMod.VERSION_SIMPLE}"
             } else {
-                presence.details = "running ${KamiMod.VERSION_SIMPLE}"
+                presence.details = "running ${LambdaMod.VERSION_SIMPLE}"
                 presence.state = ""
             }
         } else {
