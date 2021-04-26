@@ -2,7 +2,7 @@ package org.kamiblue.client.plugin
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.plugin.api.Plugin
 import org.kamiblue.commons.interfaces.Nameable
 import org.kamiblue.commons.utils.ClassUtils.instance
@@ -27,7 +27,7 @@ internal class PluginLoader(
     init {
         // This will trigger the null checks in PluginInfo
         // In order to make sure all required infos are present
-        KamiMod.LOG.debug(info.toString())
+        LambdaMod.LOG.debug(info.toString())
     }
 
     fun verify(): Boolean {
@@ -43,13 +43,13 @@ internal class PluginLoader(
             toString()
         }
 
-        KamiMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
+        LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
 
         return checksumSets.contains(result)
     }
 
     fun load(): Plugin {
-        if (KamiMod.ready && !info.hotReload) {
+        if (LambdaMod.ready && !info.hotReload) {
             throw IllegalAccessException("Plugin $this cannot be hot reloaded!")
         }
 

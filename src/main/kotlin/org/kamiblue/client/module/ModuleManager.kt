@@ -2,7 +2,7 @@ package org.kamiblue.client.module
 
 import kotlinx.coroutines.Deferred
 import org.kamiblue.client.AsyncLoader
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.util.AsyncCachedValue
 import org.kamiblue.client.util.StopTimer
@@ -32,7 +32,7 @@ object ModuleManager : AsyncLoader<List<Class<out AbstractModule>>> {
 
         val time = stopTimer.stop()
 
-        KamiMod.LOG.info("${list.size} modules found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} modules found, took ${time}ms")
         return list
     }
 
@@ -44,7 +44,7 @@ object ModuleManager : AsyncLoader<List<Class<out AbstractModule>>> {
         }
 
         val time = stopTimer.stop()
-        KamiMod.LOG.info("${input.size} modules loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} modules loaded, took ${time}ms")
     }
 
     internal fun register(module: AbstractModule) {

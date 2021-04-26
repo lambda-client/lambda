@@ -1,7 +1,7 @@
 package org.kamiblue.client.command.commands
 
 import net.minecraft.util.text.TextFormatting
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.command.ClientCommand
 import org.kamiblue.client.gui.GuiManager
 import org.kamiblue.client.gui.hudgui.AbstractHudElement
@@ -161,7 +161,7 @@ object SetCommand : ClientCommand(
             MessageSendHelper.sendChatMessage("Set ${formatValue(setting.name)} to ${formatValue(setting.value)}.")
         } catch (e: Exception) {
             MessageSendHelper.sendChatMessage("Unable to set value! ${TextFormatting.RED format e.message.toString()}")
-            KamiMod.LOG.info("Unable to set value!", e)
+            LambdaMod.LOG.info("Unable to set value!", e)
         }
     }
 

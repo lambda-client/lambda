@@ -2,7 +2,7 @@ package org.kamiblue.client.command
 
 import kotlinx.coroutines.*
 import org.kamiblue.client.AsyncLoader
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.ClientExecuteEvent
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.module.modules.client.CommandConfig
@@ -30,7 +30,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(), AsyncLoade
 
         val time = stopTimer.stop()
 
-        KamiMod.LOG.info("${list.size} commands found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} commands found, took ${time}ms")
         return list
     }
 
@@ -42,7 +42,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(), AsyncLoade
         }
 
         val time = stopTimer.stop()
-        KamiMod.LOG.info("${input.size} commands loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} commands loaded, took ${time}ms")
     }
 
     override fun register(builder: CommandBuilder<ClientExecuteEvent>): Command<ClientExecuteEvent> {
@@ -62,7 +62,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(), AsyncLoade
     fun runCommand(string: String) {
         defaultScope.launch {
             val args = tryParseArgument(string) ?: return@launch
-            KamiMod.LOG.debug("Running command with args: [${args.joinToString()}]")
+            LambdaMod.LOG.debug("Running command with args: [${args.joinToString()}]")
 
             try {
                 try {
@@ -74,7 +74,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(), AsyncLoade
                 }
             } catch (e: Exception) {
                 MessageSendHelper.sendChatMessage("Error occurred while running command! (${e.message}), check the log for info!")
-                KamiMod.LOG.warn("Error occurred while running command!", e)
+                LambdaMod.LOG.warn("Error occurred while running command!", e)
             }
         }
     }

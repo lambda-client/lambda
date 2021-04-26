@@ -3,7 +3,7 @@ package org.kamiblue.client.module.modules.chat
 import net.minecraft.init.Items
 import net.minecraft.network.play.server.SPacketUpdateHealth
 import net.minecraft.util.EnumHand
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.module.Category
@@ -54,7 +54,7 @@ internal object AutoExcuse : Module(
         "The CPU cheated!"
     )
 
-    private val file = File(KamiMod.DIRECTORY + "excuses.txt")
+    private val file = File(LambdaMod.DIRECTORY + "excuses.txt")
     private var loadedExcuses = defaultExcuses
 
     private val clients = arrayOf(
@@ -82,7 +82,7 @@ internal object AutoExcuse : Module(
                         file.forEachLine { if (it.isNotBlank()) cacheList.add(it.trim()) }
                         MessageSendHelper.sendChatMessage("$chatName Loaded spammer messages!")
                     } catch (e: Exception) {
-                        KamiMod.LOG.error("Failed loading excuses", e)
+                        LambdaMod.LOG.error("Failed loading excuses", e)
                     }
                     cacheList.toTypedArray()
                 } else {

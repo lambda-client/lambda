@@ -1,6 +1,6 @@
 package org.kamiblue.client.gui.rgui
 
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.module.modules.client.ClickGUI
 import org.kamiblue.client.setting.GuiConfig
 import org.kamiblue.client.setting.GuiConfig.setting
@@ -35,9 +35,9 @@ open class Component(
     private var heightSetting = setting("Height", heightIn, 0.0f..69420.911f, 0.1f, { false }, { _, it -> it.coerceIn(minHeight, max(scaledDisplayHeight, minHeight)) })
 
     private var relativePosXSetting = setting("Pos X", posXIn, -69420.911f..69420.911f, 0.1f, { false },
-        { _, it -> if (this is WindowComponent && KamiMod.ready) absToRelativeX(relativeToAbsX(it).coerceIn(1.0f, max(scaledDisplayWidth - width - 1.0f, 1.0f))) else it })
+        { _, it -> if (this is WindowComponent && LambdaMod.ready) absToRelativeX(relativeToAbsX(it).coerceIn(1.0f, max(scaledDisplayWidth - width - 1.0f, 1.0f))) else it })
     private var relativePosYSetting = setting("Pos Y", posYIn, -69420.911f..69420.911f, 0.1f, { false },
-        { _, it -> if (this is WindowComponent && KamiMod.ready) absToRelativeY(relativeToAbsY(it).coerceIn(1.0f, max(scaledDisplayHeight - height - 1.0f, 1.0f))) else it })
+        { _, it -> if (this is WindowComponent && LambdaMod.ready) absToRelativeY(relativeToAbsY(it).coerceIn(1.0f, max(scaledDisplayHeight - height - 1.0f, 1.0f))) else it })
 
     var width by widthSetting
     var height by heightSetting
@@ -51,7 +51,7 @@ open class Component(
             return relativeToAbsX(relativePosX)
         }
         set(value) {
-            if (!KamiMod.ready) return
+            if (!LambdaMod.ready) return
             relativePosX = absToRelativeX(value)
         }
 
@@ -60,7 +60,7 @@ open class Component(
             return relativeToAbsY(relativePosY)
         }
         set(value) {
-            if (!KamiMod.ready) return
+            if (!LambdaMod.ready) return
             relativePosY = absToRelativeY(value)
         }
 

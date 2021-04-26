@@ -1,7 +1,7 @@
 package org.kamiblue.client.setting.configs
 
 import org.kamiblue.client.plugin.api.PluginHudElement
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.plugin.api.IPluginClass
 import org.kamiblue.client.plugin.api.PluginModule
 import org.kamiblue.client.setting.settings.AbstractSetting
@@ -9,7 +9,7 @@ import org.kamiblue.commons.interfaces.Nameable
 import java.io.File
 
 class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(
-    pluginName, "${KamiMod.DIRECTORY}config/plugins/$pluginName"
+    pluginName, "${LambdaMod.DIRECTORY}config/plugins/$pluginName"
 ) {
     override val file: File get() = File("$filePath/default.json")
     override val backup: File get() = File("$filePath/default.bak")

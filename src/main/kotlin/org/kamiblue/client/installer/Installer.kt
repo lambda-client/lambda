@@ -1,6 +1,6 @@
 package org.kamiblue.client.installer
 
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.util.WebUtils
 import org.kamiblue.client.util.filesystem.FolderUtils
 import java.awt.Dimension
@@ -18,7 +18,7 @@ import kotlin.system.exitProcess
 object Installer : JPanel() {
 
     private var frame = JFrame()
-    private val downloadsApi = WebUtils.getUrlContents(KamiMod.DOWNLOADS_API).replace("\n", "").split("\"")
+    private val downloadsApi = WebUtils.getUrlContents(LambdaMod.DOWNLOADS_API).replace("\n", "").split("\"")
     private var stableVersion = ""
     private var stableUrl = ""
     private var betaVersion = ""
@@ -26,7 +26,7 @@ object Installer : JPanel() {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        println("Running the ${KamiMod.NAME} ${KamiMod.VERSION} Installer")
+        println("Running the ${LambdaMod.NAME} ${LambdaMod.VERSION} Installer")
 
         if (downloadsApi.size < 19) {
             notify("Error while loading the KAMI Blue Downloads API, couldn't connect to the URL or response is invalid. " +

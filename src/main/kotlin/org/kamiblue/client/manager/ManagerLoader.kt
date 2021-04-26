@@ -2,7 +2,7 @@ package org.kamiblue.client.manager
 
 import kotlinx.coroutines.Deferred
 import org.kamiblue.client.AsyncLoader
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.util.StopTimer
 import org.kamiblue.commons.utils.ClassUtils
@@ -18,7 +18,7 @@ internal object ManagerLoader : AsyncLoader<List<Class<out Manager>>> {
 
         val time = stopTimer.stop()
 
-        KamiMod.LOG.info("${list.size} managers found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} managers found, took ${time}ms")
         return list
     }
 
@@ -30,6 +30,6 @@ internal object ManagerLoader : AsyncLoader<List<Class<out Manager>>> {
         }
 
         val time = stopTimer.stop()
-        KamiMod.LOG.info("${input.size} managers loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} managers loaded, took ${time}ms")
     }
 }

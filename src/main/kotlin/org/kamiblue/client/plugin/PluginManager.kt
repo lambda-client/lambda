@@ -4,7 +4,7 @@ import kotlinx.coroutines.Deferred
 import org.kamiblue.client.plugin.api.Plugin
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import org.kamiblue.client.AsyncLoader
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.commons.collections.NameableSet
 import java.io.File
 import java.io.FileNotFoundException
@@ -15,9 +15,9 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     val loadedPlugins = NameableSet<Plugin>()
     val loadedPluginLoader = NameableSet<PluginLoader>()
 
-    const val pluginPath = "${KamiMod.DIRECTORY}plugins/"
+    const val pluginPath = "${LambdaMod.DIRECTORY}plugins/"
 
-    private val kamiVersion = DefaultArtifactVersion(KamiMod.VERSION_MAJOR)
+    private val kamiVersion = DefaultArtifactVersion(LambdaMod.VERSION_MAJOR)
 
     override fun preLoad0() = getLoaders()
 
@@ -39,11 +39,11 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
                 loader.verify()
                 plugins.add(loader)
             } catch (e: FileNotFoundException) {
-                KamiMod.LOG.info("${it.name} is not a valid plugin. Skipping...")
+                LambdaMod.LOG.info("${it.name} is not a valid plugin. Skipping...")
             } catch (e: PluginInfoMissingException) {
-                KamiMod.LOG.warn("${it.name} is missing a required info ${e.infoName}. Skipping...", e)
+                LambdaMod.LOG.warn("${it.name} is missing a required info ${e.infoName}. Skipping...", e)
             } catch (e: Exception) {
-                KamiMod.LOG.error("Failed to pre load plugin ${it.name}", e)
+                LambdaMod.LOG.error("Failed to pre load plugin ${it.name}", e)
             }
         }
 
@@ -57,7 +57,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             validLoaders.forEach(PluginManager::loadWithoutCheck)
         }
 
-        KamiMod.LOG.info("Loaded ${loadedPlugins.size} plugins!")
+        LambdaMod.LOG.info("Loaded ${loadedPlugins.size} plugins!")
     }
 
     private fun checkPluginLoaders(loaders: List<PluginLoader>): List<PluginLoader> {
@@ -66,7 +66,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         for (loader in loaders) {
             // Hot reload check, the error shouldn't be show when reload in game
-            if (KamiMod.ready && !loader.info.hotReload) {
+            if (LambdaMod.ready && !loader.info.hotReload) {
                 invalids.add(loader)
             }
 
@@ -106,7 +106,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     fun load(loader: PluginLoader) {
         synchronized(this) {
-            val hotReload = KamiMod.ready && !loader.info.hotReload
+            val hotReload = LambdaMod.ready && !loader.info.hotReload
             val duplicate = loadedPlugins.containsName(loader.name)
             val unsupported = DefaultArtifactVersion(loader.info.minApiVersion) > kamiVersion
             val missing = !loadedPlugins.containsNames(loader.info.requiredPlugins)
@@ -127,13 +127,13 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        KamiMod.LOG.warn("Main class not found in plugin $loader", it)
+                        LambdaMod.LOG.warn("Main class not found in plugin $loader", it)
                     }
                     is IllegalAccessException -> {
-                        KamiMod.LOG.warn(it.message, it)
+                        LambdaMod.LOG.warn(it.message, it)
                     }
                     else -> {
-                        KamiMod.LOG.error("Failed to load plugin $loader", it)
+                        LambdaMod.LOG.error("Failed to load plugin $loader", it)
                     }
                 }
                 return
@@ -146,13 +146,13 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             plugin
         }
 
-        KamiMod.LOG.info("Loaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Loaded plugin ${plugin.name}")
     }
 
     fun unloadAll() {
         loadedPlugins.filter { it.hotReload }.forEach(PluginManager::unloadWithoutCheck)
 
-        KamiMod.LOG.info("Unloaded all plugins!")
+        LambdaMod.LOG.info("Unloaded all plugins!")
     }
 
     fun unload(plugin: Plugin) {
@@ -179,7 +179,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             }
         }
 
-        KamiMod.LOG.info("Unloaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Unloaded plugin ${plugin.name}")
     }
 
 }

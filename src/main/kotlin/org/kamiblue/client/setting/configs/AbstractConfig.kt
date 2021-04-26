@@ -3,7 +3,7 @@ package org.kamiblue.client.setting.configs
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
-import org.kamiblue.client.KamiMod
+import org.kamiblue.client.LambdaMod
 import org.kamiblue.client.setting.groups.SettingGroup
 import org.kamiblue.client.setting.groups.SettingMultiGroup
 import org.kamiblue.client.setting.settings.AbstractSetting
@@ -38,7 +38,7 @@ abstract class AbstractConfig<T : Any>(
         try {
             loadFromFile(this, file)
         } catch (e: Exception) {
-            KamiMod.LOG.warn("Failed to load latest, loading backup.")
+            LambdaMod.LOG.warn("Failed to load latest, loading backup.")
             loadFromFile(this, backup)
         }
     }

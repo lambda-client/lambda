@@ -3,7 +3,6 @@ package org.kamiblue.client.gui.hudgui.elements.misc
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.KamiMod
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.gui.hudgui.LabelHud
 import org.kamiblue.client.manager.managers.NetworkManager
