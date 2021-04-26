@@ -9,26 +9,23 @@ import org.spongepowered.asm.mixin.Mixins;
 
 import java.util.Map;
 
-/**
- * Modified by Dewy on 20th of May, 2020
- */
 @IFMLLoadingPlugin.Name("KAMIBlueMixinLoader")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 public class MixinLoaderForge implements IFMLLoadingPlugin {
 
-    /* This is NOT using KamiMod, as importing it causes the issue described here: https://github.com/SpongePowered/Mixin/issues/388 */
+    /* This is NOT using LambdaMod, as importing it causes the issue described here: https://github.com/SpongePowered/Mixin/issues/388 */
     public static final Logger log = LogManager.getLogger("KAMI Blue");
     private static boolean isObfuscatedEnvironment = false;
 
     public MixinLoaderForge() {
-        log.info("KAMI Blue and Baritone mixins initializing...");
+        log.info("Lambda and Baritone mixins initializing...");
 
         MixinBootstrap.init();
 
         Mixins.addConfigurations("mixins.kami.json", "mixins.baritone.json");
         MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
 
-        log.info("KAMI Blue and Baritone mixins initialised.");
+        log.info("Lambda and Baritone mixins initialised.");
 
         log.info(MixinEnvironment.getDefaultEnvironment().getObfuscationContext());
     }

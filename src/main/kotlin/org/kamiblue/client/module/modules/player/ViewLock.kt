@@ -7,8 +7,6 @@ import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
 import org.kamiblue.client.util.threads.safeListener
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
-import java.util.*
-import kotlin.collections.ArrayDeque
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign

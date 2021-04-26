@@ -11,7 +11,6 @@ import org.kamiblue.client.util.EntityUtils.getTargetList
 import org.kamiblue.client.util.EntityUtils.isNeutral
 import org.kamiblue.client.util.EntityUtils.isPassive
 import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.color.DyeColors
 import org.kamiblue.client.util.color.HueCycler
 import org.kamiblue.client.util.graphics.ESPRenderer
 import org.kamiblue.client.util.threads.safeListener

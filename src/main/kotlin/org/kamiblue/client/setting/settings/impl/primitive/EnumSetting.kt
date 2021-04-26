@@ -14,7 +14,7 @@ class EnumSetting<T : Enum<T>>(
     description: String = ""
 ) : MutableSetting<T>(name, value, visibility, consumer, description) {
 
-    val enumClass: Class<T> = value.declaringClass
+    private val enumClass: Class<T> = value.declaringClass
     val enumValues: Array<out T> = enumClass.enumConstants
 
     fun nextValue() {

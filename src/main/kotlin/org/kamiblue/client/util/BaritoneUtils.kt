@@ -8,7 +8,7 @@ import net.minecraft.init.Blocks
 object BaritoneUtils {
     var initialized = false
 
-    val provider get() = if (initialized) BaritoneAPI.getProvider() else null
+    private val provider get() = if (initialized) BaritoneAPI.getProvider() else null
     val settings get() = if (initialized) BaritoneAPI.getSettings() else null
     val primary get() = provider?.primaryBaritone
     val prefix get() = settings?.prefix?.value ?: "#"

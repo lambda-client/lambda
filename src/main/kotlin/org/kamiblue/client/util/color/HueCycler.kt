@@ -4,7 +4,7 @@ import org.kamiblue.client.util.color.ColorConverter.hexToRgb
 import org.lwjgl.opengl.GL11
 import java.awt.Color
 
-class HueCycler(val cycles: Int) {
+class HueCycler(private val cycles: Int) {
     private val hueMultiplier = 1f / cycles.toFloat()
     private val colorCycle: Array<Int> = Array(cycles) { i ->
         Color.HSBtoRGB(i * hueMultiplier, 1f, 1f)
@@ -31,7 +31,7 @@ class HueCycler(val cycles: Int) {
         setNext(1f)
     }
 
-    fun setNext(a: Float) {
+    private fun setNext(a: Float) {
         inc()
         val rgb = currentRgb()
         val r = (rgb.r shr 16 and 0xFF) / 255f

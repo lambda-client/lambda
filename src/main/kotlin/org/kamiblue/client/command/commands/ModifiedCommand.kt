@@ -5,7 +5,6 @@ import net.minecraft.util.text.event.ClickEvent
 import net.minecraft.util.text.event.HoverEvent
 import org.kamiblue.client.command.ClientCommand
 import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.module.modules.client.CommandConfig
 import org.kamiblue.client.util.text.MessageSendHelper.sendChatMessage
 
 object ModifiedCommand: ClientCommand(

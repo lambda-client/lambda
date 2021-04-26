@@ -7,7 +7,7 @@ import java.io.File
 
 abstract class AbstractMultiConfig<T : Any>(
     name: String,
-    protected val directoryPath: String,
+    private val directoryPath: String,
     vararg groupNames: String
 ) : AbstractConfig<T>(name, directoryPath), IConfig, SettingRegister<T> {
 

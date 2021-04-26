@@ -2,7 +2,6 @@ package org.kamiblue.client.module.modules.misc
 
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.BaritoneCommandEvent
 import org.kamiblue.client.event.events.ConnectionEvent
 import org.kamiblue.client.mixin.extension.sendClickBlockToController
@@ -41,7 +40,7 @@ internal object AutoMine : Module(
         }
     }
 
-    private fun SafeClientEvent.run() {
+    private fun run() {
         if (isDisabled || manual) return
 
         val blocks = ArrayList<String>()

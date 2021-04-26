@@ -1,18 +1,19 @@
 [
   {
-    "modid": "kamiblue",
-    "name": "KAMI Blue",
-    "description": "カミブル \nA Minecraft utility mod for anarchy servers \nWritten by 086 and continued by l1ving\n",
+    "modid": "lambda",
+    "name": "Lambda",
+    "description": "λ \nA Minecraft utility mod for anarchy servers \nWritten by the Lambda team based on code from 086 and the Kami Blue team\n",
     "version": "${version}",
     "mcversion": "1.12.2",
-    "url": "https://github.com/kami-blue/client",
+    "url": "https://github.com/lambda-client/lambda",
     "updateUrl": "",
     "authorList": [
       "086",
-      "l1ving"
+      "l1ving",
+      "Constructor"
     ],
-    "credits": "Thank you 086 for the original KAMI\nThanks to all contributors for your help and time <3\n",
-    "logoFile": "kami.png",
+    "credits": "Thanks to 086 for the original KAMI\nThanks to the team of Kami Blue\nSpecial thanks to all active contributors",
+    "logoFile": "lambda.png",
     "dependencies": []
   }
 ]

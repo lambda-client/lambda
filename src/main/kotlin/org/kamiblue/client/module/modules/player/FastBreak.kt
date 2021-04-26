@@ -13,7 +13,6 @@ import org.kamiblue.client.module.Module
 import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.TimeUnit
 import org.kamiblue.client.util.threads.safeListener
-import java.util.*
 
 internal object FastBreak : Module(
     name = "FastBreak",

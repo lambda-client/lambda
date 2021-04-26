@@ -19,7 +19,6 @@ import org.kamiblue.event.listener.listener
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11.*
 import java.util.*
-import kotlin.collections.LinkedHashSet
 
 object KamiHudGui : AbstractKamiGui<HudSettingWindow, AbstractHudElement>() {
 

@@ -69,7 +69,7 @@ object MessageManager : Manager {
         return addMessageToQueue(CPacketChatMessage(message), source, priority)
     }
 
-    fun addMessageToQueue(message: CPacketChatMessage, source: Any, priority: Int = 0): TaskState {
+    private fun addMessageToQueue(message: CPacketChatMessage, source: Any, priority: Int = 0): TaskState {
         return QueuedMessage(currentId++, priority, source, message).let {
             messageQueue.add(it)
             packetSet.add(message)

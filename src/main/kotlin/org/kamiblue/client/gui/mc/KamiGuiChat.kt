@@ -6,7 +6,6 @@ import org.kamiblue.client.command.CommandManager
 import org.kamiblue.client.mixin.extension.historyBuffer
 import org.kamiblue.client.mixin.extension.sentHistoryCursor
 import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.util.color.ColorConverter
 import org.kamiblue.client.util.graphics.GlStateUtils
 import org.kamiblue.client.util.graphics.RenderUtils2D
 import org.kamiblue.client.util.graphics.VertexHelper

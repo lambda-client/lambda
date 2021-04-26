@@ -8,7 +8,7 @@ import kotlin.math.max
 /**
  * Renders multi line text easily
  */
-class TextComponent(val separator: String = " ") {
+class TextComponent(private val separator: String = " ") {
     private val textLines = ArrayList<TextLine?>()
     var currentLine = 0
         set(value) {
@@ -120,7 +120,7 @@ class TextComponent(val separator: String = " ") {
     fun getHeight(lineSpace: Int, skipEmptyLines: Boolean = true, customFont: Boolean = FontRenderAdapter.useCustomFont) =
         FontRenderAdapter.getFontHeight(customFont = customFont) * getLines(skipEmptyLines) + lineSpace * (getLines(skipEmptyLines) - 1)
 
-    fun getLines(skipEmptyLines: Boolean = true) = textLines.count { !skipEmptyLines || (it != null && !it.isEmpty()) }
+    private fun getLines(skipEmptyLines: Boolean = true) = textLines.count { !skipEmptyLines || (it != null && !it.isEmpty()) }
 
     override fun toString() = textLines.joinToString(separator = "\n")
 
@@ -165,7 +165,7 @@ class TextComponent(val separator: String = " ") {
 
     }
 
-    class TextElement(textIn: String, val color: ColorHolder = ColorHolder(255, 255, 255), val style: Style = Style.REGULAR, val scale: Float = 1f) {
+    class TextElement(textIn: String, val color: ColorHolder = ColorHolder(255, 255, 255), style: Style = Style.REGULAR, val scale: Float = 1f) {
         val text = "${style.code}$textIn"
 
         override fun toString(): String {
