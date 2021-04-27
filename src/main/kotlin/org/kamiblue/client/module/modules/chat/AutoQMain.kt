@@ -43,7 +43,7 @@ internal object AutoQMain : Module(
         val formatter = SimpleDateFormat("HH:mm:ss")
         val date = Date(System.currentTimeMillis())
 
-        MessageSendHelper.sendChatMessage("&7Run &b$command&7 at " + formatter.format(date))
+        MessageSendHelper.sendChatMessage("$chatName &7Run &b$command&7 at " + formatter.format(date))
         sendServerMessage(command)
     }
 }
