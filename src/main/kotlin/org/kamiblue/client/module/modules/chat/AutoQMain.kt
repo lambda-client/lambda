@@ -30,7 +30,7 @@ internal object AutoQMain : Module(
                 (world.difficulty != EnumDifficulty.PEACEFUL &&
                 player.dimension != 1)) return@safeListener
 
-            if (check2b) {
+            if (twoBeeCheck) {
                 if (@Suppress("UNNECESSARY_SAFE_CALL")
                     player.serverBrand?.contains("2b2t") == true) sendQueueMain()
             } else {
