@@ -1,5 +1,6 @@
 package org.kamiblue.client.module.modules.chat
 
+import net.minecraft.world.EnumDifficulty
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
@@ -13,35 +14,28 @@ import java.util.*
 
 internal object AutoQMain : Module(
     name = "AutoQMain",
-    description = "Automatically does '/queue 2b2t-lobby'",
+    description = "Automatically does '/queue main'",
     category = Category.CHAT,
     showOnArray = false
 ) {
-    private val showWarns = setting("Show Warnings", true)
-    private val dimensionWarning = setting("Dimension Warning", true)
-    private val delay = setting("Delay", 30, 5..120, 5)
+    private val delay by setting("Delay", 30, 1..120, 5)
+    private val twoBeeCheck by setting("2B Check", true)
+    private val command by setting("Command", "/queue main")
 
     private val timer = TickTimer(TimeUnit.SECONDS)
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
-            if (!timer.tick(delay.value.toLong())) return@safeListener
+            if (!timer.tick(delay.toLong()) ||
+                (world.difficulty != EnumDifficulty.PEACEFUL &&
+                player.dimension != 1)) return@safeListener
 
-            if (mc.currentServerData == null) {
-                sendMessage("&l&6Error: &r&6You are in singleplayer")
-                return@safeListener
+            if (twoBeeCheck) {
+                if (@Suppress("UNNECESSARY_SAFE_CALL")
+                    player.serverBrand?.contains("2b2t") == true) sendQueueMain()
+            } else {
+                sendQueueMain()
             }
-
-            if (!mc.currentServerData!!.serverIP.equals("2b2t.org", ignoreCase = true)) {
-                return@safeListener
-            }
-
-            if (player.dimension != 1 && dimensionWarning.value) {
-                sendMessage("&l&6Warning: &r&6You are not in the end. Not running &b/queue main&7.")
-                return@safeListener
-            }
-
-            sendQueueMain()
         }
     }
 
@@ -49,11 +43,7 @@ internal object AutoQMain : Module(
         val formatter = SimpleDateFormat("HH:mm:ss")
         val date = Date(System.currentTimeMillis())
 
-        MessageSendHelper.sendChatMessage("&7Run &b/queue 2b2t-lobby&7 at " + formatter.format(date))
-        sendServerMessage("/queue 2b2t-lobby")
-    }
-
-    private fun sendMessage(message: String) {
-        if (showWarns.value) MessageSendHelper.sendWarningMessage("$chatName $message")
+        MessageSendHelper.sendChatMessage("&7Run &b$command&7 at " + formatter.format(date))
+        sendServerMessage(command)
     }
 }
