@@ -21,6 +21,7 @@ import org.kamiblue.client.mixin.client.accessor.player.AccessorEntityPlayerSP;
 import org.kamiblue.client.mixin.client.accessor.player.AccessorPlayerControllerMP;
 import org.kamiblue.client.module.modules.combat.CrystalAura;
 import org.kamiblue.client.module.modules.player.BlockInteraction;
+import org.kamiblue.client.module.modules.render.BarrierVision;
 import org.kamiblue.client.plugin.PluginError;
 import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,6 +29,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Minecraft.class)
@@ -132,6 +134,11 @@ public abstract class MixinMinecraft {
         if (BlockInteraction.isMultiTaskEnabled() && !playerController.getIsHittingBlock()) {
             ((AccessorPlayerControllerMP) playerController).kbSetIsHittingBlock(isHittingBlock);
         }
+    }
+
+    @Redirect(method={"runTick"}, at=@At(value="INVOKE", target="Lnet/minecraft/client/multiplayer/WorldClient;doVoidFogParticles(III)V"))
+    public void doVoidFogParticlesHook(WorldClient world, int x, int y, int z) {
+        BarrierVision.INSTANCE.doVoidFogParticles(x, y, z);
     }
 
     @Inject(method = "sendClickBlockToController", at = @At("HEAD"))
