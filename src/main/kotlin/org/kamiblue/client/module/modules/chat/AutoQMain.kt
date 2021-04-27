@@ -27,8 +27,8 @@ internal object AutoQMain : Module(
     init {
         safeListener<TickEvent.ClientTickEvent> {
             if (!timer.tick(delay.toLong()) ||
-                (world.difficulty != EnumDifficulty.PEACEFUL &&
-                player.dimension != 1)) return@safeListener
+                world.difficulty != EnumDifficulty.PEACEFUL ||
+                player.dimension != 1) return@safeListener
 
             if (twoBeeCheck) {
                 if (@Suppress("UNNECESSARY_SAFE_CALL")
