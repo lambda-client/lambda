@@ -14,7 +14,7 @@ import java.util.Map;
 public class MixinLoaderForge implements IFMLLoadingPlugin {
 
     /* This is NOT using LambdaMod, as importing it causes the issue described here: https://github.com/SpongePowered/Mixin/issues/388 */
-    public static final Logger log = LogManager.getLogger("KAMI Blue");
+    public static final Logger log = LogManager.getLogger("Lambda");
     private static boolean isObfuscatedEnvironment = false;
 
     public MixinLoaderForge() {
