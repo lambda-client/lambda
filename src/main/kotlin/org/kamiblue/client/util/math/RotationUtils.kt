@@ -77,7 +77,7 @@ object RotationUtils {
         return Vec2f(yaw, pitch)
     }
 
-    fun normalizeAngle(angleIn: Double): Double {
+    private fun normalizeAngle(angleIn: Double): Double {
         var angle = angleIn
         angle %= 360.0
         if (angle >= 180.0) {

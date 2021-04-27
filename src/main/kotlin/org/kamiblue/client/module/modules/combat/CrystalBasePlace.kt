@@ -16,11 +16,11 @@ import org.kamiblue.client.manager.managers.CombatManager
 import org.kamiblue.client.manager.managers.HotbarManager.resetHotbar
 import org.kamiblue.client.manager.managers.HotbarManager.serverSideItem
 import org.kamiblue.client.manager.managers.HotbarManager.spoofHotbar
-import org.kamiblue.client.manager.managers.PlayerPacketManager
 import org.kamiblue.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
-import org.kamiblue.client.util.*
+import org.kamiblue.client.util.Bind
+import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.color.ColorHolder
 import org.kamiblue.client.util.combat.CrystalUtils.calcCrystalDamage
 import org.kamiblue.client.util.graphics.ESPRenderer

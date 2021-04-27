@@ -24,7 +24,7 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
     override val minimizable: Boolean get() = false
 
     var setting: ColorSetting? = null
-    var originalColor: ColorHolder? = null
+    private var originalColor: ColorHolder? = null
     private var hoveredChild: Slider? = null
         set(value) {
             if (value == field) return

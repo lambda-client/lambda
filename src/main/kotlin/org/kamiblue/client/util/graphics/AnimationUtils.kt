@@ -16,10 +16,10 @@ object AnimationUtils {
         if (from < to) linearInc(deltaTime, length, from, to)
         else linearDec(deltaTime, length, to, from)
 
-    fun linearInc(deltaTime: Float, length: Float, minValue: Float = 0.0f, maxValue: Float = 1.0f) =
+    private fun linearInc(deltaTime: Float, length: Float, minValue: Float = 0.0f, maxValue: Float = 1.0f) =
         MathUtils.convertRange(deltaTime, 0.0f, length, minValue, maxValue)
 
-    fun linearDec(deltaTime: Float, length: Float, minValue: Float = 0.0f, maxValue: Float = 1.0f) =
+    private fun linearDec(deltaTime: Float, length: Float, minValue: Float = 0.0f, maxValue: Float = 1.0f) =
         MathUtils.convertRange(deltaTime, 0.0f, length, maxValue, minValue)
 
     // Double
@@ -27,10 +27,10 @@ object AnimationUtils {
         if (from < to) linearInc(deltaTime, length, from, to)
         else linearDec(deltaTime, length, to, from)
 
-    fun linearInc(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
+    private fun linearInc(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
         MathUtils.convertRange(deltaTime, 0.0, length, minValue, maxValue)
 
-    fun linearDec(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
+    private fun linearDec(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
         MathUtils.convertRange(deltaTime, 0.0, length, maxValue, minValue)
 
 
@@ -63,10 +63,10 @@ object AnimationUtils {
     fun fullSineDec(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
         (cos(deltaTime.coerceIn(0.0, length) * PI * (1.0 / length)) * -0.5 + 0.5) * (maxValue - minValue) + minValue
 
-    fun halfSineInc(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
+    private fun halfSineInc(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
         sin(0.5 * deltaTime.coerceIn(0.0, length) * PI * (1.0 / length)) * (maxValue - minValue) + minValue
 
-    fun halfSineDec(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
+    private fun halfSineDec(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
         cos(0.5 * deltaTime.coerceIn(0.0, length) * PI * (1.0 / length)) * (maxValue - minValue) + minValue
 
 
@@ -87,9 +87,9 @@ object AnimationUtils {
         if (from < to) exponentInc(deltaTime, length, from, to)
         else exponentDec(deltaTime, length, to, from)
 
-    fun exponentInc(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
+    private fun exponentInc(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
         sqrt(1.0 - (deltaTime.coerceIn(0.0, length) / length - 1.0).pow(2)) * (maxValue - minValue) + minValue
 
-    fun exponentDec(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
+    private fun exponentDec(deltaTime: Double, length: Double, minValue: Double = 0.0, maxValue: Double = 1.0) =
         sqrt(1.0 - ((deltaTime.coerceIn(0.0, length) + length) / length - 1.0).pow(2)) * (maxValue - minValue) + minValue
 }

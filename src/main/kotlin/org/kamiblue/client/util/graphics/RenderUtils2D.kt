@@ -70,12 +70,12 @@ object RenderUtils2D {
         drawArcFilled(vertexHelper, center, radius, Pair(0f, 360f), segments, color)
     }
 
-    fun drawArcOutline(vertexHelper: VertexHelper, center: Vec2d = Vec2d(0.0, 0.0), radius: Double, angleRange: Pair<Float, Float>, segments: Int = 0, lineWidth: Float = 1f, color: ColorHolder) {
+    private fun drawArcOutline(vertexHelper: VertexHelper, center: Vec2d = Vec2d(0.0, 0.0), radius: Double, angleRange: Pair<Float, Float>, segments: Int = 0, lineWidth: Float = 1f, color: ColorHolder) {
         val arcVertices = getArcVertices(center, radius, angleRange, segments)
         drawLineStrip(vertexHelper, arcVertices, lineWidth, color)
     }
 
-    fun drawArcFilled(vertexHelper: VertexHelper, center: Vec2d = Vec2d(0.0, 0.0), radius: Double, angleRange: Pair<Float, Float>, segments: Int = 0, color: ColorHolder) {
+    private fun drawArcFilled(vertexHelper: VertexHelper, center: Vec2d = Vec2d(0.0, 0.0), radius: Double, angleRange: Pair<Float, Float>, segments: Int = 0, color: ColorHolder) {
         val arcVertices = getArcVertices(center, radius, angleRange, segments)
         drawTriangleFan(vertexHelper, center, arcVertices, color)
     }
@@ -93,7 +93,7 @@ object RenderUtils2D {
         drawQuad(vertexHelper, posBegin, pos2, posEnd, pos4, color)
     }
 
-    fun drawQuad(vertexHelper: VertexHelper, pos1: Vec2d, pos2: Vec2d, pos3: Vec2d, pos4: Vec2d, color: ColorHolder) {
+    private fun drawQuad(vertexHelper: VertexHelper, pos1: Vec2d, pos2: Vec2d, pos3: Vec2d, pos4: Vec2d, color: ColorHolder) {
         val vertices = arrayOf(pos1, pos2, pos4, pos3)
         drawTriangleStrip(vertexHelper, vertices, color)
     }
@@ -132,7 +132,7 @@ object RenderUtils2D {
         glLineWidth(1f)
     }
 
-    fun drawTriangleFan(vertexHelper: VertexHelper, center: Vec2d, vertices: Array<Vec2d>, color: ColorHolder) {
+    private fun drawTriangleFan(vertexHelper: VertexHelper, center: Vec2d, vertices: Array<Vec2d>, color: ColorHolder) {
         prepareGl()
 
         vertexHelper.begin(GL_TRIANGLE_FAN)
@@ -145,7 +145,7 @@ object RenderUtils2D {
         releaseGl()
     }
 
-    fun drawTriangleStrip(vertexHelper: VertexHelper, vertices: Array<Vec2d>, color: ColorHolder) {
+    private fun drawTriangleStrip(vertexHelper: VertexHelper, vertices: Array<Vec2d>, color: ColorHolder) {
         prepareGl()
 
         vertexHelper.begin(GL_TRIANGLE_STRIP)
@@ -157,7 +157,7 @@ object RenderUtils2D {
         releaseGl()
     }
 
-    fun drawLineLoop(vertexHelper: VertexHelper, vertices: Array<Vec2d>, lineWidth: Float = 1f, color: ColorHolder) {
+    private fun drawLineLoop(vertexHelper: VertexHelper, vertices: Array<Vec2d>, lineWidth: Float = 1f, color: ColorHolder) {
         prepareGl()
         glLineWidth(lineWidth)
 

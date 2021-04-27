@@ -6,7 +6,7 @@ import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
 import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.event.listener.listener
+import org.kamiblue.client.util.threads.safeListener
 
 /**
  * @author IronException
@@ -22,16 +22,16 @@ internal object AntiBookKick : Module(
     showOnArray = false
 ) {
     init {
-        listener<PacketEvent.PostSend> {
-            if (it.packet !is CPacketClickWindow) return@listener
-            if (it.packet.clickedItem.item !is ItemWrittenBook) return@listener
+        safeListener<PacketEvent.PostSend> {
+            if (it.packet !is CPacketClickWindow) return@safeListener
+            if (it.packet.clickedItem.item !is ItemWrittenBook) return@safeListener
 
             it.cancel()
             MessageSendHelper.sendWarningMessage(chatName
                 + " Don't click the book \""
                 + it.packet.clickedItem.displayName
                 + "\", shift click it instead!")
-            mc.player.openContainer.slotClick(it.packet.slotId, it.packet.usedButton, it.packet.clickType, mc.player)
+            player.openContainer.slotClick(it.packet.slotId, it.packet.usedButton, it.packet.clickType, player)
         }
     }
 }

@@ -26,10 +26,8 @@ import org.kamiblue.client.util.threads.onMainThread
 import org.kamiblue.client.util.threads.safeAsyncListener
 import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.event.listener.asyncListener
-import org.lwjgl.opengl.GL11.*
-import java.io.*
-import java.util.*
-import kotlin.collections.LinkedHashSet
+import org.lwjgl.opengl.GL11.GL_LINE_LOOP
+import org.lwjgl.opengl.GL11.glLineWidth
 
 internal object NewChunks : Module(
     name = "NewChunks",

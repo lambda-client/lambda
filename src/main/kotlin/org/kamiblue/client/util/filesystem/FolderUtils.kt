@@ -14,7 +14,7 @@ object FolderUtils {
     /**
      * The Minecraft folder specific to the current operating system
      */
-    val minecraftFolder: String
+    private val minecraftFolder: String
         get() = when (getOS()) {
             OperatingSystem.UNIX -> System.getProperty("user.home") + "/.minecraft/"
             OperatingSystem.OSX -> System.getProperty("user.home") + "/Library/Application Support/minecraft/"

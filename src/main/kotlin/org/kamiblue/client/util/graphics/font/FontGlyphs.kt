@@ -85,7 +85,7 @@ class FontGlyphs(private val font: Font, private val fallbackFont: Font) {
     fun getChunk(char: Char) = getChunk(char.toInt() shr 8)
 
     /** @return the chunk */
-    fun getChunk(chunk: Int): GlyphChunk = chunkMap.getOrPut(chunk) {
+    private fun getChunk(chunk: Int): GlyphChunk = chunkMap.getOrPut(chunk) {
         // Try to load the glyph chunk if absent
         // Return an empty char if failed to load glyph
         // And let it fix itself next time

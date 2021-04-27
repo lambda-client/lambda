@@ -17,8 +17,6 @@ import org.kamiblue.client.util.text.formatValue
 import org.kamiblue.client.util.threads.defaultScope
 import org.kamiblue.client.util.threads.safeListener
 import org.kamiblue.commons.utils.SystemUtils
-import java.util.*
-import kotlin.collections.HashMap
 
 // TODO: Add proper RSA encryption
 internal object ChatEncryption : Module(

@@ -10,7 +10,6 @@ import org.kamiblue.client.command.ClientCommand
 import org.kamiblue.client.util.text.MessageSendHelper
 import org.kamiblue.client.util.threads.defaultScope
 import org.kamiblue.client.util.threads.onMainThreadSafe
-import java.util.*
 
 object PeekCommand : ClientCommand(
     name = "peek",

@@ -4,7 +4,6 @@ import org.kamiblue.client.command.ClientCommand
 import org.kamiblue.client.command.CommandManager
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.gui.GuiManager
-import org.kamiblue.client.gui.hudgui.KamiHudGui
 import org.kamiblue.client.manager.Manager
 import org.kamiblue.client.module.ModuleManager
 import org.kamiblue.client.plugin.PluginInfo
@@ -66,14 +65,14 @@ open class Plugin : Nameable {
      *
      * @sample org.kamiblue.client.gui.hudgui.elements.client.ModuleList
      */
-    val hudElements = CloseableList<PluginHudElement>()
+    private val hudElements = CloseableList<PluginHudElement>()
 
     /**
      * The list of [BackgroundJob] the plugin will add.
      *
      * @sample org.kamiblue.client.module.modules.client.CommandConfig
      */
-    val bgJobs = CloseableList<BackgroundJob>()
+    private val bgJobs = CloseableList<BackgroundJob>()
 
     internal fun setInfo(infoIn: PluginInfo) {
         info = infoIn
