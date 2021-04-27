@@ -1,10 +1,8 @@
 package org.kamiblue.client.module.modules.misc
 
 import net.minecraftforge.client.event.RenderGameOverlayEvent
-import org.kamiblue.client.KamiMod
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
-import org.kamiblue.client.module.modules.misc.AntiAFK.setting
 import org.kamiblue.event.listener.listener
 
 internal object F3Spoof : Module(
@@ -17,14 +15,14 @@ internal object F3Spoof : Module(
     private val hideFrames = setting("FPS", false)
     private val hideBiome = setting("Biome", false)
     private val useCustomText = setting("Use custom text", false)
-    private val customText by setting("Custom text", KamiMod.KAMI_KATAKANA, { useCustomText.value })
+    private val customText by setting("Custom text", "Lambda", { useCustomText.value })
 
-    var replaceText = KamiMod.KAMI_KATAKANA
+    var replaceText = "Lambda"
 
     init {
         listener<RenderGameOverlayEvent.Text> {
 
-            replaceText = if (useCustomText.value) customText else KamiMod.KAMI_KATAKANA
+            replaceText = if (useCustomText.value) customText else "Lambda"
             for (i in 0 until it.left.size) {
                 if (hideCoords.value) {
                     if (it.left[i].contains("Looking"))
