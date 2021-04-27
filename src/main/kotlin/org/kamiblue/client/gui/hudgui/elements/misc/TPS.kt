@@ -3,6 +3,7 @@ package org.kamiblue.client.gui.hudgui.elements.misc
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.gui.hudgui.LabelHud
 import org.kamiblue.client.util.CircularArray
+import org.kamiblue.client.util.CircularArray.Companion.average
 import org.kamiblue.client.util.TpsCalculator
 
 internal object TPS : LabelHud(
@@ -11,24 +12,24 @@ internal object TPS : LabelHud(
     description = "Server TPS"
 ) {
 
-    private val mspt = setting("Use milliseconds", false, description = "Use milliseconds per tick instead of ticks per second")
+    private val tickLength by setting("Tick Length", false, description = "Display tick length in millisseconds instead")
 
     // buffered TPS readings to add some fluidity to the TPS HUD element
-    private val tpsBuffer = CircularArray.create(20, 20f)
+    private val tpsBuffer = CircularArray(120, 20.0f)
 
     override fun SafeClientEvent.updateText() {
         tpsBuffer.add(TpsCalculator.tickRate)
         val avg = tpsBuffer.average()
 
-        if (mspt.value) {
+        if (tickLength) {
             // If the Value returns Zero, it reads "Infinity mspt"
-            if (avg == 0.00f) {
-                displayText.add("%.2f".format(0.00f), primaryColor)
+            if (avg == 0.0f) {
+                displayText.add("%.2f".format(0.0f), primaryColor)
             } else {
-                displayText.add("%.2f".format(1000 / avg), primaryColor)
+                displayText.add("%.2f".format(1000.0f / avg), primaryColor)
             }
 
-            displayText.add("mspt", secondaryColor)
+            displayText.add("ms", secondaryColor)
         } else {
             displayText.add("%.2f".format(avg), primaryColor)
             displayText.add("tps", secondaryColor)
