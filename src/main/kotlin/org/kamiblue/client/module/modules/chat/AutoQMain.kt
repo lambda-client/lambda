@@ -18,8 +18,8 @@ internal object AutoQMain : Module(
     category = Category.CHAT,
     showOnArray = false
 ) {
-    private val delay by setting("Delay", 30, 5..120, 5)
-    private val check2b by setting("Check if on 2b", true)
+    private val delay by setting("Delay", 30, 1..120, 5)
+    private val twoBeeCheck by setting("2B Check", true)
     private val command by setting("Command", "/queue main")
 
     private val timer = TickTimer(TimeUnit.SECONDS)
