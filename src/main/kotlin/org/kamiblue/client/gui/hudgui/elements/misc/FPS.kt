@@ -11,7 +11,7 @@ import kotlin.math.roundToInt
 internal object FPS : LabelHud(
     name = "FPS",
     category = Category.MISC,
-    description = "Frame per second in game"
+    description = "Frames per second in game"
 ) {
 
     private val showAverage = setting("Show Average", true)
