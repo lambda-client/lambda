@@ -31,11 +31,11 @@ object CoordinateConverter {
         }
     }
 
-    fun toNether(pos: BlockPos): BlockPos {
+    private fun toNether(pos: BlockPos): BlockPos {
         return BlockPos(pos.x / 8, pos.y, pos.z / 8)
     }
 
-    fun toOverworld(pos: BlockPos): BlockPos {
+    private fun toOverworld(pos: BlockPos): BlockPos {
         return BlockPos(pos.x * 8, pos.y, pos.z * 8)
     }
 }

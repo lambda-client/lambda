@@ -2,7 +2,6 @@ package org.kamiblue.client.util.threads
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.completeWith
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

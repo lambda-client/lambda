@@ -25,7 +25,7 @@ object ProjectionUtils {
     private val modelMatrix = Matrix4f()
     private val projectionMatrix = Matrix4f()
     private var resolution = ScaledResolution(mc)
-    var camPos = Vec3d(0.0, 0.0, 0.0)
+    private var camPos = Vec3d(0.0, 0.0, 0.0)
 
     fun updateMatrix() {
         if (mc.renderViewEntity == null) return

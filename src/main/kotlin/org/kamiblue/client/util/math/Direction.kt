@@ -35,7 +35,7 @@ enum class Direction(
             fromYaw(it.rotationYaw)
         } ?: NORTH
 
-        fun fromYaw(yaw: Float): Direction {
+        private fun fromYaw(yaw: Float): Direction {
             val normalizedYaw = (RotationUtils.normalizeAngle(yaw) + 180.0f).coerceIn(0.0f, 360.0f)
             val index = (normalizedYaw / 45.0f).roundToInt() % 8
             return values()[index]

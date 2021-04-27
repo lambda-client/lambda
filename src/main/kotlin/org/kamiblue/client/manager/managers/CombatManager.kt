@@ -27,7 +27,7 @@ object CombatManager : Manager {
         return getTopPriority() <= module.modulePriority
     }
 
-    fun getTopPriority(): Int {
+    private fun getTopPriority(): Int {
         return getTopModule()?.modulePriority ?: -1
     }
 

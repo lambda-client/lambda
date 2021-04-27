@@ -15,11 +15,11 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.manager.managers.CombatManager
-import org.kamiblue.client.manager.managers.PlayerPacketManager
 import org.kamiblue.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
-import org.kamiblue.client.util.*
+import org.kamiblue.client.util.TickTimer
+import org.kamiblue.client.util.TimeUnit
 import org.kamiblue.client.util.combat.CrystalUtils.calcCrystalDamage
 import org.kamiblue.client.util.items.*
 import org.kamiblue.client.util.math.RotationUtils
@@ -29,9 +29,11 @@ import org.kamiblue.client.util.math.VectorUtils
 import org.kamiblue.client.util.math.VectorUtils.distanceTo
 import org.kamiblue.client.util.math.VectorUtils.toVec3d
 import org.kamiblue.client.util.threads.safeListener
-import org.kamiblue.client.util.world.*
+import org.kamiblue.client.util.world.getClosestVisibleSide
+import org.kamiblue.client.util.world.getHitVecOffset
+import org.kamiblue.client.util.world.isReplaceable
+import org.kamiblue.client.util.world.isVisible
 import java.util.*
-import kotlin.collections.HashMap
 
 @CombatManager.CombatModule
 internal object BedAura : Module(

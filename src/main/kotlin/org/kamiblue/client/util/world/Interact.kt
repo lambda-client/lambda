@@ -12,13 +12,11 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.manager.managers.HotbarManager.serverSideItem
-import org.kamiblue.client.manager.managers.PlayerPacketManager
 import org.kamiblue.client.util.math.RotationUtils.getRotationTo
 import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import org.kamiblue.client.util.threads.runSafeSuspend
 import java.util.*
 import java.util.function.BooleanSupplier
-import kotlin.collections.ArrayList
 
 fun SafeClientEvent.getNeighbourSequence(
     pos: BlockPos,

@@ -13,7 +13,6 @@ import org.kamiblue.client.util.BaritoneUtils
 import org.kamiblue.client.util.MovementUtils
 import org.kamiblue.client.util.MovementUtils.applySpeedPotionEffects
 import org.kamiblue.client.util.MovementUtils.isInputting
-import org.kamiblue.client.util.MovementUtils.setSpeed
 import org.kamiblue.client.util.MovementUtils.speed
 import org.kamiblue.client.util.TickTimer
 import org.kamiblue.client.util.threads.runSafeR
@@ -88,6 +87,6 @@ internal object Sprint : Module(
         } ?: false
 
     private fun SafeClientEvent.checkMovementInput() =
-        if (multiDirection) MovementUtils.isInputting else
+        if (multiDirection) isInputting else
             player.movementInput.moveForward > 0.0f
 }

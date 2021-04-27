@@ -1,3 +1,4 @@
+//file:noinspection DifferentKotlinGradleVersion
 buildscript {
 
     repositories {

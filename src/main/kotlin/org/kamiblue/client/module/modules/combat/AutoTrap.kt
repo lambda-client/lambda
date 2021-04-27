@@ -10,12 +10,10 @@ import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.manager.managers.CombatManager
 import org.kamiblue.client.manager.managers.HotbarManager.resetHotbar
 import org.kamiblue.client.manager.managers.HotbarManager.spoofHotbar
-import org.kamiblue.client.manager.managers.PlayerPacketManager
 import org.kamiblue.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import org.kamiblue.client.module.Category
 import org.kamiblue.client.module.Module
-import org.kamiblue.client.module.modules.combat.Surround.setting
-import org.kamiblue.client.util.*
+import org.kamiblue.client.util.Bind
 import org.kamiblue.client.util.EntityUtils.flooredPosition
 import org.kamiblue.client.util.combat.SurroundUtils
 import org.kamiblue.client.util.items.HotbarSlot

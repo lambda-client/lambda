@@ -8,8 +8,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.util.graphics.KamiTessellator
 import org.kamiblue.client.util.threads.safeListener
-import java.util.*
-import kotlin.collections.ArrayDeque
 
 /**
  * Tracking the motion of an Entity tick by tick
@@ -104,7 +102,7 @@ class MotionTracker(targetIn: Entity?, private val trackLength: Int = 20) {
      * @param [interpolation] Whether to return interpolated position or not, default value is false (no interpolation)
      * @return Predicted moved vector of the target entity
      */
-    fun calcMovedVectorAhead(ticksAhead: Int, interpolation: Boolean = false): Vec3d? {
+    private fun calcMovedVectorAhead(ticksAhead: Int, interpolation: Boolean = false): Vec3d? {
         return Wrapper.world?.let { world ->
             target?.let {
                 val partialTicks = if (interpolation) KamiTessellator.pTicks() else 1f

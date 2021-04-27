@@ -19,10 +19,7 @@ import org.kamiblue.client.util.graphics.font.VAlign
 import org.kamiblue.client.util.threads.safeAsyncListener
 import org.kamiblue.commons.extension.sumByFloat
 import org.kamiblue.commons.interfaces.DisplayEnum
-import org.lwjgl.opengl.GL11.*
 import java.awt.Color
-import java.util.*
-import kotlin.collections.HashMap
 import kotlin.math.max
 
 internal object ModuleList : HudElement(

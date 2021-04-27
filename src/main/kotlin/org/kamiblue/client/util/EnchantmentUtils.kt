@@ -38,16 +38,16 @@ object EnchantmentUtils {
      * @param [enchantment] Enchantment in
      * @return [EnumEnchantments] matches with [enchantment]
      */
-    fun getEnumEnchantment(enchantment: Enchantment): EnumEnchantments? {
+    private fun getEnumEnchantment(enchantment: Enchantment): EnumEnchantments? {
         return enchantmentMap[enchantment]
     }
 
-    private val enchantmentMap = EnumEnchantments.values().map { it.enchantment to it }.toMap()
+    private val enchantmentMap = EnumEnchantments.values().associateBy { it.enchantment }
 
-    class LeveledEnchantment(val enchantment: Enchantment, val level: Short) {
-        val isSingleLevel = enchantment.maxLevel == 1
-        val isMax = level >= enchantment.maxLevel
-        val is32K = abs(level.toInt()) >= 32000
+    class LeveledEnchantment(enchantment: Enchantment, val level: Short) {
+        private val isSingleLevel = enchantment.maxLevel == 1
+        private val isMax = level >= enchantment.maxLevel
+        private val is32K = abs(level.toInt()) >= 32000
         val alias = getEnchantmentAlias(enchantment)
         val levelText = if (isSingleLevel) "" else if (is32K) "32K" else if (isMax) "MAX" else "$level"
     }

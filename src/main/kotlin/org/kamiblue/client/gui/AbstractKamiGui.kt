@@ -50,9 +50,9 @@ abstract class AbstractKamiGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
     // Searching
     protected var typedString = ""
-    protected var lastTypedTime = 0L
-    protected var prevStringWidth = 0.0f
-    protected var stringWidth = 0.0f
+    private var lastTypedTime = 0L
+    private var prevStringWidth = 0.0f
+    private var stringWidth = 0.0f
         set(value) {
             prevStringWidth = renderStringPosX
             field = value

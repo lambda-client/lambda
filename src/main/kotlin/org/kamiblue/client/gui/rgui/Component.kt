@@ -78,13 +78,13 @@ open class Component(
     open val closeable: Boolean get() = true
 
     // Rendering info
-    var prevPosX = 0.0f; protected set
-    var prevPosY = 0.0f; protected set
+    private var prevPosX = 0.0f
+    private var prevPosY = 0.0f
     val renderPosX get() = prevPosX + prevDockWidth + (posX + dockWidth - (prevPosX + prevDockWidth)) * mc.renderPartialTicks - dockWidth
     val renderPosY get() = prevPosY + prevDockHeight + (posY + dockHeight - (prevPosY + prevDockHeight)) * mc.renderPartialTicks - dockHeight
 
-    var prevWidth = 0.0f; protected set
-    var prevHeight = 0.0f; protected set
+    private var prevWidth = 0.0f
+    private var prevHeight = 0.0f
     val renderWidth get() = prevWidth + (width - prevWidth) * mc.renderPartialTicks
     open val renderHeight get() = prevHeight + (height - prevHeight) * mc.renderPartialTicks
 

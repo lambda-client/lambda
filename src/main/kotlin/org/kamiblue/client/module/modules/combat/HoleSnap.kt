@@ -23,7 +23,6 @@ import org.kamiblue.client.util.graphics.KamiTessellator
 import org.kamiblue.client.util.math.RotationUtils
 import org.kamiblue.client.util.math.VectorUtils
 import org.kamiblue.client.util.math.VectorUtils.distanceTo
-import org.kamiblue.client.util.math.VectorUtils.toBlockPos
 import org.kamiblue.client.util.math.VectorUtils.toVec3d
 import org.kamiblue.client.util.threads.safeAsyncListener
 import org.kamiblue.client.util.threads.safeListener
@@ -31,7 +30,9 @@ import org.kamiblue.commons.extension.ceilToInt
 import org.kamiblue.commons.extension.toRadian
 import org.kamiblue.event.listener.listener
 import org.lwjgl.opengl.GL11.*
-import kotlin.math.*
+import kotlin.math.cos
+import kotlin.math.min
+import kotlin.math.sin
 
 internal object HoleSnap : Module(
     name = "HoleSnap",

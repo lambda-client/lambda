@@ -74,7 +74,7 @@ object MacroManager : Manager {
         }
     }
 
-    fun getMacros(keycode: Int) = macroMap[keycode]
+    private fun getMacros(keycode: Int) = macroMap[keycode]
 
     fun addMacroToKey(keycode: Int, macro: String) {
         macroMap.getOrPut(keycode, ::ArrayList).add(macro)

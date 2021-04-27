@@ -1,12 +1,10 @@
 package org.kamiblue.client.util
 
 import net.minecraft.network.play.server.SPacketTimeUpdate
-import net.minecraft.util.math.MathHelper
 import org.kamiblue.client.event.KamiEventBus
 import org.kamiblue.client.event.events.ConnectionEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.event.listener.listener
-import java.util.*
 
 object TpsCalculator {
     // Circular Buffer lasting ~60 seconds for tick storage

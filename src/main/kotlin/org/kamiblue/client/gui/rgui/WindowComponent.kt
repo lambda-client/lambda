@@ -30,8 +30,8 @@ open class WindowComponent(
     open val draggableHeight get() = height
     var lastActiveTime: Long = System.currentTimeMillis(); protected set
     var preDragMousePos = Vec2f.ZERO; private set
-    var preDragPos = Vec2f.ZERO; private set
-    var preDragSize = Vec2f.ZERO; private set
+    private var preDragPos = Vec2f.ZERO
+    private var preDragSize = Vec2f.ZERO
 
     // Render info
     private var minimizedTime = 0L

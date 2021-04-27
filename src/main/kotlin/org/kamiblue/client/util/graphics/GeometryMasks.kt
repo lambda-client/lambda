@@ -17,18 +17,18 @@ object GeometryMasks {
     }
 
     object Line {
-        const val DOWN_WEST = 0x11
-        const val UP_WEST = 0x12
-        const val DOWN_EAST = 0x21
-        const val UP_EAST = 0x22
-        const val DOWN_NORTH = 0x05
-        const val UP_NORTH = 0x06
-        const val DOWN_SOUTH = 0x09
-        const val UP_SOUTH = 0x0A
-        const val NORTH_WEST = 0x14
-        const val NORTH_EAST = 0x24
-        const val SOUTH_WEST = 0x18
-        const val SOUTH_EAST = 0x28
+        private const val DOWN_WEST = 0x11
+        private const val UP_WEST = 0x12
+        private const val DOWN_EAST = 0x21
+        private const val UP_EAST = 0x22
+        private const val DOWN_NORTH = 0x05
+        private const val UP_NORTH = 0x06
+        private const val DOWN_SOUTH = 0x09
+        private const val UP_SOUTH = 0x0A
+        private const val NORTH_WEST = 0x14
+        private const val NORTH_EAST = 0x24
+        private const val SOUTH_WEST = 0x18
+        private const val SOUTH_EAST = 0x28
         const val ALL = DOWN_WEST or UP_WEST or DOWN_EAST or UP_EAST or DOWN_NORTH or UP_NORTH or DOWN_SOUTH or UP_SOUTH or NORTH_WEST or NORTH_EAST or SOUTH_WEST or SOUTH_EAST
     }
 

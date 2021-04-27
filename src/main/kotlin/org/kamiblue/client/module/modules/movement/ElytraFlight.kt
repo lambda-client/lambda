@@ -9,7 +9,6 @@ import net.minecraft.network.play.server.SPacketPlayerPosLook
 import org.kamiblue.client.event.SafeClientEvent
 import org.kamiblue.client.event.events.PacketEvent
 import org.kamiblue.client.event.events.PlayerTravelEvent
-import org.kamiblue.client.manager.managers.PlayerPacketManager
 import org.kamiblue.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import org.kamiblue.client.mixin.extension.rotationPitch
 import org.kamiblue.client.mixin.extension.tickLength
