@@ -15,7 +15,7 @@ import net.minecraftforge.common.ForgeHooks;
 import org.kamiblue.client.event.KamiEventBus;
 import org.kamiblue.client.event.events.GuiEvent;
 import org.kamiblue.client.event.events.RunGameLoopEvent;
-import org.kamiblue.client.gui.mc.KamiGuiUpdateNotification;
+import org.kamiblue.client.gui.hudgui.elements.misc.FPS;
 import org.kamiblue.client.manager.managers.HotbarManager;
 import org.kamiblue.client.mixin.client.accessor.player.AccessorEntityPlayerSP;
 import org.kamiblue.client.mixin.client.accessor.player.AccessorPlayerControllerMP;
@@ -24,6 +24,7 @@ import org.kamiblue.client.module.modules.player.BlockInteraction;
 import org.kamiblue.client.module.modules.render.BarrierVision;
 import org.kamiblue.client.plugin.PluginError;
 import org.kamiblue.client.util.Wrapper;
+import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -40,6 +41,7 @@ public abstract class MixinMinecraft {
     @Shadow public GuiScreen currentScreen;
     @Shadow public GameSettings gameSettings;
     @Shadow public PlayerControllerMP playerController;
+    @Shadow private int fpsCounter;
 
     @Shadow protected abstract void clickMouse();
 
@@ -81,6 +83,11 @@ public abstract class MixinMinecraft {
         Wrapper.getMinecraft().profiler.startSection("kbRunGameLoop");
         KamiEventBus.INSTANCE.post(new RunGameLoopEvent.End());
         Wrapper.getMinecraft().profiler.endSection();
+    }
+
+    @Inject(method = "runGameLoop", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;debugFPS:I", opcode = Opcodes.PUTSTATIC))
+    public void runGameLoopPutFieldDebugFPS(CallbackInfo ci) {
+        FPS.updateFps(this.fpsCounter);
     }
 
     // Fix random crystal placing when eating gapple in offhand
@@ -166,13 +173,4 @@ public abstract class MixinMinecraft {
         Wrapper.saveAndShutdown();
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
-    public void init(CallbackInfo info) {
-        if (KamiGuiUpdateNotification.Companion.getLatest() != null && !KamiGuiUpdateNotification.Companion.isLatest()) {
-            Wrapper.getMinecraft().displayGuiScreen(new KamiGuiUpdateNotification());
-        }
-        PluginError.Companion.displayErrors();
-    }
-
 }
-
