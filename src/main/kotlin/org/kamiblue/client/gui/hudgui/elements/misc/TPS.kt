@@ -29,7 +29,7 @@ internal object TPS : LabelHud(
                 displayText.add("%.2f".format(1000.0f / avg), primaryColor)
             }
 
-            displayText.add("ms", secondaryColor)
+            displayText.add("mspt", secondaryColor)
         } else {
             displayText.add("%.2f".format(avg), primaryColor)
             displayText.add("tps", secondaryColor)
