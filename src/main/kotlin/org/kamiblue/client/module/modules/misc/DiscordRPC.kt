@@ -179,7 +179,7 @@ internal object DiscordRPC : Module(
     }
 
     init {
-        presence.largeImageKey = "kami"
-        presence.largeImageText = "kamiblue.org"
+        presence.largeImageKey = "Lambda"
+        presence.largeImageText = "Lambda-client.com"
     }
 }

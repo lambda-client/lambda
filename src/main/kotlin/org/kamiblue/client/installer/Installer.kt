@@ -29,7 +29,7 @@ object Installer : JPanel() {
         println("Running the ${LambdaMod.NAME} ${LambdaMod.VERSION} Installer")
 
         if (downloadsApi.size < 19) {
-            notify("Error while loading the KAMI Blue Downloads API, couldn't connect to the URL or response is invalid. " +
+            notify("Error while loading the Lambda client Downloads API, couldn't connect to the URL or response is invalid. " +
                 "Either your Firewall / ISP is blocking it or you're not connected to the internet!",
                 "Error!"
             )
@@ -43,8 +43,8 @@ object Installer : JPanel() {
 
         File(FolderUtils.modsFolder).mkdir() // make sure that the mods folder exists.
 
-        val logoFile = Installer.javaClass.getResource("/installer/kami.png")
-        frame = JFrame("KAMI Blue Installer")
+        val logoFile = Installer.javaClass.getResource("/installer/Lambda.png")
+        frame = JFrame("Lambda client Installer")
         frame.iconImage = ImageIO.read(logoFile)
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         frame.setSize(600, 355)
@@ -87,8 +87,8 @@ object Installer : JPanel() {
         betaButton.isContentAreaFilled = false
         betaButton.isBorderPainted = true
 
-        stableButton.toolTipText = "This version of KAMI Blue is the latest major release"
-        betaButton.toolTipText = "A beta version of KAMI Blue, with frequent updates and fixes"
+        stableButton.toolTipText = "This version of Lambda client is the latest major release"
+        betaButton.toolTipText = "A beta version of Lambda client, with frequent updates and fixes"
 
         // Load images and icons
         val backgroundImage = this.javaClass.getResource("/installer/0${rand.nextInt(4)}.jpg")
@@ -100,7 +100,7 @@ object Installer : JPanel() {
         val betaButtonImage = this.javaClass.getResource("/installer/beta.png")
         val betaButtonIcon = JLabel(ImageIcon(ImageIO.read(betaButtonImage)))
 
-        val kamiImage = this.javaClass.getResource("/installer/kami.png")
+        val kamiImage = this.javaClass.getResource("/installer/Lambda.png")
         val kamiIcon = JLabel(ImageIcon(ImageIO.read(kamiImage)))
 
         val breadImage = this.javaClass.getResource("/installer/bread.png")
@@ -136,7 +136,7 @@ object Installer : JPanel() {
             stableButton.isOpaque = false
             betaButton.isOpaque = false
             download(betaUrl)
-            notify("KAMI Blue $betaVersion has been installed", "Installed", JOptionPane.INFORMATION_MESSAGE)
+            notify("Lambda client $betaVersion has been installed", "Installed", JOptionPane.INFORMATION_MESSAGE)
             exitProcess(0)
         }
 
@@ -146,7 +146,7 @@ object Installer : JPanel() {
             stableButton.isOpaque = false
             betaButton.isOpaque = false
             download(stableUrl)
-            notify("KAMI Blue $stableVersion has been installed", "Installed", JOptionPane.INFORMATION_MESSAGE)
+            notify("Lambda client $stableVersion has been installed", "Installed", JOptionPane.INFORMATION_MESSAGE)
             exitProcess(0)
         }
     }
@@ -194,7 +194,7 @@ object Installer : JPanel() {
         forEach { file -> Files.delete(file.toPath()) }
     }
 
-    private fun notify(message: String, title: String = "KAMI Blue Installer", type: Int = JOptionPane.WARNING_MESSAGE) {
+    private fun notify(message: String, title: String = "Lambda client Installer", type: Int = JOptionPane.WARNING_MESSAGE) {
         JOptionPane.showMessageDialog(frame, message, title, type)
     }
 
@@ -207,7 +207,7 @@ object Installer : JPanel() {
 
         Thread {
             dialog[0] = JOptionPane("", JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION)
-                .createDialog(null, "KAMI Blue - Downloading")
+                .createDialog(null, "Lambda client - Downloading")
 
             dialog[0]?.isResizable = false
             dialog[0]?.setSize(300, 0)
