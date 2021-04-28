@@ -69,6 +69,7 @@ internal object ClickGUI : Module(
             KamiClickGui.windowList.forEach {
                 it.resetPosition()
             }
+            resetComponents.value = false
         }
     }
 
