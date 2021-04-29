@@ -2,11 +2,10 @@ package com.lambda.client.command.commands
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
-import org.kamiblue.commons.utils.ConnectionUtils
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
+import com.lambda.commons.utils.ConnectionUtils
 
 object CreditsCommand : ClientCommand(
     name = "credits",

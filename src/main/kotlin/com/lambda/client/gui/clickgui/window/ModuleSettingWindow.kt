@@ -1,8 +1,8 @@
 package com.lambda.client.gui.clickgui.window
 
-import org.kamiblue.client.gui.rgui.windows.SettingWindow
-import org.kamiblue.client.module.AbstractModule
-import org.kamiblue.client.setting.settings.AbstractSetting
+import com.lambda.client.gui.rgui.windows.SettingWindow
+import com.lambda.client.module.AbstractModule
+import com.lambda.client.setting.settings.AbstractSetting
 
 class ModuleSettingWindow(
     module: AbstractModule,

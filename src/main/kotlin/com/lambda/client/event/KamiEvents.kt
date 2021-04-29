@@ -1,7 +1,7 @@
 package com.lambda.client.event
 
-import org.kamiblue.commons.interfaces.DisplayEnum
-import org.kamiblue.event.eventbus.IEventBus
+import com.lambda.commons.interfaces.DisplayEnum
+import com.lambda.event.eventbus.IEventBus
 
 interface Event
 

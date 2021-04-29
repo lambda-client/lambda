@@ -1,16 +1,15 @@
 package com.lambda.client.gui.mc
 
 import com.google.gson.JsonParser
+import com.lambda.client.util.WebUtils
+import com.lambda.client.util.color.ColorConverter
+import com.lambda.client.util.threads.mainScope
+import com.lambda.commons.utils.ConnectionUtils
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiMainMenu
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.util.text.TextFormatting
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.util.WebUtils
-import org.kamiblue.client.util.color.ColorConverter
-import org.kamiblue.client.util.threads.mainScope
-import org.kamiblue.commons.utils.ConnectionUtils
 import java.io.IOException
 
 class KamiGuiUpdateNotification : GuiScreen() {

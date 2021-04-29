@@ -1,7 +1,7 @@
 package com.lambda.client.event.events
 
+import com.lambda.client.event.*
 import net.minecraft.entity.Entity
-import org.kamiblue.client.event.*
 
 sealed class RenderEntityEvent(
     val entity: Entity,

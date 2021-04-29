@@ -1,9 +1,9 @@
 package com.lambda.client.gui.hudgui.elements.player
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.manager.managers.TimerManager
-import org.kamiblue.commons.utils.MathUtils
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.manager.managers.TimerManager
+import com.lambda.commons.utils.MathUtils
 
 internal object TimerSpeed : LabelHud(
     name = "TimerSpeed",

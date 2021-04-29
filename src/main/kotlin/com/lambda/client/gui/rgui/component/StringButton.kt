@@ -1,13 +1,13 @@
 package com.lambda.client.gui.rgui.component
 
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.setting.settings.impl.primitive.StringSetting
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.graphics.font.FontRenderAdapter
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.math.Vec2f
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.setting.settings.impl.primitive.StringSetting
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Keyboard
 import kotlin.math.max
 

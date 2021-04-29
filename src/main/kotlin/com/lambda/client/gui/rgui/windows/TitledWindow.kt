@@ -1,9 +1,9 @@
 package com.lambda.client.gui.rgui.windows
 
-import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.graphics.font.FontRenderAdapter
-import org.kamiblue.client.util.math.Vec2f
+import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.math.Vec2f
 
 /**
  * Window with rectangle and title rendering

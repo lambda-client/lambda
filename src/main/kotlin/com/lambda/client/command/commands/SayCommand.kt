@@ -1,7 +1,7 @@
 package com.lambda.client.command.commands
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.util.text.MessageSendHelper.sendServerMessage
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 
 object SayCommand : ClientCommand(
     name = "say",

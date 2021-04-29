@@ -1,11 +1,11 @@
 package com.lambda.client.gui.hudgui.elements.combat
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.manager.managers.CombatManager
-import org.kamiblue.client.util.Quad
-import org.kamiblue.client.util.combat.CrystalUtils.canPlaceCollide
-import org.kamiblue.commons.utils.MathUtils
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.util.Quad
+import com.lambda.client.util.combat.CrystalUtils.canPlaceCollide
+import com.lambda.commons.utils.MathUtils
 import kotlin.math.max
 
 internal object CrystalDamage : LabelHud(

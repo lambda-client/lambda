@@ -1,9 +1,9 @@
 package com.lambda.client.gui.rgui
 
-import org.kamiblue.client.setting.GuiConfig
-import org.kamiblue.client.setting.configs.AbstractConfig
-import org.kamiblue.client.util.math.Vec2f
-import org.kamiblue.commons.interfaces.Nameable
+import com.lambda.client.setting.GuiConfig
+import com.lambda.client.setting.configs.AbstractConfig
+import com.lambda.client.util.math.Vec2f
+import com.lambda.commons.interfaces.Nameable
 
 open class InteractiveComponent(
     name: String,

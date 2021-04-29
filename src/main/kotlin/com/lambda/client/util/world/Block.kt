@@ -1,13 +1,13 @@
 package com.lambda.client.util.world
 
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.items.blockBlacklist
 import net.minecraft.block.Block
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.items.blockBlacklist
 
 val IBlockState.isBlacklisted: Boolean
     get() = blockBlacklist.contains(this.block)

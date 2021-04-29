@@ -1,8 +1,7 @@
 package com.lambda.client.installer
 
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.util.WebUtils
-import org.kamiblue.client.util.filesystem.FolderUtils
+import com.lambda.client.util.WebUtils
+import com.lambda.client.util.filesystem.FolderUtils
 import java.awt.Dimension
 import java.io.File
 import java.io.IOException
@@ -12,7 +11,6 @@ import java.nio.file.Files
 import java.util.*
 import javax.imageio.ImageIO
 import javax.swing.*
-import kotlin.collections.ArrayList
 import kotlin.system.exitProcess
 
 object Installer : JPanel() {
@@ -171,7 +169,7 @@ object Installer : JPanel() {
                 val manifest = jarFile.manifest
                 println("Scanning $jarUrl")
 
-                if (manifest.mainAttributes.getValue("MixinConfigs") == "mixins.kami.json") { // this is the most unique unchanged thing.
+                if (manifest.mainAttributes.getValue("MixinConfigs") == "mixins.lambda.json") { // this is the most unique unchanged thing.
                     foundFiles.add(file)
                 }
 

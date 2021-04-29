@@ -3,7 +3,6 @@ package com.lambda.client.mixin.client.render;
 import com.lambda.client.module.modules.render.Xray;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.tileentity.TileEntity;
-import org.kamiblue.client.module.modules.render.Xray;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

@@ -1,5 +1,10 @@
 package com.lambda.client.util.world
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.HotbarManager.serverSideItem
+import com.lambda.client.util.math.RotationUtils.getRotationTo
+import com.lambda.client.util.math.VectorUtils.toVec3dCenter
+import com.lambda.client.util.threads.runSafeSuspend
 import kotlinx.coroutines.delay
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemBlock
@@ -10,11 +15,6 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.manager.managers.HotbarManager.serverSideItem
-import org.kamiblue.client.util.math.RotationUtils.getRotationTo
-import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
-import org.kamiblue.client.util.threads.runSafeSuspend
 import java.util.*
 import java.util.function.BooleanSupplier
 

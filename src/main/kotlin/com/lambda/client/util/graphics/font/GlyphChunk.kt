@@ -1,6 +1,6 @@
 package com.lambda.client.util.graphics.font
 
-import org.kamiblue.client.util.graphics.texture.MipmapTexture
+import com.lambda.client.util.graphics.texture.MipmapTexture
 import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL14
 

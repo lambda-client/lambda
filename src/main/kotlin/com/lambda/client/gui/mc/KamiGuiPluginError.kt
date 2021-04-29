@@ -1,13 +1,13 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.plugin.PluginError
+import com.lambda.client.plugin.PluginLoader
+import com.lambda.client.plugin.PluginManager
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.event.world.NoteBlockEvent
-import org.kamiblue.client.plugin.PluginError
-import org.kamiblue.client.plugin.PluginLoader
-import org.kamiblue.client.plugin.PluginManager
 import java.awt.Desktop
 import java.io.File
 import java.util.*

@@ -1,20 +1,20 @@
 package com.lambda.client.gui.rgui.windows
 
+import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.rgui.component.Button
+import com.lambda.client.gui.rgui.component.SettingSlider
+import com.lambda.client.gui.rgui.component.Slider
+import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.setting.GuiConfig.setting
+import com.lambda.client.setting.settings.impl.other.ColorSetting
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.HAlign
+import com.lambda.client.util.graphics.font.VAlign
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.math.Vec2f
 import net.minecraft.client.renderer.GlStateManager
-import org.kamiblue.client.gui.AbstractKamiGui
-import org.kamiblue.client.gui.rgui.component.Button
-import org.kamiblue.client.gui.rgui.component.SettingSlider
-import org.kamiblue.client.gui.rgui.component.Slider
-import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.setting.GuiConfig.setting
-import org.kamiblue.client.setting.settings.impl.other.ColorSetting
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.graphics.font.HAlign
-import org.kamiblue.client.util.graphics.font.VAlign
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.math.Vec2f
 import org.lwjgl.opengl.GL11.*
 import java.awt.Color
 

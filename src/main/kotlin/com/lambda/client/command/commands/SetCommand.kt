@@ -1,20 +1,19 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.gui.GuiManager
+import com.lambda.client.gui.hudgui.AbstractHudElement
+import com.lambda.client.module.AbstractModule
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.setting.settings.AbstractSetting
+import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
+import com.lambda.client.setting.settings.impl.primitive.EnumSetting
+import com.lambda.client.util.AsyncCachedValue
+import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.format
+import com.lambda.client.util.text.formatValue
 import net.minecraft.util.text.TextFormatting
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.gui.GuiManager
-import org.kamiblue.client.gui.hudgui.AbstractHudElement
-import org.kamiblue.client.module.AbstractModule
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.setting.settings.AbstractSetting
-import org.kamiblue.client.setting.settings.impl.primitive.BooleanSetting
-import org.kamiblue.client.setting.settings.impl.primitive.EnumSetting
-import org.kamiblue.client.util.AsyncCachedValue
-import org.kamiblue.client.util.TimeUnit
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.format
-import org.kamiblue.client.util.text.formatValue
 import java.util.*
 
 object SetCommand : ClientCommand(

@@ -1,12 +1,12 @@
 package com.lambda.client.util.graphics
 
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.math.Vec2d
+import com.lambda.commons.utils.MathUtils
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.item.ItemStack
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.commons.utils.MathUtils
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.*
 

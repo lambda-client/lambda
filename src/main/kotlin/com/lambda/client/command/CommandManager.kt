@@ -1,23 +1,23 @@
 package com.lambda.client.command
 
-import kotlinx.coroutines.*
-import com.lambda.client.AsyncLoader
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.event.ClientExecuteEvent
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.module.modules.client.CommandConfig
-import org.kamiblue.client.util.StopTimer
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
-import org.kamiblue.client.util.threads.defaultScope
-import org.kamiblue.client.util.threads.onMainThread
-import org.kamiblue.command.AbstractCommandManager
-import org.kamiblue.command.Command
-import org.kamiblue.command.CommandBuilder
-import org.kamiblue.command.utils.CommandNotFoundException
-import org.kamiblue.command.utils.SubCommandNotFoundException
-import org.kamiblue.commons.utils.ClassUtils
-import org.kamiblue.commons.utils.ClassUtils.instance
+import com.lambda.client.event.ClientExecuteEvent
+import com.lambda.client.event.KamiEventBus
+import com.lambda.client.module.modules.client.CommandConfig
+import com.lambda.client.util.StopTimer
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThread
+import com.lambda.command.AbstractCommandManager
+import com.lambda.command.Command
+import com.lambda.command.CommandBuilder
+import com.lambda.command.utils.CommandNotFoundException
+import com.lambda.command.utils.SubCommandNotFoundException
+import com.lambda.commons.utils.ClassUtils
+import com.lambda.commons.utils.ClassUtils.instance
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
     com.lambda.client.AsyncLoader<List<Class<out ClientCommand>>> {
@@ -27,7 +27,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
     override fun preLoad0(): List<Class<out ClientCommand>> {
         val stopTimer = StopTimer()
 
-        val list = ClassUtils.findClasses<ClientCommand>("org.kamiblue.client.command.commands")
+        val list = ClassUtils.findClasses<ClientCommand>("com.lambda.client.command.commands")
 
         val time = stopTimer.stop()
 

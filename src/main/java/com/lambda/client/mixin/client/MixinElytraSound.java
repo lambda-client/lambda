@@ -2,7 +2,6 @@ package com.lambda.client.mixin.client;
 
 import com.lambda.client.module.modules.movement.ElytraFlight;
 import net.minecraft.client.audio.ElytraSound;
-import org.kamiblue.client.module.modules.movement.ElytraFlight;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

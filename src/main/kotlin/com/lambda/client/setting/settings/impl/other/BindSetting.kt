@@ -2,9 +2,9 @@ package com.lambda.client.setting.settings.impl.other
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
-import org.kamiblue.client.setting.settings.ImmutableSetting
-import org.kamiblue.client.util.Bind
-import org.kamiblue.client.util.KeyboardUtils
+import com.lambda.client.setting.settings.ImmutableSetting
+import com.lambda.client.util.Bind
+import com.lambda.client.util.KeyboardUtils
 import java.util.*
 
 class BindSetting(

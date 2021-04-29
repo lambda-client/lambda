@@ -1,11 +1,11 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.module.modules.player.InventoryManager
+import com.lambda.client.util.items.block
+import com.lambda.client.util.items.id
+import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.block.BlockAir
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.module.modules.player.InventoryManager
-import org.kamiblue.client.util.items.block
-import org.kamiblue.client.util.items.id
-import org.kamiblue.client.util.text.MessageSendHelper
 
 // TODO: Remove once GUI has Block settings
 object SetBuildingBlockCommand : ClientCommand(

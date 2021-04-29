@@ -7,13 +7,12 @@ import net.minecraft.client.gui.inventory.GuiEditSign;
 import net.minecraft.client.renderer.tileentity.TileEntitySignRenderer;
 import net.minecraft.tileentity.TileEntitySign;
 import net.minecraft.util.text.ITextComponent;
-import org.kamiblue.client.module.modules.render.NoRender;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-import static org.kamiblue.client.mixin.extension.GuiKt.getTileSign;
+import static com.lambda.client.mixin.extension.GuiKt.getTileSign;
 
 @Mixin(TileEntitySignRenderer.class)
 public class MixinTileEntitySignRenderer {

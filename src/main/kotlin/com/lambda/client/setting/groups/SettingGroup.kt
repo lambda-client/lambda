@@ -2,11 +2,9 @@ package com.lambda.client.setting.groups
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.setting.settings.AbstractSetting
-import org.kamiblue.commons.interfaces.Nameable
+import com.lambda.client.setting.settings.AbstractSetting
+import com.lambda.commons.interfaces.Nameable
 import java.util.*
-import kotlin.collections.LinkedHashMap
 
 open class SettingGroup(
     override val name: String

@@ -1,7 +1,7 @@
 package com.lambda.client.setting.settings.impl.number
 
 import com.google.gson.JsonPrimitive
-import org.kamiblue.client.setting.settings.MutableSetting
+import com.lambda.client.setting.settings.MutableSetting
 
 abstract class NumberSetting<T>(
     name: String,

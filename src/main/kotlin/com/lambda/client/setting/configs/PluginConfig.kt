@@ -1,11 +1,10 @@
 package com.lambda.client.setting.configs
 
-import org.kamiblue.client.plugin.api.PluginHudElement
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.plugin.api.IPluginClass
-import org.kamiblue.client.plugin.api.PluginModule
-import org.kamiblue.client.setting.settings.AbstractSetting
-import org.kamiblue.commons.interfaces.Nameable
+import com.lambda.client.plugin.api.IPluginClass
+import com.lambda.client.plugin.api.PluginHudElement
+import com.lambda.client.plugin.api.PluginModule
+import com.lambda.client.setting.settings.AbstractSetting
+import com.lambda.commons.interfaces.Nameable
 import java.io.File
 
 class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(

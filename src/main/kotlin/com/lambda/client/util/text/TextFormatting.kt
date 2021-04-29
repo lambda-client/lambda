@@ -1,7 +1,7 @@
 package com.lambda.client.util.text
 
+import com.lambda.client.util.color.EnumTextColor
 import net.minecraft.util.text.TextFormatting
-import org.kamiblue.client.util.color.EnumTextColor
 
 fun formatValue(value: String) = TextFormatting.GRAY format "[$value]"
 

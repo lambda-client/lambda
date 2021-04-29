@@ -1,5 +1,9 @@
 package com.lambda.client.util.graphics
 
+import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.events.ResolutionUpdateEvent
+import com.lambda.client.util.Wrapper
+import com.lambda.event.listener.listener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.OpenGlHelper
 import net.minecraft.client.shader.Framebuffer
@@ -7,11 +11,6 @@ import net.minecraft.client.shader.ShaderGroup
 import net.minecraft.client.shader.ShaderLinkHelper
 import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.event.events.ResolutionUpdateEvent
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.event.listener.listener
 import org.lwjgl.opengl.GL11.GL_VENDOR
 
 class ShaderHelper(shaderIn: ResourceLocation, vararg frameBufferNames: String) {

@@ -1,5 +1,7 @@
 package com.lambda.client.util.items
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.threads.onMainThreadSafe
 import kotlinx.coroutines.runBlocking
 import net.minecraft.block.Block
 import net.minecraft.init.Items
@@ -8,8 +10,6 @@ import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketClickWindow
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.util.threads.onMainThreadSafe
 
 /**
  * Try to swap selected hotbar slot to [I] that matches with [predicateItem]

@@ -1,8 +1,8 @@
 package com.lambda.client.gui.hudgui.elements.misc
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.InfoCalculator
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.InfoCalculator
 
 internal object Ping : LabelHud(
     name = "Ping",

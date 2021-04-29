@@ -1,14 +1,14 @@
 package com.lambda.client.util.threads
 
+import com.lambda.client.event.ClientEvent
+import com.lambda.client.event.ClientExecuteEvent
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.SafeExecuteEvent
+import com.lambda.event.ListenerManager
+import com.lambda.event.listener.AsyncListener
+import com.lambda.event.listener.DEFAULT_PRIORITY
+import com.lambda.event.listener.Listener
 import kotlinx.coroutines.CompletableDeferred
-import org.kamiblue.client.event.ClientEvent
-import org.kamiblue.client.event.ClientExecuteEvent
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.event.SafeExecuteEvent
-import org.kamiblue.event.ListenerManager
-import org.kamiblue.event.listener.AsyncListener
-import org.kamiblue.event.listener.DEFAULT_PRIORITY
-import org.kamiblue.event.listener.Listener
 
 inline fun <reified T : Any> Any.safeAsyncListener(noinline function: suspend SafeClientEvent.(T) -> Unit) {
     this.safeAsyncListener(T::class.java, function)

@@ -1,9 +1,9 @@
 package com.lambda.client.command.commands
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.module.modules.render.Search
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.module.modules.render.Search
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
 
 // TODO: Remove once GUI has List
 object SearchCommand : ClientCommand(

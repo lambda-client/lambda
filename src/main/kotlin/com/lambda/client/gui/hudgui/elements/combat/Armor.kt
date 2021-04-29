@@ -1,23 +1,23 @@
 package com.lambda.client.gui.hudgui.elements.combat
 
+import com.lambda.client.gui.hudgui.HudElement
+import com.lambda.client.util.color.ColorGradient
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.graphics.font.HAlign
+import com.lambda.client.util.graphics.font.VAlign
+import com.lambda.client.util.items.allSlots
+import com.lambda.client.util.items.countItem
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.threads.runSafe
+import com.lambda.client.util.threads.safeAsyncListener
+import com.lambda.commons.utils.MathUtils
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.init.Items
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.gui.hudgui.HudElement
-import org.kamiblue.client.util.color.ColorGradient
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.graphics.font.FontRenderAdapter
-import org.kamiblue.client.util.graphics.font.HAlign
-import org.kamiblue.client.util.graphics.font.VAlign
-import org.kamiblue.client.util.items.allSlots
-import org.kamiblue.client.util.items.countItem
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.threads.runSafe
-import org.kamiblue.client.util.threads.safeAsyncListener
-import org.kamiblue.commons.utils.MathUtils
 import kotlin.math.max
 
 internal object Armor : HudElement(

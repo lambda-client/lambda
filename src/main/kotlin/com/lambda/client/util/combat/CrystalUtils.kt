@@ -1,5 +1,9 @@
 package com.lambda.client.util.combat
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.math.VectorUtils
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.block.material.Material
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
@@ -11,11 +15,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.Explosion
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.math.VectorUtils
-import org.kamiblue.client.util.math.VectorUtils.distanceTo
-import kotlin.math.max
+import java.lang.Float.max
 
 object CrystalUtils {
     private val mc = Wrapper.minecraft

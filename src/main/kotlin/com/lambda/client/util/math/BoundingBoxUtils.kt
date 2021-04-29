@@ -1,14 +1,14 @@
 package com.lambda.client.util.math
 
-import org.kamiblue.client.util.math.VectorUtils.plus
-import org.kamiblue.client.util.math.VectorUtils.times
-import org.kamiblue.client.util.math.VectorUtils.toVec3d
-import org.kamiblue.client.util.math.VectorUtils.toViewVec
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.math.VectorUtils.plus
+import com.lambda.client.util.math.VectorUtils.times
+import com.lambda.client.util.math.VectorUtils.toVec3d
+import com.lambda.client.util.math.VectorUtils.toViewVec
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.util.Wrapper
 
 val AxisAlignedBB.xLength get() = maxX - minX
 

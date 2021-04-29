@@ -1,9 +1,9 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
+import com.lambda.client.util.text.formatValue
 import net.minecraft.entity.Entity
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.util.text.MessageSendHelper.sendChatMessage
-import org.kamiblue.client.util.text.formatValue
 
 object VanishCommand : ClientCommand(
     name = "vanish",

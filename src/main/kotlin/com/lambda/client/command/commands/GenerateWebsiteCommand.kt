@@ -1,14 +1,13 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.module.AbstractModule
+import com.lambda.client.module.Category
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.util.text.MessageSendHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.module.AbstractModule
-import org.kamiblue.client.module.Category
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.util.text.MessageSendHelper
 import java.io.File
 import java.util.*
 

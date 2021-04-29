@@ -1,12 +1,11 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.OpenGlHelper
 import net.minecraftforge.common.ForgeVersion
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.util.text.MessageSendHelper
 import org.lwjgl.opengl.GL11
 
 object TroubleshootCommand : ClientCommand(

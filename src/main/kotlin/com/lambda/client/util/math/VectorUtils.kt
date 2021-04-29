@@ -1,13 +1,13 @@
 package com.lambda.client.util.math
 
+import com.lambda.commons.extension.PI_FLOAT
+import com.lambda.commons.extension.ceilToInt
+import com.lambda.commons.extension.floorToInt
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
-import org.kamiblue.commons.extension.PI_FLOAT
-import org.kamiblue.commons.extension.ceilToInt
-import org.kamiblue.commons.extension.floorToInt
 import kotlin.math.*
 
 object VectorUtils {

@@ -1,6 +1,6 @@
 package com.lambda.client.util.graphics.texture
 
-import org.kamiblue.client.util.graphics.texture.TextureUtils.scaleDownPretty
+import com.lambda.client.util.graphics.texture.TextureUtils.scaleDownPretty
 import org.lwjgl.opengl.GL11.GL_TEXTURE_2D
 import org.lwjgl.opengl.GL11.glTexParameteri
 import org.lwjgl.opengl.GL12.*

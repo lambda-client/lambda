@@ -1,10 +1,10 @@
 package com.lambda.client.util.graphics
 
+import com.lambda.client.util.Wrapper
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.ActiveRenderInfo
 import net.minecraft.client.renderer.GLAllocation
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.util.Wrapper
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.util.vector.Matrix4f
 import org.lwjgl.util.vector.Vector4f

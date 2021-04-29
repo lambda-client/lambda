@@ -1,9 +1,9 @@
 package com.lambda.client.util.text
 
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.module.modules.chat.ChatEncryption
-import org.kamiblue.client.util.BaritoneUtils
-import org.kamiblue.client.util.Wrapper
+import com.lambda.client.command.CommandManager
+import com.lambda.client.module.modules.chat.ChatEncryption
+import com.lambda.client.util.BaritoneUtils
+import com.lambda.client.util.Wrapper
 
 object MessageDetection {
     enum class Command : PrefixDetector {

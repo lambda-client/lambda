@@ -1,9 +1,9 @@
 package com.lambda.client.gui.hudgui.component
 
-import org.kamiblue.client.gui.hudgui.AbstractHudElement
-import org.kamiblue.client.gui.hudgui.KamiHudGui
-import org.kamiblue.client.gui.rgui.component.BooleanSlider
-import org.kamiblue.client.util.math.Vec2f
+import com.lambda.client.gui.hudgui.AbstractHudElement
+import com.lambda.client.gui.hudgui.KamiHudGui
+import com.lambda.client.gui.rgui.component.BooleanSlider
+import com.lambda.client.util.math.Vec2f
 
 class HudButton(val hudElement: AbstractHudElement) : BooleanSlider(hudElement.name, 0.0, hudElement.description) {
     init {

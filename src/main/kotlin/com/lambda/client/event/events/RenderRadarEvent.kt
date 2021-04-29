@@ -1,7 +1,7 @@
 package com.lambda.client.event.events
 
-import org.kamiblue.client.event.Event
-import org.kamiblue.client.util.graphics.VertexHelper
+import com.lambda.client.event.Event
+import com.lambda.client.util.graphics.VertexHelper
 
 class RenderRadarEvent(
     val vertexHelper: VertexHelper,

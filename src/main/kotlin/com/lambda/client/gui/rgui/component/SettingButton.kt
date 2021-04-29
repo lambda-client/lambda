@@ -1,8 +1,8 @@
 package com.lambda.client.gui.rgui.component
 
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.setting.settings.impl.primitive.BooleanSetting
-import org.kamiblue.client.util.math.Vec2f
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
+import com.lambda.client.util.math.Vec2f
 
 class SettingButton(val setting: BooleanSetting) : BooleanSlider(setting.name, 0.0, setting.description, setting.visibility) {
 

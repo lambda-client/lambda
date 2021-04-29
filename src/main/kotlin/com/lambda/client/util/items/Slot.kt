@@ -1,5 +1,6 @@
 package com.lambda.client.util.items
 
+import com.lambda.client.util.Wrapper
 import net.minecraft.block.Block
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.Container
@@ -7,7 +8,6 @@ import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemBlock
 import net.minecraft.item.ItemStack
-import org.kamiblue.client.util.Wrapper
 
 val EntityPlayer.allSlots: List<Slot>
     get() = inventoryContainer.getSlots(1..45)

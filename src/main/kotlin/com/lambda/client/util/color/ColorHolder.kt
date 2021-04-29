@@ -1,6 +1,6 @@
 package com.lambda.client.util.color
 
-import org.kamiblue.client.util.graphics.AnimationUtils
+import com.lambda.client.util.graphics.AnimationUtils
 import org.lwjgl.opengl.GL11.glColor4f
 import java.awt.Color
 

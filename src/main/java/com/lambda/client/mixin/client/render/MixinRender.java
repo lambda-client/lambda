@@ -3,7 +3,6 @@ package com.lambda.client.mixin.client.render;
 import com.lambda.client.module.modules.render.Nametags;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.entity.Entity;
-import org.kamiblue.client.module.modules.render.Nametags;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

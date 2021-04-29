@@ -1,7 +1,7 @@
 package com.lambda.client.event.events
 
+import com.lambda.client.event.Cancellable
+import com.lambda.client.event.Event
 import net.minecraft.entity.Entity
-import org.kamiblue.client.event.Cancellable
-import org.kamiblue.client.event.Event
 
 class PlayerAttackEvent(val entity: Entity) : Event, Cancellable()

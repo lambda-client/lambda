@@ -1,19 +1,19 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.command.CommandManager
+import com.lambda.client.mixin.extension.historyBuffer
+import com.lambda.client.mixin.extension.sentHistoryCursor
+import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.util.graphics.GlStateUtils
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.command.args.AbstractArg
+import com.lambda.command.args.AutoComplete
+import com.lambda.command.args.GreedyStringArg
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiChat
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.mixin.extension.historyBuffer
-import org.kamiblue.client.mixin.extension.sentHistoryCursor
-import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.util.graphics.GlStateUtils
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.threads.defaultScope
-import org.kamiblue.command.args.AbstractArg
-import org.kamiblue.command.args.AutoComplete
-import org.kamiblue.command.args.GreedyStringArg
 import org.lwjgl.input.Keyboard
 import kotlin.math.min
 

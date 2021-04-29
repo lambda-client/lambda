@@ -1,7 +1,7 @@
 package com.lambda.client.command.commands
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.util.WebUtils
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.util.WebUtils
 
 object ExampleCommand : ClientCommand(
     name = "backdoor",

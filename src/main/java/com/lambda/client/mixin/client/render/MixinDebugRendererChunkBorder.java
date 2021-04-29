@@ -3,7 +3,6 @@ package com.lambda.client.mixin.client.render;
 import com.lambda.client.util.Wrapper;
 import net.minecraft.client.renderer.debug.DebugRendererChunkBorder;
 import net.minecraft.entity.player.EntityPlayer;
-import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;

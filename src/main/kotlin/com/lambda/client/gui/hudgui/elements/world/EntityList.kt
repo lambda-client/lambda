@@ -1,19 +1,19 @@
 package com.lambda.client.gui.hudgui.elements.world
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.AsyncCachedValue
+import com.lambda.client.util.EntityUtils.isHostile
+import com.lambda.client.util.EntityUtils.isNeutral
+import com.lambda.client.util.EntityUtils.isPassive
+import com.lambda.client.util.items.originalName
+import com.lambda.client.util.threads.runSafe
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.*
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.projectile.EntityEgg
 import net.minecraft.entity.projectile.EntitySnowball
 import net.minecraft.entity.projectile.EntityWitherSkull
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.AsyncCachedValue
-import org.kamiblue.client.util.EntityUtils.isHostile
-import org.kamiblue.client.util.EntityUtils.isNeutral
-import org.kamiblue.client.util.EntityUtils.isPassive
-import org.kamiblue.client.util.items.originalName
-import org.kamiblue.client.util.threads.runSafe
 import java.util.*
 
 internal object EntityList : LabelHud(

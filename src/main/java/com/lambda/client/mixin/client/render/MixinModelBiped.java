@@ -8,8 +8,6 @@ import net.minecraft.client.model.ModelRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumHandSide;
 import net.minecraft.util.math.MathHelper;
-import org.kamiblue.client.module.modules.movement.ElytraFlight;
-import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;

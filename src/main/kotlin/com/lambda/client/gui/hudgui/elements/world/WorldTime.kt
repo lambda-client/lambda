@@ -1,9 +1,9 @@
 package com.lambda.client.gui.hudgui.elements.world
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.commons.interfaces.DisplayEnum
 import org.apache.commons.lang3.time.DurationFormatUtils
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.commons.interfaces.DisplayEnum
 
 internal object WorldTime : LabelHud(
     name = "WorldTime",

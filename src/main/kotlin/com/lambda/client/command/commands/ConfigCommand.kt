@@ -1,16 +1,17 @@
 package com.lambda.client.command.commands
 
-import kotlinx.coroutines.*
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.event.SafeExecuteEvent
-import org.kamiblue.client.module.modules.client.Configurations
-import org.kamiblue.client.util.ConfigUtils
-import org.kamiblue.client.util.TickTimer
-import org.kamiblue.client.util.TimeUnit
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
-import org.kamiblue.client.util.threads.defaultScope
-import org.kamiblue.command.execute.IExecuteEvent
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.event.SafeExecuteEvent
+import com.lambda.client.module.modules.client.Configurations
+import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.command.execute.IExecuteEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 object ConfigCommand : ClientCommand(
     name = "config",

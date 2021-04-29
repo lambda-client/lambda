@@ -1,6 +1,6 @@
 package com.lambda.client.setting.configs
 
-import org.kamiblue.commons.interfaces.Nameable
+import com.lambda.commons.interfaces.Nameable
 import java.io.File
 
 /**

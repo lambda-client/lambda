@@ -1,18 +1,18 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.manager.managers.WaypointManager
+import com.lambda.client.manager.managers.WaypointManager.Waypoint
+import com.lambda.client.module.modules.movement.AutoWalk
+import com.lambda.client.util.BaritoneUtils
+import com.lambda.client.util.InfoCalculator
+import com.lambda.client.util.math.CoordinateConverter.asString
+import com.lambda.client.util.math.CoordinateConverter.bothConverted
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.format
+import com.lambda.client.util.text.formatValue
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.text.TextFormatting
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.manager.managers.WaypointManager
-import org.kamiblue.client.manager.managers.WaypointManager.Waypoint
-import org.kamiblue.client.module.modules.movement.AutoWalk
-import org.kamiblue.client.util.BaritoneUtils
-import org.kamiblue.client.util.InfoCalculator
-import org.kamiblue.client.util.math.CoordinateConverter.asString
-import org.kamiblue.client.util.math.CoordinateConverter.bothConverted
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.format
-import org.kamiblue.client.util.text.formatValue
 import java.text.SimpleDateFormat
 import java.util.*
 

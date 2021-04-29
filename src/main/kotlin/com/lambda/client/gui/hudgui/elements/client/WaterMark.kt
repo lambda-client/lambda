@@ -1,10 +1,9 @@
 package com.lambda.client.gui.hudgui.elements.client
 
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.module.modules.client.Capes
-import org.kamiblue.client.util.graphics.VertexHelper
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.module.modules.client.Capes
+import com.lambda.client.util.graphics.VertexHelper
 import org.lwjgl.opengl.GL11.glScalef
 
 internal object WaterMark : LabelHud(

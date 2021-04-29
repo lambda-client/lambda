@@ -1,9 +1,9 @@
 package com.lambda.client.util.math
 
+import com.lambda.commons.interfaces.DisplayEnum
 import net.minecraft.entity.Entity
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.Vec3i
-import org.kamiblue.commons.interfaces.DisplayEnum
 import kotlin.math.roundToInt
 
 /**

@@ -1,7 +1,7 @@
 package com.lambda.client.plugin.api
 
-import org.kamiblue.client.module.AbstractModule
-import org.kamiblue.client.module.Category
+import com.lambda.client.module.AbstractModule
+import com.lambda.client.module.Category
 
 abstract class PluginModule(
     final override val pluginMain: Plugin,

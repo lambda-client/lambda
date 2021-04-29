@@ -1,12 +1,12 @@
 package com.lambda.client.gui.hudgui.elements.misc
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.RunGameLoopEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.graphics.AnimationUtils
+import com.lambda.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.InputEvent
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.event.events.RunGameLoopEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.TickTimer
-import org.kamiblue.client.util.graphics.AnimationUtils
-import org.kamiblue.event.listener.listener
 import org.lwjgl.input.Mouse
 
 internal object CPS : LabelHud(

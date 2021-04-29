@@ -1,10 +1,10 @@
 package com.lambda.client.gui.hudgui.elements.player
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.InfoCalculator.speed
-import org.kamiblue.commons.interfaces.DisplayEnum
-import org.kamiblue.commons.utils.MathUtils
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.InfoCalculator.speed
+import com.lambda.commons.interfaces.DisplayEnum
+import com.lambda.commons.utils.MathUtils
 import java.util.*
 
 internal object PlayerSpeed : LabelHud(

@@ -3,8 +3,6 @@ package com.lambda.client.mixin.client;
 import com.lambda.client.module.modules.player.AutoEat;
 import com.lambda.client.util.Wrapper;
 import net.minecraft.client.settings.KeyBinding;
-import org.kamiblue.client.module.modules.player.AutoEat;
-import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

@@ -1,10 +1,10 @@
 package com.lambda.client.gui.hudgui.elements.client
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.module.modules.movement.AutoWalk
-import org.kamiblue.client.process.PauseProcess
-import org.kamiblue.client.util.BaritoneUtils
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.module.modules.movement.AutoWalk
+import com.lambda.client.process.PauseProcess
+import com.lambda.client.util.BaritoneUtils
 
 internal object BaritoneProcess : LabelHud(
     name = "BaritoneProcess",

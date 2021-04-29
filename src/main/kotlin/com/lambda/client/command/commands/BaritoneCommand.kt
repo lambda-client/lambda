@@ -1,9 +1,8 @@
 package com.lambda.client.command.commands
 
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.util.text.MessageSendHelper
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.command.CommandManager
+import com.lambda.client.util.text.MessageSendHelper
 
 // TODO: Add the follow argument when Baritone 1.2.15 is released.
 // Currently follow is broken on Forge 1.12.2 in 1.2.14, it is fixed in master branch.

@@ -1,5 +1,8 @@
 package com.lambda.client.util.graphics
 
+import com.lambda.client.mixin.extension.renderPartialTicksPaused
+import com.lambda.client.util.EntityUtils
+import com.lambda.client.util.color.ColorHolder
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.ActiveRenderInfo
 import net.minecraft.client.renderer.GlStateManager
@@ -8,9 +11,6 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.mixin.extension.renderPartialTicksPaused
-import org.kamiblue.client.util.EntityUtils
-import org.kamiblue.client.util.color.ColorHolder
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.opengl.GL32
 

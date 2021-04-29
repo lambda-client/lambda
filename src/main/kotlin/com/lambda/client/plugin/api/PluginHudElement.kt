@@ -1,7 +1,7 @@
 package com.lambda.client.plugin.api
 
-import org.kamiblue.client.gui.hudgui.AbstractHudElement
-import org.kamiblue.client.setting.settings.SettingRegister
+import com.lambda.client.gui.hudgui.AbstractHudElement
+import com.lambda.client.setting.settings.SettingRegister
 
 abstract class PluginHudElement(
     final override val pluginMain: Plugin,

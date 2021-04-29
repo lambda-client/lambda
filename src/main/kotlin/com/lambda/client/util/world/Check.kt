@@ -1,5 +1,8 @@
 package com.lambda.client.util.world
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import net.minecraft.entity.Entity
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.AxisAlignedBB
@@ -7,9 +10,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.math.VectorUtils.toVec3dCenter
 import kotlin.math.floor
 
 fun World.isLiquidBelow(entity: Entity): Boolean {

@@ -1,8 +1,7 @@
 package com.lambda.client.util.graphics.font
 
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.util.graphics.texture.MipmapTexture
-import org.kamiblue.commons.utils.MathUtils
+import com.lambda.client.util.graphics.texture.MipmapTexture
+import com.lambda.commons.utils.MathUtils
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE
 import org.lwjgl.opengl.GL14.GL_TEXTURE_LOD_BIAS

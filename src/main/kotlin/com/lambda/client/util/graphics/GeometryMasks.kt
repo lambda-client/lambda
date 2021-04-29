@@ -1,7 +1,6 @@
 package com.lambda.client.util.graphics
 
 import net.minecraft.util.EnumFacing
-import java.util.*
 
 object GeometryMasks {
     val FACEMAP = HashMap<EnumFacing, Int>()

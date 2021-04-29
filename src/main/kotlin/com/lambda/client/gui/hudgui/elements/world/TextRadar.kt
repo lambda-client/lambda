@@ -1,17 +1,17 @@
 package com.lambda.client.gui.hudgui.elements.world
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.manager.managers.FriendManager
+import com.lambda.client.module.modules.combat.AntiBot
+import com.lambda.client.util.AsyncCachedValue
+import com.lambda.client.util.color.ColorGradient
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.color.DyeColors
+import com.lambda.client.util.threads.runSafeR
+import com.lambda.commons.utils.MathUtils
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.manager.managers.FriendManager
-import org.kamiblue.client.module.modules.combat.AntiBot
-import org.kamiblue.client.util.AsyncCachedValue
-import org.kamiblue.client.util.color.ColorGradient
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.color.DyeColors
-import org.kamiblue.client.util.threads.runSafeR
-import org.kamiblue.commons.utils.MathUtils
 
 internal object TextRadar : LabelHud(
     name = "TextRadar",

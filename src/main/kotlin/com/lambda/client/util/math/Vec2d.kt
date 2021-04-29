@@ -1,7 +1,7 @@
 package com.lambda.client.util.math
 
+import com.lambda.commons.extension.toRadian
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.commons.extension.toRadian
 import kotlin.math.hypot
 import kotlin.math.pow
 

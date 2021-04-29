@@ -3,12 +3,11 @@ package com.lambda.client.setting.configs
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.setting.groups.SettingGroup
-import org.kamiblue.client.setting.groups.SettingMultiGroup
-import org.kamiblue.client.setting.settings.AbstractSetting
-import org.kamiblue.client.setting.settings.SettingRegister
-import org.kamiblue.client.util.ConfigUtils
+import com.lambda.client.setting.groups.SettingGroup
+import com.lambda.client.setting.groups.SettingMultiGroup
+import com.lambda.client.setting.settings.AbstractSetting
+import com.lambda.client.setting.settings.SettingRegister
+import com.lambda.client.util.ConfigUtils
 import java.io.File
 
 abstract class AbstractConfig<T : Any>(

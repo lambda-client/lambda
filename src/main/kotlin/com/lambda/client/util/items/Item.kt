@@ -1,5 +1,7 @@
 package com.lambda.client.util.items
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.mixin.extension.attackDamage
 import io.netty.buffer.Unpooled
 import net.minecraft.block.Block
 import net.minecraft.enchantment.EnchantmentHelper
@@ -7,8 +9,6 @@ import net.minecraft.init.Enchantments
 import net.minecraft.item.*
 import net.minecraft.network.PacketBuffer
 import net.minecraft.network.play.client.CPacketCustomPayload
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.mixin.extension.attackDamage
 
 val ItemStack.originalName: String get() = item.getItemStackDisplayName(this)
 

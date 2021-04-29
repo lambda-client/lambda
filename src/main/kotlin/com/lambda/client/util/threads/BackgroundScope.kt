@@ -1,7 +1,6 @@
 package com.lambda.client.util.threads
 
 import kotlinx.coroutines.*
-import com.lambda.client.LambdaMod
 
 @Suppress("EXPERIMENTAL_API_USAGE")
 internal object BackgroundScope : CoroutineScope by CoroutineScope(newFixedThreadPoolContext(2, "KAMI Blue Background")) {

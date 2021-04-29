@@ -5,7 +5,6 @@ import net.minecraft.client.model.ModelElytra;
 import net.minecraft.client.renderer.entity.RenderLivingBase;
 import net.minecraft.client.renderer.entity.layers.LayerElytra;
 import net.minecraft.entity.EntityLivingBase;
-import org.kamiblue.client.module.modules.client.Capes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

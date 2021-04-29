@@ -1,18 +1,18 @@
 package com.lambda.client.gui.hudgui.elements.player
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.HudElement
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.graphics.GlStateUtils
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.items.storageSlots
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.threads.runSafe
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.util.ResourceLocation
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.HudElement
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.graphics.GlStateUtils
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.items.storageSlots
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.threads.runSafe
 import org.lwjgl.opengl.GL11.*
 
 internal object InventoryViewer : HudElement(

@@ -3,8 +3,6 @@ package com.lambda.client.mixin.client.baritone;
 import baritone.api.Settings;
 import com.lambda.client.event.events.BaritoneSettingsInitEvent;
 import com.lambda.client.util.BaritoneUtils;
-import org.kamiblue.client.event.events.BaritoneSettingsInitEvent;
-import org.kamiblue.client.util.BaritoneUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

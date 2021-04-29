@@ -1,10 +1,10 @@
 package com.lambda.client.gui.hudgui.elements.misc
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.CircularArray
-import org.kamiblue.client.util.CircularArray.Companion.average
-import org.kamiblue.client.util.TpsCalculator
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.CircularArray
+import com.lambda.client.util.CircularArray.Companion.average
+import com.lambda.client.util.TpsCalculator
 
 internal object TPS : LabelHud(
     name = "TPS",

@@ -1,8 +1,8 @@
 package com.lambda.client.util.graphics.font
 
-import org.kamiblue.client.module.modules.client.CustomFont
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.color.ColorHolder
+import com.lambda.client.module.modules.client.CustomFont
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.color.ColorHolder
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.round
 

@@ -1,6 +1,6 @@
 package com.lambda.client.event.events
 
-import org.kamiblue.client.event.Event
-import org.kamiblue.client.module.AbstractModule
+import com.lambda.client.event.Event
+import com.lambda.client.module.AbstractModule
 
 class ModuleToggleEvent internal constructor(val module: AbstractModule) : Event

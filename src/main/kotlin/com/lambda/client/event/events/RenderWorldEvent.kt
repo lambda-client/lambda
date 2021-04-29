@@ -1,12 +1,12 @@
 package com.lambda.client.event.events
 
-import org.kamiblue.client.event.Event
-import org.kamiblue.client.event.ProfilerEvent
-import org.kamiblue.client.mixin.extension.renderPosX
-import org.kamiblue.client.mixin.extension.renderPosY
-import org.kamiblue.client.mixin.extension.renderPosZ
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.graphics.KamiTessellator
+import com.lambda.client.event.Event
+import com.lambda.client.event.ProfilerEvent
+import com.lambda.client.mixin.extension.renderPosX
+import com.lambda.client.mixin.extension.renderPosY
+import com.lambda.client.mixin.extension.renderPosZ
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.graphics.KamiTessellator
 
 class RenderWorldEvent : Event, ProfilerEvent {
     override val profilerName: String = "kbRender3D"

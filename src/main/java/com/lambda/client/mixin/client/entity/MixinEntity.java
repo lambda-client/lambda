@@ -6,17 +6,11 @@ import com.lambda.client.module.modules.player.Freecam;
 import com.lambda.client.module.modules.player.ViewLock;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MoverType;
-import org.kamiblue.client.module.modules.movement.SafeWalk;
-import org.kamiblue.client.module.modules.movement.Velocity;
-import org.kamiblue.client.module.modules.player.Freecam;
-import org.kamiblue.client.module.modules.player.ViewLock;
-import org.kamiblue.client.module.modules.render.Xray;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = Entity.class, priority = Integer.MAX_VALUE)
 public abstract class MixinEntity {

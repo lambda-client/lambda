@@ -1,9 +1,9 @@
 package com.lambda.client.gui.rgui.windows
 
-import org.kamiblue.client.gui.rgui.WindowComponent
-import org.kamiblue.client.setting.GuiConfig
-import org.kamiblue.client.setting.configs.AbstractConfig
-import org.kamiblue.commons.interfaces.Nameable
+import com.lambda.client.gui.rgui.WindowComponent
+import com.lambda.client.setting.GuiConfig
+import com.lambda.client.setting.configs.AbstractConfig
+import com.lambda.commons.interfaces.Nameable
 
 /**
  * Window with no rendering

@@ -1,13 +1,13 @@
 package com.lambda.client.event.events
 
+import com.lambda.client.event.Cancellable
+import com.lambda.client.event.Event
+import com.lambda.client.event.IMultiPhase
+import com.lambda.client.event.Phase
+import com.lambda.client.manager.managers.PlayerPacketManager
+import com.lambda.client.util.math.Vec2f
+import com.lambda.commons.extension.next
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.event.Cancellable
-import org.kamiblue.client.event.Event
-import org.kamiblue.client.event.IMultiPhase
-import org.kamiblue.client.event.Phase
-import org.kamiblue.client.manager.managers.PlayerPacketManager
-import org.kamiblue.client.util.math.Vec2f
-import org.kamiblue.commons.extension.next
 
 class OnUpdateWalkingPlayerEvent private constructor(
     moving: Boolean,

@@ -1,5 +1,14 @@
 package com.lambda.client.util.combat
 
+import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.util.items.attackDamage
+import com.lambda.client.util.items.filterByStack
+import com.lambda.client.util.items.hotbarSlots
+import com.lambda.client.util.items.swapToSlot
+import com.lambda.client.util.threads.safeListener
+import com.lambda.event.listener.listener
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.EntityLivingBase
@@ -13,15 +22,6 @@ import net.minecraft.item.ItemTool
 import net.minecraft.util.CombatRules
 import net.minecraft.util.DamageSource
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.event.events.ConnectionEvent
-import org.kamiblue.client.util.items.attackDamage
-import org.kamiblue.client.util.items.filterByStack
-import org.kamiblue.client.util.items.hotbarSlots
-import org.kamiblue.client.util.items.swapToSlot
-import org.kamiblue.client.util.threads.safeListener
-import org.kamiblue.event.listener.listener
 import java.util.*
 import kotlin.math.max
 import kotlin.math.round

@@ -1,10 +1,10 @@
 package com.lambda.client.util.graphics
 
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.math.Vec2d
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.math.Vec2d
 import org.lwjgl.opengl.GL11.*
 
 class VertexHelper(private val useVbo: Boolean) {

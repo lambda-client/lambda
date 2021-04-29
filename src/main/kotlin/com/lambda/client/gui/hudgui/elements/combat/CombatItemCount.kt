@@ -1,14 +1,14 @@
 package com.lambda.client.gui.hudgui.elements.combat
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.items.allSlots
+import com.lambda.client.util.items.countItem
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.init.Items
 import net.minecraft.item.ItemStack
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.items.allSlots
-import org.kamiblue.client.util.items.countItem
 
 internal object CombatItemCount : LabelHud(
     name = "CombatItemCount",

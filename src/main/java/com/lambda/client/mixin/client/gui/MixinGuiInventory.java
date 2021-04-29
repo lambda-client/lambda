@@ -3,7 +3,6 @@ package com.lambda.client.mixin.client.gui;
 import com.lambda.client.util.graphics.KamiTessellator;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.entity.EntityLivingBase;
-import org.kamiblue.client.util.graphics.KamiTessellator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

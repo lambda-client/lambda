@@ -1,24 +1,24 @@
 package com.lambda.client.gui.hudgui
 
+import com.lambda.client.event.KamiEventBus
+import com.lambda.client.gui.rgui.windows.BasicWindow
+import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.module.modules.client.Hud
+import com.lambda.client.setting.GuiConfig
+import com.lambda.client.setting.GuiConfig.setting
+import com.lambda.client.setting.configs.AbstractConfig
+import com.lambda.client.util.Bind
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.math.Vec2f
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.threads.safeListener
+import com.lambda.commons.interfaces.Alias
+import com.lambda.commons.interfaces.DisplayEnum
+import com.lambda.commons.interfaces.Nameable
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.gui.rgui.windows.BasicWindow
-import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.module.modules.client.Hud
-import org.kamiblue.client.setting.GuiConfig
-import org.kamiblue.client.setting.GuiConfig.setting
-import org.kamiblue.client.setting.configs.AbstractConfig
-import org.kamiblue.client.util.Bind
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.graphics.font.FontRenderAdapter
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.math.Vec2f
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.threads.safeListener
-import org.kamiblue.commons.interfaces.Alias
-import org.kamiblue.commons.interfaces.DisplayEnum
-import org.kamiblue.commons.interfaces.Nameable
 import org.lwjgl.opengl.GL11.glScalef
 
 abstract class AbstractHudElement(

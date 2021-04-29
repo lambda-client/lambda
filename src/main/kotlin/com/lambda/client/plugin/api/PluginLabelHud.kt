@@ -1,11 +1,11 @@
 package com.lambda.client.plugin.api
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.TextComponent
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.threads.safeAsyncListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.graphics.font.TextComponent
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.threads.safeAsyncListener
 
 abstract class PluginLabelHud(
     pluginMain: Plugin,

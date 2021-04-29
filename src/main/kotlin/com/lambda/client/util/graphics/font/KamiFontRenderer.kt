@@ -1,14 +1,13 @@
 package com.lambda.client.util.graphics.font
 
+import com.lambda.client.module.modules.client.CustomFont
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.color.DyeColors
+import com.lambda.client.util.graphics.GlStateUtils
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.util.text.TextFormatting
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.module.modules.client.CustomFont
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.color.DyeColors
-import org.kamiblue.client.util.graphics.GlStateUtils
 import org.lwjgl.opengl.GL11.*
 import java.awt.Font
 

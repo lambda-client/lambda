@@ -1,6 +1,6 @@
 package com.lambda.client.gui.rgui.component
 
-import org.kamiblue.client.util.graphics.AnimationUtils
+import com.lambda.client.util.graphics.AnimationUtils
 
 open class BooleanSlider(
     name: String,

@@ -1,5 +1,16 @@
 package com.lambda.client.event
 
+import com.lambda.client.command.CommandManager
+import com.lambda.client.event.events.BaritoneCommandEvent
+import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.ResolutionUpdateEvent
+import com.lambda.client.gui.mc.KamiGuiChat
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.ProjectionUtils
+import com.lambda.client.util.text.MessageDetection
 import net.minecraftforge.client.event.*
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent
@@ -9,17 +20,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.event.events.BaritoneCommandEvent
-import org.kamiblue.client.event.events.ConnectionEvent
-import org.kamiblue.client.event.events.RenderWorldEvent
-import org.kamiblue.client.event.events.ResolutionUpdateEvent
-import org.kamiblue.client.gui.mc.KamiGuiChat
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.graphics.KamiTessellator
-import org.kamiblue.client.util.graphics.ProjectionUtils
-import org.kamiblue.client.util.text.MessageDetection
 import org.lwjgl.input.Keyboard
 import java.util.*
 

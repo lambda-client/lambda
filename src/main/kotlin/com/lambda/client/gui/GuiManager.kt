@@ -1,18 +1,16 @@
 package com.lambda.client.gui
 
+import com.lambda.client.event.KamiEventBus
+import com.lambda.client.gui.clickgui.KamiClickGui
+import com.lambda.client.gui.hudgui.AbstractHudElement
+import com.lambda.client.gui.hudgui.KamiHudGui
+import com.lambda.client.util.AsyncCachedValue
+import com.lambda.client.util.StopTimer
+import com.lambda.client.util.TimeUnit
+import com.lambda.commons.collections.AliasSet
+import com.lambda.commons.utils.ClassUtils
+import com.lambda.commons.utils.ClassUtils.instance
 import kotlinx.coroutines.Deferred
-import com.lambda.client.AsyncLoader
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.gui.clickgui.KamiClickGui
-import org.kamiblue.client.gui.hudgui.AbstractHudElement
-import org.kamiblue.client.gui.hudgui.KamiHudGui
-import org.kamiblue.client.util.AsyncCachedValue
-import org.kamiblue.client.util.StopTimer
-import org.kamiblue.client.util.TimeUnit
-import org.kamiblue.commons.collections.AliasSet
-import org.kamiblue.commons.utils.ClassUtils
-import org.kamiblue.commons.utils.ClassUtils.instance
 import java.lang.reflect.Modifier
 
 internal object GuiManager : com.lambda.client.AsyncLoader<List<Class<out AbstractHudElement>>> {
@@ -26,7 +24,7 @@ internal object GuiManager : com.lambda.client.AsyncLoader<List<Class<out Abstra
     override fun preLoad0(): List<Class<out AbstractHudElement>> {
         val stopTimer = StopTimer()
 
-        val list = ClassUtils.findClasses<AbstractHudElement>("org.kamiblue.client.gui.hudgui.elements") {
+        val list = ClassUtils.findClasses<AbstractHudElement>("com.lambda.client.gui.hudgui.elements") {
             filter { Modifier.isFinal(it.modifiers) }
         }
 

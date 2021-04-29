@@ -1,16 +1,16 @@
 package com.lambda.client.gui.rgui.windows
 
-import org.kamiblue.client.gui.AbstractKamiGui
-import org.kamiblue.client.gui.rgui.Component
-import org.kamiblue.client.gui.rgui.InteractiveComponent
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.util.TickTimer
-import org.kamiblue.client.util.graphics.GlStateUtils
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.math.Vec2f
-import org.kamiblue.commons.extension.ceilToInt
-import org.kamiblue.commons.extension.floorToInt
-import org.kamiblue.commons.extension.sumByFloat
+import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.rgui.Component
+import com.lambda.client.gui.rgui.InteractiveComponent
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.graphics.GlStateUtils
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.math.Vec2f
+import com.lambda.commons.extension.ceilToInt
+import com.lambda.commons.extension.floorToInt
+import com.lambda.commons.extension.sumByFloat
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.max

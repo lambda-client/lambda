@@ -1,19 +1,19 @@
 package com.lambda.client.plugin.api
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.gui.GuiManager
-import org.kamiblue.client.manager.Manager
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.plugin.PluginInfo
-import org.kamiblue.client.setting.ConfigManager
-import org.kamiblue.client.setting.configs.PluginConfig
-import org.kamiblue.client.util.threads.BackgroundJob
-import org.kamiblue.client.util.threads.BackgroundScope
-import org.kamiblue.commons.collections.CloseableList
-import org.kamiblue.commons.interfaces.Nameable
-import org.kamiblue.event.ListenerManager
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.command.CommandManager
+import com.lambda.client.event.KamiEventBus
+import com.lambda.client.gui.GuiManager
+import com.lambda.client.manager.Manager
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.plugin.PluginInfo
+import com.lambda.client.setting.ConfigManager
+import com.lambda.client.setting.configs.PluginConfig
+import com.lambda.client.util.threads.BackgroundJob
+import com.lambda.client.util.threads.BackgroundScope
+import com.lambda.commons.collections.CloseableList
+import com.lambda.commons.interfaces.Nameable
+import com.lambda.event.ListenerManager
 
 /**
  * A plugin. All plugin main classes must extend this class.
@@ -42,35 +42,35 @@ open class Plugin : Nameable {
     /**
      * The list of [Manager] the plugin will add.
      *
-     * @sample org.kamiblue.client.manager.managers.KamiMojiManager
+     * @sample com.lambda.client.manager.managers.KamiMojiManager
      */
     val managers = CloseableList<Manager>()
 
     /**
      * The list of [ClientCommand] the plugin will add.
      *
-     * @sample org.kamiblue.client.command.commands.CreditsCommand
+     * @sample com.lambda.client.command.commands.CreditsCommand
      */
     val commands = CloseableList<ClientCommand>()
 
     /**
      * The list of [PluginModule] the plugin will add.
      *
-     * @sample org.kamiblue.client.module.modules.combat.KillAura
+     * @sample com.lambda.client.module.modules.combat.KillAura
      */
     val modules = CloseableList<PluginModule>()
 
     /**
      * The list of [PluginHudElement] the plugin will add.
      *
-     * @sample org.kamiblue.client.gui.hudgui.elements.client.ModuleList
+     * @sample com.lambda.client.gui.hudgui.elements.client.ModuleList
      */
     private val hudElements = CloseableList<PluginHudElement>()
 
     /**
      * The list of [BackgroundJob] the plugin will add.
      *
-     * @sample org.kamiblue.client.module.modules.client.CommandConfig
+     * @sample com.lambda.client.module.modules.client.CommandConfig
      */
     private val bgJobs = CloseableList<BackgroundJob>()
 

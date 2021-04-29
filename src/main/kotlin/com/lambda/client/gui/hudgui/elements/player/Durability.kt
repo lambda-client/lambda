@@ -1,9 +1,9 @@
 package com.lambda.client.gui.hudgui.elements.player
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.commons.utils.MathUtils
 import net.minecraft.util.EnumHand
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.commons.utils.MathUtils
 
 internal object Durability : LabelHud(
     name = "Durability",

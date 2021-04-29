@@ -1,23 +1,22 @@
 package com.lambda.client.command
 
+import com.lambda.capeapi.PlayerProfile
+import com.lambda.client.gui.GuiManager
+import com.lambda.client.gui.hudgui.AbstractHudElement
+import com.lambda.client.manager.managers.UUIDManager
+import com.lambda.client.module.AbstractModule
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.util.*
+import com.lambda.client.util.threads.runSafeR
+import com.lambda.command.args.AbstractArg
+import com.lambda.command.args.AutoComplete
+import com.lambda.command.args.DynamicPrefixMatch
+import com.lambda.command.args.StaticPrefixMatch
 import kotlinx.coroutines.Dispatchers
 import net.minecraft.block.Block
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
-import org.kamiblue.capeapi.PlayerProfile
-import org.kamiblue.client.gui.GuiManager
-import org.kamiblue.client.gui.hudgui.AbstractHudElement
-import org.kamiblue.client.manager.managers.UUIDManager
-import org.kamiblue.client.module.AbstractModule
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.util.*
-import org.kamiblue.client.util.threads.runSafeR
-import org.kamiblue.command.args.AbstractArg
-import org.kamiblue.command.args.AutoComplete
-import org.kamiblue.command.args.DynamicPrefixMatch
-import org.kamiblue.command.args.StaticPrefixMatch
 import java.io.File
-import java.util.*
 
 class ModuleArg(
     override val name: String

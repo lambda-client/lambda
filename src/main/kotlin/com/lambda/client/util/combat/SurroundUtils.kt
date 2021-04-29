@@ -1,12 +1,12 @@
 package com.lambda.client.util.combat
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.Wrapper
 import net.minecraft.block.Block
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.util.EntityUtils.flooredPosition
-import org.kamiblue.client.util.Wrapper
 
 object SurroundUtils {
     private val mc = Wrapper.minecraft

@@ -2,16 +2,16 @@ package com.lambda.client.gui.hudgui.elements.misc
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.manager.managers.NetworkManager
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.WebUtils
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.threads.safeListener
+import com.lambda.commons.utils.grammar
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.manager.managers.NetworkManager
-import org.kamiblue.client.util.TickTimer
-import org.kamiblue.client.util.TimeUnit
-import org.kamiblue.client.util.WebUtils
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.threads.safeListener
-import org.kamiblue.commons.utils.grammar
 
 internal object Queue2B2T : LabelHud(
     name = "2B2T Queue",

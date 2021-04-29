@@ -1,7 +1,7 @@
 package com.lambda.client.setting.settings.impl.other
 
-import org.kamiblue.client.setting.settings.MutableSetting
-import org.kamiblue.client.util.color.ColorHolder
+import com.lambda.client.setting.settings.MutableSetting
+import com.lambda.client.util.color.ColorHolder
 
 class ColorSetting(
     name: String,

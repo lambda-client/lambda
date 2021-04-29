@@ -1,11 +1,11 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.module.modules.misc.AntiDisconnect
+import com.lambda.client.util.color.ColorConverter
+import com.lambda.client.util.text.format
 import net.minecraft.client.gui.*
 import net.minecraft.realms.RealmsBridge
 import net.minecraft.util.text.TextFormatting
-import org.kamiblue.client.module.modules.misc.AntiDisconnect
-import org.kamiblue.client.util.color.ColorConverter
-import org.kamiblue.client.util.text.format
 
 class KamiGuiAntiDisconnect : GuiScreen() {
 

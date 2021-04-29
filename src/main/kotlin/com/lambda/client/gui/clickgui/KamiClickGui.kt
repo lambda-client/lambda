@@ -1,14 +1,14 @@
 package com.lambda.client.gui.clickgui
 
-import org.kamiblue.client.gui.AbstractKamiGui
-import org.kamiblue.client.gui.clickgui.component.ModuleButton
-import org.kamiblue.client.gui.clickgui.window.ModuleSettingWindow
-import org.kamiblue.client.gui.rgui.Component
-import org.kamiblue.client.gui.rgui.windows.ListWindow
-import org.kamiblue.client.module.AbstractModule
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.util.math.Vec2f
+import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.clickgui.component.ModuleButton
+import com.lambda.client.gui.clickgui.window.ModuleSettingWindow
+import com.lambda.client.gui.rgui.Component
+import com.lambda.client.gui.rgui.windows.ListWindow
+import com.lambda.client.module.AbstractModule
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Keyboard
 
 object KamiClickGui : AbstractKamiGui<ModuleSettingWindow, AbstractModule>() {

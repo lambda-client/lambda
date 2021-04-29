@@ -1,7 +1,7 @@
 package com.lambda.client.command.commands
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.util.text.MessageSendHelper
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.util.text.MessageSendHelper
 
 object LicenseCommand : ClientCommand(
     name = "license",

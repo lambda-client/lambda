@@ -1,13 +1,13 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.event.SafeExecuteEvent
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
+import com.lambda.commons.utils.SystemUtils
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.JsonToNBT
 import net.minecraft.nbt.NBTTagCompound
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.event.SafeExecuteEvent
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
-import org.kamiblue.commons.utils.SystemUtils
 
 object NBTCommand : ClientCommand(
     name = "nbt",

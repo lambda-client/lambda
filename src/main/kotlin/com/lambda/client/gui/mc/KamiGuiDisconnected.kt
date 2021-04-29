@@ -1,11 +1,11 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.module.modules.combat.AutoLog
+import com.lambda.client.util.threads.mainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
-import org.kamiblue.client.module.modules.combat.AutoLog
-import org.kamiblue.client.util.threads.mainScope
 import java.time.LocalTime
 
 class KamiGuiDisconnected(private val reason: Array<String>, private val screen: GuiScreen, private val disable: Boolean, private val logoutTime: LocalTime) : GuiScreen() {

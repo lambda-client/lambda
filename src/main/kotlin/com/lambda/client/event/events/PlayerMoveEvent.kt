@@ -1,8 +1,8 @@
 package com.lambda.client.event.events
 
+import com.lambda.client.event.Cancellable
+import com.lambda.client.event.Event
 import net.minecraft.client.entity.EntityPlayerSP
-import org.kamiblue.client.event.Cancellable
-import org.kamiblue.client.event.Event
 
 class PlayerMoveEvent(
     private val player: EntityPlayerSP

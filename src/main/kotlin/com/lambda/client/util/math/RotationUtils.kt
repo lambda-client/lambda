@@ -1,9 +1,9 @@
 package com.lambda.client.util.math
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.commons.extension.toDegree
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.commons.extension.toDegree
 import kotlin.math.*
 
 /**

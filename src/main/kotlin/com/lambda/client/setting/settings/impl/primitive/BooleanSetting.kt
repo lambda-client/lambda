@@ -2,7 +2,7 @@ package com.lambda.client.setting.settings.impl.primitive
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
-import org.kamiblue.client.setting.settings.MutableSetting
+import com.lambda.client.setting.settings.MutableSetting
 
 open class BooleanSetting(
     name: String,

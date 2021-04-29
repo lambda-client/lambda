@@ -1,6 +1,6 @@
 package com.lambda.client.util.color
 
-import org.kamiblue.client.util.color.ColorConverter.hexToRgb
+import com.lambda.client.util.color.ColorConverter.hexToRgb
 import org.lwjgl.opengl.GL11
 import java.awt.Color
 

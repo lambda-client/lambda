@@ -1,7 +1,7 @@
 package com.lambda.client.event.events
 
-import org.kamiblue.client.event.Event
-import org.kamiblue.client.event.ProfilerEvent
+import com.lambda.client.event.Event
+import com.lambda.client.event.ProfilerEvent
 
 sealed class RunGameLoopEvent(override val profilerName: String) : Event, ProfilerEvent {
     class Start : RunGameLoopEvent("start")

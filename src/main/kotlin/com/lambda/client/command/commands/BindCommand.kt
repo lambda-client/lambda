@@ -1,10 +1,10 @@
 package com.lambda.client.command.commands
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.module.ModuleManager
-import org.kamiblue.client.util.KeyboardUtils
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.module.ModuleManager
+import com.lambda.client.util.KeyboardUtils
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
 
 object BindCommand : ClientCommand(
     name = "bind",

@@ -6,8 +6,6 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.ViewFrustum;
 import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.util.math.MathHelper;
-import org.kamiblue.client.module.modules.player.Freecam;
-import org.kamiblue.client.util.Wrapper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;

@@ -3,7 +3,6 @@ package com.lambda.client.mixin.client.render;
 import com.lambda.client.module.modules.render.NoRender;
 import net.minecraft.client.gui.MapItemRenderer;
 import net.minecraft.world.storage.MapData;
-import org.kamiblue.client.module.modules.render.NoRender;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

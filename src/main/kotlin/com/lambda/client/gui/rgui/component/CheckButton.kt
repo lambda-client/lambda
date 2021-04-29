@@ -1,6 +1,6 @@
 package com.lambda.client.gui.rgui.component
 
-import org.kamiblue.client.util.math.Vec2f
+import com.lambda.client.util.math.Vec2f
 
 class CheckButton(
     name: String,

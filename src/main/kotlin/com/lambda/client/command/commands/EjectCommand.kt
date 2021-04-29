@@ -1,8 +1,8 @@
 package com.lambda.client.command.commands
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.module.modules.player.InventoryManager
-import org.kamiblue.client.util.text.MessageSendHelper
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.module.modules.player.InventoryManager
+import com.lambda.client.util.text.MessageSendHelper
 
 // TODO: Remove once GUI has List
 object EjectCommand : ClientCommand(

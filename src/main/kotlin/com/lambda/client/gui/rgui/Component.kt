@@ -1,16 +1,15 @@
 package com.lambda.client.gui.rgui
 
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.setting.GuiConfig
-import org.kamiblue.client.setting.GuiConfig.setting
-import org.kamiblue.client.setting.configs.AbstractConfig
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.graphics.font.HAlign
-import org.kamiblue.client.util.graphics.font.VAlign
-import org.kamiblue.client.util.math.Vec2f
-import org.kamiblue.commons.interfaces.Nameable
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.setting.GuiConfig
+import com.lambda.client.setting.GuiConfig.setting
+import com.lambda.client.setting.configs.AbstractConfig
+import com.lambda.client.util.Wrapper
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.HAlign
+import com.lambda.client.util.graphics.font.VAlign
+import com.lambda.client.util.math.Vec2f
+import com.lambda.commons.interfaces.Nameable
 import kotlin.math.max
 
 open class Component(

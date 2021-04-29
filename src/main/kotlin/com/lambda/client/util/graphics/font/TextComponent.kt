@@ -1,7 +1,7 @@
 package com.lambda.client.util.graphics.font
 
-import org.kamiblue.client.util.color.ColorHolder
-import org.kamiblue.client.util.math.Vec2d
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.math.Vec2d
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.max
 

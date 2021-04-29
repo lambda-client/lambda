@@ -1,11 +1,11 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.command.CommandManager
+import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.util.text.TextComponentString
 import net.minecraft.util.text.event.ClickEvent
 import net.minecraft.util.text.event.HoverEvent
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.util.text.MessageSendHelper.sendChatMessage
 
 object ModifiedCommand: ClientCommand(
     name = "modified",

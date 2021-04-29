@@ -1,11 +1,11 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.manager.managers.UUIDManager
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.commons.utils.MathUtils
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.passive.AbstractHorse
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.manager.managers.UUIDManager
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.commons.utils.MathUtils
 import kotlin.math.pow
 
 object EntityStatsCommand : ClientCommand(

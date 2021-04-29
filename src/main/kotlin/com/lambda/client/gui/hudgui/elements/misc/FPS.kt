@@ -1,9 +1,9 @@
 package com.lambda.client.gui.hudgui.elements.misc
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.CircularArray
-import org.kamiblue.client.util.graphics.AnimationUtils
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.CircularArray
+import com.lambda.client.util.graphics.AnimationUtils
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt

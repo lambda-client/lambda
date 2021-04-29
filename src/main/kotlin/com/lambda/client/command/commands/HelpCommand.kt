@@ -1,11 +1,10 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.command.CommandManager
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
 import net.minecraft.util.text.TextFormatting
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.command.CommandManager
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
 
 object HelpCommand : ClientCommand(
     name = "help",

@@ -1,13 +1,13 @@
 package com.lambda.client.command.commands
 
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.plugin.PluginError
-import org.kamiblue.client.plugin.PluginLoader
-import org.kamiblue.client.plugin.PluginManager
-import org.kamiblue.client.plugin.api.Plugin
-import org.kamiblue.client.util.ConfigUtils
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.text.formatValue
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.plugin.PluginError
+import com.lambda.client.plugin.PluginLoader
+import com.lambda.client.plugin.PluginManager
+import com.lambda.client.plugin.api.Plugin
+import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.formatValue
 import java.io.File
 
 object PluginCommand : ClientCommand(

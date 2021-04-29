@@ -1,7 +1,7 @@
 package com.lambda.client.util.math
 
+import com.lambda.client.manager.managers.WaypointManager
 import net.minecraft.util.math.BlockPos
-import org.kamiblue.client.manager.managers.WaypointManager
 
 object CoordinateConverter {
     /**

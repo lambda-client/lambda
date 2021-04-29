@@ -1,10 +1,10 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.CommandConfig
+import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import net.minecraft.util.text.TextFormatting
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.module.modules.client.CommandConfig
-import org.kamiblue.client.util.text.MessageSendHelper.sendChatMessage
 
 object ToggleCommand : ClientCommand(
     name = "toggle",

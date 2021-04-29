@@ -2,7 +2,7 @@ package com.lambda.client.setting.settings.impl.collection
 
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
-import org.kamiblue.client.setting.settings.ImmutableSetting
+import com.lambda.client.setting.settings.ImmutableSetting
 
 class MapSetting<K : Any, V : Any, T : MutableMap<K, V>>(
     name: String,

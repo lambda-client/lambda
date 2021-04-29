@@ -1,10 +1,10 @@
 package com.lambda.client.util.graphics
 
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.util.Quad
+import com.lambda.client.util.Wrapper
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.util.Quad
-import org.kamiblue.client.util.Wrapper
 import org.lwjgl.opengl.GL11.*
 
 object GlStateUtils {

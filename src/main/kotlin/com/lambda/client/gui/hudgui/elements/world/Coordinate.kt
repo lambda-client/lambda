@@ -1,10 +1,10 @@
 package com.lambda.client.gui.hudgui.elements.world
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.graphics.font.TextComponent
+import com.lambda.client.util.math.VectorUtils.times
 import net.minecraft.util.math.Vec3d
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.graphics.font.TextComponent
-import org.kamiblue.client.util.math.VectorUtils.times
 
 internal object Coordinate : LabelHud(
     name = "Coordinate",

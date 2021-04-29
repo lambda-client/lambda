@@ -6,8 +6,6 @@ import net.minecraft.client.gui.ChatLine;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiNewChat;
 import net.minecraft.util.text.ITextComponent;
-import org.kamiblue.client.module.modules.chat.ExtraChatHistory;
-import org.kamiblue.client.module.modules.render.CleanGUI;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

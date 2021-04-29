@@ -1,14 +1,14 @@
 package com.lambda.client.util.threads
 
+import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.events.RunGameLoopEvent
+import com.lambda.client.util.Wrapper
+import com.lambda.event.listener.listener
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.completeWith
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.kamiblue.client.event.KamiEventBus
-import org.kamiblue.client.event.events.RunGameLoopEvent
-import org.kamiblue.client.util.Wrapper
-import org.kamiblue.event.listener.listener
 
 object MainThreadExecutor {
     private val jobs = ArrayList<MainThreadJob<*>>()

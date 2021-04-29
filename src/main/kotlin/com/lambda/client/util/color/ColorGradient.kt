@@ -1,6 +1,6 @@
 package com.lambda.client.util.color
 
-import org.kamiblue.commons.utils.MathUtils
+import com.lambda.commons.utils.MathUtils
 import kotlin.math.max
 import kotlin.math.roundToInt
 

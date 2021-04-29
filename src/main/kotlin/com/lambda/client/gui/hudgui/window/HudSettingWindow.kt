@@ -1,8 +1,8 @@
 package com.lambda.client.gui.hudgui.window
 
-import org.kamiblue.client.gui.hudgui.AbstractHudElement
-import org.kamiblue.client.gui.rgui.windows.SettingWindow
-import org.kamiblue.client.setting.settings.AbstractSetting
+import com.lambda.client.gui.hudgui.AbstractHudElement
+import com.lambda.client.gui.rgui.windows.SettingWindow
+import com.lambda.client.setting.settings.AbstractSetting
 
 class HudSettingWindow(
     hudElement: AbstractHudElement,

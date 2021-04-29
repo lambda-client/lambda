@@ -3,7 +3,6 @@ package com.lambda.client.mixin.client.gui;
 import com.lambda.client.module.modules.player.Freecam;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.client.GuiIngameForge;
-import org.kamiblue.client.module.modules.player.Freecam;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;

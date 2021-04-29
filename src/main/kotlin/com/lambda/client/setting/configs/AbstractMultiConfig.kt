@@ -1,8 +1,7 @@
 package com.lambda.client.setting.configs
 
-import com.lambda.client.LambdaMod
-import org.kamiblue.client.setting.groups.SettingMultiGroup
-import org.kamiblue.client.setting.settings.SettingRegister
+import com.lambda.client.setting.groups.SettingMultiGroup
+import com.lambda.client.setting.settings.SettingRegister
 import java.io.File
 
 abstract class AbstractMultiConfig<T : Any>(

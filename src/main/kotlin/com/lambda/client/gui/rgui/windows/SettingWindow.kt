@@ -1,14 +1,14 @@
 package com.lambda.client.gui.rgui.windows
 
-import org.kamiblue.client.gui.rgui.component.*
-import org.kamiblue.client.setting.settings.AbstractSetting
-import org.kamiblue.client.setting.settings.impl.number.NumberSetting
-import org.kamiblue.client.setting.settings.impl.other.BindSetting
-import org.kamiblue.client.setting.settings.impl.other.ColorSetting
-import org.kamiblue.client.setting.settings.impl.primitive.BooleanSetting
-import org.kamiblue.client.setting.settings.impl.primitive.EnumSetting
-import org.kamiblue.client.setting.settings.impl.primitive.StringSetting
-import org.kamiblue.client.util.math.Vec2f
+import com.lambda.client.gui.rgui.component.*
+import com.lambda.client.setting.settings.AbstractSetting
+import com.lambda.client.setting.settings.impl.number.NumberSetting
+import com.lambda.client.setting.settings.impl.other.BindSetting
+import com.lambda.client.setting.settings.impl.other.ColorSetting
+import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
+import com.lambda.client.setting.settings.impl.primitive.EnumSetting
+import com.lambda.client.setting.settings.impl.primitive.StringSetting
+import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Keyboard
 
 abstract class SettingWindow<T : Any>(

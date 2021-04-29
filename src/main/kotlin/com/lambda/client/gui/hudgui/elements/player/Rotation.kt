@@ -1,9 +1,9 @@
 package com.lambda.client.gui.hudgui.elements.player
 
-import org.kamiblue.client.event.SafeClientEvent
-import org.kamiblue.client.gui.hudgui.LabelHud
-import org.kamiblue.client.util.math.RotationUtils
-import org.kamiblue.commons.utils.MathUtils
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+import com.lambda.client.util.math.RotationUtils
+import com.lambda.commons.utils.MathUtils
 
 internal object Rotation : LabelHud(
     name = "Rotation",

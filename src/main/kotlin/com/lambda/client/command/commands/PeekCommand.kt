@@ -1,15 +1,15 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.command.ClientCommand
+import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThreadSafe
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.item.ItemShulkerBox
 import net.minecraft.tileentity.TileEntityShulkerBox
-import org.kamiblue.client.command.ClientCommand
-import org.kamiblue.client.util.text.MessageSendHelper
-import org.kamiblue.client.util.threads.defaultScope
-import org.kamiblue.client.util.threads.onMainThreadSafe
 
 object PeekCommand : ClientCommand(
     name = "peek",

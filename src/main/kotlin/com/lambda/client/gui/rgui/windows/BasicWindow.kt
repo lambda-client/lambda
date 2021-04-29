@@ -1,14 +1,14 @@
 package com.lambda.client.gui.rgui.windows
 
-import org.kamiblue.client.module.modules.client.ClickGUI
-import org.kamiblue.client.module.modules.client.GuiColors
-import org.kamiblue.client.setting.GuiConfig
-import org.kamiblue.client.setting.configs.AbstractConfig
-import org.kamiblue.client.util.graphics.RenderUtils2D
-import org.kamiblue.client.util.graphics.VertexHelper
-import org.kamiblue.client.util.math.Vec2d
-import org.kamiblue.client.util.math.Vec2f
-import org.kamiblue.commons.interfaces.Nameable
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.setting.GuiConfig
+import com.lambda.client.setting.configs.AbstractConfig
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.math.Vec2f
+import com.lambda.commons.interfaces.Nameable
 
 /**
  * Window with rectangle rendering
