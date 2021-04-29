@@ -39,8 +39,8 @@ class LambdaGuiUpdateNotification : GuiScreen() {
     companion object {
         private const val title = "Lambda Update"
 
-        var latest: String? = null // latest version (null if no internet or exception occurred)
-        var isLatest = false
+        private var latest: String? = null // latest version (null if no internet or exception occurred)
+        private var isLatest = false
 
         @JvmStatic
         fun updateCheck() {

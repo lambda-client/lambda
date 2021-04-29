@@ -7,8 +7,6 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.util.threads.safeListener
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.min
 
 internal object CustomChat : Module(
