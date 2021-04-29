@@ -78,7 +78,7 @@ internal object Spammer : Module(
                     } else {
                         file.createNewFile()
                         MessageSendHelper.sendErrorMessage("$chatName Spammer file is empty!" +
-                            ", please add them in the &7spammer.txt&f under the &7.minecraft/kamiblue&f directory.")
+                            ", please add them in the &7spammer.txt&f under the &7.minecraft/lambda&f directory.")
                         disable()
                     }
                 }

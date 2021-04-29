@@ -2,7 +2,7 @@
   "variants": {
     "normal": [
       {
-        "model": "kamiblue:kami_xray_transparent"
+        "model": "lambda:kami_xray_transparent"
       }
     ]
   }

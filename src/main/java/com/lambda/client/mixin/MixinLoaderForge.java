@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Mixins;
 
 import java.util.Map;
 
-@IFMLLoadingPlugin.Name("KAMIBlueMixinLoader")
+@IFMLLoadingPlugin.Name("LambdaMixinLoader")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 public class MixinLoaderForge implements IFMLLoadingPlugin {
 

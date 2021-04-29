@@ -28,7 +28,7 @@ internal object HungerOverlay : Module(
     private val foodHungerOverlay = setting("Food Hunger Overlay", true)
     private val foodSaturationOverlay = setting("Food Saturation Overlay", true)
 
-    private val icons = ResourceLocation("kamiblue/textures/hungeroverlay.png")
+    private val icons = ResourceLocation("lambda/textures/hungeroverlay.png")
 
     init {
         listener<RenderGameOverlayEvent.Post> {

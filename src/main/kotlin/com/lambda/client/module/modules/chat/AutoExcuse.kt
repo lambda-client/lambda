@@ -87,7 +87,7 @@ internal object AutoExcuse : Module(
                 } else {
                     file.createNewFile()
                     MessageSendHelper.sendErrorMessage("$chatName Excuses file is empty!" +
-                        ", please add them in the &7excuses.txt&f under the &7.minecraft/kamiblue&f directory.")
+                        ", please add them in the &7excuses.txt&f under the &7.minecraft/lambda&f directory.")
                     defaultExcuses
                 }
             } else {

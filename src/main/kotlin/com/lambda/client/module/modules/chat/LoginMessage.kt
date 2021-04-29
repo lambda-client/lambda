@@ -47,7 +47,7 @@ internal object LoginMessage : Module(
             } else {
                 file.createNewFile()
                 MessageSendHelper.sendErrorMessage("$chatName Login Messages file not found!" +
-                    ", please add them in the &7loginmsg.txt&f under the &7.minecraft/kamiblue&f directory.")
+                    ", please add them in the &7loginmsg.txt&f under the &7.minecraft/lambda&f directory.")
                 disable()
             }
         }

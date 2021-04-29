@@ -257,10 +257,10 @@ internal object Capes : Module(
     }
 
     private enum class CapeTexture(val location: ResourceLocation) {
-        PRIMARY(ResourceLocation("kamiblue/textures/capes/primary.png")),
-        BORDER(ResourceLocation("kamiblue/textures/capes/border.png")),
-        TEXT(ResourceLocation("kamiblue/textures/capes/text.png")),
-        TEXT_ICON(ResourceLocation("kamiblue/textures/capes/text_icon.png"))
+        PRIMARY(ResourceLocation("lambda/textures/capes/primary.png")),
+        BORDER(ResourceLocation("lambda/textures/capes/border.png")),
+        TEXT(ResourceLocation("lambda/textures/capes/text.png")),
+        TEXT_ICON(ResourceLocation("lambda/textures/capes/text_icon.png"))
     }
 
 }

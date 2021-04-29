@@ -70,13 +70,13 @@ object ConfigUtils {
 
     // TODO: Introduce a version helper for KamiMod.BUILD_NUMBER for version-specific configs. This should be theoritically fine for now
     fun moveAllLegacyConfigs() {
-        moveLegacyConfig("kamiblue/generic.json", "kamiblue/generic.bak", GenericConfig)
-        moveLegacyConfig("kamiblue/modules/default.json", "kamiblue/modules/default.bak", ModuleConfig)
-        moveLegacyConfig("KAMIBlueCoords.json", "kamiblue/waypoints.json")
-        moveLegacyConfig("KAMIBlueWaypoints.json", "kamiblue/waypoints.json")
-        moveLegacyConfig("KAMIBlueMacros.json", "kamiblue/macros.json")
-        moveLegacyConfig("KAMIBlueFriends.json", "kamiblue/friends.json")
-        moveLegacyConfig("chat_filter.json", "kamiblue/chat_filter.json")
+        moveLegacyConfig("lambda/generic.json", "lambda/generic.bak", GenericConfig)
+        moveLegacyConfig("lambda/modules/default.json", "lambda/modules/default.bak", ModuleConfig)
+        moveLegacyConfig("KAMIBlueCoords.json", "lambda/waypoints.json")
+        moveLegacyConfig("KAMIBlueWaypoints.json", "lambda/waypoints.json")
+        moveLegacyConfig("KAMIBlueMacros.json", "lambda/macros.json")
+        moveLegacyConfig("KAMIBlueFriends.json", "lambda/friends.json")
+        moveLegacyConfig("chat_filter.json", "lambda/chat_filter.json")
     }
 
     private fun moveLegacyConfig(oldConfigIn: String, oldConfigBakIn: String, newConfig: IConfig) {

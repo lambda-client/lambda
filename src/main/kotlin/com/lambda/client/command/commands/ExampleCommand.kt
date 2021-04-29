@@ -13,7 +13,7 @@ object ExampleCommand : ClientCommand(
             if ((1..20).random() == 10) {
                 WebUtils.openWebLink("https://youtu.be/yPYZpwSpKmA") // 5% chance playing Together Forever
             } else {
-                WebUtils.openWebLink("https://kamiblue.org/backdoored")
+                WebUtils.openWebLink("https://lambda-client.org/backdoored")
             }
         }
     }

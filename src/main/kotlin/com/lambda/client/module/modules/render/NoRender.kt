@@ -70,7 +70,7 @@ internal object NoRender : Module(
         ENTITIES, OTHER
     }
 
-    private val kamiMap = ResourceLocation("kamiblue/kamimap.png")
+    private val kamiMap = ResourceLocation("lambda/kamimap.png")
 
     private val settingMap = mapOf(
         player to EntityOtherPlayerMP::class.java,
