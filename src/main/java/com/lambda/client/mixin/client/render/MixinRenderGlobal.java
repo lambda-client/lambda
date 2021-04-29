@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.render;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.BlockBreakEvent;
 import com.lambda.client.event.events.RenderEntityEvent;
 import com.lambda.client.module.modules.player.Freecam;
@@ -29,7 +29,7 @@ public abstract class MixinRenderGlobal {
     @Inject(method = "sendBlockBreakProgress", at = @At("HEAD"))
     public void sendBlockBreakProgress(int breakerId, BlockPos pos, int progress, CallbackInfo ci) {
         BlockBreakEvent event = new BlockBreakEvent(breakerId, pos, progress);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
     }
 
     @Inject(method = "renderEntities", at = @At("HEAD"))

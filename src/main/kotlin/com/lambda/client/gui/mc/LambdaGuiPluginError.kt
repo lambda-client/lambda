@@ -12,7 +12,7 @@ import java.awt.Desktop
 import java.io.File
 import java.util.*
 
-internal class KamiGuiPluginError(
+internal class LambdaGuiPluginError(
     private val prevScreen: GuiScreen?,
     pluginErrors: List<Pair<PluginLoader, PluginError>>
 ) : GuiScreen() {

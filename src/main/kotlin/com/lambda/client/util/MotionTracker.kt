@@ -1,6 +1,6 @@
 package com.lambda.client.util
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.graphics.KamiTessellator
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.Entity
@@ -136,6 +136,6 @@ class MotionTracker(targetIn: Entity?, private val trackLength: Int = 20) {
     }
 
     init {
-        KamiEventBus.subscribe(this)
+        LambdaEventBus.subscribe(this)
     }
 }

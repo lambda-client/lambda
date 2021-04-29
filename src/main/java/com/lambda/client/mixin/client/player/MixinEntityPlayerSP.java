@@ -1,9 +1,9 @@
 package com.lambda.client.mixin.client.player;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent;
 import com.lambda.client.event.events.PlayerMoveEvent;
-import com.lambda.client.gui.mc.KamiGuiBeacon;
+import com.lambda.client.gui.mc.LambdaGuiBeacon;
 import com.lambda.client.manager.managers.MessageManager;
 import com.lambda.client.manager.managers.PlayerPacketManager;
 import com.lambda.client.module.modules.chat.PortalChat;
@@ -78,7 +78,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     public void onDisplayGUIChest(IInventory chestInventory, CallbackInfo ci) {
         if (BeaconSelector.INSTANCE.isEnabled()) {
             if (chestInventory instanceof IInteractionObject && "minecraft:beacon".equals(((IInteractionObject) chestInventory).getGuiID())) {
-                Minecraft.getMinecraft().displayGuiScreen(new KamiGuiBeacon(this.inventory, chestInventory));
+                Minecraft.getMinecraft().displayGuiScreen(new LambdaGuiBeacon(this.inventory, chestInventory));
                 ci.cancel();
             }
         }
@@ -90,7 +90,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         if (player == null) return;
 
         PlayerMoveEvent event = new PlayerMoveEvent(player);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
 
         if (event.isModified()) {
             double prevX = this.posX;
@@ -147,10 +147,10 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         boolean rotating = isRotating(rotation);
 
         OnUpdateWalkingPlayerEvent event = new OnUpdateWalkingPlayerEvent(moving, rotating, position, rotation);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
 
         event = event.nextPhase();
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
 
         if (event.getCancelled()) {
             ci.cancel();
@@ -174,7 +174,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         }
 
         event = event.nextPhase();
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
     }
 
     private void sendSprintPacket() {

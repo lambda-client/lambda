@@ -1,6 +1,6 @@
 package com.lambda.client.module
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.AsyncCachedValue
 import com.lambda.client.util.StopTimer
 import com.lambda.client.util.TimeUnit
@@ -48,14 +48,14 @@ object ModuleManager : com.lambda.client.AsyncLoader<List<Class<out AbstractModu
     internal fun register(module: AbstractModule) {
         moduleSet.add(module)
         if (module.enabledByDefault || module.alwaysEnabled) module.enable()
-        if (module.alwaysListening) KamiEventBus.subscribe(module)
+        if (module.alwaysListening) LambdaEventBus.subscribe(module)
 
         modulesDelegate.update()
     }
 
     internal fun unregister(module: AbstractModule) {
         moduleSet.remove(module)
-        KamiEventBus.unsubscribe(module)
+        LambdaEventBus.unsubscribe(module)
 
         modulesDelegate.update()
     }

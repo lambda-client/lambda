@@ -11,7 +11,7 @@ import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
 
-object KamiEventBus : AbstractAsyncEventBus() {
+object LambdaEventBus : AbstractAsyncEventBus() {
     override val subscribedListeners = ConcurrentHashMap<Class<*>, MutableSet<Listener<*>>>()
     override val subscribedListenersAsync = ConcurrentHashMap<Class<*>, MutableSet<AsyncListener<*>>>()
 

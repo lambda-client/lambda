@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.GuiEvent;
 import com.lambda.client.event.events.RunGameLoopEvent;
 import com.lambda.client.gui.hudgui.elements.misc.FPS;
@@ -48,37 +48,37 @@ public abstract class MixinMinecraft {
     @ModifyVariable(method = "displayGuiScreen", at = @At("HEAD"), argsOnly = true)
     public GuiScreen editDisplayGuiScreen(GuiScreen guiScreenIn) {
         GuiEvent.Closed screenEvent = new GuiEvent.Closed(this.currentScreen);
-        KamiEventBus.INSTANCE.post(screenEvent);
+        LambdaEventBus.INSTANCE.post(screenEvent);
         GuiEvent.Displayed screenEvent1 = new GuiEvent.Displayed(guiScreenIn);
-        KamiEventBus.INSTANCE.post(screenEvent1);
+        LambdaEventBus.INSTANCE.post(screenEvent1);
         return screenEvent1.getScreen();
     }
 
     @Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Timer;updateTimer()V", shift = At.Shift.BEFORE))
     public void runGameLoopStart(CallbackInfo ci) {
         Wrapper.getMinecraft().profiler.startSection("kbRunGameLoop");
-        KamiEventBus.INSTANCE.post(new RunGameLoopEvent.Start());
+        LambdaEventBus.INSTANCE.post(new RunGameLoopEvent.Start());
         Wrapper.getMinecraft().profiler.endSection();
     }
 
     @Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/profiler/Profiler;endSection()V", ordinal = 0, shift = At.Shift.BEFORE))
     public void runGameLoopTick(CallbackInfo ci) {
         Wrapper.getMinecraft().profiler.endStartSection("kbRunGameLoop");
-        KamiEventBus.INSTANCE.post(new RunGameLoopEvent.Tick());
+        LambdaEventBus.INSTANCE.post(new RunGameLoopEvent.Tick());
         Wrapper.getMinecraft().profiler.endStartSection("scheduledExecutables");
     }
 
     @Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/profiler/Profiler;startSection(Ljava/lang/String;)V", ordinal = 2, shift = At.Shift.BEFORE))
     public void runGameLoopRender(CallbackInfo ci) {
         Wrapper.getMinecraft().profiler.startSection("kbRunGameLoop");
-        KamiEventBus.INSTANCE.post(new RunGameLoopEvent.Render());
+        LambdaEventBus.INSTANCE.post(new RunGameLoopEvent.Render());
         Wrapper.getMinecraft().profiler.endSection();
     }
 
     @Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;isFramerateLimitBelowMax()Z", shift = At.Shift.BEFORE))
     public void runGameLoopEnd(CallbackInfo ci) {
         Wrapper.getMinecraft().profiler.startSection("kbRunGameLoop");
-        KamiEventBus.INSTANCE.post(new RunGameLoopEvent.End());
+        LambdaEventBus.INSTANCE.post(new RunGameLoopEvent.End());
         Wrapper.getMinecraft().profiler.endSection();
     }
 

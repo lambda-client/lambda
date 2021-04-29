@@ -1,6 +1,6 @@
 package com.lambda.client.gui.clickgui.component
 
-import com.lambda.client.gui.clickgui.KamiClickGui
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.rgui.component.BooleanSlider
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.util.math.Vec2f
@@ -22,6 +22,6 @@ class ModuleButton(val module: AbstractModule) : BooleanSlider(module.name, 0.0,
 
     override fun onRelease(mousePos: Vec2f, buttonId: Int) {
         super.onRelease(mousePos, buttonId)
-        if (buttonId == 1) KamiClickGui.displaySettingWindow(module)
+        if (buttonId == 1) LambdaClickGui.displaySettingWindow(module)
     }
 }

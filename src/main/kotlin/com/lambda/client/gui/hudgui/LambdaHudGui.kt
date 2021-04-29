@@ -1,8 +1,8 @@
 package com.lambda.client.gui.hudgui
 
 import com.lambda.client.event.events.RenderOverlayEvent
-import com.lambda.client.gui.AbstractKamiGui
-import com.lambda.client.gui.clickgui.KamiClickGui
+import com.lambda.client.gui.AbstractLambdaGui
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.hudgui.component.HudButton
 import com.lambda.client.gui.hudgui.elements.client.WaterMark
 import com.lambda.client.gui.hudgui.window.HudSettingWindow
@@ -20,7 +20,7 @@ import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11.*
 import java.util.*
 
-object KamiHudGui : AbstractKamiGui<HudSettingWindow, AbstractHudElement>() {
+object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() {
 
     override val alwaysTicking = true
     private val hudWindows = EnumMap<AbstractHudElement.Category, ListWindow>(AbstractHudElement.Category::class.java)
@@ -28,7 +28,7 @@ object KamiHudGui : AbstractKamiGui<HudSettingWindow, AbstractHudElement>() {
     init {
         var posX = 0.0f
         var posY = 0.0f
-        val screenWidth = KamiClickGui.mc.displayWidth / ClickGUI.getScaleFactorFloat()
+        val screenWidth = LambdaClickGui.mc.displayWidth / ClickGUI.getScaleFactorFloat()
 
         for (category in AbstractHudElement.Category.values()) {
             val window = ListWindow(category.displayName, posX, 0.0f, 90.0f, 300.0f, Component.SettingGroup.HUD_GUI)

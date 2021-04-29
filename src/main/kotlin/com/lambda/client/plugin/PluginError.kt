@@ -1,6 +1,6 @@
 package com.lambda.client.plugin
 
-import com.lambda.client.gui.mc.KamiGuiPluginError
+import com.lambda.client.gui.mc.LambdaGuiPluginError
 import com.lambda.client.util.Wrapper
 
 internal enum class PluginError {
@@ -38,7 +38,7 @@ internal enum class PluginError {
             latestErrors = null
 
             if (!errors.isNullOrEmpty()) {
-                Wrapper.minecraft.displayGuiScreen(KamiGuiPluginError(Wrapper.minecraft.currentScreen, errors))
+                Wrapper.minecraft.displayGuiScreen(LambdaGuiPluginError(Wrapper.minecraft.currentScreen, errors))
             }
         }
     }

@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
@@ -93,5 +93,5 @@ internal object InventoryMove : Module(
         || guiScreen is GuiChat
         || guiScreen is GuiEditSign
         || guiScreen is GuiRepair
-        || guiScreen.let { it is AbstractKamiGui<*, *> && it.searching }
+        || guiScreen.let { it is AbstractLambdaGui<*, *> && it.searching }
 }

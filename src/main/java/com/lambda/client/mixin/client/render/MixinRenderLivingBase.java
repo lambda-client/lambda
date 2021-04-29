@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.render;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.Phase;
 import com.lambda.client.event.events.RenderEntityEvent;
 import net.minecraft.client.renderer.entity.RenderLivingBase;
@@ -17,7 +17,7 @@ public class MixinRenderLivingBase<T extends EntityLivingBase> {
         if (entity == null || !RenderEntityEvent.getRenderingEntities()) return;
 
         RenderEntityEvent eventModel = new RenderEntityEvent.Model(entity, Phase.PRE);
-        KamiEventBus.INSTANCE.post(eventModel);
+        LambdaEventBus.INSTANCE.post(eventModel);
     }
 
     @Inject(method = "renderModel", at = @At("RETURN"), cancellable = true)
@@ -25,6 +25,6 @@ public class MixinRenderLivingBase<T extends EntityLivingBase> {
         if (entity == null || !RenderEntityEvent.getRenderingEntities()) return;
 
         RenderEntityEvent eventModel = new RenderEntityEvent.Model(entity, Phase.POST);
-        KamiEventBus.INSTANCE.post(eventModel);
+        LambdaEventBus.INSTANCE.post(eventModel);
     }
 }

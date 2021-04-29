@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.render;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.Phase;
 import com.lambda.client.event.events.RenderEntityEvent;
 import net.minecraft.client.renderer.entity.RenderManager;
@@ -18,12 +18,12 @@ public class MixinRenderManager {
         if (entity == null || !RenderEntityEvent.getRenderingEntities()) return;
 
         RenderEntityEvent eventAll = new RenderEntityEvent.All(entity, Phase.PRE);
-        KamiEventBus.INSTANCE.post(eventAll);
+        LambdaEventBus.INSTANCE.post(eventAll);
         if (eventAll.getCancelled()) ci.cancel();
 
         if (!(entity instanceof EntityLivingBase)) {
             RenderEntityEvent eventModel = new RenderEntityEvent.Model(entity, Phase.PRE);
-            KamiEventBus.INSTANCE.post(eventModel);
+            LambdaEventBus.INSTANCE.post(eventModel);
         }
     }
 
@@ -32,11 +32,11 @@ public class MixinRenderManager {
         if (entity == null || !RenderEntityEvent.getRenderingEntities()) return;
 
         RenderEntityEvent event = new RenderEntityEvent.All(entity, Phase.PERI);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
 
         if (!(entity instanceof EntityLivingBase)) {
             RenderEntityEvent eventModel = new RenderEntityEvent.Model(entity, Phase.POST);
-            KamiEventBus.INSTANCE.post(eventModel);
+            LambdaEventBus.INSTANCE.post(eventModel);
         }
     }
 
@@ -45,6 +45,6 @@ public class MixinRenderManager {
         if (entity == null || !RenderEntityEvent.getRenderingEntities()) return;
 
         RenderEntityEvent event = new RenderEntityEvent.All(entity, Phase.POST);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
     }
 }

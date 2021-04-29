@@ -2,7 +2,7 @@ package com.lambda.client.plugin.api
 
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.gui.GuiManager
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.ModuleManager
@@ -87,7 +87,7 @@ open class Plugin : Nameable {
 
         ConfigManager.register(config)
 
-        managers.forEach(KamiEventBus::subscribe)
+        managers.forEach(LambdaEventBus::subscribe)
         commands.forEach(CommandManager::register)
         modules.forEach(ModuleManager::register)
         hudElements.forEach(GuiManager::register)
@@ -105,7 +105,7 @@ open class Plugin : Nameable {
         ConfigManager.unregister(config)
 
         managers.forEach {
-            KamiEventBus.unsubscribe(it)
+            LambdaEventBus.unsubscribe(it)
             ListenerManager.unregister(it)
         }
         commands.forEach {

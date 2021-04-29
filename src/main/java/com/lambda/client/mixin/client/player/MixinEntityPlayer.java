@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.player;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.PlayerTravelEvent;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.EntityLivingBase;
@@ -24,7 +24,7 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
         //noinspection ConstantConditions
         if (EntityPlayerSP.class.isAssignableFrom(this.getClass())) {
             PlayerTravelEvent event = new PlayerTravelEvent();
-            KamiEventBus.INSTANCE.post(event);
+            LambdaEventBus.INSTANCE.post(event);
             if (event.getCancelled()) {
                 move(MoverType.SELF, motionX, motionY, motionZ);
                 info.cancel();

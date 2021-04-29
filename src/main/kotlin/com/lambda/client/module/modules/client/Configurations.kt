@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.event.events.ConnectionEvent
-import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.Category
 import com.lambda.client.setting.ConfigManager
@@ -53,7 +53,7 @@ internal object Configurations : AbstractModule(
 
     init {
         BackgroundScope.launchLooping("Config Auto Saving", 60000L) {
-            if (autoSaving && mc.currentScreen !is AbstractKamiGui<*, *> && timer.tick(savingInterval.toLong())) {
+            if (autoSaving && mc.currentScreen !is AbstractLambdaGui<*, *> && timer.tick(savingInterval.toLong())) {
                 if (savingFeedBack) MessageSendHelper.sendChatMessage("Auto saving settings...")
                 else com.lambda.client.LambdaMod.LOG.info("Auto saving settings...")
                 ConfigUtils.saveAll()

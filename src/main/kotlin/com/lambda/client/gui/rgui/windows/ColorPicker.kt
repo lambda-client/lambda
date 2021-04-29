@@ -1,6 +1,6 @@
 package com.lambda.client.gui.rgui.windows
 
-import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.rgui.component.Button
 import com.lambda.client.gui.rgui.component.SettingSlider
 import com.lambda.client.gui.rgui.component.Slider
@@ -28,8 +28,8 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
     private var hoveredChild: Slider? = null
         set(value) {
             if (value == field) return
-            field?.onLeave(AbstractKamiGui.getRealMousePos())
-            value?.onHover(AbstractKamiGui.getRealMousePos())
+            field?.onLeave(AbstractLambdaGui.getRealMousePos())
+            value?.onHover(AbstractLambdaGui.getRealMousePos())
             field = value
         }
     private var listeningChild: Slider? = null

@@ -17,7 +17,7 @@ import net.minecraft.client.gui.GuiChat
 import org.lwjgl.input.Keyboard
 import kotlin.math.min
 
-class KamiGuiChat(
+class LambdaGuiChat(
     startStringIn: String,
     private val historyBufferIn: String? = null,
     private val sentHistoryCursorIn: Int? = null

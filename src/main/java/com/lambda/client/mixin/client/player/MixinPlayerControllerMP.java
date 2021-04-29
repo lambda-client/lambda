@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.player;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.PlayerAttackEvent;
 import com.lambda.client.module.modules.player.TpsSync;
 import com.lambda.client.util.TpsCalculator;
@@ -28,7 +28,7 @@ public class MixinPlayerControllerMP {
     public void attackEntity(EntityPlayer playerIn, Entity targetEntity, CallbackInfo ci) {
         if (targetEntity == null) return;
         PlayerAttackEvent event = new PlayerAttackEvent(targetEntity);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
         if (event.getCancelled()) {
             ci.cancel();
         }

@@ -1,6 +1,6 @@
 package com.lambda.client.util.graphics
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ResolutionUpdateEvent
 import com.lambda.client.util.Wrapper
 import com.lambda.event.listener.listener
@@ -65,7 +65,7 @@ class ShaderHelper(shaderIn: ResourceLocation, vararg frameBufferNames: String) 
             shader?.createBindFramebuffers(it.width, it.height) // this will not run if on Intel GPU or unsupported Shaders
         }
 
-        KamiEventBus.subscribe(this)
+        LambdaEventBus.subscribe(this)
     }
 
     fun getFrameBuffer(name: String) = frameBufferMap[name]

@@ -1,7 +1,7 @@
 package com.lambda.client.mixin.client.gui;
 
-import com.lambda.client.gui.mc.KamiGuiStealButton;
-import com.lambda.client.gui.mc.KamiGuiStoreButton;
+import com.lambda.client.gui.mc.LambdaGuiStealButton;
+import com.lambda.client.gui.mc.LambdaGuiStoreButton;
 import com.lambda.client.module.modules.player.ChestStealer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -21,8 +21,8 @@ public class MixinGuiContainer extends GuiScreen {
     @Shadow protected int guiTop;
     @Shadow protected int xSize;
 
-    private final GuiButton stealButton = new KamiGuiStealButton(this.guiLeft + this.xSize + 2, this.guiTop + 2);
-    private final GuiButton storeButton = new KamiGuiStoreButton(this.guiLeft + this.xSize + 2, this.guiTop + 4 + stealButton.height);
+    private final GuiButton stealButton = new LambdaGuiStealButton(this.guiLeft + this.xSize + 2, this.guiTop + 2);
+    private final GuiButton storeButton = new LambdaGuiStoreButton(this.guiLeft + this.xSize + 2, this.guiTop + 4 + stealButton.height);
 
     @Inject(method = "initGui", at = @At("HEAD"))
     public void initGui(CallbackInfo ci) {

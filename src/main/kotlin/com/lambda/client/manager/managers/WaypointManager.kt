@@ -2,7 +2,7 @@ package com.lambda.client.manager.managers
 
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.WaypointUpdateEvent
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
@@ -41,7 +41,7 @@ object WaypointManager : Manager {
             false
         }
 
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.CLEAR, null))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.CLEAR, null))
         return success
     }
 
@@ -60,13 +60,13 @@ object WaypointManager : Manager {
 
     fun get(id: Int): Waypoint? {
         val waypoint = waypoints.firstOrNull { it.id == id }
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.GET, waypoint))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.GET, waypoint))
         return waypoint
     }
 
     fun get(pos: BlockPos, currentDimension: Boolean = false): Waypoint? {
         val waypoint = waypoints.firstOrNull { (if (currentDimension) it.currentPos() else it.pos) == pos }
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.GET, waypoint))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.GET, waypoint))
         return waypoint
     }
 
@@ -74,7 +74,7 @@ object WaypointManager : Manager {
         val pos = Wrapper.player?.positionVector?.toBlockPos()
         return if (pos != null) {
             val waypoint = add(pos, locationName)
-            KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.ADD, waypoint))
+            LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.ADD, waypoint))
             waypoint
         } else {
             com.lambda.client.LambdaMod.LOG.error("Error during waypoint adding")
@@ -85,32 +85,32 @@ object WaypointManager : Manager {
     fun add(pos: BlockPos, locationName: String): Waypoint {
         val waypoint = dateFormatter(pos, locationName)
         waypoints.add(waypoint)
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.ADD, waypoint))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.ADD, waypoint))
         return waypoint
     }
 
     fun add(waypoint: Waypoint) {
         waypoints.add(waypoint)
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.ADD, waypoint))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.ADD, waypoint))
     }
 
     fun remove(pos: BlockPos, currentDimension: Boolean = false): Boolean {
         val waypoint = get(pos, currentDimension)
         val removed = waypoints.remove(waypoint)
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.REMOVE, waypoint))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.REMOVE, waypoint))
         return removed
     }
 
     fun remove(id: Int): Boolean {
         val waypoint = get(id) ?: return false
         val removed = waypoints.remove(waypoint)
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.REMOVE, waypoint))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.REMOVE, waypoint))
         return removed
     }
 
     fun clear() {
         waypoints.clear()
-        KamiEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.CLEAR, null))
+        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.CLEAR, null))
     }
 
     fun genServer(): String? {

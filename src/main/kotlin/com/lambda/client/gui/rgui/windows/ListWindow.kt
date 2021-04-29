@@ -1,6 +1,6 @@
 package com.lambda.client.gui.rgui.windows
 
-import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.rgui.Component
 import com.lambda.client.gui.rgui.InteractiveComponent
 import com.lambda.client.module.modules.client.ClickGUI
@@ -37,8 +37,8 @@ open class ListWindow(
     var hoveredChild: Component? = null
         private set(value) {
             if (value == field) return
-            (field as? InteractiveComponent)?.onLeave(AbstractKamiGui.getRealMousePos())
-            (value as? InteractiveComponent)?.onHover(AbstractKamiGui.getRealMousePos())
+            (field as? InteractiveComponent)?.onLeave(AbstractLambdaGui.getRealMousePos())
+            (value as? InteractiveComponent)?.onHover(AbstractLambdaGui.getRealMousePos())
             field = value
         }
 

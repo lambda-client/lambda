@@ -5,7 +5,7 @@ import com.lambda.client.event.events.BaritoneCommandEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.events.ResolutionUpdateEvent
-import com.lambda.client.gui.mc.KamiGuiChat
+import com.lambda.client.gui.mc.LambdaGuiChat
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.graphics.KamiTessellator
@@ -36,12 +36,12 @@ internal object ForgeEventProcessor {
             mc.profiler.startSection("kbTickPost")
         }
 
-        KamiEventBus.postProfiler(event)
+        LambdaEventBus.postProfiler(event)
 
         if (event.phase == TickEvent.Phase.END && (prevWidth != mc.displayWidth || prevHeight != mc.displayHeight)) {
             prevWidth = mc.displayWidth
             prevHeight = mc.displayHeight
-            KamiEventBus.post(ResolutionUpdateEvent(mc.displayWidth, mc.displayHeight))
+            LambdaEventBus.post(ResolutionUpdateEvent(mc.displayWidth, mc.displayHeight))
         }
 
         mc.profiler.endSection()
@@ -52,18 +52,18 @@ internal object ForgeEventProcessor {
     fun onWorldRender(event: RenderWorldLastEvent) {
         ProjectionUtils.updateMatrix()
         KamiTessellator.prepareGL()
-        KamiEventBus.post(RenderWorldEvent())
+        LambdaEventBus.post(RenderWorldEvent())
         KamiTessellator.releaseGL()
     }
 
     @SubscribeEvent
     fun onRenderPre(event: RenderGameOverlayEvent.Pre) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     fun onRender(event: RenderGameOverlayEvent.Post) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent(priority = EventPriority.NORMAL, receiveCanceled = true)
@@ -74,18 +74,18 @@ internal object ForgeEventProcessor {
             val prefix = CommandManager.prefix
             val typedChar = Keyboard.getEventCharacter().toString()
             if (prefix.length == 1 && typedChar.equals(CommandManager.prefix, true)) {
-                mc.displayGuiScreen(KamiGuiChat(CommandManager.prefix))
+                mc.displayGuiScreen(LambdaGuiChat(CommandManager.prefix))
             }
         }
 
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
         ModuleManager.onBind(Keyboard.getEventKey())
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     fun onChatSent(event: ClientChatEvent) {
         MessageDetection.Command.BARITONE.removedOrNull(event.message)?.let {
-            KamiEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').toLowerCase(Locale.ROOT)))
+            LambdaEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').toLowerCase(Locale.ROOT)))
         }
 
         if (MessageDetection.Command.KAMI_BLUE detect event.message) {
@@ -96,59 +96,59 @@ internal object ForgeEventProcessor {
 
     @SubscribeEvent
     fun onEventMouse(event: InputEvent.MouseInputEvent) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     fun onChunkLoaded(event: ChunkEvent.Unload) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     fun onInputUpdate(event: InputUpdateEvent) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     fun onLivingEntityUseItemEventTick(event: LivingEntityUseItemEvent.Tick) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     fun onLeftClickBlock(event: PlayerInteractEvent.LeftClickBlock) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     fun onRenderBlockOverlay(event: RenderBlockOverlayEvent) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     fun onClientChat(event: ClientChatReceivedEvent) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 
     @SubscribeEvent
     @Suppress("UNUSED_PARAMETER")
     fun onServerDisconnect(event: FMLNetworkEvent.ServerDisconnectionFromClientEvent) {
-        KamiEventBus.post(ConnectionEvent.Disconnect())
+        LambdaEventBus.post(ConnectionEvent.Disconnect())
     }
 
     @SubscribeEvent
     @Suppress("UNUSED_PARAMETER")
     fun onClientDisconnect(event: FMLNetworkEvent.ClientDisconnectionFromServerEvent) {
-        KamiEventBus.post(ConnectionEvent.Disconnect())
+        LambdaEventBus.post(ConnectionEvent.Disconnect())
     }
 
     @SubscribeEvent
     @Suppress("UNUSED_PARAMETER")
     fun onClientConnect(event: FMLNetworkEvent.ClientConnectedToServerEvent) {
-        KamiEventBus.post(ConnectionEvent.Connect())
+        LambdaEventBus.post(ConnectionEvent.Connect())
     }
 
     @SubscribeEvent
     fun onRenderFogColors(event: EntityViewRenderEvent.FogColors) {
-        KamiEventBus.post(event)
+        LambdaEventBus.post(event)
     }
 }

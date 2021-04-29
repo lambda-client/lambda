@@ -18,7 +18,7 @@ import java.io.IOException
 /**
  * @author TBM
  */
-class KamiGuiBeacon(playerInventory: InventoryPlayer, tileBeaconIn: IInventory) : GuiBeacon(playerInventory, tileBeaconIn) {
+class LambdaGuiBeacon(playerInventory: InventoryPlayer, tileBeaconIn: IInventory) : GuiBeacon(playerInventory, tileBeaconIn) {
     private var doRenderButtons = false
     override fun initGui() {
         super.initGui()
@@ -65,7 +65,7 @@ class KamiGuiBeacon(playerInventory: InventoryPlayer, tileBeaconIn: IInventory) 
             if (tier >= 3 && effect !== MobEffects.REGENERATION) {
                 s = "$s II"
             }
-            this@KamiGuiBeacon.drawHoveringText(s, mouseX, mouseY)
+            this@LambdaGuiBeacon.drawHoveringText(s, mouseX, mouseY)
         }
     }
 

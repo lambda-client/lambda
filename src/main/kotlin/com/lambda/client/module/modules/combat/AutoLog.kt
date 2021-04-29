@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.combat
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.gui.mc.KamiGuiDisconnected
+import com.lambda.client.gui.mc.LambdaGuiDisconnected
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.module.Category
@@ -108,7 +108,7 @@ internal object AutoLog : Module(
         connection.networkManager.closeChannel(TextComponentString(""))
         mc.loadWorld(null as WorldClient?)
 
-        mc.displayGuiScreen(KamiGuiDisconnected(reasonText, screen, disableMode == DisableMode.ALWAYS || (disableMode == DisableMode.NOT_PLAYER && reason != PLAYER), LocalTime.now()))
+        mc.displayGuiScreen(LambdaGuiDisconnected(reasonText, screen, disableMode == DisableMode.ALWAYS || (disableMode == DisableMode.NOT_PLAYER && reason != PLAYER), LocalTime.now()))
     }
 
     private fun getScreen() = if (mc.isIntegratedServerRunning) {

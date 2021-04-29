@@ -1,6 +1,6 @@
 package com.lambda.client.util.combat
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.util.items.attackDamage
@@ -121,7 +121,7 @@ object CombatUtils {
             cachedArmorValues.clear()
         }
 
-        KamiEventBus.subscribe(this)
+        LambdaEventBus.subscribe(this)
     }
 
     enum class PreferWeapon {

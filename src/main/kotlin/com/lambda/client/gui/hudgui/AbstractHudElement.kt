@@ -1,6 +1,6 @@
 package com.lambda.client.gui.hudgui
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.gui.rgui.windows.BasicWindow
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Hud
@@ -58,12 +58,12 @@ abstract class AbstractHudElement(
 
     override fun onGuiInit() {
         super.onGuiInit()
-        if (alwaysListening || visible) KamiEventBus.subscribe(this)
+        if (alwaysListening || visible) LambdaEventBus.subscribe(this)
     }
 
     override fun onClosed() {
         super.onClosed()
-        if (alwaysListening || visible) KamiEventBus.subscribe(this)
+        if (alwaysListening || visible) LambdaEventBus.subscribe(this)
     }
 
     final override fun onTick() {
@@ -86,10 +86,10 @@ abstract class AbstractHudElement(
     init {
         visibleSetting.valueListeners.add { _, it ->
             if (it) {
-                KamiEventBus.subscribe(this)
+                LambdaEventBus.subscribe(this)
                 lastActiveTime = System.currentTimeMillis()
             } else if (!alwaysListening) {
-                KamiEventBus.unsubscribe(this)
+                LambdaEventBus.unsubscribe(this)
             }
         }
 

@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.gui;
 
-import com.lambda.client.gui.mc.KamiGuiAntiDisconnect;
+import com.lambda.client.gui.mc.LambdaGuiAntiDisconnect;
 import com.lambda.client.module.modules.misc.AntiDisconnect;
 import com.lambda.client.util.Wrapper;
 import net.minecraft.client.gui.GuiButton;
@@ -17,7 +17,7 @@ public class MixinGuiIngameMenu {
     public void actionPerformed(GuiButton button, CallbackInfo callbackInfo) {
         if (button.id == 1) {
             if (AntiDisconnect.INSTANCE.isEnabled()) {
-                Wrapper.getMinecraft().displayGuiScreen(new KamiGuiAntiDisconnect());
+                Wrapper.getMinecraft().displayGuiScreen(new LambdaGuiAntiDisconnect());
 
                 callbackInfo.cancel();
             }

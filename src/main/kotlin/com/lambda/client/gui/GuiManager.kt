@@ -1,9 +1,9 @@
 package com.lambda.client.gui
 
-import com.lambda.client.event.KamiEventBus
-import com.lambda.client.gui.clickgui.KamiClickGui
+import com.lambda.client.event.LambdaEventBus
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.hudgui.AbstractHudElement
-import com.lambda.client.gui.hudgui.KamiHudGui
+import com.lambda.client.gui.hudgui.LambdaHudGui
 import com.lambda.client.util.AsyncCachedValue
 import com.lambda.client.util.StopTimer
 import com.lambda.client.util.TimeUnit
@@ -44,21 +44,21 @@ internal object GuiManager : com.lambda.client.AsyncLoader<List<Class<out Abstra
         val time = stopTimer.stop()
         com.lambda.client.LambdaMod.LOG.info("${input.size} hud elements loaded, took ${time}ms")
 
-        KamiClickGui.onGuiClosed()
-        KamiHudGui.onGuiClosed()
+        LambdaClickGui.onGuiClosed()
+        LambdaHudGui.onGuiClosed()
 
-        KamiEventBus.subscribe(KamiClickGui)
-        KamiEventBus.subscribe(KamiHudGui)
+        LambdaEventBus.subscribe(LambdaClickGui)
+        LambdaEventBus.subscribe(LambdaHudGui)
     }
 
     internal fun register(hudElement: AbstractHudElement) {
         hudElementSet.add(hudElement)
-        KamiHudGui.register(hudElement)
+        LambdaHudGui.register(hudElement)
     }
 
     internal fun unregister(hudElement: AbstractHudElement) {
         hudElementSet.remove(hudElement)
-        KamiHudGui.unregister(hudElement)
+        LambdaHudGui.unregister(hudElement)
     }
 
     fun getHudElementOrNull(name: String?) = name?.let { hudElementSet[it] }

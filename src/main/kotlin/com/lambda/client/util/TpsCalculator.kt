@@ -1,6 +1,6 @@
 package com.lambda.client.util
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.CircularArray.Companion.average
@@ -45,6 +45,6 @@ object TpsCalculator {
     }
 
     init {
-        KamiEventBus.subscribe(this)
+        LambdaEventBus.subscribe(this)
     }
 }

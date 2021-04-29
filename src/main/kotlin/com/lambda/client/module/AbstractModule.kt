@@ -1,8 +1,8 @@
 package com.lambda.client.module
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ModuleToggleEvent
-import com.lambda.client.gui.clickgui.KamiClickGui
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.configs.NameableConfig
 import com.lambda.client.setting.settings.AbstractSetting
@@ -51,7 +51,7 @@ abstract class AbstractModule(
 
     internal fun postInit() {
         enabled.value = enabledByDefault || alwaysEnabled
-        if (alwaysListening) KamiEventBus.subscribe(this)
+        if (alwaysListening) LambdaEventBus.subscribe(this)
     }
 
     fun toggle() {
@@ -103,13 +103,13 @@ abstract class AbstractModule(
             val enabled = alwaysEnabled || input
 
             if (prev != input && !alwaysEnabled) {
-                KamiEventBus.post(ModuleToggleEvent(this))
+                LambdaEventBus.post(ModuleToggleEvent(this))
             }
 
             if (enabled || alwaysListening) {
-                KamiEventBus.subscribe(this)
+                LambdaEventBus.subscribe(this)
             } else {
-                KamiEventBus.unsubscribe(this)
+                LambdaEventBus.unsubscribe(this)
             }
 
             enabled
@@ -123,7 +123,7 @@ abstract class AbstractModule(
             }
         }
 
-        priorityForGui.listeners.add { KamiClickGui.reorderModules() }
+        priorityForGui.listeners.add { LambdaClickGui.reorderModules() }
 
         // clicks is deliberately not re-organised when changed.
     }

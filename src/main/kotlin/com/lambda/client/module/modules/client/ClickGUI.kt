@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.event.events.ShutdownEvent
-import com.lambda.client.gui.clickgui.KamiClickGui
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.StopTimer
@@ -63,10 +63,10 @@ internal object ClickGUI : Module(
             disable()
         }
 
-        sortBy.listeners.add { KamiClickGui.reorderModules() }
+        sortBy.listeners.add { LambdaClickGui.reorderModules() }
 
         resetComponents.listeners.add {
-            KamiClickGui.windowList.forEach {
+            LambdaClickGui.windowList.forEach {
                 it.resetPosition()
             }
             resetComponents.value = false
@@ -79,15 +79,15 @@ internal object ClickGUI : Module(
 
     init {
         onEnable {
-            if (mc.currentScreen !is KamiClickGui) {
+            if (mc.currentScreen !is LambdaClickGui) {
                 HudEditor.disable()
-                mc.displayGuiScreen(KamiClickGui)
-                KamiClickGui.onDisplayed()
+                mc.displayGuiScreen(LambdaClickGui)
+                LambdaClickGui.onDisplayed()
             }
         }
 
         onDisable {
-            if (mc.currentScreen is KamiClickGui) {
+            if (mc.currentScreen is LambdaClickGui) {
                 mc.displayGuiScreen(null)
             }
         }

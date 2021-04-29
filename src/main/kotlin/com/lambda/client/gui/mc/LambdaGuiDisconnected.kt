@@ -8,7 +8,7 @@ import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
 import java.time.LocalTime
 
-class KamiGuiDisconnected(private val reason: Array<String>, private val screen: GuiScreen, private val disable: Boolean, private val logoutTime: LocalTime) : GuiScreen() {
+class LambdaGuiDisconnected(private val reason: Array<String>, private val screen: GuiScreen, private val disable: Boolean, private val logoutTime: LocalTime) : GuiScreen() {
 
     override fun initGui() {
         super.initGui()

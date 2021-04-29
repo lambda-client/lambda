@@ -25,7 +25,7 @@ import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.min
 
-abstract class AbstractKamiGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
+abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
     open val alwaysTicking = false
 

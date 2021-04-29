@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.render;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.RenderOverlayEvent;
 import com.lambda.client.module.modules.movement.ElytraFlight;
 import com.lambda.client.module.modules.player.BlockInteraction;
@@ -24,7 +24,7 @@ public class MixinEntityRenderer {
 
     @Inject(method = "updateCameraAndRender", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiIngame;renderGameOverlay(F)V", shift = At.Shift.AFTER))
     public void updateCameraAndRender(float partialTicks, long nanoTime, CallbackInfo ci) {
-        KamiEventBus.INSTANCE.post(new RenderOverlayEvent());
+        LambdaEventBus.INSTANCE.post(new RenderOverlayEvent());
     }
 
     @ModifyVariable(method = "orientCamera", at = @At(value = "STORE", ordinal = 0), ordinal = 0)

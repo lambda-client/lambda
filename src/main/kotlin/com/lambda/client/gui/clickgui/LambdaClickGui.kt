@@ -1,6 +1,6 @@
 package com.lambda.client.gui.clickgui
 
-import com.lambda.client.gui.AbstractKamiGui
+import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.clickgui.component.ModuleButton
 import com.lambda.client.gui.clickgui.window.ModuleSettingWindow
 import com.lambda.client.gui.rgui.Component
@@ -11,7 +11,7 @@ import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Keyboard
 
-object KamiClickGui : AbstractKamiGui<ModuleSettingWindow, AbstractModule>() {
+object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>() {
 
     private val moduleWindows = ArrayList<ListWindow>()
 

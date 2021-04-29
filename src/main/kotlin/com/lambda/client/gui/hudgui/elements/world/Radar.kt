@@ -1,6 +1,6 @@
 package com.lambda.client.gui.hudgui.elements.world
 
-import com.lambda.client.event.KamiEventBus.post
+import com.lambda.client.event.LambdaEventBus.post
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderRadarEvent
 import com.lambda.client.gui.hudgui.HudElement

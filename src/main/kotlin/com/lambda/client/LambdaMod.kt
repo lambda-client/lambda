@@ -1,7 +1,7 @@
 package com.lambda.client
 
 import com.lambda.client.event.ForgeEventProcessor
-import com.lambda.client.gui.mc.KamiGuiUpdateNotification
+import com.lambda.client.gui.mc.LambdaGuiUpdateNotification
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.threads.BackgroundScope
 import net.minecraftforge.common.MinecraftForge
@@ -49,7 +49,7 @@ class LambdaMod {
         val directory = File(com.lambda.client.LambdaMod.Companion.DIRECTORY)
         if (!directory.exists()) directory.mkdir()
 
-        KamiGuiUpdateNotification.updateCheck()
+        LambdaGuiUpdateNotification.updateCheck()
         com.lambda.client.LoaderWrapper.preLoadAll()
     }
 

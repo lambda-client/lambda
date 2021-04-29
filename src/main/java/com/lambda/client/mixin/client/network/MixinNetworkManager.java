@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.network;
 
-import com.lambda.client.event.KamiEventBus;
+import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.PacketEvent;
 import com.lambda.client.module.modules.player.NoPacketKick;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,7 +17,7 @@ public class MixinNetworkManager {
     @Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void sendPacketPre(Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.Send(packet);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
 
         if (event.getCancelled()) {
             callbackInfo.cancel();
@@ -27,7 +27,7 @@ public class MixinNetworkManager {
     @Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("RETURN"), cancellable = true)
     private void sendPacketPost(Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.PostSend(packet);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
 
         if (event.getCancelled()) {
             callbackInfo.cancel();
@@ -37,7 +37,7 @@ public class MixinNetworkManager {
     @Inject(method = "channelRead0", at = @At("HEAD"), cancellable = true)
     private void channelReadPre(ChannelHandlerContext context, Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.Receive(packet);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
 
         if (event.getCancelled()) {
             callbackInfo.cancel();
@@ -47,7 +47,7 @@ public class MixinNetworkManager {
     @Inject(method = "channelRead0", at = @At("RETURN"))
     private void channelReadPost(ChannelHandlerContext context, Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.PostReceive(packet);
-        KamiEventBus.INSTANCE.post(event);
+        LambdaEventBus.INSTANCE.post(event);
     }
 
     @Inject(method = "exceptionCaught", at = @At("HEAD"), cancellable = true)

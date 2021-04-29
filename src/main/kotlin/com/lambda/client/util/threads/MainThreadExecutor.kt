@@ -1,6 +1,6 @@
 package com.lambda.client.util.threads
 
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.RunGameLoopEvent
 import com.lambda.client.util.Wrapper
 import com.lambda.event.listener.listener
@@ -19,7 +19,7 @@ object MainThreadExecutor {
             runJobs()
         }
 
-        KamiEventBus.subscribe(this)
+        LambdaEventBus.subscribe(this)
     }
 
     private fun runJobs() {

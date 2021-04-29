@@ -7,7 +7,7 @@ import net.minecraft.client.gui.*
 import net.minecraft.realms.RealmsBridge
 import net.minecraft.util.text.TextFormatting
 
-class KamiGuiAntiDisconnect : GuiScreen() {
+class LambdaGuiAntiDisconnect : GuiScreen() {
 
     private var disconnectCount = AntiDisconnect.presses.value
     private var button = GuiButton(1, width / 2 - 100, 230, buttonText)

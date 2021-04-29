@@ -1,7 +1,7 @@
 package com.lambda.client.command
 
 import com.lambda.client.event.ClientExecuteEvent
-import com.lambda.client.event.KamiEventBus
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.module.modules.client.CommandConfig
 import com.lambda.client.util.StopTimer
 import com.lambda.client.util.text.MessageSendHelper
@@ -48,14 +48,14 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
 
     override fun register(builder: CommandBuilder<ClientExecuteEvent>): Command<ClientExecuteEvent> {
         synchronized(lockObject) {
-            KamiEventBus.subscribe(builder)
+            LambdaEventBus.subscribe(builder)
             return super.register(builder)
         }
     }
 
     override fun unregister(builder: CommandBuilder<ClientExecuteEvent>): Command<ClientExecuteEvent>? {
         synchronized(lockObject) {
-            KamiEventBus.unsubscribe(builder)
+            LambdaEventBus.unsubscribe(builder)
             return super.unregister(builder)
         }
     }

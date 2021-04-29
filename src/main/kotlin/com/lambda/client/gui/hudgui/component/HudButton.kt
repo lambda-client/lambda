@@ -1,7 +1,7 @@
 package com.lambda.client.gui.hudgui.component
 
 import com.lambda.client.gui.hudgui.AbstractHudElement
-import com.lambda.client.gui.hudgui.KamiHudGui
+import com.lambda.client.gui.hudgui.LambdaHudGui
 import com.lambda.client.gui.rgui.component.BooleanSlider
 import com.lambda.client.util.math.Vec2f
 
@@ -22,6 +22,6 @@ class HudButton(val hudElement: AbstractHudElement) : BooleanSlider(hudElement.n
 
     override fun onRelease(mousePos: Vec2f, buttonId: Int) {
         super.onRelease(mousePos, buttonId)
-        if (buttonId == 1) KamiHudGui.displaySettingWindow(hudElement)
+        if (buttonId == 1) LambdaHudGui.displaySettingWindow(hudElement)
     }
 }

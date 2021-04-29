@@ -12,7 +12,7 @@ import net.minecraft.client.gui.GuiScreen
 import net.minecraft.util.text.TextFormatting
 import java.io.IOException
 
-class KamiGuiUpdateNotification : GuiScreen() {
+class LambdaGuiUpdateNotification : GuiScreen() {
 
     private val message = "A newer release of KAMI Blue is available ($latest)."
 
