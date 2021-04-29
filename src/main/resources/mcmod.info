@@ -2,7 +2,7 @@
   {
     "modid": "lambda",
     "name": "Lambda",
-    "description": "λ \nA Minecraft utility mod for anarchy servers \nWritten by the Lambda team based on code from 086 and the Kami Blue team\n",
+    "description": "λ \nA Minecraft utility mod for anarchy servers \nWritten by the Lambda team based on code from 086 and the KAMI Blue team\n",
     "version": "${version}",
     "mcversion": "1.12.2",
     "url": "https://github.com/lambda-client/lambda",
@@ -12,7 +12,7 @@
       "l1ving",
       "Constructor"
     ],
-    "credits": "Thanks to 086 for the original KAMI\nThanks to the team of Kami Blue\nSpecial thanks to all active contributors",
+    "credits": "Thanks to 086 for the original KAMI\nThanks to the team of KAMI Blue\nSpecial thanks to all active contributors",
     "logoFile": "lambda.png",
     "dependencies": []
   }
