@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "lambda:blocks/lambda_xray_transparent"
+  }
+}

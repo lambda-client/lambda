@@ -10,7 +10,7 @@ __dir="$(cd "$(dirname "$0")" && pwd)"
 
 #
 
-echo "[$(date +"%H:%M:%S")] Found script in dir '$__dir', trying to cd into KAMI Blue folder"
+echo "[$(date +"%H:%M:%S")] Found script in dir '$__dir', trying to cd into Lambda folder"
 cd "$__dir" || exit $?
 cd ../ || exit $?
 
