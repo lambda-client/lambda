@@ -2,7 +2,6 @@ package com.lambda.client.gui.hudgui.elements.client
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
-import com.lambda.client.module.modules.client.Capes
 import com.lambda.client.util.graphics.VertexHelper
 import org.lwjgl.opengl.GL11.glScalef
 

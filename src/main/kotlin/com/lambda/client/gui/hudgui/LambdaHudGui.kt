@@ -4,7 +4,6 @@ import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.hudgui.component.HudButton
-import com.lambda.client.gui.hudgui.elements.client.WaterMark
 import com.lambda.client.gui.hudgui.window.HudSettingWindow
 import com.lambda.client.gui.rgui.Component
 import com.lambda.client.gui.rgui.windows.ListWindow
@@ -116,8 +115,6 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
                     if (window !is AbstractHudElement || !window.visible) continue
                     renderHudElement(vertexHelper, window)
                 }
-            } else if (WaterMark.visible) {
-                renderHudElement(vertexHelper, WaterMark)
             }
 
             GlStateUtils.rescaleMc()

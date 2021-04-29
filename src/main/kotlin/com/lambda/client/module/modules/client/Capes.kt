@@ -5,7 +5,6 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.capeapi.Cape
 import com.lambda.capeapi.CapeType
 import com.lambda.capeapi.CapeUser
-import com.lambda.client.gui.hudgui.elements.client.WaterMark
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.misc.DiscordRPC
@@ -87,7 +86,6 @@ internal object Capes : Module(
             }
 
             updated = true
-            WaterMark.visible = WaterMark.visible
             DiscordRPC.setCustomIcons(capeType)
             com.lambda.client.LambdaMod.LOG.info("Capes loaded")
         } catch (e: Exception) {
