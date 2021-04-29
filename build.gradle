@@ -51,7 +51,7 @@ minecraft {
         client {
             workingDirectory project.file('run')
 
-            property 'fml.coreMods.load', 'org.kamiblue.client.mixin.MixinLoaderForge'
+            property 'fml.coreMods.load', 'com.lambda.client.mixin.MixinLoaderForge'
             property 'mixin.env.disableRefMap', 'true' // Disable refmap so we don't get trolled by Baritone
 
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
@@ -139,7 +139,7 @@ dependencies {
 
 mixin {
     defaultObfuscationEnv 'searge'
-    add sourceSets.main, 'mixins.kami.refmap.json'
+    add sourceSets.main, 'mixins.lambda.refmap.json'
 }
 
 processResources {
@@ -173,13 +173,13 @@ task apiJar(type: Jar) {
 jar {
     manifest.attributes(
             'Manifest-Version': 1.0,
-            'MixinConfigs': 'mixins.kami.json',
+            'MixinConfigs': 'mixins.lambda.json',
             'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
             'TweakOrder': 0,
             'FMLCorePluginContainsFMLMod': 'true',
-            'FMLCorePlugin': 'org.kamiblue.client.mixin.MixinLoaderForge',
+            'FMLCorePlugin': 'com.lambda.client.mixin.MixinLoaderForge',
             'ForceLoadAsMod': 'true',
-            'Main-Class': 'org.kamiblue.client.installer.Installer'
+            'Main-Class': 'com.lambda.client.installer.Installer'
     )
 
     // Copy needed libs to jar
