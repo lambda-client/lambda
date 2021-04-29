@@ -3,10 +3,6 @@ package com.lambda.client.module.modules.misc
 import club.minnced.discord.rpc.DiscordEventHandlers
 import club.minnced.discord.rpc.DiscordRichPresence
 import com.lambda.capeapi.CapeType
-import net.minecraft.client.Minecraft
-import net.minecraft.init.Blocks
-import net.minecraftforge.fml.common.gameevent.TickEvent
-import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ShutdownEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -24,6 +20,8 @@ import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.utils.MathUtils
 import com.lambda.event.listener.listener
+import net.minecraft.client.Minecraft
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
 internal object DiscordRPC : Module(
     name = "DiscordRPC",
@@ -31,12 +29,11 @@ internal object DiscordRPC : Module(
     description = "Discord Rich Presence",
     enabledByDefault = true
 ) {
-    private val highwayMode by setting("HighwayMode", false)
-    private val line1Left by setting("Line 1 Left", LineInfo.VERSION, { !highwayMode }) // details left
-    private val line1Right by setting("Line 1 Right", LineInfo.USERNAME, { !highwayMode }) // details right
-    private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION, { !highwayMode }) // state left
-    private val line2Right by setting("Line 2 Right", LineInfo.HEALTH, { !highwayMode }) // state right
-    private val coordsConfirm by setting("Coords Confirm", false, { showCoordsConfirm() && !highwayMode })
+    private val line1Left by setting("Line 1 Left", LineInfo.VERSION) // details left
+    private val line1Right by setting("Line 1 Right", LineInfo.USERNAME) // details right
+    private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION) // state left
+    private val line2Right by setting("Line 2 Right", LineInfo.HEALTH) // state right
+    private val coordsConfirm by setting("Coords Confirm", false, { showCoordsConfirm() })
 
     private enum class LineInfo {
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
@@ -73,20 +70,20 @@ internal object DiscordRPC : Module(
     private fun start() {
         if (connected) return
 
-        LambdaMod.LOG.info("Starting Discord RPC")
+        com.lambda.client.LambdaMod.LOG.info("Starting Discord RPC")
         connected = true
-        rpc.Discord_Initialize(LambdaMod.APP_ID, DiscordEventHandlers(), true, "")
+        rpc.Discord_Initialize(com.lambda.client.LambdaMod.APP_ID, DiscordEventHandlers(), true, "")
         presence.startTimestamp = System.currentTimeMillis() / 1000L
 
         BackgroundScope.launchLooping(job)
 
-        LambdaMod.LOG.info("Discord RPC initialised successfully")
+        com.lambda.client.LambdaMod.LOG.info("Discord RPC initialised successfully")
     }
 
     private fun end() {
         if (!connected) return
 
-        LambdaMod.LOG.info("Shutting down Discord RPC...")
+        com.lambda.client.LambdaMod.LOG.info("Shutting down Discord RPC...")
         BackgroundScope.cancel(job)
         connected = false
         rpc.Discord_Shutdown()
@@ -100,35 +97,15 @@ internal object DiscordRPC : Module(
     }
 
     private fun updateRPC() {
-        if (highwayMode) {
-            if (HighwayTools.matPlaced + HighwayTools.netherrackMined > 0) {
-                var pre = ""
-                when (HighwayTools.mode) {
-                    HighwayTools.Mode.HIGHWAY, HighwayTools.Mode.FLAT -> {
-                        presence.details = "%,d ${HighwayTools.material.localizedName}".format(HighwayTools.matPlaced)
-                        pre = "placed"
-                    }
-                    HighwayTools.Mode.TUNNEL -> {
-                        presence.details = "%,d ${Blocks.NETHERRACK.localizedName}".format(HighwayTools.netherrackMined)
-                        pre = "mined"
-                    }
-                }
-                presence.state = "$pre with ${LambdaMod.VERSION_SIMPLE}"
-            } else {
-                presence.details = "running ${LambdaMod.VERSION_SIMPLE}"
-                presence.state = ""
-            }
-        } else {
-            presence.details = getLine(line1Left) + getSeparator(0) + getLine(line1Right)
-            presence.state = getLine(line2Left) + getSeparator(1) + getLine(line2Right)
-        }
+        presence.details = getLine(line1Left) + getSeparator(0) + getLine(line1Right)
+        presence.state = getLine(line2Left) + getSeparator(1) + getLine(line2Right)
         rpc.Discord_UpdatePresence(presence)
     }
 
     private fun getLine(line: LineInfo): String {
         return when (line) {
             LineInfo.VERSION -> {
-                LambdaMod.VERSION_SIMPLE
+                com.lambda.client.LambdaMod.VERSION_SIMPLE
             }
             LineInfo.WORLD -> {
                 when {
@@ -201,7 +178,7 @@ internal object DiscordRPC : Module(
     }
 
     init {
-        presence.largeImageKey = "kami"
-        presence.largeImageText = "kamiblue.org"
+        presence.largeImageKey = "lambda"
+        presence.largeImageText = "lambda-client.org"
     }
 }
