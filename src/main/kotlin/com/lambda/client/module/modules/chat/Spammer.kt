@@ -88,8 +88,8 @@ internal object Spammer : Module(
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START || spammer.isEmpty() || !timer.tick(delay.value.toLong())) return@safeListener
             val message = if (modeSetting.value == Mode.IN_ORDER) getOrdered() else getRandom()
-            if (MessageDetection.Command.KAMI_BLUE detect message) {
-                MessageSendHelper.sendKamiCommand(message)
+            if (MessageDetection.Command.LAMBDA detect message) {
+                MessageSendHelper.sendLambdaCommand(message)
             } else {
                 sendServerMessage(message)
             }

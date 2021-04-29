@@ -15,7 +15,7 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
 
     const val pluginPath = "${com.lambda.client.LambdaMod.DIRECTORY}plugins/"
 
-    private val kamiVersion = DefaultArtifactVersion(com.lambda.client.LambdaMod.VERSION_MAJOR)
+    private val lambdaVersion = DefaultArtifactVersion(com.lambda.client.LambdaMod.VERSION_MAJOR)
 
     override fun preLoad0() = getLoaders()
 
@@ -69,7 +69,7 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
             }
 
             // Unsupported check
-            if (DefaultArtifactVersion(loader.info.minApiVersion) > kamiVersion) {
+            if (DefaultArtifactVersion(loader.info.minApiVersion) > lambdaVersion) {
                 PluginError.UNSUPPORTED.handleError(loader)
                 invalids.add(loader)
             }
@@ -106,7 +106,7 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
         synchronized(this) {
             val hotReload = com.lambda.client.LambdaMod.ready && !loader.info.hotReload
             val duplicate = loadedPlugins.containsName(loader.name)
-            val unsupported = DefaultArtifactVersion(loader.info.minApiVersion) > kamiVersion
+            val unsupported = DefaultArtifactVersion(loader.info.minApiVersion) > lambdaVersion
             val missing = !loadedPlugins.containsNames(loader.info.requiredPlugins)
 
             if (hotReload) PluginError.HOT_RELOAD.handleError(loader)

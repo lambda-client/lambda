@@ -7,7 +7,7 @@ import com.lambda.client.util.Wrapper
 
 object MessageDetection {
     enum class Command : PrefixDetector {
-        KAMI_BLUE {
+        LAMBDA {
             override val prefixes: Array<out CharSequence>
                 get() = arrayOf(CommandManager.prefix)
         },

@@ -273,7 +273,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
         drawBackground(vertexHelper, partialTicks)
 
-        GlStateUtils.rescaleKami()
+        GlStateUtils.rescaleLambda()
         glTranslatef(0.0f, -(mc.displayHeight / scale * (1.0f - multiplier)), 0.0f)
         drawWindows(vertexHelper)
 

@@ -46,8 +46,8 @@ internal object RemoteCommand : Module(
 
             message = MessageDetection.Direct.RECEIVE.removedOrNull(message)?.toString() ?: return@listener
 
-            MessageDetection.Command.KAMI_BLUE.removedOrNull(message)?.let { command ->
-                MessageSendHelper.sendKamiCommand(command.toString())
+            MessageDetection.Command.LAMBDA.removedOrNull(message)?.let { command ->
+                MessageSendHelper.sendLambdaCommand(command.toString())
             } ?: run {
                 MessageDetection.Command.BARITONE.removedOrNull(message)?.let { command ->
                     MessageSendHelper.sendBaritoneCommand(*command.split(' ').toTypedArray())

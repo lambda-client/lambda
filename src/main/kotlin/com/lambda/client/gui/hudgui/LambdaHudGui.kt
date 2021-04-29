@@ -109,7 +109,7 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
             if (mc?.world == null || mc?.player == null || mc?.currentScreen == this || mc?.gameSettings?.showDebugInfo != false) return@listener
 
             val vertexHelper = VertexHelper(GlStateUtils.useVbo())
-            GlStateUtils.rescaleKami()
+            GlStateUtils.rescaleLambda()
 
             if (Hud.isEnabled) {
                 for (window in windowList) {

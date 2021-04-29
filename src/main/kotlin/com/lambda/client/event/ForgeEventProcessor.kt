@@ -88,7 +88,7 @@ internal object ForgeEventProcessor {
             LambdaEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').toLowerCase(Locale.ROOT)))
         }
 
-        if (MessageDetection.Command.KAMI_BLUE detect event.message) {
+        if (MessageDetection.Command.LAMBDA detect event.message) {
             CommandManager.runCommand(event.message.removePrefix(CommandManager.prefix))
             event.isCanceled = true
         }

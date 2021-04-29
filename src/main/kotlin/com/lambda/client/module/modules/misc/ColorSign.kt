@@ -20,11 +20,11 @@ internal object ColorSign : Module(
     init {
         listener<GuiEvent.Displayed> { event ->
             if (event.screen !is GuiEditSign) return@listener
-            (event.screen as? GuiEditSign?)?.tileSign?.let { event.screen = KamiGuiEditSign(it) }
+            (event.screen as? GuiEditSign?)?.tileSign?.let { event.screen = LambdaGuiEditSign(it) }
         }
     }
 
-    private class KamiGuiEditSign(teSign: TileEntitySign) : GuiEditSign(teSign) {
+    private class LambdaGuiEditSign(teSign: TileEntitySign) : GuiEditSign(teSign) {
         @Throws(IOException::class)
         override fun actionPerformed(button: GuiButton) {
             if (button.id == 0) {

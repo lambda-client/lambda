@@ -31,12 +31,12 @@ internal object AutoReconnect : Module(
         listener<GuiEvent.Displayed> {
             if (isDisabled || (prevServerDate == null && mc.currentServerData == null)) return@listener
             (it.screen as? GuiDisconnected)?.let { gui ->
-                it.screen = KamiGuiDisconnected(gui)
+                it.screen = LambdaGuiDisconnected(gui)
             }
         }
     }
 
-    private class KamiGuiDisconnected(disconnected: GuiDisconnected) : GuiDisconnected(disconnected.parentScreen, disconnected.reason, disconnected.message) {
+    private class LambdaGuiDisconnected(disconnected: GuiDisconnected) : GuiDisconnected(disconnected.parentScreen, disconnected.reason, disconnected.message) {
         private val timer = StopTimer()
 
         override fun updateScreen() {

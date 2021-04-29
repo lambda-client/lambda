@@ -24,6 +24,6 @@ enum class DyeColors(val color: ColorHolder) {
     MAGENTA(ColorHolder(220, 64, 220)),
     ORANGE(ColorHolder(255, 132, 32)),
     WHITE(ColorHolder(255, 255, 255)),
-    KAMI(ColorHolder(155, 144, 255)),
+    LAMBDA(ColorHolder(155, 144, 255)),
     RAINBOW(ColorHolder(Int.MIN_VALUE, Int.MIN_VALUE, Int.MIN_VALUE));
 }

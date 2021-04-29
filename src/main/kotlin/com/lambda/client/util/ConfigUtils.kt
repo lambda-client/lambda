@@ -68,7 +68,7 @@ object ConfigUtils {
         }
     }
 
-    // TODO: Introduce a version helper for KamiMod.BUILD_NUMBER for version-specific configs. This should be theoritically fine for now
+    // TODO: Introduce a version helper for LambdaMod.BUILD_NUMBER for version-specific configs. This should be theoritically fine for now
     fun moveAllLegacyConfigs() {
         moveLegacyConfig("lambda/generic.json", "lambda/generic.bak", GenericConfig)
         moveLegacyConfig("lambda/modules/default.json", "lambda/modules/default.bak", ModuleConfig)

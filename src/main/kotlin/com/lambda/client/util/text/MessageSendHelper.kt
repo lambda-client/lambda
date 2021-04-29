@@ -35,7 +35,7 @@ object MessageSendHelper {
         sendRawChatMessage(coloredName('4') + message)
     }
 
-    fun sendKamiCommand(command: String) {
+    fun sendLambdaCommand(command: String) {
         CommandManager.runCommand(command.removePrefix(CommandManager.prefix))
     }
 

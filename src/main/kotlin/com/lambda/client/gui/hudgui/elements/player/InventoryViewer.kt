@@ -29,7 +29,7 @@ internal object InventoryViewer : HudElement(
     private val backgroundColor by setting("Background Color", ColorHolder(30, 36, 48, 127), true, { !mcTexture && background })
 
     private val containerTexture = ResourceLocation("textures/gui/container/inventory.png")
-    private val kamiIcon = ResourceLocation("kamiblue/kami_icon.png")
+    private val lambdaIcon = ResourceLocation("lambda/lambda_icon.png")
 
     override val hudWidth: Float = 162.0f
     override val hudHeight: Float = 54.0f
@@ -68,7 +68,7 @@ internal object InventoryViewer : HudElement(
             buffer.pos(162.0, 54.0, 0.0).tex(0.65625, 0.53125).endVertex() // (168 / 256), (136 / 256)
             tessellator.draw()
         } else if (showIcon) {
-            mc.renderEngine.bindTexture(kamiIcon)
+            mc.renderEngine.bindTexture(lambdaIcon)
             GlStateManager.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
             val center = Vec2d(81.0, 27.0)

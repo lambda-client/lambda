@@ -70,7 +70,7 @@ internal object NoRender : Module(
         ENTITIES, OTHER
     }
 
-    private val kamiMap = ResourceLocation("lambda/kamimap.png")
+    private val lambdaMap = ResourceLocation("lambda/lambdamap.png")
 
     private val settingMap = mapOf(
         player to EntityOtherPlayerMP::class.java,
@@ -177,7 +177,7 @@ internal object NoRender : Module(
     fun renderFakeMap() {
         val tessellator = Tessellator.getInstance()
         val bufBuilder = tessellator.buffer
-        mc.textureManager.bindTexture(kamiMap)
+        mc.textureManager.bindTexture(lambdaMap)
 
         bufBuilder.begin(GL_QUADS, DefaultVertexFormats.POSITION_TEX)
         bufBuilder.pos(0.0, 128.0, -0.009999999776482582).tex(0.0, 1.0).endVertex()

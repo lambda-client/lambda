@@ -41,7 +41,7 @@ object Installer : JPanel() {
 
         File(FolderUtils.modsFolder).mkdir() // make sure that the mods folder exists.
 
-        val logoFile = Installer.javaClass.getResource("/installer/kami.png")
+        val logoFile = Installer.javaClass.getResource("/installer/lambda.png")
         frame = JFrame("Lambda Installer")
         frame.iconImage = ImageIO.read(logoFile)
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
@@ -98,8 +98,8 @@ object Installer : JPanel() {
         val betaButtonImage = this.javaClass.getResource("/installer/beta.png")
         val betaButtonIcon = JLabel(ImageIcon(ImageIO.read(betaButtonImage)))
 
-        val kamiImage = this.javaClass.getResource("/installer/kami.png")
-        val kamiIcon = JLabel(ImageIcon(ImageIO.read(kamiImage)))
+        val lambdaImage = this.javaClass.getResource("/installer/lambda.png")
+        val lambdaIcon = JLabel(ImageIcon(ImageIO.read(lambdaImage)))
 
         val breadImage = this.javaClass.getResource("/installer/bread.png")
         val breadIcon = JLabel(ImageIcon(ImageIO.read(breadImage)))
@@ -111,7 +111,7 @@ object Installer : JPanel() {
         add(betaButton)
         add(stableButtonIcon)
         add(betaButtonIcon)
-        add(kamiIcon)
+        add(lambdaIcon)
 
         val bread = rand.nextInt(50)
         if (bread == 1) {
@@ -124,7 +124,7 @@ object Installer : JPanel() {
         stableButton.setBounds(90, 245, 200, 50)
         betaButtonIcon.setBounds(310, 245, 200, 50)
         betaButton.setBounds(310, 245, 200, 50)
-        kamiIcon.setBounds(236, 70, 128, 128)
+        lambdaIcon.setBounds(236, 70, 128, 128)
         breadIcon.setBounds(200, 150, 128, 128)
         backgroundPane.setBounds(0, 0, 600, 355)
 

@@ -66,8 +66,8 @@ internal object LoginMessage : Module(
 
             if (!sent && (!sendAfterMoving || moved)) {
                 for (message in loginMessages) {
-                    if (MessageDetection.Command.KAMI_BLUE detect message) {
-                        MessageSendHelper.sendKamiCommand(message)
+                    if (MessageDetection.Command.LAMBDA detect message) {
+                        MessageSendHelper.sendLambdaCommand(message)
                     } else {
                         sendServerMessage(message)
                     }
