@@ -54,7 +54,7 @@ import java.awt.Font
  *
  * @new version edited by David Aaron Muhar (bobjob)
  */
-object KamiFontRenderer {
+object LambdaFontRenderer {
     private val tessellator = Tessellator.getInstance()
     private val buffer = tessellator.buffer
 
@@ -70,7 +70,7 @@ object KamiFontRenderer {
     /** For Minecraft color code only */
     private var currentColor = ColorHolder(255, 255, 255)
 
-    /** All for the KAMI Blue kanji */
+    /** All for the Lambda kanji */
     private val fallbackFonts = arrayOf(
         "Noto Sans JP", "Noto Sans CJK JP", "Noto Sans CJK JP", "Noto Sans CJK KR", "Noto Sans CJK SC", "Noto Sans CJK TC", // Noto Sans
         "Source Han Sans", "Source Han Sans HC", "Source Han Sans SC", "Source Han Sans TC", "Source Han Sans K", // Source Sans
