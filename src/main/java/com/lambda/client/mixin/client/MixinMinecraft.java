@@ -9,6 +9,7 @@ import com.lambda.client.mixin.client.accessor.player.AccessorEntityPlayerSP;
 import com.lambda.client.mixin.client.accessor.player.AccessorPlayerControllerMP;
 import com.lambda.client.module.modules.combat.CrystalAura;
 import com.lambda.client.module.modules.player.BlockInteraction;
+import com.lambda.client.module.modules.render.BarrierVision;
 import com.lambda.client.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -138,6 +139,11 @@ public abstract class MixinMinecraft {
         if (BlockInteraction.isMultiTaskEnabled() && !playerController.getIsHittingBlock()) {
             ((AccessorPlayerControllerMP) playerController).kbSetIsHittingBlock(isHittingBlock);
         }
+    }
+
+    @Redirect(method={"runTick"}, at=@At(value="INVOKE", target="Lnet/minecraft/client/multiplayer/WorldClient;doVoidFogParticles(III)V"))
+    public void doVoidFogParticlesHook(WorldClient world, int x, int y, int z) {
+        BarrierVision.INSTANCE.doVoidFogParticles(x, y, z);
     }
 
     @Inject(method = "sendClickBlockToController", at = @At("HEAD"))
