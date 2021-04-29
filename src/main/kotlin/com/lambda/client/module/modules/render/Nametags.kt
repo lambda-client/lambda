@@ -137,13 +137,13 @@ internal object Nametags : Module(
             if (entityMap.isEmpty() && itemMap.isEmpty()) return@listener
             GlStateUtils.rescaleActual()
 
-            val camPos = KamiTessellator.camPos
+            val camPos = LambdaTessellator.camPos
             val vertexHelper = VertexHelper(GlStateUtils.useVbo())
             val xRange = 0..mc.displayWidth
             val yRange = 0..mc.displayHeight
 
             for ((entity, textComponent) in entityMap) {
-                val pos = EntityUtils.getInterpolatedPos(entity, KamiTessellator.pTicks()).add(0.0, (entity.height + yOffset.value).toDouble(), 0.0)
+                val pos = EntityUtils.getInterpolatedPos(entity, LambdaTessellator.pTicks()).add(0.0, (entity.height + yOffset.value).toDouble(), 0.0)
                 val screenPos = ProjectionUtils.toScreenPos(pos)
                 val dist = camPos.distanceTo(pos).toFloat() * 0.2f
                 val distFactor = if (distScaleFactor.value == 0f) 1f else max(1f / (dist * distScaleFactor.value + 1f), minDistScale.value)
@@ -154,7 +154,7 @@ internal object Nametags : Module(
             }
 
             for (itemGroup in itemMap) {
-                val pos = itemGroup.getCenter(KamiTessellator.pTicks()).add(0.0, yOffset.value.toDouble(), 0.0)
+                val pos = itemGroup.getCenter(LambdaTessellator.pTicks()).add(0.0, yOffset.value.toDouble(), 0.0)
                 val screenPos = ProjectionUtils.toScreenPos(pos)
                 val dist = camPos.distanceTo(pos).toFloat() * 0.2f
                 val distFactor = if (distScaleFactor.value == 0f) 1f else max(1f / (dist * distScaleFactor.value + 1f), minDistScale.value)

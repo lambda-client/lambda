@@ -2,7 +2,7 @@ package com.lambda.client.gui.hudgui.elements.player
 
 import com.lambda.client.gui.hudgui.HudElement
 import com.lambda.client.util.graphics.GlStateUtils
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.client.gui.inventory.GuiInventory
@@ -59,6 +59,6 @@ internal object PlayerModel : HudElement(
     }
 
     private fun interpolateAndWrap(prev: Float, current: Float): Float {
-        return MathHelper.wrapDegrees(prev + (current - prev) * KamiTessellator.pTicks())
+        return MathHelper.wrapDegrees(prev + (current - prev) * LambdaTessellator.pTicks())
     }
 }

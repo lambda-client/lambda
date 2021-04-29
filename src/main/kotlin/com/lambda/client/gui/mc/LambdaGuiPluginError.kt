@@ -102,7 +102,7 @@ internal class LambdaGuiPluginError(
         const val warning = "The following plugins could not be loaded:"
         const val hotReloadMessage = "These plugins could not be hot reloaded:"
         const val duplicateMessage = "These plugins were duplicate:"
-        const val unsupportedMessage = "These plugins require newer versions of KAMI Blue:"
+        const val unsupportedMessage = "These plugins require newer versions of Lambda:"
         const val missingMessage = "These required plugins were not loaded:"
     }
 

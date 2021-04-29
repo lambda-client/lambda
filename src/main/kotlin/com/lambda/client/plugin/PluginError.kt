@@ -20,7 +20,7 @@ internal enum class PluginError {
                 com.lambda.client.LambdaMod.LOG.error("Duplicate plugin ${loader}.")
             }
             UNSUPPORTED -> {
-                com.lambda.client.LambdaMod.LOG.error("Unsupported plugin ${loader}. Required KAMI Blue version: ${loader.info.minApiVersion}")
+                com.lambda.client.LambdaMod.LOG.error("Unsupported plugin ${loader}. Required Lambda version: ${loader.info.minApiVersion}")
             }
             REQUIRED_PLUGIN -> {
                 com.lambda.client.LambdaMod.LOG.error("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")

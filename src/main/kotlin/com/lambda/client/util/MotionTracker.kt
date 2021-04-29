@@ -1,7 +1,7 @@
 package com.lambda.client.util
 
 import com.lambda.client.event.LambdaEventBus
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.AxisAlignedBB
@@ -89,7 +89,7 @@ class MotionTracker(targetIn: Entity?, private val trackLength: Int = 20) {
     fun calcPositionAhead(ticksAhead: Int, interpolation: Boolean = false): Vec3d? {
         return target?.let { target ->
             calcMovedVectorAhead(ticksAhead, interpolation)?.let {
-                val partialTicks = if (interpolation) KamiTessellator.pTicks() else 1f
+                val partialTicks = if (interpolation) LambdaTessellator.pTicks() else 1f
                 EntityUtils.getInterpolatedPos(target, partialTicks).add(it)
             }
         }
@@ -105,7 +105,7 @@ class MotionTracker(targetIn: Entity?, private val trackLength: Int = 20) {
     private fun calcMovedVectorAhead(ticksAhead: Int, interpolation: Boolean = false): Vec3d? {
         return Wrapper.world?.let { world ->
             target?.let {
-                val partialTicks = if (interpolation) KamiTessellator.pTicks() else 1f
+                val partialTicks = if (interpolation) LambdaTessellator.pTicks() else 1f
                 val averageMotion = prevMotion.add(motion.subtract(prevMotion).scale(partialTicks.toDouble()))
                 var movedVec = Vec3d(0.0, 0.0, 0.0)
                 for (ticks in 0..ticksAhead) {

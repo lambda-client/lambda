@@ -6,10 +6,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.newSingleThreadContext
 
 /**
- * Single thread scope to use in KAMI Blue
+ * Single thread scope to use in Lambda
  */
 @Suppress("EXPERIMENTAL_API_USAGE")
-val mainScope = CoroutineScope(newSingleThreadContext("KAMI Blue Main"))
+val mainScope = CoroutineScope(newSingleThreadContext("Lambda Main"))
 
 /**
  * Common scope with [Dispatchers.Default]

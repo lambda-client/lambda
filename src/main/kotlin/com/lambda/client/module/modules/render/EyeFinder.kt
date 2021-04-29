@@ -7,7 +7,7 @@ import com.lambda.client.util.EntityUtils.getInterpolatedAmount
 import com.lambda.client.util.EntityUtils.getTargetList
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.threads.safeListener
 import com.lambda.event.listener.listener
 import net.minecraft.client.Minecraft
@@ -107,19 +107,19 @@ internal object EyeFinder : Module(
         val alpha = (color.a * pair.second).toInt()
 
         /* Render line */
-        val buffer = KamiTessellator.buffer
+        val buffer = LambdaTessellator.buffer
         GlStateManager.glLineWidth(thickness.value)
-        KamiTessellator.begin(GL_LINES)
+        LambdaTessellator.begin(GL_LINES)
         buffer.pos(eyePos.x, eyePos.y, eyePos.z).color(color.r, color.g, color.b, alpha).endVertex()
         buffer.pos(result.hitVec.x, result.hitVec.y, result.hitVec.z).color(color.r, color.g, color.b, alpha).endVertex()
-        KamiTessellator.render()
+        LambdaTessellator.render()
 
         /* Render hit position */
         if (result.typeOfHit != RayTraceResult.Type.MISS) {
             val box = if (result.typeOfHit == RayTraceResult.Type.BLOCK) {
                 AxisAlignedBB(result.blockPos).grow(0.002)
             } else {
-                val offset = getInterpolatedAmount(result.entityHit, KamiTessellator.pTicks())
+                val offset = getInterpolatedAmount(result.entityHit, LambdaTessellator.pTicks())
                 result.entityHit.renderBoundingBox.offset(offset)
             }
             val renderer = ESPRenderer()

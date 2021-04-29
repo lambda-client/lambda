@@ -29,7 +29,7 @@ internal object AutoReply : Module(
             if (customMessage.value) {
                 sendServerMessage("/r " + customText.value)
             } else {
-                sendServerMessage("/r I just automatically replied, thanks to KAMI Blue's AutoReply module!")
+                sendServerMessage("/r I just automatically replied, thanks to Lambda's AutoReply module!")
             }
         }
 

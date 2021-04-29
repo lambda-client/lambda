@@ -15,7 +15,7 @@ object FontRenderAdapter {
 
     fun drawString(text: String, posXIn: Float = 0f, posYIn: Float = 0f, drawShadow: Boolean = true, color: ColorHolder = ColorHolder(255, 255, 255), scale: Float = 1f, customFont: Boolean = useCustomFont) {
         if (customFont) {
-            KamiFontRenderer.drawString(text, posXIn, posYIn, drawShadow, color, scale)
+            LambdaFontRenderer.drawString(text, posXIn, posYIn, drawShadow, color, scale)
         } else {
             glPushMatrix()
             glTranslatef(round(posXIn), round(posYIn), 0f)
@@ -26,13 +26,13 @@ object FontRenderAdapter {
     }
 
     fun getFontHeight(scale: Float = 1f, customFont: Boolean = useCustomFont) = if (customFont) {
-        KamiFontRenderer.getFontHeight(scale)
+        LambdaFontRenderer.getFontHeight(scale)
     } else {
         dumbMcFontRenderer.FONT_HEIGHT * scale
     }
 
     fun getStringWidth(text: String, scale: Float = 1f, customFont: Boolean = useCustomFont) = if (customFont) {
-        KamiFontRenderer.getStringWidth(text, scale)
+        LambdaFontRenderer.getStringWidth(text, scale)
     } else {
         dumbMcFontRenderer.getStringWidth(text) * scale
     }

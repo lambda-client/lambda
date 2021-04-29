@@ -38,7 +38,7 @@ import kotlin.math.sin
 internal object Capes : Module(
     name = "Capes",
     category = Category.CLIENT,
-    description = "Controls the display of KAMI Blue capes",
+    description = "Controls the display of Lambda capes",
     showOnArray = false,
     enabledByDefault = true
 ) {

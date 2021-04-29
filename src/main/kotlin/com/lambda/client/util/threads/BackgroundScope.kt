@@ -3,7 +3,7 @@ package com.lambda.client.util.threads
 import kotlinx.coroutines.*
 
 @Suppress("EXPERIMENTAL_API_USAGE")
-internal object BackgroundScope : CoroutineScope by CoroutineScope(newFixedThreadPoolContext(2, "KAMI Blue Background")) {
+internal object BackgroundScope : CoroutineScope by CoroutineScope(newFixedThreadPoolContext(2, "Lambda Background")) {
 
     private val jobs = LinkedHashMap<BackgroundJob, Job?>()
     private var started = false

@@ -6,7 +6,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.threads.safeListener
 import com.lambda.event.listener.listener
@@ -36,7 +36,7 @@ internal object SelectionHighlight : Module(
     init {
         listener<RenderWorldEvent> {
             val viewEntity = mc.renderViewEntity ?: mc.player ?: return@listener
-            val eyePos = viewEntity.getPositionEyes(KamiTessellator.pTicks())
+            val eyePos = viewEntity.getPositionEyes(LambdaTessellator.pTicks())
             if (!mc.world.isAirBlock(eyePos.toBlockPos())) return@listener
             val color = ColorHolder(r.value, g.value, b.value)
             val hitObject = mc.objectMouseOver ?: return@listener

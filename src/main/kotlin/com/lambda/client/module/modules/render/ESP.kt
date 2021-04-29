@@ -12,7 +12,7 @@ import com.lambda.client.util.EntityUtils.getTargetList
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GlStateUtils
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ShaderHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
@@ -134,7 +134,7 @@ internal object ESP : Module(
         for (entity in entityList) {
             val renderer = mc.renderManager.getEntityRenderObject<Entity>(entity) ?: continue
 
-            val partialTicks = KamiTessellator.pTicks()
+            val partialTicks = LambdaTessellator.pTicks()
             val yaw = entity.prevRotationYaw + (entity.rotationYaw - entity.prevRotationYaw) * partialTicks
             val pos = EntityUtils.getInterpolatedPos(entity, partialTicks)
                 .subtract(mc.renderManager.renderPosX, mc.renderManager.renderPosY, mc.renderManager.renderPosZ)
@@ -154,7 +154,7 @@ internal object ESP : Module(
         GlStateManager.matrixMode(GL_MODELVIEW)
         GlStateManager.pushMatrix()
 
-        shaderHelper.shader?.render(KamiTessellator.pTicks())
+        shaderHelper.shader?.render(LambdaTessellator.pTicks())
 
         // Re-enable blend because shader rendering will disable it at the end
         GlStateUtils.blend(true)

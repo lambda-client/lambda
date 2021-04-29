@@ -10,7 +10,7 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
 import com.lambda.client.util.graphics.GlStateUtils
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.event.listener.listener
 import net.minecraft.block.material.Material
 import net.minecraft.client.renderer.ActiveRenderInfo
@@ -68,16 +68,16 @@ internal object Trajectories : Module(
             }
 
             val offset = getPathOffset()
-            val buffer = KamiTessellator.buffer
+            val buffer = LambdaTessellator.buffer
             glLineWidth(thickness.value)
             GlStateUtils.depth(false)
-            KamiTessellator.begin(GL_LINE_STRIP)
+            LambdaTessellator.begin(GL_LINE_STRIP)
             for ((index, pos) in path.withIndex()) {
                 val scale = ((path.size - 1) - index) * (1.0 / (path.size - 1))
                 val offsetPos = pos.add(offset.scale(scale))
                 buffer.pos(offsetPos.x, offsetPos.y, offsetPos.z).color(r.value, g.value, b.value, aOutline.value).endVertex()
             }
-            KamiTessellator.render()
+            LambdaTessellator.render()
 
             flightPath.collision?.let {
                 val box = (when (it.sideHit.axis) {
@@ -110,8 +110,8 @@ internal object Trajectories : Module(
         if (mc.gameSettings.thirdPersonView != 0) return Vec3d.ZERO
         var multiplier = if (getThrowingType(mc.player.heldItemMainhand) != null) 1.0 else -1.0
         if (mc.gameSettings.mainHand != EnumHandSide.RIGHT) multiplier *= -1.0
-        val eyePos = mc.player.getPositionEyes(KamiTessellator.pTicks())
-        val camPos = EntityUtils.getInterpolatedPos(mc.player, KamiTessellator.pTicks()).add(ActiveRenderInfo.getCameraPosition())
+        val eyePos = mc.player.getPositionEyes(LambdaTessellator.pTicks())
+        val camPos = EntityUtils.getInterpolatedPos(mc.player, LambdaTessellator.pTicks()).add(ActiveRenderInfo.getCameraPosition())
         val yawRad = Math.toRadians(mc.player.rotationYaw.toDouble())
         val pitchRad = Math.toRadians(mc.player.rotationPitch.toDouble())
         val offset = Vec3d(cos(yawRad) * 0.2 + sin(pitchRad) * -sin(yawRad) * 0.15, 0.0, sin(yawRad) * 0.2 + sin(pitchRad) * cos(yawRad) * 0.15)
@@ -121,7 +121,7 @@ internal object Trajectories : Module(
     private class FlightPath(val throwingType: ThrowingType) {
         private val halfSize = if (throwingType == ThrowingType.BOW) 0.25 else 0.125
 
-        var position: Vec3d = mc.player.getPositionEyes(KamiTessellator.pTicks())
+        var position: Vec3d = mc.player.getPositionEyes(LambdaTessellator.pTicks())
             private set
         private var motion: Vec3d
         private var boundingBox: AxisAlignedBB = AxisAlignedBB(position.x - halfSize, position.y - halfSize, position.z - halfSize, position.x + halfSize, position.y + halfSize, position.z + halfSize)
@@ -170,7 +170,7 @@ internal object Trajectories : Module(
             position = posIn
         }
 
-        private fun getInterpolatedCharge() = prevItemUseCount.toDouble() + (mc.player.itemInUseCount.toDouble() - prevItemUseCount.toDouble()) * KamiTessellator.pTicks().toDouble()
+        private fun getInterpolatedCharge() = prevItemUseCount.toDouble() + (mc.player.itemInUseCount.toDouble() - prevItemUseCount.toDouble()) * LambdaTessellator.pTicks().toDouble()
 
         init {
             var pitch = mc.player.rotationPitch.toDouble()

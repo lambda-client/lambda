@@ -8,7 +8,7 @@ import com.lambda.client.event.events.ResolutionUpdateEvent
 import com.lambda.client.gui.mc.LambdaGuiChat
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.util.Wrapper
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.text.MessageDetection
 import net.minecraftforge.client.event.*
@@ -51,9 +51,9 @@ internal object ForgeEventProcessor {
     @Suppress("UNUSED_PARAMETER")
     fun onWorldRender(event: RenderWorldLastEvent) {
         ProjectionUtils.updateMatrix()
-        KamiTessellator.prepareGL()
+        LambdaTessellator.prepareGL()
         LambdaEventBus.post(RenderWorldEvent())
-        KamiTessellator.releaseGL()
+        LambdaTessellator.releaseGL()
     }
 
     @SubscribeEvent

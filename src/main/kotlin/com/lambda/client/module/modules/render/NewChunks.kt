@@ -11,7 +11,7 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.GlStateUtils
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.VectorUtils.distanceTo
@@ -82,12 +82,12 @@ internal object NewChunks : Module(
         safeListener<RenderWorldEvent> {
             if (renderMode.value == RenderMode.RADAR) return@safeListener
 
-            val y = yOffset.toDouble() + if (relative) getInterpolatedPos(player, KamiTessellator.pTicks()).y else 0.0
+            val y = yOffset.toDouble() + if (relative) getInterpolatedPos(player, LambdaTessellator.pTicks()).y else 0.0
 
             glLineWidth(thickness)
             GlStateUtils.depth(false)
 
-            val buffer = KamiTessellator.buffer
+            val buffer = LambdaTessellator.buffer
 
             for (chunkPos in chunks) {
                 if (player.distanceTo(chunkPos) > range) continue
@@ -97,7 +97,7 @@ internal object NewChunks : Module(
                 buffer.pos(chunkPos.xEnd + 1.0, y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
                 buffer.pos(chunkPos.xEnd + 1.0, y, chunkPos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
                 buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
-                KamiTessellator.render()
+                LambdaTessellator.render()
             }
 
             glLineWidth(1.0f)

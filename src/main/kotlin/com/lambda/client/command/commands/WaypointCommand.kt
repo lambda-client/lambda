@@ -114,7 +114,7 @@ object WaypointCommand : ClientCommand(
         }
 
         literal("sync") {
-            execute("Sync Baritone waypoints to KAMI Blue") {
+            execute("Sync Baritone waypoints to Lambda") {
                 val waypoints = BaritoneUtils.primary?.worldProvider?.currentWorld?.waypoints?.allWaypoints
 
                 if (waypoints == null || waypoints.size == 0) {

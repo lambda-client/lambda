@@ -13,7 +13,7 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.combat.CrystalUtils.canPlaceCollide
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GlStateUtils
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
@@ -205,7 +205,7 @@ internal object CrystalESP : Module(
     }
 
     private fun getAnimationProgress(prevProgress: Float, progress: Float): Float {
-        val interpolated = prevProgress + (progress - prevProgress) * KamiTessellator.pTicks()
+        val interpolated = prevProgress + (progress - prevProgress) * LambdaTessellator.pTicks()
         return sin(interpolated * 0.5 * PI).toFloat()
     }
 }

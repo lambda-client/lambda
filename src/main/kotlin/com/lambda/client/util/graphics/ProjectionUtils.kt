@@ -29,7 +29,7 @@ object ProjectionUtils {
 
     fun updateMatrix() {
         if (mc.renderViewEntity == null) return
-        val viewerPos = ActiveRenderInfo.projectViewFromEntity(mc.renderViewEntity!!, KamiTessellator.pTicks().toDouble())
+        val viewerPos = ActiveRenderInfo.projectViewFromEntity(mc.renderViewEntity!!, LambdaTessellator.pTicks().toDouble())
         val relativeCamPos = ActiveRenderInfo.getCameraPosition()
 
         loadMatrix(modelMatrix, GL_MODELVIEW_MATRIX)

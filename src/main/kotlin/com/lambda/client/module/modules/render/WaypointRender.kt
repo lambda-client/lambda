@@ -108,9 +108,9 @@ internal object WaypointRender : Module(
             pos.x + 1.0, 256.0, pos.z + 1.0
         )
 
-        KamiTessellator.begin(GL_LINES)
-        KamiTessellator.drawOutline(box, color, a, GeometryMasks.Quad.ALL, thickness)
-        KamiTessellator.render()
+        LambdaTessellator.begin(GL_LINES)
+        LambdaTessellator.drawOutline(box, color, a, GeometryMasks.Quad.ALL, thickness)
+        LambdaTessellator.render()
     }
 
     init {

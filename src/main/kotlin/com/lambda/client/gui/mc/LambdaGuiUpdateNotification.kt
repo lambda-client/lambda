@@ -14,7 +14,7 @@ import java.io.IOException
 
 class LambdaGuiUpdateNotification : GuiScreen() {
 
-    private val message = "A newer release of KAMI Blue is available ($latest)."
+    private val message = "A newer release of Lambda is available ($latest)."
 
     override fun initGui() {
         super.initGui()
@@ -37,7 +37,7 @@ class LambdaGuiUpdateNotification : GuiScreen() {
     }
 
     companion object {
-        private const val title = "KAMI Blue Update"
+        private const val title = "Lambda Update"
 
         var latest: String? = null // latest version (null if no internet or exception occurred)
         var isLatest = false
@@ -46,7 +46,7 @@ class LambdaGuiUpdateNotification : GuiScreen() {
         fun updateCheck() {
             mainScope.launch {
                 try {
-                    com.lambda.client.LambdaMod.LOG.info("Attempting KAMI Blue update check...")
+                    com.lambda.client.LambdaMod.LOG.info("Attempting Lambda update check...")
 
                     val parser = JsonParser()
                     val rawJson = ConnectionUtils.requestRawJsonFrom(com.lambda.client.LambdaMod.DOWNLOADS_API) {
@@ -57,9 +57,9 @@ class LambdaGuiUpdateNotification : GuiScreen() {
                     isLatest = latest.equals(com.lambda.client.LambdaMod.VERSION_MAJOR)
 
                     if (!isLatest) {
-                        com.lambda.client.LambdaMod.LOG.warn("You are running an outdated version of KAMI Blue.\nCurrent: ${com.lambda.client.LambdaMod.VERSION_MAJOR}\nLatest: $latest")
+                        com.lambda.client.LambdaMod.LOG.warn("You are running an outdated version of Lambda.\nCurrent: ${com.lambda.client.LambdaMod.VERSION_MAJOR}\nLatest: $latest")
                     } else {
-                        com.lambda.client.LambdaMod.LOG.info("Your KAMI Blue (" + com.lambda.client.LambdaMod.VERSION_MAJOR + ") is up-to-date with the latest stable release.")
+                        com.lambda.client.LambdaMod.LOG.info("Your Lambda (" + com.lambda.client.LambdaMod.VERSION_MAJOR + ") is up-to-date with the latest stable release.")
                     }
                 } catch (e: IOException) {
                     com.lambda.client.LambdaMod.LOG.error("Oes noes! An exception was thrown during the update check.", e)

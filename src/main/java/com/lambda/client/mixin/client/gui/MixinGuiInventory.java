@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.client.gui;
 
-import com.lambda.client.util.graphics.KamiTessellator;
+import com.lambda.client.util.graphics.LambdaTessellator;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.entity.EntityLivingBase;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,7 +28,7 @@ public class MixinGuiInventory {
 
     @ModifyArg(method = "drawEntityOnScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/RenderManager;renderEntity(Lnet/minecraft/entity/Entity;DDDFFZ)V"), index = 5)
     private static float drawEntityOnScreenInvokeRenderEntityPartialTicks(float partialTicks) {
-        return KamiTessellator.pTicks();
+        return LambdaTessellator.pTicks();
     }
 
     @Inject(method = "drawEntityOnScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/RenderManager;renderEntity(Lnet/minecraft/entity/Entity;DDDFFZ)V", shift = At.Shift.AFTER))

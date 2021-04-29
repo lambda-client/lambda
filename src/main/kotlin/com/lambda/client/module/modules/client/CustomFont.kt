@@ -4,7 +4,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.AsyncCachedValue
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.util.graphics.font.KamiFontRenderer
+import com.lambda.client.util.graphics.font.LambdaFontRenderer
 import com.lambda.client.util.threads.onMainThread
 import kotlinx.coroutines.runBlocking
 import java.awt.GraphicsEnvironment
@@ -58,7 +58,7 @@ internal object CustomFont : Module(
     init {
         fontName.listeners.add {
             runBlocking {
-                onMainThread { KamiFontRenderer.reloadFonts() }
+                onMainThread { LambdaFontRenderer.reloadFonts() }
             }
         }
     }

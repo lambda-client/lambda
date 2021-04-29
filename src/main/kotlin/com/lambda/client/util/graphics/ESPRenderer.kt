@@ -38,7 +38,7 @@ class ESPRenderer {
     }
 
     fun add(entity: Entity, color: ColorHolder, sides: Int) {
-        val interpolatedBox = entity.renderBoundingBox.offset(getInterpolatedAmount(entity, KamiTessellator.pTicks()))
+        val interpolatedBox = entity.renderBoundingBox.offset(getInterpolatedAmount(entity, LambdaTessellator.pTicks()))
         add(interpolatedBox, color, sides)
     }
 
@@ -74,7 +74,7 @@ class ESPRenderer {
         if (toRender.isEmpty() && (aFilled == 0 && aOutline == 0 && aTracer == 0)) return
 
         val entity = Wrapper.minecraft.renderViewEntity ?: Wrapper.player ?: return
-        val interpolatedPos = EntityUtils.getInterpolatedPos(entity, KamiTessellator.pTicks())
+        val interpolatedPos = EntityUtils.getInterpolatedPos(entity, LambdaTessellator.pTicks())
         frustumCamera.setPosition(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z)
 
         if (through) GlStateManager.disableDepth()
@@ -88,7 +88,7 @@ class ESPRenderer {
     }
 
     private fun drawList(type: Type, cull: Boolean = false) {
-        KamiTessellator.begin(if (type == Type.FILLED) GL_QUADS else GL_LINES)
+        LambdaTessellator.begin(if (type == Type.FILLED) GL_QUADS else GL_LINES)
 
         for ((box, color, sides) in toRender) when (type) {
             Type.FILLED -> drawFilled(cull, box, color, sides)
@@ -96,14 +96,14 @@ class ESPRenderer {
             Type.TRACER -> drawTracer(box, color)
         }
 
-        KamiTessellator.render()
+        LambdaTessellator.render()
     }
 
     private fun drawFilled(cull: Boolean, box: AxisAlignedBB, color: ColorHolder, sides: Int) {
         val a = (aFilled * (color.a / 255f)).toInt()
 
         if (!cull || frustumCamera.isBoundingBoxInFrustum(box)) {
-            KamiTessellator.drawBox(box, color, a, sides)
+            LambdaTessellator.drawBox(box, color, a, sides)
         }
     }
 
@@ -112,7 +112,7 @@ class ESPRenderer {
         val side = if (fullOutline) GeometryMasks.Quad.ALL else sides
 
         if (!cull || frustumCamera.isBoundingBoxInFrustum(box)) {
-            KamiTessellator.drawOutline(box, color, a, side, thickness)
+            LambdaTessellator.drawOutline(box, color, a, side, thickness)
         }
     }
 
@@ -121,7 +121,7 @@ class ESPRenderer {
         val offset = (tracerOffset - 50) / 100.0 * (box.maxY - box.minY)
         val offsetBox = box.center.add(0.0, offset, 0.0)
 
-        KamiTessellator.drawLineTo(offsetBox, color, a, thickness)
+        LambdaTessellator.drawLineTo(offsetBox, color, a, thickness)
     }
 
     private enum class Type {

@@ -5,7 +5,7 @@ import com.lambda.client.util.text.MessageSendHelper
 
 object LicenseCommand : ClientCommand(
     name = "license",
-    description = "Information about KAMI Blue's license"
+    description = "Information about Lambda's license"
 ) {
     init {
         execute {

@@ -33,7 +33,7 @@ class PluginInfo private constructor(
     /** A link to the plugin's website */
     val url get() = url0 ?: urlNull
 
-    /** The minimum version of KAMI Blue required for the plugin to run. */
+    /** The minimum version of Lambda required for the plugin to run. */
     val minApiVersion: String get() = minApiVersion0.nonBlank("min_api_version")
 
     /** Other plugins that must be loaded in order for this plugin to work correctly.*/

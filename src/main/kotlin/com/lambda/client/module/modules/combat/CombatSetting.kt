@@ -128,7 +128,7 @@ internal object CombatSetting : Module(
             if (!renderPredictedPos.value) return@listener
             CombatManager.target?.let {
                 val ticks = if (pingSync.value) (InfoCalculator.ping() / 25f).ceilToInt() else ticksAhead.value
-                val posCurrent = EntityUtils.getInterpolatedPos(it, KamiTessellator.pTicks())
+                val posCurrent = EntityUtils.getInterpolatedPos(it, LambdaTessellator.pTicks())
                 val posAhead = CombatManager.motionTracker.calcPositionAhead(ticks, true) ?: return@listener
                 val posAheadEye = posAhead.add(0.0, it.eyeHeight.toDouble(), 0.0)
                 val posCurrentScreen = Vec2d(ProjectionUtils.toScaledScreenPos(posCurrent))
@@ -285,7 +285,7 @@ internal object CombatSetting : Module(
                 if (!mc.gameSettings.keyBindAttack.isKeyDown && !mc.gameSettings.keyBindUseItem.isKeyDown) {
                     return LinkedList()
                 }
-                val eyePos = player.getPositionEyes(KamiTessellator.pTicks())
+                val eyePos = player.getPositionEyes(LambdaTessellator.pTicks())
                 val lookVec = player.lookVec.scale(range.value.toDouble())
                 val sightEndPos = eyePos.add(lookVec)
                 listIn.removeIf { it.entityBoundingBox.calculateIntercept(eyePos, sightEndPos) == null }

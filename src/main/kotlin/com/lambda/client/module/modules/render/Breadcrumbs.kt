@@ -7,7 +7,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.getInterpolatedPos
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.threads.safeListener
@@ -74,7 +74,7 @@ internal object Breadcrumbs : Module(
             val dimension = player.dimension
 
             /* Adding position points to list */
-            val renderPosList = addPos(serverIP, dimension, KamiTessellator.pTicks())
+            val renderPosList = addPos(serverIP, dimension, LambdaTessellator.pTicks())
 
             /* Rendering */
             drawTail(renderPosList)
@@ -110,15 +110,15 @@ internal object Breadcrumbs : Module(
     private fun drawTail(posList: LinkedList<Vec3d>) {
         if (posList.isNotEmpty() && alphaMultiplier != 0.0f) {
             val offset = Vec3d(0.0, yOffset.value + 0.05, 0.0)
-            val buffer = KamiTessellator.buffer
+            val buffer = LambdaTessellator.buffer
             GlStateManager.depthMask(!throughBlocks.value)
             GlStateManager.glLineWidth(thickness.value)
-            KamiTessellator.begin(GL_LINE_STRIP)
+            LambdaTessellator.begin(GL_LINE_STRIP)
             for (pos in posList) {
                 val offsetPost = pos.add(offset)
                 buffer.pos(offsetPost.x, offsetPost.y, offsetPost.z).color(color.r, color.g, color.b, (color.a * alphaMultiplier).toInt()).endVertex()
             }
-            KamiTessellator.render()
+            LambdaTessellator.render()
         }
     }
 

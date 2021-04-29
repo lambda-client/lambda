@@ -13,7 +13,7 @@ import com.lambda.event.listener.listener
 import net.minecraft.network.play.server.SPacketChat
 
 // TODO: When list settings are added to GUI, refactor the custom setting to be a list of usernames
-// TODO: Removed feedback as it does not work on KAMI Blue command feedback.
+// TODO: Removed feedback as it does not work on Lambda command feedback.
 // Perhaps we need to restructure the message sending system, as currently the methods feel ugly.
 internal object RemoteCommand : Module(
     name = "RemoteCommand",

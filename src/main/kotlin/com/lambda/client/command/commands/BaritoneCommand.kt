@@ -148,7 +148,7 @@ object BaritoneCommand : ClientCommand(
         literal("version") {
             executeSafe {
                 exec("version")
-                MessageSendHelper.sendBaritoneMessage("Running on KAMI Blue ${com.lambda.client.LambdaMod.VERSION}")
+                MessageSendHelper.sendBaritoneMessage("Running on Lambda ${com.lambda.client.LambdaMod.VERSION}")
             }
         }
 

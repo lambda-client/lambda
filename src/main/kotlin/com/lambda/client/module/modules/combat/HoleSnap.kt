@@ -14,7 +14,7 @@ import com.lambda.client.util.MovementUtils.resetMove
 import com.lambda.client.util.MovementUtils.speed
 import com.lambda.client.util.combat.SurroundUtils
 import com.lambda.client.util.combat.SurroundUtils.checkHole
-import com.lambda.client.util.graphics.KamiTessellator
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.math.RotationUtils
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.distanceTo
@@ -56,18 +56,18 @@ internal object HoleSnap : Module(
             holePos?.let {
                 if (player.flooredPosition == it) return@safeListener
 
-                val posFrom = EntityUtils.getInterpolatedPos(player, KamiTessellator.pTicks())
+                val posFrom = EntityUtils.getInterpolatedPos(player, LambdaTessellator.pTicks())
                 val posTo = it.toVec3d(0.5, 0.0, 0.5)
-                val buffer = KamiTessellator.buffer
+                val buffer = LambdaTessellator.buffer
 
                 glLineWidth(3.0f)
                 glDisable(GL_DEPTH_TEST)
-                KamiTessellator.begin(GL_LINES)
+                LambdaTessellator.begin(GL_LINES)
 
                 buffer.pos(posFrom.x, posFrom.y, posFrom.z).color(32, 255, 32, 255).endVertex()
                 buffer.pos(posTo.x, posTo.y, posTo.z).color(32, 255, 32, 255).endVertex()
 
-                KamiTessellator.render()
+                LambdaTessellator.render()
                 glLineWidth(1.0f)
                 glEnable(GL_DEPTH_TEST)
             }

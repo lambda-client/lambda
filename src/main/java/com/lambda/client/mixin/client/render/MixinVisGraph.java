@@ -3,7 +3,7 @@ package com.lambda.client.mixin.client.render;
 import com.lambda.client.module.modules.player.Freecam;
 import com.lambda.client.module.modules.render.Xray;
 import com.lambda.client.util.Wrapper;
-import com.lambda.client.util.graphics.KamiTessellator;
+import com.lambda.client.util.graphics.LambdaTessellator;
 import com.lambda.client.util.math.VectorUtils;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.chunk.VisGraph;
@@ -33,7 +33,7 @@ public class MixinVisGraph {
         if (world == null) return;
 
         // Only do the hacky cave culling fix if inside of a block
-        Vec3d camPos = KamiTessellator.INSTANCE.getCamPos();
+        Vec3d camPos = LambdaTessellator.INSTANCE.getCamPos();
         BlockPos blockPos = VectorUtils.INSTANCE.toBlockPos(camPos);
         if (world.getBlockState(blockPos).isFullBlock()) {
             ci.setReturnValue(EnumSet.allOf(EnumFacing.class));

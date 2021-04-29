@@ -28,7 +28,7 @@ import org.lwjgl.opengl.GL32
  * Updated by on Afel 08/06/20
  * Updated by Xiaro on 06/08/20
  */
-object KamiTessellator : Tessellator(0x200000) {
+object LambdaTessellator : Tessellator(0x200000) {
     private val mc = Minecraft.getMinecraft()
 
     /**
