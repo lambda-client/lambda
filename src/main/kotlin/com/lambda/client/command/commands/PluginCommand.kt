@@ -156,7 +156,7 @@ object PluginCommand : ClientCommand(
                 }
             }
 
-            string( "plugin name") { nameArg ->
+            string("plugin name") { nameArg ->
                 execute {
                     val name = nameArg.value
                     val plugin = PluginManager.loadedPlugins[name]

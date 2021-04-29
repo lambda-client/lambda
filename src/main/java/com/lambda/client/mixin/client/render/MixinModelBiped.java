@@ -24,14 +24,13 @@ public abstract class MixinModelBiped extends ModelBase {
     @Shadow public ModelRenderer bipedLeftLeg;
     @Shadow public ModelBiped.ArmPose leftArmPose;
     @Shadow public ModelBiped.ArmPose rightArmPose;
+    @Shadow public ModelRenderer bipedHeadwear;
 
     @Shadow
     protected abstract EnumHandSide getMainHand(Entity entityIn);
 
     @Shadow
     protected abstract ModelRenderer getArmForSide(EnumHandSide side);
-
-    @Shadow public ModelRenderer bipedHeadwear;
 
     @Inject(method = "setRotationAngles", at = @At("HEAD"), cancellable = true)
     public void setRotationAngles(float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, float scaleFactor, Entity entityIn, CallbackInfo ci) {

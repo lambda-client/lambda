@@ -50,12 +50,15 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Shadow private boolean prevOnGround;
     @Shadow private boolean autoJumpEnabled;
 
-    @Shadow protected abstract boolean isCurrentViewEntity();
-    @Shadow protected abstract void updateAutoJump(float p_189810_1_, float p_189810_2_);
-
     public MixinEntityPlayerSP(World worldIn, GameProfile gameProfileIn) {
         super(worldIn, gameProfileIn);
     }
+
+    @Shadow
+    protected abstract boolean isCurrentViewEntity();
+
+    @Shadow
+    protected abstract void updateAutoJump(float p_189810_1_, float p_189810_2_);
 
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;closeScreen()V"))
     public void closeScreen(EntityPlayerSP player) {

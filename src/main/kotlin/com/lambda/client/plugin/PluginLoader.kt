@@ -55,7 +55,7 @@ internal class PluginLoader(
         val clazz = Class.forName(info.mainClass, true, loader)
         val obj = try {
             clazz.instance
-        } catch (e : NoSuchFieldException) {
+        } catch (e: NoSuchFieldException) {
             clazz.newInstance()
         }
 

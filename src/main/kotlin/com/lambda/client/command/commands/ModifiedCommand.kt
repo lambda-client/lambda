@@ -7,7 +7,7 @@ import net.minecraft.util.text.TextComponentString
 import net.minecraft.util.text.event.ClickEvent
 import net.minecraft.util.text.event.HoverEvent
 
-object ModifiedCommand: ClientCommand(
+object ModifiedCommand : ClientCommand(
     name = "modified",
     description = "View modified settings in a module"
 ) {

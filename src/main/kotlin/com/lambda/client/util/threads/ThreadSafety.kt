@@ -22,7 +22,7 @@ inline fun <reified T : Any> Any.safeListener(priority: Int = DEFAULT_PRIORITY, 
     this.safeListener(priority, T::class.java, function)
 }
 
-fun <T : Any> Any.safeListener(priority: Int = DEFAULT_PRIORITY ,clazz: Class<T>, function: SafeClientEvent.(T) -> Unit) {
+fun <T : Any> Any.safeListener(priority: Int = DEFAULT_PRIORITY, clazz: Class<T>, function: SafeClientEvent.(T) -> Unit) {
     ListenerManager.register(this, Listener(this, clazz, priority) { runSafe { function(it) } })
 }
 

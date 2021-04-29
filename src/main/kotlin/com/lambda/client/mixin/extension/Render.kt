@@ -1,5 +1,9 @@
 package com.lambda.client.mixin.extension
 
+import com.lambda.client.mixin.client.accessor.render.AccessorRenderGlobal
+import com.lambda.client.mixin.client.accessor.render.AccessorRenderManager
+import com.lambda.client.mixin.client.accessor.render.AccessorShaderGroup
+import com.lambda.client.mixin.client.accessor.render.AccessorViewFrustum
 import net.minecraft.client.renderer.RenderGlobal
 import net.minecraft.client.renderer.ViewFrustum
 import net.minecraft.client.renderer.entity.RenderManager
@@ -7,10 +11,6 @@ import net.minecraft.client.shader.Framebuffer
 import net.minecraft.client.shader.Shader
 import net.minecraft.client.shader.ShaderGroup
 import net.minecraft.util.math.BlockPos
-import com.lambda.client.mixin.client.accessor.render.AccessorRenderGlobal
-import com.lambda.client.mixin.client.accessor.render.AccessorRenderManager
-import com.lambda.client.mixin.client.accessor.render.AccessorShaderGroup
-import com.lambda.client.mixin.client.accessor.render.AccessorViewFrustum
 
 val RenderGlobal.entityOutlineShader: ShaderGroup get() = (this as AccessorRenderGlobal).entityOutlineShader
 

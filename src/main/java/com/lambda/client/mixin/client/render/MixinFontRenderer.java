@@ -28,7 +28,8 @@ public abstract class MixinFontRenderer {
     @Shadow private float green;
     @Shadow private float blue;
 
-    @Shadow protected abstract void renderStringAtPos(String text, boolean shadow);
+    @Shadow
+    protected abstract void renderStringAtPos(String text, boolean shadow);
 
     /**
      * @author Tiger

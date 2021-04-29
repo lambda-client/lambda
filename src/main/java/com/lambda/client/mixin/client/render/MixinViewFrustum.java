@@ -20,7 +20,8 @@ public abstract class MixinViewFrustum {
     @Shadow protected int countChunksY;
     @Shadow protected int countChunksZ;
 
-    @Shadow protected abstract int getBaseCoordinate(int p_178157_1_, int p_178157_2_, int p_178157_3_);
+    @Shadow
+    protected abstract int getBaseCoordinate(int p_178157_1_, int p_178157_2_, int p_178157_3_);
 
     @Inject(method = "updateChunkPositions", at = @At("HEAD"), cancellable = true)
     public void updateChunkPositionsHead(double viewEntityX, double viewEntityZ, CallbackInfo ci) {

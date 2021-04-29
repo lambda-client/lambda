@@ -39,11 +39,11 @@ public abstract class MixinMinecraft {
     @Shadow public GameSettings gameSettings;
     @Shadow public PlayerControllerMP playerController;
     @Shadow private int fpsCounter;
-
-    @Shadow protected abstract void clickMouse();
-
     private boolean handActive = false;
     private boolean isHittingBlock = false;
+
+    @Shadow
+    protected abstract void clickMouse();
 
     @ModifyVariable(method = "displayGuiScreen", at = @At("HEAD"), argsOnly = true)
     public GuiScreen editDisplayGuiScreen(GuiScreen guiScreenIn) {

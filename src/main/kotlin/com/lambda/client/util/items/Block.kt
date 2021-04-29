@@ -4,7 +4,7 @@ import net.minecraft.block.Block
 import net.minecraft.init.Blocks
 import net.minecraft.item.Item
 
-val shulkerList : Set<Block> = hashSetOf(
+val shulkerList: Set<Block> = hashSetOf(
     Blocks.WHITE_SHULKER_BOX,
     Blocks.ORANGE_SHULKER_BOX,
     Blocks.MAGENTA_SHULKER_BOX,
@@ -23,7 +23,7 @@ val shulkerList : Set<Block> = hashSetOf(
     Blocks.BLACK_SHULKER_BOX
 )
 
-val blockBlacklist : Set<Block> = hashSetOf(
+val blockBlacklist: Set<Block> = hashSetOf(
     Blocks.ENDER_CHEST,
     Blocks.CHEST,
     Blocks.TRAPPED_CHEST,

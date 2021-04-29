@@ -16,7 +16,7 @@ object FriendManager : Manager {
     private val file = File(com.lambda.client.LambdaMod.DIRECTORY + "friends.json")
 
     private var friendFile = FriendFile()
-    val friends= HashMap<String, PlayerProfile>().synchronized()
+    val friends = HashMap<String, PlayerProfile>().synchronized()
 
     val empty get() = friends.isEmpty()
     var enabled = friendFile.enabled

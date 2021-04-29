@@ -23,7 +23,8 @@ public abstract class MixinRenderPlayer extends RenderLivingBase<AbstractClientP
         super(renderManagerIn, modelBaseIn, shadowSizeIn);
     }
 
-    @Shadow protected abstract void setModelVisibilities(AbstractClientPlayer clientPlayer);
+    @Shadow
+    protected abstract void setModelVisibilities(AbstractClientPlayer clientPlayer);
 
     @Inject(method = "applyRotations", at = @At("RETURN"))
     protected void applyRotations(AbstractClientPlayer entityLiving, float ageInTicks, float rotationYaw, float partialTicks, CallbackInfo ci) {

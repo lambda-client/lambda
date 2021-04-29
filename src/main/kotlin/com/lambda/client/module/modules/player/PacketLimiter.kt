@@ -27,7 +27,7 @@ internal object PacketLimiter : Module(
 
     private var lastPacketTime = -1L
 
-    private val longPacketTime = ArrayDeque<Short>( 100)
+    private val longPacketTime = ArrayDeque<Short>(100)
     private val shortPacketTime = ArrayDeque<Short>(20)
 
     private var longPacketSpeed = 20.0f
@@ -95,7 +95,7 @@ internal object PacketLimiter : Module(
     private fun ArrayDeque<Short>.addAndTrim(value: Short, max: Int) {
         add(value)
         val validMax = max.coerceAtLeast(0)
-        while (this.size > validMax){
+        while (this.size > validMax) {
             this.removeFirst()
         }
     }

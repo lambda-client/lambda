@@ -41,7 +41,7 @@ object CrystalUtils {
             && (entity == null || !getCrystalPlacingBB(posUp1).intersects(entity.entityBoundingBox))
             && mc.world?.let {
             isValidMaterial(it.getBlockState(posUp1).material)
-                    && isValidMaterial(it.getBlockState(posUp2).material)
+                && isValidMaterial(it.getBlockState(posUp2).material)
         } ?: false
     }
 

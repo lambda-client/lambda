@@ -136,7 +136,7 @@ open class WindowComponent(
     private fun handleResizeX(horizontalSide: HAlign, draggedDist: Vec2f) {
         when (horizontalSide) {
             HAlign.LEFT -> {
-                val draggedX = max(draggedDist.x,1.0f - preDragPos.x)
+                val draggedX = max(draggedDist.x, 1.0f - preDragPos.x)
                 var newWidth = max(preDragSize.x - draggedX, minWidth)
 
                 if (maxWidth != -1.0f) newWidth = min(newWidth, maxWidth)
@@ -164,7 +164,7 @@ open class WindowComponent(
     private fun handleResizeY(verticalSide: VAlign, draggedDist: Vec2f) {
         when (verticalSide) {
             VAlign.TOP -> {
-                val draggedY = max(draggedDist.y,1.0f - preDragPos.y)
+                val draggedY = max(draggedDist.y, 1.0f - preDragPos.y)
                 var newHeight = max(preDragSize.y - draggedY, minHeight)
 
                 if (maxHeight != -1.0f) newHeight = min(newHeight, maxHeight)

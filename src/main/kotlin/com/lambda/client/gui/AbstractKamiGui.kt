@@ -1,10 +1,5 @@
 package com.lambda.client.gui
 
-import net.minecraft.client.gui.GuiScreen
-import net.minecraft.client.gui.ScaledResolution
-import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.util.ResourceLocation
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.gui.rgui.WindowComponent
 import com.lambda.client.gui.rgui.windows.ColorPicker
@@ -20,11 +15,14 @@ import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.client.gui.GuiScreen
+import net.minecraft.client.gui.ScaledResolution
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.util.ResourceLocation
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
-import java.util.*
-import kotlin.collections.HashMap
 import kotlin.math.min
 
 abstract class AbstractKamiGui<S : SettingWindow<*>, E : Any> : GuiScreen() {

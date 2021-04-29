@@ -95,7 +95,7 @@ internal object PacketLogger : Module(
         }
 
         listener<PacketEvent.Receive>(Int.MAX_VALUE) {
-            if (captureTiming != CaptureTiming.PRE || ignoreCancelled && it.cancelled) { 
+            if (captureTiming != CaptureTiming.PRE || ignoreCancelled && it.cancelled) {
                 return@listener
             }
 
@@ -103,7 +103,7 @@ internal object PacketLogger : Module(
         }
 
         listener<PacketEvent.PostReceive>(Int.MIN_VALUE) {
-            if (captureTiming != CaptureTiming.POST || ignoreCancelled && it.cancelled) { 
+            if (captureTiming != CaptureTiming.POST || ignoreCancelled && it.cancelled) {
                 return@listener
             }
 
@@ -333,7 +333,7 @@ internal object PacketLogger : Module(
                 else -> {
                     if (!ignoreUnknown) {
                         logServer(packet) {
-                            + "Not Registered in PacketLogger"
+                            +"Not Registered in PacketLogger"
                         }
                     }
                 }
@@ -455,14 +455,14 @@ internal object PacketLogger : Module(
                     }
                 }
                 is CPacketCloseWindow -> {
-                    logClient (packet) {
+                    logClient(packet) {
                         "windowID" to packet.windowID
                     }
                 }
                 else -> {
                     if (!ignoreUnknown) {
                         logClient(packet) {
-                            + "Not Registered in PacketLogger"
+                            +"Not Registered in PacketLogger"
                         }
                     }
                 }
