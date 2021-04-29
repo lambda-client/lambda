@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.chat
 
-import com.lambda.client.manager.managers.KamiMojiManager
+import com.lambda.client.manager.managers.LambdaMojiManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.graphics.GlStateUtils
@@ -11,9 +11,9 @@ import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import org.lwjgl.opengl.GL11.*
 
-internal object KamiMoji : Module(
-    name = "KamiMoji",
-    description = "Add emojis to chat using KamiMoji, courtesy of the EmojiAPI.",
+internal object LambdaMoji : Module(
+    name = "LambdaMoji",
+    description = "Add emojis to chat using LambdaMoji, courtesy of the EmojiAPI.",
     category = Category.CHAT
 ) {
     @JvmStatic
@@ -26,7 +26,7 @@ internal object KamiMoji : Module(
         GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE)
 
         for (possible in text.split(":")) {
-            val texture = KamiMojiManager.getEmoji(possible) ?: continue
+            val texture = LambdaMojiManager.getEmoji(possible) ?: continue
             val emojiText = ":$possible:"
 
             if (!shadow) {
@@ -52,7 +52,7 @@ internal object KamiMoji : Module(
         var reducedWidth = inputWidth
 
         for (possible in text.split(":")) {
-            if (KamiMojiManager.isEmoji(possible)) {
+            if (LambdaMojiManager.isEmoji(possible)) {
                 val emojiText = ":$possible:"
                 val emojiTextWidth = emojiText.sumBy { mc.fontRenderer.getCharWidth(it) }
                 reducedWidth -= emojiTextWidth
