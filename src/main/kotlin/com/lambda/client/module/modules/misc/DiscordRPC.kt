@@ -1,7 +1,8 @@
-package org.kamiblue.client.module.modules.misc
+package com.lambda.client.module.modules.misc
 
 import club.minnced.discord.rpc.DiscordEventHandlers
 import club.minnced.discord.rpc.DiscordRichPresence
+import com.lambda.capeapi.CapeType
 import net.minecraft.client.Minecraft
 import net.minecraft.init.Blocks
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -9,7 +10,6 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ShutdownEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.misc.HighwayTools
 import com.lambda.client.util.InfoCalculator
 import com.lambda.client.util.InfoCalculator.speed
 import com.lambda.client.util.TickTimer
@@ -22,9 +22,8 @@ import com.lambda.client.util.threads.BackgroundJob
 import com.lambda.client.util.threads.BackgroundScope
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
-import org.kamiblue.capeapi.CapeType
-import org.kamiblue.commons.utils.MathUtils
-import org.kamiblue.event.listener.listener
+import com.lambda.commons.utils.MathUtils
+import com.lambda.event.listener.listener
 
 internal object DiscordRPC : Module(
     name = "DiscordRPC",

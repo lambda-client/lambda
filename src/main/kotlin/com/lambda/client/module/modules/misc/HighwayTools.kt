@@ -66,9 +66,9 @@ import com.lambda.client.util.math.isInSight
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.*
 import com.lambda.client.util.world.*
-import org.kamiblue.commons.extension.ceilToInt
-import org.kamiblue.commons.extension.floorToInt
-import org.kamiblue.event.listener.listener
+import com.lambda.commons.extension.ceilToInt
+import com.lambda.commons.extension.floorToInt
+import com.lambda.event.listener.listener
 import java.util.*
 import kotlin.collections.ArrayDeque
 import kotlin.collections.LinkedHashMap
