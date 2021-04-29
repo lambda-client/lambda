@@ -16,8 +16,6 @@ internal object WaterMark : LabelHud(
     override val hudWidth: Float get() = (displayText.getWidth() + 2.0f) / scale
     override val hudHeight: Float get() = displayText.getHeight(2) / scale
 
-    override val closeable: Boolean get() = !Capes.updated || Capes.isPremium
-
     override fun SafeClientEvent.updateText() {
         displayText.add(com.lambda.client.LambdaMod.NAME, primaryColor)
         displayText.add(com.lambda.client.LambdaMod.VERSION_SIMPLE, secondaryColor)
