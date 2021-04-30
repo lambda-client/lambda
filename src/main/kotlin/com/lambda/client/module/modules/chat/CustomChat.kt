@@ -32,7 +32,6 @@ internal object CustomChat : Module(
         NAME, ON_TOP, WEBSITE, CUSTOM
     }
 
-    private val timer = TickTimer(TimeUnit.SECONDS)
     private val modifier = newMessageModifier(
         filter = {
             (commands || MessageDetection.Command.ANY detectNot it.packet.message)
