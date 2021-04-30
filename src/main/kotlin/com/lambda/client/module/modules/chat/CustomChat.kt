@@ -7,6 +7,8 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.threads.safeListener
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.min
 
 internal object CustomChat : Module(
@@ -16,7 +18,7 @@ internal object CustomChat : Module(
     showOnArray = false,
     modulePriority = 200
 ) {
-    private val textMode by setting("Message", TextMode.JAPANESE)
+    private val textMode by setting("Message", TextMode.NAME)
     private val decoMode by setting("Separator", DecoMode.NONE)
     private val commands by setting("Commands", false)
     private val spammer by setting("Spammer", false)
@@ -27,7 +29,7 @@ internal object CustomChat : Module(
     }
 
     private enum class TextMode {
-        NAME, ON_TOP, WEBSITE, JAPANESE, CUSTOM
+        NAME, ON_TOP, WEBSITE, CUSTOM
     }
 
     private val timer = TickTimer(TimeUnit.SECONDS)
@@ -44,7 +46,12 @@ internal object CustomChat : Module(
 
     init {
         onEnable {
-            modifier.enable()
+            if (textMode == TextMode.CUSTOM && customText.equals("Default", ignoreCase = true)) {
+                MessageSendHelper.sendWarningMessage("$chatName In order to use the Custom message, please change the CustomText setting in ClickGUI")
+                disable()
+            } else {
+                modifier.enable()
+            }
         }
 
         onDisable {
@@ -53,10 +60,9 @@ internal object CustomChat : Module(
     }
 
     private fun getText() = when (textMode) {
-        TextMode.NAME -> "ᴋᴀᴍɪ ʙʟᴜᴇ"
-        TextMode.ON_TOP -> "ᴋᴀᴍɪ ʙʟᴜᴇ ᴏɴ ᴛᴏᴘ"
-        TextMode.WEBSITE -> "ｋａｍｉｂｌｕｅ．ｏｒｇ"
-        TextMode.JAPANESE -> "上にカミブルー"
+        TextMode.NAME -> "ʟᴀᴍʙᴅᴀ"
+        TextMode.ON_TOP -> "ʟᴀᴍʙᴅᴀ ᴏɴ ᴛᴏᴘ"
+        TextMode.WEBSITE -> "ｌａｍｂｄａ－ｃｌｉｅｎｔ．ｃｏｍ"
         TextMode.CUSTOM -> customText
     }
 
@@ -65,14 +71,5 @@ internal object CustomChat : Module(
         DecoMode.CLASSIC -> " \u00ab " + getText() + " \u00bb"
         DecoMode.SEPARATOR -> " | " + getText()
     }
-
-    init {
-        safeListener<TickEvent.ClientTickEvent> {
-            if (timer.tick(5L) && textMode == TextMode.CUSTOM && customText.equals("Default", ignoreCase = true)) {
-                MessageSendHelper.sendWarningMessage("$chatName Warning: In order to use the custom $name, please change the CustomText setting in ClickGUI")
-            }
-        }
-    }
-
 
 }
