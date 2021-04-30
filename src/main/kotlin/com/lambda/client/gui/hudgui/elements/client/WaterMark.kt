@@ -9,7 +9,7 @@ internal object WaterMark : LabelHud(
     name = "Watermark",
     category = Category.CLIENT,
     description = "Lambda watermark",
-    enabledByDefault = false
+    enabledByDefault = true
 ) {
 
     override val hudWidth: Float get() = (displayText.getWidth() + 2.0f) / scale
