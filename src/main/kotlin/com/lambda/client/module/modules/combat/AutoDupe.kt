@@ -42,9 +42,7 @@ init {
         currentWaitPhase = WaitPhase.DROP
         
         val ip = mc.currentServerData?.serverIP
-        if (ip != null) {
-            if (ip != "5b5t.org") MessageSendHelper.sendWarningMessage("This module is only tested on 5B5T, And is not expected to work elsewhere.")
-        }
+        if (ip != null || ip != "5b5t.org") MessageSendHelper.sendWarningMessage("This module is only tested on 5B5T, And is not expected to work elsewhere.")
 
         if (!hiddenInfo) {
             MessageSendHelper.sendChatMessage("To do the dupe: have wooden planks in your inventory, hold the item you wish to dupe, and toggle the module. wait until the item is picked back up.")
