@@ -1,5 +1,6 @@
 package com.lambda.client.gui.hudgui.elements.client
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.graphics.VertexHelper
@@ -16,8 +17,8 @@ internal object WaterMark : LabelHud(
     override val hudHeight: Float get() = displayText.getHeight(2) / scale
 
     override fun SafeClientEvent.updateText() {
-        displayText.add(com.lambda.client.LambdaMod.NAME, primaryColor)
-        displayText.add(com.lambda.client.LambdaMod.VERSION_SIMPLE, secondaryColor)
+        displayText.add(LambdaMod.NAME, primaryColor)
+        displayText.add(LambdaMod.VERSION_SIMPLE, secondaryColor)
     }
 
     override fun renderHud(vertexHelper: VertexHelper) {

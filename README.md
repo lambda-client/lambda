@@ -4,7 +4,7 @@
 
 # Lambda
 
-This is a continuation of KAMI Blue, and we hope as many people as possible will join the idea of having an up to date free open source client that is available to everyone. The target is to make this client as light weighted and customizable as possible to give people the best base to work with.
+Lambda is a 1.12 minecraft utility client with the goal of providing a free, open-source, and lightweight client. Everyone is free to contribute, and feel free to join our discord!
 
 ## Contributing
 

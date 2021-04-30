@@ -63,8 +63,6 @@ open class SettingGroup(
                 for (setting in subSetting.values) {
                     try {
                         val value = it.get(setting.name.toJsonName())
-                            ?: it.get(setting.name) // TODO: Remove this by 2.04.01 release
-                            ?: it.get(setting.name.removeSpace()) // TODO: Remove this by 2.04.01 release
                         setting.read(value)
                     } catch (e: Exception) {
                         com.lambda.client.LambdaMod.LOG.warn("Failed loading setting ${setting.name} at $name", e)
@@ -77,11 +75,6 @@ open class SettingGroup(
     private fun String.toJsonName() =
         this.replace(' ', '_')
             .toLowerCase(Locale.ROOT)
-
-    // TODO: Remove this by 2.04.01 release
-    @Deprecated("For backward compatibility only, will be removed by 2.04.01 release", ReplaceWith(""))
-    private fun String.removeSpace() =
-        this.replace(" ", "")
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -1,5 +1,7 @@
 package com.lambda.client.plugin
 
+import com.lambda.client.AsyncLoader
+import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
@@ -7,15 +9,15 @@ import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
 
-internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>> {
+internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     override var deferred: Deferred<List<PluginLoader>>? = null
 
     val loadedPlugins = NameableSet<Plugin>()
     val loadedPluginLoader = NameableSet<PluginLoader>()
 
-    const val pluginPath = "${com.lambda.client.LambdaMod.DIRECTORY}plugins/"
+    const val pluginPath = "${LambdaMod.DIRECTORY}plugins/"
 
-    private val lambdaVersion = DefaultArtifactVersion(com.lambda.client.LambdaMod.VERSION_MAJOR)
+    private val lambdaVersion = DefaultArtifactVersion(LambdaMod.VERSION_MAJOR)
 
     override fun preLoad0() = getLoaders()
 
@@ -37,11 +39,11 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
                 loader.verify()
                 plugins.add(loader)
             } catch (e: FileNotFoundException) {
-                com.lambda.client.LambdaMod.LOG.info("${it.name} is not a valid plugin. Skipping...")
+                LambdaMod.LOG.info("${it.name} is not a valid plugin. Skipping...")
             } catch (e: PluginInfoMissingException) {
-                com.lambda.client.LambdaMod.LOG.warn("${it.name} is missing a required info ${e.infoName}. Skipping...", e)
+                LambdaMod.LOG.warn("${it.name} is missing a required info ${e.infoName}. Skipping...", e)
             } catch (e: Exception) {
-                com.lambda.client.LambdaMod.LOG.error("Failed to pre load plugin ${it.name}", e)
+                LambdaMod.LOG.error("Failed to pre load plugin ${it.name}", e)
             }
         }
 
@@ -55,7 +57,7 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
             validLoaders.forEach(PluginManager::loadWithoutCheck)
         }
 
-        com.lambda.client.LambdaMod.LOG.info("Loaded ${loadedPlugins.size} plugins!")
+        LambdaMod.LOG.info("Loaded ${loadedPlugins.size} plugins!")
     }
 
     private fun checkPluginLoaders(loaders: List<PluginLoader>): List<PluginLoader> {
@@ -64,7 +66,7 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
 
         for (loader in loaders) {
             // Hot reload check, the error shouldn't be show when reload in game
-            if (com.lambda.client.LambdaMod.ready && !loader.info.hotReload) {
+            if (LambdaMod.ready && !loader.info.hotReload) {
                 invalids.add(loader)
             }
 
@@ -104,7 +106,7 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
 
     fun load(loader: PluginLoader) {
         synchronized(this) {
-            val hotReload = com.lambda.client.LambdaMod.ready && !loader.info.hotReload
+            val hotReload = LambdaMod.ready && !loader.info.hotReload
             val duplicate = loadedPlugins.containsName(loader.name)
             val unsupported = DefaultArtifactVersion(loader.info.minApiVersion) > lambdaVersion
             val missing = !loadedPlugins.containsNames(loader.info.requiredPlugins)
@@ -125,13 +127,13 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        com.lambda.client.LambdaMod.LOG.warn("Main class not found in plugin $loader", it)
+                        LambdaMod.LOG.warn("Main class not found in plugin $loader", it)
                     }
                     is IllegalAccessException -> {
-                        com.lambda.client.LambdaMod.LOG.warn(it.message, it)
+                        LambdaMod.LOG.warn(it.message, it)
                     }
                     else -> {
-                        com.lambda.client.LambdaMod.LOG.error("Failed to load plugin $loader", it)
+                        LambdaMod.LOG.error("Failed to load plugin $loader", it)
                     }
                 }
                 return
@@ -144,13 +146,13 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
             plugin
         }
 
-        com.lambda.client.LambdaMod.LOG.info("Loaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Loaded plugin ${plugin.name}")
     }
 
     fun unloadAll() {
         loadedPlugins.filter { it.hotReload }.forEach(PluginManager::unloadWithoutCheck)
 
-        com.lambda.client.LambdaMod.LOG.info("Unloaded all plugins!")
+        LambdaMod.LOG.info("Unloaded all plugins!")
     }
 
     fun unload(plugin: Plugin) {
@@ -177,7 +179,7 @@ internal object PluginManager : com.lambda.client.AsyncLoader<List<PluginLoader>
             }
         }
 
-        com.lambda.client.LambdaMod.LOG.info("Unloaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Unloaded plugin ${plugin.name}")
     }
 
 }
