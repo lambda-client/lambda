@@ -1,4 +1,4 @@
-package com.lambda.client.module.modules.combat
+package com.lambda.client.module.modules.misc
 
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
