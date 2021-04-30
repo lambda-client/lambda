@@ -2,6 +2,7 @@ package com.lambda.client.plugin
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.commons.interfaces.Nameable
 import com.lambda.commons.utils.ClassUtils.instance
@@ -26,7 +27,7 @@ internal class PluginLoader(
     init {
         // This will trigger the null checks in PluginInfo
         // In order to make sure all required infos are present
-        com.lambda.client.LambdaMod.LOG.debug(info.toString())
+        LambdaMod.LOG.debug(info.toString())
     }
 
     fun verify(): Boolean {
@@ -42,13 +43,13 @@ internal class PluginLoader(
             toString()
         }
 
-        com.lambda.client.LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
+        LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
 
         return checksumSets.contains(result)
     }
 
     fun load(): Plugin {
-        if (com.lambda.client.LambdaMod.ready && !info.hotReload) {
+        if (LambdaMod.ready && !info.hotReload) {
             throw IllegalAccessException("Plugin $this cannot be hot reloaded!")
         }
 
