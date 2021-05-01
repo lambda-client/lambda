@@ -1,5 +1,6 @@
 package com.lambda.client.util.graphics.font
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.util.graphics.texture.MipmapTexture
 import com.lambda.commons.utils.MathUtils
 import org.lwjgl.opengl.GL11.*
@@ -137,7 +138,7 @@ class FontGlyphs(private val font: Font, private val fallbackFont: Font) {
             GlyphChunk(chunk, texture, charInfoArray)
 
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.error("Failed to load glyph chunk $chunk.", e)
+            LambdaMod.LOG.error("Failed to load glyph chunk $chunk.", e)
             null
         }
     }

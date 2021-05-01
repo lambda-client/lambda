@@ -18,6 +18,7 @@ import com.lambda.commons.utils.ClassUtils.instance
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import com.lambda.client.LambdaMod
 
 object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
     com.lambda.client.AsyncLoader<List<Class<out ClientCommand>>> {
@@ -31,7 +32,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
 
         val time = stopTimer.stop()
 
-        com.lambda.client.LambdaMod.LOG.info("${list.size} commands found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} commands found, took ${time}ms")
         return list
     }
 
@@ -43,7 +44,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
         }
 
         val time = stopTimer.stop()
-        com.lambda.client.LambdaMod.LOG.info("${input.size} commands loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} commands loaded, took ${time}ms")
     }
 
     override fun register(builder: CommandBuilder<ClientExecuteEvent>): Command<ClientExecuteEvent> {
@@ -63,7 +64,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
     fun runCommand(string: String) {
         defaultScope.launch {
             val args = tryParseArgument(string) ?: return@launch
-            com.lambda.client.LambdaMod.LOG.debug("Running command with args: [${args.joinToString()}]")
+            LambdaMod.LOG.debug("Running command with args: [${args.joinToString()}]")
 
             try {
                 try {
@@ -75,7 +76,7 @@ object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
                 }
             } catch (e: Exception) {
                 MessageSendHelper.sendChatMessage("Error occurred while running command! (${e.message}), check the log for info!")
-                com.lambda.client.LambdaMod.LOG.warn("Error occurred while running command!", e)
+                LambdaMod.LOG.warn("Error occurred while running command!", e)
             }
         }
     }

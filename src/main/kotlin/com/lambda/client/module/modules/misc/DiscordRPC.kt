@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.misc
 import club.minnced.discord.rpc.DiscordEventHandlers
 import club.minnced.discord.rpc.DiscordRichPresence
 import com.lambda.capeapi.CapeType
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ShutdownEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -70,20 +71,20 @@ internal object DiscordRPC : Module(
     private fun start() {
         if (connected) return
 
-        com.lambda.client.LambdaMod.LOG.info("Starting Discord RPC")
+        LambdaMod.LOG.info("Starting Discord RPC")
         connected = true
-        rpc.Discord_Initialize(com.lambda.client.LambdaMod.APP_ID, DiscordEventHandlers(), true, "")
+        rpc.Discord_Initialize(LambdaMod.APP_ID, DiscordEventHandlers(), true, "")
         presence.startTimestamp = System.currentTimeMillis() / 1000L
 
         BackgroundScope.launchLooping(job)
 
-        com.lambda.client.LambdaMod.LOG.info("Discord RPC initialised successfully")
+        LambdaMod.LOG.info("Discord RPC initialised successfully")
     }
 
     private fun end() {
         if (!connected) return
 
-        com.lambda.client.LambdaMod.LOG.info("Shutting down Discord RPC...")
+        LambdaMod.LOG.info("Shutting down Discord RPC...")
         BackgroundScope.cancel(job)
         connected = false
         rpc.Discord_Shutdown()
@@ -105,7 +106,7 @@ internal object DiscordRPC : Module(
     private fun getLine(line: LineInfo): String {
         return when (line) {
             LineInfo.VERSION -> {
-                com.lambda.client.LambdaMod.VERSION_SIMPLE
+                LambdaMod.VERSION_SIMPLE
             }
             LineInfo.WORLD -> {
                 when {

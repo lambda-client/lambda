@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.lambda.capeapi.PlayerProfile
+import com.lambda.client.LambdaMod
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
 import com.lambda.commons.extension.synchronized
@@ -13,7 +14,7 @@ import java.io.FileWriter
 
 object FriendManager : Manager {
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val file = File(com.lambda.client.LambdaMod.DIRECTORY + "friends.json")
+    private val file = File(LambdaMod.DIRECTORY + "friends.json")
 
     private var friendFile = FriendFile()
     val friends = HashMap<String, PlayerProfile>().synchronized()
@@ -47,10 +48,10 @@ object FriendManager : Manager {
             friendFile = gson.fromJson(FileReader(file), object : TypeToken<FriendFile>() {}.type)
             friends.clear()
             friends.putAll(friendFile.friends.associateBy { it.name.toLowerCase() })
-            com.lambda.client.LambdaMod.LOG.info("Friend loaded")
+            LambdaMod.LOG.info("Friend loaded")
             true
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed loading friends", e)
+            LambdaMod.LOG.warn("Failed loading friends", e)
             false
         }
     }
@@ -60,10 +61,10 @@ object FriendManager : Manager {
             FileWriter(file, false).buffered().use {
                 gson.toJson(friendFile, it)
             }
-            com.lambda.client.LambdaMod.LOG.info("Friends saved")
+            LambdaMod.LOG.info("Friends saved")
             true
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed saving friends", e)
+            LambdaMod.LOG.warn("Failed saving friends", e)
             false
         }
     }

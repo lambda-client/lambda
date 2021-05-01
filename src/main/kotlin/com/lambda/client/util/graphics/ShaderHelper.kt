@@ -1,5 +1,6 @@
 package com.lambda.client.util.graphics
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ResolutionUpdateEvent
 import com.lambda.client.util.Wrapper
@@ -23,12 +24,12 @@ class ShaderHelper(shaderIn: ResourceLocation, vararg frameBufferNames: String) 
     init {
         shader = when {
             !OpenGlHelper.shadersSupported -> {
-                com.lambda.client.LambdaMod.LOG.warn("Shaders are unsupported by OpenGL!")
+                LambdaMod.LOG.warn("Shaders are unsupported by OpenGL!")
                 null
             }
 
             isIntegratedGraphics -> {
-                com.lambda.client.LambdaMod.LOG.warn("Running on Intel Integrated Graphics!")
+                LambdaMod.LOG.warn("Running on Intel Integrated Graphics!")
                 null
             }
 
@@ -40,7 +41,7 @@ class ShaderHelper(shaderIn: ResourceLocation, vararg frameBufferNames: String) 
                         it.createBindFramebuffers(mc.displayWidth, mc.displayHeight)
                     }
                 } catch (e: Exception) {
-                    com.lambda.client.LambdaMod.LOG.warn("Failed to load shaders")
+                    LambdaMod.LOG.warn("Failed to load shaders")
                     e.printStackTrace()
 
                     null

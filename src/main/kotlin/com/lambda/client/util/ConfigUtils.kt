@@ -1,5 +1,6 @@
 package com.lambda.client.util
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.manager.managers.MacroManager
 import com.lambda.client.manager.managers.UUIDManager
@@ -63,7 +64,7 @@ object ConfigUtils {
                     it.write(if (isArray) "[]" else "{}")
                 }
             } catch (exception: IOException) {
-                com.lambda.client.LambdaMod.LOG.warn("Failed fixing empty json", exception)
+                LambdaMod.LOG.warn("Failed fixing empty json", exception)
             }
         }
     }
@@ -91,14 +92,14 @@ object ConfigUtils {
             newConfig.file.parentFile.mkdirs()
             Files.move(oldConfig.absoluteFile.toPath(), newConfig.file.absoluteFile.toPath())
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Error moving legacy config", e)
+            LambdaMod.LOG.warn("Error moving legacy config", e)
         }
 
         try {
             newConfig.backup.parentFile.mkdirs()
             Files.move(oldConfigBak.absoluteFile.toPath(), newConfig.backup.absoluteFile.toPath())
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Error moving legacy config", e)
+            LambdaMod.LOG.warn("Error moving legacy config", e)
         }
     }
 
@@ -113,7 +114,7 @@ object ConfigUtils {
             newConfig.parentFile.mkdirs()
             Files.move(oldConfig.absoluteFile.toPath(), newConfig.absoluteFile.toPath())
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Error moving legacy config", e)
+            LambdaMod.LOG.warn("Error moving legacy config", e)
         }
     }
 

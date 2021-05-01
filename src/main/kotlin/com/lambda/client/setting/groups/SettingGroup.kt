@@ -2,6 +2,7 @@ package com.lambda.client.setting.groups
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
+import com.lambda.client.LambdaMod
 import com.lambda.client.setting.settings.AbstractSetting
 import com.lambda.commons.interfaces.Nameable
 import java.util.*
@@ -65,7 +66,7 @@ open class SettingGroup(
                         val value = it.get(setting.name.toJsonName())
                         setting.read(value)
                     } catch (e: Exception) {
-                        com.lambda.client.LambdaMod.LOG.warn("Failed loading setting ${setting.name} at $name", e)
+                        LambdaMod.LOG.warn("Failed loading setting ${setting.name} at $name", e)
                     }
                 }
             }
