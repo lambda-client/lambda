@@ -39,7 +39,7 @@ open class Component(
         { _, it -> if (this is WindowComponent && com.lambda.client.LambdaMod.ready) absToRelativeY(relativeToAbsY(it).coerceIn(1.0f, max(scaledDisplayHeight - height - 1.0f, 1.0f))) else it })
 
     var width by widthSetting
-    var height by heightSetting
+    open var height by heightSetting
     var relativePosX by relativePosXSetting
     var relativePosY by relativePosYSetting
     var dockingH by dockingHSetting
