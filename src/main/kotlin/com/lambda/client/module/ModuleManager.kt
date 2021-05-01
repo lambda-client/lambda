@@ -1,5 +1,7 @@
 package com.lambda.client.module
 
+import com.lambda.client.AsyncLoader
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.AsyncCachedValue
 import com.lambda.client.util.StopTimer
@@ -11,7 +13,7 @@ import kotlinx.coroutines.Deferred
 import org.lwjgl.input.Keyboard
 import java.lang.reflect.Modifier
 
-object ModuleManager : com.lambda.client.AsyncLoader<List<Class<out AbstractModule>>> {
+object ModuleManager : AsyncLoader<List<Class<out AbstractModule>>> {
     override var deferred: Deferred<List<Class<out AbstractModule>>>? = null
 
     private val moduleSet = AliasSet<AbstractModule>()
@@ -30,7 +32,7 @@ object ModuleManager : com.lambda.client.AsyncLoader<List<Class<out AbstractModu
 
         val time = stopTimer.stop()
 
-        com.lambda.client.LambdaMod.LOG.info("${list.size} modules found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} modules found, took ${time}ms")
         return list
     }
 
@@ -42,7 +44,7 @@ object ModuleManager : com.lambda.client.AsyncLoader<List<Class<out AbstractModu
         }
 
         val time = stopTimer.stop()
-        com.lambda.client.LambdaMod.LOG.info("${input.size} modules loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} modules loaded, took ${time}ms")
     }
 
     internal fun register(module: AbstractModule) {

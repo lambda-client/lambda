@@ -1,9 +1,0 @@
-{
-  "variants": {
-    "normal": [
-      {
-        "model": "lambda:lambda_xray_transparent"
-      }
-    ]
-  }
-}

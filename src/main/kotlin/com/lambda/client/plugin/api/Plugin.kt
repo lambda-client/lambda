@@ -42,7 +42,7 @@ open class Plugin : Nameable {
     /**
      * The list of [Manager] the plugin will add.
      *
-     * @sample com.lambda.client.manager.managers.KamiMojiManager
+     * @sample com.lambda.client.manager.managers.LambdaMojiManager
      */
     val managers = CloseableList<Manager>()
 

@@ -12,7 +12,7 @@ object CreditsCommand : ClientCommand(
     description = "List all the people who have contributed!"
 ) {
     private val gson = Gson()
-    private const val url = "https://api.github.com/repos/kami-blue/client/contributors"
+    private const val url = "https://api.github.com/repos/lambda-client/lambda/contributors"
 
     init {
         executeAsync {
@@ -30,7 +30,7 @@ object CreditsCommand : ClientCommand(
                 }
             }.toString()
 
-            MessageSendHelper.sendChatMessage("Contributors to kami-blue/client: ${formatValue(contributors.size)}\n$formatted")
+            MessageSendHelper.sendChatMessage("Contributors to lambda-client/lambda: ${formatValue(contributors.size)}\n$formatted")
         }
     }
 
