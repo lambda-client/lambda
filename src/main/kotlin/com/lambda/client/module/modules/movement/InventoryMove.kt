@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -82,7 +83,7 @@ internal object InventoryMove : Module(
                 }
             } catch (e: IndexOutOfBoundsException) {
                 if (!hasSent) {
-                    com.lambda.client.LambdaMod.LOG.error("$chatName Error: Key is bound to a mouse button!", e)
+                    LambdaMod.LOG.error("$chatName Error: Key is bound to a mouse button!", e)
                     hasSent = true
                 }
             }

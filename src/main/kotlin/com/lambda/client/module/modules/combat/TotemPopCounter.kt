@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.FriendManager
@@ -110,7 +111,7 @@ internal object TotemPopCounter : Module(
 
     private fun plural(count: Int) = if (count == 1) "totem" else "totems"
 
-    private fun ending(self: Boolean): String = if (!self && thanksTo) " thanks to ${com.lambda.client.LambdaMod.NAME} !" else "!"
+    private fun ending(self: Boolean): String = if (!self && thanksTo) " thanks to ${LambdaMod.NAME} !" else "!"
 
     private fun sendMessage(message: String, public: Boolean) {
         if (public) {

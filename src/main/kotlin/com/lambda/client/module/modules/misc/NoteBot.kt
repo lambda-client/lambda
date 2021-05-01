@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.misc
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderWorldEvent
@@ -105,7 +106,7 @@ internal object NoteBot : Module(
 
     private fun loadSong() {
         defaultScope.launch(Dispatchers.IO) {
-            val path = "${com.lambda.client.LambdaMod.DIRECTORY}songs/$songName"
+            val path = "${LambdaMod.DIRECTORY}songs/$songName"
 
             try {
                 parse(path).let {

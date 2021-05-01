@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.mixin.extension.*
@@ -45,7 +46,7 @@ internal object PacketLogger : Module(
     private var lastTick = 0L
     private val timer = TickTimer(TimeUnit.SECONDS)
 
-    private const val directory = "${com.lambda.client.LambdaMod.DIRECTORY}packetLogs"
+    private const val directory = "${LambdaMod.DIRECTORY}packetLogs"
     private var filename = ""
     private var lines = ArrayList<String>()
 
@@ -487,7 +488,7 @@ internal object PacketLogger : Module(
                     for (line in lines) it.write(line)
                 }
             } catch (e: Exception) {
-                com.lambda.client.LambdaMod.LOG.warn("$chatName Failed saving packet log!", e)
+                LambdaMod.LOG.warn("$chatName Failed saving packet log!", e)
             }
         }
     }

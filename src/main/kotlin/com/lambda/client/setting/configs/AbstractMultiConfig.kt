@@ -1,5 +1,6 @@
 package com.lambda.client.setting.configs
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.setting.groups.SettingMultiGroup
 import com.lambda.client.setting.settings.SettingRegister
 import java.io.File
@@ -33,7 +34,7 @@ abstract class AbstractMultiConfig<T : Any>(
             try {
                 loadFromFile(group, file.first)
             } catch (e: Exception) {
-                com.lambda.client.LambdaMod.LOG.warn("Failed to load latest, loading backup.")
+                LambdaMod.LOG.warn("Failed to load latest, loading backup.")
                 loadFromFile(group, file.second)
             }
         }

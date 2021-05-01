@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.capeapi.Cape
 import com.lambda.capeapi.CapeType
 import com.lambda.capeapi.CapeUser
+import com.lambda.client.LambdaMod
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.misc.DiscordRPC
@@ -63,8 +64,8 @@ internal object Capes : Module(
 
     private suspend fun updateCapes() {
         val rawJson = withContext(Dispatchers.IO) {
-            ConnectionUtils.requestRawJsonFrom(com.lambda.client.LambdaMod.CAPES_JSON) {
-                com.lambda.client.LambdaMod.LOG.warn("Failed requesting capes", it)
+            ConnectionUtils.requestRawJsonFrom(LambdaMod.CAPES_JSON) {
+                LambdaMod.LOG.warn("Failed requesting capes", it)
             }
         } ?: return
 
@@ -87,9 +88,9 @@ internal object Capes : Module(
 
             updated = true
             DiscordRPC.setCustomIcons(capeType)
-            com.lambda.client.LambdaMod.LOG.info("Capes loaded")
+            LambdaMod.LOG.info("Capes loaded")
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed parsing capes", e)
+            LambdaMod.LOG.warn("Failed parsing capes", e)
         }
     }
 

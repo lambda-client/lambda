@@ -1,6 +1,7 @@
 package com.lambda.client.util.text
 
 import baritone.api.event.events.ChatEvent
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.CommandManager
 import com.lambda.client.manager.managers.MessageManager
 import com.lambda.client.module.AbstractModule
@@ -95,6 +96,6 @@ object MessageSendHelper {
         }
     }
 
-    private fun coloredName(colorCode: Char) = "&7[&$colorCode" + com.lambda.client.LambdaMod.LAMBDA + "&7] &r"
+    private fun coloredName(colorCode: Char) = "&7[&$colorCode" + LambdaMod.LAMBDA + "&7] &r"
 
 }

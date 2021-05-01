@@ -1,5 +1,6 @@
 package com.lambda.client.util.threads
 
+import com.lambda.client.LambdaMod
 import kotlinx.coroutines.*
 
 @Suppress("EXPERIMENTAL_API_USAGE")
@@ -37,7 +38,7 @@ internal object BackgroundScope : CoroutineScope by CoroutineScope(newFixedThrea
                 try {
                     job.block(this)
                 } catch (e: Exception) {
-                    com.lambda.client.LambdaMod.LOG.warn("Error occurred while running background job ${job.name}", e)
+                    LambdaMod.LOG.warn("Error occurred while running background job ${job.name}", e)
                 }
                 delay(job.delay)
             }

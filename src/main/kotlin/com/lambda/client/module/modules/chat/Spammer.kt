@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
@@ -28,7 +29,7 @@ internal object Spammer : Module(
     private val loadRemote = setting("Load From URL", false)
     private val remoteURL = setting("Remote URL", "Unchanged", { loadRemote.value })
 
-    private val file = File(com.lambda.client.LambdaMod.DIRECTORY + "spammer.txt")
+    private val file = File(LambdaMod.DIRECTORY + "spammer.txt")
     private val spammer = ArrayList<String>().synchronized()
     private val timer = TickTimer(TimeUnit.SECONDS)
     private var currentLine = 0

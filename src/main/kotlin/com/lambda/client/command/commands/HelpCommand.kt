@@ -1,5 +1,6 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
 import com.lambda.client.util.text.MessageSendHelper
@@ -45,7 +46,7 @@ object HelpCommand : ClientCommand(
                 "How do I use Baritone? - ${formatValue("${prefix}b")}\n" +
                 "How do I change ${TextFormatting.GRAY};${TextFormatting.RESET} to something else? - ${formatValue("${prefix}prefix")}\n" +
                 "How do I get a Cape? - Donate, or contribute to one of our projects.\n" +
-                "Other questions? - Get support at ${TextFormatting.BLUE}${com.lambda.client.LambdaMod.WEBSITE_LINK}/discord"
+                "Other questions? - Get support at ${TextFormatting.BLUE}${LambdaMod.WEBSITE_LINK}/discord"
             )
         }
     }

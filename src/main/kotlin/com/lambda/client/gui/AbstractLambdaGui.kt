@@ -117,6 +117,8 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
             settingWindow = this
             windowList.add(this)
 
+            onGuiInit()
+
             val screenWidth = mc.displayWidth / ClickGUI.getScaleFactorFloat()
             val screenHeight = mc.displayHeight / ClickGUI.getScaleFactorFloat()
 
@@ -128,7 +130,6 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
             posY = min(mousePos.y, screenHeight - this.height)
 
-            onGuiInit()
             onDisplayed()
         }
     }

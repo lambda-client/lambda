@@ -33,7 +33,7 @@ open class ListWindow(
     override val maxHeight get() = mc.displayHeight.toFloat()
     override val resizable: Boolean get() = hoveredChild == null
 
-    private val lineSpace = 3.0f
+    val lineSpace = 3.0f
     var hoveredChild: Component? = null
         private set(value) {
             if (value == field) return

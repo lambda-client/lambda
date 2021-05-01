@@ -1,5 +1,6 @@
 package com.lambda.client.util
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ShutdownEvent
 import com.lambda.client.util.ConfigUtils.saveAll
 import net.minecraft.client.Minecraft
@@ -21,7 +22,7 @@ object Wrapper {
 
     @JvmStatic
     fun saveAndShutdown() {
-        if (!com.lambda.client.LambdaMod.ready) return
+        if (!LambdaMod.ready) return
 
         ShutdownEvent.post()
         saveAll()

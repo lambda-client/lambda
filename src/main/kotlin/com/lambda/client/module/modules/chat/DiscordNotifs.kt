@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.chat
 
 import com.google.gson.JsonObject
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.CommandManager
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
@@ -38,9 +39,9 @@ internal object DiscordNotifs : Module(
 
     val url = setting("URL", "unchanged")
     val pingID = setting("Ping ID", "unchanged")
-    val avatar = setting("Avatar", "${com.lambda.client.LambdaMod.GITHUB_LINK}/assets/raw/assets/assets/icons/kamiGithub.png")
+    val avatar = setting("Avatar", "${LambdaMod.GITHUB_LINK}/assets/raw/assets/assets/icons/kamiGithub.png")
 
-    private const val username = "${com.lambda.client.LambdaMod.NAME} ${com.lambda.client.LambdaMod.VERSION}"
+    private const val username = "${LambdaMod.NAME} ${LambdaMod.VERSION}"
     private val server: String get() = mc.currentServerData?.serverIP ?: "the server"
     private val timer = TickTimer(TimeUnit.SECONDS)
 
@@ -142,11 +143,11 @@ internal object DiscordNotifs : Module(
                     }
 
                     if (response.isNotEmpty()) {
-                        com.lambda.client.LambdaMod.LOG.info("Unexpected response from DiscordNotifs http request: $response")
+                        LambdaMod.LOG.info("Unexpected response from DiscordNotifs http request: $response")
                     }
                 },
                 {
-                    com.lambda.client.LambdaMod.LOG.warn("Error while sending webhook", it)
+                    LambdaMod.LOG.warn("Error while sending webhook", it)
                 },
             )
         }

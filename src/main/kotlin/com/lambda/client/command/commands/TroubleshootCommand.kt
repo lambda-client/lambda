@@ -1,5 +1,6 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.util.text.MessageSendHelper
@@ -18,7 +19,7 @@ object TroubleshootCommand : ClientCommand(
             MessageSendHelper.sendErrorMessage("&l&cSend a screenshot of all information below this line!")
             MessageSendHelper.sendChatMessage("Enabled Modules:\n" + ModuleManager.modules.filter { it.isEnabled }.joinToString { it.name })
             MessageSendHelper.sendChatMessage("Forge ${ForgeVersion.getMajorVersion()}.${ForgeVersion.getMinorVersion()}.${ForgeVersion.getRevisionVersion()}.${ForgeVersion.getBuildVersion()}")
-            MessageSendHelper.sendChatMessage("${com.lambda.client.LambdaMod.NAME} ${com.lambda.client.LambdaMod.LAMBDA} ${com.lambda.client.LambdaMod.VERSION}")
+            MessageSendHelper.sendChatMessage("${LambdaMod.NAME} ${LambdaMod.LAMBDA} ${LambdaMod.VERSION}")
             MessageSendHelper.sendChatMessage("CPU: ${OpenGlHelper.getCpu()} GPU: ${GlStateManager.glGetString(GL11.GL_VENDOR)}")
             MessageSendHelper.sendErrorMessage("&l&cPlease send a screenshot of the full output to the developer or moderator who's helping you!")
         }
