@@ -1,5 +1,6 @@
 package com.lambda.client.util.graphics.font
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.color.DyeColors
@@ -105,7 +106,7 @@ object LambdaFontRenderer {
                 Font(CustomFont.fontName.value, style.styleConst, 64)
             }
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed loading main font. Using Sans Serif font.", e)
+            LambdaMod.LOG.warn("Failed loading main font. Using Sans Serif font.", e)
             getSansSerifFont(style.styleConst)
         }
 
@@ -113,7 +114,7 @@ object LambdaFontRenderer {
         val fallbackFont = try {
             Font(getFallbackFont(), style.styleConst, 64)
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed loading fallback font. Using Sans Serif font", e)
+            LambdaMod.LOG.warn("Failed loading fallback font. Using Sans Serif font", e)
             getSansSerifFont(style.styleConst)
         }
 

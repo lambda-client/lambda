@@ -1,5 +1,6 @@
 package com.lambda.client.setting
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.setting.configs.IConfig
 import com.lambda.commons.collections.NameableSet
 
@@ -24,10 +25,10 @@ internal object ConfigManager {
     fun load(config: IConfig): Boolean {
         return try {
             config.load()
-            com.lambda.client.LambdaMod.LOG.info("${config.name} config loaded")
+            LambdaMod.LOG.info("${config.name} config loaded")
             true
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.error("Failed to load ${config.name} config", e)
+            LambdaMod.LOG.error("Failed to load ${config.name} config", e)
             false
         }
     }
@@ -45,10 +46,10 @@ internal object ConfigManager {
     fun save(config: IConfig): Boolean {
         return try {
             config.save()
-            com.lambda.client.LambdaMod.LOG.info("${config.name} config saved")
+            LambdaMod.LOG.info("${config.name} config saved")
             true
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.error("Failed to save ${config.name} config!", e)
+            LambdaMod.LOG.error("Failed to save ${config.name} config!", e)
             false
         }
     }

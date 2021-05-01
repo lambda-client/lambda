@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.client
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.module.AbstractModule
@@ -55,7 +56,7 @@ internal object Configurations : AbstractModule(
         BackgroundScope.launchLooping("Config Auto Saving", 60000L) {
             if (autoSaving && mc.currentScreen !is AbstractLambdaGui<*, *> && timer.tick(savingInterval.toLong())) {
                 if (savingFeedBack) MessageSendHelper.sendChatMessage("Auto saving settings...")
-                else com.lambda.client.LambdaMod.LOG.info("Auto saving settings...")
+                else LambdaMod.LOG.info("Auto saving settings...")
                 ConfigUtils.saveAll()
             }
         }
@@ -106,7 +107,7 @@ internal object Configurations : AbstractModule(
             MessageSendHelper.sendChatMessage("Preset set to ${formatValue(nameWithoutExtension)}!")
         } catch (e: IOException) {
             MessageSendHelper.sendChatMessage("Couldn't set preset: ${e.message}")
-            com.lambda.client.LambdaMod.LOG.warn("Couldn't set path!", e)
+            LambdaMod.LOG.warn("Couldn't set path!", e)
 
             setting.value = prev
             ConfigManager.save(GenericConfig)
@@ -209,7 +210,7 @@ internal object Configurations : AbstractModule(
                     fileFrom.copyTo(fileTo, true)
                 } catch (e: Exception) {
                     MessageSendHelper.sendErrorMessage("Failed to copy preset, ${e.message}")
-                    com.lambda.client.LambdaMod.LOG.error("Failed to copy preset", e)
+                    LambdaMod.LOG.error("Failed to copy preset", e)
                 }
             }
         }
@@ -231,7 +232,7 @@ internal object Configurations : AbstractModule(
                     MessageSendHelper.sendChatMessage("Deleted preset $name for ${formatValue(displayName)} config")
                 } catch (e: Exception) {
                     MessageSendHelper.sendErrorMessage("Failed to delete preset, ${e.message}")
-                    com.lambda.client.LambdaMod.LOG.error("Failed to delete preset", e)
+                    LambdaMod.LOG.error("Failed to delete preset", e)
                 }
             }
         }

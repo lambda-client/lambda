@@ -3,6 +3,7 @@ package com.lambda.client.setting.configs
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
+import com.lambda.client.LambdaMod
 import com.lambda.client.setting.groups.SettingGroup
 import com.lambda.client.setting.groups.SettingMultiGroup
 import com.lambda.client.setting.settings.AbstractSetting
@@ -37,7 +38,7 @@ abstract class AbstractConfig<T : Any>(
         try {
             loadFromFile(this, file)
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed to load latest, loading backup.")
+            LambdaMod.LOG.warn("Failed to load latest, loading backup.")
             loadFromFile(this, backup)
         }
     }

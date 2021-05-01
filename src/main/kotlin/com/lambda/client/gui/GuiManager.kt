@@ -1,5 +1,6 @@
 package com.lambda.client.gui
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.hudgui.AbstractHudElement
@@ -30,7 +31,7 @@ internal object GuiManager : com.lambda.client.AsyncLoader<List<Class<out Abstra
 
         val time = stopTimer.stop()
 
-        com.lambda.client.LambdaMod.LOG.info("${list.size} hud elements found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} hud elements found, took ${time}ms")
         return list
     }
 
@@ -42,7 +43,7 @@ internal object GuiManager : com.lambda.client.AsyncLoader<List<Class<out Abstra
         }
 
         val time = stopTimer.stop()
-        com.lambda.client.LambdaMod.LOG.info("${input.size} hud elements loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} hud elements loaded, took ${time}ms")
 
         LambdaClickGui.onGuiClosed()
         LambdaHudGui.onGuiClosed()

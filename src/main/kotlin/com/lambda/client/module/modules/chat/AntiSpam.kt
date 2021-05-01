@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
@@ -188,6 +189,6 @@ internal object AntiSpam : Module(
 
     private fun sendResult(name: String, message: String) {
         if (showBlocked.value == ShowBlocked.CHAT || showBlocked.value == ShowBlocked.BOTH) MessageSendHelper.sendChatMessage("$chatName $name: $message")
-        if (showBlocked.value == ShowBlocked.LOG_FILE || showBlocked.value == ShowBlocked.BOTH) com.lambda.client.LambdaMod.LOG.info("$chatName $name: $message")
+        if (showBlocked.value == ShowBlocked.LOG_FILE || showBlocked.value == ShowBlocked.BOTH) LambdaMod.LOG.info("$chatName $name: $message")
     }
 }

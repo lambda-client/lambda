@@ -2,6 +2,7 @@ package com.lambda.client.manager.managers
 
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.WaypointUpdateEvent
 import com.lambda.client.manager.Manager
@@ -18,7 +19,7 @@ import java.util.concurrent.ConcurrentSkipListSet
 
 object WaypointManager : Manager {
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val file = File(com.lambda.client.LambdaMod.DIRECTORY + "waypoints.json")
+    private val file = File(LambdaMod.DIRECTORY + "waypoints.json")
     private val sdf = SimpleDateFormat("HH:mm:ss dd/MM/yyyy")
 
     val waypoints = ConcurrentSkipListSet<Waypoint>(compareBy { it.id })
@@ -34,10 +35,10 @@ object WaypointManager : Manager {
             waypoints.clear()
             waypoints.addAll(cacheArray)
 
-            com.lambda.client.LambdaMod.LOG.info("Waypoint loaded")
+            LambdaMod.LOG.info("Waypoint loaded")
             true
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed loading waypoints", e)
+            LambdaMod.LOG.warn("Failed loading waypoints", e)
             false
         }
 
@@ -50,10 +51,10 @@ object WaypointManager : Manager {
             FileWriter(file, false).buffered().use {
                 gson.toJson(waypoints, it)
             }
-            com.lambda.client.LambdaMod.LOG.info("Waypoint saved")
+            LambdaMod.LOG.info("Waypoint saved")
             true
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed saving waypoint", e)
+            LambdaMod.LOG.warn("Failed saving waypoint", e)
             false
         }
     }
@@ -77,7 +78,7 @@ object WaypointManager : Manager {
             LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.ADD, waypoint))
             waypoint
         } else {
-            com.lambda.client.LambdaMod.LOG.error("Error during waypoint adding")
+            LambdaMod.LOG.error("Error during waypoint adding")
             dateFormatter(BlockPos(0, 0, 0), locationName) // This shouldn't happen
         }
     }

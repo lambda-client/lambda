@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.Category
@@ -53,7 +54,7 @@ internal object AutoExcuse : Module(
         "The CPU cheated!"
     )
 
-    private val file = File(com.lambda.client.LambdaMod.DIRECTORY + "excuses.txt")
+    private val file = File(LambdaMod.DIRECTORY + "excuses.txt")
     private var loadedExcuses = defaultExcuses
 
     private val clients = arrayOf(
@@ -81,7 +82,7 @@ internal object AutoExcuse : Module(
                         file.forEachLine { if (it.isNotBlank()) cacheList.add(it.trim()) }
                         MessageSendHelper.sendChatMessage("$chatName Loaded spammer messages!")
                     } catch (e: Exception) {
-                        com.lambda.client.LambdaMod.LOG.error("Failed loading excuses", e)
+                        LambdaMod.LOG.error("Failed loading excuses", e)
                     }
                     cacheList.toTypedArray()
                 } else {

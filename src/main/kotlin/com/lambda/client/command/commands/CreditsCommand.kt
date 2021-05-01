@@ -6,6 +6,7 @@ import com.lambda.client.command.ClientCommand
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
 import com.lambda.commons.utils.ConnectionUtils
+import com.lambda.client.LambdaMod
 
 object CreditsCommand : ClientCommand(
     name = "credits",
@@ -18,7 +19,7 @@ object CreditsCommand : ClientCommand(
         executeAsync {
             val contributors = getContributors() ?: run {
                 MessageSendHelper.sendErrorMessage("Failed to retrieve contributors from Github API.\n" +
-                    "Checkout the page manually: &9${com.lambda.client.LambdaMod.GITHUB_LINK}/client/graphs/contributors")
+                    "Checkout the page manually: &9${LambdaMod.GITHUB_LINK}/client/graphs/contributors")
                 return@executeAsync
             }
 
@@ -37,11 +38,11 @@ object CreditsCommand : ClientCommand(
     private fun getContributors(): Array<GithubUser>? {
         return try {
             val rawJson = ConnectionUtils.requestRawJsonFrom(url) {
-                com.lambda.client.LambdaMod.LOG.error("Failed to load Github contributors", it)
+                LambdaMod.LOG.error("Failed to load Github contributors", it)
             }
             gson.getAdapter(Array<GithubUser>::class.java).fromJson(rawJson)
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.error("Failed to parse Github contributors", e)
+            LambdaMod.LOG.error("Failed to parse Github contributors", e)
             null
         }
     }
