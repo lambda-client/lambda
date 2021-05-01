@@ -1,5 +1,6 @@
 package com.lambda.client.setting.configs
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.IPluginClass
 import com.lambda.client.plugin.api.PluginHudElement
 import com.lambda.client.plugin.api.PluginModule
@@ -8,7 +9,7 @@ import com.lambda.commons.interfaces.Nameable
 import java.io.File
 
 class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(
-    pluginName, "${com.lambda.client.LambdaMod.DIRECTORY}config/plugins/$pluginName"
+    pluginName, "${LambdaMod.DIRECTORY}config/plugins/$pluginName"
 ) {
     override val file: File get() = File("$filePath/default.json")
     override val backup: File get() = File("$filePath/default.bak")
