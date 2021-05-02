@@ -25,6 +25,7 @@ internal object AutoDupe : Module(
 ) {
 
     private val cancelGUI by setting("Cancel GUI", true)
+    private val rotate by setting("Rotate", true)
     private var hiddenInfo by setting("How-to", false, {false})
 
     private var currentWaitPhase = WaitPhase.NONE
@@ -64,13 +65,13 @@ init {
             if (System.currentTimeMillis() - startTimeStamp < 120L) {
                 if (!mc.player.recipeBook.isGuiOpen) mc.player.recipeBook.isGuiOpen = true
             }
-
+            if (rotate) mc.player.rotationPitch = 180f
             idBefore = Item.getIdFromItem(mc.player.inventory.getCurrentItem().item)
             countBefore = countItem(idBefore)
             slotBefore = mc.player.inventory.currentItem
             throwAllInSlot(slotBefore + 36)
             if (!cancelGUI) mc.displayGuiScreen(GuiInventory(mc.player as EntityPlayer) as GuiScreen)
-            if (!mc.player.recipeBook.isGuiOpen) abort("Failed to open Recipe Book. Have you crafted a button before?")
+            if (!mc.player.recipeBook.isGuiOpen) abort("Failed to open Recipe Book. Try opening it manually.")
             currentWaitPhase = WaitPhase.PICKUP
         }
 
