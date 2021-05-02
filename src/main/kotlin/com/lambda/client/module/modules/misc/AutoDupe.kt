@@ -7,8 +7,10 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.gui.inventory.GuiInventory
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.init.Blocks
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.Item
+import net.minecraft.item.ItemBlock
 import net.minecraft.item.crafting.CraftingManager
 import net.minecraft.item.crafting.IRecipe
 import net.minecraft.network.play.client.CPacketPlaceRecipe
@@ -39,10 +41,8 @@ internal object AutoDupe : Module(
 
 init {
     onEnable {
-        currentWaitPhase = WaitPhase.DROP
-        
-        val ip = mc.currentServerData?.serverIP
-        if (ip != null || ip != "5b5t.org") MessageSendHelper.sendWarningMessage("This module is only tested on 5B5T, And is not expected to work elsewhere.")
+        val check = checkForPlanks()
+        if (check == -1) abort("Planks were not found in inventory.") else currentWaitPhase = WaitPhase.DROP
 
         if (!hiddenInfo) {
             MessageSendHelper.sendChatMessage("To do the dupe: have wooden planks in your inventory, hold the item you wish to dupe, and toggle the module. wait until the item is picked back up.")
@@ -70,7 +70,7 @@ init {
             slotBefore = mc.player.inventory.currentItem
             throwAllInSlot(slotBefore + 36)
             if (!cancelGUI) mc.displayGuiScreen(GuiInventory(mc.player as EntityPlayer) as GuiScreen)
-            if (!mc.player.recipeBook.isGuiOpen) abort("Failed to open Recipe Book. Do you have planks, and have you crafted a button before?")
+            if (!mc.player.recipeBook.isGuiOpen) abort("Failed to open Recipe Book. Have you crafted a button before?")
             currentWaitPhase = WaitPhase.PICKUP
         }
 
@@ -116,6 +116,19 @@ init {
             }
         }
         thread.start()
+    }
+
+    private fun checkForPlanks(): Int {
+        for (i in 0..35) {
+            val stack = mc.player.inventory.getStackInSlot(i)
+            if (stack.item is ItemBlock) {
+                val block = (stack.item as ItemBlock).block
+                if (block == Blocks.PLANKS) {
+                    return i
+                }
+            }
+        }
+        return -1
     }
 
     private fun abort(msg: String) {
