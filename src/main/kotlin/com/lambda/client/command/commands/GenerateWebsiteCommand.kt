@@ -1,5 +1,6 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.Category
@@ -15,7 +16,7 @@ object GenerateWebsiteCommand : ClientCommand(
     name = "generatewebsite",
     description = "Generates the website modules to the file"
 ) {
-    private const val path = "${com.lambda.client.LambdaMod.DIRECTORY}modules.md"
+    private const val path = "${LambdaMod.DIRECTORY}modules.md"
 
     init {
         executeAsync {

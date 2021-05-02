@@ -5,7 +5,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 
 /**
- * @see MixinEntityRenderer.rayTraceBlocks
+ * @see MixinEntityRenderer.orientCameraStoreRayTraceBlocks
  */
 internal object CameraClip : Module(
     name = "CameraClip",

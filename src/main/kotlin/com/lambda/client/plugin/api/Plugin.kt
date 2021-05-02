@@ -42,7 +42,7 @@ open class Plugin : Nameable {
     /**
      * The list of [Manager] the plugin will add.
      *
-     * @sample com.lambda.client.manager.managers.KamiMojiManager
+     * @sample com.lambda.client.manager.managers.LambdaMojiManager
      */
     val managers = CloseableList<Manager>()
 
@@ -65,14 +65,14 @@ open class Plugin : Nameable {
      *
      * @sample com.lambda.client.gui.hudgui.elements.client.ModuleList
      */
-    private val hudElements = CloseableList<PluginHudElement>()
+    val hudElements = CloseableList<PluginHudElement>()
 
     /**
      * The list of [BackgroundJob] the plugin will add.
      *
      * @sample com.lambda.client.module.modules.client.CommandConfig
      */
-    private val bgJobs = CloseableList<BackgroundJob>()
+    val bgJobs = CloseableList<BackgroundJob>()
 
     internal fun setInfo(infoIn: PluginInfo) {
         info = infoIn

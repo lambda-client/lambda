@@ -11,25 +11,25 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 
 internal object LoaderWrapper {
-    private val loaderList = ArrayList<com.lambda.client.AsyncLoader<*>>()
+    private val loaderList = ArrayList<AsyncLoader<*>>()
 
     init {
-        com.lambda.client.LoaderWrapper.loaderList.add(ModuleManager)
-        com.lambda.client.LoaderWrapper.loaderList.add(CommandManager)
-        com.lambda.client.LoaderWrapper.loaderList.add(ManagerLoader)
-        com.lambda.client.LoaderWrapper.loaderList.add(GuiManager)
-        com.lambda.client.LoaderWrapper.loaderList.add(PluginManager)
+        loaderList.add(ModuleManager)
+        loaderList.add(CommandManager)
+        loaderList.add(ManagerLoader)
+        loaderList.add(GuiManager)
+        loaderList.add(PluginManager)
     }
 
     @JvmStatic
     fun preLoadAll() {
-        com.lambda.client.LoaderWrapper.loaderList.forEach { it.preLoad() }
+        loaderList.forEach { it.preLoad() }
     }
 
     @JvmStatic
     fun loadAll() {
         runBlocking {
-            com.lambda.client.LoaderWrapper.loaderList.forEach { it.load() }
+            loaderList.forEach { it.load() }
         }
     }
 }

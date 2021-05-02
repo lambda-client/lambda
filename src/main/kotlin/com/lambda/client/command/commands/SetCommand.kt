@@ -1,5 +1,6 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.gui.GuiManager
 import com.lambda.client.gui.hudgui.AbstractHudElement
@@ -160,7 +161,7 @@ object SetCommand : ClientCommand(
             MessageSendHelper.sendChatMessage("Set ${formatValue(setting.name)} to ${formatValue(setting.value)}.")
         } catch (e: Exception) {
             MessageSendHelper.sendChatMessage("Unable to set value! ${TextFormatting.RED format e.message.toString()}")
-            com.lambda.client.LambdaMod.LOG.info("Unable to set value!", e)
+            LambdaMod.LOG.info("Unable to set value!", e)
         }
     }
 

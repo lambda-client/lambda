@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.client
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ModuleToggleEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -24,7 +25,7 @@ internal object CommandConfig : Module(
 
     private val timer = TickTimer()
     private val prevTitle = Display.getTitle()
-    private const val title = "${com.lambda.client.LambdaMod.NAME} ${com.lambda.client.LambdaMod.LAMBDA} ${com.lambda.client.LambdaMod.VERSION_SIMPLE}"
+    private const val title = "${LambdaMod.NAME} ${LambdaMod.LAMBDA} ${LambdaMod.VERSION_SIMPLE}"
 
     init {
         listener<ModuleToggleEvent> {

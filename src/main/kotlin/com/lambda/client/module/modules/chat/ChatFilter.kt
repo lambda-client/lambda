@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
@@ -20,7 +21,7 @@ internal object ChatFilter : Module(
     private var hasRunInfo by setting("Info", false, { false })
 
     private val chatFilter = ArrayList<Regex>()
-    private val file = File(com.lambda.client.LambdaMod.DIRECTORY + "chat_filter.txt")
+    private val file = File(LambdaMod.DIRECTORY + "chat_filter.txt")
 
     init {
         onEnable {

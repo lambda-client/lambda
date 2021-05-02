@@ -1,5 +1,6 @@
 package com.lambda.client.gui.rgui
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.GuiConfig
 import com.lambda.client.setting.GuiConfig.setting
@@ -34,12 +35,12 @@ open class Component(
     private var heightSetting = setting("Height", heightIn, 0.0f..69420.911f, 0.1f, { false }, { _, it -> it.coerceIn(minHeight, max(scaledDisplayHeight, minHeight)) })
 
     private var relativePosXSetting = setting("Pos X", posXIn, -69420.911f..69420.911f, 0.1f, { false },
-        { _, it -> if (this is WindowComponent && com.lambda.client.LambdaMod.ready) absToRelativeX(relativeToAbsX(it).coerceIn(1.0f, max(scaledDisplayWidth - width - 1.0f, 1.0f))) else it })
+        { _, it -> if (this is WindowComponent && LambdaMod.ready) absToRelativeX(relativeToAbsX(it).coerceIn(1.0f, max(scaledDisplayWidth - width - 1.0f, 1.0f))) else it })
     private var relativePosYSetting = setting("Pos Y", posYIn, -69420.911f..69420.911f, 0.1f, { false },
-        { _, it -> if (this is WindowComponent && com.lambda.client.LambdaMod.ready) absToRelativeY(relativeToAbsY(it).coerceIn(1.0f, max(scaledDisplayHeight - height - 1.0f, 1.0f))) else it })
+        { _, it -> if (this is WindowComponent && LambdaMod.ready) absToRelativeY(relativeToAbsY(it).coerceIn(1.0f, max(scaledDisplayHeight - height - 1.0f, 1.0f))) else it })
 
     var width by widthSetting
-    var height by heightSetting
+    open var height by heightSetting
     var relativePosX by relativePosXSetting
     var relativePosY by relativePosYSetting
     var dockingH by dockingHSetting
@@ -50,7 +51,7 @@ open class Component(
             return relativeToAbsX(relativePosX)
         }
         set(value) {
-            if (!com.lambda.client.LambdaMod.ready) return
+            if (!LambdaMod.ready) return
             relativePosX = absToRelativeX(value)
         }
 
@@ -59,7 +60,7 @@ open class Component(
             return relativeToAbsY(relativePosY)
         }
         set(value) {
-            if (!com.lambda.client.LambdaMod.ready) return
+            if (!LambdaMod.ready) return
             relativePosY = absToRelativeY(value)
         }
 

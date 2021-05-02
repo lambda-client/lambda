@@ -1,5 +1,6 @@
 package com.lambda.client.util
 
+import com.lambda.client.LambdaMod
 import com.lambda.commons.utils.ConnectionUtils
 import java.awt.Desktop
 import java.io.BufferedReader
@@ -15,7 +16,7 @@ object WebUtils {
         try {
             Desktop.getDesktop().browse(URI(url))
         } catch (e: IOException) {
-            com.lambda.client.LambdaMod.LOG.error("Couldn't open link: $url")
+            LambdaMod.LOG.error("Couldn't open link: $url")
         }
     }
 

@@ -129,7 +129,6 @@ internal object BedAura : Module(
         val cacheMap = CombatManager.target?.let {
             val posList = VectorUtils.getBlockPosInSphere(player.getPositionEyes(1f), range.value)
             val damagePosMap = HashMap<Pair<Float, Float>, BlockPos>()
-            val eyePos = player.getPositionEyes(1.0f)
 
             for (pos in posList) {
                 val dist = player.distanceTo(pos)

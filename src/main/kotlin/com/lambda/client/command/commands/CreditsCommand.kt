@@ -6,19 +6,20 @@ import com.lambda.client.command.ClientCommand
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
 import com.lambda.commons.utils.ConnectionUtils
+import com.lambda.client.LambdaMod
 
 object CreditsCommand : ClientCommand(
     name = "credits",
     description = "List all the people who have contributed!"
 ) {
     private val gson = Gson()
-    private const val url = "https://api.github.com/repos/kami-blue/client/contributors"
+    private const val url = "https://api.github.com/repos/lambda-client/lambda/contributors"
 
     init {
         executeAsync {
             val contributors = getContributors() ?: run {
                 MessageSendHelper.sendErrorMessage("Failed to retrieve contributors from Github API.\n" +
-                    "Checkout the page manually: &9${com.lambda.client.LambdaMod.GITHUB_LINK}/client/graphs/contributors")
+                    "Checkout the page manually: &9${LambdaMod.GITHUB_LINK}/client/graphs/contributors")
                 return@executeAsync
             }
 
@@ -30,18 +31,18 @@ object CreditsCommand : ClientCommand(
                 }
             }.toString()
 
-            MessageSendHelper.sendChatMessage("Contributors to kami-blue/client: ${formatValue(contributors.size)}\n$formatted")
+            MessageSendHelper.sendChatMessage("Contributors to lambda-client/lambda: ${formatValue(contributors.size)}\n$formatted")
         }
     }
 
     private fun getContributors(): Array<GithubUser>? {
         return try {
             val rawJson = ConnectionUtils.requestRawJsonFrom(url) {
-                com.lambda.client.LambdaMod.LOG.error("Failed to load Github contributors", it)
+                LambdaMod.LOG.error("Failed to load Github contributors", it)
             }
             gson.getAdapter(Array<GithubUser>::class.java).fromJson(rawJson)
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.error("Failed to parse Github contributors", e)
+            LambdaMod.LOG.error("Failed to parse Github contributors", e)
             null
         }
     }

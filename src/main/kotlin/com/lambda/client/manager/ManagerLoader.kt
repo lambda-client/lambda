@@ -1,5 +1,6 @@
 package com.lambda.client.manager
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.StopTimer
 import com.lambda.commons.utils.ClassUtils
@@ -16,7 +17,7 @@ internal object ManagerLoader : com.lambda.client.AsyncLoader<List<Class<out Man
 
         val time = stopTimer.stop()
 
-        com.lambda.client.LambdaMod.LOG.info("${list.size} managers found, took ${time}ms")
+        LambdaMod.LOG.info("${list.size} managers found, took ${time}ms")
         return list
     }
 
@@ -28,6 +29,6 @@ internal object ManagerLoader : com.lambda.client.AsyncLoader<List<Class<out Man
         }
 
         val time = stopTimer.stop()
-        com.lambda.client.LambdaMod.LOG.info("${input.size} managers loaded, took ${time}ms")
+        LambdaMod.LOG.info("${input.size} managers loaded, took ${time}ms")
     }
 }

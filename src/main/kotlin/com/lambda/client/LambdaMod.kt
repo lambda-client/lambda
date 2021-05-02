@@ -14,9 +14,9 @@ import org.apache.logging.log4j.Logger
 import java.io.File
 
 @Mod(
-    modid = com.lambda.client.LambdaMod.Companion.ID,
-    name = com.lambda.client.LambdaMod.Companion.NAME,
-    version = com.lambda.client.LambdaMod.Companion.VERSION
+    modid = LambdaMod.ID,
+    name = LambdaMod.NAME,
+    version = LambdaMod.VERSION
 )
 class LambdaMod {
 
@@ -31,14 +31,14 @@ class LambdaMod {
 
         const val APP_ID = "835368493150502923"
 
-        const val DOWNLOADS_API = "https://lambda-client.org/api/v1/downloads.json" // needs to be changed when domain is registered
+        const val DOWNLOADS_API = "https://lambda-client.com/api/v1/downloads.json" // needs to be changed when domain is registered
         const val CAPES_JSON = "https://raw.githubusercontent.com/lambda-client/cape-api/capes/capes.json"
         const val GITHUB_LINK = "https://github.com/lambda-client/"
         const val WEBSITE_LINK = "https://lambda-client.com"
 
         const val LAMBDA = "λ"
 
-        val LOG: Logger = LogManager.getLogger(com.lambda.client.LambdaMod.Companion.NAME)
+        val LOG: Logger = LogManager.getLogger(NAME)
 
         var ready: Boolean = false; private set
     }
@@ -46,19 +46,19 @@ class LambdaMod {
     @Suppress("UNUSED_PARAMETER")
     @Mod.EventHandler
     fun preInit(event: FMLPreInitializationEvent) {
-        val directory = File(com.lambda.client.LambdaMod.Companion.DIRECTORY)
+        val directory = File(DIRECTORY)
         if (!directory.exists()) directory.mkdir()
 
         LambdaGuiUpdateNotification.updateCheck()
-        com.lambda.client.LoaderWrapper.preLoadAll()
+        LoaderWrapper.preLoadAll()
     }
 
     @Suppress("UNUSED_PARAMETER")
     @Mod.EventHandler
     fun init(event: FMLInitializationEvent) {
-        com.lambda.client.LambdaMod.Companion.LOG.info("Initializing ${com.lambda.client.LambdaMod.Companion.NAME} ${com.lambda.client.LambdaMod.Companion.VERSION}")
+        LOG.info("Initializing $NAME $VERSION")
 
-        com.lambda.client.LoaderWrapper.loadAll()
+        LoaderWrapper.loadAll()
 
         MinecraftForge.EVENT_BUS.register(ForgeEventProcessor)
 
@@ -67,12 +67,12 @@ class LambdaMod {
 
         BackgroundScope.start()
 
-        com.lambda.client.LambdaMod.Companion.LOG.info("${com.lambda.client.LambdaMod.Companion.NAME} initialized!")
+        LOG.info("$NAME initialized!")
     }
 
     @Suppress("UNUSED_PARAMETER")
     @Mod.EventHandler
     fun postInit(event: FMLPostInitializationEvent) {
-        com.lambda.client.LambdaMod.Companion.ready = true
+        ready = true
     }
 }

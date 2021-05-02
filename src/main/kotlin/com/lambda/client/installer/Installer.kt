@@ -1,5 +1,6 @@
 package com.lambda.client.installer
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.filesystem.FolderUtils
 import java.awt.Dimension
@@ -16,7 +17,7 @@ import kotlin.system.exitProcess
 object Installer : JPanel() {
 
     private var frame = JFrame()
-    private val downloadsApi = WebUtils.getUrlContents(com.lambda.client.LambdaMod.DOWNLOADS_API).replace("\n", "").split("\"")
+    private val downloadsApi = WebUtils.getUrlContents(LambdaMod.DOWNLOADS_API).replace("\n", "").split("\"")
     private var stableVersion = ""
     private var stableUrl = ""
     private var betaVersion = ""
@@ -24,7 +25,7 @@ object Installer : JPanel() {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        println("Running the ${com.lambda.client.LambdaMod.NAME} ${com.lambda.client.LambdaMod.VERSION} Installer")
+        println("Running the ${LambdaMod.NAME} ${LambdaMod.VERSION} Installer")
 
         if (downloadsApi.size < 19) {
             notify("Error while loading the Lambda Downloads API, couldn't connect to the URL or response is invalid. " +

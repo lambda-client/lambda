@@ -5,6 +5,7 @@
 
 package com.lambda.client.manager.managers
 
+import com.lambda.client.LambdaMod
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.lambda.client.manager.Manager
@@ -23,9 +24,9 @@ import java.net.URL
 import java.util.zip.ZipInputStream
 import javax.imageio.ImageIO
 
-object KamiMojiManager : Manager {
+object LambdaMojiManager : Manager {
 
-    private const val directory = "${com.lambda.client.LambdaMod.DIRECTORY}emojis"
+    private const val directory = "${LambdaMod.DIRECTORY}emojis"
     private const val versionURL = "https://raw.githubusercontent.com/2b2t-Utilities/emojis/master/version.json"
     private const val zipUrl = "https://github.com/2b2t-Utilities/emojis/archive/master.zip"
 
@@ -43,7 +44,7 @@ object KamiMojiManager : Manager {
         try {
             checkEmojiUpdate()
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed to check emoji update", e)
+            LambdaMod.LOG.warn("Failed to check emoji update", e)
         }
 
         directory.listFiles()?.forEach {
@@ -52,7 +53,7 @@ object KamiMojiManager : Manager {
             }
         }
 
-        com.lambda.client.LambdaMod.LOG.info("KamiMoji Initialized")
+        LambdaMod.LOG.info("LambdaMoji Initialized")
     }
 
     private fun checkEmojiUpdate() {
@@ -78,7 +79,7 @@ object KamiMojiManager : Manager {
         return try {
             parser.parse(stream.reader()).asJsonObject
         } catch (e: Exception) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed to parse emoji version Json", e)
+            LambdaMod.LOG.warn("Failed to parse emoji version Json", e)
             null
         }
     }
@@ -139,7 +140,7 @@ object KamiMojiManager : Manager {
 
             emojiMap[name] = texture
         } catch (e: IOException) {
-            com.lambda.client.LambdaMod.LOG.warn("Failed to load emoji", e)
+            LambdaMod.LOG.warn("Failed to load emoji", e)
         }
     }
 

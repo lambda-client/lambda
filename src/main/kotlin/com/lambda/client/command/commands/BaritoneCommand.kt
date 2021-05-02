@@ -1,5 +1,6 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
 import com.lambda.client.util.text.MessageSendHelper
@@ -148,7 +149,7 @@ object BaritoneCommand : ClientCommand(
         literal("version") {
             executeSafe {
                 exec("version")
-                MessageSendHelper.sendBaritoneMessage("Running on Lambda ${com.lambda.client.LambdaMod.VERSION}")
+                MessageSendHelper.sendBaritoneMessage("Running on Lambda ${LambdaMod.VERSION}")
             }
         }
 

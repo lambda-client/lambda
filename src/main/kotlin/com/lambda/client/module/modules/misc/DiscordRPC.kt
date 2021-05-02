@@ -3,9 +3,6 @@ package com.lambda.client.module.modules.misc
 import club.minnced.discord.rpc.DiscordEventHandlers
 import club.minnced.discord.rpc.DiscordRichPresence
 import com.lambda.capeapi.CapeType
-import net.minecraft.client.Minecraft
-import net.minecraft.init.Blocks
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ShutdownEvent
 import com.lambda.client.module.Category
@@ -24,12 +21,15 @@ import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.utils.MathUtils
 import com.lambda.event.listener.listener
+import net.minecraft.client.Minecraft
+import net.minecraft.init.Blocks
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
 internal object DiscordRPC : Module(
     name = "DiscordRPC",
     category = Category.MISC,
     description = "Discord Rich Presence",
-    enabledByDefault = true
+    enabledByDefault = false
 ) {
     private val highwayMode by setting("HighwayMode", false)
     private val line1Left by setting("Line 1 Left", LineInfo.VERSION, { !highwayMode }) // details left
