@@ -1,7 +1,6 @@
 package com.lambda.client.mixin.client.gui;
 
 import com.lambda.client.LambdaMod;
-import com.lambda.client.gui.mc.LambdaAltMenu;
 import net.minecraft.client.gui.GuiButton;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
