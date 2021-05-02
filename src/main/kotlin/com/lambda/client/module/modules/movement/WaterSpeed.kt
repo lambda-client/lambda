@@ -7,7 +7,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 internal object WaterSpeed : Module(
     name = "WaterSpeed",
-    category = Category.MISC,
+    category = Category.MOVEMENT,
     description = "Sink and Rise faster"
 ) {
     private val forward by setting("Forward Control", true)
