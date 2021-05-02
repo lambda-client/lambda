@@ -11,6 +11,8 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.Wrapper.world
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.event.listener.listener
+import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.init.SoundEvents
 import kotlin.math.roundToInt
 
 
@@ -33,6 +35,7 @@ internal object RideFinder : Module(
                 if (entities.contains(entity)) continue
                 if (entity is EntityDonkey || entity is EntityHorse || entity is EntitySkeletonHorse || (entity is EntityLlama && llama))
                 MessageSendHelper.sendChatMessage(entity.name + " located at: (" + entity.posX.roundToInt().toString() + ", " + entity.posY.roundToInt().toString() + ", " + entity.posZ.roundToInt().toString() + ")")
+                mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.0F))
                 entities.add(entity)
             }
         }
