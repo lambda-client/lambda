@@ -50,11 +50,7 @@ internal object Burrow : Module(
             }
 
             // Change to obsidian slot
-
-            // Change to obsidian slot
             BurrowUtils.switchToSlot(BurrowUtils.findHotbarBlock(BlockObsidian::class.java))
-
-            // Fake jump
 
             // Fake jump
             mc.player.connection.sendPacket(CPacketPlayer.Position(mc.player.posX, mc.player.posY + 0.41999998688698, mc.player.posZ, true))
@@ -63,14 +59,10 @@ internal object Burrow : Module(
             mc.player.connection.sendPacket(CPacketPlayer.Position(mc.player.posX, mc.player.posY + 1.16610926093821, mc.player.posZ, true))
 
             // Sneak option.
-
-            // Sneak option.
             val sneaking = mc.player.isSneaking
             if (sneak && sneaking) {
                     mc.player.connection.sendPacket(CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SNEAKING))
             }
-
-            // Place block
 
             // Place block
             originalPos?.let { it1 -> BurrowUtils.placeBlock(it1, EnumHand.MAIN_HAND, rotate, packet = true, isSneaking = false) }

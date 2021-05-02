@@ -21,13 +21,6 @@ object BurrowUtils {
 
     val mc: Minecraft = Minecraft.getMinecraft()
 
-    /*
-    Start block Util.
-     */
-
-    /*
-    Start block Util.
-     */
     fun placeBlock(pos: BlockPos, hand: EnumHand?, rotate: Boolean, packet: Boolean, isSneaking: Boolean): Boolean {
         var sneaking = false
         val side = getFirstFacing(pos) ?: return isSneaking
