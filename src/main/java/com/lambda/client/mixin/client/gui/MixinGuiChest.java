@@ -19,7 +19,6 @@ public class MixinGuiChest {
     @Inject(method = "drawScreen", at = @At("RETURN"))
     public void drawScreen(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (lowerChestInventory.getName().equals("Ender Chest")) {
-            System.out.println("They are here " + lowerChestInventory.getStackInSlot(0));
             ContainerPreview.INSTANCE.setEnderChestItems(lowerChestInventory);
         }
     }
