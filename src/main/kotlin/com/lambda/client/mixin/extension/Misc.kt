@@ -1,6 +1,8 @@
 package com.lambda.client.mixin.extension
 
+import com.lambda.client.mixin.client.accessor.player.AccessorEntityPlayerSP
 import net.minecraft.client.Minecraft
+import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemTool
 import net.minecraft.util.Timer
@@ -20,6 +22,11 @@ var Minecraft.rightClickDelayTimer: Int
 fun Minecraft.rightClickMouse() = (this as com.lambda.client.mixin.client.accessor.AccessorMinecraft).invokeRightClickMouse()
 
 fun Minecraft.sendClickBlockToController(leftClick: Boolean) = (this as com.lambda.client.mixin.client.accessor.AccessorMinecraft).invokeSendClickBlockToController(leftClick)
+
+var EntityPlayerSP.HorseJumpPower: Float get() = horseJumpPower
+set(value) {
+    (this as AccessorEntityPlayerSP).horseJumpPower(value)
+}
 
 var Timer.tickLength: Float
     get() = (this as com.lambda.client.mixin.client.accessor.AccessorTimer).tickLength

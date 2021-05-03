@@ -10,4 +10,6 @@ public interface AccessorEntityPlayerSP {
     @Accessor("handActive")
     void kbSetHandActive(boolean value);
 
+    @Accessor("horseJumpPower")
+    void horseJumpPower(float value);
 }
