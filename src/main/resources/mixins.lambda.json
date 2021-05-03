@@ -78,5 +78,8 @@
     "world.MixinBlockSoulSand",
     "world.MixinBlockWeb",
     "world.MixinWorld"
+  ],
+  "mixins": [
+    "render.MixinRenderItem"
   ]
 }
