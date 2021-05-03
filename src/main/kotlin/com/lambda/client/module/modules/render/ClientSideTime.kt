@@ -11,8 +11,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 internal object ClientSideTime : Module(
     name = "ClientSideTime",
     category = Category.RENDER,
-    description = "Change time of day client side",
-    showOnArray = false
+    description = "Change time of day client side"
 ) {
     private val time by setting("Time", 6000, 0..24000, 20)
 
