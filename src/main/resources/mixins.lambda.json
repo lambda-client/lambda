@@ -64,6 +64,7 @@
     "render.MixinRender",
     "render.MixinRenderGlobal",
     "render.MixinRenderLivingBase",
+    "render.MixinRenderItem",
     "render.MixinRenderManager",
     "render.MixinRenderPlayer",
     "render.MixinTileEntityRendererDispatcher",
@@ -78,8 +79,5 @@
     "world.MixinBlockSoulSand",
     "world.MixinBlockWeb",
     "world.MixinWorld"
-  ],
-  "mixins": [
-    "render.MixinRenderItem"
   ]
 }
