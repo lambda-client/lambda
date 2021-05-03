@@ -36,7 +36,7 @@ internal object Chams : Module(
     private val arrows by setting("Arrows", false, { page == Page.ENTITY_TYPE && !all })
     private val throwable by setting("Throwable", false, { page == Page.ENTITY_TYPE && !all })
     private val items by setting("Items", false, { page == Page.ENTITY_TYPE && !all })
-    private val tnt by setting("Lit TNT", false, { page == Page.ENTITY_TYPE && !all })
+    private val tnt by setting("Primed TNT", false, { page == Page.ENTITY_TYPE && !all })
     private val crystals by setting("Crystals", false, { page == Page.ENTITY_TYPE && !all })
     private val players by setting("Players", true, { page == Page.ENTITY_TYPE && !all })
     private val friends by setting("Friends", false, { page == Page.ENTITY_TYPE && !all && players })
