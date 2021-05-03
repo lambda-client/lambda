@@ -65,14 +65,14 @@ open class Plugin : Nameable {
      *
      * @sample com.lambda.client.gui.hudgui.elements.client.ModuleList
      */
-    val hudElements = CloseableList<PluginHudElement>()
+    private val hudElements = CloseableList<PluginHudElement>()
 
     /**
      * The list of [BackgroundJob] the plugin will add.
      *
      * @sample com.lambda.client.module.modules.client.CommandConfig
      */
-    val bgJobs = CloseableList<BackgroundJob>()
+    private val bgJobs = CloseableList<BackgroundJob>()
 
     internal fun setInfo(infoIn: PluginInfo) {
         info = infoIn
