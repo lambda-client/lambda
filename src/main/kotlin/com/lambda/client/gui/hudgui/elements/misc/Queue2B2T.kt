@@ -106,7 +106,11 @@ internal object Queue2B2T : LabelHud(
                 val minutes = grammar(minuteAmt.toInt(), "minute", "minutes")
                 val seconds = grammar(secondAmt.toInt(), "second", "seconds")
 
-                lastUpdateCache = "$minutes, $seconds"
+                lastUpdateCache = if (minuteAmt.toInt() == 0) {
+                    seconds
+                } else {
+                    "$minutes, $seconds"
+                }
             }
 
             return lastUpdateCache
