@@ -38,6 +38,8 @@ internal object Search : Module(
 
     private val updateDelay by setting("Update Delay", 1000, 500..3000, 50)
     private val range by setting("Search Range", 128, 0..256, 8)
+    private val yRangeBottom by setting("Top Y", 256, 0..256, 1)
+    private val yRangeTop by setting("Bottom Y", 0, 0..256, 1)
     private val maximumBlocks by setting("Maximum Blocks", 256, 16..4096, 128)
     private val filled by setting("Filled", true)
     private val outline by setting("Outline", true)
@@ -137,7 +139,7 @@ internal object Search : Module(
     }
 
     private fun findBlocksInChunk(chunk: Chunk, eyePos: Vec3d, map: MutableMap<Double, Pair<BlockPos, IBlockState>>) {
-        val yRange = 0..256
+        val yRange = yRangeTop..yRangeBottom
         val xRange = (chunk.x shl 4)..(chunk.x shl 4) + 15
         val zRange = (chunk.z shl 4)..(chunk.z shl 4) + 15
 
