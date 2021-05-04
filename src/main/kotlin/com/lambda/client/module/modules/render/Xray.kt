@@ -10,7 +10,7 @@ internal object Xray : Module(
     description = "Lets you see through blocks",
     category = Category.RENDER
 ) {
-    private val defaultVisibleList = linkedSetOf("minecraft:diamond_ore", "minecraft:iron_ore", "minecraft:gold_ore", "minecraft:portal", "minecraft:cobblestone", "minecraft:coal_ore", "minecraft:lava", "minecraft:water")
+    private val defaultVisibleList = linkedSetOf("minecraft:diamond_ore", "minecraft:iron_ore", "minecraft:gold_ore", "minecraft:portal", "minecraft:cobblestone", "minecraft:coal_ore", "minecraft:lava")
 
     val visibleList = setting(CollectionSetting("Visible List", defaultVisibleList, { false }))
 
