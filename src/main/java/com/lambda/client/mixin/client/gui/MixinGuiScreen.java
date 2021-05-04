@@ -6,7 +6,6 @@ import com.lambda.client.module.modules.render.ContainerPreview;
 import com.lambda.client.util.Wrapper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEnderChest;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ItemStackHelper;
