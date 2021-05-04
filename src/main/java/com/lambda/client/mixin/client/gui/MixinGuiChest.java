@@ -14,12 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GuiChest.class)
 public class MixinGuiChest {
 
-    @Final @Shadow private IInventory lowerChestInventory;
-
-    @Inject(method = "drawScreen", at = @At("RETURN"))
-    public void drawScreen(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        if (lowerChestInventory.getName().equals("Ender Chest")) {
-            ContainerPreview.INSTANCE.setEnderChestItems(lowerChestInventory);
+    @Inject(method = "<init>", at = @At("RETURN"))
+    public void drawScreen(IInventory upperInv, IInventory lowerInv, CallbackInfo ci) {
+        if (lowerInv.getName().equals("Ender Chest")) {
+            ContainerPreview.INSTANCE.setEnderChest(lowerInv);
         }
     }
 }

@@ -115,23 +115,6 @@ object RenderUtils2D {
         releaseGl()
     }
 
-    fun drawLineWithColorPoints(vertexHelper: VertexHelper, points: Array<Pair<Vec2d, ColorHolder>>, lineWidth: Float) {
-        prepareGl()
-        glLineWidth(lineWidth)
-
-        vertexHelper.begin(GL_LINES)
-        for ((i, point) in points.withIndex()) {
-            if (i < points.size - 1) {
-                vertexHelper.put(point.first, point.second)
-                vertexHelper.put(points[i + 1].first, points[i + 1].second)
-            }
-        }
-        vertexHelper.end()
-
-        releaseGl()
-        glLineWidth(1f)
-    }
-
     private fun drawTriangleFan(vertexHelper: VertexHelper, center: Vec2d, vertices: Array<Vec2d>, color: ColorHolder) {
         prepareGl()
 
