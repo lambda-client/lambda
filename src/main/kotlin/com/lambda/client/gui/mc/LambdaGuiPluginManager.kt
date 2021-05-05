@@ -1,5 +1,6 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.plugin.PluginManager
 import com.lambda.client.plugin.PluginManager.getLoaders
 import com.lambda.client.plugin.PluginManager.load
 import com.lambda.client.plugin.PluginManager.loadedPlugins
@@ -7,11 +8,14 @@ import com.lambda.client.plugin.PluginManager.unload
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.util.text.TextFormatting
+import java.awt.Desktop
+import java.io.File
 
 class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen() {
     private var lineSpace = 0
     private var renderTime = 0
     private var availablePlugins = getLoaders().sortedBy { it.name }
+    private val offset = 2
 
     override fun initGui() {
         super.initGui()
@@ -46,10 +50,11 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
     override fun actionPerformed(button: GuiButton) {
         when {
             button.id == 0 -> mc.displayGuiScreen(previousScreen)
+            button.id == 1 -> Desktop.getDesktop().open(File(PluginManager.pluginPath))
             button.id < 1000 -> {
                 availablePlugins.forEachIndexed { pluginIndex, pluginLoader ->
                     if (loadedPlugins.containsName(pluginLoader.name)) {
-                        if (pluginIndex == button.id - 1) {
+                        if (pluginIndex == button.id - offset) {
                             loadedPlugins[pluginLoader.name]?.let { unload(it) }
                             updateGui()
                         }
@@ -58,7 +63,7 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
             }
             else -> {
                 availablePlugins.forEachIndexed { pluginIndex, pluginLoader ->
-                    if (pluginIndex == button.id - 1001) {
+                    if (pluginIndex == button.id - 1000 - offset) {
                         load(pluginLoader)
                         updateGui()
                     }
@@ -71,13 +76,15 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
         buttonList.clear()
         availablePlugins = getLoaders().sortedBy { it.name }
 
-        buttonList.add(GuiButton(0, width / 2 - 100, height - 50, "Back"))
+        buttonList.add(GuiButton(0, width / 2 - 50, height - 50, 100, 20, "Back"))
+        buttonList.add(GuiButton(1, width / 2 - 200, height - 50, 130, 20, "Open Plugins Folder"))
+
         availablePlugins.forEachIndexed { index, pluginLoader ->
             if (loadedPlugins.containsName(pluginLoader.name)) {
-                buttonList.add(GuiButton(1 + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Unload"))
+                buttonList.add(GuiButton(offset + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Unload"))
                 if (!pluginLoader.info.hotReload) buttonList.firstOrNull { it.id == 1 + index }?.let { it.enabled = false }
             } else {
-                buttonList.add(GuiButton(1001 + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Load"))
+                buttonList.add(GuiButton(1000 + offset + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Load"))
                 if (!pluginLoader.info.hotReload) buttonList.firstOrNull { it.id == 1001 + index }?.let { it.enabled = false }
             }
         }
