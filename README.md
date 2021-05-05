@@ -21,3 +21,6 @@ Please go to [lambda-client.com/contributing](https://lambda-client.com/contribu
 The [Minecraft Forge team](https://github.com/MinecraftForge) for [forge](https://files.minecraftforge.net/)
 
 All the [contributors](https://github.com/lambda-client/lambda/graphs/contributors), including the ones who will be remembered in comments and in our hearts. This has been a huge community effort, and we would not be here without you.
+
+### Stargazers
+[![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
