@@ -1,18 +1,17 @@
 package com.lambda.client.gui.mc
 
-import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager.getLoaders
 import com.lambda.client.plugin.PluginManager.load
 import com.lambda.client.plugin.PluginManager.loadedPlugins
 import com.lambda.client.plugin.PluginManager.unload
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
-import java.util.*
+import net.minecraft.util.text.TextFormatting
 
 class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen() {
     private var lineSpace = 0
-    private var timee = 0
-    private var availablePlugins = getLoaders()
+    private var renderTime = 0
+    private var availablePlugins = getLoaders().sortedBy { it.name }
 
     override fun initGui() {
         super.initGui()
@@ -21,20 +20,25 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
     }
 
     override fun drawScreen(mouseX: Int, mouseY: Int, partialTicks: Float) {
-        if (timee % 100 == 0) updateGui()
+        if (renderTime % 500 == 0) updateGui()
 
         drawBackground(0)
         drawCenteredString(fontRenderer, "Plugin Manager", width / 2, 50, 0xFFFFFF)
 
-        if (loadedPlugins.isEmpty()) {
+        if (availablePlugins.isEmpty()) {
             drawCenteredString(fontRenderer, "No plugins loaded.", width / 2, 50 + lineSpace * 2, 0x808080)
         } else {
             availablePlugins.forEachIndexed { index, pluginLoader ->
-                drawCenteredString(fontRenderer, pluginLoader.name, width / 2, 50 + lineSpace * (index + 2), 0xffffff)
+                val color = if (loadedPlugins.containsName(pluginLoader.name)) {
+                    0xffffff
+                } else {
+                    0xaaaaaa
+                }
+                drawCenteredString(fontRenderer, pluginLoader.name + " v" + pluginLoader.info.version + " by " + pluginLoader.info.authors[0], width / 2, 50 + lineSpace * (index + 2), color)
             }
         }
 
-        timee++
+        renderTime++
 
         super.drawScreen(mouseX, mouseY, partialTicks)
     }
@@ -43,16 +47,18 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
         when {
             button.id == 0 -> mc.displayGuiScreen(previousScreen)
             button.id < 1000 -> {
-                loadedPlugins.forEachIndexed { pluginIndex, plugin ->
-                    if (pluginIndex == button.id - 1) {
-                        unload(plugin)
-                        updateGui()
+                availablePlugins.forEachIndexed { pluginIndex, pluginLoader ->
+                    if (loadedPlugins.containsName(pluginLoader.name)) {
+                        if (pluginIndex == button.id - 1) {
+                            loadedPlugins[pluginLoader.name]?.let { unload(it) }
+                            updateGui()
+                        }
                     }
                 }
             }
             else -> {
                 availablePlugins.forEachIndexed { pluginIndex, pluginLoader ->
-                    if (pluginIndex == button.id - 1000) {
+                    if (pluginIndex == button.id - 1001) {
                         load(pluginLoader)
                         updateGui()
                     }
@@ -63,12 +69,16 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
 
     private fun updateGui() {
         buttonList.clear()
+        availablePlugins = getLoaders().sortedBy { it.name }
+
         buttonList.add(GuiButton(0, width / 2 - 100, height - 50, "Back"))
-        getLoaders().forEachIndexed { index, pluginLoader ->
+        availablePlugins.forEachIndexed { index, pluginLoader ->
             if (loadedPlugins.containsName(pluginLoader.name)) {
-                buttonList.add(GuiButton(1 + index, width / 2 + 100, 50 + lineSpace * (index + 2) - 7, 50, 20,"Unload"))
+                buttonList.add(GuiButton(1 + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Unload"))
+                if (!pluginLoader.info.hotReload) buttonList.firstOrNull { it.id == 1 + index }?.let { it.enabled = false }
             } else {
-                buttonList.add(GuiButton(1000 + index, width / 2 + 100, 50 + lineSpace * (index + 2) - 7, 50, 20,"Load"))
+                buttonList.add(GuiButton(1001 + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Load"))
+                if (!pluginLoader.info.hotReload) buttonList.firstOrNull { it.id == 1001 + index }?.let { it.enabled = false }
             }
         }
     }
