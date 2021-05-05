@@ -7,7 +7,6 @@ import com.lambda.client.plugin.PluginManager.loadedPlugins
 import com.lambda.client.plugin.PluginManager.unload
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
-import net.minecraft.util.text.TextFormatting
 import java.awt.Desktop
 import java.io.File
 
