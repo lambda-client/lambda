@@ -1,8 +1,6 @@
 package com.lambda.client.mixin.client.gui;
 
 import com.lambda.client.LambdaMod;
-import com.lambda.client.gui.mc.LambdaGuiMenuButton;
-import com.lambda.client.gui.mc.LambdaGuiPluginError;
 import com.lambda.client.gui.mc.LambdaGuiPluginManager;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
