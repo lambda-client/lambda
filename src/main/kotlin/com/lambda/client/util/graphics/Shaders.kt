@@ -9,7 +9,6 @@ enum class Shaders(val s: String) {
     CITY("/assets/minecraft/shaders/menu/city.fsh"),
     CLOUDS("/assets/minecraft/shaders/menu/clouds.fsh"),
     DJ("/assets/minecraft/shaders/menu/dj.fsh"),
-    ICYFIRE("/assets/minecraft/shaders/menu/icyfire.fsh"),
     JUPITER("/assets/minecraft/shaders/menu/jupiter.fsh"),
     MATRIX("/assets/minecraft/shaders/menu/matrix.fsh"),
     MATRIXRED("/assets/minecraft/shaders/menu/matrixred.fsh"),
