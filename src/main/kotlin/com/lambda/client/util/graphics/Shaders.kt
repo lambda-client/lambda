@@ -1,4 +1,4 @@
-package com.lambda.client.util.shader
+package com.lambda.client.util.graphics
 
 @Suppress("UNUSED")
 enum class Shaders(val s: String) {

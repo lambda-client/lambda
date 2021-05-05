@@ -1,4 +1,4 @@
-package com.lambda.client.util.shader
+package com.lambda.client.util.graphics
 
 import org.lwjgl.opengl.GL20
 import java.io.ByteArrayOutputStream
@@ -33,12 +33,8 @@ class ShaderSandbox(fragmentShaderLocation: String) {
         return shader
     }
 
-    @Throws(IOException::class) private fun readStreamToString(inputStream: InputStream): String {
-        val out = ByteArrayOutputStream()
-        val buffer = ByteArray(512)
-        var read: Int
-        while (inputStream.read(buffer, 0, buffer.size).also { read = it } != -1) out.write(buffer, 0, read)
-        return out.toString(StandardCharsets.UTF_8.toString())
+    private fun readStreamToString(inputStream: InputStream): String {
+        return inputStream.readBytes().decodeToString()
     }
 
     init {

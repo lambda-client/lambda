@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.client
 
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.util.shader.Shaders
+import com.lambda.client.util.graphics.Shaders
 
 internal object MenuShader : Module(
     name = "MenuShader",
@@ -11,8 +11,8 @@ internal object MenuShader : Module(
     category = Category.CLIENT
 ) {
     val mode by setting("Mode", Mode.Random)
-    val shader by setting("Shader", Shaders.ICYFIRE, {mode == Mode.Set})
-
+    val shader by setting("Shader", Shaders.TRIANGLE, {mode == Mode.Set})
+    
     enum class Mode {
         Random, Set
     }
