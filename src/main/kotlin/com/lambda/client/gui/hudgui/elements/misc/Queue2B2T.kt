@@ -78,7 +78,7 @@ internal object Queue2B2T : LabelHud(
 
     private fun sendWarning() {
         MessageSendHelper.sendWarningMessage(
-            "This module uses an external API, 2bqueue.info, which is operated by Tycrek at the time of writing." +
+            "This module uses an external API, 2bqueue.info, which is operated by tycrek#0001." +
                 "If you do not trust this external API / have not verified the safety yourself, disable this HUD component."
         )
         hasShownWarning.value = true
