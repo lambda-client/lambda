@@ -7,7 +7,6 @@ import com.lambda.client.util.graphics.ShaderSandbox;
 import com.lambda.client.util.graphics.Shaders;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.text.TextFormatting;
 import org.spongepowered.asm.mixin.Mixin;
