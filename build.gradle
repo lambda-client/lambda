@@ -26,13 +26,6 @@ sourceSets.main.java {
     srcDirs += 'src/main/event'
 }
 
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-        useIR = true
-    }
-}
-
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
     options.encoding = 'UTF-8'
