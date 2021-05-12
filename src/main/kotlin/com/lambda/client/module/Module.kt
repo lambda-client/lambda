@@ -2,7 +2,7 @@ package com.lambda.client.module
 
 import com.lambda.client.setting.ModuleConfig
 
-internal abstract class Module(
+abstract class Module(
     name: String,
     alias: Array<String> = emptyArray(),
     category: Category,

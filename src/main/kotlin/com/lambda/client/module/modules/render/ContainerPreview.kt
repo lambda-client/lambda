@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 /**
  * @see MixinGuiScreen.renderToolTip
  */
-internal object ContainerPreview : Module(
+object ContainerPreview : Module(
     name = "ContainerPreview",
     category = Category.RENDER,
     description = "Previews shulkers and ender chests in the game GUI"

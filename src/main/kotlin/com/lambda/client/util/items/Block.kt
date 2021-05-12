@@ -34,7 +34,9 @@ val blockBlacklist: Set<Block> = hashSetOf(
     Blocks.DROPPER,
     Blocks.DISPENSER,
     Blocks.TRAPDOOR,
-    Blocks.ENCHANTING_TABLE
+    Blocks.ENCHANTING_TABLE,
+    Blocks.STANDING_SIGN,
+    Blocks.WALL_SIGN
 ).apply {
     addAll(shulkerList)
 }

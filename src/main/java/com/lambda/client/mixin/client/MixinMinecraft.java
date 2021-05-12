@@ -13,6 +13,7 @@ import com.lambda.client.util.Wrapper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.settings.GameSettings;
@@ -163,6 +164,13 @@ public abstract class MixinMinecraft {
     @Inject(method = "shutdown", at = @At("HEAD"))
     public void shutdown(CallbackInfo info) {
         Wrapper.saveAndShutdown();
+    }
+
+    @Inject(method = "setIngameFocus", at = @At("HEAD"), cancellable = true)
+    public void setIngameFocus(CallbackInfo info) {
+        if (currentScreen instanceof GuiContainer) {
+            info.cancel();
+        }
     }
 
 }

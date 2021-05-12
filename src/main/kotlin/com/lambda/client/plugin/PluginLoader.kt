@@ -43,7 +43,8 @@ internal class PluginLoader(
             toString()
         }
 
-        LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
+        // ToDo: Do no spam when in Lambda menu
+//        LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
 
         return checksumSets.contains(result)
     }
