@@ -26,7 +26,7 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
 
     @Inject(method = "initGui", at = @At("RETURN"), cancellable = true)
     public void initShader(CallbackInfo info) {
-        if(MenuShader.INSTANCE.getMode() == MenuShader.Mode.Random) {
+        if(MenuShader.INSTANCE.getMode() == MenuShader.Mode.RANDOM) {
             Random random = new Random();
             Shaders[] shaders = Shaders.values();
             backgroundShader = new ShaderSandbox(shaders[random.nextInt(shaders.length)].get());

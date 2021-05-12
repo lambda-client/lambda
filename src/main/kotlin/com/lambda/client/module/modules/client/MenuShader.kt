@@ -8,12 +8,13 @@ internal object MenuShader : Module(
     name = "MenuShader",
     description = "Shows a shader on the main menu",
     showOnArray = false,
-    category = Category.CLIENT
+    category = Category.CLIENT,
+    enabledByDefault = true
 ) {
-    val mode by setting("Mode", Mode.Random)
-    val shader by setting("Shader", Shaders.TRIANGLE, {mode == Mode.Set})
+    val mode by setting("Mode", Mode.SET)
+    val shader by setting("Shader", Shaders.CLOUDS, { mode == Mode.SET })
     
     enum class Mode {
-        Random, Set
+        RANDOM, SET
     }
 }
