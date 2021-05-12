@@ -25,11 +25,11 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
     override fun drawScreen(mouseX: Int, mouseY: Int, partialTicks: Float) {
         if (renderTime % 500 == 0) updateGui()
 
-        drawBackground(0)
+        drawDefaultBackground()
         drawCenteredString(fontRenderer, "Plugin Manager", width / 2, 50, 0xFFFFFF)
 
         if (availablePlugins.isEmpty()) {
-            drawCenteredString(fontRenderer, "No plugins loaded.", width / 2, 50 + lineSpace * 2, 0x808080)
+            drawCenteredString(fontRenderer, "No plugins in directory .minecraft/lambda/plugins found.", width / 2, 50 + lineSpace * 2, 0x808080)
         } else {
             availablePlugins.forEachIndexed { index, pluginLoader ->
                 val color = if (loadedPlugins.containsName(pluginLoader.name)) {
