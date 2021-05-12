@@ -28,9 +28,9 @@ public class MixinGuiMainMenu extends GuiScreen {
 
     @Inject(method = "drawScreen", at = @At("TAIL"), cancellable = true)
     public void drawText(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        FontRenderer fr = mc.fontRenderer;
-        fr.drawStringWithShadow(TextFormatting.WHITE + LambdaMod.NAME + " " + TextFormatting.GRAY + LambdaMod.VERSION, 2, 2, 0x808080);
-        fr.drawString(TextFormatting.GRAY + LambdaMod.WEBSITE_LINK,  2, 12, 0xffffff);
+        FontRenderer fr = fontRenderer;
+        String slogan = TextFormatting.WHITE + LambdaMod.NAME + " " + TextFormatting.GRAY + LambdaMod.VERSION;
+        drawString(fr, slogan, width - fr.getStringWidth(slogan) - 2, this.height - 20, -1);
     }
 
     @Inject(method = "actionPerformed", at = @At("TAIL"), cancellable = true)
