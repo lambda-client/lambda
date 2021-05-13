@@ -1,7 +1,7 @@
 package com.lambda.client.gui.mc
 
-import com.lambda.client.LambdaMod
 import com.google.gson.JsonParser
+import com.lambda.client.LambdaMod
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.color.ColorConverter
 import com.lambda.client.util.threads.mainScope

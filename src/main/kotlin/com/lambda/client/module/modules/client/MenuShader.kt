@@ -7,7 +7,6 @@ import com.lambda.client.util.Wrapper
 import net.minecraft.client.renderer.OpenGlHelper.glGetShaderi
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
-import org.lwjgl.BufferUtils
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.GL_QUADS
 import org.lwjgl.opengl.GL20.*

@@ -1,5 +1,6 @@
 package com.lambda.client.command
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.ClientExecuteEvent
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.module.modules.client.CommandConfig
@@ -18,7 +19,6 @@ import com.lambda.commons.utils.ClassUtils.instance
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import com.lambda.client.LambdaMod
 
 object CommandManager : AbstractCommandManager<ClientExecuteEvent>(),
     com.lambda.client.AsyncLoader<List<Class<out ClientCommand>>> {

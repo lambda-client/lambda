@@ -5,9 +5,9 @@
 
 package com.lambda.client.manager.managers
 
-import com.lambda.client.LambdaMod
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.lambda.client.LambdaMod
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.graphics.texture.MipmapTexture
 import com.lambda.client.util.threads.defaultScope
