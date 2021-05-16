@@ -1,6 +1,9 @@
+![GitHub All Releases](https://img.shields.io/github/downloads/lambda-client/lambda/total)
+[![license](https://img.shields.io/badge/License-GPL_v3.0-white.svg)](https://github.com/lambda-client/lambda/blob/master/LICENSE)
 [![CodeFactor](https://www.codefactor.io/repository/github/lambda-client/lambda/badge)](https://www.codefactor.io/repository/github/lambda-client/lambda)
 [![build](https://github.com/lambda-client/lambda/workflows/gradle_build/badge.svg)](https://github.com/lambda-client/lambda/actions)
 [![Discord Mine](https://img.shields.io/discord/834570721070022687?label=chat&logo=discord&logoColor=white)](https://discord.gg/SYS2CXGsqa)
+![minecraft](https://img.shields.io/badge/Minecraft-1.12.2-blue.svg)
 
 # Lambda
 
