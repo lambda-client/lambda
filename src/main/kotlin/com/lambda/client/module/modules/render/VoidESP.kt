@@ -27,6 +27,7 @@ internal object VoidESP : Module(
     private val aOutline by setting("Outline Alpha", 255, 0..255, 1)
     private val renderMode by setting("Mode", Mode.BLOCK_HOLE)
     private val range by setting("Range", 8, 4..32, 1)
+    private val dangerous by setting("Show safe void", false, description = "Show all void holes, rather than just dangerous ones")
 
     @Suppress("UNUSED")
     private enum class Mode {
@@ -68,8 +69,10 @@ internal object VoidESP : Module(
         }
     }
 
-    private fun SafeClientEvent.isVoid(pos: BlockPos) = world.isAirBlock(pos)
+    private fun SafeClientEvent.isVoid(pos: BlockPos) =
+        if (dangerous) {
+            world.isAirBlock(pos)
+        } else world.isAirBlock(pos)
         && world.isAirBlock(pos.up())
         && world.isAirBlock(pos.up().up())
-
 }
