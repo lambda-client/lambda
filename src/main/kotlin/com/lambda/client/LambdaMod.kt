@@ -34,6 +34,7 @@ class LambdaMod {
         const val DOWNLOADS_API = "https://lambda-client.com/api/v1/downloads.json" // needs to be changed when domain is registered
         const val CAPES_JSON = "https://raw.githubusercontent.com/lambda-client/cape-api/capes/capes.json"
         const val GITHUB_LINK = "https://github.com/lambda-client/"
+        const val PLUGIN_LINK = "https://api.github.com/orgs/lambda-plugins/repos"
         const val WEBSITE_LINK = "https://lambda-client.com"
 
         const val LAMBDA = "λ"
