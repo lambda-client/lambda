@@ -1,12 +1,14 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.plugin.PluginLoader
+import com.lambda.client.plugin.api.Plugin
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Gui
 import net.minecraft.client.gui.GuiListExtended.IGuiListEntry
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.ResourceLocation
 
-class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: LambdaPluginSelectionList.PluginData): IGuiListEntry {
+class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: LambdaPluginSelectionList.PluginData, val plugin: Plugin? = null, val loader: PluginLoader? = null): IGuiListEntry {
     val mc: Minecraft = Minecraft.getMinecraft()
     private val unknownPlugin = ResourceLocation("textures/misc/unknown_server.png")
 
@@ -15,7 +17,20 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
     }
 
     override fun drawEntry(slotIndex: Int, x: Int, y: Int, listWidth: Int, slotHeight: Int, mouseX: Int, mouseY: Int, isSelected: Boolean, partialTicks: Float) {
-        mc.fontRenderer.drawString(pluginData.name, x + 32 + 3, y + 1, 16777215)
+        val fr = mc.fontRenderer
+        fr.drawString(pluginData.name, x + 32 + 3, y + 1, 16777215)
+        var description = ""
+        plugin?.let {
+            description = it.description
+        }
+        loader?.let {
+            description = it.info.description
+        }
+        if (pluginData.repoDescription != "") {
+            description = pluginData.repoDescription
+        }
+        fr.drawString(description, x + 32 + 3, y + 1 + fr.FONT_HEIGHT * 1, 16777215)
+        fr.drawString(pluginData.pluginState.toString(), x + 32 + 3, y + 1 + fr.FONT_HEIGHT * 2, 16777215)
         drawPluginIcon(x, y, unknownPlugin)
     }
 

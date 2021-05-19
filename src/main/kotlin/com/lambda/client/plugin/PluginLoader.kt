@@ -12,7 +12,7 @@ import java.lang.reflect.Type
 import java.net.URLClassLoader
 import java.security.MessageDigest
 
-internal class PluginLoader(
+class PluginLoader(
     val file: File
 ) : Nameable {
 
