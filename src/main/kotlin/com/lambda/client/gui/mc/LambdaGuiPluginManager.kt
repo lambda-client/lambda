@@ -6,7 +6,6 @@ import com.lambda.client.plugin.PluginManager
 import com.lambda.client.plugin.PluginManager.load
 import com.lambda.client.plugin.PluginManager.unload
 import com.lambda.client.util.threads.defaultScope
-import com.lambda.client.util.threads.runSafe
 import com.lambda.commons.utils.ConnectionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,7 +20,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
 
-class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen() {
+class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen() {
     private lateinit var pluginListSelector: LambdaPluginSelectionList
     private var renderTime = 1
 
@@ -45,7 +44,7 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
             val pluginState = (pluginListSelector.getListEntry(pluginListSelector.selectedSlotIndex) as LambdaPluginListEntry).pluginData.pluginState
             val display = when (pluginState) {
                 LambdaPluginSelectionList.PluginState.REMOTE -> "Download"
-                LambdaPluginSelectionList.PluginState.LOADED -> "Install"
+                LambdaPluginSelectionList.PluginState.AVAILABLE -> "Install"
                 LambdaPluginSelectionList.PluginState.INSTALLED -> "Uninstall"
                 LambdaPluginSelectionList.PluginState.PENDING -> "Pending"
             }
@@ -56,7 +55,6 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
             val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, "Select Plugin")
             button.enabled = false
             buttonList.add(button)
-
         }
 
         renderTime++
@@ -77,7 +75,7 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
                     LambdaPluginSelectionList.PluginState.REMOTE -> {
                         downloadPlugin(pluginEntry)
                     }
-                    LambdaPluginSelectionList.PluginState.LOADED -> {
+                    LambdaPluginSelectionList.PluginState.AVAILABLE -> {
                         pluginEntry.loader?.let {
                             load(it)
                         }
@@ -94,10 +92,6 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
                 pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.PENDING
             }
         }
-    }
-
-    override fun keyTyped(typedChar: Char, keyCode: Int) {
-        super.keyTyped(typedChar, keyCode)
     }
 
     @Throws(IOException::class)
@@ -149,8 +143,8 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen()
             }
 
             try {
-                URL(pluginDownloadUrl).openStream().use {
-                    `in` -> Files.copy(`in`, Paths.get("${PluginManager.pluginPath}/$fileName"), StandardCopyOption.REPLACE_EXISTING)
+                URL(pluginDownloadUrl).openStream().use { `in` ->
+                    Files.copy(`in`, Paths.get("${PluginManager.pluginPath}/$fileName"), StandardCopyOption.REPLACE_EXISTING)
                 }
             } catch (e: IOException) {
                 e.printStackTrace()

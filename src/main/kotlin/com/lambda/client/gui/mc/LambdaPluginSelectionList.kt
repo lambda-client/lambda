@@ -47,7 +47,7 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
                 plugins.firstOrNull { it.pluginData.name == loader.name }?.let { entry ->
                     plugins.remove(entry)
                 }
-                plugins.add(LambdaPluginListEntry(owner, PluginData(loader.name, PluginState.LOADED), null, loader))
+                plugins.add(LambdaPluginListEntry(owner, PluginData(loader.name, PluginState.AVAILABLE), null, loader))
             }
         }
 
@@ -81,11 +81,20 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
             }
         }
 
-        plugins.sortBy { it.pluginData.name }
+        plugins.sortWith(
+            compareBy<LambdaPluginListEntry> {
+                it.pluginData.pluginState.ordinal
+            }.thenBy {
+                it.pluginData.name
+            }
+        )
     }
 
-    enum class PluginState {
-        PENDING, REMOTE, LOADED, INSTALLED
+    enum class PluginState(val color: Int) {
+        PENDING(0x808080),
+        INSTALLED(0x2AD13B),
+        AVAILABLE(0x4287F5),
+        REMOTE(0x752AD1)
     }
 
     data class PluginData(val name: String, var pluginState: PluginState, var repoDescription: String = "")
