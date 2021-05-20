@@ -8,6 +8,7 @@ import kotlinx.coroutines.Deferred
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
+import java.util.logging.Logger
 
 internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     override var deferred: Deferred<List<PluginLoader>>? = null
@@ -139,7 +140,19 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
                 return
             }
 
-            plugin.onLoad()
+            try {
+                plugin.onLoad()
+            } catch (e: NoSuchFieldError) {
+                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                return
+            } catch (e: NoSuchMethodError) {
+                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                return
+            } catch (e: NoClassDefFoundError) {
+                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                return
+            }
+
             plugin.register()
             loadedPlugins.add(plugin)
             loadedPluginLoader.add(loader)

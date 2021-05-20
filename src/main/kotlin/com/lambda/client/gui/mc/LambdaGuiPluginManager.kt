@@ -1,91 +1,156 @@
 package com.lambda.client.gui.mc
 
+import com.google.common.base.Splitter
+import com.google.common.collect.Lists
+import com.google.gson.JsonParser
+import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.PluginManager
-import com.lambda.client.plugin.PluginManager.getLoaders
 import com.lambda.client.plugin.PluginManager.load
-import com.lambda.client.plugin.PluginManager.loadedPlugins
 import com.lambda.client.plugin.PluginManager.unload
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.commons.utils.ConnectionUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
 import java.awt.Desktop
 import java.io.File
+import java.io.IOException
+import java.net.URL
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
-class LambdaGuiPluginManager(private val previousScreen: GuiScreen): GuiScreen() {
-    private var lineSpace = 0
-    private var renderTime = 0
-    private var availablePlugins = getLoaders().sortedBy { it.name }
-    private val offset = 2
+
+class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen() {
+    private lateinit var pluginListSelector: LambdaPluginSelectionList
+    private var renderTime = 1
+    var hoveringText = ""
 
     override fun initGui() {
-        super.initGui()
-        lineSpace = fontRenderer.FONT_HEIGHT * 3
-        updateGui()
+        pluginListSelector = LambdaPluginSelectionList(this, mc, width, height, 32, height - 64, 36)
+        pluginListSelector.collectPlugins()
     }
 
     override fun drawScreen(mouseX: Int, mouseY: Int, partialTicks: Float) {
-        if (renderTime % 500 == 0) updateGui()
+        if (renderTime % 50 == 0) pluginListSelector.collectPlugins(true)
+
+        buttonList.clear()
 
         drawDefaultBackground()
-        drawCenteredString(fontRenderer, "Plugin Manager", width / 2, 50, 0xFFFFFF)
+        pluginListSelector.drawScreen(mouseX, mouseY, partialTicks)
 
-        if (availablePlugins.isEmpty()) {
-            drawCenteredString(fontRenderer, "No plugins in directory .minecraft/lambda/plugins found.", width / 2, 50 + lineSpace * 2, 0x808080)
+        drawCenteredString(fontRenderer, "Plugin Manager", width / 2, 20, 16777215)
+        buttonList.add(GuiButton(0, width / 2 - 50, height - 50, 100, 20, "Back"))
+        buttonList.add(GuiButton(1, width / 2 - 180, height - 50, 120, 20, "Open Plugins Folder"))
+        if (pluginListSelector.selectedSlotIndex > -1) {
+            val pluginEntry = pluginListSelector.getListEntry(pluginListSelector.selectedSlotIndex) as LambdaPluginListEntry
+            val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, pluginEntry.pluginData.pluginState.buttonName)
+            if (pluginEntry.pluginData.pluginState == LambdaPluginSelectionList.PluginState.LOADING) button.enabled = false
+            buttonList.add(button)
         } else {
-            availablePlugins.forEachIndexed { index, pluginLoader ->
-                val color = if (loadedPlugins.containsName(pluginLoader.name)) {
-                    0xffffff
-                } else {
-                    0xaaaaaa
-                }
-                drawCenteredString(fontRenderer, pluginLoader.name + " v" + pluginLoader.info.version + " by " + pluginLoader.info.authors[0], width / 2, 50 + lineSpace * (index + 2), color)
-            }
+            val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, "Select Plugin")
+            button.enabled = false
+            buttonList.add(button)
         }
 
         renderTime++
-
         super.drawScreen(mouseX, mouseY, partialTicks)
+
+        if (hoveringText != "") {
+            drawHoveringText(Lists.newArrayList(Splitter.on("\n").split(hoveringText)), mouseX, mouseY)
+        }
+    }
+
+    override fun updateScreen() {
+        //
     }
 
     override fun actionPerformed(button: GuiButton) {
-        when {
-            button.id == 0 -> mc.displayGuiScreen(previousScreen)
-            button.id == 1 -> Desktop.getDesktop().open(File(PluginManager.pluginPath))
-            button.id < 1000 -> {
-                availablePlugins.forEachIndexed { pluginIndex, pluginLoader ->
-                    if (loadedPlugins.containsName(pluginLoader.name)) {
-                        if (pluginIndex == button.id - offset) {
-                            loadedPlugins[pluginLoader.name]?.let { unload(it) }
-                            updateGui()
+        when (button.id) {
+            0 -> mc.displayGuiScreen(previousScreen)
+            1 -> Desktop.getDesktop().open(File(PluginManager.pluginPath))
+            2 -> {
+                val pluginEntry = (pluginListSelector.getListEntry(pluginListSelector.selectedSlotIndex) as LambdaPluginListEntry)
+                when (pluginEntry.pluginData.pluginState) {
+                    LambdaPluginSelectionList.PluginState.REMOTE -> {
+                        downloadPlugin(pluginEntry)
+                    }
+                    LambdaPluginSelectionList.PluginState.AVAILABLE -> {
+                        pluginEntry.loader?.let {
+                            load(it)
                         }
                     }
-                }
-            }
-            else -> {
-                availablePlugins.forEachIndexed { pluginIndex, pluginLoader ->
-                    if (pluginIndex == button.id - 1000 - offset) {
-                        load(pluginLoader)
-                        updateGui()
+                    LambdaPluginSelectionList.PluginState.INSTALLED -> {
+                        pluginEntry.plugin?.let {
+                            unload(it)
+                        }
+                    }
+                    LambdaPluginSelectionList.PluginState.LOADING -> {
+                        //
                     }
                 }
+                pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.LOADING
             }
         }
     }
 
-    private fun updateGui() {
-        buttonList.clear()
-        availablePlugins = getLoaders().sortedBy { it.name }
+    @Throws(IOException::class)
+    override fun mouseClicked(mouseX: Int, mouseY: Int, mouseButton: Int) {
+        super.mouseClicked(mouseX, mouseY, mouseButton)
+        pluginListSelector.mouseClicked(mouseX, mouseY, mouseButton)
+    }
 
-        buttonList.add(GuiButton(0, width / 2 - 50, height - 50, 100, 20, "Back"))
-        buttonList.add(GuiButton(1, width / 2 - 200, height - 50, 130, 20, "Open Plugins Folder"))
+    @Throws(IOException::class)
+    override fun handleMouseInput() {
+        super.handleMouseInput()
+        pluginListSelector.handleMouseInput()
+    }
 
-        availablePlugins.forEachIndexed { index, pluginLoader ->
-            if (loadedPlugins.containsName(pluginLoader.name)) {
-                buttonList.add(GuiButton(offset + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Unload"))
-                if (!pluginLoader.info.hotReload) buttonList.firstOrNull { it.id == 1 + index }?.let { it.enabled = false }
-            } else {
-                buttonList.add(GuiButton(1000 + offset + index, width / 2 + 150, 50 + lineSpace * (index + 2) - 7, 50, 20,"Load"))
-                if (!pluginLoader.info.hotReload) buttonList.firstOrNull { it.id == 1001 + index }?.let { it.enabled = false }
+    fun selectPlugin(index: Int) {
+        pluginListSelector.selectedSlotIndex = index
+    }
+
+    private fun downloadPlugin(pluginEntry: LambdaPluginListEntry) {
+        var pluginDownloadUrl = ""
+        var fileName = ""
+
+        defaultScope.launch(Dispatchers.IO) {
+            try {
+                val rawJson = ConnectionUtils.runConnection("${LambdaMod.GITHUB_API}repos/${LambdaMod.ORGANIZATION}/${pluginEntry.pluginData.name}/releases", { connection ->
+                    connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    connection.requestMethod = "GET"
+                    connection.inputStream.readBytes().toString(Charsets.UTF_8)
+                }) {
+                    LambdaMod.LOG.error("Failed to load repo of plugin from GitHub", it)
+                }
+
+                rawJson?.let { json ->
+                    val jsonTree = JsonParser().parse(json).asJsonArray
+
+                    jsonTree[0]?.let { jsonElement ->
+                        val assets = jsonElement.asJsonObject.get("assets").asJsonArray
+                        assets[0]?.let {
+                            pluginDownloadUrl = it.asJsonObject.get("browser_download_url").asString
+                            fileName = it.asJsonObject.get("name").asString
+                        }
+                    }
+
+                    LambdaMod.LOG.info("Found remote plugins: ${jsonTree.size()}")
+                }
+
+            } catch (e: Exception) {
+                LambdaMod.LOG.error("Failed to parse plugin json", e)
+            }
+
+            try {
+                URL(pluginDownloadUrl).openStream().use { `in` ->
+                    Files.copy(`in`, Paths.get("${PluginManager.pluginPath}/$fileName"), StandardCopyOption.REPLACE_EXISTING)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
         }
     }
+
 }

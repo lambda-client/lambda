@@ -1,7 +1,6 @@
 [submodule "src/main/cape-api"]
 	path = src/main/cape-api
 	url = https://github.com/lambda-client/cape-api.git
-
 [submodule "src/main/commons"]
 	path = src/main/commons
 	url = https://github.com/lambda-client/commons.git
