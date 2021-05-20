@@ -25,7 +25,7 @@ internal object FancyChat : Module(
 
     private val modifier = newMessageModifier(
         filter = {
-            (commands.value || MessageDetection.Command.ANY detectNot it.packet.message)
+            (commands.value)
                 && (spammer.value || it.source !is Spammer)
         },
         modifier = {
