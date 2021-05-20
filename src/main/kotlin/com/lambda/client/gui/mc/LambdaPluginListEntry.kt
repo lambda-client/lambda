@@ -18,21 +18,21 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
         drawPluginIcon(x, y, unknownPlugin)
         var description = ""
         var version = ""
-        var authors = emptyArray<String>()
-        plugin?.let {
-            description = it.description
-            version = it.version
-            authors = it.authors
-        }
-        loader?.let {
-            description = it.info.description
-            version = it.info.version
-            authors = it.info.authors
-        }
+        var authors = ""
         if (pluginData.repoDescription != "") {
             description = pluginData.repoDescription
         }
-        val topRight = "by ${authors.joinToString()} v$version"
+        plugin?.let {
+            description = it.description
+            version = "v${it.version}"
+            authors = "by ${it.authors.joinToString()}"
+        }
+        loader?.let {
+            description = it.info.description
+            version = "v${it.info.version}"
+            authors = "by ${it.info.authors.joinToString()}"
+        }
+        val topRight = "$authors $version"
         fr.drawString(topRight, x + listWidth - fr.getStringWidth(topRight) - 5, y + 1, 0x808080)
         fr.drawString(description, x + 32 + 3, y + 2 + (fr.FONT_HEIGHT + 2) * 1, 0x808080)
         fr.drawString(pluginData.pluginState.displayName, x + 32 + 3, y + 2 + (fr.FONT_HEIGHT + 2) * 2, pluginData.pluginState.color)
