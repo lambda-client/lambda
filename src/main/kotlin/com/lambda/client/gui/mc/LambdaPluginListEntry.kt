@@ -12,36 +12,41 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
     val mc: Minecraft = Minecraft.getMinecraft()
     private val unknownPlugin = ResourceLocation("textures/misc/unknown_server.png")
 
-    override fun updatePosition(slotIndex: Int, x: Int, y: Int, partialTicks: Float) {
-        //
-    }
-
     override fun drawEntry(slotIndex: Int, x: Int, y: Int, listWidth: Int, slotHeight: Int, mouseX: Int, mouseY: Int, isSelected: Boolean, partialTicks: Float) {
         val fr = mc.fontRenderer
         fr.drawString(pluginData.name, x + 32 + 3, y + 1, 16777215)
         drawPluginIcon(x, y, unknownPlugin)
         var description = ""
+        var version = ""
+        var authors = emptyArray<String>()
         plugin?.let {
             description = it.description
+            version = it.version
+            authors = it.authors
         }
         loader?.let {
             description = it.info.description
+            version = it.info.version
+            authors = it.info.authors
         }
         if (pluginData.repoDescription != "") {
             description = pluginData.repoDescription
         }
+        val topRight = "by ${authors.joinToString()} v$version"
+        fr.drawString(topRight, x + listWidth - fr.getStringWidth(topRight) - 5, y + 1, 0x808080)
         fr.drawString(description, x + 32 + 3, y + 2 + (fr.FONT_HEIGHT + 2) * 1, 0x808080)
         fr.drawString(pluginData.pluginState.displayName, x + 32 + 3, y + 2 + (fr.FONT_HEIGHT + 2) * 2, pluginData.pluginState.color)
     }
 
     override fun mousePressed(slotIndex: Int, mouseX: Int, mouseY: Int, mouseEvent: Int, relativeX: Int, relativeY: Int): Boolean {
         owner.selectPlugin(slotIndex)
-
         return false
     }
 
     override fun mouseReleased(slotIndex: Int, x: Int, y: Int, mouseEvent: Int, relativeX: Int, relativeY: Int) {
-        //
+    }
+
+    override fun updatePosition(slotIndex: Int, x: Int, y: Int, partialTicks: Float) {
     }
 
     private fun drawPluginIcon(x: Int, y: Int, resourceLocation: ResourceLocation?) {

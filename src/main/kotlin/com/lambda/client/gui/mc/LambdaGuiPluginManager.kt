@@ -1,5 +1,7 @@
 package com.lambda.client.gui.mc
 
+import com.google.common.base.Splitter
+import com.google.common.collect.Lists
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.PluginManager
@@ -23,6 +25,7 @@ import java.nio.file.StandardCopyOption
 class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen() {
     private lateinit var pluginListSelector: LambdaPluginSelectionList
     private var renderTime = 1
+    var hoveringText = ""
 
     override fun initGui() {
         pluginListSelector = LambdaPluginSelectionList(this, mc, width, height, 32, height - 64, 36)
@@ -41,9 +44,9 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
         buttonList.add(GuiButton(0, width / 2 - 50, height - 50, 100, 20, "Back"))
         buttonList.add(GuiButton(1, width / 2 - 180, height - 50, 120, 20, "Open Plugins Folder"))
         if (pluginListSelector.selectedSlotIndex > -1) {
-            val pluginState = (pluginListSelector.getListEntry(pluginListSelector.selectedSlotIndex) as LambdaPluginListEntry).pluginData.pluginState
-            val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, pluginState.buttonName)
-            if (pluginState == LambdaPluginSelectionList.PluginState.LOADING) button.enabled = false
+            val pluginEntry = pluginListSelector.getListEntry(pluginListSelector.selectedSlotIndex) as LambdaPluginListEntry
+            val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, pluginEntry.pluginData.pluginState.buttonName)
+            if (pluginEntry.pluginData.pluginState == LambdaPluginSelectionList.PluginState.LOADING) button.enabled = false
             buttonList.add(button)
         } else {
             val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, "Select Plugin")
@@ -53,6 +56,10 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
 
         renderTime++
         super.drawScreen(mouseX, mouseY, partialTicks)
+
+        if (hoveringText != "") {
+            drawHoveringText(Lists.newArrayList(Splitter.on("\n").split(hoveringText)), mouseX, mouseY)
+        }
     }
 
     override fun updateScreen() {

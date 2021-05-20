@@ -33,6 +33,14 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
         return slotIndex == selectedSlotIndex
     }
 
+    override fun getListWidth(): Int {
+        return super.getListWidth() + 85
+    }
+
+    override fun getScrollBarX(): Int {
+        return super.getScrollBarX() + 30
+    }
+
     fun collectPlugins(onlyLocal: Boolean = false) {
 
         loadedPlugins.forEach { plugin ->
