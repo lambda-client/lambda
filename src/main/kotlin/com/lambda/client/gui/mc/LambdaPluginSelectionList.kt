@@ -90,11 +90,11 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
         )
     }
 
-    enum class PluginState(val color: Int) {
-        PENDING(0x808080),
-        INSTALLED(0x2AD13B),
-        AVAILABLE(0x4287F5),
-        REMOTE(0x752AD1)
+    enum class PluginState(val displayName: String, val buttonName: String, val color: Int) {
+        LOADING("Loading", "Loading", 0x808080),
+        INSTALLED("Installed", "Uninstall", 0x2AD13B),
+        AVAILABLE("Available", "Install", 0x4287F5),
+        REMOTE("Remote", "Download", 0x752AD1)
     }
 
     data class PluginData(val name: String, var pluginState: PluginState, var repoDescription: String = "")

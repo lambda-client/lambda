@@ -42,14 +42,8 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
         buttonList.add(GuiButton(1, width / 2 - 180, height - 50, 120, 20, "Open Plugins Folder"))
         if (pluginListSelector.selectedSlotIndex > -1) {
             val pluginState = (pluginListSelector.getListEntry(pluginListSelector.selectedSlotIndex) as LambdaPluginListEntry).pluginData.pluginState
-            val display = when (pluginState) {
-                LambdaPluginSelectionList.PluginState.REMOTE -> "Download"
-                LambdaPluginSelectionList.PluginState.AVAILABLE -> "Install"
-                LambdaPluginSelectionList.PluginState.INSTALLED -> "Uninstall"
-                LambdaPluginSelectionList.PluginState.PENDING -> "Pending"
-            }
-            val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, display)
-            if (pluginState == LambdaPluginSelectionList.PluginState.PENDING) button.enabled = false
+            val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, pluginState.buttonName)
+            if (pluginState == LambdaPluginSelectionList.PluginState.LOADING) button.enabled = false
             buttonList.add(button)
         } else {
             val button = GuiButton(2, width / 2 + 60, height - 50, 120, 20, "Select Plugin")
@@ -85,11 +79,11 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
                             unload(it)
                         }
                     }
-                    LambdaPluginSelectionList.PluginState.PENDING -> {
+                    LambdaPluginSelectionList.PluginState.LOADING -> {
                         //
                     }
                 }
-                pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.PENDING
+                pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.LOADING
             }
         }
     }

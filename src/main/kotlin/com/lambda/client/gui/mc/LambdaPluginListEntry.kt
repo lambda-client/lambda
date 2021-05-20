@@ -31,7 +31,7 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
             description = pluginData.repoDescription
         }
         fr.drawString(description, x + 32 + 3, y + 2 + (fr.FONT_HEIGHT + 2) * 1, 0x808080)
-        fr.drawString(pluginData.pluginState.toString(), x + 32 + 3, y + 2 + (fr.FONT_HEIGHT + 2) * 2, pluginData.pluginState.color)
+        fr.drawString(pluginData.pluginState.displayName, x + 32 + 3, y + 2 + (fr.FONT_HEIGHT + 2) * 2, pluginData.pluginState.color)
     }
 
     override fun mousePressed(slotIndex: Int, mouseX: Int, mouseY: Int, mouseEvent: Int, relativeX: Int, relativeY: Int): Boolean {
