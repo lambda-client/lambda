@@ -22,7 +22,7 @@ import com.lambda.client.util.InfoCalculator
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.combat.CombatUtils.equipBestWeapon
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
-import com.lambda.client.util.combat.CrystalUtils.canPlaceCollide
+import com.lambda.client.util.combat.CrystalUtils
 import com.lambda.client.util.combat.CrystalUtils.getCrystalBB
 import com.lambda.client.util.combat.CrystalUtils.getCrystalList
 import com.lambda.client.util.items.*
@@ -40,6 +40,8 @@ import com.lambda.client.util.world.getClosestVisibleSide
 import com.lambda.commons.extension.synchronized
 import com.lambda.commons.interfaces.DisplayEnum
 import com.lambda.event.listener.listener
+import it.unimi.dsi.fastutil.ints.Int2LongMaps
+import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Items
@@ -118,9 +120,10 @@ internal object CrystalAura : Module(
     /* Explode page two */
     private val minDamageE by setting("Min Damage Explode", 5.0f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
     private val maxSelfDamageE by setting("Max Self Damage Explode", 3.5f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
-    private val swapDelay by setting("Swap Delay", 10, 1..50, 1, page.atValue(Page.EXPLODE_TWO))
+    private val swapDelay by setting("Swap Delay", 10, 0..50, 1, page.atValue(Page.EXPLODE_TWO))
     private val hitDelay by setting("Hit Delay", 1, 1..10, 1, page.atValue(Page.EXPLODE_TWO))
-    private val hitAttempts by setting("Hit Attempts", 4, 0..8, 1, page.atValue(Page.EXPLODE_TWO))
+    private val hitAttempts by setting("Hit Attempts", 4, 0..10, 1, page.atValue(Page.EXPLODE_TWO))
+    private val retryTimeout by setting("Retry Timeout", 1000, 0..5000, 50, page.atValue(Page.EXPLODE_TWO) { hitAttempts > 0 })
     private val explodeRange by setting("Explode Range", 4.25f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
     private val wallExplodeRange by setting("Wall Explode Range", 3.5f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
     /* End of settings */
@@ -142,14 +145,14 @@ internal object CrystalAura : Module(
 
     /* Variables */
     private val placedBBMap = HashMap<BlockPos, Pair<AxisAlignedBB, Long>>().synchronized() // <CrystalBoundingBox, Added Time>
-    private val ignoredList = Collections.newSetFromMap<EntityEnderCrystal>(WeakHashMap())
+    private val ignoredCrystalMap = Int2LongMaps.synchronize(Int2LongOpenHashMap())
     private val packetList = ArrayList<Packet<*>>(3)
     private val yawDiffList = FloatArray(20)
     private val placeTimerMs = TickTimer()
 
     private var placeMap = emptyMap<BlockPos, CombatManager.CrystalDamage>()
     private var crystalMap = emptyMap<EntityEnderCrystal, CombatManager.CrystalDamage>()
-    private var lastCrystal: EntityEnderCrystal? = null
+    private var lastCrystalID = -1
     private var lastLookAt = Vec3d.ZERO
     private var forcePlacing = false
     private var placeTimerTicks = 0
@@ -173,7 +176,7 @@ internal object CrystalAura : Module(
         onDisable {
             placeTimerMs.reset(-69420L)
 
-            lastCrystal = null
+            lastCrystalID = -1
             forcePlacing = false
 
             hitTimer = 0
@@ -217,7 +220,7 @@ internal object CrystalAura : Module(
                             crystal.setDead()
                         }
 
-                        ignoredList.clear()
+                        ignoredCrystalMap.clear()
                         hitCount = 0
                     }
                 }
@@ -287,18 +290,23 @@ internal object CrystalAura : Module(
         placeMap = CombatManager.placeMap
         crystalMap = CombatManager.crystalMap
 
+        val current = System.currentTimeMillis()
+
         synchronized(placedBBMap) {
-            placedBBMap.values.removeIf { System.currentTimeMillis() - it.second > max(InfoCalculator.ping(), 100) }
+            placedBBMap.values.removeIf {
+                current - it.second > max(InfoCalculator.ping(), 100)
+            }
+        }
+
+        synchronized(ignoredCrystalMap) {
+            ignoredCrystalMap.values.removeIf {
+                it < current
+            }
         }
 
         if (inactiveTicks > 20) {
             if (getPlacingPos() == null && placedBBMap.isNotEmpty()) {
                 placedBBMap.clear()
-            }
-
-            if (getExplodingCrystal() == null && ignoredList.isNotEmpty()) {
-                ignoredList.clear()
-                hitCount = 0
             }
         }
     }
@@ -352,7 +360,7 @@ internal object CrystalAura : Module(
     }
 
     private fun SafeClientEvent.packetExplode(entityID: Int, pos: BlockPos, vec3d: Vec3d) {
-        if (!preExplode()) return
+        if (!preExplode(entityID)) return
 
         val calculation = placeMap[pos] ?: return
 
@@ -372,23 +380,15 @@ internal object CrystalAura : Module(
 
     private fun SafeClientEvent.explode() {
         getExplodingCrystal()?.let {
-            if (!preExplode()) return
-
-            if (hitAttempts != 0 && it == lastCrystal) {
-                hitCount++
-                if (hitCount >= hitAttempts) ignoredList.add(it)
-            } else {
-                hitCount = 0
-            }
+            if (!preExplode(it.entityId)) return
 
             CombatManager.target?.let { target -> player.setLastAttackedEntity(target) }
-            lastCrystal = it
 
             explodeDirect(CPacketUseEntity(it), it.positionVector)
         }
     }
 
-    private fun SafeClientEvent.preExplode(): Boolean {
+    private fun SafeClientEvent.preExplode(entityID: Int): Boolean {
         if (antiWeakness && player.isPotionActive(MobEffects.WEAKNESS) && !isHoldingTool()) {
             equipBestWeapon(allowTool = true)
             resetHotbar()
@@ -399,6 +399,20 @@ internal object CrystalAura : Module(
         if (System.currentTimeMillis() - HotbarManager.swapTime < swapDelay * 50L) {
             return false
         }
+
+        if (hitAttempts != 0 && entityID == lastCrystalID) {
+            if (hitCount >= hitAttempts) {
+                ignoredCrystalMap[entityID] = System.currentTimeMillis() + retryTimeout
+                lastCrystalID = -1
+                hitCount = 0
+                return false
+            }
+        } else {
+            hitCount = 0
+        }
+
+        hitCount++
+        lastCrystalID = entityID
 
         return true
     }
@@ -481,6 +495,13 @@ internal object CrystalAura : Module(
         return null
     }
 
+    fun SafeClientEvent.canPlaceCollide(pos: BlockPos): Boolean {
+        val placingBB = CrystalUtils.getCrystalPlacingBB(pos.up())
+        return world.getEntitiesWithinAABBExcludingEntity(null, placingBB).all {
+            !it.isEntityAlive || lastCrystalID == it.entityId && pos == BlockPos(it.posX, it.posY - 1.0, it.posZ)
+        }
+    }
+
     /**
      * @return True if passed placing damage check
      */
@@ -494,7 +515,7 @@ internal object CrystalAura : Module(
 
     private fun SafeClientEvent.getExplodingCrystal(): EntityEnderCrystal? {
         val filteredCrystal = crystalMap.entries.filter { (crystal, triple) ->
-            !ignoredList.contains(crystal)
+            !ignoredCrystalMap.containsKey(crystal.entityId)
                 && !crystal.isDead
                 && checkDamageExplode(triple.targetDamage, triple.selfDamage)
                 && checkYawSpeed(getRotationToEntity(crystal).x)
@@ -568,7 +589,7 @@ internal object CrystalAura : Module(
 
             for ((crystal, crystalDamage) in crystalMap) {
                 if (crystalDamage.distance > placeRange) continue
-                if (ignoredList.contains(crystal)) continue
+                if (ignoredCrystalMap.containsKey(crystal.entityId)) continue
                 if (!checkDamagePlace(crystalDamage)) continue
                 if (!checkYawSpeed(getRotationToEntity(crystal).x)) continue
 

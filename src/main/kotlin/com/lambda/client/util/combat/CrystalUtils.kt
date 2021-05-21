@@ -54,7 +54,7 @@ object CrystalUtils {
     private fun isValidMaterial(material: Material) =
         !material.isLiquid && material.isReplaceable
 
-    private fun getCrystalPlacingBB(pos: BlockPos) =
+    fun getCrystalPlacingBB(pos: BlockPos) =
         AxisAlignedBB(
             pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(),
             pos.x + 1.0, pos.y + 2.0, pos.z + 1.0
