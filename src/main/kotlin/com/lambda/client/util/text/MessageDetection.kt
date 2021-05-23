@@ -14,7 +14,7 @@ object MessageDetection {
             override val prefixes: Array<out CharSequence>
                 get() = arrayOf(BaritoneUtils.prefix, "${CommandManager.prefix}b", ".b")
         },
-        ANY_EXCEPT_DELIMITER {
+        ANY {
             override val prefixes: Array<out CharSequence>
                 get() = arrayOf("/", ",", ".", "-", ";", "?", "*", "^", "&", "#", "$", CommandManager.prefix)
         }

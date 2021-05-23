@@ -30,7 +30,7 @@ internal object CustomChat : Module(
 
     private val modifier = newMessageModifier(
         filter = {
-            (commands)
+            (commands || MessageDetection.Command.ANY detectNot it.packet.message)
                 && (spammer || it.source !is Spammer)
         },
         modifier = {
