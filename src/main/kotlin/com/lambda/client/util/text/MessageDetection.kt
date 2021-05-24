@@ -1,7 +1,6 @@
 package com.lambda.client.util.text
 
 import com.lambda.client.command.CommandManager
-import com.lambda.client.module.modules.chat.ChatEncryption
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.Wrapper
 
@@ -15,13 +14,9 @@ object MessageDetection {
             override val prefixes: Array<out CharSequence>
                 get() = arrayOf(BaritoneUtils.prefix, "${CommandManager.prefix}b", ".b")
         },
-        ANY_EXCEPT_DELIMITER {
-            override val prefixes: Array<out CharSequence>
-                get() = arrayOf("/", ",", ".", "-", ";", "?", "*", "^", "&", "#", "$", CommandManager.prefix)
-        },
         ANY {
             override val prefixes: Array<out CharSequence>
-                get() = arrayOf(*ANY_EXCEPT_DELIMITER.prefixes, ChatEncryption.delimiter)
+                get() = arrayOf("/", ",", ".", "-", ";", "?", "*", "^", "&", "#", "$", CommandManager.prefix)
         }
     }
 
