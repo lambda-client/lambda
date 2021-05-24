@@ -9,7 +9,7 @@
   <img src="https://tokei.rs/b1/github/lambda-client/lambda?category=code" alt="Lines of Code"/>
 </p>
 
-# Lambda
+<img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20and%20text%20white%20transparent.png">
 
 Lambda is a 1.12 minecraft utility client with the goal of providing a free, open-source, and lightweight client. Everyone is free to contribute, and feel free to join our discord!
 

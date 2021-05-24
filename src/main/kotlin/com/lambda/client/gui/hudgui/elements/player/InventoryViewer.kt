@@ -72,8 +72,8 @@ internal object InventoryViewer : HudElement(
             GlStateManager.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
             val center = Vec2d(81.0, 27.0)
-            val halfWidth = iconScale * 54.0
-            val halfHeight = iconScale * 27.0
+            val halfWidth = iconScale * 50.0
+            val halfHeight = iconScale * 50.0
 
             buffer.begin(GL_TRIANGLE_STRIP, DefaultVertexFormats.POSITION_TEX)
             buffer.pos(center.x - halfWidth, center.y - halfHeight, 0.0).tex(0.0, 0.0).endVertex()
