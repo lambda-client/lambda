@@ -22,7 +22,7 @@ class EnumSetting<T : Enum<T>>(
     }
 
     override fun setValue(valueIn: String) {
-        super.setValue(valueIn.toUpperCase(Locale.ROOT).replace(' ', '_'))
+        super.setValue(valueIn.uppercase(Locale.ROOT).replace(' ', '_'))
     }
 
     override fun write(): JsonElement = JsonPrimitive(value.name)

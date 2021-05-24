@@ -12,6 +12,7 @@ import net.minecraft.init.Items
 import net.minecraft.network.play.server.SPacketSoundEffect
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Math.random
+import java.util.*
 import kotlin.math.abs
 
 internal object AutoFish : Module(
@@ -94,7 +95,7 @@ internal object AutoFish : Module(
     private fun SafeClientEvent.isSplash(packet: SPacketSoundEffect): Boolean {
         if (mode.value == Mode.SPLASH && (player.fishEntity?.getDistance(packet.x, packet.y, packet.z)
                 ?: 69420.0) > 2) return false
-        val soundName = packet.sound.soundName.toString().toLowerCase()
+        val soundName = packet.sound.soundName.toString().lowercase(Locale.getDefault())
         return (mode.value != Mode.SPLASH && isAnySplash(soundName)) || soundName.contains("entity.bobber.splash")
     }
 

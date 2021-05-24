@@ -12,6 +12,7 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.event.listener.listener
 import net.minecraft.util.EnumFacing
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.util.*
 import kotlin.math.round
 
 internal object AutoTunnel : Module(
@@ -66,7 +67,7 @@ internal object AutoTunnel : Module(
     }
 
     override fun getHudInfo(): String {
-        return lastDirection.name2.capitalize()
+        return lastDirection.name2.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     }
 
     init {

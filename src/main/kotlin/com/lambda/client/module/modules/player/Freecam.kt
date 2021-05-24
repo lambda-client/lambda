@@ -166,7 +166,7 @@ internal object Freecam : Module(
 
                 if (result.typeOfHit == RayTraceResult.Type.BLOCK) {
                     BaritoneUtils.cancelEverything()
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalTwoBlocks(result.blockPos))
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalTwoBlocks(result.blockPos.x, result.blockPos.y, result.blockPos.z))
                 }
             }
         }

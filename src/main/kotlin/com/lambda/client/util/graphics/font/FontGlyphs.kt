@@ -75,14 +75,14 @@ class FontGlyphs(private val font: Font, private val fallbackFont: Font) {
 
     /** @return CharInfo of [char] */
     fun getCharInfo(char: Char): CharInfo {
-        val charInt = char.toInt()
+        val charInt = char.code
         val chunk = charInt shr 8
         val chunkStart = chunk shl 8
         return getChunk(chunk).charInfoArray[charInt - chunkStart]
     }
 
     /** @return the chunk the [char] is in */
-    fun getChunk(char: Char) = getChunk(char.toInt() shr 8)
+    fun getChunk(char: Char) = getChunk(char.code shr 8)
 
     /** @return the chunk */
     private fun getChunk(chunk: Int): GlyphChunk = chunkMap.getOrPut(chunk) {
@@ -145,8 +145,8 @@ class FontGlyphs(private val font: Font, private val fallbackFont: Font) {
 
     private fun getCharImage(char: Char): BufferedImage {
         val font = when {
-            font.canDisplay(char.toInt()) -> font
-            fallbackFont.canDisplay(char.toInt()) -> fallbackFont
+            font.canDisplay(char.code) -> font
+            fallbackFont.canDisplay(char.code) -> fallbackFont
             else -> font
         }
 

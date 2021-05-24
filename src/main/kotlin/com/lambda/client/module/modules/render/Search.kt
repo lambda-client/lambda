@@ -118,7 +118,10 @@ internal object Search : Module(
         renderer.thickness = thickness
     }
 
-    private suspend fun SafeClientEvent.getBlockPosList(eyePos: Vec3d, map: MutableMap<Double, Pair<BlockPos, IBlockState>>) {
+    private suspend fun SafeClientEvent.getBlockPosList(
+        eyePos: Vec3d,
+        map: MutableMap<Double, Pair<BlockPos, IBlockState>>
+    ) {
         val renderDist = mc.gameSettings.renderDistanceChunks
         val playerChunkPos = ChunkPos(player.position)
         val chunkPos1 = ChunkPos(playerChunkPos.x - renderDist, playerChunkPos.z - renderDist)

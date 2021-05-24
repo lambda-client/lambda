@@ -85,7 +85,7 @@ internal object ForgeEventProcessor {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     fun onChatSent(event: ClientChatEvent) {
         MessageDetection.Command.BARITONE.removedOrNull(event.message)?.let {
-            LambdaEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').toLowerCase(Locale.ROOT)))
+            LambdaEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').lowercase(Locale.ROOT)))
         }
 
         if (MessageDetection.Command.LAMBDA detect event.message) {

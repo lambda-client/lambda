@@ -5,6 +5,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.commons.utils.MathUtils
+import java.util.*
 import kotlin.math.min
 
 internal object FancyChat : Module(
@@ -86,7 +87,7 @@ internal object FancyChat : Module(
         val message = StringBuilder()
         for (element in input) {
             var inputChar = element.toString() + ""
-            inputChar = inputChar.toLowerCase()
+            inputChar = inputChar.lowercase(Locale.getDefault())
             inputChar = leetSwitch(inputChar)
             message.append(inputChar)
         }
@@ -98,7 +99,7 @@ internal object FancyChat : Module(
         for (i in input.indices) {
             var inputChar = input[i].toString() + ""
             val rand = if (randomSetting.value) (0..1).random() else 0
-            inputChar = if (!MathUtils.isNumberEven(i + rand)) inputChar.toUpperCase() else inputChar.toLowerCase()
+            inputChar = if (!MathUtils.isNumberEven(i + rand)) inputChar.uppercase(Locale.getDefault()) else inputChar.lowercase(Locale.getDefault())
             message.append(inputChar)
         }
         return message.toString()

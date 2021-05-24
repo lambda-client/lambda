@@ -3,6 +3,8 @@ package com.lambda.client.setting.groups
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
+import java.util.*
+import kotlin.collections.LinkedHashMap
 
 open class SettingMultiGroup(
     name: String
@@ -19,7 +21,7 @@ open class SettingMultiGroup(
      *
      * @return Setting that matches [settingName] or null if none
      */
-    fun getSetting(settingName: String) = subSetting[settingName.toLowerCase()]
+    fun getSetting(settingName: String) = subSetting[settingName.lowercase(Locale.getDefault())]
     /* End of settings */
 
 
@@ -36,7 +38,7 @@ open class SettingMultiGroup(
      *
      * @return The group that matches [groupName]
      */
-    fun getGroupOrPut(groupName: String) = subGroup.getOrPut(groupName.toLowerCase()) { SettingMultiGroup(groupName) }
+    fun getGroupOrPut(groupName: String) = subGroup.getOrPut(groupName.lowercase(Locale.getDefault())) { SettingMultiGroup(groupName) }
 
 
     /**
@@ -44,7 +46,7 @@ open class SettingMultiGroup(
      *
      * @return The group that matches [groupName] or null if none
      */
-    fun getGroup(groupName: String) = subGroup[groupName.toLowerCase()]
+    fun getGroup(groupName: String) = subGroup[groupName.lowercase(Locale.getDefault())]
 
     /**
      * Adds a group to this group
@@ -52,7 +54,7 @@ open class SettingMultiGroup(
      * @param settingGroup Group to add
      */
     fun addGroup(settingGroup: SettingMultiGroup) {
-        subGroup[settingGroup.name.toLowerCase()] = settingGroup
+        subGroup[settingGroup.name.lowercase(Locale.getDefault())] = settingGroup
     }
     /* End of groups */
 

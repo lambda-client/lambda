@@ -11,6 +11,9 @@ import com.lambda.commons.extension.synchronized
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
+import java.util.*
+import kotlin.collections.HashMap
+import kotlin.collections.LinkedHashSet
 
 object FriendManager : Manager {
     private val gson = GsonBuilder().setPrettyPrinting().create()
@@ -26,15 +29,15 @@ object FriendManager : Manager {
             friendFile.enabled = value
         }
 
-    fun isFriend(name: String) = friendFile.enabled && friends.contains(name.toLowerCase())
+    fun isFriend(name: String) = friendFile.enabled && friends.contains(name.lowercase(Locale.getDefault()))
 
     fun addFriend(name: String) = UUIDManager.getByName(name)?.let {
         friendFile.friends.add(it)
-        friends[it.name.toLowerCase()] = it
+        friends[it.name.lowercase(Locale.getDefault())] = it
         true
     } ?: false
 
-    fun removeFriend(name: String) = friendFile.friends.remove(friends.remove(name.toLowerCase()))
+    fun removeFriend(name: String) = friendFile.friends.remove(friends.remove(name.lowercase(Locale.getDefault())))
 
     fun clearFriend() {
         friends.clear()
@@ -47,7 +50,7 @@ object FriendManager : Manager {
         return try {
             friendFile = gson.fromJson(FileReader(file), object : TypeToken<FriendFile>() {}.type)
             friends.clear()
-            friends.putAll(friendFile.friends.associateBy { it.name.toLowerCase() })
+            friends.putAll(friendFile.friends.associateBy { it.name.lowercase(Locale.getDefault()) })
             LambdaMod.LOG.info("Friend loaded")
             true
         } catch (e: Exception) {

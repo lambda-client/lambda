@@ -8,21 +8,22 @@ import java.util.*
 object KeyboardUtils {
     val allKeys = IntArray(Keyboard.KEYBOARD_SIZE) { it }
 
-    private val displayNames = Array(Keyboard.KEYBOARD_SIZE) {
-        Keyboard.getKeyName(it)?.toLowerCase()?.capitalize()
+    private val displayNames = Array(Keyboard.KEYBOARD_SIZE) { name ->
+        Keyboard.getKeyName(name).lowercase(Locale.getDefault()).replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+        }
     }
 
     private val keyMap: Map<String, Int> = HashMap<String, Int>().apply {
         // LWJGL names
         for (key in 0 until Keyboard.KEYBOARD_SIZE) {
             val name = Keyboard.getKeyName(key) ?: continue
-            this[name.toLowerCase(Locale.ROOT)] = key
+            this[name.lowercase(Locale.ROOT)] = key
         }
 
         // Display names
         for ((index, name) in displayNames.withIndex()) {
-            if (name == null) continue
-            this[name.toLowerCase(Locale.ROOT)] = index
+            this[name.lowercase(Locale.ROOT)] = index
         }
 
         // Modifier names
@@ -42,7 +43,7 @@ object KeyboardUtils {
     }
 
     fun getKey(keyName: String): Int {
-        return keyMap[keyName.toLowerCase(Locale.ROOT)] ?: 0
+        return keyMap[keyName.lowercase(Locale.ROOT)] ?: 0
     }
 
     fun getKeyName(keycode: Int): String? {

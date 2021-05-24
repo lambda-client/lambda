@@ -31,7 +31,7 @@ open class SettingGroup(
      * @return [setting]
      */
     open fun <S : AbstractSetting<*>> addSetting(setting: S): S {
-        subSetting[setting.name.toLowerCase()] = setting
+        subSetting[setting.name.lowercase(Locale.getDefault())] = setting
         return setting
     }
 
@@ -75,7 +75,7 @@ open class SettingGroup(
 
     private fun String.toJsonName() =
         this.replace(' ', '_')
-            .toLowerCase(Locale.ROOT)
+            .lowercase(Locale.ROOT)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

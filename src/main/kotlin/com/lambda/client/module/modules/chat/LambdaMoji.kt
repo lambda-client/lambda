@@ -54,7 +54,7 @@ internal object LambdaMoji : Module(
         for (possible in text.split(":")) {
             if (LambdaMojiManager.isEmoji(possible)) {
                 val emojiText = ":$possible:"
-                val emojiTextWidth = emojiText.sumBy { mc.fontRenderer.getCharWidth(it) }
+                val emojiTextWidth = emojiText.sumOf { mc.fontRenderer.getCharWidth(it) }
                 reducedWidth -= emojiTextWidth
                 text = text.replaceFirst(emojiText, getReplacement(fontHeight))
             }

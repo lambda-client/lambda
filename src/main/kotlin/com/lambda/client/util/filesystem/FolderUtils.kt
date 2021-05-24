@@ -1,6 +1,7 @@
 package com.lambda.client.util.filesystem
 
 import java.io.File
+import java.util.*
 
 object FolderUtils {
     @JvmStatic
@@ -25,7 +26,7 @@ object FolderUtils {
      * @return current OperatingSystem
      */
     private fun getOS(): OperatingSystem {
-        val osName = System.getProperty("os.name").toLowerCase()
+        val osName = System.getProperty("os.name").lowercase(Locale.getDefault())
         return when {
             osName.contains("nux") -> {
                 OperatingSystem.UNIX
