@@ -12,7 +12,7 @@ import net.minecraftforge.client.event.ClientChatReceivedEvent
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 
-internal object AntiSpam : Module(
+object AntiSpam : Module(
     name = "AntiSpam",
     category = Category.CHAT,
     description = "Removes spam and advertising from the chat",

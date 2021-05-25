@@ -18,7 +18,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Mouse
 
-internal object AutoTool : Module(
+object AutoTool : Module(
     name = "AutoTool",
     description = "Automatically switch to the best tools when mining or attacking",
     category = Category.MISC

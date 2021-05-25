@@ -7,7 +7,7 @@ import com.lambda.client.module.Module
 import com.lambda.event.listener.listener
 import net.minecraft.network.play.client.CPacketCloseWindow
 
-internal object XCarry : Module(
+object XCarry : Module(
     name = "XCarry",
     category = Category.PLAYER,
     description = "Store items in crafting slots"

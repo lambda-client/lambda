@@ -8,7 +8,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object FastFall : Module(
+object FastFall : Module(
     name = "FastFall",
     category = Category.MOVEMENT,
     description = "Makes you fall faster",

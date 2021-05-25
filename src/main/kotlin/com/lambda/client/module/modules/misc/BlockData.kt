@@ -11,7 +11,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Mouse
 
-internal object BlockData : Module(
+object BlockData : Module(
     name = "BlockData",
     category = Category.MISC,
     description = "Right click blocks to display their data"

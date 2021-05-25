@@ -18,7 +18,7 @@ import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object InventoryManager : Module(
+object InventoryManager : Module(
     name = "InventoryManager",
     category = Category.PLAYER,
     description = "Manages your inventory automatically"

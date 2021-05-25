@@ -7,7 +7,7 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.player.EnumPlayerModelParts
 
-internal object SkinFlicker : Module(
+object SkinFlicker : Module(
     name = "SkinFlicker",
     description = "Toggle your skin layers rapidly for a cool skin effect",
     category = Category.MISC

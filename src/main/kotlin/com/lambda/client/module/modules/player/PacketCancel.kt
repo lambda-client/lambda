@@ -6,7 +6,7 @@ import com.lambda.client.module.Module
 import com.lambda.event.listener.listener
 import net.minecraft.network.play.client.*
 
-internal object PacketCancel : Module(
+object PacketCancel : Module(
     name = "PacketCancel",
     description = "Cancels specific packets used for various actions",
     category = Category.PLAYER

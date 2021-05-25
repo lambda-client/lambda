@@ -32,7 +32,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @CombatManager.CombatModule
-internal object Surround : Module(
+object Surround : Module(
     name = "Surround",
     category = Category.COMBAT,
     description = "Surrounds you with obsidian to take less damage",

@@ -8,7 +8,7 @@ import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.EntityEquipmentSlot
 
-internal object ArmorHide : Module(
+object ArmorHide : Module(
     name = "ArmorHide",
     category = Category.RENDER,
     description = "Hides the armor on selected entities",

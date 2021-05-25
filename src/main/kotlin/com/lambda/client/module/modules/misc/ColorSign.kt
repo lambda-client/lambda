@@ -12,7 +12,7 @@ import net.minecraft.tileentity.TileEntitySign
 import net.minecraft.util.text.TextComponentString
 import java.io.IOException
 
-internal object ColorSign : Module(
+object ColorSign : Module(
     name = "ColorSign",
     description = "Allows ingame coloring of text on signs",
     category = Category.MISC

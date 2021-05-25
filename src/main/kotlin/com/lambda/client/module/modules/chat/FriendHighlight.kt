@@ -12,7 +12,7 @@ import net.minecraft.util.text.TextComponentString
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 
-internal object FriendHighlight : Module(
+object FriendHighlight : Module(
     name = "FriendHighlight",
     description = "Highlights your friends names in chat",
     category = Category.CHAT,

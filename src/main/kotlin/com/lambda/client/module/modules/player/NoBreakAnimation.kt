@@ -13,7 +13,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object NoBreakAnimation : Module(
+object NoBreakAnimation : Module(
     name = "NoBreakAnimation",
     category = Category.PLAYER,
     description = "Prevents block break animation server side"

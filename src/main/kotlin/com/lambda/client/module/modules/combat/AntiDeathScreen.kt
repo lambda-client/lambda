@@ -6,7 +6,7 @@ import com.lambda.client.module.Module
 import com.lambda.event.listener.listener
 import net.minecraft.client.gui.GuiGameOver
 
-internal object AntiDeathScreen : Module(
+object AntiDeathScreen : Module(
     name = "AntiDeathScreen",
     description = "Fixes random death screen glitches",
     category = Category.COMBAT

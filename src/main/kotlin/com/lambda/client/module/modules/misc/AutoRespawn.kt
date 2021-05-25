@@ -10,7 +10,7 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.event.listener.listener
 import net.minecraft.client.gui.GuiGameOver
 
-internal object AutoRespawn : Module(
+object AutoRespawn : Module(
     name = "AutoRespawn",
     description = "Automatically respawn after dying",
     category = Category.MISC

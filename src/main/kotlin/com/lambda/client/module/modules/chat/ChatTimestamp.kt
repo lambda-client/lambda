@@ -10,7 +10,7 @@ import com.lambda.event.listener.listener
 import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 
-internal object ChatTimestamp : Module(
+object ChatTimestamp : Module(
     name = "ChatTimestamp",
     category = Category.CHAT,
     description = "Shows the time a message was sent beside the message",

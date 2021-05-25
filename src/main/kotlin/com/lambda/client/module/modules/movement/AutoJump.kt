@@ -7,7 +7,7 @@ import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AutoJump : Module(
+object AutoJump : Module(
     name = "AutoJump",
     category = Category.MOVEMENT,
     description = "Automatically jumps if possible"

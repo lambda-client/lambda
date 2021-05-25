@@ -12,7 +12,7 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.event.listener.listener
 import net.minecraft.util.math.BlockPos
 
-internal object Baritone : Module(
+object Baritone : Module(
     name = "Baritone",
     category = Category.CLIENT,
     description = "Configures Baritone settings",

@@ -18,7 +18,7 @@ import java.io.File
 import java.net.URL
 import kotlin.random.Random
 
-internal object Spammer : Module(
+object Spammer : Module(
     name = "Spammer",
     description = "Spams text from a file on a set delay into the chat",
     category = Category.CHAT,

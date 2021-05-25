@@ -10,7 +10,7 @@ import com.lambda.commons.utils.MathUtils
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object TeleportLogger : Module(
+object TeleportLogger : Module(
     name = "TeleportLogger",
     category = Category.MISC,
     description = "Logs when a player teleports somewhere"

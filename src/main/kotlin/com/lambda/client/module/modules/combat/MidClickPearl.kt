@@ -14,7 +14,7 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Mouse
 
-internal object MidClickPearl : Module(
+object MidClickPearl : Module(
     name = "MidClickPearl",
     category = Category.COMBAT,
     description = "Throws a pearl automatically when you middle click in air"

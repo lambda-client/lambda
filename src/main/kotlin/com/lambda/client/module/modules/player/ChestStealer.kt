@@ -16,7 +16,7 @@ import net.minecraft.init.Items
 import net.minecraft.item.ItemShulkerBox
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object ChestStealer : Module(
+object ChestStealer : Module(
     name = "ChestStealer",
     category = Category.PLAYER,
     description = "Automatically steal or store items from containers"

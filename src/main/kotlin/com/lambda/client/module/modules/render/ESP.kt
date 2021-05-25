@@ -30,7 +30,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.GL_MODELVIEW
 import org.lwjgl.opengl.GL11.GL_PROJECTION
 
-internal object ESP : Module(
+object ESP : Module(
     name = "ESP",
     category = Category.RENDER,
     description = "Highlights entities"

@@ -24,7 +24,7 @@ import com.lambda.event.listener.listener
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object DiscordRPC : Module(
+object DiscordRPC : Module(
     name = "DiscordRPC",
     category = Category.MISC,
     description = "Discord Rich Presence",

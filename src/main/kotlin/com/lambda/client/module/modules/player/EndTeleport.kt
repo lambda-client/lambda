@@ -9,7 +9,7 @@ import net.minecraft.network.play.server.SPacketDisconnect
 import net.minecraft.network.play.server.SPacketRespawn
 import net.minecraft.util.text.TextComponentString
 
-internal object EndTeleport : Module(
+object EndTeleport : Module(
     name = "EndTeleport",
     category = Category.PLAYER,
     description = "Allows for teleportation when going through end portals"

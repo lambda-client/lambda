@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.client
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 
-internal object Tooltips : Module(
+object Tooltips : Module(
     name = "Tooltips",
     description = "Displays handy module descriptions in the GUI",
     category = Category.CLIENT,

@@ -11,7 +11,7 @@ import net.minecraft.entity.passive.*
 import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AutoRemount : Module(
+object AutoRemount : Module(
     name = "AutoRemount",
     description = "Automatically remounts your horse",
     category = Category.MOVEMENT

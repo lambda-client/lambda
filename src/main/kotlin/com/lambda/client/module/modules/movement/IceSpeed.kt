@@ -6,7 +6,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.init.Blocks
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object IceSpeed : Module(
+object IceSpeed : Module(
     name = "IceSpeed",
     description = "Changes how slippery ice is",
     category = Category.MOVEMENT

@@ -15,7 +15,7 @@ import net.minecraft.network.play.client.CPacketClickWindow
  * Permission (and ForgeHax is MIT licensed):
  * https://discordapp.com/channels/573954110454366214/634010802403409931/693919755647844352
  */
-internal object AntiBookKick : Module(
+object AntiBookKick : Module(
     name = "AntiBookKick",
     category = Category.MISC,
     description = "Prevents being kicked by clicking on books",

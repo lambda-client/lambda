@@ -24,7 +24,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-internal object Breadcrumbs : Module(
+object Breadcrumbs : Module(
     name = "Breadcrumbs",
     description = "Draws a tail behind as you move",
     category = Category.RENDER,

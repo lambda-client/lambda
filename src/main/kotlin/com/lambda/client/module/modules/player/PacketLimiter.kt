@@ -11,7 +11,7 @@ import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.min
 
-internal object PacketLimiter : Module(
+object PacketLimiter : Module(
     name = "PacketLimiter",
     category = Category.PLAYER,
     description = "Adjust timer automatically to ensure not sending too many movement packets",

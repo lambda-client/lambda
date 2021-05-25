@@ -12,7 +12,7 @@ import org.lwjgl.opengl.GL11.GL_QUADS
 import org.lwjgl.opengl.GL20.*
 import java.util.*
 
-internal object MenuShader : Module(
+object MenuShader : Module(
     name = "MenuShader",
     description = "Shows a shader on the main menu",
     showOnArray = false,

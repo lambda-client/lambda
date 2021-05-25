@@ -28,7 +28,7 @@ import net.minecraft.network.play.server.SPacketPlayerPosLook
 import kotlin.math.*
 
 // TODO: Rewrite
-internal object ElytraFlight : Module(
+object ElytraFlight : Module(
     name = "ElytraFlight",
     description = "Allows infinite and way easier Elytra flying",
     category = Category.MOVEMENT,

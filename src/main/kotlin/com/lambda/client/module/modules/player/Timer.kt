@@ -7,7 +7,7 @@ import com.lambda.client.module.Module
 import com.lambda.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object Timer : Module(
+object Timer : Module(
     name = "Timer",
     category = Category.PLAYER,
     description = "Changes your client tick speed",

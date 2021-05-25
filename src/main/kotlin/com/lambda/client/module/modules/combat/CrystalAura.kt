@@ -70,7 +70,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 @CombatManager.CombatModule
-internal object CrystalAura : Module(
+object CrystalAura : Module(
     name = "CrystalAura",
     alias = arrayOf("CA", "AC", "AutoCrystal"),
     description = "Places End Crystals to kill enemies",

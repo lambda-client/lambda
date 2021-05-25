@@ -12,7 +12,7 @@ import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.Display
 
-internal object CommandConfig : Module(
+object CommandConfig : Module(
     name = "CommandConfig",
     category = Category.CLIENT,
     description = "Configures client chat related stuff",

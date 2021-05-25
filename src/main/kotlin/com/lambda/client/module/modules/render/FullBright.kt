@@ -8,7 +8,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.max
 import kotlin.math.min
 
-internal object FullBright : Module(
+object FullBright : Module(
     name = "FullBright",
     description = "Makes everything brighter!",
     category = Category.RENDER,

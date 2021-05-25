@@ -14,7 +14,7 @@ import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.abs
 
-internal object AntiBot : Module(
+object AntiBot : Module(
     name = "AntiBot",
     description = "Avoid attacking fake players",
     category = Category.COMBAT,

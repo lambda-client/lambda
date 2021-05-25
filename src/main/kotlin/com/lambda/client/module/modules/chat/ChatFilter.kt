@@ -11,7 +11,7 @@ import net.minecraftforge.client.event.ClientChatReceivedEvent
 import java.io.File
 import java.io.FileNotFoundException
 
-internal object ChatFilter : Module(
+object ChatFilter : Module(
     name = "ChatFilter",
     description = "Filters custom words or phrases from the chat",
     category = Category.CHAT

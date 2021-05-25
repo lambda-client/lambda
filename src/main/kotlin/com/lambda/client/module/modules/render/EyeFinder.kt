@@ -19,7 +19,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.GL_LINES
 import kotlin.math.min
 
-internal object EyeFinder : Module(
+object EyeFinder : Module(
     name = "EyeFinder",
     description = "Draw lines from entity's heads to where they are looking",
     category = Category.RENDER

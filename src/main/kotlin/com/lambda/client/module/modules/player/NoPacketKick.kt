@@ -8,7 +8,7 @@ import com.lambda.client.util.text.MessageSendHelper.sendWarningMessage
 /**
  * @see MixinNetworkManager
  */
-internal object NoPacketKick : Module(
+object NoPacketKick : Module(
     name = "NoPacketKick",
     category = Category.PLAYER,
     description = "Suppress network exceptions and prevent getting kicked",

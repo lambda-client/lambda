@@ -8,7 +8,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumHand
 import net.minecraft.util.EnumHandSide
 
-internal object ItemModel : Module(
+object ItemModel : Module(
     name = "ItemModel",
     alias = arrayOf("ViewModel", "SmallShield", "LowerOffhand"),
     description = "Modify hand item rendering in first person",

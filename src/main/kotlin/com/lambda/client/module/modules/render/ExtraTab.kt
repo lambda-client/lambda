@@ -4,7 +4,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import net.minecraft.client.network.NetworkPlayerInfo
 
-internal object ExtraTab : Module(
+object ExtraTab : Module(
     name = "ExtraTab",
     description = "Expands the player tab menu",
     category = Category.RENDER

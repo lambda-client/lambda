@@ -6,7 +6,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.event.listener.listener
 
-internal object HudEditor : Module(
+object HudEditor : Module(
     name = "HudEditor",
     description = "Edits the Hud",
     category = Category.CLIENT,

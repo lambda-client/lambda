@@ -40,7 +40,7 @@ import org.lwjgl.input.Keyboard
 import java.util.*
 
 @CombatManager.CombatModule
-internal object CrystalBasePlace : Module(
+object CrystalBasePlace : Module(
     name = "CrystalBasePlace",
     description = "Places obby for placing crystal on",
     category = Category.COMBAT,

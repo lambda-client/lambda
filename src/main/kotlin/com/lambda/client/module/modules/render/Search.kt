@@ -29,7 +29,7 @@ import net.minecraft.world.chunk.Chunk
 import java.util.*
 import kotlin.collections.set
 
-internal object Search : Module(
+object Search : Module(
     name = "Search",
     description = "Highlights blocks in the world",
     category = Category.RENDER

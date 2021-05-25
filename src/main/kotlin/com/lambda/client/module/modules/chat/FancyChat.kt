@@ -7,7 +7,7 @@ import com.lambda.client.util.text.MessageDetection
 import com.lambda.commons.utils.MathUtils
 import kotlin.math.min
 
-internal object FancyChat : Module(
+object FancyChat : Module(
     name = "FancyChat",
     category = Category.CHAT,
     description = "Makes messages you send fancy",

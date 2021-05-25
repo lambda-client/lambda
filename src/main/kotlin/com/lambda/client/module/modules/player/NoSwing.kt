@@ -8,7 +8,7 @@ import com.lambda.event.listener.listener
 import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object NoSwing : Module(
+object NoSwing : Module(
     name = "NoSwing",
     category = Category.PLAYER,
     description = "Cancels server or client swing animation"

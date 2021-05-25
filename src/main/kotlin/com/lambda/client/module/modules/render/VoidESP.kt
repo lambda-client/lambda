@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
-internal object VoidESP : Module(
+object VoidESP : Module(
     name = "VoidESP",
     description = "Highlights holes leading to the void",
     category = Category.RENDER

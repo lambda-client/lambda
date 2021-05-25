@@ -39,7 +39,7 @@ import javax.sound.midi.ShortMessage
 import kotlin.math.log2
 import kotlin.math.roundToInt
 
-internal object NoteBot : Module(
+object NoteBot : Module(
     name = "NoteBot",
     category = Category.MISC,
     description = "Plays music with note blocks; put .mid or .nbs songs in .minecraft/lambda/songs"

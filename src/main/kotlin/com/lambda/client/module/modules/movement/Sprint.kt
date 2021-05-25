@@ -20,7 +20,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 /**
  * @see com.lambda.client.mixin.client.player.MixinEntityPlayerSP.setSprinting
  */
-internal object Sprint : Module(
+object Sprint : Module(
     name = "Sprint",
     description = "Automatically makes the player sprint",
     category = Category.MOVEMENT

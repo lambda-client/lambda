@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import net.minecraft.network.play.client.CPacketKeepAlive
 import net.minecraft.network.play.server.SPacketKeepAlive
 
-internal object PingSpoof : Module(
+object PingSpoof : Module(
     name = "PingSpoof",
     category = Category.MISC,
     description = "Cancels or adds delay to your ping packets"

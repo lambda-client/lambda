@@ -15,7 +15,7 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AutoMine : Module(
+object AutoMine : Module(
     name = "AutoMine",
     description = "Automatically mines chosen ores",
     category = Category.MISC

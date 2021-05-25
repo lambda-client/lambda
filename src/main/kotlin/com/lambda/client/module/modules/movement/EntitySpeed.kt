@@ -10,7 +10,7 @@ import net.minecraft.entity.passive.AbstractHorse
 import net.minecraft.entity.passive.EntityHorse
 import net.minecraft.entity.passive.EntityPig
 
-internal object EntitySpeed : Module(
+object EntitySpeed : Module(
     name = "EntitySpeed",
     category = Category.MOVEMENT,
     description = "Abuse client-sided movement to shape sound barrier breaking rideables"

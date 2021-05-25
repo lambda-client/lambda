@@ -14,7 +14,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraftforge.event.entity.player.PlayerInteractEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object FastBreak : Module(
+object FastBreak : Module(
     name = "FastBreak",
     category = Category.PLAYER,
     description = "Breaks block faster and nullifies the break delay"

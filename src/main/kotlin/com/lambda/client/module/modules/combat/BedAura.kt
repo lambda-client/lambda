@@ -36,7 +36,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 
 @CombatManager.CombatModule
-internal object BedAura : Module(
+object BedAura : Module(
     name = "BedAura",
     description = "Place bed and kills enemies",
     category = Category.COMBAT,

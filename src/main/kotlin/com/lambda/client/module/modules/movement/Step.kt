@@ -23,7 +23,7 @@ import org.lwjgl.input.Keyboard
  * The packet mode code is licensed under MIT and can be found here:
  * https://github.com/fr1kin/ForgeHax/blob/2011740/src/main/java/com/matt/forgehax/mods/StepMod.java
  */
-internal object Step : Module(
+object Step : Module(
     name = "Step",
     description = "Changes the vanilla behavior for stepping up blocks",
     category = Category.MOVEMENT,

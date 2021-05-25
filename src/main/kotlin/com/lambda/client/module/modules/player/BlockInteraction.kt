@@ -14,7 +14,7 @@ import net.minecraft.util.math.RayTraceResult
  * @see MixinMinecraft Multi Task
  * @see MixinEntityRenderer No Entity Trace
  */
-internal object BlockInteraction : Module(
+object BlockInteraction : Module(
     name = "BlockInteraction",
     alias = arrayOf("LiquidInteract", "MultiTask", "NoEntityTrace", "NoMiningTrace"),
     category = Category.PLAYER,

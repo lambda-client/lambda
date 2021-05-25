@@ -14,7 +14,7 @@ import net.minecraft.util.EnumFacing
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.round
 
-internal object AutoTunnel : Module(
+object AutoTunnel : Module(
     name = "AutoTunnel",
     description = "Automatically tunnels forward, at a given size",
     category = Category.MISC

@@ -18,7 +18,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 /**
  * Bowspam code from https://github.com/seppukudevelopment/seppuku/blob/5586365/src/main/java/me/rigamortis/seppuku/impl/module/combat/FastBowModule.java
  */
-internal object FastUse : Module(
+object FastUse : Module(
     name = "FastUse",
     category = Category.PLAYER,
     description = "Use items faster"

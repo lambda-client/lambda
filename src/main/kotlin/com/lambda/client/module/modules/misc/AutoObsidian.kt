@@ -56,7 +56,7 @@ import net.minecraft.world.EnumDifficulty
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.ceil
 
-internal object AutoObsidian : Module(
+object AutoObsidian : Module(
     name = "AutoObsidian",
     category = Category.MISC,
     description = "Breaks down Ender Chests to restock obsidian",

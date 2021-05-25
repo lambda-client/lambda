@@ -19,7 +19,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.min
 
-internal object HungerOverlay : Module(
+object HungerOverlay : Module(
     name = "HungerOverlay",
     description = "Displays a helpful overlay over your hunger bar.",
     category = Category.RENDER

@@ -14,7 +14,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Math.random
 import kotlin.math.abs
 
-internal object AutoFish : Module(
+object AutoFish : Module(
     name = "AutoFish",
     category = Category.MISC,
     description = "Automatically catch fish"

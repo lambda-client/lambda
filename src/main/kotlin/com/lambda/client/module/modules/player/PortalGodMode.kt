@@ -7,7 +7,7 @@ import com.lambda.client.util.threads.runSafe
 import com.lambda.event.listener.listener
 import net.minecraft.network.play.client.CPacketConfirmTeleport
 
-internal object PortalGodMode : Module(
+object PortalGodMode : Module(
     name = "PortalGodMode",
     category = Category.PLAYER,
     description = "Don't take damage in portals"

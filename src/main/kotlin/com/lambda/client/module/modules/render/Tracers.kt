@@ -19,7 +19,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.min
 
-internal object Tracers : Module(
+object Tracers : Module(
     name = "Tracers",
     description = "Draws lines to other living entities",
     category = Category.RENDER

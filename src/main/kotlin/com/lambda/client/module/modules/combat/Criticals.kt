@@ -20,7 +20,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.world.GameType
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object Criticals : Module(
+object Criticals : Module(
     name = "Criticals",
     category = Category.COMBAT,
     description = "Always do critical attacks"

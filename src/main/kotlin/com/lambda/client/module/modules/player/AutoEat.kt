@@ -22,7 +22,7 @@ import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.function.BiPredicate
 
-internal object AutoEat : Module(
+object AutoEat : Module(
     name = "AutoEat",
     description = "Automatically eat when hungry",
     category = Category.PLAYER

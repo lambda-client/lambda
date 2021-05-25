@@ -7,7 +7,7 @@ import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
 import kotlin.math.min
 
-internal object CustomChat : Module(
+object CustomChat : Module(
     name = "CustomChat",
     category = Category.CHAT,
     description = "Add a custom ending to your message!",

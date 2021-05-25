@@ -9,7 +9,7 @@ import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.event.listener.listener
 import net.minecraft.network.play.server.SPacketChat
 
-internal object AutoTPA : Module(
+object AutoTPA : Module(
     name = "AutoTPA",
     description = "Automatically accept or decline /TPAs",
     category = Category.CHAT

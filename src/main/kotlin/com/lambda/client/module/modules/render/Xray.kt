@@ -5,7 +5,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import net.minecraft.block.state.IBlockState
 
-internal object Xray : Module(
+object Xray : Module(
     name = "Xray",
     description = "Lets you see through blocks",
     category = Category.RENDER

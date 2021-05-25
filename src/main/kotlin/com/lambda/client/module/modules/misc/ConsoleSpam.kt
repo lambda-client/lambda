@@ -9,7 +9,7 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.network.play.client.CPacketUpdateSign
 import net.minecraft.tileentity.TileEntitySign
 
-internal object ConsoleSpam : Module(
+object ConsoleSpam : Module(
     name = "ConsoleSpam",
     description = "Spams Spigot consoles by sending invalid UpdateSign packets",
     category = Category.MISC

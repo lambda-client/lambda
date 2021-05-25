@@ -44,7 +44,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.*
 import java.util.*
 
-internal object CombatSetting : Module(
+object CombatSetting : Module(
     name = "CombatSetting",
     description = "Settings for combat module targeting",
     category = Category.COMBAT,

@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.client
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 
-internal object ChatSetting : Module(
+object ChatSetting : Module(
     name = "ChatSetting",
     category = Category.CLIENT,
     description = "Configures chat message manager",

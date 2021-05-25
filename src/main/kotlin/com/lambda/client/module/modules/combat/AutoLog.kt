@@ -25,7 +25,7 @@ import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.time.LocalTime
 
-internal object AutoLog : Module(
+object AutoLog : Module(
     name = "AutoLog",
     description = "Automatically log when in danger or on low health",
     category = Category.COMBAT,

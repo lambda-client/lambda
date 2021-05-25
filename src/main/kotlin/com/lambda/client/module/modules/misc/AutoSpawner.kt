@@ -29,7 +29,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 /**
  * TODO: Rewrite
  */
-internal object AutoSpawner : Module(
+object AutoSpawner : Module(
     name = "AutoSpawner",
     category = Category.MISC,
     description = "Automatically spawns Withers, Iron Golems and Snowmen"

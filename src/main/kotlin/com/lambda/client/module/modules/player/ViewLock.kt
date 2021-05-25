@@ -12,7 +12,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sign
 
 
-internal object ViewLock : Module(
+object ViewLock : Module(
     name = "ViewLock",
     alias = arrayOf("YawLock", "PitchLock"),
     category = Category.PLAYER,

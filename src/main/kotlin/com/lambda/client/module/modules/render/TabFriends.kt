@@ -8,7 +8,7 @@ import com.lambda.client.util.text.format
 import net.minecraft.client.network.NetworkPlayerInfo
 import net.minecraft.scoreboard.ScorePlayerTeam
 
-internal object TabFriends : Module(
+object TabFriends : Module(
     name = "TabFriends",
     description = "Highlights friends in the tab menu",
     category = Category.RENDER,

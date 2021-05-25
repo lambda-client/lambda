@@ -12,7 +12,7 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object CoordsLog : Module(
+object CoordsLog : Module(
     name = "CoordsLog",
     description = "Automatically logs your coords, based on actions",
     category = Category.MISC

@@ -17,7 +17,7 @@ import net.minecraft.network.play.server.SPacketCloseWindow
 import kotlin.math.cos
 import kotlin.math.sin
 
-internal object Flight : Module(
+object Flight : Module(
     name = "Flight",
     category = Category.MOVEMENT,
     description = "Makes the player fly",

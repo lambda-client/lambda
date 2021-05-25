@@ -17,7 +17,7 @@ import org.lwjgl.opengl.GL11.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-internal object BossStack : Module(
+object BossStack : Module(
     name = "BossStack",
     description = "Modify the boss health GUI to take up less space",
     category = Category.RENDER

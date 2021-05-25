@@ -17,7 +17,7 @@ import net.minecraft.item.ItemArmor
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AutoArmor : Module(
+object AutoArmor : Module(
     name = "AutoArmor",
     category = Category.COMBAT,
     description = "Automatically equips armour",

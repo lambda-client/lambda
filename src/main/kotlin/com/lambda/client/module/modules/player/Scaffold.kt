@@ -45,7 +45,7 @@ import kotlin.math.roundToInt
  * @see MixinEntity.moveInvokeIsSneakingPre
  * @see MixinEntity.moveInvokeIsSneakingPost
  */
-internal object Scaffold : Module(
+object Scaffold : Module(
     name = "Scaffold",
     category = Category.PLAYER,
     description = "Places blocks under you",

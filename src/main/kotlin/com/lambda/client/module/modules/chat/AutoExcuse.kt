@@ -15,7 +15,7 @@ import net.minecraft.network.play.server.SPacketUpdateHealth
 import net.minecraft.util.EnumHand
 import java.io.File
 
-internal object AutoExcuse : Module(
+object AutoExcuse : Module(
     name = "AutoExcuse",
     description = "Makes an excuse for you when you die",
     category = Category.CHAT,

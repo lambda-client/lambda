@@ -21,7 +21,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
  * @see MixinBlockSoulSand
  * @see MixinBlockWeb
  */
-internal object NoSlowDown : Module(
+object NoSlowDown : Module(
     name = "NoSlowDown",
     category = Category.MOVEMENT,
     description = "Prevents being slowed down when using an item or going through cobwebs"

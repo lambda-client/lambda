@@ -12,7 +12,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.text.SimpleDateFormat
 import java.util.*
 
-internal object AutoQMain : Module(
+object AutoQMain : Module(
     name = "AutoQMain",
     description = "Automatically does '/queue main'",
     category = Category.CHAT,

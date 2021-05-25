@@ -10,7 +10,7 @@ import net.minecraft.init.Items
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @CombatManager.CombatModule
-internal object AimBot : Module(
+object AimBot : Module(
     name = "AimBot",
     description = "Automatically aims at entities for you.",
     category = Category.COMBAT,

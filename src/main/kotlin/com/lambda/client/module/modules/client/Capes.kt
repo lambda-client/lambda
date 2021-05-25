@@ -35,7 +35,7 @@ import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 
-internal object Capes : Module(
+object Capes : Module(
     name = "Capes",
     category = Category.CLIENT,
     description = "Controls the display of Lambda capes",

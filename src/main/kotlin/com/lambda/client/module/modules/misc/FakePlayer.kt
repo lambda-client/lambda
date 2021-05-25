@@ -25,7 +25,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.potion.PotionEffect
 import java.util.*
 
-internal object FakePlayer : Module(
+object FakePlayer : Module(
     name = "FakePlayer",
     description = "Spawns a client sided fake player",
     category = Category.MISC

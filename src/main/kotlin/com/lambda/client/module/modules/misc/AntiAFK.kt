@@ -26,7 +26,7 @@ import kotlin.random.Random
  * TODO: Path finding to stay inside 1 chunk
  * TODO: Render which chunk is selected
  */
-internal object AntiAFK : Module(
+object AntiAFK : Module(
     name = "AntiAFK",
     category = Category.MISC,
     description = "Prevents being kicked for AFK"

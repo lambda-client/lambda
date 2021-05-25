@@ -6,7 +6,7 @@ import net.minecraft.client.gui.ChatLine
 import net.minecraft.util.text.ITextComponent
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 
-internal object ExtraChatHistory : Module(
+object ExtraChatHistory : Module(
     name = "ExtraChatHistory",
     alias = arrayOf("InfiniteChat", "InfiniteChatHistory"),
     category = Category.CHAT,

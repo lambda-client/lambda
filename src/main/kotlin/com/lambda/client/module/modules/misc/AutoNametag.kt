@@ -15,7 +15,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AutoNametag : Module(
+object AutoNametag : Module(
     name = "AutoNametag",
     description = "Automatically nametags entities",
     category = Category.MISC

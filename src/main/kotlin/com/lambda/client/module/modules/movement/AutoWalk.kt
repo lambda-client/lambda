@@ -21,7 +21,7 @@ import net.minecraft.util.MovementInputFromOptions
 import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AutoWalk : Module(
+object AutoWalk : Module(
     name = "AutoWalk",
     category = Category.MOVEMENT,
     description = "Automatically walks somewhere"

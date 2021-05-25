@@ -11,7 +11,7 @@ import net.minecraft.entity.passive.EntityTameable
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.pow
 
-internal object MobOwner : Module(
+object MobOwner : Module(
     name = "MobOwner",
     description = "Displays the owner of tamed mobs",
     category = Category.RENDER

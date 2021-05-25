@@ -8,7 +8,7 @@ import com.lambda.client.module.Module
 import com.lambda.event.listener.listener
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 
-internal object AntiForceLook : Module(
+object AntiForceLook : Module(
     name = "AntiForceLook",
     category = Category.PLAYER,
     description = "Stops server packets from turning your head"

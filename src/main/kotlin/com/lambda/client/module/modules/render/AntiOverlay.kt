@@ -11,7 +11,7 @@ import net.minecraftforge.client.event.RenderBlockOverlayEvent.OverlayType
 import net.minecraftforge.client.event.RenderGameOverlayEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AntiOverlay : Module(
+object AntiOverlay : Module(
     name = "AntiOverlay",
     description = "Prevents rendering of fire, water and block texture overlays.",
     category = Category.RENDER

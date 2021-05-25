@@ -12,7 +12,7 @@ import com.lambda.client.util.combat.SurroundUtils.checkHole
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.util.math.BlockPos
 
-internal object Anchor : Module(
+object Anchor : Module(
     name = "Anchor",
     description = "Stops your motion when you are above hole",
     category = Category.MOVEMENT

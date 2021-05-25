@@ -11,7 +11,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Mouse
 
-internal object EntityTools : Module(
+object EntityTools : Module(
     name = "EntityTools",
     category = Category.MISC,
     description = "Right click entities to perform actions on them"

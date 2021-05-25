@@ -18,7 +18,7 @@ import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object LogoutLogger : Module(
+object LogoutLogger : Module(
     name = "LogoutLogger",
     category = Category.MISC,
     description = "Logs when a player leaves the game"

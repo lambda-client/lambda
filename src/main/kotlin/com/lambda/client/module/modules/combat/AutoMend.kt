@@ -26,7 +26,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.RayTraceResult
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AutoMend : Module(
+object AutoMend : Module(
     name = "AutoMend",
     category = Category.COMBAT,
     description = "Automatically mends armour"

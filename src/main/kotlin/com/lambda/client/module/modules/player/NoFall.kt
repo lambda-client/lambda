@@ -21,7 +21,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object NoFall : Module(
+object NoFall : Module(
     name = "NoFall",
     category = Category.PLAYER,
     description = "Prevents fall damage"

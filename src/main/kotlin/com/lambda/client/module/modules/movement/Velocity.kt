@@ -22,7 +22,7 @@ import kotlin.math.sqrt
  * @see MixinEntity.applyEntityCollisionHead
  * @see MixinBlockLiquid.modifyAcceleration
  */
-internal object Velocity : Module(
+object Velocity : Module(
     name = "Velocity",
     alias = arrayOf("Knockback", "AntiKnockBack", "NoPush"),
     category = Category.MOVEMENT,

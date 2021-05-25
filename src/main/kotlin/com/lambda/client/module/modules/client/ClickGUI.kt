@@ -11,7 +11,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import kotlin.math.round
 
-internal object ClickGUI : Module(
+object ClickGUI : Module(
     name = "ClickGUI",
     description = "Opens the Click GUI",
     category = Category.CLIENT,

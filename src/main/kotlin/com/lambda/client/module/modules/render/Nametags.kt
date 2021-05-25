@@ -35,7 +35,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 //TODO: Impl Totem pops
-internal object Nametags : Module(
+object Nametags : Module(
     name = "Nametags",
     description = "Draws descriptive nametags above entities",
     category = Category.RENDER

@@ -13,7 +13,7 @@ import com.lambda.event.listener.listener
 import net.minecraft.util.math.RayTraceResult.Type
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object SelectionHighlight : Module(
+object SelectionHighlight : Module(
     name = "SelectionHighlight",
     description = "Highlights object you are looking at",
     category = Category.RENDER

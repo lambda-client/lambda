@@ -20,7 +20,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object BreakingESP : Module(
+object BreakingESP : Module(
     name = "BreakingESP",
     description = "Highlights blocks being broken near you",
     category = Category.RENDER

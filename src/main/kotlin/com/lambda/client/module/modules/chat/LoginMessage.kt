@@ -17,7 +17,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 
-internal object LoginMessage : Module(
+object LoginMessage : Module(
     name = "LoginMessage",
     description = "Sends a given message(s) to public chat on login.",
     category = Category.CHAT,

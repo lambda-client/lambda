@@ -8,7 +8,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.world.GameType
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object FakeGameMode : Module(
+object FakeGameMode : Module(
     name = "FakeGameMode",
     description = "Fakes your current gamemode client side",
     category = Category.MISC

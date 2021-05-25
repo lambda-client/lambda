@@ -8,7 +8,7 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.server.SPacketSoundEffect
 import net.minecraft.util.SoundCategory
 
-internal object NoSoundLag : Module(
+object NoSoundLag : Module(
     name = "NoSoundLag",
     category = Category.MISC,
     description = "Prevents lag caused by sound machines"

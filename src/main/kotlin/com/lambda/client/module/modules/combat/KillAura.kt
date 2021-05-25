@@ -23,7 +23,7 @@ import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @CombatManager.CombatModule
-internal object KillAura : Module(
+object KillAura : Module(
     name = "KillAura",
     alias = arrayOf("KA", "Aura", "TriggerBot"),
     category = Category.COMBAT,

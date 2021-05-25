@@ -27,7 +27,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.registries.GameData
 import org.lwjgl.opengl.GL11.GL_QUADS
 
-internal object NoRender : Module(
+object NoRender : Module(
     name = "NoRender",
     category = Category.RENDER,
     description = "Ignore entity spawn packets"

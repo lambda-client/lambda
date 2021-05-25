@@ -29,7 +29,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 
-internal object Trajectories : Module(
+object Trajectories : Module(
     name = "Trajectories",
     category = Category.RENDER,
     description = "Draws lines to where trajectories are going to fall"

@@ -34,7 +34,7 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-internal object HoleSnap : Module(
+object HoleSnap : Module(
     name = "HoleSnap",
     description = "Move you into the hole nearby",
     category = Category.COMBAT

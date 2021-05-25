@@ -18,7 +18,7 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object VisualRange : Module(
+object VisualRange : Module(
     name = "VisualRange",
     description = "Shows players who enter and leave range in chat",
     category = Category.COMBAT,

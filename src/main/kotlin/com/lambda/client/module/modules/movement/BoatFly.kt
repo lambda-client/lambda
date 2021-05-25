@@ -14,7 +14,7 @@ import net.minecraft.network.play.client.CPacketVehicleMove
 import net.minecraft.network.play.server.SPacketMoveVehicle
 import net.minecraft.util.EnumHand
 
-internal object BoatFly : Module(
+object BoatFly : Module(
     name = "BoatFly",
     category = Category.MOVEMENT,
     description = "Fly using boats"

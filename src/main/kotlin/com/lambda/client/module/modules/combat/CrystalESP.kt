@@ -32,7 +32,7 @@ import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.sin
 
-internal object CrystalESP : Module(
+object CrystalESP : Module(
     name = "CrystalESP",
     description = "Renders ESP for End Crystals",
     category = Category.COMBAT

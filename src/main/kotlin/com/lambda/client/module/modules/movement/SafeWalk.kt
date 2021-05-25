@@ -14,7 +14,7 @@ import com.lambda.client.util.threads.runSafeR
  * @see MixinEntity.moveInvokeIsSneakingPre
  * @see MixinEntity.moveInvokeIsSneakingPost
  */
-internal object SafeWalk : Module(
+object SafeWalk : Module(
     name = "SafeWalk",
     category = Category.MOVEMENT,
     description = "Keeps you from walking off edges"

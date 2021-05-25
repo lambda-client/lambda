@@ -33,7 +33,7 @@ import org.lwjgl.input.Keyboard
 import java.lang.Float.max
 import kotlin.math.ceil
 
-internal object AutoOffhand : Module(
+object AutoOffhand : Module(
     name = "AutoOffhand",
     description = "Manages item in your offhand",
     category = Category.COMBAT

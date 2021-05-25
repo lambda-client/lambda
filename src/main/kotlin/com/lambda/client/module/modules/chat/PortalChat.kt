@@ -7,7 +7,7 @@ import com.lambda.client.module.Module
 /**
  * @see MixinEntityPlayerSP
  */
-internal object PortalChat : Module(
+object PortalChat : Module(
     name = "PortalChat",
     category = Category.CHAT,
     description = "Allows you to open GUIs in portals",

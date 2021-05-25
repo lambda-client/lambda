@@ -4,7 +4,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.ColorHolder
 
-internal object GuiColors : Module(
+object GuiColors : Module(
     name = "GuiColors",
     description = "Opens the Click GUI",
     showOnArray = false,

@@ -8,7 +8,7 @@ import com.lambda.event.listener.listener
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.network.play.client.CPacketUseEntity
 
-internal object AntiFriendHit : Module(
+object AntiFriendHit : Module(
     name = "AntiFriendHit",
     description = "Don't hit your friends",
     category = Category.COMBAT

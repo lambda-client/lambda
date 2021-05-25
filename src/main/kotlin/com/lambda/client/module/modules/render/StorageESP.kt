@@ -21,7 +21,7 @@ import net.minecraft.tileentity.*
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object StorageESP : Module(
+object StorageESP : Module(
     name = "StorageESP",
     description = "Draws an ESP on top of storage units",
     category = Category.RENDER

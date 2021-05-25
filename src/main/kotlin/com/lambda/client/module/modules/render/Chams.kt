@@ -22,7 +22,7 @@ import net.minecraft.entity.projectile.EntityThrowable
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.*
 
-internal object Chams : Module(
+object Chams : Module(
     name = "Chams",
     category = Category.RENDER,
     description = "Modify entity rendering"

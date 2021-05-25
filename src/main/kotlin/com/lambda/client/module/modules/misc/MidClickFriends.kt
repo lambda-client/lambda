@@ -13,7 +13,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Mouse
 
-internal object MidClickFriends : Module(
+object MidClickFriends : Module(
     name = "MidClickFriends",
     category = Category.MISC,
     description = "Middle click players to friend or unfriend them",

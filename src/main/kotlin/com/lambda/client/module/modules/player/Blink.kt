@@ -16,7 +16,7 @@ import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 
-internal object Blink : Module(
+object Blink : Module(
     name = "Blink",
     category = Category.PLAYER,
     description = "Cancels server side packets"

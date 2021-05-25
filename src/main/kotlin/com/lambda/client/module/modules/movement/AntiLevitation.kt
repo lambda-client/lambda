@@ -6,7 +6,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.init.MobEffects
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object AntiLevitation : Module(
+object AntiLevitation : Module(
     name = "AntiLevitation",
     description = "Removes levitation potion effect",
     category = Category.MOVEMENT

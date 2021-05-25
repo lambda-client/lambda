@@ -23,7 +23,7 @@ import net.minecraft.util.math.ChunkPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.roundToInt
 
-internal object StashLogger : Module(
+object StashLogger : Module(
     name = "StashLogger",
     category = Category.MISC,
     description = "Logs storage units in render distance."

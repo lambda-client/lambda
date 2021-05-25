@@ -19,7 +19,7 @@ import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
-internal object Jesus : Module(
+object Jesus : Module(
     name = "Jesus",
     description = "Allows you to walk on water",
     category = Category.MOVEMENT

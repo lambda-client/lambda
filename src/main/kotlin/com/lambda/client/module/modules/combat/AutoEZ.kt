@@ -17,7 +17,7 @@ import net.minecraftforge.client.event.ClientChatReceivedEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 
-internal object AutoEZ : Module(
+object AutoEZ : Module(
     name = "AutoEZ",
     category = Category.COMBAT,
     description = "Sends an insult in chat after killing someone"

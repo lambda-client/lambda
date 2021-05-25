@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import org.lwjgl.opengl.GL11.*
 
-internal object LambdaMoji : Module(
+object LambdaMoji : Module(
     name = "LambdaMoji",
     description = "Add emojis to chat using LambdaMoji, courtesy of the EmojiAPI.",
     category = Category.CHAT

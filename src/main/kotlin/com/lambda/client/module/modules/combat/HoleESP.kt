@@ -16,7 +16,7 @@ import com.lambda.client.util.threads.safeListener
 import kotlinx.coroutines.launch
 import net.minecraft.util.math.AxisAlignedBB
 
-internal object HoleESP : Module(
+object HoleESP : Module(
     name = "HoleESP",
     category = Category.COMBAT,
     description = "Show safe holes for crystal pvp"

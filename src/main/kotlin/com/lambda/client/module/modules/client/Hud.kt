@@ -4,7 +4,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.ColorHolder
 
-internal object Hud : Module(
+object Hud : Module(
     name = "Hud",
     description = "Toggles Hud displaying and settings",
     category = Category.CLIENT,

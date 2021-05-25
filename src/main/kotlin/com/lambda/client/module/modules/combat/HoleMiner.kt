@@ -30,7 +30,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 @CombatManager.CombatModule
-internal object HoleMiner : Module(
+object HoleMiner : Module(
     name = "HoleMiner",
     category = Category.COMBAT,
     description = "Mines your opponent's hole",

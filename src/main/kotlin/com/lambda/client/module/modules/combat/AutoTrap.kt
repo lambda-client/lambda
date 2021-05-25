@@ -30,7 +30,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 
 @CombatManager.CombatModule
-internal object AutoTrap : Module(
+object AutoTrap : Module(
     name = "AutoTrap",
     category = Category.COMBAT,
     description = "Traps your enemies in obsidian",

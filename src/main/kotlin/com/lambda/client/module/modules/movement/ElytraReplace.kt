@@ -14,7 +14,7 @@ import net.minecraft.item.ItemElytra
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-internal object ElytraReplace : Module(
+object ElytraReplace : Module(
     name = "ElytraReplace",
     description = "Automatically swap and replace your chestplate and elytra.",
     category = Category.MOVEMENT

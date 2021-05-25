@@ -19,7 +19,7 @@ import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 
-internal object TotemPopCounter : Module(
+object TotemPopCounter : Module(
     name = "TotemPopCounter",
     description = "Counts how many times players pop",
     category = Category.COMBAT

@@ -8,7 +8,7 @@ import io.netty.buffer.Unpooled
 import net.minecraft.network.PacketBuffer
 import net.minecraft.network.play.client.CPacketCustomPayload
 
-internal object BeaconSelector : Module(
+object BeaconSelector : Module(
     name = "BeaconSelector",
     category = Category.MISC,
     description = "Choose any of the 5 beacon effects regardless of beacon base height"

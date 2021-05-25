@@ -29,7 +29,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.GL_LINE_LOOP
 import org.lwjgl.opengl.GL11.glLineWidth
 
-internal object NewChunks : Module(
+object NewChunks : Module(
     name = "NewChunks",
     description = "Highlights newly generated chunks",
     category = Category.RENDER
