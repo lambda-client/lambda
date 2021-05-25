@@ -9,8 +9,8 @@ object KeyboardUtils {
     val allKeys = IntArray(Keyboard.KEYBOARD_SIZE) { it }
 
     private val displayNames = Array(Keyboard.KEYBOARD_SIZE) { name ->
-        Keyboard.getKeyName(name).lowercase(Locale.getDefault()).replaceFirstChar {
-            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+        Keyboard.getKeyName(name).lowercase().replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase() else it.toString()
         }
     }
 

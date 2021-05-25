@@ -87,7 +87,7 @@ internal object FancyChat : Module(
         val message = StringBuilder()
         for (element in input) {
             var inputChar = element.toString() + ""
-            inputChar = inputChar.lowercase(Locale.getDefault())
+            inputChar = inputChar.lowercase()
             inputChar = leetSwitch(inputChar)
             message.append(inputChar)
         }
@@ -99,7 +99,7 @@ internal object FancyChat : Module(
         for (i in input.indices) {
             var inputChar = input[i].toString() + ""
             val rand = if (randomSetting.value) (0..1).random() else 0
-            inputChar = if (!MathUtils.isNumberEven(i + rand)) inputChar.uppercase(Locale.getDefault()) else inputChar.lowercase(Locale.getDefault())
+            inputChar = if (!MathUtils.isNumberEven(i + rand)) inputChar.uppercase() else inputChar.lowercase()
             message.append(inputChar)
         }
         return message.toString()

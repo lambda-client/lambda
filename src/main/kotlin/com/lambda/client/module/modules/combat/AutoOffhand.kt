@@ -180,7 +180,7 @@ internal object AutoOffhand : Module(
             confirmTimer.reset()
             movingTimer.reset()
 
-            if (switchMessage) MessageSendHelper.sendChatMessage("$chatName Offhand now has a ${typeAlt.toString().lowercase(Locale.getDefault())}")
+            if (switchMessage) MessageSendHelper.sendChatMessage("$chatName Offhand now has a ${typeAlt.toString().lowercase()}")
         }
     }
 

@@ -67,7 +67,7 @@ internal object AutoTunnel : Module(
     }
 
     override fun getHudInfo(): String {
-        return lastDirection.name2.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        return lastDirection.name2.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 
     init {

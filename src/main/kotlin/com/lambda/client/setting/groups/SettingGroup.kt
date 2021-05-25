@@ -31,7 +31,7 @@ open class SettingGroup(
      * @return [setting]
      */
     open fun <S : AbstractSetting<*>> addSetting(setting: S): S {
-        subSetting[setting.name.lowercase(Locale.getDefault())] = setting
+        subSetting[setting.name.lowercase()] = setting
         return setting
     }
 

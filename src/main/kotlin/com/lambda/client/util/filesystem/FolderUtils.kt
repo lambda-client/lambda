@@ -26,7 +26,7 @@ object FolderUtils {
      * @return current OperatingSystem
      */
     private fun getOS(): OperatingSystem {
-        val osName = System.getProperty("os.name").lowercase(Locale.getDefault())
+        val osName = System.getProperty("os.name").lowercase()
         return when {
             osName.contains("nux") -> {
                 OperatingSystem.UNIX

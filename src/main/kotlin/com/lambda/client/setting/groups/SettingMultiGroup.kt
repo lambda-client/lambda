@@ -21,7 +21,7 @@ open class SettingMultiGroup(
      *
      * @return Setting that matches [settingName] or null if none
      */
-    fun getSetting(settingName: String) = subSetting[settingName.lowercase(Locale.getDefault())]
+    fun getSetting(settingName: String) = subSetting[settingName.lowercase()]
     /* End of settings */
 
 
@@ -38,7 +38,7 @@ open class SettingMultiGroup(
      *
      * @return The group that matches [groupName]
      */
-    fun getGroupOrPut(groupName: String) = subGroup.getOrPut(groupName.lowercase(Locale.getDefault())) { SettingMultiGroup(groupName) }
+    fun getGroupOrPut(groupName: String) = subGroup.getOrPut(groupName.lowercase()) { SettingMultiGroup(groupName) }
 
 
     /**
@@ -46,7 +46,7 @@ open class SettingMultiGroup(
      *
      * @return The group that matches [groupName] or null if none
      */
-    fun getGroup(groupName: String) = subGroup[groupName.lowercase(Locale.getDefault())]
+    fun getGroup(groupName: String) = subGroup[groupName.lowercase()]
 
     /**
      * Adds a group to this group
@@ -54,7 +54,7 @@ open class SettingMultiGroup(
      * @param settingGroup Group to add
      */
     fun addGroup(settingGroup: SettingMultiGroup) {
-        subGroup[settingGroup.name.lowercase(Locale.getDefault())] = settingGroup
+        subGroup[settingGroup.name.lowercase()] = settingGroup
     }
     /* End of groups */
 

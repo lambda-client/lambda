@@ -1,6 +1,5 @@
 package com.lambda.client.manager.managers
 
-import baritone.api.utils.BetterBlockPos
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.lambda.client.LambdaMod

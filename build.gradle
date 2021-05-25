@@ -125,7 +125,7 @@ dependencies {
     compileOnly 'org.jetbrains:annotations:20.1.0'
 
     // This Baritone will NOT be included in the jar
-    implementation 'com.github.cabaletta:baritone:1.2.15'
+    implementation 'com.github.cabaletta:baritone:1.2.14'
 
     // This Baritone WILL be included in the jar
     jarLibs 'cabaletta:baritone-api:1.2'
