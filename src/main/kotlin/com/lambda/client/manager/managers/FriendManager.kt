@@ -26,15 +26,15 @@ object FriendManager : Manager {
             friendFile.enabled = value
         }
 
-    fun isFriend(name: String) = friendFile.enabled && friends.contains(name.toLowerCase())
+    fun isFriend(name: String) = friendFile.enabled && friends.contains(name.lowercase())
 
     fun addFriend(name: String) = UUIDManager.getByName(name)?.let {
         friendFile.friends.add(it)
-        friends[it.name.toLowerCase()] = it
+        friends[it.name.lowercase()] = it
         true
     } ?: false
 
-    fun removeFriend(name: String) = friendFile.friends.remove(friends.remove(name.toLowerCase()))
+    fun removeFriend(name: String) = friendFile.friends.remove(friends.remove(name.lowercase()))
 
     fun clearFriend() {
         friends.clear()
@@ -47,7 +47,7 @@ object FriendManager : Manager {
         return try {
             friendFile = gson.fromJson(FileReader(file), object : TypeToken<FriendFile>() {}.type)
             friends.clear()
-            friends.putAll(friendFile.friends.associateBy { it.name.toLowerCase() })
+            friends.putAll(friendFile.friends.associateBy { it.name.lowercase() })
             LambdaMod.LOG.info("Friend loaded")
             true
         } catch (e: Exception) {

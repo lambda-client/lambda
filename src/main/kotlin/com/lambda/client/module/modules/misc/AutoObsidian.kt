@@ -372,10 +372,10 @@ internal object AutoObsidian : Module(
         player.inventorySlots.countBlock(Blocks.OBSIDIAN)
 
     private fun SafeClientEvent.countDropped() =
-        getDroppedItems(Blocks.OBSIDIAN.id, 8.0f).sumBy { it.item.count }
+        getDroppedItems(Blocks.OBSIDIAN.id, 8.0f).sumOf { it.item.count }
 
     private fun SafeClientEvent.countEmptySlots(): Int {
-        return player.inventorySlots.sumBy {
+        return player.inventorySlots.sumOf {
             val stack = it.stack
             when {
                 stack.isEmpty -> 64

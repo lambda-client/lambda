@@ -61,7 +61,7 @@ fun Iterable<Slot>.countID(itemID: Int, predicate: (ItemStack) -> Boolean = { tr
     countByStack { it.item.id == itemID && predicate(it) }
 
 inline fun Iterable<Slot>.countByStack(predicate: (ItemStack) -> Boolean = { true }) =
-    sumBy { slot ->
+    sumOf { slot ->
         slot.stack.let { if (predicate(it)) it.count else 0 }
     }
 

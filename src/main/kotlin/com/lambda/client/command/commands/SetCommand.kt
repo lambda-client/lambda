@@ -15,7 +15,6 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.format
 import com.lambda.client.util.text.formatValue
 import net.minecraft.util.text.TextFormatting
-import java.util.*
 
 object SetCommand : ClientCommand(
     name = "set",
@@ -118,7 +117,7 @@ object SetCommand : ClientCommand(
         this.replace(" ", "")
             .replace("_", "")
             .run {
-                if (lowerCase) this.toLowerCase(Locale.ROOT) else this
+                if (lowerCase) this.lowercase() else this
             }
 
     private fun getSetting(module: AbstractModule, settingName: String) =

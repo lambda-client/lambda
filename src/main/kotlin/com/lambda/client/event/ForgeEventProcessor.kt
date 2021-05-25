@@ -21,7 +21,6 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.lwjgl.input.Keyboard
-import java.util.*
 
 internal object ForgeEventProcessor {
     private val mc = Wrapper.minecraft
@@ -85,7 +84,7 @@ internal object ForgeEventProcessor {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     fun onChatSent(event: ClientChatEvent) {
         MessageDetection.Command.BARITONE.removedOrNull(event.message)?.let {
-            LambdaEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').toLowerCase(Locale.ROOT)))
+            LambdaEventBus.post(BaritoneCommandEvent(it.toString().substringBefore(' ').lowercase()))
         }
 
         if (MessageDetection.Command.LAMBDA detect event.message) {

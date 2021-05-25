@@ -116,7 +116,8 @@ internal object Breadcrumbs : Module(
             LambdaTessellator.begin(GL_LINE_STRIP)
             for (pos in posList) {
                 val offsetPost = pos.add(offset)
-                buffer.pos(offsetPost.x, offsetPost.y, offsetPost.z).color(color.r, color.g, color.b, (color.a * alphaMultiplier).toInt()).endVertex()
+                buffer.pos(offsetPost.x, offsetPost.y, offsetPost.z)
+                    .color(color.r, color.g, color.b, (color.a * alphaMultiplier).toInt()).endVertex()
             }
             LambdaTessellator.render()
         }

@@ -4,7 +4,6 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import com.lambda.client.setting.settings.MutableSetting
 import com.lambda.commons.extension.next
-import java.util.*
 
 class EnumSetting<T : Enum<T>>(
     name: String,
@@ -22,7 +21,7 @@ class EnumSetting<T : Enum<T>>(
     }
 
     override fun setValue(valueIn: String) {
-        super.setValue(valueIn.toUpperCase(Locale.ROOT).replace(' ', '_'))
+        super.setValue(valueIn.uppercase().replace(' ', '_'))
     }
 
     override fun write(): JsonElement = JsonPrimitive(value.name)

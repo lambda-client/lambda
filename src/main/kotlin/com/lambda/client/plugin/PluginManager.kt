@@ -8,7 +8,6 @@ import kotlinx.coroutines.Deferred
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
-import java.util.logging.Logger
 
 internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     override var deferred: Deferred<List<PluginLoader>>? = null

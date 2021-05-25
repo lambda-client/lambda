@@ -5,7 +5,6 @@ import com.google.gson.JsonPrimitive
 import com.lambda.client.LambdaMod
 import com.lambda.client.setting.settings.AbstractSetting
 import com.lambda.commons.interfaces.Nameable
-import java.util.*
 
 open class SettingGroup(
     override val name: String
@@ -31,7 +30,7 @@ open class SettingGroup(
      * @return [setting]
      */
     open fun <S : AbstractSetting<*>> addSetting(setting: S): S {
-        subSetting[setting.name.toLowerCase()] = setting
+        subSetting[setting.name.lowercase()] = setting
         return setting
     }
 
@@ -75,7 +74,7 @@ open class SettingGroup(
 
     private fun String.toJsonName() =
         this.replace(' ', '_')
-            .toLowerCase(Locale.ROOT)
+            .lowercase()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

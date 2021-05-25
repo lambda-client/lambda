@@ -73,6 +73,6 @@ internal object VoidESP : Module(
         if (dangerous) {
             world.isAirBlock(pos)
         } else world.isAirBlock(pos)
-        && world.isAirBlock(pos.up())
-        && world.isAirBlock(pos.up().up())
+            && world.isAirBlock(pos.up())
+            && world.isAirBlock(pos.up().up())
 }

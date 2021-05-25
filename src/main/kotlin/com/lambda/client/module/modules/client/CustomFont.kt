@@ -8,7 +8,6 @@ import com.lambda.client.util.graphics.font.LambdaFontRenderer
 import com.lambda.client.util.threads.onMainThread
 import kotlinx.coroutines.runBlocking
 import java.awt.GraphicsEnvironment
-import java.util.*
 
 internal object CustomFont : Module(
     name = "CustomFont",
@@ -41,18 +40,18 @@ internal object CustomFont : Module(
             val environment = GraphicsEnvironment.getLocalGraphicsEnvironment()
 
             environment.availableFontFamilyNames.forEach {
-                this[it.toLowerCase(Locale.ROOT)] = it
+                this[it.lowercase()] = it
             }
 
             environment.allFonts.forEach {
-                this[it.name.toLowerCase(Locale.ROOT)] = it.family
+                this[it.name.lowercase()] = it.family
             }
         }
     }
 
     private fun getMatchingFontName(name: String): String? {
         return if (name.equals(DEFAULT_FONT_NAME, true)) DEFAULT_FONT_NAME
-        else availableFonts[name.toLowerCase(Locale.ROOT)]
+        else availableFonts[name.lowercase()]
     }
 
     init {

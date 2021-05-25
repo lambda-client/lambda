@@ -75,7 +75,8 @@ internal object Trajectories : Module(
             for ((index, pos) in path.withIndex()) {
                 val scale = ((path.size - 1) - index) * (1.0 / (path.size - 1))
                 val offsetPos = pos.add(offset.scale(scale))
-                buffer.pos(offsetPos.x, offsetPos.y, offsetPos.z).color(r.value, g.value, b.value, aOutline.value).endVertex()
+                buffer.pos(offsetPos.x, offsetPos.y, offsetPos.z).color(r.value, g.value, b.value, aOutline.value)
+                    .endVertex()
             }
             LambdaTessellator.render()
 
@@ -111,10 +112,15 @@ internal object Trajectories : Module(
         var multiplier = if (getThrowingType(mc.player.heldItemMainhand) != null) 1.0 else -1.0
         if (mc.gameSettings.mainHand != EnumHandSide.RIGHT) multiplier *= -1.0
         val eyePos = mc.player.getPositionEyes(LambdaTessellator.pTicks())
-        val camPos = EntityUtils.getInterpolatedPos(mc.player, LambdaTessellator.pTicks()).add(ActiveRenderInfo.getCameraPosition())
+        val camPos = EntityUtils.getInterpolatedPos(mc.player, LambdaTessellator.pTicks())
+            .add(ActiveRenderInfo.getCameraPosition())
         val yawRad = Math.toRadians(mc.player.rotationYaw.toDouble())
         val pitchRad = Math.toRadians(mc.player.rotationPitch.toDouble())
-        val offset = Vec3d(cos(yawRad) * 0.2 + sin(pitchRad) * -sin(yawRad) * 0.15, 0.0, sin(yawRad) * 0.2 + sin(pitchRad) * cos(yawRad) * 0.15)
+        val offset = Vec3d(
+            cos(yawRad) * 0.2 + sin(pitchRad) * -sin(yawRad) * 0.15,
+            0.0,
+            sin(yawRad) * 0.2 + sin(pitchRad) * cos(yawRad) * 0.15
+        )
         return camPos.subtract(offset.scale(multiplier).add(0.0, cos(pitchRad) * 0.1, 0.0)).subtract(eyePos)
     }
 
@@ -124,7 +130,14 @@ internal object Trajectories : Module(
         var position: Vec3d = mc.player.getPositionEyes(LambdaTessellator.pTicks())
             private set
         private var motion: Vec3d
-        private var boundingBox: AxisAlignedBB = AxisAlignedBB(position.x - halfSize, position.y - halfSize, position.z - halfSize, position.x + halfSize, position.y + halfSize, position.z + halfSize)
+        private var boundingBox: AxisAlignedBB = AxisAlignedBB(
+            position.x - halfSize,
+            position.y - halfSize,
+            position.z - halfSize,
+            position.x + halfSize,
+            position.y + halfSize,
+            position.z + halfSize
+        )
         var collision: RayTraceResult? = null
             private set
 
@@ -135,7 +148,8 @@ internal object Trajectories : Module(
             }
 
             val nextPos = position.add(motion) // Get the next positions in the world
-            collision = mc.world.rayTraceBlocks(position, nextPos, false, true, false) // Check if we've collided with a block
+            collision =
+                mc.world.rayTraceBlocks(position, nextPos, false, true, false) // Check if we've collided with a block
 
             if (collision == null) {
                 val resultList = ArrayList<RayTraceResult>()
@@ -155,7 +169,11 @@ internal object Trajectories : Module(
                 return
             }
 
-            val motionModifier = if (mc.player.entityWorld.isMaterialInBB(boundingBox, Material.WATER)) if (throwingType == ThrowingType.BOW) 0.6 else 0.8
+            val motionModifier = if (mc.player.entityWorld.isMaterialInBB(
+                    boundingBox,
+                    Material.WATER
+                )
+            ) if (throwingType == ThrowingType.BOW) 0.6 else 0.8
             else 0.99
 
             setPosition(nextPos) // Update the position and bounding box
@@ -170,7 +188,9 @@ internal object Trajectories : Module(
             position = posIn
         }
 
-        private fun getInterpolatedCharge() = prevItemUseCount.toDouble() + (mc.player.itemInUseCount.toDouble() - prevItemUseCount.toDouble()) * LambdaTessellator.pTicks().toDouble()
+        private fun getInterpolatedCharge() =
+            prevItemUseCount.toDouble() + (mc.player.itemInUseCount.toDouble() - prevItemUseCount.toDouble()) * LambdaTessellator.pTicks()
+                .toDouble()
 
         init {
             var pitch = mc.player.rotationPitch.toDouble()

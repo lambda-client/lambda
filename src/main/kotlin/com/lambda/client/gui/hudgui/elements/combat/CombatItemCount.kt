@@ -66,7 +66,7 @@ internal object CombatItemCount : LabelHud(
         val slots = player.allSlots
 
         for ((index, entry) in itemSettings.entries.withIndex()) {
-            val count = if (entry.key.value) entry.value.sumBy { slots.countItem(it) }
+            val count = if (entry.key.value) entry.value.sumOf { slots.countItem(it) }
             else -1
 
             if (showIcon) {
