@@ -3,8 +3,6 @@ package com.lambda.client.setting.groups
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
-import java.util.*
-import kotlin.collections.LinkedHashMap
 
 open class SettingMultiGroup(
     name: String

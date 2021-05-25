@@ -15,7 +15,6 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.format
 import com.lambda.client.util.text.formatValue
 import net.minecraft.util.text.TextFormatting
-import java.util.*
 
 object SetCommand : ClientCommand(
     name = "set",

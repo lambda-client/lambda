@@ -8,7 +8,6 @@ import com.lambda.client.util.graphics.font.LambdaFontRenderer
 import com.lambda.client.util.threads.onMainThread
 import kotlinx.coroutines.runBlocking
 import java.awt.GraphicsEnvironment
-import java.util.*
 
 internal object CustomFont : Module(
     name = "CustomFont",

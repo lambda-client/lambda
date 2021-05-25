@@ -4,7 +4,6 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import com.lambda.client.setting.settings.MutableSetting
 import com.lambda.commons.extension.next
-import java.util.*
 
 class EnumSetting<T : Enum<T>>(
     name: String,

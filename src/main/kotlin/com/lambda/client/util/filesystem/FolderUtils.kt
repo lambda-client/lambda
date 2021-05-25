@@ -1,7 +1,6 @@
 package com.lambda.client.util.filesystem
 
 import java.io.File
-import java.util.*
 
 object FolderUtils {
     @JvmStatic

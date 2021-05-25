@@ -12,7 +12,6 @@ import net.minecraft.init.Items
 import net.minecraft.network.play.server.SPacketSoundEffect
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Math.random
-import java.util.*
 import kotlin.math.abs
 
 internal object AutoFish : Module(

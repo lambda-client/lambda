@@ -5,7 +5,6 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.commons.utils.MathUtils
-import java.util.*
 import kotlin.math.min
 
 internal object FancyChat : Module(

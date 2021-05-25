@@ -21,7 +21,6 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.lwjgl.input.Keyboard
-import java.util.*
 
 internal object ForgeEventProcessor {
     private val mc = Wrapper.minecraft

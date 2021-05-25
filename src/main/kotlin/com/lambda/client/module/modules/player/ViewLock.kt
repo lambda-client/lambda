@@ -103,7 +103,7 @@ internal object ViewLock : Module(
         val currentTime = System.currentTimeMillis()
         list.add(Pair(delta, currentTime))
 
-        val sum = list.sumByDouble { it.first.toDouble() }.toFloat()
+        val sum = list.sumOf { it.first.toDouble() }.toFloat()
         return if (abs(sum) > slice) {
             list.clear()
             sign(sum).toInt()

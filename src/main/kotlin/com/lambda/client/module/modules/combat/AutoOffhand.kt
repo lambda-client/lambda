@@ -31,8 +31,6 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import java.lang.Float.max
-import java.util.*
-import kotlin.collections.HashMap
 import kotlin.math.ceil
 
 internal object AutoOffhand : Module(

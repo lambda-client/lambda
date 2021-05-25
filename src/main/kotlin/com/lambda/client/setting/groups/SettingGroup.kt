@@ -5,7 +5,6 @@ import com.google.gson.JsonPrimitive
 import com.lambda.client.LambdaMod
 import com.lambda.client.setting.settings.AbstractSetting
 import com.lambda.commons.interfaces.Nameable
-import java.util.*
 
 open class SettingGroup(
     override val name: String

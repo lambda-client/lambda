@@ -11,9 +11,6 @@ import com.lambda.commons.extension.synchronized
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
-import java.util.*
-import kotlin.collections.HashMap
-import kotlin.collections.LinkedHashSet
 
 object FriendManager : Manager {
     private val gson = GsonBuilder().setPrettyPrinting().create()

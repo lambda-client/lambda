@@ -77,9 +77,9 @@ internal object NoSlowDown : Module(
     private fun SafeClientEvent.passItemCheck(item: Item): Boolean {
         return if (!player.isHandActive) false
         else allItems
-                || food && item is ItemFood
-                || bow && item is ItemBow
-                || potion && item is ItemPotion
-                || shield && item is ItemShield
+            || food && item is ItemFood
+            || bow && item is ItemBow
+            || potion && item is ItemPotion
+            || shield && item is ItemShield
     }
 }

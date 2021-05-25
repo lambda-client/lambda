@@ -12,7 +12,6 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.event.listener.listener
 import net.minecraft.util.EnumFacing
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.util.*
 import kotlin.math.round
 
 internal object AutoTunnel : Module(

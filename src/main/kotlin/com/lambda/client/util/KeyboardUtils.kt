@@ -3,13 +3,12 @@ package com.lambda.client.util
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
 import org.lwjgl.input.Keyboard
-import java.util.*
 
 object KeyboardUtils {
     val allKeys = IntArray(Keyboard.KEYBOARD_SIZE) { it }
 
     private val displayNames = Array(Keyboard.KEYBOARD_SIZE) { name ->
-        Keyboard.getKeyName(name).lowercase().replaceFirstChar {
+        Keyboard.getKeyName(name)?.lowercase()?.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase() else it.toString()
         }
     }
@@ -23,7 +22,9 @@ object KeyboardUtils {
 
         // Display names
         for ((index, name) in displayNames.withIndex()) {
-            this[name.lowercase()] = index
+            name?.let {
+                this[it.lowercase()] = index
+            }
         }
 
         // Modifier names
