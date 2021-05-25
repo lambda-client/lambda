@@ -41,18 +41,18 @@ internal object CustomFont : Module(
             val environment = GraphicsEnvironment.getLocalGraphicsEnvironment()
 
             environment.availableFontFamilyNames.forEach {
-                this[it.lowercase(Locale.ROOT)] = it
+                this[it.lowercase()] = it
             }
 
             environment.allFonts.forEach {
-                this[it.name.lowercase(Locale.ROOT)] = it.family
+                this[it.name.lowercase()] = it.family
             }
         }
     }
 
     private fun getMatchingFontName(name: String): String? {
         return if (name.equals(DEFAULT_FONT_NAME, true)) DEFAULT_FONT_NAME
-        else availableFonts[name.lowercase(Locale.ROOT)]
+        else availableFonts[name.lowercase()]
     }
 
     init {

@@ -18,12 +18,12 @@ object KeyboardUtils {
         // LWJGL names
         for (key in 0 until Keyboard.KEYBOARD_SIZE) {
             val name = Keyboard.getKeyName(key) ?: continue
-            this[name.lowercase(Locale.ROOT)] = key
+            this[name.lowercase()] = key
         }
 
         // Display names
         for ((index, name) in displayNames.withIndex()) {
-            this[name.lowercase(Locale.ROOT)] = index
+            this[name.lowercase()] = index
         }
 
         // Modifier names
@@ -43,7 +43,7 @@ object KeyboardUtils {
     }
 
     fun getKey(keyName: String): Int {
-        return keyMap[keyName.lowercase(Locale.ROOT)] ?: 0
+        return keyMap[keyName.lowercase()] ?: 0
     }
 
     fun getKeyName(keycode: Int): String? {

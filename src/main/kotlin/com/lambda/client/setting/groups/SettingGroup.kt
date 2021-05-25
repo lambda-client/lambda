@@ -75,7 +75,7 @@ open class SettingGroup(
 
     private fun String.toJsonName() =
         this.replace(' ', '_')
-            .lowercase(Locale.ROOT)
+            .lowercase()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

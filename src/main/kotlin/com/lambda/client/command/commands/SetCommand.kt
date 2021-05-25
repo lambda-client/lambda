@@ -118,7 +118,7 @@ object SetCommand : ClientCommand(
         this.replace(" ", "")
             .replace("_", "")
             .run {
-                if (lowerCase) this.lowercase(Locale.ROOT) else this
+                if (lowerCase) this.lowercase() else this
             }
 
     private fun getSetting(module: AbstractModule, settingName: String) =
