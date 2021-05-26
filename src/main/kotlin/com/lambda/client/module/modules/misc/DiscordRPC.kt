@@ -30,6 +30,7 @@ object DiscordRPC : Module(
     description = "Discord Rich Presence",
     enabledByDefault = false
 ) {
+    private val asset by setting("Image", Asset.DEFAULT)
     private val line1Left by setting("Line 1 Left", LineInfo.VERSION) // details left
     private val line1Right by setting("Line 1 Right", LineInfo.USERNAME) // details right
     private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION) // state left
@@ -38,6 +39,10 @@ object DiscordRPC : Module(
 
     private enum class LineInfo {
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
+    }
+
+    private enum class Asset {
+        DEFAULT, GOLD
     }
 
     private val presence = DiscordRichPresence()
@@ -100,6 +105,7 @@ object DiscordRPC : Module(
     private fun updateRPC() {
         presence.details = getLine(line1Left) + getSeparator(0) + getLine(line1Right)
         presence.state = getLine(line2Left) + getSeparator(1) + getLine(line2Right)
+        presence.largeImageKey = asset.name.lowercase()
         rpc.Discord_UpdatePresence(presence)
     }
 
@@ -179,7 +185,6 @@ object DiscordRPC : Module(
     }
 
     init {
-        presence.largeImageKey = "lambda"
-        presence.largeImageText = "lambda-client.org"
+        presence.largeImageText = "lambda-client.com"
     }
 }
