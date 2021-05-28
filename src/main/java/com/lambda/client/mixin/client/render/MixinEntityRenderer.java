@@ -36,6 +36,15 @@ public class MixinEntityRenderer {
         }
     }
 
+    @ModifyVariable(method = "orientCamera", at = @At(value = "STORE", ordinal = 0), ordinal = 3)
+    public double orientCameraAtStore(double value) {
+        if (CameraClip.INSTANCE.isEnabled()) {
+            return CameraClip.INSTANCE.getDistance();
+        } else {
+            return value;
+        }
+    }
+
     @Inject(method = "displayItemActivation", at = @At(value = "HEAD"), cancellable = true)
     public void displayItemActivation(ItemStack stack, CallbackInfo ci) {
         if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getTotems().getValue()) {
