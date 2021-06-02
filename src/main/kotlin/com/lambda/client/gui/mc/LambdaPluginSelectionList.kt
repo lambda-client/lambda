@@ -74,10 +74,19 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
                         val jsonTree = JsonParser().parse(json).asJsonArray
 
                         jsonTree.forEach { jsonElement ->
-                            val name = jsonElement.asJsonObject.get("name").asString
-                            if (plugins.none { it.pluginData.name == name } &&
-                                loadedPlugins.none { it.name == name }) {
-                                plugins.add(LambdaPluginListEntry(owner, PluginData(name, PluginState.REMOTE, jsonElement.asJsonObject.get("description").asString)))
+                            val downloadsJson = ConnectionUtils.runConnection(jsonElement.asJsonObject.get("releases_url").asString.replace("{/id}", ""), { connection ->
+                                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                                connection.requestMethod = "GET"
+                                connection.inputStream.readBytes().toString(Charsets.UTF_8)
+                            })
+
+
+                            if (JsonParser().parse(downloadsJson).asJsonArray.size() > 0) {
+                                val name = jsonElement.asJsonObject.get("name").asString
+                                if (plugins.none { it.pluginData.name == name } &&
+                                    loadedPlugins.none { it.name == name }) {
+                                    plugins.add(LambdaPluginListEntry(owner, PluginData(name, PluginState.REMOTE, jsonElement.asJsonObject.get("description").asString)))
+                                }
                             }
                         }
 
