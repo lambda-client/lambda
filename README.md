@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg">
+<img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%">
 
 ![GitHub All Releases](https://img.shields.io/github/downloads/lambda-client/lambda/total)
 [![CodeFactor](https://www.codefactor.io/repository/github/lambda-client/lambda/badge)](https://www.codefactor.io/repository/github/lambda-client/lambda)
@@ -11,7 +11,7 @@
 <img src="https://tokei.rs/b1/github/lambda-client/lambda?category=code" alt="Lines of Code"/>
 </p>
 
-Lambda is a 1.12 minecraft utility client with the goal of providing a free, open-source, and lightweight client. Everyone is free to contribute, and feel free to join our discord!
+Lambda is a free, open-source, Minecraft 1.12.2 utility mod providing a visionary system for plugins that allow customizing the clients features thanks to an ingame plugin store.
 
 ## Contributing
 
