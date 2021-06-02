@@ -1,6 +1,5 @@
 package com.lambda.client.gui.mc
 
-import baritone.e
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.PluginManager.getLoaders
