@@ -70,7 +70,7 @@ object NoRender : Module(
         ENTITIES, OTHER
     }
 
-    private val lambdaMap = ResourceLocation("lambda/lambdamap.png")
+    private val lambdaMap = ResourceLocation("lambda/lambda_map.png")
 
     private val settingMap = mapOf(
         player to EntityOtherPlayerMP::class.java,

@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20and%20text%20white%20transparent.png">
+<img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg">
 
 ![GitHub All Releases](https://img.shields.io/github/downloads/lambda-client/lambda/total)
 [![CodeFactor](https://www.codefactor.io/repository/github/lambda-client/lambda/badge)](https://www.codefactor.io/repository/github/lambda-client/lambda)
