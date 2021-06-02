@@ -63,7 +63,7 @@ class LambdaGuiUpdateNotification : GuiScreen() {
                         LambdaMod.LOG.info("Your Lambda (" + LambdaMod.VERSION_MAJOR + ") is up-to-date with the latest stable release.")
                     }
                 } catch (e: IOException) {
-                    LambdaMod.LOG.error("Oes noes! An exception was thrown during the update check.", e)
+                    LambdaMod.LOG.error("An exception was thrown during the update check.", e)
                 }
             }
         }

@@ -119,10 +119,10 @@ object Capes : Module(
         renderCapeLayer(playerRenderer, player, CapeTexture.PRIMARY, primaryColor, partialTicks)
         renderCapeLayer(playerRenderer, player, CapeTexture.BORDER, borderColor, partialTicks)
 
-        if (cape.type == CapeType.CONTRIBUTOR) {
-            renderCapeLayer(playerRenderer, player, CapeTexture.TEXT_ICON, DyeColors.WHITE.color, partialTicks)
-        } else {
-            renderCapeLayer(playerRenderer, player, CapeTexture.TEXT, DyeColors.WHITE.color, partialTicks)
+        when (cape.type) {
+            CapeType.CONTRIBUTOR -> {
+                renderCapeLayer(playerRenderer, player, CapeTexture.CONTRIBUTOR, DyeColors.WHITE.color, partialTicks)
+            }
         }
 
         return true
@@ -213,10 +213,10 @@ object Capes : Module(
         renderElytraLayer(renderer, model, player, CapeTexture.PRIMARY, primaryColor, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale, partialTicks)
         renderElytraLayer(renderer, model, player, CapeTexture.BORDER, borderColor, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale, partialTicks)
 
-        if (cape.type == CapeType.CONTRIBUTOR) {
-            renderElytraLayer(renderer, model, player, CapeTexture.TEXT_ICON, DyeColors.WHITE.color, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale, partialTicks)
-        } else {
-            renderElytraLayer(renderer, model, player, CapeTexture.TEXT, DyeColors.WHITE.color, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale, partialTicks)
+        when (cape.type) {
+            CapeType.CONTRIBUTOR -> {
+                renderElytraLayer(renderer, model, player, CapeTexture.CONTRIBUTOR, DyeColors.WHITE.color, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale, partialTicks)
+            }
         }
 
         return true
@@ -258,8 +258,7 @@ object Capes : Module(
     private enum class CapeTexture(val location: ResourceLocation) {
         PRIMARY(ResourceLocation("lambda/textures/capes/primary.png")),
         BORDER(ResourceLocation("lambda/textures/capes/border.png")),
-        TEXT(ResourceLocation("lambda/textures/capes/text.png")),
-        TEXT_ICON(ResourceLocation("lambda/textures/capes/text_icon.png"))
+        CONTRIBUTOR(ResourceLocation("lambda/textures/capes/contributor.png"))
     }
 
 }

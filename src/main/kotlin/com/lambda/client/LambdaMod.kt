@@ -31,7 +31,7 @@ class LambdaMod {
 
         const val APP_ID = "835368493150502923"
 
-        const val DOWNLOADS_API = "https://lambda-client.com/api/v1/downloads.json" // needs to be changed when domain is registered
+        const val DOWNLOADS_API = "https://api.github.com/repos/lambda-plugins/HighwayTools/releases" // ToDo: setup when next version comes out
         const val CAPES_JSON = "https://raw.githubusercontent.com/lambda-client/cape-api/capes/capes.json"
         const val GITHUB_LINK = "https://github.com/lambda-client/"
         const val GITHUB_API = "https://api.github.com/"
@@ -51,7 +51,7 @@ class LambdaMod {
         val directory = File(DIRECTORY)
         if (!directory.exists()) directory.mkdir()
 
-        LambdaGuiUpdateNotification.updateCheck()
+//        LambdaGuiUpdateNotification.updateCheck() // ToDo: Refactor for github checks
         LoaderWrapper.preLoadAll()
     }
 
