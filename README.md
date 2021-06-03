@@ -3,9 +3,8 @@
 ![GitHub All Releases](https://img.shields.io/github/downloads/lambda-client/lambda/total)
 [![CodeFactor](https://www.codefactor.io/repository/github/lambda-client/lambda/badge)](https://www.codefactor.io/repository/github/lambda-client/lambda)
 [![build](https://github.com/lambda-client/lambda/workflows/gradle_build/badge.svg)](https://github.com/lambda-client/lambda/actions)
-[![Discord Mine](https://img.shields.io/discord/834570721070022687?label=chat&logo=discord&logoColor=white)](https://discord.gg/SYS2CXGsqa)
+[![Discord Mine](https://img.shields.io/discord/834570721070022687?label=chat&logo=discord&logoColor=white)](https://discord.gg/QjfBxJzE5x)
 ![minecraft](https://img.shields.io/badge/Minecraft-1.12.2-blue.svg)
-<a href="https://www.codacy.com/app/lambda-client/lambda?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cabaletta/baritone&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/a73d037823b64a5faf597a18d71e3400" alt="Codacy Badge"/></a>
 <img src="https://img.shields.io/github/languages/code-size/lambda-client/lambda.svg" alt="Code size"/>
 <img src="https://img.shields.io/github/repo-size/lambda-client/lambda.svg" alt="GitHub repo size"/>
 <img src="https://tokei.rs/b1/github/lambda-client/lambda?category=code" alt="Lines of Code"/>
