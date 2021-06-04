@@ -41,7 +41,7 @@ jobs :
       - name : Gradle build
         run : ./gradlew --build-cache build
 
-        - name: Rename built forge mod
+      - name: Rename built forge mod
         run: mv build/libs/lambda-*.jar lambda-${{ BUILD }}.jar
 
       - name : Archive forge mod
