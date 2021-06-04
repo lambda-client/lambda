@@ -25,6 +25,9 @@ jobs :
         with :
           java-version : 1.8
 
+      - name : Get branch title
+      - uses: nelonoel/branch-name@v1.0.1
+
       - name : Gradle cache
         uses : actions/cache@v2
         with :
@@ -38,15 +41,27 @@ jobs :
       - name : Gradle build
         run : ./gradlew --build-cache build
 
+        - name: Rename built forge mod
+        run: mv build/libs/lambda-*.jar lambda-${{ BUILD }}.jar
+
+      - name : Archive forge mod
+        uses : actions/upload-artifact@v2
+        with :
+          name : lambda-${{ BUILD }}
+          path : lambda-${{ BUILD }}.jar
+
       - name : Gradle apiJar
         run : ./gradlew apiJar
 
-      - name : Archive artifact
+      - name: Rename built plugin API
+        run: mv build/libs/lambda-*-api.jar lambda-${{ BUILD }}-api.jar
+
+        - name : Archive plugin API
         uses : actions/upload-artifact@v2
         with :
-          name : artifact
-          path : build/libs
-      - uses: nelonoel/branch-name@v1.0.1
+          name : lambda-${{ BUILD }}-api
+          path : lambda-${{ BUILD }}-api.jar
+
       - name : Send Discord build message
         run : |
           COMMITMESSAGE=`git log --pretty=format:'- \`%h\` %s' -5 --reverse` &&
