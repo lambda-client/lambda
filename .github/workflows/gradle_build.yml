@@ -38,6 +38,9 @@ jobs :
       - name : Gradle build
         run : ./gradlew --build-cache build
 
+      - name : Gradle apiJar
+        run : ./gradlew apiJar
+
       - name : Archive artifact
         uses : actions/upload-artifact@v2
         with :
