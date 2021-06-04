@@ -56,7 +56,7 @@ jobs :
       - name: Rename built plugin API
         run: mv build/libs/lambda-*-api.jar lambda-${{ BUILD }}-api.jar
 
-        - name : Archive plugin API
+      - name : Archive plugin API
         uses : actions/upload-artifact@v2
         with :
           name : lambda-${{ BUILD }}-api
