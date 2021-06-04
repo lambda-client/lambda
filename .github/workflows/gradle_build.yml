@@ -35,7 +35,7 @@ jobs :
           restore-keys : |
             ${{ runner.os }}-gradle-
 
-      - name : Gradle build
+      - name : Build forge mod
         run : ./gradlew --build-cache build
 
       - name: Rename built forge mod
@@ -47,7 +47,7 @@ jobs :
           name : lambda-${{ github.run_number }}
           path : lambda-${{ github.run_number }}.jar
 
-      - name : Gradle apiJar
+      - name : Build plugin API
         run : ./gradlew apiJar
 
       - name: Rename built plugin API
@@ -59,7 +59,9 @@ jobs :
           name : lambda-${{ github.run_number }}-api
           path : lambda-${{ github.run_number }}-api.jar
 
-      - uses: nelonoel/branch-name@v1.0.1
+      - name : Get branch name
+        uses: nelonoel/branch-name@v1.0.1
+
       - name : Send Discord build message
         run : |
           COMMITMESSAGE=`git log --pretty=format:'- \`%h\` %s' -5 --reverse` &&
