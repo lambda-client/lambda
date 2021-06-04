@@ -62,8 +62,8 @@ jobs :
       - name : Get branch name
         uses: nelonoel/branch-name@v1.0.1
 
-    if: github.ref == 'refs/heads/master'
       - name : Send Discord build message
+        if: github.ref == 'refs/heads/master'
         run : |
           COMMITMESSAGE=`git log --pretty=format:'- \`%h\` %s' -5 --reverse` &&
           (curl "$WEBHOOK" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build $BUILD\",\"description\":\"**Branch:** $BRANCH_NAME\\n**Changes:**\\n$COMMITMESSAGE\",\"url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [lambda-$BUILD.zip](https://nightly.link/$GITHUB_REPOSITORY/workflows/gradle_build.yml/$BRANCH_NAME/lambda-$BUILD.zip)\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/lambda/master/src/main/resources/assets/minecraft/lambda/lambda_map.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://www.2b2t.com.au/assets/github.jpeg\"}")
