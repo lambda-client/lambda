@@ -39,25 +39,25 @@ jobs :
         run : ./gradlew --build-cache build
 
       - name: Rename built forge mod
-        run: mv build/libs/lambda-*.jar lambda-${{ BUILD }}.jar
+        run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
 
       - name : Archive forge mod
         uses : actions/upload-artifact@v2
         with :
-          name : lambda-${{ BUILD }}
-          path : lambda-${{ BUILD }}.jar
+          name : lambda-${{ github.run_number }}
+          path : lambda-${{ github.run_number }}.jar
 
       - name : Gradle apiJar
         run : ./gradlew apiJar
 
       - name: Rename built plugin API
-        run: mv build/libs/lambda-*-api.jar lambda-${{ BUILD }}-api.jar
+        run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
 
       - name : Archive plugin API
         uses : actions/upload-artifact@v2
         with :
-          name : lambda-${{ BUILD }}-api
-          path : lambda-${{ BUILD }}-api.jar
+          name : lambda-${{ github.run_number }}-api
+          path : lambda-${{ github.run_number }}-api.jar
 
       - uses: nelonoel/branch-name@v1.0.1
       - name : Send Discord build message
