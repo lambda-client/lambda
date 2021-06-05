@@ -3,6 +3,8 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
+import com.lambda.client.util.threads.onMainThread
+import kotlinx.coroutines.runBlocking
 import net.minecraft.block.state.IBlockState
 
 object Xray : Module(
@@ -21,14 +23,18 @@ object Xray : Module(
 
     init {
         onToggle {
-            onMainThread {
-                mc.renderGlobal?.loadRenderers()
+            runBlocking {
+                onMainThread {
+                    mc.renderGlobal?.loadRenderers()
+                }
             }
         }
 
         visibleList.editListeners.add {
-            onMainThread {
-                mc.renderGlobal?.loadRenderers()
+            runBlocking {
+                onMainThread {
+                    mc.renderGlobal?.loadRenderers()
+                }
             }
         }
     }

@@ -20,7 +20,6 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getClosestVisibleSide
 import com.lambda.client.util.world.getHitVecOffset
 import com.lambda.client.util.world.isReplaceable
-import com.lambda.client.util.world.isVisible
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.inventory.Slot
@@ -49,7 +48,6 @@ object BedAura : Module(
     private val minDamage = setting("Min Damage", 10f, 1f..20f, 0.25f)
     private val maxSelfDamage = setting("Max Self Damage", 4f, 1f..10f, 0.25f, { !suicideMode.value })
     private val range = setting("Range", 5f, 1f..5f, 0.25f)
-    private val wallRange = setting("Wall Range", 2.5f, 1f..5f, 0.25f)
 
     private val placeMap = TreeMap<Pair<Float, Float>, BlockPos>(compareByDescending { it.first }) // <<TargetDamage, SelfDamage>, BlockPos>
     private val bedMap = TreeMap<Float, BlockPos>(compareBy { it }) // <SquaredDistance, BlockPos>
@@ -131,18 +129,16 @@ object BedAura : Module(
             val damagePosMap = HashMap<Pair<Float, Float>, BlockPos>()
 
             for (pos in posList) {
-                val dist = player.distanceTo(pos)
-
-                if (!world.isVisible(pos) && dist > wallRange.value) continue
-
                 val topSideVec = pos.toVec3d(0.5, 1.0, 0.5)
                 val rotation = getRotationTo(topSideVec)
                 val facing = EnumFacing.fromAngle(rotation.x.toDouble())
                 if (!canPlaceBed(pos)) continue
 
                 val targetDamage = calcCrystalDamage(pos.offset(facing), it)
+                if (targetDamage < minDamage.value) continue
+
                 val selfDamage = calcCrystalDamage(pos.offset(facing), player)
-                if (targetDamage < minDamage.value && (suicideMode.value || selfDamage > maxSelfDamage.value)) {
+                if (suicideMode.value || targetDamage > selfDamage && selfDamage <= maxSelfDamage.value) {
                     damagePosMap[Pair(targetDamage, selfDamage)] = pos
                 }
             }
@@ -177,7 +173,6 @@ object BedAura : Module(
 
                 val dist = player.distanceTo(tileEntity.pos).toFloat()
                 if (dist > range.value) continue
-                if (!world.isVisible(tileEntity.pos) && dist > wallRange.value) continue
 
                 damagePosMap[dist] = tileEntity.pos
             }
