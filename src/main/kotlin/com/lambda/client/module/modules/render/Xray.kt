@@ -21,11 +21,15 @@ object Xray : Module(
 
     init {
         onToggle {
-            mc.renderGlobal.loadRenderers()
+            onMainThread {
+                mc.renderGlobal?.loadRenderers()
+            }
         }
 
         visibleList.editListeners.add {
-            mc.renderGlobal.loadRenderers()
+            onMainThread {
+                mc.renderGlobal?.loadRenderers()
+            }
         }
     }
 }
