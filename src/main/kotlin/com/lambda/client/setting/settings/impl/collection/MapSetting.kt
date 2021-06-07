@@ -10,9 +10,7 @@ class MapSetting<K : Any, V : Any, T : MutableMap<K, V>>(
     visibility: () -> Boolean = { true },
     description: String = ""
 ) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description) {
-
     override val defaultValue: T = valueClass.newInstance()
-    private val lockObject = Any()
     private val type = object : TypeToken<Map<K, V>>() {}.type
 
     init {
@@ -20,25 +18,19 @@ class MapSetting<K : Any, V : Any, T : MutableMap<K, V>>(
     }
 
     override fun resetValue() {
-        synchronized(lockObject) {
-            value.clear()
-            value.putAll(defaultValue)
-        }
+        value.clear()
+        value.putAll(defaultValue)
     }
 
     override fun write(): JsonElement = gson.toJsonTree(value)
 
     override fun read(jsonElement: JsonElement?) {
-        jsonElement?.asJsonArray?.let {
+        jsonElement?.let {
             val cacheMap = gson.fromJson<Map<K, V>>(it, type)
-
-            synchronized(lockObject) {
-                value.clear()
-                value.putAll(cacheMap)
-            }
+            value.clear()
+            value.putAll(cacheMap)
         }
     }
 
     override fun toString() = value.entries.joinToString { "${it.key} to ${it.value}" }
-
 }
