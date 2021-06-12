@@ -42,15 +42,23 @@ jobs :
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
 
       - name : Generate forge mod checksum
-        uses : Argannor/checksum-action@master
+        uses : ToxicAven/verify-file-checksum-action@master
         with :
-          file : lambda-${{ github.run_number }}.jar
+          fileUrl : lambda-${{ github.run_number }}.jar
+          saveFile : forgeModSum.txt
+          algorithm : SHA256
 
       - name : Archive forge mod
         uses : actions/upload-artifact@v2
         with :
           name : lambda-${{ github.run_number }}
           path : lambda-${{ github.run_number }}.jar
+
+      - name : Attempt to upload forge mod checksum
+        uses : actions/upload-artifact@v2
+        with :
+          name : forgeModSum.txt
+          path : forgeModSum.txt
 
       - name : Build plugin API
         run : ./gradlew apiJar
