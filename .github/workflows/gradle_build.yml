@@ -41,10 +41,12 @@ jobs :
       - name: Rename built plugin API
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
 
-      - name : Generate API checksum
-        uses : Argannor/checksum-action@master
+      - name : Generate API mod checksum
+        uses : ToxicAven/verify-file-checksum-action@master
         with :
-          file : lambda-${{ github.run_number }}-api.jar
+          fileUrl : lambda-${{ github.run_number }}-api.jar
+          saveFile : APISum.txt
+          algorithm : SHA256
 
       - name : Archive plugin API
         uses : actions/upload-artifact@v2
