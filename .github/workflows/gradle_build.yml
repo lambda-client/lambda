@@ -44,8 +44,8 @@ jobs :
       - name : Generate API mod checksum
         uses : ToxicAven/verify-file-checksum-action@master
         with :
-          fileUrl : lambda-${{ github.run_number }}-api.jar
-          saveFile : APISum.txt
+          fileUrl : ./lambda-${{ github.run_number }}-api.jar
+          saveFile : ./APISum.txt
           algorithm : SHA256
 
       - name : Archive plugin API
@@ -58,7 +58,7 @@ jobs :
         uses : actions/upload-artifact@v2
         with :
           name : APISum.txt
-          path : APISum.txt
+          path : ./APISum.txt
 
       - name : Get branch name
         uses: nelonoel/branch-name@v1.0.1
