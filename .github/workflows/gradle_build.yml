@@ -41,6 +41,11 @@ jobs :
       - name: Rename built forge mod
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
 
+      - name : Generate forge mod checksum
+        uses : Argannor/checksum-action@master
+        with :
+          file : lambda-${{ github.run_number }}.jar
+
       - name : Archive forge mod
         uses : actions/upload-artifact@v2
         with :
@@ -52,6 +57,11 @@ jobs :
 
       - name: Rename built plugin API
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
+
+      - name : Generate forge mod checksum
+        uses : Argannor/checksum-action@master
+        with :
+          file : lambda-${{ github.run_number }}-api.jar
 
       - name : Archive plugin API
         uses : actions/upload-artifact@v2
