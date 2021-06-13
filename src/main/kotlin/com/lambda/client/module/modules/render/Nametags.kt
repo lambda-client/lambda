@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.combat.TotemPopCounter
 import com.lambda.client.util.EnchantmentUtils
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.color.ColorGradient
@@ -11,6 +12,7 @@ import com.lambda.client.util.graphics.*
 import com.lambda.client.util.graphics.font.*
 import com.lambda.client.util.items.originalName
 import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.extension.ceilToInt
 import com.lambda.commons.extension.floorToInt
@@ -34,7 +36,6 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-//TODO: Impl Totem pops
 object Nametags : Module(
     name = "Nametags",
     description = "Draws descriptive nametags above entities",
@@ -108,7 +109,7 @@ object Nametags : Module(
     }
 
     private enum class ContentType {
-        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE
+        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE, TOTEM_POPS
     }
 
     private val pingColorGradient = ColorGradient(
@@ -432,9 +433,15 @@ object Nametags : Module(
             val dist = MathUtils.round(mc.player.getDistance(entity), 1).toString()
             TextComponent.TextElement("${dist}m", getTextColor())
         }
-//        ContentType.TOTEM_POPS -> {
-//            TODO
-//        }
+       ContentType.TOTEM_POPS -> {
+           if (!TotemPopCounter.isEnabled) {
+               MessageSendHelper.sendWarningMessage("[Nametags] TotemPopCounter is locked on while nametags count totem pops.")
+               TotemPopCounter.enable()
+           }
+           val totemPops = if ((TotemPopCounter.popCountMap[entity]) != null) TotemPopCounter.popCountMap[entity] else "0"
+           val pluralPops = if (TotemPopCounter.popCountMap[entity] == 1) "pop" else "pops"
+           TextComponent.TextElement("$totemPops $pluralPops", getTextColor())
+       }
     }
 
     private fun getTextColor() = ColorHolder(rText.value, gText.value, bText.value, aText.value)
