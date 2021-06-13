@@ -41,11 +41,24 @@ jobs :
       - name: Rename built forge mod
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
 
+      - name : Generate forge mod checksum
+        uses : ToxicAven/generate-checksum-file@v1
+        with :
+          filePath : lambda-${{ github.run_number }}.jar
+          saveFile : forgeModSum.txt
+          algorithm : SHA256
+
       - name : Archive forge mod
         uses : actions/upload-artifact@v2
         with :
           name : lambda-${{ github.run_number }}
           path : lambda-${{ github.run_number }}.jar
+
+      - name : Archive forge mod checksum
+        uses : actions/upload-artifact@v2
+        with :
+          name : forgeModSum.txt
+          path : forgeModSum.txt
 
       - name : Build plugin API
         run : ./gradlew apiJar
@@ -53,11 +66,24 @@ jobs :
       - name: Rename built plugin API
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
 
+      - name : Generate API mod checksum
+        uses : ToxicAven/generate-checksum-file@v1
+        with :
+          filePath : lambda-${{ github.run_number }}-api.jar
+          saveFile : APISum.txt
+          algorithm : SHA256
+
       - name : Archive plugin API
         uses : actions/upload-artifact@v2
         with :
           name : lambda-${{ github.run_number }}-api
           path : lambda-${{ github.run_number }}-api.jar
+
+      - name : Upload API checksum
+        uses : actions/upload-artifact@v2
+        with :
+          name : APISum.txt
+          path : APISum.txt
 
       - name : Get branch name
         uses: nelonoel/branch-name@v1.0.1
