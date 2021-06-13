@@ -44,7 +44,7 @@ jobs :
       - name : Generate forge mod checksum
         uses : ToxicAven/generate-checksum-file@v2
         with :
-          fileUrl : lambda-${{ github.run_number }}.jar
+          filePath : lambda-${{ github.run_number }}.jar
           saveFile : forgeModSum.txt
           algorithm : SHA256
 
