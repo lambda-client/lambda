@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.io.File
 
+@Suppress("UNUSED_PARAMETER")
 @Mod(
     modid = LambdaMod.ID,
     name = LambdaMod.NAME,
@@ -44,8 +45,7 @@ class LambdaMod {
 
         var ready: Boolean = false; private set
     }
-
-    @Suppress("UNUSED_PARAMETER")
+    
     @Mod.EventHandler
     fun preInit(event: FMLPreInitializationEvent) {
         val directory = File(DIRECTORY)
@@ -55,7 +55,6 @@ class LambdaMod {
         LoaderWrapper.preLoadAll()
     }
 
-    @Suppress("UNUSED_PARAMETER")
     @Mod.EventHandler
     fun init(event: FMLInitializationEvent) {
         LOG.info("Initializing $NAME $VERSION")
@@ -72,7 +71,6 @@ class LambdaMod {
         LOG.info("$NAME initialized!")
     }
 
-    @Suppress("UNUSED_PARAMETER")
     @Mod.EventHandler
     fun postInit(event: FMLPostInitializationEvent) {
         ready = true
