@@ -47,7 +47,7 @@ public class MixinEntityRenderer {
 
     @Inject(method = "displayItemActivation", at = @At(value = "HEAD"), cancellable = true)
     public void displayItemActivation(ItemStack stack, CallbackInfo ci) {
-        if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getTotems().getValue()) {
+        if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getTotems()) {
             ci.cancel();
         }
     }
@@ -61,7 +61,7 @@ public class MixinEntityRenderer {
 
     @Inject(method = "hurtCameraEffect", at = @At("HEAD"), cancellable = true)
     public void hurtCameraEffect(float ticks, CallbackInfo ci) {
-        if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getHurtCamera().getValue()) {
+        if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getHurtCamera()) {
             ci.cancel();
         }
     }

@@ -1,7 +1,6 @@
 package com.lambda.client
 
 import com.lambda.client.event.ForgeEventProcessor
-import com.lambda.client.gui.mc.LambdaGuiUpdateNotification
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.threads.BackgroundScope
 import net.minecraftforge.common.MinecraftForge

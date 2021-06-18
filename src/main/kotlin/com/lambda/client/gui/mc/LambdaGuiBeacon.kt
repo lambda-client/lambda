@@ -34,7 +34,7 @@ class LambdaGuiBeacon(playerInventory: InventoryPlayer, tileBeaconIn: IInventory
                 for (potion in pos1) {
                     val customPotion = PowerButtonCustom(id, guiLeft - 27, newY, potion, 0)
                     buttonList.add(customPotion)
-                    if (potion === Potion.getPotionById(BeaconSelector.effect)) {
+                    if (potion == Potion.getPotionById(BeaconSelector.effect)) {
                         customPotion.isSelected = true
                     }
                     newY += 27

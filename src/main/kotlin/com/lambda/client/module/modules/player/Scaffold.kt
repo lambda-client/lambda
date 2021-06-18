@@ -162,8 +162,8 @@ object Scaffold : Module(
                 val shouldSneak = sneak && !player.isSneaking
                 defaultScope.launch {
                     if (shouldSneak) {
-                        player.let {
-                            it.connection.sendPacket(CPacketEntityAction(it, CPacketEntityAction.Action.START_SNEAKING))
+                        onMainThreadSafe {
+                            connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
                         }
                     }
                     delay(5)

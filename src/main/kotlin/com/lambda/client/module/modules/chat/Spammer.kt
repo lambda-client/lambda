@@ -24,10 +24,10 @@ object Spammer : Module(
     category = Category.CHAT,
     modulePriority = 100
 ) {
-    private val modeSetting = setting("Order", Mode.RANDOM_ORDER)
-    private val delay = setting("Delay", 10, 1..180, 1, description = "Delay between messages, in seconds")
-    private val loadRemote = setting("Load From URL", false)
-    private val remoteURL = setting("Remote URL", "Unchanged", { loadRemote.value })
+    private val modeSetting by setting("Order", Mode.RANDOM_ORDER)
+    private val delay by setting("Delay", 10, 1..180, 1, description = "Delay between messages, in seconds")
+    private val loadRemote by setting("Load From URL", false)
+    private val remoteURL by setting("Remote URL", "Unchanged", { loadRemote })
 
     private val file = File(LambdaMod.DIRECTORY + "spammer.txt")
     private val spammer = ArrayList<String>().synchronized()
@@ -39,8 +39,8 @@ object Spammer : Module(
     }
 
     private val urlValue
-        get() = if (remoteURL.value != "Unchanged") {
-            remoteURL.value
+        get() = if (remoteURL != "Unchanged") {
+            remoteURL
         } else {
             MessageSendHelper.sendErrorMessage("Change the RemoteURL setting in the ClickGUI!")
             disable()
@@ -51,7 +51,7 @@ object Spammer : Module(
         onEnable {
             spammer.clear()
 
-            if (loadRemote.value) {
+            if (loadRemote) {
                 val url = urlValue ?: return@onEnable
 
                 defaultScope.launch(Dispatchers.IO) {
@@ -87,8 +87,8 @@ object Spammer : Module(
         }
 
         safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.START || spammer.isEmpty() || !timer.tick(delay.value.toLong())) return@safeListener
-            val message = if (modeSetting.value == Mode.IN_ORDER) getOrdered() else getRandom()
+            if (it.phase != TickEvent.Phase.START || spammer.isEmpty() || !timer.tick(delay.toLong())) return@safeListener
+            val message = if (modeSetting == Mode.IN_ORDER) getOrdered() else getRandom()
             if (MessageDetection.Command.LAMBDA detect message) {
                 MessageSendHelper.sendLambdaCommand(message)
             } else {

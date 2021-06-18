@@ -51,37 +51,37 @@ object CombatSetting : Module(
     showOnArray = false,
     alwaysEnabled = true
 ) {
-    private val page = setting("Page", Page.TARGETING)
+    private val page by setting("Page", Page.TARGETING)
 
     /* Targeting */
-    private val filter = setting("Filter", TargetFilter.ALL, { page.value == Page.TARGETING })
-    private val fov = setting("FOV", 90.0f, 0.0f..180.0f, 5.0f, { page.value == Page.TARGETING && filter.value == TargetFilter.FOV })
-    private val priority = setting("Priority", TargetPriority.DISTANCE, { page.value == Page.TARGETING })
-    private val players = setting("Players", true, { page.value == Page.TARGETING })
-    private val friends = setting("Friends", false, { page.value == Page.TARGETING && players.value })
-    private val teammates = setting("Teammates", false, { page.value == Page.TARGETING && players.value })
-    private val sleeping = setting("Sleeping", false, { page.value == Page.TARGETING && players.value })
-    private val mobs = setting("Mobs", true, { page.value == Page.TARGETING })
-    private val passive = setting("Passive Mobs", false, { page.value == Page.TARGETING && mobs.value })
-    private val neutral = setting("Neutral Mobs", false, { page.value == Page.TARGETING && mobs.value })
-    private val hostile = setting("Hostile Mobs", false, { page.value == Page.TARGETING && mobs.value })
-    private val tamed = setting("Tamed Mobs", false, { page.value == Page.TARGETING && mobs.value })
-    private val invisible = setting("Invisible", true, { page.value == Page.TARGETING })
-    private val ignoreWalls = setting("Ignore Walls", false, { page.value == Page.TARGETING })
-    private val range = setting("Target Range", 16.0f, 2.0f..64.0f, 2.0f, { page.value == Page.TARGETING })
+    private val filter by setting("Filter", TargetFilter.ALL, { page == Page.TARGETING })
+    private val fov by setting("FOV", 90.0f, 0.0f..180.0f, 5.0f, { page == Page.TARGETING && filter == TargetFilter.FOV })
+    private val priority by setting("Priority", TargetPriority.DISTANCE, { page == Page.TARGETING })
+    private val players by setting("Players", true, { page == Page.TARGETING })
+    private val friends by setting("Friends", false, { page == Page.TARGETING && players })
+    private val teammates by setting("Teammates", false, { page == Page.TARGETING && players })
+    private val sleeping by setting("Sleeping", false, { page == Page.TARGETING && players })
+    private val mobs by setting("Mobs", true, { page == Page.TARGETING })
+    private val passive by setting("Passive Mobs", false, { page == Page.TARGETING && mobs })
+    private val neutral by setting("Neutral Mobs", false, { page == Page.TARGETING && mobs })
+    private val hostile by setting("Hostile Mobs", false, { page == Page.TARGETING && mobs })
+    private val tamed by setting("Tamed Mobs", false, { page == Page.TARGETING && mobs })
+    private val invisible by setting("Invisible", true, { page == Page.TARGETING })
+    private val ignoreWalls by setting("Ignore Walls", false, { page == Page.TARGETING })
+    private val range by setting("Target Range", 16.0f, 2.0f..64.0f, 2.0f, { page == Page.TARGETING })
 
     /* In Combat */
-    private val pauseForDigging = setting("Pause For Digging", true, { page.value == Page.IN_COMBAT })
-    private val pauseForEating = setting("Pause For Eating", true, { page.value == Page.IN_COMBAT })
-    private val ignoreOffhandEating = setting("Ignore Offhand Eating", true, { page.value == Page.IN_COMBAT && pauseForEating.value })
-    private val pauseBaritone = setting("Pause Baritone", true, { page.value == Page.IN_COMBAT })
-    private val resumeDelay = setting("Resume Delay", 3, 1..10, 1, { page.value == Page.IN_COMBAT && pauseBaritone.value })
-    private val motionPrediction = setting("Motion Prediction", true, { page.value == Page.IN_COMBAT })
-    private val pingSync = setting("Ping Sync", true, { page.value == Page.IN_COMBAT && motionPrediction.value })
-    private val ticksAhead = setting("Ticks Ahead", 5, 0..20, 1, { page.value == Page.IN_COMBAT && motionPrediction.value && !pingSync.value })
+    private val pauseForDigging by setting("Pause For Digging", true, { page == Page.IN_COMBAT })
+    private val pauseForEating by setting("Pause For Eating", true, { page == Page.IN_COMBAT })
+    private val ignoreOffhandEating by setting("Ignore Offhand Eating", true, { page == Page.IN_COMBAT && pauseForEating })
+    private val pauseBaritone by setting("Pause Baritone", true, { page == Page.IN_COMBAT })
+    private val resumeDelay by setting("Resume Delay", 3, 1..10, 1, { page == Page.IN_COMBAT && pauseBaritone })
+    private val motionPrediction by setting("Motion Prediction", true, { page == Page.IN_COMBAT })
+    private val pingSync by setting("Ping Sync", true, { page == Page.IN_COMBAT && motionPrediction })
+    private val ticksAhead by setting("Ticks Ahead", 5, 0..20, 1, { page == Page.IN_COMBAT && motionPrediction && !pingSync })
 
     /* Render */
-    private val renderPredictedPos = setting("Render Predicted Position", false, { page.value == Page.RENDER })
+    private val renderPredictedPos = setting("Render Predicted Position", false, { page == Page.RENDER })
 
     private enum class Page {
         TARGETING, IN_COMBAT, RENDER
@@ -95,7 +95,7 @@ object CombatSetting : Module(
         DAMAGE, HEALTH, CROSS_HAIR, DISTANCE
     }
 
-    private var overrideRange = range.value
+    private var overrideRange = range
     private var paused = false
     private val resumeTimer = TickTimer(TimeUnit.SECONDS)
     private val jobMap = hashMapOf<(SafeClientEvent) -> Unit, Job?>(
@@ -112,14 +112,14 @@ object CombatSetting : Module(
         } ?: false
 
     private fun SafeClientEvent.checkDigging() =
-        pauseForDigging.value
+        pauseForDigging
             && player.heldItemMainhand.item is ItemPickaxe
             && playerController.isHittingBlock
 
     private fun SafeClientEvent.checkEating() =
-        pauseForEating.value
+        pauseForEating
             && (PauseProcess.isPausing(AutoEat) || player.isHandActive && player.activeItemStack.item is ItemFood)
-            && (!ignoreOffhandEating.value || player.activeHand != EnumHand.OFF_HAND)
+            && (!ignoreOffhandEating || player.activeHand != EnumHand.OFF_HAND)
 
     override fun isActive() = KillAura.isActive() || BedAura.isActive() || CrystalAura.isActive() || Surround.isActive()
 
@@ -127,7 +127,7 @@ object CombatSetting : Module(
         listener<RenderOverlayEvent> {
             if (!renderPredictedPos.value) return@listener
             CombatManager.target?.let {
-                val ticks = if (pingSync.value) (InfoCalculator.ping() / 25f).ceilToInt() else ticksAhead.value
+                val ticks = if (pingSync) (InfoCalculator.ping() / 25f).ceilToInt() else ticksAhead
                 val posCurrent = EntityUtils.getInterpolatedPos(it, LambdaTessellator.pTicks())
                 val posAhead = CombatManager.motionTracker.calcPositionAhead(ticks, true) ?: return@listener
                 val posAheadEye = posAhead.add(0.0, it.eyeHeight.toDouble(), 0.0)
@@ -148,11 +148,11 @@ object CombatSetting : Module(
                 jobMap[function] = defaultScope.launch { function(this@safeListener) }
             }
 
-            if (isActive() && pauseBaritone.value) {
+            if (isActive() && pauseBaritone) {
                 pauseBaritone()
                 resumeTimer.reset()
                 paused = true
-            } else if (resumeTimer.tick(resumeDelay.value.toLong(), false)) {
+            } else if (resumeTimer.tick(resumeDelay.toLong(), false)) {
                 unpauseBaritone()
                 paused = false
             }
@@ -161,7 +161,7 @@ object CombatSetting : Module(
 
     private fun SafeClientEvent.updateTarget() {
         CombatManager.getTopModule()?.let {
-            overrideRange = if (it is KillAura) it.range else range.value
+            overrideRange = if (it is KillAura) it.range else range
         }
 
         getTargetList().let {
@@ -214,8 +214,8 @@ object CombatSetting : Module(
     }
 
     fun getPrediction(entity: Entity) = CombatManager.target?.let {
-        if (motionPrediction.value) {
-            val ticks = if (pingSync.value) (InfoCalculator.ping() / 25f).ceilToInt() else ticksAhead.value
+        if (motionPrediction) {
+            val ticks = if (pingSync) (InfoCalculator.ping() / 25f).ceilToInt() else ticksAhead
             CombatManager.motionTracker.getPositionAndBBAhead(ticks) ?: it.positionVector to it.entityBoundingBox
         } else {
             it.positionVector to it.entityBoundingBox
@@ -229,11 +229,11 @@ object CombatSetting : Module(
         for (entity in getCacheList()) {
             if (AntiBot.isBot(entity)) continue
 
-            if (!tamed.value
+            if (!tamed
                 && (entity is EntityTameable && entity.isTamed
                     || entity is AbstractHorse && entity.isTame)) continue
 
-            if (!teammates.value
+            if (!teammates
                 && player.isOnSameTeam(entity)) continue
 
             if (!shouldIgnoreWall()
@@ -248,18 +248,18 @@ object CombatSetting : Module(
     }
 
     private fun SafeClientEvent.getCacheList(): LinkedList<EntityLivingBase> {
-        val player = arrayOf(players.value, friends.value, sleeping.value)
-        val mob = arrayOf(mobs.value, passive.value, neutral.value, hostile.value)
-        val cacheList = LinkedList(EntityUtils.getTargetList(player, mob, invisible.value, overrideRange))
-        if ((cacheList.isEmpty() || getTarget(cacheList) == null) && overrideRange != range.value) {
-            cacheList.addAll(EntityUtils.getTargetList(player, mob, invisible.value, range.value))
+        val player = arrayOf(players, friends, sleeping)
+        val mob = arrayOf(mobs, passive, neutral, hostile)
+        val cacheList = LinkedList(EntityUtils.getTargetList(player, mob, invisible, overrideRange))
+        if ((cacheList.isEmpty() || getTarget(cacheList) == null) && overrideRange != range) {
+            cacheList.addAll(EntityUtils.getTargetList(player, mob, invisible, range))
         }
         return cacheList
     }
 
     private fun shouldIgnoreWall(): Boolean {
         val module = CombatManager.getTopModule()
-        return if (module is KillAura || module is AimBot) ignoreWalls.value
+        return if (module is KillAura || module is AimBot) ignoreWalls
         else true
     }
 
@@ -276,9 +276,9 @@ object CombatSetting : Module(
     }
 
     private fun SafeClientEvent.filterByFilter(listIn: LinkedList<EntityLivingBase>): LinkedList<EntityLivingBase> {
-        when (filter.value) {
+        when (filter) {
             TargetFilter.FOV -> {
-                listIn.removeIf { getRelativeRotation(it) > fov.value }
+                listIn.removeIf { getRelativeRotation(it) > fov }
             }
 
             TargetFilter.MANUAL -> {
@@ -286,7 +286,7 @@ object CombatSetting : Module(
                     return LinkedList()
                 }
                 val eyePos = player.getPositionEyes(LambdaTessellator.pTicks())
-                val lookVec = player.lookVec.scale(range.value.toDouble())
+                val lookVec = player.lookVec.scale(range.toDouble())
                 val sightEndPos = eyePos.add(lookVec)
                 listIn.removeIf { it.entityBoundingBox.calculateIntercept(eyePos, sightEndPos) == null }
             }
@@ -300,11 +300,11 @@ object CombatSetting : Module(
     private fun SafeClientEvent.filterByPriority(listIn: LinkedList<EntityLivingBase>): EntityLivingBase? {
         if (listIn.isEmpty()) return null
 
-        if (priority.value == TargetPriority.DAMAGE) filterByDamage(listIn)
+        if (priority == TargetPriority.DAMAGE) filterByDamage(listIn)
 
-        if (priority.value == TargetPriority.HEALTH) filterByHealth(listIn)
+        if (priority == TargetPriority.HEALTH) filterByHealth(listIn)
 
-        return if (priority.value == TargetPriority.CROSS_HAIR) filterByCrossHair(listIn) else filterByDistance(listIn)
+        return if (priority == TargetPriority.CROSS_HAIR) filterByCrossHair(listIn) else filterByDistance(listIn)
     }
 
     private fun filterByDamage(listIn: LinkedList<EntityLivingBase>) {

@@ -46,10 +46,10 @@ object CrystalBasePlace : Module(
     category = Category.COMBAT,
     modulePriority = 90
 ) {
-    private val manualPlaceBind = setting("Bind Manual Place", Bind())
-    private val minDamageInc = setting("Min Damage Inc", 2.0f, 0.0f..10.0f, 0.25f)
-    private val range = setting("Range", 4.0f, 0.0f..8.0f, 0.5f)
-    private val delay = setting("Delay", 20, 0..50, 5)
+    private val manualPlaceBind by setting("Bind Manual Place", Bind())
+    private val minDamageInc by setting("Min Damage Inc", 2.0f, 0.0f..10.0f, 0.25f)
+    private val range by setting("Range", 4.0f, 0.0f..8.0f, 0.5f)
+    private val delay by setting("Delay", 20, 0..50, 5)
 
     private val timer = TickTimer()
     private val renderer = ESPRenderer().apply { aFilled = 33; aOutline = 233 }
@@ -77,7 +77,7 @@ object CrystalBasePlace : Module(
             if (!CombatManager.isOnTopPriority(this@CrystalBasePlace) || CombatSetting.pause) return@safeListener
             val target = CombatManager.target ?: return@safeListener
 
-            if (manualPlaceBind.value.isDown(Keyboard.getEventKey())) prePlace(target)
+            if (manualPlaceBind.isDown(Keyboard.getEventKey())) prePlace(target)
         }
 
         safeListener<TickEvent.ClientTickEvent> {
@@ -120,12 +120,14 @@ object CrystalBasePlace : Module(
     private fun isObby(itemStack: ItemStack) = itemStack.item.block == Blocks.OBSIDIAN
 
     private fun SafeClientEvent.prePlace(entity: EntityLivingBase) {
-        if (rotationTo != null || !timer.tick((delay.value * 50.0f).toLong(), false)) return
+        if (rotationTo != null || !timer.tick((delay * 50.0f).toLong(), false)) return
         val placeInfo = getPlaceInfo(entity)
 
         if (placeInfo != null) {
             rotationTo = placeInfo.hitVec
-            placePacket = CPacketPlayerTryUseItemOnBlock(placeInfo.pos, placeInfo.side, EnumHand.MAIN_HAND, placeInfo.hitVecOffset.x.toFloat(), placeInfo.hitVecOffset.y.toFloat(), placeInfo.hitVecOffset.z.toFloat())
+            placePacket = CPacketPlayerTryUseItemOnBlock(placeInfo.pos,
+                placeInfo.side, EnumHand.MAIN_HAND, placeInfo.hitVecOffset.x.toFloat(),
+                placeInfo.hitVecOffset.y.toFloat(), placeInfo.hitVecOffset.z.toFloat())
 
             renderer.clear()
             renderer.add(placeInfo.placedPos, ColorHolder(255, 255, 255))
@@ -133,7 +135,7 @@ object CrystalBasePlace : Module(
             inactiveTicks = 0
             timer.reset()
         } else {
-            timer.reset((delay.value * -25.0f).toLong())
+            timer.reset((delay * -25.0f).toLong())
         }
     }
 
@@ -141,9 +143,9 @@ object CrystalBasePlace : Module(
         val cacheMap = TreeMap<Float, BlockPos>(compareByDescending { it })
         val prediction = CombatSetting.getPrediction(entity)
         val eyePos = player.getPositionEyes(1.0f)
-        val posList = VectorUtils.getBlockPosInSphere(eyePos, range.value)
+        val posList = VectorUtils.getBlockPosInSphere(eyePos, range)
         val maxCurrentDamage = CombatManager.placeMap.entries
-            .filter { eyePos.distanceTo(it.key) < range.value }
+            .filter { eyePos.distanceTo(it.key) < range }
             .map { it.value.targetDamage }
             .maxOrNull() ?: 0.0f
 
@@ -183,5 +185,7 @@ object CrystalBasePlace : Module(
     }
 
     private fun checkDamage(damage: Float, selfDamage: Float, maxCurrentDamage: Float) =
-        selfDamage < CrystalAura.maxSelfDamage && damage > CrystalAura.minDamage && (maxCurrentDamage < CrystalAura.minDamage || damage - maxCurrentDamage >= minDamageInc.value)
+        selfDamage < CrystalAura.maxSelfDamage &&
+            damage > CrystalAura.minDamage &&
+            (maxCurrentDamage < CrystalAura.minDamage || damage - maxCurrentDamage >= minDamageInc)
 }

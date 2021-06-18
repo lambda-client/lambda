@@ -16,6 +16,7 @@ import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.math.RotationUtils
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.threads.onMainThreadSafe
+import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.extension.floorToInt
@@ -112,9 +113,11 @@ object Freecam : Module(
         }
 
         onDisable {
-            mc.renderChunksMany = true
-            resetCameraGuy()
-            resetMovementInput(mc.player?.movementInput)
+            runSafe {
+                mc.renderChunksMany = true
+                resetCameraGuy()
+                resetMovementInput(player.movementInput)
+            }
         }
 
         listener<ConnectionEvent.Disconnect> {
@@ -129,8 +132,8 @@ object Freecam : Module(
             if (it.packet.getEntityFromWorld(world) == player) it.cancel()
         }
 
-        listener<PlayerAttackEvent> {
-            if (it.entity == mc.player) it.cancel()
+        safeListener<PlayerAttackEvent> {
+            if (it.entity == player) it.cancel()
         }
 
         safeListener<InputEvent.KeyInputEvent> {

@@ -127,7 +127,7 @@ object AutoMend : Module(
                         player.inventory.currentItem = xpSlot
                     }
 
-                    if (autoThrow && player.heldItemMainhand.item === Items.EXPERIENCE_BOTTLE) {
+                    if (autoThrow && player.heldItemMainhand.item == Items.EXPERIENCE_BOTTLE) {
                         sendPlayerPacket {
                             rotate(Vec2f(player.rotationYaw, 90.0f))
                         }
@@ -174,7 +174,7 @@ object AutoMend : Module(
     private fun SafeClientEvent.findXpPots(): Int {
         var slot = -1
         for (i in 0..8) {
-            if (player.inventory.getStackInSlot(i).item === Items.EXPERIENCE_BOTTLE) {
+            if (player.inventory.getStackInSlot(i).item == Items.EXPERIENCE_BOTTLE) {
                 slot = i
                 break
             }

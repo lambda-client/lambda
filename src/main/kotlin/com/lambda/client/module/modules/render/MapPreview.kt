@@ -31,9 +31,9 @@ object MapPreview : Module(
 ) {
     private val mapBackground = ResourceLocation("textures/map/map_background.png")
 
-    private val showName = setting("Show Name", true)
-    private val frame = setting("Show Frame", true)
-    val scale = setting("Scale", 5.0, 0.0..10.0, 0.1)
+    private val showName by setting("Show Name", true)
+    private val frame by setting("Show Frame", true)
+    val scale by setting("Scale", 5.0, 0.0..10.0, 0.1)
 
     @JvmStatic
     fun getMapData(itemStack: ItemStack): MapData? {
@@ -44,7 +44,7 @@ object MapPreview : Module(
     fun drawMap(stack: ItemStack, mapData: MapData, originalX: Int, originalY: Int) {
         val x = originalX + 6.0
         val y = originalY + 6.0
-        val scale = scale.value / 5.0
+        val scale = scale / 5.0
 
         GlStateManager.pushMatrix()
         GlStateManager.color(1f, 1f, 1f)
@@ -64,7 +64,7 @@ object MapPreview : Module(
     }
 
     private fun drawMapFrame() {
-        if (!frame.value) return
+        if (!frame) return
 
         val tessellator = Tessellator.getInstance()
         val bufBuilder = tessellator.buffer
@@ -80,7 +80,7 @@ object MapPreview : Module(
     }
 
     private fun drawMapName(stack: ItemStack) {
-        if (!showName.value) return
+        if (!showName) return
 
         val vertexHelper = VertexHelper(useVbo())
         val backgroundX = Vec2d(-2.0, -18.0)

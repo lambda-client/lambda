@@ -4,7 +4,6 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -24,13 +23,13 @@ object NoBreakAnimation : Module(
 
     init {
         // Lower priority so we process the packet at the last
-        listener<PacketEvent.Send>(500) {
-            if (it.packet !is CPacketPlayerDigging) return@listener
+        safeListener<PacketEvent.Send>(500) {
+            if (it.packet !is CPacketPlayerDigging) return@safeListener
             // skip crystals and living entities
-            for (entity in mc.world.getEntitiesWithinAABBExcludingEntity(null, AxisAlignedBB(it.packet.position))) {
+            for (entity in world.getEntitiesWithinAABBExcludingEntity(null, AxisAlignedBB(it.packet.position))) {
                 if (entity is EntityEnderCrystal || entity is EntityLivingBase) {
                     resetMining()
-                    return@listener
+                    return@safeListener
                 }
             }
             if (it.packet.action == CPacketPlayerDigging.Action.START_DESTROY_BLOCK) {

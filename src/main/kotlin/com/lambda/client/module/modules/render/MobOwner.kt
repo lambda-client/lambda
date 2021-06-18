@@ -16,9 +16,9 @@ object MobOwner : Module(
     description = "Displays the owner of tamed mobs",
     category = Category.RENDER
 ) {
-    private val speed = setting("Speed", true)
-    private val jump = setting("Jump", true)
-    private val hp = setting("Health", true)
+    private val speed by setting("Speed", true)
+    private val jump by setting("Jump", true)
+    private val hp by setting("Health", true)
 
     private const val invalidText = "Offline or invalid UUID!"
 
@@ -61,18 +61,18 @@ object MobOwner : Module(
     }
 
     private fun getSpeed(horse: AbstractHorse): String {
-        return if (!speed.value) "" else " S: " + round(43.17 * horse.aiMoveSpeed, 2)
+        return if (!speed) "" else " S: " + round(43.17 * horse.aiMoveSpeed, 2)
     }
 
     private fun getJump(horse: AbstractHorse): String {
-        return if (!jump.value) "" else " J: " + round(-0.1817584952 * horse.horseJumpStrength.pow(3.0) + 3.689713992 * horse.horseJumpStrength.pow(2.0) + 2.128599134 * horse.horseJumpStrength - 0.343930367, 2)
+        return if (!jump) "" else " J: " + round(-0.1817584952 * horse.horseJumpStrength.pow(3.0) + 3.689713992 * horse.horseJumpStrength.pow(2.0) + 2.128599134 * horse.horseJumpStrength - 0.343930367, 2)
     }
 
     private fun getHealth(horse: AbstractHorse): String {
-        return if (!hp.value) "" else " HP: " + round(horse.health, 2)
+        return if (!hp) "" else " HP: " + round(horse.health, 2)
     }
 
     private fun getHealth(tameable: EntityTameable): String {
-        return if (!hp.value) "" else " HP: " + round(tameable.health, 2)
+        return if (!hp) "" else " HP: " + round(tameable.health, 2)
     }
 }

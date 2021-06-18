@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MixinTileEntityBeacon {
     @Inject(method = "shouldBeamRender", at = @At("HEAD"), cancellable = true)
     public void shouldBeamRender(CallbackInfoReturnable<Float> returnable) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getBeacon().getValue()) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getBeacon()) {
             returnable.setReturnValue(0.0F);
             returnable.cancel();
         }

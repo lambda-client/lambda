@@ -33,38 +33,38 @@ object NoRender : Module(
     description = "Ignore entity spawn packets"
 ) {
 
-    private val packets = setting("Cancel Packets", true)
-    private val page = setting("Page", Page.OTHER)
+    private val packets by setting("Cancel Packets", true)
+    private val page by setting("Page", Page.OTHER)
 
     // Entities
-    private val mobs = setting("Mobs", false, { page.value == Page.ENTITIES })
-    private val animals = setting("Animals", false, { page.value == Page.ENTITIES })
-    private val player = setting("Players", false, { page.value == Page.ENTITIES })
-    private val paint = setting("Paintings", false, { page.value == Page.ENTITIES })
-    private val sign = setting("Signs", false, { page.value == Page.ENTITIES })
-    private val skull = setting("Heads", false, { page.value == Page.ENTITIES })
-    private val armorStand = setting("Armor Stands", false, { page.value == Page.ENTITIES })
-    private val endPortal = setting("End Portals", false, { page.value == Page.ENTITIES })
-    private val banner = setting("Banners", false, { page.value == Page.ENTITIES })
-    private val itemFrame = setting("Item Frames", false, { page.value == Page.ENTITIES })
-    private val xp = setting("XP", false, { page.value == Page.ENTITIES })
-    private val items = setting("Items", false, { page.value == Page.ENTITIES })
-    private val crystal = setting("Crystals", false, { page.value == Page.ENTITIES })
-    private val firework = setting("Firework", false, { page.value == Page.ENTITIES })
+    private val mobs by setting("Mobs", false, { page == Page.ENTITIES })
+    private val animals by setting("Animals", false, { page == Page.ENTITIES })
+    private val player = setting("Players", false, { page == Page.ENTITIES })
+    private val paint = setting("Paintings", false, { page == Page.ENTITIES })
+    private val sign = setting("Signs", false, { page == Page.ENTITIES })
+    private val skull = setting("Heads", false, { page == Page.ENTITIES })
+    private val armorStand = setting("Armor Stands", false, { page == Page.ENTITIES })
+    private val endPortal = setting("End Portals", false, { page == Page.ENTITIES })
+    private val banner = setting("Banners", false, { page == Page.ENTITIES })
+    private val itemFrame = setting("Item Frames", false, { page == Page.ENTITIES })
+    private val xp = setting("XP", false, { page == Page.ENTITIES })
+    private val items = setting("Items", false, { page == Page.ENTITIES })
+    private val crystal = setting("Crystals", false, { page == Page.ENTITIES })
+    private val firework = setting("Firework", false, { page == Page.ENTITIES })
 
     // Others
-    val map = setting("Maps", false, { page.value == Page.OTHER })
-    private val explosion = setting("Explosions", true, { page.value == Page.OTHER })
-    val signText = setting("Sign Text", false, { page.value == Page.OTHER })
-    private val particles = setting("Particles", true, { page.value == Page.OTHER })
-    private val falling = setting("Falling Blocks", true, { page.value == Page.OTHER })
-    val beacon = setting("Beacon Beams", true, { page.value == Page.OTHER })
-    private val allLightingUpdates by setting("All Lighting Updates", true, { page.value == Page.OTHER })
-    private val skylight by setting("SkyLight Updates", true, { page.value == Page.OTHER && !allLightingUpdates })
-    private val enchantingTable = setting("Enchanting Books", true, { page.value == Page.OTHER })
-    private val enchantingTableSnow = setting("Enchanting Table Snow", false, { page.value == Page.OTHER }, description = "Replace enchanting table models with snow layers")
-    private val projectiles = setting("Projectiles", false, { page.value == Page.OTHER })
-    private val lightning = setting("Lightning", true, { page.value == Page.OTHER })
+    val map by setting("Maps", false, { page == Page.OTHER })
+    private val explosion by setting("Explosions", true, { page == Page.OTHER })
+    val signText by setting("Sign Text", false, { page == Page.OTHER })
+    private val particles = setting("Particles", true, { page == Page.OTHER })
+    private val falling = setting("Falling Blocks", true, { page == Page.OTHER })
+    val beacon by setting("Beacon Beams", true, { page == Page.OTHER })
+    private val allLightingUpdates by setting("All Lighting Updates", true, { page == Page.OTHER })
+    private val skylight by setting("SkyLight Updates", true, { page == Page.OTHER && !allLightingUpdates })
+    private val enchantingTable = setting("Enchanting Books", true, { page == Page.OTHER })
+    private val enchantingTableSnow by setting("Enchanting Table Snow", false, { page == Page.OTHER }, description = "Replace enchanting table models with snow layers")
+    private val projectiles by setting("Projectiles", false, { page == Page.OTHER })
+    private val lightning = setting("Lightning", true, { page == Page.OTHER })
 
     private enum class Page {
         ENTITIES, OTHER
@@ -98,9 +98,9 @@ object NoRender : Module(
         }
 
         listener<PacketEvent.Receive> {
-            if (explosion.value && it.packet is SPacketExplosion ||
+            if (explosion && it.packet is SPacketExplosion ||
                 particles.value && it.packet is SPacketParticles ||
-                packets.value
+                packets
                 && (lightning.value && it.packet is SPacketSpawnGlobalEntity ||
                     xp.value && it.packet is SPacketSpawnExperienceOrb ||
                     paint.value && it.packet is SPacketSpawnPainting)
@@ -111,7 +111,7 @@ object NoRender : Module(
 
             when (it.packet) {
                 is SPacketSpawnObject -> {
-                    it.cancelled = packets.value &&
+                    it.cancelled = packets &&
                         when (it.packet.type) {
                             71 -> itemFrame.value
                             78 -> armorStand.value
@@ -119,16 +119,16 @@ object NoRender : Module(
                             2 -> items.value
                             70 -> falling.value
                             76 -> firework.value
-                            else -> projectiles.value
+                            else -> projectiles
                         }
                 }
                 is SPacketSpawnMob -> {
-                    if (packets.value) {
+                    if (packets) {
                         val entityClass = GameData.getEntityRegistry().getValue(it.packet.entityType).entityClass
                         if (EntityMob::class.java.isAssignableFrom(entityClass)) {
-                            if (mobs.value) it.cancel()
+                            if (mobs) it.cancel()
                         } else if (IAnimals::class.java.isAssignableFrom(entityClass)) {
-                            if (animals.value) it.cancel()
+                            if (animals) it.cancel()
                         }
                     }
                 }
@@ -139,8 +139,8 @@ object NoRender : Module(
             if (it.phase != Phase.PRE) return@listener
 
             if (entityList.contains(it.entity.javaClass)
-                || animals.value && it.entity is IAnimals && it.entity !is EntityMob
-                || mobs.value && it.entity is EntityMob) {
+                || animals && it.entity is IAnimals && it.entity !is EntityMob
+                || mobs && it.entity is EntityMob) {
                 it.cancel()
             }
         }
@@ -163,7 +163,7 @@ object NoRender : Module(
         || firework.value && (particle is ParticleFirework.Overlay || particle is ParticleFirework.Spark || particle is ParticleFirework.Starter)
 
     fun tryReplaceEnchantingTable(tileEntity: TileEntity): Boolean {
-        if (!enchantingTableSnow.value || tileEntity !is TileEntityEnchantmentTable) return false
+        if (!enchantingTableSnow || tileEntity !is TileEntityEnchantmentTable) return false
 
         runSafe {
             val blockState = Blocks.SNOW_LAYER.defaultState.withProperty(BlockSnow.LAYERS, 7)

@@ -23,36 +23,36 @@ object FastUse : Module(
     category = Category.PLAYER,
     description = "Use items faster"
 ) {
-    private val delay = setting("Delay", 0, 0..10, 1)
-    private val blocks = setting("Blocks", false)
-    private val allItems = setting("All Items", false)
-    private val expBottles = setting("Exp Bottles", true, { !allItems.value })
-    private val endCrystals = setting("End Crystals", true, { !allItems.value })
-    private val fireworks = setting("Fireworks", false, { !allItems.value })
-    private val bow = setting("Bow", true, { !allItems.value })
-    private val chargeSetting = setting("Bow Charge", 3, 0..20, 1, { allItems.value || bow.value })
-    private val chargeVariation = setting("Charge Variation", 5, 0..20, 1, { allItems.value || bow.value })
+    private val delay by setting("Delay", 0, 0..10, 1)
+    private val blocks by setting("Blocks", false)
+    private val allItems by setting("All Items", false)
+    private val expBottles by setting("Exp Bottles", true, { !allItems })
+    private val endCrystals by setting("End Crystals", true, { !allItems })
+    private val fireworks by setting("Fireworks", false, { !allItems })
+    private val bow by setting("Bow", true, { !allItems })
+    private val chargeSetting by setting("Bow Charge", 3, 0..20, 1, { allItems || bow })
+    private val chargeVariation by setting("Charge Variation", 5, 0..20, 1, { allItems || bow })
 
     private var lastUsedHand = EnumHand.MAIN_HAND
     private var randomVariation = 0
     private var tickCount = 0
 
-    val bowCharge get() = if (isEnabled && (allItems.value || bow.value)) 72000.0 - (chargeSetting.value.toDouble() + chargeVariation.value / 2.0) else null
+    val bowCharge get() = if (isEnabled && (allItems || bow)) 72000.0 - (chargeSetting.toDouble() + chargeVariation / 2.0) else null
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.END || player.isSpectator) return@safeListener
 
-            if ((allItems.value || bow.value) && player.isHandActive && (player.activeItemStack.item == Items.BOW) && player.itemInUseMaxCount >= getBowCharge()) {
+            if ((allItems || bow) && player.isHandActive && (player.activeItemStack.item == Items.BOW) && player.itemInUseMaxCount >= getBowCharge()) {
                 randomVariation = 0
                 connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, player.horizontalFacing))
                 connection.sendPacket(CPacketPlayerTryUseItem(player.activeHand))
                 player.stopActiveHand()
             }
 
-            if (delay.value > 0) {
+            if (delay > 0) {
                 if (tickCount <= 0) {
-                    tickCount = delay.value
+                    tickCount = delay
                 } else {
                     tickCount--
                     return@safeListener
@@ -72,17 +72,17 @@ object FastUse : Module(
 
     private fun getBowCharge(): Int {
         if (randomVariation == 0) {
-            randomVariation = if (chargeVariation.value == 0) 0 else (0..chargeVariation.value).random()
+            randomVariation = if (chargeVariation == 0) 0 else (0..chargeVariation).random()
         }
-        return chargeSetting.value + randomVariation
+        return chargeSetting + randomVariation
     }
 
     private fun passItemCheck(item: Item): Boolean {
         return item !is ItemAir
-            && (allItems.value && item !is ItemBlock
-            || blocks.value && item is ItemBlock
-            || expBottles.value && item is ItemExpBottle
-            || endCrystals.value && item is ItemEndCrystal
-            || fireworks.value && item is ItemFirework)
+            && (allItems && item !is ItemBlock
+            || blocks && item is ItemBlock
+            || expBottles && item is ItemExpBottle
+            || endCrystals && item is ItemEndCrystal
+            || fireworks && item is ItemFirework)
     }
 }

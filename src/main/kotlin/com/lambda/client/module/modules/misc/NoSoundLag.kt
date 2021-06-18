@@ -16,7 +16,7 @@ object NoSoundLag : Module(
     init {
         listener<PacketEvent.Receive> {
             if (it.packet !is SPacketSoundEffect) return@listener
-            if (it.packet.category == SoundCategory.PLAYERS && it.packet.sound === SoundEvents.ITEM_ARMOR_EQUIP_GENERIC) {
+            if (it.packet.category == SoundCategory.PLAYERS && it.packet.sound == SoundEvents.ITEM_ARMOR_EQUIP_GENERIC) {
                 it.cancel()
             }
         }

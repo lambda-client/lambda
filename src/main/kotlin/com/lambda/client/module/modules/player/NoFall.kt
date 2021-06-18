@@ -26,11 +26,11 @@ object NoFall : Module(
     category = Category.PLAYER,
     description = "Prevents fall damage"
 ) {
-    private val distance = setting("Distance", 3, 1..10, 1)
-    private val mode = setting("Mode", Mode.CATCH)
-    private val fallModeSetting = setting("Fall", FallMode.PACKET, { mode.value == Mode.FALL })
-    private val catchModeSetting = setting("Catch", CatchMode.MOTION, { mode.value == Mode.CATCH })
-    private val voidOnly = setting("Void Only", false, { mode.value == Mode.CATCH })
+    private val distance by setting("Distance", 3, 1..10, 1)
+    private val mode by setting("Mode", Mode.CATCH)
+    private val fallModeSetting by setting("Fall", FallMode.PACKET, { mode == Mode.FALL })
+    private val catchModeSetting by setting("Catch", CatchMode.MOTION, { mode == Mode.CATCH })
+    private val voidOnly by setting("Void Only", false, { mode == Mode.CATCH })
 
     private enum class Mode {
         FALL, CATCH
@@ -49,33 +49,33 @@ object NoFall : Module(
     init {
         safeListener<PacketEvent.Send> {
             if (it.packet !is CPacketPlayer || player.isElytraFlying) return@safeListener
-            if ((mode.value == Mode.FALL && fallModeSetting.value == FallMode.PACKET || mode.value == Mode.CATCH)) {
+            if ((mode == Mode.FALL && fallModeSetting == FallMode.PACKET || mode == Mode.CATCH)) {
                 it.packet.onGround = true
             }
         }
 
         safeListener<TickEvent.ClientTickEvent> {
             if (player.isCreative || player.isSpectator || !fallDistCheck()) return@safeListener
-            if (mode.value == Mode.FALL) {
+            if (mode == Mode.FALL) {
                 fallMode()
-            } else if (mode.value == Mode.CATCH) {
+            } else if (mode == Mode.CATCH) {
                 catchMode()
             }
         }
     }
 
-    private fun SafeClientEvent.fallDistCheck() = (!voidOnly.value && player.fallDistance >= distance.value) || world.getGroundPos(player).y == -69420.0
+    private fun SafeClientEvent.fallDistCheck() = (!voidOnly && player.fallDistance >= distance) || world.getGroundPos(player).y == -69420.0
 
     // TODO: This really needs a rewrite to spoof placing and the such instead of manual rotations
     private fun SafeClientEvent.fallMode() {
-        if (fallModeSetting.value == FallMode.BUCKET && player.dimension != -1 && !EntityUtils.isAboveLiquid(player) && System.currentTimeMillis() - last > 100) {
+        if (fallModeSetting == FallMode.BUCKET && player.dimension != -1 && !EntityUtils.isAboveLiquid(player) && System.currentTimeMillis() - last > 100) {
             val posVec = player.positionVector
             val result = world.rayTraceBlocks(posVec, posVec.add(0.0, -5.33, 0.0), true, true, false)
 
             if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
                 var hand = EnumHand.MAIN_HAND
-                if (player.heldItemOffhand.item === Items.WATER_BUCKET) hand = EnumHand.OFF_HAND else if (player.heldItemMainhand.item !== Items.WATER_BUCKET) {
-                    for (i in 0..8) if (player.inventory.getStackInSlot(i).item === Items.WATER_BUCKET) {
+                if (player.heldItemOffhand.item == Items.WATER_BUCKET) hand = EnumHand.OFF_HAND else if (player.heldItemMainhand.item != Items.WATER_BUCKET) {
+                    for (i in 0..8) if (player.inventory.getStackInSlot(i).item == Items.WATER_BUCKET) {
                         player.inventory.currentItem = i
                         player.rotationPitch = 90f
                         last = System.currentTimeMillis()
@@ -91,7 +91,7 @@ object NoFall : Module(
     }
 
     private fun SafeClientEvent.catchMode() {
-        when (catchModeSetting.value) {
+        when (catchModeSetting) {
             CatchMode.BLOCK -> {
                 var slot = -1
                 for (i in 0..8) {

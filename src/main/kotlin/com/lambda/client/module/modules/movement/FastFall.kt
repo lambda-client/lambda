@@ -14,9 +14,9 @@ object FastFall : Module(
     description = "Makes you fall faster",
     modulePriority = 50
 ) {
-    private val mode = setting("Mode", Mode.MOTION)
-    private val fallSpeed = setting("Fall Speed", 6.0, 0.1..10.0, 0.1)
-    private val fallDistance = setting("Max Fall Distance", 2, 0..10, 1)
+    private val mode by setting("Mode", Mode.MOTION)
+    private val fallSpeed by setting("Fall Speed", 6.0, 0.1..10.0, 0.1)
+    private val fallDistance by setting("Max Fall Distance", 2, 0..10, 1)
 
     private var timering = false
     private var motioning = false
@@ -32,19 +32,19 @@ object FastFall : Module(
                 || player.isInLava
                 || player.isInWater
                 || player.isInWeb
-                || player.fallDistance < fallDistance.value
+                || player.fallDistance < fallDistance
                 || player.capabilities.isFlying) {
                 reset()
                 return@safeListener
             }
 
-            when (mode.value) {
+            when (mode) {
                 Mode.MOTION -> {
-                    player.motionY -= fallSpeed.value
+                    player.motionY -= fallSpeed
                     motioning = true
                 }
                 Mode.TIMER -> {
-                    modifyTimer(50.0f / (fallSpeed.value * 2.0f).toFloat())
+                    modifyTimer(50.0f / (fallSpeed * 2.0f).toFloat())
                     timering = true
                 }
             }

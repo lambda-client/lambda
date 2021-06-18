@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.event.listener.listener
+import com.lambda.client.util.threads.safeListener
 import io.netty.buffer.Unpooled
 import net.minecraft.network.PacketBuffer
 import net.minecraft.network.play.client.CPacketCustomPayload
@@ -17,8 +17,8 @@ object BeaconSelector : Module(
     var effect = -1
 
     init {
-        listener<PacketEvent.Send> {
-            if (it.packet !is CPacketCustomPayload || !doCancelPacket || it.packet.channelName != "MC|Beacon") return@listener
+        safeListener<PacketEvent.Send> {
+            if (it.packet !is CPacketCustomPayload || !doCancelPacket || it.packet.channelName != "MC|Beacon") return@safeListener
             doCancelPacket = false
             it.packet.bufferData.readInt() // primary
             val secondary = it.packet.bufferData.readInt() // secondary
@@ -27,7 +27,7 @@ object BeaconSelector : Module(
                 writeInt(effect)
                 writeInt(secondary)
             }.also { buffer ->
-                mc.player.connection.sendPacket(CPacketCustomPayload("MC|Beacon", buffer))
+                connection.sendPacket(CPacketCustomPayload("MC|Beacon", buffer))
             }
             doCancelPacket = true
         }
