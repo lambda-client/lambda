@@ -7,7 +7,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.InfoCalculator
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.event.listener.listener
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.gui.GuiGameOver
 
 object AutoRespawn : Module(
@@ -20,16 +20,16 @@ object AutoRespawn : Module(
     private val antiGlitchScreen = setting("Anti Glitch Screen", true)
 
     init {
-        listener<GuiEvent.Displayed> {
-            if (it.screen !is GuiGameOver) return@listener
+        safeListener<GuiEvent.Displayed> {
+            if (it.screen !is GuiGameOver) return@safeListener
 
-            if (deathCoords.value && mc.player.health <= 0) {
+            if (deathCoords.value && player.health <= 0) {
                 WaypointManager.add("Death - " + InfoCalculator.getServerType())
-                MessageSendHelper.sendChatMessage("You died at ${mc.player.position.asString()}")
+                MessageSendHelper.sendChatMessage("You died at ${player.position.asString()}")
             }
 
-            if (respawn.value || antiGlitchScreen.value && mc.player.health > 0) {
-                mc.player.respawnPlayer()
+            if (respawn.value || antiGlitchScreen.value && player.health > 0) {
+                player.respawnPlayer()
                 mc.displayGuiScreen(null)
             }
         }

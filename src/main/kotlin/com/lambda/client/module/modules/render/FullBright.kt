@@ -58,11 +58,8 @@ object FullBright : Module(
     private fun transition(target: Float) {
         gammaSetting = when {
             gammaSetting !in 0f..15f -> target
-
             gammaSetting == target -> return
-
             gammaSetting < target -> min(gammaSetting + getTransitionAmount(), target)
-
             else -> max(gammaSetting - getTransitionAmount(), target)
         }
     }

@@ -14,19 +14,19 @@ object FancyChat : Module(
     showOnArray = false,
     modulePriority = 100
 ) {
-    private val uwu = setting("uwu", true)
-    private val leet = setting("1337", false)
-    private val mock = setting("mOcK", false)
-    private val green = setting(">", false)
-    private val blue = setting("`", false)
-    private val randomSetting = setting("Random Case", true, { mock.value })
-    private val commands = setting("Commands", false)
-    private val spammer = setting("Spammer", false)
+    private val uwu by setting("uwu", true)
+    private val leet by setting("1337", false)
+    private val mock by setting("mOcK", false)
+    private val green by setting(">", false)
+    private val blue by setting("`", false)
+    private val randomSetting by setting("Random Case", true, { mock })
+    private val commands by setting("Commands", false)
+    private val spammer by setting("Spammer", false)
 
     private val modifier = newMessageModifier(
         filter = {
-            (commands.value || MessageDetection.Command.ANY detectNot it.packet.message)
-                && (spammer.value || it.source !is Spammer)
+            (commands || MessageDetection.Command.ANY detectNot it.packet.message)
+                && (spammer || it.source !is Spammer)
         },
         modifier = {
             val message = getText(it.packet.message)
@@ -46,11 +46,11 @@ object FancyChat : Module(
 
     private fun getText(s: String): String {
         var string = s
-        if (uwu.value) string = uwuConverter(string)
-        if (leet.value) string = leetConverter(string)
-        if (mock.value) string = mockingConverter(string)
-        if (green.value) string = greenConverter(string)
-        if (blue.value) string = blueConverter(string)
+        if (uwu) string = uwuConverter(string)
+        if (leet) string = leetConverter(string)
+        if (mock) string = mockingConverter(string)
+        if (green) string = greenConverter(string)
+        if (blue) string = blueConverter(string)
         return string
     }
 
@@ -64,21 +64,11 @@ object FancyChat : Module(
 
     override fun getHudInfo(): String {
         val returned = StringBuilder()
-        if (uwu.value) {
-            returned.append("uwu")
-        }
-        if (leet.value) {
-            returned.append(" 1337")
-        }
-        if (mock.value) {
-            returned.append(" mOcK")
-        }
-        if (green.value) {
-            returned.append(" >")
-        }
-        if (blue.value) {
-            returned.append(" `")
-        }
+        if (uwu) returned.append("uwu")
+        if (leet) returned.append(" 1337")
+        if (mock) returned.append(" mOcK")
+        if (green) returned.append(" >")
+        if (blue) returned.append(" `")
         return returned.toString()
     }
 
@@ -97,7 +87,7 @@ object FancyChat : Module(
         val message = StringBuilder()
         for (i in input.indices) {
             var inputChar = input[i].toString() + ""
-            val rand = if (randomSetting.value) (0..1).random() else 0
+            val rand = if (randomSetting) (0..1).random() else 0
             inputChar = if (!MathUtils.isNumberEven(i + rand)) inputChar.uppercase() else inputChar.lowercase()
             message.append(inputChar)
         }

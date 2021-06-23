@@ -15,11 +15,11 @@ object TeleportLogger : Module(
     category = Category.MISC,
     description = "Logs when a player teleports somewhere"
 ) {
-    private val saveToWaypoints = setting("Save To Waypoints", true)
-    private val remove = setting("Remove In Range", true)
-    private val printAdd = setting("Print Add", true)
-    private val printRemove = setting("Print Remove", true, { remove.value })
-    private val minimumDistance = setting("Minimum Distance", 512, 128..2048, 128)
+    private val saveToWaypoints by setting("Save To Waypoints", true)
+    private val remove by setting("Remove In Range", true)
+    private val printAdd by setting("Print Add", true)
+    private val printRemove by setting("Print Remove", true, { remove })
+    private val minimumDistance by setting("Minimum Distance", 512, 128..2048, 128)
 
     private val teleportedPlayers = HashMap<String, BlockPos>()
 
@@ -29,38 +29,38 @@ object TeleportLogger : Module(
                 if (worldPlayer.isFakeOrSelf) continue
 
                 /* 8 chunk render distance * 16 */
-                if (remove.value && worldPlayer.getDistance(player) < 128) {
+                if (remove && worldPlayer.getDistance(player) < 128) {
                     if (teleportedPlayers.contains(worldPlayer.name)) {
                         val removed = WaypointManager.remove(teleportedPlayers[worldPlayer.name]!!)
                         teleportedPlayers.remove(worldPlayer.name)
 
                         if (removed) {
-                            if (printRemove.value) MessageSendHelper.sendChatMessage("$chatName Removed ${worldPlayer.name}, they are now ${MathUtils.round(worldPlayer.getDistance(mc.player), 1)} blocks away")
+                            if (printRemove) MessageSendHelper.sendChatMessage("$chatName Removed ${worldPlayer.name}, they are now ${MathUtils.round(worldPlayer.getDistance(mc.player), 1)} blocks away")
                         } else {
-                            if (printRemove.value) MessageSendHelper.sendErrorMessage("$chatName Error removing ${worldPlayer.name} from coords, their position wasn't saved anymore")
+                            if (printRemove) MessageSendHelper.sendErrorMessage("$chatName Error removing ${worldPlayer.name} from coords, their position wasn't saved anymore")
                         }
                     }
                     continue
                 }
 
-                if (worldPlayer.getDistance(player) < minimumDistance.value || teleportedPlayers.containsKey(worldPlayer.name)) {
+                if (worldPlayer.getDistance(player) < minimumDistance || teleportedPlayers.containsKey(worldPlayer.name)) {
                     continue
                 }
 
                 val coords = logCoordinates(worldPlayer.position, "${worldPlayer.name} Teleport Spot")
                 teleportedPlayers[worldPlayer.name] = coords
-                if (printAdd.value) MessageSendHelper.sendChatMessage("$chatName ${worldPlayer.name} teleported, ${getSaveText()} ${coords.x}, ${coords.y}, ${coords.z}")
+                if (printAdd) MessageSendHelper.sendChatMessage("$chatName ${worldPlayer.name} teleported, ${getSaveText()} ${coords.x}, ${coords.y}, ${coords.z}")
             }
         }
     }
 
     private fun logCoordinates(coordinate: BlockPos, name: String): BlockPos {
-        return if (saveToWaypoints.value) WaypointManager.add(coordinate, name).pos
+        return if (saveToWaypoints) WaypointManager.add(coordinate, name).pos
         else coordinate
     }
 
     private fun getSaveText(): String {
-        return if (saveToWaypoints.value) "saved their coordinates at"
+        return if (saveToWaypoints) "saved their coordinates at"
         else "their coordinates are"
     }
 }

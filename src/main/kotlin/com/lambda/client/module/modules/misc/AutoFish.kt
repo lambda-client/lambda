@@ -19,12 +19,12 @@ object AutoFish : Module(
     category = Category.MISC,
     description = "Automatically catch fish"
 ) {
-    private val mode = setting("Mode", Mode.BOUNCE)
-    private val autoCast = setting("Auto Cast", true)
-    private val castDelay = setting("Auto Cast Delay", 5, 1..20, 1, { autoCast.value }, description = "Delay before starting fishing when holding a fishing rod, in seconds")
-    private val catchDelay = setting("Catch Delay", 300, 50..2000, 50, description = "Delay before catching the fish, in milliseconds")
-    private val recastDelay = setting("Recast Delay", 450, 50..2000, 50, description = "Delay before recasting the fishing rod, in milliseconds")
-    private val variation = setting("Variation", 100, 0..1000, 50, description = "Randomize the delays in specific range, in milliseconds")
+    private val mode by setting("Mode", Mode.BOUNCE)
+    private val autoCast by setting("Auto Cast", true)
+    private val castDelay by setting("Auto Cast Delay", 5, 1..20, 1, { autoCast }, description = "Delay before starting fishing when holding a fishing rod, in seconds")
+    private val catchDelay by setting("Catch Delay", 300, 50..2000, 50, description = "Delay before catching the fish, in milliseconds")
+    private val recastDelay by setting("Recast Delay", 450, 50..2000, 50, description = "Delay before recasting the fishing rod, in milliseconds")
+    private val variation by setting("Variation", 100, 0..1000, 50, description = "Randomize the delays in specific range, in milliseconds")
 
     @Suppress("UNUSED")
     private enum class Mode {
@@ -38,7 +38,7 @@ object AutoFish : Module(
     init {
         safeListener<PacketEvent.Receive> {
             if (player.fishEntity == null || !isStabled()) return@safeListener
-            if (mode.value == Mode.BOUNCE || it.packet !is SPacketSoundEffect) return@safeListener
+            if (mode == Mode.BOUNCE || it.packet !is SPacketSoundEffect) return@safeListener
             if (isSplash(it.packet)) catch()
         }
 
@@ -50,22 +50,22 @@ object AutoFish : Module(
 
             if (player.fishEntity == null) {
                 if (recasting) { // Recast the fishing rod
-                    if (timer.tick(recastDelay.value.toLong())) {
+                    if (timer.tick(recastDelay.toLong())) {
                         mc.rightClickMouse()
                         reset()
                     }
-                } else if (autoCast.value && timer.tick(castDelay.value * 1000L)) { // Cast the fishing rod if a fishing rod is in hand and not fishing
+                } else if (autoCast && timer.tick(castDelay * 1000L)) { // Cast the fishing rod if a fishing rod is in hand and not fishing
                     mc.rightClickMouse()
                     reset()
                 }
             } else if (isStabled() && isOnWater()) {
                 if (catching) { // Catch the fish
-                    if (timer.tick(catchDelay.value.toLong())) {
+                    if (timer.tick(catchDelay.toLong())) {
                         mc.rightClickMouse()
                         recast()
                     }
                 } else {// Bounce detection
-                    if ((mode.value == Mode.BOUNCE || mode.value == Mode.ALL) && isBouncing()) {
+                    if ((mode == Mode.BOUNCE || mode == Mode.ALL) && isBouncing()) {
                         catch()
                     }
                 }
@@ -92,10 +92,10 @@ object AutoFish : Module(
     }
 
     private fun SafeClientEvent.isSplash(packet: SPacketSoundEffect): Boolean {
-        if (mode.value == Mode.SPLASH && (player.fishEntity?.getDistance(packet.x, packet.y, packet.z)
+        if (mode == Mode.SPLASH && (player.fishEntity?.getDistance(packet.x, packet.y, packet.z)
                 ?: 69420.0) > 2) return false
         val soundName = packet.sound.soundName.toString().lowercase()
-        return (mode.value != Mode.SPLASH && isAnySplash(soundName)) || soundName.contains("entity.bobber.splash")
+        return (mode != Mode.SPLASH && isAnySplash(soundName)) || soundName.contains("entity.bobber.splash")
     }
 
     private fun isAnySplash(soundName: String): Boolean {
@@ -131,7 +131,7 @@ object AutoFish : Module(
     }
 
     private fun resetTimer() {
-        val offset = if (variation.value > 0) (random() * (variation.value * 2) - variation.value).toLong() else 0
+        val offset = if (variation > 0) (random() * (variation * 2) - variation).toLong() else 0
         timer.reset(offset)
     }
 }

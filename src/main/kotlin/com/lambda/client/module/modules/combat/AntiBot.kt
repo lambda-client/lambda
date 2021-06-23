@@ -20,12 +20,12 @@ object AntiBot : Module(
     category = Category.COMBAT,
     alwaysListening = true
 ) {
-    private val tabList = setting("Tab List", true)
-    private val ping = setting("Ping", true)
-    private val hp = setting("HP", true)
-    private val sleeping = setting("Sleeping", false)
-    private val hoverOnTop = setting("Hover On Top", true)
-    private val ticksExists = setting("Ticks Exists", 200, 0..500, 10)
+    private val tabList by setting("Tab List", true)
+    private val ping by setting("Ping", true)
+    private val hp by setting("HP", true)
+    private val sleeping by setting("Sleeping", false)
+    private val hoverOnTop by setting("Hover On Top", true)
+    private val ticksExists by setting("Ticks Exists", 200, 0..500, 10)
 
     private val botSet = HashSet<EntityPlayer>()
 
@@ -55,12 +55,12 @@ object AntiBot : Module(
 
     private fun SafeClientEvent.isBot(entity: EntityPlayer) = entity.name == player.name
         || entity.name == FakePlayer.playerName
-        || tabList.value && connection.getPlayerInfo(entity.name) == null
-        || ping.value && connection.getPlayerInfo(entity.name)?.responseTime ?: -1 <= 0
-        || hp.value && entity.health !in 0f..20f
-        || sleeping.value && entity.isPlayerSleeping && !entity.onGround
-        || hoverOnTop.value && hoverCheck(entity)
-        || entity.ticksExisted < ticksExists.value
+        || tabList && connection.getPlayerInfo(entity.name) == null
+        || ping && connection.getPlayerInfo(entity.name)?.responseTime ?: -1 <= 0
+        || hp && entity.health !in 0f..20f
+        || sleeping && entity.isPlayerSleeping && !entity.onGround
+        || hoverOnTop && hoverCheck(entity)
+        || entity.ticksExisted < ticksExists
 
     private fun SafeClientEvent.hoverCheck(entity: EntityPlayer): Boolean {
         val distXZ = Vec2d(entity.posX, entity.posZ).minus(player.posX, player.posZ).lengthSquared()

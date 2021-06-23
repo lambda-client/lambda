@@ -1,13 +1,6 @@
 package com.lambda.client.mixin.extension
 
-import com.lambda.client.mixin.client.accessor.network.AccessorCPacketChatMessage
-import com.lambda.client.mixin.client.accessor.network.AccessorCPacketCloseWindow
-import com.lambda.client.mixin.client.accessor.network.AccessorCPacketPlayer
-import com.lambda.client.mixin.client.accessor.network.AccessorCPacketUseEntity
-import com.lambda.client.mixin.client.accessor.network.AccessorSPacketChat
-import com.lambda.client.mixin.client.accessor.network.AccessorSPacketEntityVelocity
-import com.lambda.client.mixin.client.accessor.network.AccessorSPacketExplosion
-import com.lambda.client.mixin.client.accessor.network.AccessorSPacketPosLook
+import com.lambda.client.mixin.client.accessor.network.*
 import net.minecraft.network.play.client.CPacketChatMessage
 import net.minecraft.network.play.client.CPacketCloseWindow
 import net.minecraft.network.play.client.CPacketPlayer

@@ -20,9 +20,6 @@ import org.lwjgl.opengl.GL11.GL_LINE_LOOP
 import org.lwjgl.opengl.GL11.glLineWidth
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 
-/**
- * @see MixinGuiScreen.renderToolTip
- */
 object ContainerPreview : Module(
     name = "ContainerPreview",
     category = Category.RENDER,
@@ -46,11 +43,9 @@ object ContainerPreview : Module(
     }
 
     private fun renderShulkerBoxTooltips(itemStack: ItemStack, x: Int, y: Int, ci: CallbackInfo) {
-        val shulkerNBTTag = getShulkerData(itemStack)
-
-        if (shulkerNBTTag != null) {
+        getShulkerData(itemStack)?.let {
             val itemStacks = Array(27) { ItemStack.EMPTY }
-            val nbtTagList = shulkerNBTTag.getTagList("Items", 10)
+            val nbtTagList = it.getTagList("Items", 10)
 
             for (i in 0 until nbtTagList.tagCount()) {
                 val itemStackNBTTag = nbtTagList.getCompoundTagAt(i)
@@ -68,13 +63,12 @@ object ContainerPreview : Module(
     private fun getShulkerData(stack: ItemStack): NBTTagCompound? {
         val tagCompound = if (stack.item is ItemShulkerBox) stack.tagCompound else return null
 
-        if (tagCompound != null && tagCompound.hasKey("BlockEntityTag", 10)) {
-            val blockEntityTag = tagCompound.getCompoundTag("BlockEntityTag")
+        tagCompound?.let {
+            val blockEntityTag = it.getCompoundTag("BlockEntityTag")
             if (blockEntityTag.hasKey("Items", 9)) {
                 return blockEntityTag
             }
         }
-
         return null
     }
 

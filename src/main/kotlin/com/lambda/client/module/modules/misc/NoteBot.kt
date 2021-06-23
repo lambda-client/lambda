@@ -47,7 +47,7 @@ object NoteBot : Module(
 
     private val togglePlay = setting("Toggle Play", false)
     private val reloadSong = setting("Reload Song", false)
-    private val songName = setting("Song Name", "Unchanged")
+    private val songName by setting("Song Name", "Unchanged")
     private val channel1 = setting("Channel 1", NoteBlockEvent.Instrument.PIANO, { !isNbsFormat })
     private val channel2 = setting("Channel 2", NoteBlockEvent.Instrument.PIANO, { !isNbsFormat })
     private val channel3 = setting("Channel 3", NoteBlockEvent.Instrument.PIANO, { !isNbsFormat })
@@ -65,7 +65,7 @@ object NoteBot : Module(
     private val channel15 = setting("Channel 15", NoteBlockEvent.Instrument.PIANO, { !isNbsFormat })
     private val channel16 = setting("Channel 16", NoteBlockEvent.Instrument.PIANO, { !isNbsFormat })
 
-    private val isNbsFormat get() = songName.value.endsWith(".nbs")
+    private val isNbsFormat get() = songName.endsWith(".nbs")
 
     private var startTime = 0L
     private var elapsed = 0L

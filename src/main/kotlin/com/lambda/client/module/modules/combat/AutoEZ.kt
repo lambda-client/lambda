@@ -40,7 +40,7 @@ object AutoEZ : Module(
         ONTOP("Lambda on top! ez $NAME"),
         EZD("You just got ez'd $NAME"),
         EZ_HYPIXEL("$HYPIXEL_MESSAGE $NAME"),
-        NAENAE("You just got naenae'd by Lambda plus, $NAME"),
+        NAENAE("You just got naenae'd by Lambda+, $NAME"),
         CUSTOM("");
     }
 

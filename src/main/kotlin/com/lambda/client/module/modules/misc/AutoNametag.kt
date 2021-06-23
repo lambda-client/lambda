@@ -20,9 +20,9 @@ object AutoNametag : Module(
     description = "Automatically nametags entities",
     category = Category.MISC
 ) {
-    private val modeSetting = setting("Mode", Mode.ANY)
-    private val range = setting("Range", 3.5f, 2.0f..8.0f, 0.5f)
-    private val debug = setting("Debug", false)
+    private val modeSetting by setting("Mode", Mode.ANY)
+    private val range by setting("Range", 3.5f, 2.0f..8.0f, 0.5f)
+    private val debug by setting("Debug", false)
 
     private enum class Mode {
         WITHER, ANY
@@ -41,11 +41,11 @@ object AutoNametag : Module(
     private fun SafeClientEvent.useNameTag() {
         val originalSlot = player.inventory.currentItem
         for (entity in world.loadedEntityList) {
-            when (modeSetting.value) {
+            when (modeSetting) {
                 Mode.WITHER -> {
                     if (entity is EntityWither
                         && entity.displayName.unformattedText != currentName
-                        && player.getDistance(entity) <= range.value
+                        && player.getDistance(entity) <= range
                     ) {
                         nametagEntity(entity)
                     }
@@ -53,7 +53,7 @@ object AutoNametag : Module(
                 Mode.ANY -> {
                     if ((entity is EntityMob || entity is EntityAnimal)
                         && entity.displayName.unformattedText != currentName
-                        && player.getDistance(entity) <= range.value
+                        && player.getDistance(entity) <= range
                     ) {
                         nametagEntity(entity)
                     }
@@ -64,7 +64,7 @@ object AutoNametag : Module(
     }
 
     private fun SafeClientEvent.nametagEntity(entity: Entity) {
-        if (debug.value) MessageSendHelper.sendChatMessage("Found unnamed " + entity.displayName.unformattedText)
+        if (debug) MessageSendHelper.sendChatMessage("Found unnamed " + entity.displayName.unformattedText)
 
         if (currentSlot == -1 || !isNametag(currentSlot)) {
             MessageSendHelper.sendErrorMessage("$chatName Error: No nametags in hotbar")

@@ -23,7 +23,7 @@ public abstract class MixinGuiNewChat {
 
     @Redirect(method = "drawChat", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiNewChat;drawRect(IIIII)V"))
     private void drawRectBackgroundClean(int left, int top, int right, int bottom, int color) {
-        if (!CleanGUI.INSTANCE.isEnabled() || !CleanGUI.INSTANCE.getChatGlobal().getValue()) {
+        if (!CleanGUI.INSTANCE.isEnabled() || !CleanGUI.INSTANCE.getChatGlobal()) {
             Gui.drawRect(left, top, right, bottom, color);
         }
     }

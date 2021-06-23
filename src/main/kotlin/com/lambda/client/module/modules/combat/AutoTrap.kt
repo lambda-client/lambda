@@ -36,12 +36,12 @@ object AutoTrap : Module(
     description = "Traps your enemies in obsidian",
     modulePriority = 60
 ) {
-    private val trapMode = setting("Trap Mode", TrapMode.FULL_TRAP)
+    private val trapMode by setting("Trap Mode", TrapMode.FULL_TRAP)
     private val selfTrap = setting("Self Trap", false)
-    private val bindSelfTrap = setting("Bind Self Trap", Bind())
-    private val autoDisable = setting("Auto Disable", true)
+    private val bindSelfTrap by setting("Bind Self Trap", Bind())
+    private val autoDisable by setting("Auto Disable", true)
     private val strictDirection by setting("Strict Direction", false)
-    private val placeSpeed = setting("Places Per Tick", 4f, 0.25f..5f, 0.25f)
+    private val placeSpeed by setting("Places Per Tick", 4f, 0.25f..5f, 0.25f)
 
     private var job: Job? = null
 
@@ -70,7 +70,7 @@ object AutoTrap : Module(
         }
 
         listener<InputEvent.KeyInputEvent> {
-            if (bindSelfTrap.value.isDown(Keyboard.getEventKey())) {
+            if (bindSelfTrap.isDown(Keyboard.getEventKey())) {
                 selfTrap.value = !selfTrap.value
             }
         }
@@ -78,7 +78,7 @@ object AutoTrap : Module(
 
     private fun SafeClientEvent.canRun(): Boolean {
         (if (selfTrap.value) player else CombatManager.target)?.positionVector?.toBlockPos()?.let {
-            for (offset in trapMode.value.offset) {
+            for (offset in trapMode.offset) {
                 if (!world.isPlaceable(it.add(offset))) continue
                 return true
             }
@@ -104,7 +104,7 @@ object AutoTrap : Module(
         buildStructure(
             entity.flooredPosition,
             SurroundUtils.surroundOffset,
-            placeSpeed.value,
+            placeSpeed,
             3,
             4.25f,
             strictDirection
@@ -112,7 +112,7 @@ object AutoTrap : Module(
             isEnabled && CombatManager.isOnTopPriority(AutoTrap)
         }
 
-        if (autoDisable.value) disable()
+        if (autoDisable) disable()
     }
 
     @Suppress("UNUSED")

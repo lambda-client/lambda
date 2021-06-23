@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageSendHelper
@@ -19,13 +20,13 @@ object ElytraReplace : Module(
     description = "Automatically swap and replace your chestplate and elytra.",
     category = Category.MOVEMENT
 ) {
-    private val inventoryMode = setting("Inventory", false)
-    private val autoChest = setting("Auto Chest", false)
-    private val elytraFlightCheck = setting("ElytraFlight Check", true)
-    private val logToChat = setting("Missing Warning", false)
-    private val playSound = setting("Play Sound", false, { logToChat.value })
-    private val logThreshold = setting("Warning Threshold", 2, 1..10, 1, { logToChat.value })
-    private val threshold = setting("Damage Threshold", 7, 1..50, 1)
+    private val inventoryMode by setting("Inventory", false)
+    private val autoChest by setting("Auto Chest", false)
+    private val elytraFlightCheck by setting("ElytraFlight Check", true)
+    private val logToChat by setting("Missing Warning", false)
+    private val playSound by setting("Play Sound", false, { logToChat })
+    private val logThreshold by setting("Warning Threshold", 2, 1..10, 1, { logToChat })
+    private val threshold by setting("Damage Threshold", 7, 1..50, 1)
 
     private var elytraCount = 0
     private var chestPlateCount = 0
@@ -33,7 +34,7 @@ object ElytraReplace : Module(
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
-            if (!inventoryMode.value && mc.currentScreen is GuiContainer) {
+            if (!inventoryMode && mc.currentScreen is GuiContainer) {
                 return@safeListener
             }
 
@@ -43,12 +44,12 @@ object ElytraReplace : Module(
                 sendFinalElytraWarning()
             }
 
-            if (player.onGround && autoChest.value) {
+            if (player.onGround && autoChest) {
                 swapToChest()
             } else if (shouldAttemptElytraSwap()) {
                 var shouldSwap = isCurrentElytraBroken()
-                if (autoChest.value) {
-                    shouldSwap = shouldSwap || !(player.inventory.armorInventory[2].item === Items.ELYTRA) // if current elytra broken or no elytra found in chest area
+                if (autoChest) {
+                    shouldSwap = shouldSwap || player.inventory.armorInventory[2].item != Items.ELYTRA // if current elytra broken or no elytra found in chest area
                 }
 
                 if (shouldSwap) {
@@ -61,12 +62,12 @@ object ElytraReplace : Module(
         }
     }
 
-    private fun getElytraChestCount() {
+    private fun SafeClientEvent.getElytraChestCount() {
         elytraCount = 0
         chestPlateCount = 0
         for (i in 0..44) {
-            val stack = mc.player.inventory.getStackInSlot(i)
-            if (stack.item === Items.ELYTRA && !isItemBroken(stack)) {
+            val stack = player.inventory.getStackInSlot(i)
+            if (stack.item == Items.ELYTRA && !isItemBroken(stack)) {
                 elytraCount += 1
                 if (!shouldSendFinalWarning) { // if we send the final warning but gained elytras afterwards - we can send the message again
                     shouldSendFinalWarning = true
@@ -84,7 +85,7 @@ object ElytraReplace : Module(
     // if we should check elytraflight, then we will swap if it is enabled
     // if we don't need to check for elytraflight, then just swap
     private fun shouldAttemptElytraSwap(): Boolean {
-        return !elytraFlightCheck.value || ElytraFlight.isEnabled
+        return !elytraFlightCheck || ElytraFlight.isEnabled
     }
 
 
@@ -148,7 +149,7 @@ object ElytraReplace : Module(
         return if (mc.player.inventory.armorInventory[2].maxDamage == 0) {
             false
         } else {
-            mc.player.inventory.armorInventory[2].item === Items.ELYTRA && isItemBroken(mc.player.inventory.armorInventory[2])
+            mc.player.inventory.armorInventory[2].item == Items.ELYTRA && isItemBroken(mc.player.inventory.armorInventory[2])
         }
     }
 
@@ -204,7 +205,7 @@ object ElytraReplace : Module(
         return if (itemStack.maxDamage == 0) {
             false
         } else {
-            itemStack.maxDamage - itemStack.itemDamage <= threshold.value
+            itemStack.maxDamage - itemStack.itemDamage <= threshold
         }
     }
 
@@ -218,9 +219,9 @@ object ElytraReplace : Module(
 
     private fun sendEquipNotification() {
         sendAlert()
-        if (logToChat.value && elytraCount == 1) {
+        if (logToChat && elytraCount == 1) {
             MessageSendHelper.sendChatMessage("$chatName You equipped your last elytra.")
-        } else if (logToChat.value && elytraCount <= logThreshold.value) {
+        } else if (logToChat && elytraCount <= logThreshold) {
             MessageSendHelper.sendChatMessage("$chatName You have $elytraCount elytra(s) left.")
         }
     }
@@ -232,23 +233,23 @@ object ElytraReplace : Module(
             return
         }
 
-        if (logToChat.value) {
+        if (logToChat) {
             MessageSendHelper.sendChatMessage("$chatName Your last elytra has reached your durability threshold.")
         }
-        if (playSound.value) {
+        if (playSound) {
             sendBadAlert()
         }
         shouldSendFinalWarning = false
     }
 
     private fun sendAlert() {
-        if (logToChat.value && playSound.value && (elytraCount <= logThreshold.value)) {
+        if (logToChat && playSound && (elytraCount <= logThreshold)) {
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
         }
     }
 
     private fun sendBadAlert() {
-        if (logToChat.value && playSound.value && (elytraCount <= logThreshold.value)) {
+        if (logToChat && playSound && (elytraCount <= logThreshold)) {
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 0.4f, 1.0f))
         }
     }

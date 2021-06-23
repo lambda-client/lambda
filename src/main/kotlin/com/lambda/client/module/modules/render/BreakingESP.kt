@@ -25,25 +25,23 @@ object BreakingESP : Module(
     description = "Highlights blocks being broken near you",
     category = Category.RENDER
 ) {
-    private val espSelf = setting("ESP Self", true)
-    private val warnSelf = setting("Warn Self", false)
-    private val obsidianOnly = setting("Obsidian Only", false)
-    private val warning = setting("Warn", false)
-    private val warningProgress = setting("Warn Progress", 4, 0..10, 1)
-    private val chatWarn = setting("Chat Warning", false)
-    private val screenWarn = setting("HUD Warning", true)
-    private val soundWarn = setting("Sound Warning", false)
-    private val range = setting("Range", 16.0f, 2.0f..32.0f, 2.0f)
-    private val filled = setting("Filled", true)
-    private val outline = setting("Outline", true)
-    private val tracer = setting("Tracer", false)
-    private val r = setting("Red", 255, 0..255, 1)
-    private val g = setting("Green", 255, 0..255, 1)
-    private val b = setting("Blue", 255, 0..255, 1)
-    private val aFilled = setting("Filled Alpha", 31, 0..255, 1, { filled.value })
-    private val aOutline = setting("Outline Alpha", 200, 0..255, 1, { outline.value })
-    private val aTracer = setting("Tracer Alpha", 255, 0..255, 1, { outline.value })
-    private val thickness = setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f)
+    private val espSelf by setting("ESP Self", true)
+    private val warnSelf by setting("Warn Self", false)
+    private val obsidianOnly by setting("Obsidian Only", false)
+    private val warning by setting("Warn", false)
+    private val warningProgress by setting("Warn Progress", 4, 0..10, 1)
+    private val chatWarn by setting("Chat Warning", false)
+    private val screenWarn by setting("HUD Warning", true)
+    private val soundWarn by setting("Sound Warning", false)
+    private val range by setting("Range", 16.0f, 2.0f..32.0f, 2.0f)
+    private val filled by setting("Filled", true)
+    private val outline by setting("Outline", true)
+    private val tracer by setting("Tracer", false)
+    private val color by setting("Color", ColorHolder(255, 255, 255))
+    private val aFilled by setting("Filled Alpha", 31, 0..255, 1, { filled })
+    private val aOutline by setting("Outline Alpha", 200, 0..255, 1, { outline })
+    private val aTracer by setting("Tracer Alpha", 255, 0..255, 1, { outline })
+    private val thickness by setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f)
 
     private val breakingBlockList = LinkedHashMap<Int, Triple<BlockPos, Int, Pair<Boolean, Boolean>>>() /* <BreakerID, <Position, Progress, <Warned, Render>> */
     private var warn = false
@@ -51,21 +49,20 @@ object BreakingESP : Module(
     private var warningText = ""
 
     init {
-        listener<RenderWorldEvent> {
-            val color = ColorHolder(r.value, g.value, b.value)
+        safeListener<RenderWorldEvent> {
             val renderer = ESPRenderer()
-            renderer.aFilled = if (filled.value) aFilled.value else 0
-            renderer.aOutline = if (outline.value) aOutline.value else 0
-            renderer.aTracer = if (tracer.value) aTracer.value else 0
-            renderer.thickness = thickness.value
+            renderer.aFilled = if (filled) aFilled else 0
+            renderer.aOutline = if (outline) aOutline else 0
+            renderer.aTracer = if (tracer) aTracer else 0
+            renderer.thickness = thickness
 
             var selfBreaking: AxisAlignedBB? = null
             for ((breakID, triple) in breakingBlockList) {
                 if (triple.third.second) {
-                    val box = mc.world.getBlockState(triple.first).getSelectedBoundingBox(mc.world, triple.first)
+                    val box = world.getBlockState(triple.first).getSelectedBoundingBox(world, triple.first)
                     val progress = triple.second / 9f
                     val resizedBox = box.shrink((1f - progress) * box.averageEdgeLength * 0.5)
-                    if (mc.world.getEntityByID(breakID) == mc.player) {
+                    if (world.getEntityByID(breakID) == player) {
                         selfBreaking = resizedBox
                         continue
                     }
@@ -82,7 +79,7 @@ object BreakingESP : Module(
         }
 
         listener<RenderOverlayEvent> {
-            if (screenWarn.value && warn) {
+            if (screenWarn && warn) {
                 if (delay++ > 100) warn = false
                 val scaledResolution = ScaledResolution(mc)
                 val posX = scaledResolution.scaledWidth / 2f - FontRenderAdapter.getStringWidth(warningText) / 2f
@@ -92,18 +89,18 @@ object BreakingESP : Module(
             }
         }
 
-        listener<BlockBreakEvent> {
-            if (mc.player == null || mc.player.distanceTo(it.position) > range.value) return@listener
-            val breaker = mc.world.getEntityByID(it.breakerID) ?: return@listener
+        safeListener<BlockBreakEvent> {
+            if (player.distanceTo(it.position) > range) return@safeListener
+            val breaker = world.getEntityByID(it.breakerID) ?: return@safeListener
             if (it.progress in 0..9) {
-                val render = mc.player != breaker || espSelf.value
+                val render = player != breaker || espSelf
                 breakingBlockList.putIfAbsent(it.breakerID, Triple(it.position, it.progress, Pair(false, render)))
                 breakingBlockList.computeIfPresent(it.breakerID) { _, triple -> Triple(it.position, it.progress, triple.third) }
-                if (warning.value && (mc.player != breaker || warnSelf.value) && it.progress >= warningProgress.value && !breakingBlockList[it.breakerID]!!.third.first
-                    && ((obsidianOnly.value && mc.world.getBlockState(it.position).block == Blocks.OBSIDIAN) || !obsidianOnly.value)) {
-                    if (soundWarn.value) mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+                if (warning && (player != breaker || warnSelf) && it.progress >= warningProgress && !breakingBlockList[it.breakerID]!!.third.first
+                    && ((obsidianOnly && world.getBlockState(it.position).block == Blocks.OBSIDIAN) || !obsidianOnly)) {
+                    if (soundWarn) mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
                     warningText = "${breaker.name} is breaking near you!"
-                    if (chatWarn.value) sendChatMessage(warningText)
+                    if (chatWarn) sendChatMessage(warningText)
                     delay = 0
                     warn = true
                     breakingBlockList[it.breakerID] = Triple(it.position, it.progress, Pair(true, render))

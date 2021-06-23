@@ -13,7 +13,7 @@ object NoSwing : Module(
     category = Category.PLAYER,
     description = "Cancels server or client swing animation"
 ) {
-    private val mode = setting("Mode", Mode.CLIENT)
+    private val mode by setting("Mode", Mode.CLIENT)
 
     private enum class Mode {
         CLIENT, SERVER
@@ -21,7 +21,7 @@ object NoSwing : Module(
 
     init {
         listener<PacketEvent.Send> {
-            if (mode.value == Mode.SERVER && it.packet is CPacketAnimation) it.cancel()
+            if (mode == Mode.SERVER && it.packet is CPacketAnimation) it.cancel()
         }
 
         safeListener<TickEvent.ClientTickEvent> {

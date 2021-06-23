@@ -5,8 +5,8 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.items.foodValue
 import com.lambda.client.util.items.saturation
+import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.extension.ceilToInt
-import com.lambda.event.listener.listener
 import net.minecraft.client.gui.Gui
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.init.MobEffects
@@ -24,24 +24,24 @@ object HungerOverlay : Module(
     description = "Displays a helpful overlay over your hunger bar.",
     category = Category.RENDER
 ) {
-    private val saturationOverlay = setting("Saturation Overlay", true)
-    private val foodHungerOverlay = setting("Food Hunger Overlay", true)
-    private val foodSaturationOverlay = setting("Food Saturation Overlay", true)
+    private val saturationOverlay by setting("Saturation Overlay", true)
+    private val foodHungerOverlay by setting("Food Hunger Overlay", true)
+    private val foodSaturationOverlay by setting("Food Saturation Overlay", true)
 
     private val icons = ResourceLocation("lambda/textures/hungeroverlay.png")
 
     init {
-        listener<RenderGameOverlayEvent.Post> {
-            if (it.type != RenderGameOverlayEvent.ElementType.FOOD) return@listener
+        safeListener<RenderGameOverlayEvent.Post> {
+            if (it.type != RenderGameOverlayEvent.ElementType.FOOD) return@safeListener
 
             val time = (System.currentTimeMillis() % 5000L) / 2500f
             val flashAlpha = -0.5f * cos(time * 3.1415927f) + 0.5f
-            val stats = mc.player.foodStats
+            val stats = player.foodStats
             val resolution = ScaledResolution(mc)
             val left = resolution.scaledWidth / 2 + 82
             val top = resolution.scaledHeight - GuiIngameForge.right_height + 10
 
-            val item = mc.player.heldItemMainhand.item
+            val item = player.heldItemMainhand.item
             val foodValue = (item as? ItemFood)?.foodValue ?: 0
             val saturation = (item as? ItemFood)?.saturation ?: 0.0f
 
@@ -49,15 +49,15 @@ object HungerOverlay : Module(
             val newSaturationValue = min((stats.saturationLevel + saturation), newHungerValue.toFloat())
 
             GlStateUtils.blend(true)
-            if (foodHungerOverlay.value && foodValue > 0) {
+            if (foodHungerOverlay && foodValue > 0) {
                 drawHungerBar(stats.foodLevel, newHungerValue, left, top, flashAlpha)
             }
 
-            if (saturationOverlay.value) {
+            if (saturationOverlay) {
                 drawSaturationBar(0f, stats.saturationLevel, left, top, 1f)
             }
 
-            if (foodSaturationOverlay.value && saturation > 0.0f) {
+            if (foodSaturationOverlay && saturation > 0.0f) {
                 drawSaturationBar(floor(stats.saturationLevel), newSaturationValue, left, top, flashAlpha)
             }
             mc.textureManager.bindTexture(Gui.ICONS)

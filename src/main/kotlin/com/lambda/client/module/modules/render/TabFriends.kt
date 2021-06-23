@@ -14,7 +14,7 @@ object TabFriends : Module(
     category = Category.RENDER,
     showOnArray = false
 ) {
-    private val color = setting("Color", EnumTextColor.GREEN)
+    private val color by setting("Color", EnumTextColor.GREEN)
 
     @JvmStatic
     fun getPlayerName(info: NetworkPlayerInfo): String {
@@ -22,7 +22,7 @@ object TabFriends : Module(
             ?: ScorePlayerTeam.formatPlayerName(info.playerTeam, info.gameProfile.name)
 
         return if (FriendManager.isFriend(name)) {
-            color.value format name
+            color format name
         } else {
             name
         }

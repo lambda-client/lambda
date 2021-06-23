@@ -21,11 +21,11 @@ object ChestStealer : Module(
     category = Category.PLAYER,
     description = "Automatically steal or store items from containers"
 ) {
-    val mode = setting("Mode", Mode.TOGGLE)
-    private val movingMode = setting("Moving Mode", MovingMode.QUICK_MOVE)
-    private val ignoreEjectItem = setting("Ignores Eject Item", false, description = "Ignore AutoEject items in InventoryManager")
-    private val delay = setting("Delay", 250, 0..1000, 25, description = "Move stack delay in ms")
-    private val onlyShulkers = setting("Only Shulkers", false, description = "Only move shulker boxes")
+    val mode by setting("Mode", Mode.TOGGLE)
+    private val movingMode by setting("Moving Mode", MovingMode.QUICK_MOVE)
+    private val ignoreEjectItem by setting("Ignores Eject Item", false, description = "Ignore AutoEject items in InventoryManager")
+    private val delay by setting("Delay", 250, 0..1000, 25, description = "Move stack delay in ms")
+    private val onlyShulkers by setting("Only Shulkers", false, description = "Only move shulker boxes")
 
     enum class Mode {
         ALWAYS, TOGGLE, MANUAL
@@ -45,13 +45,13 @@ object ChestStealer : Module(
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
-            stealing = if (isContainerOpen() && (stealing || mode.value == Mode.ALWAYS)) {
+            stealing = if (isContainerOpen() && (stealing || mode == Mode.ALWAYS)) {
                 stealOrStore(getStealingSlot(), ContainerMode.STEAL)
             } else {
                 false
             }
 
-            storing = if (isContainerOpen() && (storing || mode.value == Mode.ALWAYS)) {
+            storing = if (isContainerOpen() && (storing || mode == Mode.ALWAYS)) {
                 stealOrStore(getStoringSlot(), ContainerMode.STORE)
             } else {
                 false
@@ -126,8 +126,8 @@ object ChestStealer : Module(
             ?: return false
         val windowID = player.openContainer.windowId
 
-        if (timer.tick(delay.value.toLong())) {
-            when (movingMode.value) {
+        if (timer.tick(delay.toLong())) {
+            when (movingMode) {
                 MovingMode.QUICK_MOVE -> quickMoveSlot(windowID, slot)
                 MovingMode.PICKUP -> moveToSlot(windowID, slot, slotTo.slotNumber)
                 MovingMode.THROW -> throwAllInSlot(windowID, slot)
@@ -143,8 +143,8 @@ object ChestStealer : Module(
         for (slot in 0 until getContainerSlotSize()) {
             val item = container[slot].item
             if (item == Items.AIR) continue
-            if (ignoreEjectItem.value && InventoryManager.ejectList.contains(item.registryName.toString())) continue
-            if (!onlyShulkers.value || item is ItemShulkerBox) {
+            if (ignoreEjectItem && InventoryManager.ejectList.contains(item.registryName.toString())) continue
+            if (!onlyShulkers || item is ItemShulkerBox) {
                 return slot
             }
         }
@@ -159,7 +159,7 @@ object ChestStealer : Module(
         for (slot in size until size + 36) {
             val item = container[slot].item
             if (item == Items.AIR) continue
-            if (!onlyShulkers.value || item is ItemShulkerBox) {
+            if (!onlyShulkers || item is ItemShulkerBox) {
                 return slot
             }
         }

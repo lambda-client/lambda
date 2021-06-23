@@ -32,7 +32,7 @@ public class MixinGuiScreen {
 
     @Inject(method = "drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
-        if (Wrapper.getWorld() != null && CleanGUI.INSTANCE.isEnabled() && (CleanGUI.INSTANCE.getInventoryGlobal().getValue())) {
+        if (Wrapper.getWorld() != null && CleanGUI.INSTANCE.isEnabled() && (CleanGUI.INSTANCE.getInventoryGlobal())) {
             ci.cancel();
         }
     }

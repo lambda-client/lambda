@@ -41,7 +41,7 @@ object MessageManager : Manager {
                     // Reset the current id so we don't reach the max 32 bit integer limit (although that is not likely to happen)
                     currentId = 0
                 } else {
-                    if (timer.tick((ChatSetting.delay.value * 1000.0f).toLong())) {
+                    if (timer.tick((ChatSetting.delay * 1000.0f).toLong())) {
                         messageQueue.pollFirst()?.let {
                             for (modifier in activeModifiers) modifier.apply(it)
                             if (it.packet.message.isNotBlank()) connection.sendPacket(it.packet)
@@ -50,7 +50,7 @@ object MessageManager : Manager {
                     }
 
                     // Removes the low priority messages if it exceed the limit
-                    while (messageQueue.size > ChatSetting.maxMessageQueueSize.value) {
+                    while (messageQueue.size > ChatSetting.maxMessageQueueSize) {
                         messageQueue.pollLast()
                     }
                 }

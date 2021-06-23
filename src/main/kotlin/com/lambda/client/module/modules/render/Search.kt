@@ -45,9 +45,7 @@ object Search : Module(
     private val outline by setting("Outline", true)
     private val tracer by setting("Tracer", true)
     private val customColors by setting("Custom Colors", false)
-    private val r by setting("Red", 155, 0..255, 1, { customColors })
-    private val g by setting("Green", 144, 0..255, 1, { customColors })
-    private val b by setting("Blue", 255, 0..255, 1, { customColors })
+    private val customColor by setting("Custom Color", ColorHolder(155, 144, 255), visibility = { customColors })
     private val aFilled by setting("Filled Alpha", 31, 0..255, 1, { filled })
     private val aOutline by setting("Outline Alpha", 127, 0..255, 1, { outline })
     private val aTracer by setting("Tracer Alpha", 200, 0..255, 1, { tracer })
@@ -174,7 +172,7 @@ object Search : Module(
                 ColorHolder((colorInt shr 16), (colorInt shr 8 and 255), (colorInt and 255))
             }
         } else {
-            ColorHolder(r, g, b)
+            customColor
         }
     }
 

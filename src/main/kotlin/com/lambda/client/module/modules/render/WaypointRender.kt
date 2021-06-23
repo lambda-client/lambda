@@ -78,8 +78,8 @@ object WaypointRender : Module(
     private val lockObject = Any()
 
     init {
-        listener<RenderWorldEvent> {
-            if (waypointMap.isEmpty() || renderMode == RenderMode.RADAR) return@listener
+        safeListener<RenderWorldEvent> {
+            if (waypointMap.isEmpty() || renderMode == RenderMode.RADAR) return@safeListener
 
             val renderer = ESPRenderer()
             renderer.aFilled = if (filled) aFilled else 0
@@ -90,7 +90,7 @@ object WaypointRender : Module(
             GlStateUtils.depth(false)
 
             for (waypoint in waypointMap.keys) {
-                val distance = mc.player.distanceTo(waypoint.pos)
+                val distance = player.distanceTo(waypoint.pos)
                 if (espRangeLimit && distance > espRange) continue
 
                 renderer.add(AxisAlignedBB(waypoint.pos), color) /* Adds pos to ESPRenderer list */

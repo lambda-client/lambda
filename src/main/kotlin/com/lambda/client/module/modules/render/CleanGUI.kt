@@ -9,6 +9,6 @@ object CleanGUI : Module(
     showOnArray = false,
     description = "Modifies parts of the GUI to be transparent"
 ) {
-    val inventoryGlobal = setting("Inventory", true)
-    val chatGlobal = setting("Chat", false)
+    val inventoryGlobal by setting("Inventory", true)
+    val chatGlobal by setting("Chat", false)
 }

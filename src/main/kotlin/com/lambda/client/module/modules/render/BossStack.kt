@@ -22,9 +22,9 @@ object BossStack : Module(
     description = "Modify the boss health GUI to take up less space",
     category = Category.RENDER
 ) {
-    private val mode = setting("Mode", BossStackMode.STACK)
-    private val scale = setting("Scale", 1.0f, 0.1f..5.0f, 0.25f)
-    private val censor = setting("Censor", false)
+    private val mode by setting("Mode", BossStackMode.STACK)
+    private val scale by setting("Scale", 1.0f, 0.1f..5.0f, 0.25f)
+    private val censor by setting("Censor", false)
 
     @Suppress("unused")
     private enum class BossStackMode {
@@ -49,7 +49,7 @@ object BossStack : Module(
         bossInfoMap.clear()
         val bossInfoList = mc.ingameGUI.bossOverlay.mapBossInfos?.values ?: return
 
-        when (mode.value) {
+        when (mode) {
             BossStackMode.MINIMIZE -> {
                 val closest = getMatchBoss(bossInfoList) ?: return
                 bossInfoMap[closest] = -1
@@ -59,12 +59,12 @@ object BossStack : Module(
                 val cacheMap = HashMap<String, ArrayList<BossInfoClient>>()
 
                 for (bossInfo in bossInfoList) {
-                    val list = cacheMap.getOrPut(if (censor.value) "Boss" else bossInfo.name.formattedText) { ArrayList() }
+                    val list = cacheMap.getOrPut(if (censor) "Boss" else bossInfo.name.formattedText) { ArrayList() }
                     list.add(bossInfo)
                 }
 
                 for ((name, list) in cacheMap) {
-                    val closest = getMatchBoss(list, if (censor.value) null else name) ?: continue
+                    val closest = getMatchBoss(list, if (censor) null else name) ?: continue
                     bossInfoMap[closest] = list.size
                 }
             }
@@ -115,16 +115,16 @@ object BossStack : Module(
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f)
 
         if (bossInfoMap.isNotEmpty()) for ((bossInfo, count) in bossInfoMap) {
-            val posX = (width / scale.value / 2.0f - 91.0f).roundToInt()
-            val text = (if (censor.value) "Boss" else bossInfo.name.formattedText) + if (count != -1) " x$count" else ""
-            val textPosX = width / scale.value / 2.0f - mc.fontRenderer.getStringWidth(text) / 2.0f
+            val posX = (width / scale / 2.0f - 91.0f).roundToInt()
+            val text = (if (censor) "Boss" else bossInfo.name.formattedText) + if (count != -1) " x$count" else ""
+            val textPosX = width / scale / 2.0f - mc.fontRenderer.getStringWidth(text) / 2.0f
             val textPosY = posY - 9.0f
 
-            glScalef(scale.value, scale.value, 1.0f)
+            glScalef(scale, scale, 1.0f)
             mc.textureManager.bindTexture(texture)
             mc.ingameGUI.bossOverlay.render(posX, posY, bossInfo)
             mc.fontRenderer.drawStringWithShadow(text, textPosX, textPosY, 0xffffff)
-            glScalef(1.0f / scale.value, 1.0f / scale.value, 1.0f)
+            glScalef(1.0f / scale, 1.0f / scale, 1.0f)
 
             posY += 10 + mc.fontRenderer.FONT_HEIGHT
         }

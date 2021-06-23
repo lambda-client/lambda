@@ -64,7 +64,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
-import java.util.*
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
