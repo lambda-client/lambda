@@ -1,15 +1,16 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.Phase
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderEntityEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.EntityUtils.mobTypeSettings
+import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.color.HueCycler
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityEnderCrystal
@@ -52,10 +53,7 @@ object Chams : Module(
     private val lightning by setting("Lightning", false, { page == Page.RENDERING })
     private val customColor by setting("Custom Color", false, { page == Page.RENDERING })
     private val rainbow by setting("Rainbow", false, { page == Page.RENDERING && customColor })
-    private val r by setting("Red", 255, 0..255, 1, { page == Page.RENDERING && customColor && !rainbow })
-    private val g by setting("Green", 255, 0..255, 1, { page == Page.RENDERING && customColor && !rainbow })
-    private val b by setting("Blue", 255, 0..255, 1, { page == Page.RENDERING && customColor && !rainbow })
-    private val a by setting("Alpha", 160, 0..255, 1, { page == Page.RENDERING && customColor })
+    private val color by setting("Color", ColorHolder(255, 255, 255, 160), visibility = { page == Page.RENDERING && customColor && !rainbow })
 
     private enum class Page {
         ENTITY_TYPE, RENDERING
@@ -64,8 +62,8 @@ object Chams : Module(
     private var cycler = HueCycler(600)
 
     init {
-        listener<RenderEntityEvent.All>(2000) {
-            if (!checkEntityType(it.entity)) return@listener
+        safeListener<RenderEntityEvent.All>(2000) {
+            if (!checkEntityType(it.entity)) return@safeListener
 
             when (it.phase) {
                 Phase.PRE -> {
@@ -80,16 +78,16 @@ object Chams : Module(
             }
         }
 
-        listener<RenderEntityEvent.Model> {
-            if (!checkEntityType(it.entity)) return@listener
+        safeListener<RenderEntityEvent.Model> {
+            if (!checkEntityType(it.entity)) return@safeListener
 
             when (it.phase) {
                 Phase.PRE -> {
                     if (!texture) glDisable(GL_TEXTURE_2D)
                     if (!lightning) glDisable(GL_LIGHTING)
                     if (customColor) {
-                        if (rainbow) cycler.currentRgba(a).setGLColor()
-                        else glColor4f(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f)
+                        if (rainbow) cycler.currentRgba(color.a).setGLColor()
+                        else glColor4f(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f)
 
                         GlStateUtils.blend(true)
                         GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO)
@@ -114,8 +112,8 @@ object Chams : Module(
         }
     }
 
-    private fun checkEntityType(entity: Entity) =
-        (self || entity != mc.player) && (
+    private fun SafeClientEvent.checkEntityType(entity: Entity) =
+        (self || entity != player) && (
             all
                 || experience && entity is EntityXPOrb
                 || arrows && entity is EntityArrow

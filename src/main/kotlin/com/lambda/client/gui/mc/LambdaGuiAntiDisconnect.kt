@@ -9,7 +9,7 @@ import net.minecraft.util.text.TextFormatting
 
 class LambdaGuiAntiDisconnect : GuiScreen() {
 
-    private var disconnectCount = AntiDisconnect.presses.value
+    private var disconnectCount = AntiDisconnect.presses
     private var button = GuiButton(1, width / 2 - 100, 230, buttonText)
     private val buttonText get() = TextFormatting.RED format "Press me $disconnectCount time(s) to disconnect."
 

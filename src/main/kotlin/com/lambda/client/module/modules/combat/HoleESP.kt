@@ -21,16 +21,16 @@ object HoleESP : Module(
     category = Category.COMBAT,
     description = "Show safe holes for crystal pvp"
 ) {
-    private val range = setting("Render Distance", 8, 4..32, 1)
-    private val filled = setting("Filled", true)
-    private val outline = setting("Outline", true)
-    private val hideOwn = setting("Hide Own", true)
+    private val range by setting("Render Distance", 8, 4..32, 1)
+    private val filled by setting("Filled", true)
+    private val outline by setting("Outline", true)
+    private val hideOwn by setting("Hide Own", true)
     private val colorObsidian by setting("Obby Color", ColorHolder(208, 144, 255), false, visibility = { shouldAddObsidian() })
     private val colorBedrock by setting("Bedrock Color", ColorHolder(144, 144, 255), false, visibility = { shouldAddBedrock() })
-    private val aFilled = setting("Filled Alpha", 31, 0..255, 1, { filled.value })
-    private val aOutline = setting("Outline Alpha", 127, 0..255, 1, { outline.value })
-    private val renderMode = setting("Mode", Mode.BLOCK_HOLE)
-    private val holeType = setting("Hole Type", HoleType.BOTH)
+    private val aFilled by setting("Filled Alpha", 31, 0..255, 1, { filled })
+    private val aOutline by setting("Outline Alpha", 127, 0..255, 1, { outline })
+    private val renderMode by setting("Mode", Mode.BLOCK_HOLE)
+    private val holeType by setting("Hole Type", HoleType.BOTH)
 
     private enum class Mode {
         BLOCK_HOLE, BLOCK_FLOOR, FLAT
@@ -53,24 +53,24 @@ object HoleESP : Module(
     }
 
     private fun SafeClientEvent.updateRenderer() {
-        renderer.aFilled = if (filled.value) aFilled.value else 0
-        renderer.aOutline = if (outline.value) aOutline.value else 0
+        renderer.aFilled = if (filled) aFilled else 0
+        renderer.aOutline = if (outline) aOutline else 0
 
         val playerPos = player.positionVector.toBlockPos()
-        val side = if (renderMode.value != Mode.FLAT) GeometryMasks.Quad.ALL
+        val side = if (renderMode != Mode.FLAT) GeometryMasks.Quad.ALL
         else GeometryMasks.Quad.DOWN
 
         defaultScope.launch {
             val cached = ArrayList<Triple<AxisAlignedBB, ColorHolder, Int>>()
 
-            for (x in -range.value..range.value) for (y in -range.value..range.value) for (z in -range.value..range.value) {
-                if (hideOwn.value && x == 0 && y == 0 && z == 0) continue
+            for (x in -range..range) for (y in -range..range) for (z in -range..range) {
+                if (hideOwn && x == 0 && y == 0 && z == 0) continue
                 val pos = playerPos.add(x, y, z)
 
                 val holeType = checkHole(pos)
                 if (holeType == SurroundUtils.HoleType.NONE) continue
 
-                val bb = AxisAlignedBB(if (renderMode.value == Mode.BLOCK_FLOOR) pos.down() else pos)
+                val bb = AxisAlignedBB(if (renderMode == Mode.BLOCK_FLOOR) pos.down() else pos)
 
                 if (holeType == SurroundUtils.HoleType.OBBY && shouldAddObsidian()) {
                     cached.add(Triple(bb, colorObsidian, side))
@@ -85,8 +85,8 @@ object HoleESP : Module(
         }
     }
 
-    private fun shouldAddObsidian() = holeType.value == HoleType.OBSIDIAN || holeType.value == HoleType.BOTH
+    private fun shouldAddObsidian() = holeType == HoleType.OBSIDIAN || holeType == HoleType.BOTH
 
-    private fun shouldAddBedrock() = holeType.value == HoleType.BEDROCK || holeType.value == HoleType.BOTH
+    private fun shouldAddBedrock() = holeType == HoleType.BEDROCK || holeType == HoleType.BOTH
 
 }

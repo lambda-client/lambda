@@ -14,8 +14,8 @@ object AutoTPA : Module(
     description = "Automatically accept or decline /TPAs",
     category = Category.CHAT
 ) {
-    private val friends = setting("Always Accept Friends", true)
-    private val mode = setting("Response", Mode.DENY)
+    private val friends by setting("Always Accept Friends", true)
+    private val mode by setting("Response", Mode.DENY)
 
     private enum class Mode {
         ACCEPT, DENY
@@ -28,10 +28,10 @@ object AutoTPA : Module(
             /* I tested that getting the first word is compatible with chat timestamp, and it as, as this is Receive and chat timestamp is after Receive */
             val name = it.packet.chatComponent.unformattedText.split(" ")[0]
 
-            when (mode.value) {
+            when (mode) {
                 Mode.ACCEPT -> sendServerMessage("/tpaccept $name")
                 Mode.DENY -> {
-                    if (friends.value && FriendManager.isFriend(name)) {
+                    if (friends && FriendManager.isFriend(name)) {
                         sendServerMessage("/tpaccept $name")
                     } else {
                         sendServerMessage("/tpdeny $name")

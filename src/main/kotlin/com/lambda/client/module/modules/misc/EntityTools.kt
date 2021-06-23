@@ -4,7 +4,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.event.listener.listener
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.Entity
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.math.RayTraceResult
@@ -16,7 +16,7 @@ object EntityTools : Module(
     category = Category.MISC,
     description = "Right click entities to perform actions on them"
 ) {
-    private val mode = setting("Mode", Mode.INFO)
+    private val mode by setting("Mode", Mode.INFO)
 
     private enum class Mode {
         DELETE, INFO
@@ -26,16 +26,18 @@ object EntityTools : Module(
     private var lastEntity: Entity? = null
 
     init {
-        listener<InputEvent.MouseInputEvent> {
-            if (Mouse.getEventButton() != 1 || mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != RayTraceResult.Type.ENTITY) return@listener
-            if (timer.tick(5000L) || mc.objectMouseOver.entityHit != lastEntity && timer.tick(500L)) {
-                when (mode.value) {
-                    Mode.DELETE -> {
-                        mc.world.removeEntity(mc.objectMouseOver.entityHit)
-                    }
-                    Mode.INFO -> {
-                        val tag = NBTTagCompound().apply { mc.objectMouseOver.entityHit.writeToNBT(this) }
-                        MessageSendHelper.sendChatMessage("""$chatName &6Entity Tags:$tag""".trimIndent())
+        safeListener<InputEvent.MouseInputEvent> {
+            mc.objectMouseOver?.let {
+                if (Mouse.getEventButton() != 1 || it.typeOfHit != RayTraceResult.Type.ENTITY) return@safeListener
+                if (timer.tick(5000L) || it.entityHit != lastEntity && timer.tick(500L)) {
+                    when (mode) {
+                        Mode.DELETE -> {
+                            world.removeEntity(it.entityHit)
+                        }
+                        Mode.INFO -> {
+                            val tag = NBTTagCompound().apply { it.entityHit.writeToNBT(this) }
+                            MessageSendHelper.sendChatMessage("""$chatName &6Entity Tags:$tag""".trimIndent())
+                        }
                     }
                 }
             }

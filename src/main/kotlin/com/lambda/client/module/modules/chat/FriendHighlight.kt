@@ -18,9 +18,9 @@ object FriendHighlight : Module(
     category = Category.CHAT,
     showOnArray = false
 ) {
-    private val bold = setting("Bold", true)
-    private val color = setting("Color", EnumTextColor.GRAY)
-    private val sound = setting("Sound", true)
+    private val bold by setting("Bold", true)
+    private val color by setting("Color", EnumTextColor.GRAY)
+    private val sound by setting("Sound", true)
 
     private val regex1 = "<(.*?)>".toRegex()
     private val regex2 = "[<>]".toRegex()
@@ -37,7 +37,7 @@ object FriendHighlight : Module(
             if (playerName == null || !FriendManager.isFriend(playerName)) return@listener
             val modified = it.message.formattedText.replaceFirst(playerName, getReplacement(playerName))
             val textComponent = TextComponentString(modified)
-            if (sound.value) mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
+            if (sound) mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
 
             it.message = textComponent
         }
@@ -50,7 +50,7 @@ object FriendHighlight : Module(
         }
     }
 
-    private fun getReplacement(name: String) = "${color.value.textFormatting}${bold()}$name${TextFormatting.RESET}"
+    private fun getReplacement(name: String) = "${color.textFormatting}${bold()}$name${TextFormatting.RESET}"
 
-    private fun bold() = if (!bold.value) "" else TextFormatting.BOLD.toString()
+    private fun bold() = if (!bold) "" else TextFormatting.BOLD.toString()
 }

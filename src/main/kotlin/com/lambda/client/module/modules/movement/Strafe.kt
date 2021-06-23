@@ -17,6 +17,7 @@ import com.lambda.client.util.MovementUtils.setSpeed
 import com.lambda.client.util.MovementUtils.speed
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.settings.KeyBinding
 import kotlin.math.cos
@@ -40,7 +41,9 @@ object Strafe : Module(
 
     init {
         onDisable {
-            reset()
+            runSafe {
+                reset()
+            }
         }
 
         safeListener<PlayerTravelEvent> {
@@ -68,8 +71,8 @@ object Strafe : Module(
         }
     }
 
-    private fun reset() {
-        mc.player?.jumpMovementFactor = 0.02f
+    private fun SafeClientEvent.reset() {
+        player.jumpMovementFactor = 0.02f
         resetTimer()
         jumpTicks = 0
     }

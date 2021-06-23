@@ -4,7 +4,7 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.mixin.extension.onGround
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.event.listener.listener
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
 
@@ -17,19 +17,21 @@ object AntiHunger : Module(
     category = Category.MOVEMENT,
     description = "Reduces hunger lost when moving around"
 ) {
-    private val cancelMovementState = setting("Cancel Movement State", true)
+    private val cancelMovementState by setting("Cancel Movement State", true)
 
     init {
-        listener<PacketEvent.Send> {
-            if (mc.player == null) return@listener
-            if (cancelMovementState.value && it.packet is CPacketEntityAction) {
-                if (it.packet.action == CPacketEntityAction.Action.START_SPRINTING || it.packet.action == CPacketEntityAction.Action.STOP_SPRINTING) {
-                    it.cancel()
+        safeListener<PacketEvent.Send> {
+            when (it.packet) {
+                is CPacketEntityAction -> {
+                    if (cancelMovementState &&
+                        (it.packet.action == CPacketEntityAction.Action.START_SPRINTING ||
+                            it.packet.action == CPacketEntityAction.Action.STOP_SPRINTING)) {
+                        it.cancel()
+                    }
                 }
-            }
-            if (it.packet is CPacketPlayer) {
-                // Trick the game to think that tha player is flying even if he is on ground. Also check if the player is flying with the Elytra.
-                it.packet.onGround = (mc.player.fallDistance <= 0 || mc.playerController.isHittingBlock) && mc.player.isElytraFlying
+                is CPacketPlayer -> {
+                    it.packet.onGround = (player.fallDistance <= 0 || mc.playerController.isHittingBlock) && player.isElytraFlying
+                }
             }
         }
     }

@@ -9,7 +9,6 @@ import com.lambda.client.module.Module
 import com.lambda.client.process.PauseProcess.pauseBaritone
 import com.lambda.client.process.PauseProcess.unpauseBaritone
 import com.lambda.client.util.TickTimer
-import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
@@ -38,7 +37,6 @@ object LagNotifier : Module(
     private val feedback by setting("Pause Feedback", true, { pauseBaritone })
     private val timeout by setting("Timeout", 3.5f, 0.0f..10.0f, 0.5f)
 
-    private val pingTimer = TickTimer(TimeUnit.SECONDS)
     private val lastPacketTimer = TickTimer()
     private val lastRubberBandTimer = TickTimer()
     private var text = ""

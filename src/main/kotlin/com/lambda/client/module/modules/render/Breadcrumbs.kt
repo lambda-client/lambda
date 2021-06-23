@@ -31,13 +31,13 @@ object Breadcrumbs : Module(
     alwaysListening = true
 ) {
     private val clear = setting("Clear", false)
-    private val whileDisabled = setting("While Disabled", false)
-    private val smoothFactor = setting("Smooth Factor", 5.0f, 0.0f..10.0f, 0.25f)
-    private val maxDistance = setting("Max Distance", 4096, 1024..16384, 1024)
-    private val yOffset = setting("Y Offset", 0.5f, 0.0f..1.0f, 0.05f)
-    private val throughBlocks = setting("Through Blocks", true)
+    private val whileDisabled by setting("While Disabled", false)
+    private val smoothFactor by setting("Smooth Factor", 5.0f, 0.0f..10.0f, 0.25f)
+    private val maxDistance by setting("Max Distance", 4096, 1024..16384, 1024)
+    private val yOffset by setting("Y Offset", 0.5f, 0.0f..1.0f, 0.05f)
+    private val throughBlocks by setting("Through Blocks", true)
     private val color by setting("Color", ColorHolder(255, 166, 188, 200))
-    private val thickness = setting("Line Thickness", 2.0f, 0.25f..8.0f, 0.25f)
+    private val thickness by setting("Line Thickness", 2.0f, 0.25f..8.0f, 0.25f)
 
     private val mainList = ConcurrentHashMap<String, HashMap<Int, ArrayDeque<Vec3d>>>() /* <Server IP, <Dimension, PositionList>> */
     private var prevDimension = -2
@@ -47,7 +47,7 @@ object Breadcrumbs : Module(
 
     init {
         onToggle {
-            if (!whileDisabled.value) {
+            if (!whileDisabled) {
                 mainList.clear()
             }
         }
@@ -58,7 +58,7 @@ object Breadcrumbs : Module(
         }
 
         safeListener<RenderWorldEvent> {
-            if ((mc.integratedServer == null && mc.currentServerData == null) || (isDisabled && !whileDisabled.value)) {
+            if ((mc.integratedServer == null && mc.currentServerData == null) || (isDisabled && !whileDisabled)) {
                 return@safeListener
             }
 
@@ -86,7 +86,7 @@ object Breadcrumbs : Module(
             alphaMultiplier = if (isEnabled && shouldRecord(false)) min(alphaMultiplier + 0.07f, 1f)
             else max(alphaMultiplier - 0.05f, 0f)
 
-            if (isDisabled && !whileDisabled.value) return@safeListener
+            if (isDisabled && !whileDisabled) return@safeListener
 
             if (tickCount < 200) {
                 tickCount++
@@ -94,7 +94,7 @@ object Breadcrumbs : Module(
                 val serverIP = getServerIP()
                 val posList = mainList.getOrPut(serverIP, ::HashMap).getOrPut(player.dimension, ::ArrayDeque)
 
-                val cutoffPos = posList.lastOrNull { pos -> player.distanceTo(pos) > maxDistance.value }
+                val cutoffPos = posList.lastOrNull { pos -> player.distanceTo(pos) > maxDistance }
                 if (cutoffPos != null) {
                     while (posList.first() != cutoffPos) {
                         posList.removeFirstOrNull()
@@ -109,10 +109,10 @@ object Breadcrumbs : Module(
 
     private fun drawTail(posList: LinkedList<Vec3d>) {
         if (posList.isNotEmpty() && alphaMultiplier != 0.0f) {
-            val offset = Vec3d(0.0, yOffset.value + 0.05, 0.0)
+            val offset = Vec3d(0.0, yOffset + 0.05, 0.0)
             val buffer = LambdaTessellator.buffer
-            GlStateManager.depthMask(!throughBlocks.value)
-            GlStateManager.glLineWidth(thickness.value)
+            GlStateManager.depthMask(!throughBlocks)
+            GlStateManager.glLineWidth(thickness)
             LambdaTessellator.begin(GL_LINE_STRIP)
             for (pos in posList) {
                 val offsetPost = pos.add(offset)
@@ -124,7 +124,7 @@ object Breadcrumbs : Module(
     }
 
     private fun SafeClientEvent.addPos(serverIP: String, dimension: Int, pTicks: Float): LinkedList<Vec3d> {
-        var minDist = sin(-0.05f * smoothFactor.value * PI.toFloat()) * 2f + 2.01f
+        var minDist = sin(-0.05f * smoothFactor * PI.toFloat()) * 2f + 2.01f
         if (isDisabled) minDist *= 2f
         var currentPos = getInterpolatedPos(player, pTicks)
         if (player.isElytraFlying) currentPos = currentPos.subtract(0.0, 0.5, 0.0)

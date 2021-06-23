@@ -6,7 +6,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
-import com.lambda.event.listener.listener
+import com.lambda.client.util.threads.safeListener
 import kotlinx.coroutines.launch
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.util.math.RayTraceResult
@@ -23,14 +23,16 @@ object MidClickFriends : Module(
     private var lastPlayer: EntityOtherPlayerMP? = null
 
     init {
-        listener<InputEvent.MouseInputEvent> {
-            // 0 is left, 1 is right, 2 is middle
-            if (Mouse.getEventButton() != 2 || mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != RayTraceResult.Type.ENTITY) return@listener
-            val player = mc.objectMouseOver.entityHit as? EntityOtherPlayerMP ?: return@listener
-            if (timer.tick(5000L) || player != lastPlayer && timer.tick(500L)) {
-                if (FriendManager.isFriend(player.name)) remove(player.name)
-                else add(player.name)
-                lastPlayer = player
+        safeListener<InputEvent.MouseInputEvent> {
+            mc.objectMouseOver?.let {
+                // 0 is left, 1 is right, 2 is middle
+                if (Mouse.getEventButton() != 2 || it.typeOfHit != RayTraceResult.Type.ENTITY) return@safeListener
+                val player = it.entityHit as? EntityOtherPlayerMP ?: return@safeListener
+                if (timer.tick(5000L) || player != lastPlayer && timer.tick(500L)) {
+                    if (FriendManager.isFriend(player.name)) remove(player.name)
+                    else add(player.name)
+                    lastPlayer = player
+                }
             }
         }
     }

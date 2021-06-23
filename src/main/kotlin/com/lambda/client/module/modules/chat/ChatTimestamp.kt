@@ -5,8 +5,8 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.TimeUtils
 import com.lambda.client.util.color.EnumTextColor
 import com.lambda.client.util.text.format
+import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.listener.listener
 import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 
@@ -22,8 +22,7 @@ object ChatTimestamp : Module(
     private val timeUnit by setting("Time Unit", TimeUtils.TimeUnit.H12)
 
     init {
-        listener<ClientChatReceivedEvent> {
-            if (mc.player == null) return@listener
+        safeListener<ClientChatReceivedEvent> {
             it.message = TextComponentString(formattedTime).appendSibling(it.message)
         }
     }

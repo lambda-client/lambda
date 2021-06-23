@@ -41,13 +41,13 @@ object BedAura : Module(
     category = Category.COMBAT,
     modulePriority = 70
 ) {
-    private val ignoreSecondBaseBlock = setting("Ignore Second Base Block", false)
-    private val suicideMode = setting("Suicide Mode", false)
-    private val hitDelay = setting("Hit Delay", 5, 1..10, 1)
-    private val refillDelay = setting("Refill Delay", 2, 1..5, 1)
-    private val minDamage = setting("Min Damage", 10f, 1f..20f, 0.25f)
-    private val maxSelfDamage = setting("Max Self Damage", 4f, 1f..10f, 0.25f, { !suicideMode.value })
-    private val range = setting("Range", 5f, 1f..5f, 0.25f)
+    private val ignoreSecondBaseBlock by setting("Ignore Second Base Block", false)
+    private val suicideMode by setting("Suicide Mode", false)
+    private val hitDelay by setting("Hit Delay", 5, 1..10, 1)
+    private val refillDelay by setting("Refill Delay", 2, 1..5, 1)
+    private val minDamage by setting("Min Damage", 10f, 1f..20f, 0.25f)
+    private val maxSelfDamage by setting("Max Self Damage", 4f, 1f..10f, 0.25f, { !suicideMode })
+    private val range by setting("Range", 5f, 1f..5f, 0.25f)
 
     private val placeMap = TreeMap<Pair<Float, Float>, BlockPos>(compareByDescending { it.first }) // <<TargetDamage, SelfDamage>, BlockPos>
     private val bedMap = TreeMap<Float, BlockPos>(compareBy { it }) // <SquaredDistance, BlockPos>
@@ -98,7 +98,7 @@ object BedAura : Module(
             }
 
             inactiveTicks++
-            if (canRefill() && refillTimer.tick(refillDelay.value.toLong())) {
+            if (canRefill() && refillTimer.tick(refillDelay.toLong())) {
                 player.storageSlots.firstItem<ItemBed, Slot>()?.let {
                     quickMoveSlot(it)
                 }
@@ -107,7 +107,7 @@ object BedAura : Module(
             updatePlaceMap()
             updateBedMap()
 
-            if (hitTickCount >= hitDelay.value) {
+            if (hitTickCount >= hitDelay) {
                 bedMap.values.firstOrNull()?.let { preExplode(it) } ?: getPlacePos()?.let { prePlace(it) }
             } else {
                 hitTickCount++
@@ -125,7 +125,7 @@ object BedAura : Module(
 
     private fun SafeClientEvent.updatePlaceMap() {
         val cacheMap = CombatManager.target?.let {
-            val posList = VectorUtils.getBlockPosInSphere(player.getPositionEyes(1f), range.value)
+            val posList = VectorUtils.getBlockPosInSphere(player.getPositionEyes(1f), range)
             val damagePosMap = HashMap<Pair<Float, Float>, BlockPos>()
 
             for (pos in posList) {
@@ -135,10 +135,10 @@ object BedAura : Module(
                 if (!canPlaceBed(pos)) continue
 
                 val targetDamage = calcCrystalDamage(pos.offset(facing), it)
-                if (targetDamage < minDamage.value) continue
+                if (targetDamage < minDamage) continue
 
                 val selfDamage = calcCrystalDamage(pos.offset(facing), player)
-                if (suicideMode.value || targetDamage > selfDamage && selfDamage <= maxSelfDamage.value) {
+                if (suicideMode || targetDamage > selfDamage && selfDamage <= maxSelfDamage) {
                     damagePosMap[Pair(targetDamage, selfDamage)] = pos
                 }
             }
@@ -153,11 +153,11 @@ object BedAura : Module(
         if (!world.getBlockState(pos).isSideSolid(world, pos, EnumFacing.UP)) return false
         val bedPos1 = pos.up()
         val bedPos2 = getSecondBedPos(bedPos1)
-        return (!ignoreSecondBaseBlock.value || world.getBlockState(bedPos2.down()).isSideSolid(world, bedPos2.down(), EnumFacing.UP))
+        return (!ignoreSecondBaseBlock || world.getBlockState(bedPos2.down()).isSideSolid(world, bedPos2.down(), EnumFacing.UP))
             && !isFire(bedPos1)
             && !isFire(bedPos2)
             && world.getBlockState(bedPos1).isReplaceable
-            && (!ignoreSecondBaseBlock.value || world.getBlockState(bedPos2).isReplaceable)
+            && (!ignoreSecondBaseBlock || world.getBlockState(bedPos2).isReplaceable)
     }
 
     private fun SafeClientEvent.isFire(pos: BlockPos): Boolean {
@@ -172,7 +172,7 @@ object BedAura : Module(
                 if (!tileEntity.isHeadPiece) continue
 
                 val dist = player.distanceTo(tileEntity.pos).toFloat()
-                if (dist > range.value) continue
+                if (dist > range) continue
 
                 damagePosMap[dist] = tileEntity.pos
             }

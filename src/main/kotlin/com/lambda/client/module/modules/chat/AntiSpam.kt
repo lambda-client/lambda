@@ -18,29 +18,29 @@ object AntiSpam : Module(
     description = "Removes spam and advertising from the chat",
     showOnArray = false
 ) {
-    private val mode = setting("Mode", Mode.REPLACE)
-    private val replaceMode = setting("Replace Mode", ReplaceMode.ASTERISKS, { mode.value == Mode.REPLACE })
-    private val page = setting("Page", Page.TYPE)
+    private val mode by setting("Mode", Mode.REPLACE)
+    private val replaceMode by setting("Replace Mode", ReplaceMode.ASTERISKS, { mode == Mode.REPLACE })
+    private val page by setting("Page", Page.TYPE)
 
     /* Page One */
-    private val discordLinks = setting("Discord", true, { page.value == Page.TYPE })
-    private val slurs = setting("Slurs", true, { page.value == Page.TYPE })
-    private val swears = setting("Swears", false, { page.value == Page.TYPE })
-    private val automated = setting("Automated", true, { page.value == Page.TYPE })
-    private val ips = setting("Server Ips", true, { page.value == Page.TYPE })
-    private val specialCharEnding = setting("Special Ending", true, { page.value == Page.TYPE })
-    private val specialCharBegin = setting("Special Begin", true, { page.value == Page.TYPE })
-    private val greenText = setting("Green Text", false, { page.value == Page.TYPE })
-    private val fancyChat = setting("Fancy Chat", false, { page.value == Page.TYPE })
+    private val discordLinks = setting("Discord", true, { page == Page.TYPE })
+    private val slurs = setting("Slurs", true, { page == Page.TYPE })
+    private val swears = setting("Swears", false, { page == Page.TYPE })
+    private val automated = setting("Automated", true, { page == Page.TYPE })
+    private val ips = setting("Server Ips", true, { page == Page.TYPE })
+    private val specialCharEnding = setting("Special Ending", true, { page == Page.TYPE })
+    private val specialCharBegin = setting("Special Begin", true, { page == Page.TYPE })
+    private val greenText = setting("Green Text", false, { page == Page.TYPE })
+    private val fancyChat by setting("Fancy Chat", false, { page == Page.TYPE })
 
     /* Page Two */
-    private val aggressiveFiltering = setting("Aggressive Filtering", true, { page.value == Page.SETTINGS })
-    private val duplicates = setting("Duplicates", true, { page.value == Page.SETTINGS })
-    private val duplicatesTimeout = setting("Duplicates Timeout", 30, 1..600, 5, { duplicates.value && page.value == Page.SETTINGS })
-    private val filterOwn = setting("Filter Own", false, { page.value == Page.SETTINGS })
-    private val filterDMs = setting("Filter DMs", false, { page.value == Page.SETTINGS })
-    private val filterServer = setting("Filter Server", false, { page.value == Page.SETTINGS })
-    private val showBlocked = setting("Show Blocked", ShowBlocked.LOG_FILE, { page.value == Page.SETTINGS })
+    private val aggressiveFiltering by setting("Aggressive Filtering", true, { page == Page.SETTINGS })
+    private val duplicates by setting("Duplicates", true, { page == Page.SETTINGS })
+    private val duplicatesTimeout by setting("Duplicates Timeout", 30, 1..600, 5, { duplicates && page == Page.SETTINGS })
+    private val filterOwn by setting("Filter Own", false, { page == Page.SETTINGS })
+    private val filterDMs by setting("Filter DMs", false, { page == Page.SETTINGS })
+    private val filterServer by setting("Filter Server", false, { page == Page.SETTINGS })
+    private val showBlocked by setting("Show Blocked", ShowBlocked.LOG_FILE, { page == Page.SETTINGS })
 
     private enum class Mode {
         REPLACE, HIDE
@@ -87,21 +87,24 @@ object AntiSpam : Module(
 
             messageHistory.values.removeIf { System.currentTimeMillis() - it > 600000 }
 
-            if (duplicates.value && checkDupes(event.message.unformattedText)) {
+            if (duplicates && checkDupes(event.message.unformattedText)) {
                 event.isCanceled = true
             }
 
             val pattern = isSpam(event.message.unformattedText)
 
-            if (pattern != null) { // null means no pattern found
-                if (mode.value == Mode.HIDE) {
-                    event.isCanceled = true
-                } else if (mode.value == Mode.REPLACE) {
-                    event.message = TextComponentString(sanitize(event.message.formattedText, pattern, replaceMode.value.redaction))
+            pattern?.let {
+                when (mode) {
+                    Mode.HIDE -> {
+                        event.isCanceled = true
+                    }
+                    Mode.REPLACE -> {
+                        event.message = TextComponentString(sanitize(event.message.formattedText, pattern, replaceMode.redaction))
+                    }
                 }
             }
 
-            if (fancyChat.value) {
+            if (fancyChat) {
                 val message = sanitizeFancyChat(event.message.unformattedText)
                 if (message.trim { it <= ' ' }.isEmpty()) { // this should be removed if we are going for an intelligent de-fancy
                     event.message = TextComponentString(getUsername(event.message.unformattedText) + " [Fancychat]")
@@ -111,7 +114,7 @@ object AntiSpam : Module(
     }
 
     private fun sanitize(toClean: String, matcher: String, replacement: String): String {
-        return if (!aggressiveFiltering.value) {
+        return if (!aggressiveFiltering) {
             toClean.replace("\\b$matcher|$matcher\\b".toRegex(), replacement) // only check for start or end of a word
         } else { // We might encounter the scunthorpe problem, so aggressive mode is off by default.
             toClean.replace(matcher.toRegex(), replacement)
@@ -119,9 +122,9 @@ object AntiSpam : Module(
     }
 
     private fun isSpam(message: String): String? {
-        return if (!filterOwn.value && isOwn(message)
-            || !filterDMs.value && MessageDetection.Direct.ANY detect message
-            || !filterServer.value && MessageDetection.Server.ANY detect message) {
+        return if (!filterOwn && isOwn(message)
+            || !filterDMs && MessageDetection.Direct.ANY detect message
+            || !filterServer && MessageDetection.Server.ANY detect message) {
             null
         } else {
             detectSpam(removeUsername(message))
@@ -130,10 +133,11 @@ object AntiSpam : Module(
 
     private fun detectSpam(message: String): String? {
         for ((key, value) in settingMap) {
-            val pattern = findPatterns(value, message)
-            if (key.value && pattern != null) {
-                sendResult(key.name, message)
-                return pattern
+            findPatterns(value, message)?.let {
+                if (key.value) {
+                    sendResult(key.name, message)
+                    return it
+                }
             }
         }
         return null
@@ -155,7 +159,8 @@ object AntiSpam : Module(
     private fun checkDupes(message: String): Boolean {
         var isDuplicate = false
 
-        if (messageHistory.containsKey(message) && (System.currentTimeMillis() - messageHistory[message]!!) / 1000 < duplicatesTimeout.value) isDuplicate = true
+        if (messageHistory.containsKey(message) &&
+            (System.currentTimeMillis() - messageHistory[message]!!) / 1000 < duplicatesTimeout) isDuplicate = true
         messageHistory[message] = System.currentTimeMillis()
 
         if (isDuplicate) {
@@ -188,7 +193,7 @@ object AntiSpam : Module(
     }
 
     private fun sendResult(name: String, message: String) {
-        if (showBlocked.value == ShowBlocked.CHAT || showBlocked.value == ShowBlocked.BOTH) MessageSendHelper.sendChatMessage("$chatName $name: $message")
-        if (showBlocked.value == ShowBlocked.LOG_FILE || showBlocked.value == ShowBlocked.BOTH) LambdaMod.LOG.info("$chatName $name: $message")
+        if (showBlocked == ShowBlocked.CHAT || showBlocked == ShowBlocked.BOTH) MessageSendHelper.sendChatMessage("$chatName $name: $message")
+        if (showBlocked == ShowBlocked.LOG_FILE || showBlocked == ShowBlocked.BOTH) LambdaMod.LOG.info("$chatName $name: $message")
     }
 }

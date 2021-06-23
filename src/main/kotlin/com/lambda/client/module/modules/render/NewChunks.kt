@@ -35,10 +35,10 @@ object NewChunks : Module(
     category = Category.RENDER
 ) {
     private val relative by setting("Relative", false, description = "Renders the chunks at relative Y level to player")
-    private val renderMode = setting("Render Mode", RenderMode.BOTH)
-    private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode.value != RenderMode.WORLD })
-    private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode.value != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
-    private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode.value != RenderMode.WORLD })
+    private val renderMode by setting("Render Mode", RenderMode.BOTH)
+    private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
+    private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
+    private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val yOffset by setting("Y Offset", 0, -256..256, 4, fineStep = 1, description = "Render offset in Y axis")
     private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "Highlighting color")
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
@@ -80,7 +80,7 @@ object NewChunks : Module(
         }
 
         safeListener<RenderWorldEvent> {
-            if (renderMode.value == RenderMode.RADAR) return@safeListener
+            if (renderMode == RenderMode.RADAR) return@safeListener
 
             val y = yOffset.toDouble() + if (relative) getInterpolatedPos(player, LambdaTessellator.pTicks()).y else 0.0
 
@@ -105,7 +105,7 @@ object NewChunks : Module(
         }
 
         safeListener<RenderRadarEvent> {
-            if (renderMode.value == RenderMode.WORLD) return@safeListener
+            if (renderMode == RenderMode.WORLD) return@safeListener
 
             val playerOffset = Vec2d((player.posX - (player.chunkCoordX shl 4)), (player.posZ - (player.chunkCoordZ shl 4)))
             val chunkDist = (it.radius * it.scale).toInt() shr 4

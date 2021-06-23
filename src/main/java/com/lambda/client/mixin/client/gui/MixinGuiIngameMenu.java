@@ -18,7 +18,7 @@ public class MixinGuiIngameMenu extends GuiScreen {
     @Inject(method = "initGui", at = @At("RETURN"))
     public void initGui(CallbackInfo ci) {
         GuiButton removeMe = null;
-        for (GuiButton button: buttonList) {
+        for (GuiButton button : buttonList) {
             if (button.id == 7 && !button.enabled) {
                 removeMe = button;
             }

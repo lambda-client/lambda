@@ -24,7 +24,7 @@ object AutoArmor : Module(
     modulePriority = 500
 ) {
 
-    private val delay = setting("Delay", 5, 1..10, 1)
+    private val delay by setting("Delay", 5, 1..10, 1)
 
     private val timer = TickTimer(TimeUnit.TICKS)
     private var lastTask = TaskState(true)
@@ -38,7 +38,7 @@ object AutoArmor : Module(
 
         safeListener<TickEvent.ClientTickEvent> {
             if (isPaused) return@safeListener
-            if (!timer.tick(delay.value.toLong()) || !lastTask.done) return@safeListener
+            if (!timer.tick(delay.toLong()) || !lastTask.done) return@safeListener
 
             if (!player.inventory.itemStack.isEmpty) {
                 if (mc.currentScreen is GuiContainer) timer.reset(150L) // Wait for 3 extra ticks if player is moving item

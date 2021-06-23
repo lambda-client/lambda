@@ -19,7 +19,7 @@ object AutoReconnect : Module(
     category = Category.MISC,
     alwaysListening = true
 ) {
-    private val delay = setting("Delay", 5.0f, 0.5f..100.0f, 0.5f)
+    private val delay by setting("Delay", 5.0f, 0.5f..100.0f, 0.5f)
 
     private var prevServerDate: ServerData? = null
 
@@ -40,14 +40,14 @@ object AutoReconnect : Module(
         private val timer = StopTimer()
 
         override fun updateScreen() {
-            if (timer.stop() >= (delay.value * 1000.0f)) {
+            if (timer.stop() >= (delay * 1000.0f)) {
                 mc.displayGuiScreen(GuiConnecting(parentScreen, mc, mc.currentServerData ?: prevServerDate ?: return))
             }
         }
 
         override fun drawScreen(mouseX: Int, mouseY: Int, partialTicks: Float) {
             super.drawScreen(mouseX, mouseY, partialTicks)
-            val ms = max(delay.value * 1000.0f - timer.stop(), 0.0f).toInt()
+            val ms = max(delay * 1000.0f - timer.stop(), 0.0f).toInt()
             val text = "Reconnecting in ${ms}ms"
             fontRenderer.drawString(text, width / 2f - fontRenderer.getStringWidth(text) / 2f, height - 32f, 0xffffff, true)
         }

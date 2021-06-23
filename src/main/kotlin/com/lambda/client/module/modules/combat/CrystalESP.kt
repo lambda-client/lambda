@@ -39,27 +39,27 @@ object CrystalESP : Module(
 ) {
     private val page = setting("Page", Page.DAMAGE_ESP)
 
-    private val damageESP = setting("Damage ESP", false, { page.value == Page.DAMAGE_ESP })
-    private val minAlpha = setting("Min Alpha", 0, 0..255, 1, { page.value == Page.DAMAGE_ESP })
-    private val maxAlpha = setting("Max Alpha", 63, 0..255, 1, { page.value == Page.DAMAGE_ESP })
-    private val damageRange = setting("Damage ESP Range", 4.0f, 0.0f..8.0f, 0.5f, { page.value == Page.DAMAGE_ESP })
+    private val damageESP by setting("Damage ESP", false, { page.value == Page.DAMAGE_ESP })
+    private val minAlpha by setting("Min Alpha", 0, 0..255, 1, { page.value == Page.DAMAGE_ESP })
+    private val maxAlpha by setting("Max Alpha", 63, 0..255, 1, { page.value == Page.DAMAGE_ESP })
+    private val damageRange by setting("Damage ESP Range", 4.0f, 0.0f..8.0f, 0.5f, { page.value == Page.DAMAGE_ESP })
 
-    private val crystalESP = setting("Crystal ESP", true, { page.value == Page.CRYSTAL_ESP })
-    private val onlyOwn = setting("Only Own", false, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val filled = setting("Filled", true, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val outline = setting("Outline", true, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val tracer = setting("Tracer", true, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val showDamage = setting("Damage", true, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val showSelfDamage = setting("Self Damage", true, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val textScale = setting("Text Scale", 1.0f, 0.0f..4.0f, 0.25f, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val animationScale = setting("Animation Scale", 1.0f, 0.0f..2.0f, 0.1f, { page.value == Page.CRYSTAL_ESP && crystalESP.value })
-    private val crystalRange = setting("Crystal ESP Range", 16.0f, 0.0f..16.0f, 0.5f, { page.value == Page.CRYSTAL_ESP })
+    private val crystalESP by setting("Crystal ESP", true, { page.value == Page.CRYSTAL_ESP })
+    private val onlyOwn by setting("Only Own", false, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val filled by setting("Filled", true, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val outline by setting("Outline", true, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val tracer by setting("Tracer", true, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val showDamage by setting("Damage", true, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val showSelfDamage by setting("Self Damage", true, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val textScale by setting("Text Scale", 1.0f, 0.0f..4.0f, 0.25f, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val animationScale by setting("Animation Scale", 1.0f, 0.0f..2.0f, 0.1f, { page.value == Page.CRYSTAL_ESP && crystalESP })
+    private val crystalRange by setting("Crystal ESP Range", 16.0f, 0.0f..16.0f, 0.5f, { page.value == Page.CRYSTAL_ESP })
 
-    private val color by setting("Color", ColorHolder(155, 144, 255), false, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP.value })
-    private val aFilled = setting("Filled Alpha", 47, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP.value && filled.value })
-    private val aOutline = setting("Outline Alpha", 127, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP.value && outline.value })
-    private val aTracer = setting("Tracer Alpha", 200, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP.value && tracer.value })
-    private val thickness = setting("Thickness", 2.0f, 0.25f..4.0f, 0.25f, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP.value && (outline.value || tracer.value) })
+    private val color by setting("Color", ColorHolder(155, 144, 255), false, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP })
+    private val aFilled by setting("Filled Alpha", 47, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP && filled })
+    private val aOutline by setting("Outline Alpha", 127, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP && outline })
+    private val aTracer by setting("Tracer Alpha", 200, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP && tracer })
+    private val thickness by setting("Thickness", 2.0f, 0.25f..4.0f, 0.25f, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP && (outline || tracer) })
 
     private enum class Page {
         DAMAGE_ESP, CRYSTAL_ESP, CRYSTAL_ESP_COLOR
@@ -93,15 +93,15 @@ object CrystalESP : Module(
     }
 
     private fun updateDamageESP() {
-        placeMap = if (damageESP.value) {
-            CombatManager.placeMap.filter { it.value.distance <= damageRange.value }
+        placeMap = if (damageESP) {
+            CombatManager.placeMap.filter { it.value.distance <= damageRange }
         } else {
             emptyMap()
         }
     }
 
     private fun updateCrystalESP() {
-        if (crystalESP.value) {
+        if (crystalESP) {
             val placeMap = CombatManager.placeMap
             val crystalMap = CombatManager.crystalMap
             val cacheMap = HashMap<BlockPos, Quad<Float, Float, Float, Float>>()
@@ -109,9 +109,9 @@ object CrystalESP : Module(
             // Removes after 1 second
             pendingPlacing.entries.removeIf { System.currentTimeMillis() - it.value > 1000L }
 
-            if (!onlyOwn.value) {
+            if (!onlyOwn) {
                 for ((crystal, calculation) in crystalMap) {
-                    if (calculation.distance > crystalRange.value) continue
+                    if (calculation.distance > crystalRange) continue
                     cacheMap[crystal.position.down()] = Quad(calculation.targetDamage, calculation.selfDamage, 0.0f, 0.0f)
                 }
             }
@@ -121,7 +121,7 @@ object CrystalESP : Module(
                 cacheMap[pos] = Quad(damage.targetDamage, damage.selfDamage, 0.0f, 0.0f)
             }
 
-            val scale = 1.0f / animationScale.value
+            val scale = 1.0f / animationScale
             for ((pos, quad1) in renderCrystalMap) {
                 cacheMap.computeIfPresent(pos) { _, quad2 -> Quad(quad2.first, quad2.second, quad1.fourth, min(quad1.fourth + 0.4f * scale, 1.0f)) }
                 if (quad1.fourth < 2.0f) cacheMap.computeIfAbsent(pos) { Quad(quad1.first, quad1.second, quad1.fourth, min(quad1.fourth + 0.2f * scale, 2.0f)) }
@@ -139,12 +139,12 @@ object CrystalESP : Module(
             val renderer = ESPRenderer()
 
             /* Damage ESP */
-            if (damageESP.value && placeMap.isNotEmpty()) {
+            if (damageESP && placeMap.isNotEmpty()) {
                 renderer.aFilled = 255
 
                 for ((pos, calculation) in placeMap) {
                     val rgb = MathUtils.convertRange(calculation.targetDamage.toInt(), 0, 20, 127, 255)
-                    val a = MathUtils.convertRange(calculation.targetDamage.toInt(), 0, 20, minAlpha.value, maxAlpha.value)
+                    val a = MathUtils.convertRange(calculation.targetDamage.toInt(), 0, 20, minAlpha, maxAlpha)
                     val rgba = ColorHolder(rgb, rgb, rgb, a)
                     renderer.add(pos, rgba)
                 }
@@ -153,11 +153,11 @@ object CrystalESP : Module(
             }
 
             /* Crystal ESP */
-            if (crystalESP.value && renderCrystalMap.isNotEmpty()) {
-                renderer.aFilled = if (filled.value) aFilled.value else 0
-                renderer.aOutline = if (outline.value) aOutline.value else 0
-                renderer.aTracer = if (tracer.value) aTracer.value else 0
-                renderer.thickness = thickness.value
+            if (crystalESP && renderCrystalMap.isNotEmpty()) {
+                renderer.aFilled = if (filled) aFilled else 0
+                renderer.aOutline = if (outline) aOutline else 0
+                renderer.aTracer = if (tracer) aTracer else 0
+                renderer.thickness = thickness
 
                 for ((pos, quad) in renderCrystalMap) {
                     val progress = getAnimationProgress(quad.third, quad.fourth)
@@ -171,7 +171,7 @@ object CrystalESP : Module(
         }
 
         listener<RenderOverlayEvent> {
-            if (!showDamage.value && !showSelfDamage.value) return@listener
+            if (!showDamage && !showSelfDamage) return@listener
             GlStateUtils.rescaleActual()
 
             for ((pos, quad) in renderCrystalMap) {
@@ -179,19 +179,19 @@ object CrystalESP : Module(
 
                 val screenPos = ProjectionUtils.toScreenPos(pos.toVec3dCenter())
                 glTranslated(screenPos.x, screenPos.y, 0.0)
-                glScalef(textScale.value * 2.0f, textScale.value * 2.0f, 1.0f)
+                glScalef(textScale * 2.0f, textScale * 2.0f, 1.0f)
 
                 val damage = abs(MathUtils.round(quad.first, 1))
                 val selfDamage = abs(MathUtils.round(quad.second, 1))
                 val alpha = (getAnimationProgress(quad.third, quad.fourth) * 255f).toInt()
                 val color = ColorHolder(255, 255, 255, alpha)
 
-                if (showDamage.value) {
+                if (showDamage) {
                     val text = "Target: $damage"
                     val halfWidth = FontRenderAdapter.getStringWidth(text) / -2.0f
                     FontRenderAdapter.drawString(text, halfWidth, 0f, color = color)
                 }
-                if (showSelfDamage.value) {
+                if (showSelfDamage) {
                     val text = "Self: $selfDamage"
                     val halfWidth = FontRenderAdapter.getStringWidth(text) / -2.0f
                     FontRenderAdapter.drawString(text, halfWidth, FontRenderAdapter.getFontHeight() + 2.0f, color = color)
