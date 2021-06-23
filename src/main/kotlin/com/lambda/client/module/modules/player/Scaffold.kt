@@ -160,19 +160,9 @@ object Scaffold : Module(
 
             if (placeTimer.tick(delay.toLong())) {
                 val shouldSneak = sneak && !player.isSneaking
-                defaultScope.launch {
-                    if (shouldSneak) {
-                        onMainThreadSafe {
-                            connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
-                        }
-                    }
-                    onMainThreadSafe {
-                        placeBlock(placeInfo)
-                        if (shouldSneak) {
-                            connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
-                        }
-                    }
-                }
+                if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
+                placeBlock(placeInfo)
+                if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
         }
     }
