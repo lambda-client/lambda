@@ -43,14 +43,9 @@ object Trajectories : Module(
     private val aOutline by setting("Outline Alpha", 255, 0..255, 1)
     private val thickness by setting("Thickness", 2f, 0.25f..5f, 0.25f)
 
-    private var prevMotion = Vec3d(0.0, 0.0, 0.0)
     private var prevItemUseCount = 0
 
     init {
-        safeListener<PlayerTravelEvent> {
-            prevMotion = Vec3d(player.motionX, player.motionY, player.motionZ)
-        }
-
         safeListener<LivingEntityUseItemEvent.Tick> {
             prevItemUseCount = player.itemInUseCount
         }
@@ -59,10 +54,10 @@ object Trajectories : Module(
             val type = getThrowingType(player.heldItemMainhand) ?: getThrowingType(player.heldItemOffhand)
             ?: return@safeListener
             val path = ArrayList<Vec3d>()
-            val flightPath = FlightPath(type)
+            val flightPath = FlightPath(type, this)
             path.add(flightPath.position)
             while (flightPath.collision == null && path.size < 500) {
-                flightPath.simulateTick(this)
+                flightPath.simulateTick()
                 path.add(flightPath.position)
             }
 
@@ -122,12 +117,12 @@ object Trajectories : Module(
         return camPos.subtract(offset.scale(multiplier).add(0.0, cos(pitchRad) * 0.1, 0.0)).subtract(eyePos)
     }
 
-    private class FlightPath(val throwingType: ThrowingType) {
+    private class FlightPath(val throwingType: ThrowingType, val event: SafeClientEvent) {
         private val halfSize = if (throwingType == ThrowingType.BOW) 0.25 else 0.125
 
         var position: Vec3d = mc.player?.getPositionEyes(LambdaTessellator.pTicks()) ?: Vec3d.ZERO
             private set
-        private lateinit var motion: Vec3d
+        private var motion = Vec3d.ZERO
         private var boundingBox: AxisAlignedBB = AxisAlignedBB(
             position.x - halfSize,
             position.y - halfSize,
@@ -139,7 +134,7 @@ object Trajectories : Module(
         var collision: RayTraceResult? = null
             private set
 
-        fun simulateTick(event: SafeClientEvent) {
+        fun simulateTick() {
             if (position.y <= -9.11) { // Sanity check to see if we've gone below the world (if we have we will never collide)
                 collision = RayTraceResult(position, EnumFacing.UP)
                 return
@@ -191,22 +186,20 @@ object Trajectories : Module(
                 .toDouble()
 
         init {
-            runSafe {
-                var pitch = player.rotationPitch.toDouble()
-                if (throwingType == ThrowingType.EXPERIENCE || throwingType == ThrowingType.POTION) pitch -= 20.0
-                val yawRad = Math.toRadians(player.rotationYaw.toDouble())
-                val pitchRad = Math.toRadians(pitch)
-                val cosPitch = cos(pitchRad)
+            var pitch = event.player.rotationPitch.toDouble()
+            if (throwingType == ThrowingType.EXPERIENCE || throwingType == ThrowingType.POTION) pitch -= 20.0
+            val yawRad = Math.toRadians(event.player.rotationYaw.toDouble())
+            val pitchRad = Math.toRadians(pitch)
+            val cosPitch = cos(pitchRad)
 
-                val initVelocity = if (throwingType == ThrowingType.BOW) {
-                    val itemUseCount = FastUse.bowCharge ?: if (player.isHandActive) getInterpolatedCharge() else 0.0
-                    val useDuration = (72000 - itemUseCount) / 20.0
-                    val velocity = (useDuration.pow(2) + useDuration * 2.0) / 3.0
-                    min(velocity, 1.0) * throwingType.velocity
-                } else throwingType.velocity
+            val initVelocity = if (throwingType == ThrowingType.BOW) {
+                val itemUseCount = FastUse.bowCharge ?: if (event.player.isHandActive) event.getInterpolatedCharge() else 0.0
+                val useDuration = (72000 - itemUseCount) / 20.0
+                val velocity = (useDuration.pow(2) + useDuration * 2.0) / 3.0
+                min(velocity, 1.0) * throwingType.velocity
+            } else throwingType.velocity
 
-                motion = Vec3d(-sin(yawRad) * cosPitch, -sin(pitchRad), cos(yawRad) * cosPitch).scale(initVelocity)
-            }
+            motion = Vec3d(-sin(yawRad) * cosPitch, -sin(pitchRad), cos(yawRad) * cosPitch).scale(initVelocity)
         }
     }
 

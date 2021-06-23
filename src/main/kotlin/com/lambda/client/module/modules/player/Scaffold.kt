@@ -166,7 +166,6 @@ object Scaffold : Module(
                             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
                         }
                     }
-                    delay(5)
                     onMainThreadSafe {
                         placeBlock(placeInfo)
                         if (shouldSneak) {

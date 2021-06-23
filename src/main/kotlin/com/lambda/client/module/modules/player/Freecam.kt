@@ -113,10 +113,10 @@ object Freecam : Module(
         }
 
         onDisable {
-            runSafe {
-                mc.renderChunksMany = true
-                resetCameraGuy()
-                resetMovementInput(player.movementInput)
+            mc.renderChunksMany = true
+            resetCameraGuy()
+            mc.player?.let {
+                resetMovementInput(it.movementInput)
             }
         }
 
