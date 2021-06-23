@@ -426,12 +426,12 @@ object Nametags : Module(
         }
        ContentType.TOTEM_POPS -> {
            if (!TotemPopCounter.isEnabled) {
-               MessageSendHelper.sendWarningMessage("[Nametags] TotemPopCounter is locked on while nametags count totem pops.")
+               MessageSendHelper.sendWarningMessage("$chatName TotemPopCounter is locked on while nametags count totem pops.")
                TotemPopCounter.enable()
            }
-           val totemPops = if ((TotemPopCounter.popCountMap[entity]) != null) TotemPopCounter.popCountMap[entity] else "0"
-           val pluralPops = if (TotemPopCounter.popCountMap[entity] == 1) "pop" else "pops"
-           TextComponent.TextElement("$totemPops $pluralPops", getTextColor())
+           val totemPops = TotemPopCounter.popCountMap[entity] ?: "0"
+           val pluralPops = if (totemPops == 1) "pop" else "pops"
+           TextComponent.TextElement("$totemPops $pluralPops", colorText)
        }
     }
 
