@@ -86,8 +86,9 @@ object AntiAFK : Module(
     init {
         listener<PacketEvent.Receive> {
             if (!autoReply || it.packet !is SPacketChat) return@listener
-            if (MessageDetection.Direct.RECEIVE detect it.packet.chatComponent.unformattedText) {
-                sendServerMessage("/r $replyMessage")
+            val message = it.packet.chatComponent.unformattedText
+            if (MessageDetection.Direct.RECEIVE detect message) {
+                if (!message.contains(replyMessage)) sendServerMessage("/r $replyMessage")
             }
         }
 
