@@ -10,7 +10,7 @@ import kotlin.math.round
  * For the sake of dumb Minecraftia simps
  */
 object FontRenderAdapter {
-    private val dumbMcFontRenderer = Wrapper.minecraft.fontRenderer
+    private val mcFontRenderer = Wrapper.minecraft.fontRenderer
     val useCustomFont get() = CustomFont.isEnabled
 
     fun drawString(text: String, posXIn: Float = 0f, posYIn: Float = 0f, drawShadow: Boolean = true, color: ColorHolder = ColorHolder(255, 255, 255), scale: Float = 1f, customFont: Boolean = useCustomFont) {
@@ -20,7 +20,7 @@ object FontRenderAdapter {
             glPushMatrix()
             glTranslatef(round(posXIn), round(posYIn), 0f)
             glScalef(scale, scale, 1f)
-            dumbMcFontRenderer.drawString(text, 0f, 2.0f, color.toHex(), drawShadow)
+            mcFontRenderer.drawString(text, 0f, 2.0f, color.toHex(), drawShadow)
             glPopMatrix()
         }
     }
@@ -28,12 +28,12 @@ object FontRenderAdapter {
     fun getFontHeight(scale: Float = 1f, customFont: Boolean = useCustomFont) = if (customFont) {
         LambdaFontRenderer.getFontHeight(scale)
     } else {
-        dumbMcFontRenderer.FONT_HEIGHT * scale
+        mcFontRenderer.FONT_HEIGHT * scale
     }
 
     fun getStringWidth(text: String, scale: Float = 1f, customFont: Boolean = useCustomFont) = if (customFont) {
         LambdaFontRenderer.getStringWidth(text, scale)
     } else {
-        dumbMcFontRenderer.getStringWidth(text) * scale
+        mcFontRenderer.getStringWidth(text) * scale
     }
 }

@@ -27,8 +27,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 object DiscordRPC : Module(
     name = "DiscordRPC",
     category = Category.MISC,
-    description = "Discord Rich Presence",
-    enabledByDefault = false
+    description = "Discord Rich Presence"
 ) {
     private val line1Left by setting("Line 1 Left", LineInfo.VERSION) // details left
     private val line1Right by setting("Line 1 Right", LineInfo.USERNAME) // details right

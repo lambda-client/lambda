@@ -11,12 +11,12 @@ import java.awt.GraphicsEnvironment
 
 object CustomFont : Module(
     name = "CustomFont",
-    description = "Use the better font instead of the stupid Minecraft font",
+    description = "Use different GUI fonts",
     showOnArray = false,
     category = Category.CLIENT,
     enabledByDefault = true
 ) {
-    private const val DEFAULT_FONT_NAME = "Lato"
+    private const val DEFAULT_FONT_NAME = "Fira Code"
 
     val fontName = setting("Font Name", DEFAULT_FONT_NAME, consumer = { prev, value ->
         getMatchingFontName(value) ?: getMatchingFontName(prev) ?: DEFAULT_FONT_NAME
