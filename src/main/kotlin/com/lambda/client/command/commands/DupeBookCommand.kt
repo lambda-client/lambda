@@ -43,7 +43,7 @@ object DupeBookCommand : ClientCommand(
                 .map { if (it < 0xd800) it else it + 0x800 }
 
             val joinedPages = characterGenerator
-                .limit(50 * 210)
+                .limit(50 * 210L)
                 .mapToObj { it.toChar().toString() } // this has to be turned into a Char first, otherwise you will get the raw Int value
                 .collect(Collectors.joining())
 
