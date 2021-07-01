@@ -12,6 +12,6 @@ object Hud : Module(
     enabledByDefault = true
 ) {
     val hudFrame by setting("Hud Frame", false)
-    val primaryColor by setting("Primary Color", ColorHolder(255, 255, 255), false)
-    val secondaryColor by setting("Secondary Color", ColorHolder(155, 144, 255), false)
+    val primaryColor by setting("Primary Color", ColorHolder(255, 240, 246), false)
+    val secondaryColor by setting("Secondary Color", ColorHolder(108, 0, 43), false)
 }

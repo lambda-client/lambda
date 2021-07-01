@@ -14,7 +14,7 @@ object GuiColors : Module(
     private val primarySetting by setting("Primary Color", ColorHolder(108, 0, 43, 255))
     private val outlineSetting by setting("Outline Color", ColorHolder(78, 0, 31, 200))
     private val backgroundSetting by setting("Background Color", ColorHolder(31, 10, 18, 200))
-    private val textSetting by setting("Text Color", ColorHolder(255, 255, 255, 255))
+    private val textSetting by setting("Text Color", ColorHolder(255, 240, 246, 255))
     private val aHover by setting("Hover Alpha", 32, 0..255, 1)
 
     val primary get() = primarySetting.clone()
