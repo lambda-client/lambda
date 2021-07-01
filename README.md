@@ -12,7 +12,7 @@
 
 Lambda is a free, open-source, Minecraft 1.12.2 utility mod providing a visionary system for plugins that allow customizing the clients features thanks to an ingame plugin store.
 
-![Download](https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png)
+<a href="https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar"><img alt="lambda-2.07.01.jar - July 1, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
 
 ## Contributing
 
