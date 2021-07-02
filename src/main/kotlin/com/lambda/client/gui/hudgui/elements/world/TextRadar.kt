@@ -31,7 +31,7 @@ internal object TextRadar : LabelHud(
         0.0f to ColorHolder(180, 20, 20),
         10.0f to ColorHolder(240, 220, 20),
         20.0f to ColorHolder(20, 232, 20),
-        30.0f to ColorHolder(60, 255, 0)
+        30.0f to ColorHolder(125, 20, 230)
     )
 
     private val pingColorGradient = ColorGradient(
