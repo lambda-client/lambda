@@ -30,7 +30,8 @@ internal object TextRadar : LabelHud(
     private val healthColorGradient = ColorGradient(
         0.0f to ColorHolder(180, 20, 20),
         10.0f to ColorHolder(240, 220, 20),
-        20.0f to ColorHolder(20, 232, 20)
+        20.0f to ColorHolder(20, 232, 20),
+        30.0f to ColorHolder(60, 255, 0)
     )
 
     private val pingColorGradient = ColorGradient(
@@ -75,8 +76,8 @@ internal object TextRadar : LabelHud(
 
     private fun addHealth(player: EntityPlayer) {
         if (health) {
-            val hp = MathUtils.round(player.health, 1).toString()
-            displayText.add(hp, healthColorGradient.get(player.health))
+            val hp = MathUtils.round(player.health + player.absorptionAmount, 1).toString()
+            displayText.add(hp, healthColorGradient.get(player.health + player.absorptionAmount))
         }
     }
 
