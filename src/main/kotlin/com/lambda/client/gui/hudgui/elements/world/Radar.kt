@@ -27,6 +27,7 @@ internal object Radar : HudElement(
     category = Category.WORLD,
     description = "Shows entities and new chunks"
 ) {
+    private val zoom by setting("Zoom", 3f, 1f..10f, 0.1f)
 
     private val players = setting("Players", true)
     private val passive = setting("Passive Mobs", false)
@@ -44,7 +45,7 @@ internal object Radar : HudElement(
 
         runSafe {
             drawBorder(vertexHelper)
-            post(RenderRadarEvent(vertexHelper, radius, scale)) // Let other modules display radar elements
+            post(RenderRadarEvent(vertexHelper, radius, zoom)) // Let other modules display radar elements
             drawEntities(vertexHelper)
             drawLabels()
         }
@@ -63,10 +64,10 @@ internal object Radar : HudElement(
         val playerTargets = arrayOf(players.value, true, true) // Enable friends and sleeping
         val mobTargets = arrayOf(true, passive.value, neutral.value, hostile.value) // Enable mobs
 
-        for (entity in EntityUtils.getTargetList(playerTargets, mobTargets, invisible.value, radius * scale, ignoreSelf = true)) {
+        for (entity in EntityUtils.getTargetList(playerTargets, mobTargets, invisible.value, radius * zoom, ignoreSelf = true)) {
             val entityPosDelta = entity.position.subtract(player.position)
             if (abs(entityPosDelta.y) > 30) continue
-            drawCircleFilled(vertexHelper, Vec2d(entityPosDelta.x.toDouble(), entityPosDelta.z.toDouble()).div(scale.toDouble()), 2.5 / scale, color = getColor(entity))
+            drawCircleFilled(vertexHelper, Vec2d(entityPosDelta.x.toDouble(), entityPosDelta.z.toDouble()).div(zoom.toDouble()), 2.5 / zoom, color = getColor(entity))
         }
     }
 
