@@ -12,7 +12,7 @@ import com.lambda.client.util.threads.safeListener
 object ToggleNotifier : Module(
     name = "ToggleNotifier",
     category = Category.CHAT,
-    description = "Notifies when a mod is enabled/disabled.",
+    description = "Notifies when a module is enabled/disabled.",
 ) {
     init {
         safeListener<ModuleToggleEvent> {
