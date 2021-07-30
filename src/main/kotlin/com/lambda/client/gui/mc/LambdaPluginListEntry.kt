@@ -12,7 +12,13 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
     val mc: Minecraft = Minecraft.getMinecraft()
     private val unknownPlugin = ResourceLocation("textures/misc/unknown_server.png")
 
+    var onlineVersion: String? = null
+
     override fun drawEntry(slotIndex: Int, x: Int, y: Int, listWidth: Int, slotHeight: Int, mouseX: Int, mouseY: Int, isSelected: Boolean, partialTicks: Float) {
+        if (onlineVersion != getVersion() && onlineVersion != null) {
+            pluginData.pluginState = LambdaPluginSelectionList.PluginState.UPDATE
+        }
+
         val fr = mc.fontRenderer
         fr.drawString(pluginData.name, x + 32 + 3, y + 1, 16777215)
         drawPluginIcon(x, y, unknownPlugin)
@@ -56,6 +62,16 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
             Gui.drawModalRectWithCustomSizedTexture(x, y, 0.0f, 0.0f, 32, 32, 32.0f, 32.0f)
             GlStateManager.disableBlend()
         }
+    }
+
+    private fun getVersion(): String {
+        plugin?.let {
+            return "v${it.version}"
+        }
+        loader?.let {
+            return "v${it.info.version}"
+        }
+        return ""
     }
 
 }

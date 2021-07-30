@@ -44,18 +44,20 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
     fun collectPlugins(onlyLocal: Boolean = false) {
 
         loadedPlugins.forEach { plugin ->
-            plugins.firstOrNull { it.pluginData.name == plugin.name }?.let { entry ->
-                plugins.remove(entry)
+            val exists = plugins.firstOrNull { it.pluginData.name == plugin.name } // contains a value if exists, is null if it doesn't
+            if (exists != null) {
+                exists.pluginData.pluginState = PluginState.INSTALLED
+            } else {
+                plugins.add(LambdaPluginListEntry(owner, PluginData(plugin.name, PluginState.INSTALLED, version = plugin.version), plugin))
             }
-            plugins.add(LambdaPluginListEntry(owner, PluginData(plugin.name, PluginState.INSTALLED), plugin))
         }
 
         getLoaders().forEach { loader ->
-            if (loadedPlugins.none { it.name == loader.name }) {
-                plugins.firstOrNull { it.pluginData.name == loader.name }?.let { entry ->
-                    plugins.remove(entry)
-                }
-                plugins.add(LambdaPluginListEntry(owner, PluginData(loader.name, PluginState.AVAILABLE), null, loader))
+            val exists = plugins.firstOrNull { it.pluginData.name == loader.name } // contains a value if exists, is null if it doesn't
+            if (exists != null) {
+                exists.pluginData.pluginState = PluginState.AVAILABLE
+            } else {
+                plugins.add(LambdaPluginListEntry(owner, PluginData(loader.name, PluginState.AVAILABLE, version = loader.info.version), null, loader))
             }
         }
 
@@ -82,10 +84,15 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
 
 
                             if (JsonParser().parse(downloadsJson).asJsonArray.size() > 0) {
+                                val mostRecentVersion = JsonParser().parse(downloadsJson).asJsonArray[0]
                                 val name = jsonElement.asJsonObject.get("name").asString
                                 if (plugins.none { it.pluginData.name == name } &&
                                     loadedPlugins.none { it.name == name }) {
-                                    plugins.add(LambdaPluginListEntry(owner, PluginData(name, PluginState.REMOTE, jsonElement.asJsonObject.get("description").asString)))
+                                    plugins.add(LambdaPluginListEntry(owner, PluginData(name, PluginState.REMOTE, jsonElement.asJsonObject.get("description").asString, mostRecentVersion.asJsonObject.get("tag_name").asString)))
+                                } else {
+                                    plugins.find { it.pluginData.name == name }?.let { plugin ->
+                                        plugin.onlineVersion = mostRecentVersion.asJsonObject.get("tag_name").asString
+                                    }
                                 }
                             }
                         }
@@ -111,8 +118,9 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
         LOADING("Loading", "Loading", 0x808080),
         INSTALLED("Installed", "Uninstall", 0x2AD13B),
         AVAILABLE("Available", "Install", 0x4287F5),
-        REMOTE("Remote", "Download", 0x752AD1)
+        REMOTE("Remote", "Download", 0x752AD1),
+        UPDATE("Update Available", "Update",0x7F8DEB) // TODO find a better colour for this
     }
 
-    data class PluginData(val name: String, var pluginState: PluginState, var repoDescription: String = "")
+    data class PluginData(val name: String, var pluginState: PluginState, var repoDescription: String = "", var version: String)
 }

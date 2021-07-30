@@ -20,6 +20,7 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.nio.file.FileSystemException
 
 
 class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen() {
@@ -88,6 +89,23 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
                     }
                     LambdaPluginSelectionList.PluginState.LOADING -> {
                         //
+                    }
+                    LambdaPluginSelectionList.PluginState.UPDATE -> {
+                        pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.LOADING
+
+
+                        pluginEntry.plugin?.let {
+                            unload(it)
+                        }
+
+                        pluginEntry.loader?.let {
+                            it.close()
+                            println("Deleting file ${it.file.absolutePath}")
+
+
+                        }
+
+                        downloadPlugin(pluginEntry)
                     }
                 }
                 pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.LOADING
