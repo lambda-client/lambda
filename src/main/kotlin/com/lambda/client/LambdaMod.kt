@@ -44,7 +44,7 @@ class LambdaMod {
 
         var ready: Boolean = false; private set
     }
-    
+
     @Mod.EventHandler
     fun preInit(event: FMLPreInitializationEvent) {
         val directory = File(DIRECTORY)

@@ -22,15 +22,11 @@ import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.items.swapToSlot
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils.toBlockPos
-import com.lambda.client.util.threads.defaultScope
-import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.placeBlock
 import com.lambda.event.listener.listener
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketPlayerPosLook

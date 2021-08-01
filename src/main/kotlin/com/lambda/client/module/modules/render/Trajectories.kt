@@ -1,7 +1,6 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -12,7 +11,6 @@ import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.LambdaTessellator
-import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.material.Material
 import net.minecraft.client.renderer.ActiveRenderInfo
@@ -193,7 +191,8 @@ object Trajectories : Module(
             val cosPitch = cos(pitchRad)
 
             val initVelocity = if (throwingType == ThrowingType.BOW) {
-                val itemUseCount = FastUse.bowCharge ?: if (event.player.isHandActive) event.getInterpolatedCharge() else 0.0
+                val itemUseCount = FastUse.bowCharge
+                    ?: if (event.player.isHandActive) event.getInterpolatedCharge() else 0.0
                 val useDuration = (72000 - itemUseCount) / 20.0
                 val velocity = (useDuration.pow(2) + useDuration * 2.0) / 3.0
                 min(velocity, 1.0) * throwingType.velocity

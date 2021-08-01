@@ -35,7 +35,7 @@ object CombatManager : Manager {
         var topModule: AbstractModule? = null
         for (module in combatModules) {
             if (!module.isActive()) continue
-            if (module.modulePriority < topModule?.modulePriority ?: 0) continue
+            if (module.modulePriority < (topModule?.modulePriority ?: 0)) continue
             topModule = module
         }
         return topModule
