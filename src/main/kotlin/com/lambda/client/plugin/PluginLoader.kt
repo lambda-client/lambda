@@ -62,10 +62,8 @@ class PluginLoader(
             clazz.newInstance()
         }
 
-        println("plugin is ${obj.javaClass.superclass}")
-
-        val plugin = obj as Plugin
-         //   ?: throw IllegalArgumentException("The specific main class ${info.mainClass} is not a valid plugin main class")
+        val plugin = obj as? Plugin
+            ?: throw IllegalArgumentException("The specific main class ${info.mainClass} is not a valid plugin main class")
 
         plugin.setInfo(info)
         return plugin
