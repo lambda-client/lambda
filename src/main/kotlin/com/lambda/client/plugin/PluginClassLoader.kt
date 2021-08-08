@@ -7,7 +7,7 @@ import java.io.InputStream
 import java.util.jar.JarEntry
 
 // A custom class loader that only opens the file while it is actually reading from it then closes the file so that it can be deleted / changed.
-class PluginClassLoader(jar: JarFile) : ClassLoader() {
+class PluginClassLoader(jar: JarFile, parent: ClassLoader) : ClassLoader(parent) {
 
     private val classes = HashMap<String, ByteArray>()
     private val resources = HashMap<String, ByteArray>()
@@ -22,7 +22,6 @@ class PluginClassLoader(jar: JarFile) : ClassLoader() {
     }
 
     public override fun findClass(name: String): Class<*> {
-        println("finding class ${name}")
         var b = ByteArray(0)
         try {
             b = loadClassFromFile(name)
@@ -41,10 +40,8 @@ class PluginClassLoader(jar: JarFile) : ClassLoader() {
     private fun getClasses(jar: JarFile) {
         for (entry in jar.entries()) {
 
-            println(entry.name)
-
             if (entry.name.endsWith(".class")) {
-                classes[entry.name.removeSuffix(".class")] = getDataFromEntry(jar, entry)
+                classes[entry.name.removeSuffix(".class").replace("/", ".")] = getDataFromEntry(jar, entry)
             } else if (!entry.name.endsWith("/")) {
                 resources[entry.name] = getDataFromEntry(jar, entry)
             }

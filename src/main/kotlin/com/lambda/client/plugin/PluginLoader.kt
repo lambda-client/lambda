@@ -20,7 +20,7 @@ class PluginLoader(
     override val name: String get() = info.name
 
     private val url = file.toURI().toURL()
-    private val loader = PluginClassLoader(JarFile(file))
+    private val loader = PluginClassLoader(JarFile(file), this.javaClass.classLoader)
     val info: PluginInfo = loader.getResourceAsStream("plugin_info.json")?.let {
         PluginInfo.fromStream(it)
     } ?: throw FileNotFoundException("plugin_info.json not found in jar ${file.name}!")
