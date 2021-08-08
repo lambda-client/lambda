@@ -3,6 +3,7 @@ package com.lambda.client.gui.mc
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.PluginManager.getLoaders
+import com.lambda.client.plugin.PluginManager.loadedPluginLoader
 import com.lambda.client.plugin.PluginManager.loadedPlugins
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.commons.utils.ConnectionUtils
@@ -29,6 +30,10 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
         return plugins[index]
     }
 
+    fun removeListEntry(entry: LambdaPluginListEntry) {
+        plugins.remove(entry)
+    }
+
     override fun isSelected(slotIndex: Int): Boolean {
         return slotIndex == selectedSlotIndex
     }
@@ -46,15 +51,17 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
         loadedPlugins.forEach { plugin ->
             val exists = plugins.firstOrNull { it.pluginData.name == plugin.name } // contains a value if exists, is null if it doesn't
             if (exists != null) {
+                exists.pluginData.version = plugin.version
                 exists.pluginData.pluginState = PluginState.INSTALLED
             } else {
-                plugins.add(LambdaPluginListEntry(owner, PluginData(plugin.name, PluginState.INSTALLED, version = plugin.version), plugin))
+                plugins.add(LambdaPluginListEntry(owner, PluginData(plugin.name, PluginState.INSTALLED, version = plugin.version), plugin, loadedPluginLoader["plugin.name"]))
             }
         }
 
         getLoaders().forEach { loader ->
             val exists = plugins.firstOrNull { it.pluginData.name == loader.name } // contains a value if exists, is null if it doesn't
             if (exists != null) {
+                exists.pluginData.version = loader.info.version
                 exists.pluginData.pluginState = PluginState.AVAILABLE
             } else {
                 plugins.add(LambdaPluginListEntry(owner, PluginData(loader.name, PluginState.AVAILABLE, version = loader.info.version), null, loader))

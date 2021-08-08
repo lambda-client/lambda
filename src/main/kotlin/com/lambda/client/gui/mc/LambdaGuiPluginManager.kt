@@ -91,8 +91,6 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
                         //
                     }
                     LambdaPluginSelectionList.PluginState.UPDATE -> {
-                        pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.LOADING
-
 
                         pluginEntry.plugin?.let {
                             unload(it)
@@ -100,12 +98,14 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
 
                         pluginEntry.loader?.let {
                             it.close()
-                            println("Deleting file ${it.file.absolutePath}")
+                            LambdaMod.LOG.info("Deleting file ${it.file.absolutePath}")
 
-
+                            it.file.delete()
                         }
 
                         downloadPlugin(pluginEntry)
+
+                        pluginListSelector.removeListEntry(pluginEntry)
                     }
                 }
                 pluginEntry.pluginData.pluginState = LambdaPluginSelectionList.PluginState.LOADING
