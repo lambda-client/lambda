@@ -15,7 +15,7 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
     var onlineVersion: String? = null
 
     override fun drawEntry(slotIndex: Int, x: Int, y: Int, listWidth: Int, slotHeight: Int, mouseX: Int, mouseY: Int, isSelected: Boolean, partialTicks: Float) {
-        if (onlineVersion != getVersion() && onlineVersion != null) {
+        if (onlineVersion?.replace("v", "") != getVersion() && onlineVersion != null) {
             pluginData.pluginState = LambdaPluginSelectionList.PluginState.UPDATE
         }
 
@@ -66,10 +66,10 @@ class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: L
 
     private fun getVersion(): String {
         plugin?.let {
-            return "v${it.version}"
+            return it.version
         }
         loader?.let {
-            return "v${it.info.version}"
+            return it.info.version
         }
         return ""
     }

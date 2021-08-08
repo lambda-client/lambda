@@ -51,20 +51,22 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
         loadedPlugins.forEach { plugin ->
             val exists = plugins.firstOrNull { it.pluginData.name == plugin.name } // contains a value if exists, is null if it doesn't
             if (exists != null) {
-                exists.pluginData.version = plugin.version
                 exists.pluginData.pluginState = PluginState.INSTALLED
+                exists.pluginData.version = plugin.version
             } else {
                 plugins.add(LambdaPluginListEntry(owner, PluginData(plugin.name, PluginState.INSTALLED, version = plugin.version), plugin, loadedPluginLoader["plugin.name"]))
             }
         }
 
         getLoaders().forEach { loader ->
-            val exists = plugins.firstOrNull { it.pluginData.name == loader.name } // contains a value if exists, is null if it doesn't
-            if (exists != null) {
-                exists.pluginData.version = loader.info.version
-                exists.pluginData.pluginState = PluginState.AVAILABLE
-            } else {
-                plugins.add(LambdaPluginListEntry(owner, PluginData(loader.name, PluginState.AVAILABLE, version = loader.info.version), null, loader))
+            if (!loadedPlugins.any { it.name == loader.name }) {
+                val exists = plugins.firstOrNull { it.pluginData.name == loader.name } // contains a value if exists, is null if it doesn't
+                if (exists != null) {
+                    exists.pluginData.version = loader.info.version
+                    exists.pluginData.pluginState = PluginState.AVAILABLE
+                } else {
+                    plugins.add(LambdaPluginListEntry(owner, PluginData(loader.name, PluginState.AVAILABLE, version = loader.info.version), null, loader))
+                }
             }
         }
 
