@@ -14,6 +14,47 @@ Lambda is a free, open-source, Minecraft 1.12.2 utility mod providing a visionar
 
 <a href="https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar"><img alt="lambda-2.07.01.jar - July 1, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
 
+## FAQ
+
+How do I...
+
+<details>
+  <summary>... open the ClickGUI?</summary>
+
+> Press `Y`
+
+</details>
+
+<details>
+  <summary>... install plugins?</summary>
+
+> Open the lambda menu either on main menu or escape menu. You can download official plugins there. They are hosted on [GitHub](https://github.com/lambda-plugins/). If you want to load a third party plugin click the `open plugins folder` button and put the jar into the folder. CAUTION: Third party plugins can contain dangerous code! Only use plugins from trusted sources!
+
+</details>
+
+<details>
+  <summary>... export KAMI blue config to lambda?</summary>
+
+> Rename `.minecraft/kamiblue` to `.minecraft/lambda`
+
+</details>
+
+
+<details>
+  <summary>... fix most crashes on startup?</summary>
+
+> Possibly you have multiple mods loaded. Forge loads mods in alphabetical order, so you can change the name of the Mod jar to make it load earlier or later. Add for example an exclamation mark to lambda jar to make it load first.
+> If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the noverify tag from your arguments.
+
+</details>
+
+<details>
+  <summary>... reset the ClickGUI scale?</summary>
+
+> Run the command `;set clickgui scale 100`
+
+</details>
+
 ## Contributing
 
 ### Clone Repository
@@ -47,13 +88,13 @@ Test if the environment is set up correctly by building the client and run it in
 
 [zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
 
-the [Kami Blue](https://github.com/kami-blue) team for the continuation of [KAMI](https://github.com/zeroeightysix/KAMI)
+[KAMI Blue](https://github.com/kami-blue) for the continuation of [KAMI](https://github.com/zeroeightysix/KAMI)
 
 [ronmamo](https://github.com/ronmamo) for [Reflections](https://github.com/ronmamo/reflections)
 
-The [Minecraft Forge](https://github.com/MinecraftForge)  team for [Forge](https://files.minecraftforge.net/)
+[MinecraftForge](https://github.com/MinecraftForge) for [Forge](https://github.com/MinecraftForge/MinecraftForge)
 
-All the [contributors](https://github.com/lambda-client/lambda/graphs/contributors), including the ones who will be remembered in comments and in our hearts. This has been a huge community effort, and we would not be here without you.
+Our [contributors](https://github.com/lambda-client/lambda/graphs/contributors)
 
 ### Stargazers
 [![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
