@@ -6,6 +6,7 @@ import com.lambda.capeapi.Cape
 import com.lambda.capeapi.CapeType
 import com.lambda.capeapi.CapeUser
 import com.lambda.client.LambdaMod
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.misc.DiscordRPC
@@ -52,13 +53,16 @@ object Capes : Module(
 
     init {
         onEnable {
-            defaultScope.launch {
-                updateCapes()
+            // ToDo: Find better way to prevent unintended cape loading
+            if (mc.currentScreen == LambdaClickGui) {
+                defaultScope.launch {
+                    updateCapes()
+                }
             }
         }
 
         BackgroundScope.launchLooping("Cape", 300000L) {
-            updateCapes()
+            if (isEnabled) updateCapes()
         }
     }
 
