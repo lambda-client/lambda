@@ -26,6 +26,13 @@ How do I...
 </details>
 
 <details>
+  <summary>... execute a command?</summary>
+
+> Use the ingame chat with the prefix `;`
+
+</details>
+
+<details>
   <summary>... install plugins?</summary>
 
 > Open the lambda menu either on main menu or escape menu. You can download official plugins there. They are hosted on [GitHub](https://github.com/lambda-plugins/). If you want to load a third party plugin click the `open plugins folder` button and put the jar into the folder. CAUTION: Third party plugins can contain dangerous code! Only use plugins from trusted sources!
