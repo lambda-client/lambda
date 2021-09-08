@@ -113,11 +113,6 @@ dependencies {
         exclude module: 'annotations'
     }
 
-    jarLibs("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version") {
-        exclude module: 'kotlin-stdlib-common'
-        exclude module: 'annotations'
-    }
-
     jarLibs("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version") {
         exclude module: 'kotlin-stdlib-common'
         exclude module: 'annotations'
@@ -178,8 +173,7 @@ jar {
             'TweakOrder': 0,
             'FMLCorePluginContainsFMLMod': 'true',
             'FMLCorePlugin': 'com.lambda.client.mixin.MixinLoaderForge',
-            'ForceLoadAsMod': 'true',
-            'Main-Class': 'com.lambda.client.installer.Installer'
+            'ForceLoadAsMod': 'true'
     )
 
     // Copy needed libs to jar
@@ -190,9 +184,10 @@ jar {
     }
 }
 
-task buildApi {
+task buildAll {
     group 'build'
     dependsOn sourceJar
     dependsOn apiJar
+    dependsOn jar
     description 'Assemble API library archives'
 }
