@@ -1,5 +1,6 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.plugin.IPluginLoader
 import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.api.Plugin
 import net.minecraft.client.Minecraft
@@ -8,7 +9,7 @@ import net.minecraft.client.gui.GuiListExtended.IGuiListEntry
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.ResourceLocation
 
-class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: LambdaPluginSelectionList.PluginData, val plugin: Plugin? = null, val loader: PluginLoader? = null) : IGuiListEntry {
+internal class LambdaPluginListEntry(val owner: LambdaGuiPluginManager, val pluginData: LambdaPluginSelectionList.PluginData, val plugin: Plugin? = null, val loader: IPluginLoader? = null) : IGuiListEntry {
     val mc: Minecraft = Minecraft.getMinecraft()
     private val unknownPlugin = ResourceLocation("textures/misc/unknown_server.png")
 

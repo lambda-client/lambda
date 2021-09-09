@@ -51,8 +51,7 @@ sourceSets {
     }
 }
 
-val library by configurations.creating
-val troll by configurations.creating
+val library: Configuration by configurations.creating
 
 val minecraftVersion: String by project
 val forgeVersion: String by project
@@ -72,8 +71,7 @@ dependencies {
     }
 
     // Forge
-    val minecraft = "minecraft"
-    minecraft("net.minecraftforge:forge:$minecraftVersion-$forgeVersion")
+    "minecraft"("net.minecraftforge:forge:$minecraftVersion-$forgeVersion")
 
     // Dependencies
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
@@ -107,7 +105,7 @@ dependencies {
 }
 
 configure<MixinExtension> {
-    add(sourceSets.main.get(), "mixins.lambda.json")
+    add(sourceSets.main.get(), "mixins.lambda.refmap.json")
 }
 
 configure<UserDevExtension> {

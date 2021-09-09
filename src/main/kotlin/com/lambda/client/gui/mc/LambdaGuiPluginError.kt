@@ -1,5 +1,6 @@
 package com.lambda.client.gui.mc
 
+import com.lambda.client.plugin.IPluginLoader
 import com.lambda.client.plugin.PluginError
 import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager
@@ -14,7 +15,7 @@ import java.util.*
 
 internal class LambdaGuiPluginError(
     private val prevScreen: GuiScreen?,
-    pluginErrors: List<Pair<PluginLoader, PluginError>>
+    pluginErrors: List<Pair<IPluginLoader, PluginError>>
 ) : GuiScreen() {
 
     private val errorPlugins: String
