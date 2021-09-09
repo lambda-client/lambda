@@ -236,8 +236,8 @@ tasks {
                 }.getOrNull()
 
                 credentials {
-                    username = githubProperty?.getProperty("username") ?: System.getenv("USERNAME")
-                    password = githubProperty?.getProperty("token") ?: System.getenv("TOKEN")
+                    username = githubProperty?.getProperty("username") ?: System.getenv("GITHUB_ACTOR")
+                    password = githubProperty?.getProperty("token") ?: System.getenv("GITHUB_TOKEN")
                 }
             }
         }
