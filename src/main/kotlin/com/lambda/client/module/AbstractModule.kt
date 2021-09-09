@@ -37,7 +37,7 @@ abstract class AbstractModule(
     val priorityForGui = IntegerSetting("Priority In GUI", 0, 0..1000, 50, { ClickGUI.sortBy.value == ClickGUI.SortByOptions.CUSTOM }, fineStep = 1).also(::addSetting)
     val clicks = IntegerSetting("Clicks", 0, 0..Int.MAX_VALUE, 1, { false }).also(::addSetting) // Not nice, however easiest way to save it.
 
-    val fullSettingList get() = config.getSettings(this)
+    val fullSettingList get() = (config as NameableConfig<Nameable>).getSettings(this)
     val settingList: List<AbstractSetting<*>> get() = fullSettingList.filter { it != bind && it != enabled && it != visible && it != default && it != clicks }
 
     val isEnabled: Boolean get() = enabled.value || alwaysEnabled

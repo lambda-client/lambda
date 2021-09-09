@@ -26,6 +26,8 @@ abstract class AbstractConfig<T : Any>(
 
     abstract fun addSettingToConfig(owner: T, setting: AbstractSetting<*>)
 
+    abstract fun getSettings(owner: T): List<AbstractSetting<*>>
+
     override fun save() {
         File(filePath).run {
             if (!exists()) mkdirs()
