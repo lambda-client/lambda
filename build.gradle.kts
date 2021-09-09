@@ -1,7 +1,10 @@
 import net.minecraftforge.gradle.userdev.UserDevExtension
+import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
+import org.jetbrains.kotlin.konan.properties.loadProperties
 import org.spongepowered.asm.gradle.plugins.MixinExtension
 
 val modVersion: String by project
+val apiVersion: String by project
 
 group = "com.lambda"
 version = modVersion
@@ -24,6 +27,7 @@ plugins {
     idea
     java
     kotlin("jvm")
+    `maven-publish`
 }
 
 apply {
@@ -48,6 +52,7 @@ sourceSets {
 }
 
 val library by configurations.creating
+val troll by configurations.creating
 
 val minecraftVersion: String by project
 val forgeVersion: String by project
@@ -130,6 +135,10 @@ configure<UserDevExtension> {
     }
 }
 
+configure<NamedDomainObjectContainer<RenameJarInPlace>> {
+    create("releaseJar")
+}
+
 tasks {
     compileJava {
         options.encoding = "UTF-8"
@@ -148,7 +157,11 @@ tasks {
         }
     }
 
-    jar {
+    val releaseJar by register<Jar>("releaseJar") {
+        group = "build"
+
+        finalizedBy("reobfReleaseJar")
+
         manifest {
             attributes(
                 "Manifest-Version" to 1.0,
@@ -160,9 +173,11 @@ tasks {
             )
         }
 
+        from(sourceSets.main.get().output)
+
         val regex = "baritone-1\\.2\\.\\d\\d\\.jar".toRegex()
         from(
-            (configurations.runtimeClasspath.get() - configurations["minecraft"])
+            (configurations.runtimeClasspath.get().files - configurations["minecraft"])
                 .filterNot {
                     it.name.matches(regex)
                 }.map {
@@ -175,6 +190,57 @@ tasks {
                 if (it.isDirectory) it else zipTree(it)
             }
         )
+
+        System.getenv("MOD_VERSION_OVERRIDE")?.let {
+            archiveVersion.set(it)
+        }
+    }
+
+    val apiSourcesJar by register<Jar>("apiSourcesJar") {
+        group = "build"
+
+        from(sourceSets.main.get().allSource)
+        archiveAppendix.set("api")
+        archiveClassifier.set("sources")
+        archiveVersion.set(apiVersion)
+    }
+
+    jar {
+        archiveAppendix.set("api")
+        archiveVersion.set(apiVersion)
+    }
+
+    register<Task>("buildAll") {
+        group = "build"
+
+        dependsOn(jar)
+        dependsOn(releaseJar)
+        dependsOn(apiSourcesJar)
+    }
+
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                artifactId = "lambda-api"
+                version = apiVersion
+
+                from(project.components["kotlin"])
+                artifact(apiSourcesJar)
+            }
+        }
+
+        repositories {
+            maven("https://maven.pkg.github.com/lambda-client/lambda-api") {
+                val githubProperty = runCatching {
+                    loadProperties("${projectDir.absolutePath}/github.properties")
+                }.getOrNull()
+
+                credentials {
+                    username = githubProperty?.getProperty("username") ?: System.getenv("USERNAME")
+                    password = githubProperty?.getProperty("token") ?: System.getenv("TOKEN")
+                }
+            }
+        }
     }
 
     register<Task>("genRuns") {
@@ -212,5 +278,16 @@ tasks {
                 )
             }
         }
+    }
+}
+
+afterEvaluate {
+    artifacts {
+        archives(tasks.getByName("releaseJar"))
+    }
+
+    // This is hacky af but it prevents obfuscating the default jar
+    tasks.assemble {
+        tasks.assemble.get().dependsOn.removeAll { it is RenameJarInPlace }
     }
 }
