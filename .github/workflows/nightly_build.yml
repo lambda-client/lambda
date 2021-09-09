@@ -44,7 +44,7 @@ jobs :
       - name : Generate forge mod checksum
         uses : ToxicAven/generate-checksum-file@v1
         with :
-          filePath : lambda-${{ github.run_number }}.jar
+          filePath : build/libs/lambda-${{ github.run_number }}.jar
           saveFile : forgeModSum.txt
           algorithm : SHA256
 
@@ -58,7 +58,7 @@ jobs :
         uses : actions/upload-artifact@v2
         with :
           name : lambda-${{ github.run_number }}
-          path : lambda-${{ github.run_number }}.jar
+          path : build/libs/lambda-${{ github.run_number }}.jar
 
       - name : Publish API to Maven
         run : ./gradlew --build-cache publish
