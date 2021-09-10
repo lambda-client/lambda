@@ -155,6 +155,12 @@ tasks {
         }
     }
 
+    processResources {
+        filesMatching("mcmod.info") {
+            expand("version" to project.version)
+        }
+    }
+
     val releaseJar by register<Jar>("releaseJar") {
         group = "build"
 
