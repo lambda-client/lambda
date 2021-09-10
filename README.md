@@ -1,4 +1,6 @@
-<img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%">
+<p align="center">
+    <img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%">
+</p>
 
 ![GitHub All Releases](https://img.shields.io/github/downloads/lambda-client/lambda/total)
 [![CodeFactor](https://www.codefactor.io/repository/github/lambda-client/lambda/badge)](https://www.codefactor.io/repository/github/lambda-client/lambda)
@@ -8,11 +10,12 @@
 <img src="https://img.shields.io/github/languages/code-size/lambda-client/lambda.svg" alt="Code size"/>
 <img src="https://img.shields.io/github/repo-size/lambda-client/lambda.svg" alt="GitHub repo size"/>
 <img src="https://tokei.rs/b1/github/lambda-client/lambda?category=code" alt="Lines of Code"/>
-</p>
 
 Lambda is a free, open-source, Minecraft 1.12.2 utility mod providing a visionary system for plugins that allow customizing the clients features thanks to an ingame plugin store.
 
-<a href="https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar"><img alt="lambda-2.07.01.jar - July 1, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
+<p align="center">
+    <a href="https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar"><img alt="lambda-2.07.01.jar - July 1, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
+</p>
 
 ## FAQ
 
