@@ -1,7 +1,6 @@
 package com.lambda.client.gui.mc
 
 import com.lambda.client.plugin.IPluginLoader
-import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.api.Plugin
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Gui

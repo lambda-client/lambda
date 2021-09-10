@@ -2,7 +2,6 @@ package com.lambda.client.gui.mc
 
 import com.lambda.client.plugin.IPluginLoader
 import com.lambda.client.plugin.PluginError
-import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager
 import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen

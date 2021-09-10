@@ -5,7 +5,6 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.internal.SynchronizedObject
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
