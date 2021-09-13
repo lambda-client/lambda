@@ -497,7 +497,7 @@ object CrystalAura : Module(
     private fun SafeClientEvent.canPlaceCollide(pos: BlockPos): Boolean {
         val placingBB = CrystalUtils.getCrystalPlacingBB(pos.up())
         return world.getEntitiesWithinAABBExcludingEntity(null, placingBB).all {
-            !it.isEntityAlive || lastCrystalID == it.entityId && pos == BlockPos(it.posX, it.posY - 1.0, it.posZ)
+            !it.isEntityAlive || it is EntityEnderCrystal
         }
     }
 

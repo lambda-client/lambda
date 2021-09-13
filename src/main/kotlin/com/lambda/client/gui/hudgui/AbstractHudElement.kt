@@ -46,7 +46,7 @@ abstract class AbstractHudElement(
     open val hudWidth: Float get() = 20f
     open val hudHeight: Float get() = 10f
 
-    val settingList get() = GuiConfig.getGroupOrPut(SettingGroup.HUD_GUI.groupName).getGroupOrPut(name).getSettings()
+    val settingList get() = GuiConfig.getSettings(this)
 
     init {
         safeListener<TickEvent.ClientTickEvent> {

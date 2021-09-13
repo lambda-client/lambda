@@ -12,6 +12,5 @@ open class NameableConfig<T : Nameable>(
         getGroupOrPut(owner.name).addSetting(setting)
     }
 
-    open fun getSettings(nameable: Nameable) = getGroup(nameable.name)?.getSettings() ?: emptyList()
-
+    override fun getSettings(owner: T) = getGroup(owner.name)?.getSettings() ?: emptyList()
 }

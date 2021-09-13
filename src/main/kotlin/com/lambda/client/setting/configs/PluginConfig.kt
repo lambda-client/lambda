@@ -15,7 +15,6 @@ import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.commons.interfaces.Nameable
 import java.io.File
 
 class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(
@@ -38,16 +37,16 @@ class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(
         }
     }
 
-    override fun getSettings(nameable: Nameable): List<AbstractSetting<*>> {
-        return when (nameable) {
+    override fun getSettings(owner: IPluginClass): List<AbstractSetting<*>> {
+        return when (owner) {
             is PluginModule -> {
-                getGroup("modules")?.getGroupOrPut(nameable.name)?.getSettings()
+                getGroup("modules")?.getGroupOrPut(owner.name)?.getSettings()
             }
             is PluginHudElement -> {
-                getGroup("hud")?.getGroup(nameable.name)?.getSettings()
+                getGroup("hud")?.getGroup(owner.name)?.getSettings()
             }
             else -> {
-                getGroup("misc")?.getGroup(nameable.name)?.getSettings()
+                getGroup("misc")?.getGroup(owner.name)?.getSettings()
             }
         } ?: emptyList()
     }

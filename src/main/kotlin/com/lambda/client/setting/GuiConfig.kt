@@ -26,4 +26,17 @@ internal object GuiConfig : AbstractConfig<Component>(
             }
         }
     }
+
+    override fun getSettings(owner: Component): List<AbstractSetting<*>> {
+        return if (owner is IPluginClass) {
+            (owner.config as PluginConfig).getSettings(owner)
+        } else {
+            val groupName = owner.settingGroup.groupName
+            if (groupName.isNotEmpty()) {
+                getGroupOrPut(groupName).getGroupOrPut(owner.name).getSettings()
+            } else {
+                emptyList()
+            }
+        }
+    }
 }
