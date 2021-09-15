@@ -9,11 +9,11 @@ import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
 
-internal object PluginManager : AsyncLoader<List<PluginLoader>> {
-    override var deferred: Deferred<List<PluginLoader>>? = null
+internal object PluginManager : AsyncLoader<List<IPluginLoader>> {
+    override var deferred: Deferred<List<IPluginLoader>>? = null
 
     val loadedPlugins = NameableSet<Plugin>()
-    val loadedPluginLoader = NameableSet<PluginLoader>()
+    val loadedPluginLoader = NameableSet<IPluginLoader>()
 
     const val pluginPath = "${LambdaMod.DIRECTORY}plugins/"
 
@@ -21,17 +21,17 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     override fun preLoad0() = getLoaders()
 
-    override fun load0(input: List<PluginLoader>) {
+    override fun load0(input: List<IPluginLoader>) {
         loadAll(input)
     }
 
-    fun getLoaders(): List<PluginLoader> {
+    fun getLoaders(): List<IPluginLoader> {
         val dir = File(pluginPath)
         if (!dir.exists()) dir.mkdir()
 
         val files = dir.listFiles() ?: return emptyList()
         val jarFiles = files.filter { it.extension.equals("jar", true) }
-        val plugins = ArrayList<PluginLoader>()
+        val plugins = ArrayList<IPluginLoader>()
 
         jarFiles.forEach {
             try {
@@ -47,10 +47,14 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             }
         }
 
+        if (System.getenv("DEV_PLUGIN") == "true") {
+            plugins.add(DevPluginLoader())
+        }
+
         return plugins
     }
 
-    fun loadAll(loaders: List<PluginLoader>) {
+    fun loadAll(loaders: List<IPluginLoader>) {
         val validLoaders = checkPluginLoaders(loaders)
 
         synchronized(this) {
@@ -60,9 +64,9 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         LambdaMod.LOG.info("Loaded ${loadedPlugins.size} plugins!")
     }
 
-    private fun checkPluginLoaders(loaders: List<PluginLoader>): List<PluginLoader> {
-        val loaderSet = NameableSet<PluginLoader>()
-        val invalids = HashSet<PluginLoader>()
+    private fun checkPluginLoaders(loaders: List<IPluginLoader>): List<IPluginLoader> {
+        val loaderSet = NameableSet<IPluginLoader>()
+        val invalids = HashSet<IPluginLoader>()
 
         for (loader in loaders) {
             // Hot reload check, the error shouldn't be show when reload in game
@@ -104,7 +108,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         return loaders.filter { !invalids.contains(it) }
     }
 
-    fun load(loader: PluginLoader) {
+    fun load(loader: IPluginLoader) {
         synchronized(this) {
             val hotReload = LambdaMod.ready && !loader.info.hotReload
             val duplicate = loadedPlugins.containsName(loader.name)
@@ -122,7 +126,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         }
     }
 
-    private fun loadWithoutCheck(loader: PluginLoader) {
+    private fun loadWithoutCheck(loader: IPluginLoader) {
         val plugin = synchronized(this) {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
