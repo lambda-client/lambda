@@ -234,7 +234,7 @@ tasks {
         }
 
         repositories {
-            maven("https://maven.pkg.github.com/lambda-client/lambda-api") {
+            maven("https://maven.pkg.github.com/lambda-client/lambda") {
                 val githubProperty = runCatching {
                     loadProperties("${projectDir.absolutePath}/github.properties")
                 }.getOrNull()
