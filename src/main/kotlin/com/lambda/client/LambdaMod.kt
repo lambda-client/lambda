@@ -29,7 +29,7 @@ class LambdaMod {
         const val VERSION_SIMPLE = "2.09.xx-dev" // Shown to the user. R.MM.DD[-beta] format.
         const val VERSION_MAJOR = "2.09.01" // Used for update checking. RR.MM.01 format.
 
-        const val APP_ID = "835368493150502923"
+        const val APP_ID = 835368493150502923
 
         const val DOWNLOADS_API = "" // ToDo: setup for CI
         const val CAPES_JSON = "https://raw.githubusercontent.com/lambda-client/cape-api/capes/capes.json"
