@@ -225,7 +225,8 @@ tasks {
     publishing {
         publications {
             create<MavenPublication>("maven") {
-                artifactId = "lambda"
+                groupId = "com.lambda"
+                artifactId = "api"
                 version = apiVersion
 
                 from(project.components["kotlin"])
