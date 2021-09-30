@@ -38,7 +38,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Build all jars
-        run: ./gradlew --build-cache buildAll
+        run: ./gradlew --build-cache build
         env:
           MOD_VERSION_OVERRIDE: ${{ github.run_number }}
 

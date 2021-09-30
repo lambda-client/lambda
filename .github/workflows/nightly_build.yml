@@ -36,8 +36,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Build all jars
-        run: ./gradlew --build-cache buildAll
+      - name: Build
+        run: ./gradlew --build-cache build
         env:
           MOD_VERSION_OVERRIDE: ${{ github.run_number }}
 
@@ -59,11 +59,6 @@ jobs:
         with:
           name: lambda-${{ github.run_number }}
           path: build/libs/lambda-${{ github.run_number }}.jar
-
-      - name: Publish API to Maven
-        run: ./gradlew --build-cache publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get branch name
         uses: nelonoel/branch-name@v1.0.1
