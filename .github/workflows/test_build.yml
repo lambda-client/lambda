@@ -37,7 +37,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Build all jars
+      - name: Build
         run: ./gradlew --build-cache build
         env:
           MOD_VERSION_OVERRIDE: ${{ github.run_number }}
