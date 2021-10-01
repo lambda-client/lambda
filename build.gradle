@@ -11,8 +11,8 @@ buildscript {
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:4.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokkaVersion"
     }
 }
 
@@ -45,7 +45,7 @@ repositories {
 }
 
 minecraft {
-    mappings channel: 'stable', version: '39-1.12'
+    mappings channel: "$mappingsChannel", version: "$mappingsVersion"
 
     runs {
         client {
@@ -72,7 +72,7 @@ configurations {
 
 dependencies {
     // Forge
-    minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2855'
+    minecraft "net.minecraftforge:forge:$minecraftVersion-$forgeVersion"
 
     jarLibs('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
         exclude module: 'commons-io'
@@ -98,33 +98,33 @@ dependencies {
 
     // Kotlin libs
     // kotlin-stdlib-common and annotations aren't required at runtime
-    jarLibs("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version") {
+    jarLibs("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion") {
         exclude module: 'kotlin-stdlib-common'
         exclude module: 'annotations'
     }
 
-    jarLibs("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version") {
+    jarLibs("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion") {
         exclude module: 'kotlin-stdlib-common'
         exclude module: 'annotations'
     }
 
-    jarLibs("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version") {
+    jarLibs("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion") {
         exclude module: 'kotlin-stdlib-common'
         exclude module: 'annotations'
     }
 
-    jarLibs("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version") {
+    jarLibs("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion") {
         exclude module: 'kotlin-stdlib-common'
         exclude module: 'annotations'
     }
 
-    jarLibs("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version") {
+    jarLibs("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion") {
         exclude module: 'kotlin-stdlib-common'
         exclude module: 'annotations'
     }
 
     // Add them back to compileOnly (provided)
-    compileOnly "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion"
     compileOnly 'org.jetbrains:annotations:20.1.0'
 
     // This Baritone will NOT be included in the jar
