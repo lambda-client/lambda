@@ -1,4 +1,4 @@
-name : gradle.build
+name: gradle.build
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
         uses: ToxicAven/generate-checksum-file@v1
         with:
           filePath: lambda-${{ github.run_number }}.jar
-          saveFile: forgeModSum.txt
+          saveFile: lambda-${{ github.run_number }}-SHA256.txt
           algorithm: SHA256
 
       - name: Archive forge mod
@@ -57,8 +57,8 @@ jobs:
       - name: Archive forge mod checksum
         uses: actions/upload-artifact@v2
         with:
-          name: forgeModSum.txt
-          path: forgeModSum.txt
+          name: lambda-${{ github.run_number }}-SHA256.txt
+          path: lambda-${{ github.run_number }}-SHA256.txt
 
       - name: Build plugin API
         run: ./gradlew apiJar
@@ -70,7 +70,7 @@ jobs:
         uses: ToxicAven/generate-checksum-file@v1
         with:
           filePath: lambda-${{ github.run_number }}-api.jar
-          saveFile: APISum.txt
+          saveFile: lambda-${{ github.run_number }}-api-SHA256.txt
           algorithm: SHA256
 
       - name: Archive plugin API
@@ -82,8 +82,8 @@ jobs:
       - name: Upload API checksum
         uses: actions/upload-artifact@v2
         with:
-          name: APISum.txt
-          path: APISum.txt
+          name: lambda-${{ github.run_number }}-api-SHA256.txt
+          path: lambda-${{ github.run_number }}-api-SHA256.txt
 
       - name: Get branch name
         uses: nelonoel/branch-name@v1.0.1
