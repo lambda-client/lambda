@@ -277,5 +277,3 @@ gradle-app.setting
 
 # macOS system generate files
 .DS_Store
-
-github.properties

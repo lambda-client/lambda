@@ -10,8 +10,8 @@ internal enum class PluginError {
     UNSUPPORTED,
     REQUIRED_PLUGIN;
 
-    fun handleError(loader: IPluginLoader) {
-        val list = latestErrors ?: ArrayList<Pair<IPluginLoader, PluginError>>().also { latestErrors = it }
+    fun handleError(loader: PluginLoader) {
+        val list = latestErrors ?: ArrayList<Pair<PluginLoader, PluginError>>().also { latestErrors = it }
 
         when (this) {
             HOT_RELOAD -> {
@@ -32,7 +32,7 @@ internal enum class PluginError {
     }
 
     companion object {
-        private var latestErrors: ArrayList<Pair<IPluginLoader, PluginError>>? = null
+        private var latestErrors: ArrayList<Pair<PluginLoader, PluginError>>? = null
 
         fun displayErrors() {
             val errors = latestErrors

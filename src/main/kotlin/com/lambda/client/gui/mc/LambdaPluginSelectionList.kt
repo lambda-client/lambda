@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiListExtended
 
-internal class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecraft, widthIn: Int, heightIn: Int, topIn: Int, bottomIn: Int, slotHeightIn: Int) : GuiListExtended(
+class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecraft, widthIn: Int, heightIn: Int, topIn: Int, bottomIn: Int, slotHeightIn: Int) : GuiListExtended(
     mcIn,
     widthIn,
     heightIn,
