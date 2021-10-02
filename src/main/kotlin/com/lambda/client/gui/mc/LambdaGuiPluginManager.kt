@@ -21,7 +21,8 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
-internal class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen() {
+
+class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen() {
     private lateinit var pluginListSelector: LambdaPluginSelectionList
     private var renderTime = 1
     var hoveringText = ""

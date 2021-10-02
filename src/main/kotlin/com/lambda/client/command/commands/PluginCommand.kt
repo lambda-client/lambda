@@ -1,7 +1,6 @@
 package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
-import com.lambda.client.plugin.IPluginLoader
 import com.lambda.client.plugin.PluginError
 import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager
@@ -64,7 +63,7 @@ object PluginCommand : ClientCommand(
 
                     ConfigUtils.saveAll()
 
-                    val file = (PluginManager.loadedPluginLoader[plugin.name] as? PluginLoader)?.file ?: return@execute
+                    val file = PluginManager.loadedPluginLoader[plugin.name]!!.file
                     PluginManager.unload(plugin)
                     PluginManager.load(PluginLoader(file))
                     ConfigUtils.loadAll()
@@ -173,7 +172,7 @@ object PluginCommand : ClientCommand(
         }
     }
 
-    private fun sendPluginInfo(plugin: Plugin, loader: IPluginLoader) {
+    private fun sendPluginInfo(plugin: Plugin, loader: PluginLoader) {
         MessageSendHelper.sendChatMessage("Info for plugin: $loader")
         MessageSendHelper.sendRawChatMessage(plugin.toString())
     }

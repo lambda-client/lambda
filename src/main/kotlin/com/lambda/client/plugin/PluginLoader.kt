@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.Plugin
+import com.lambda.commons.interfaces.Nameable
 import com.lambda.commons.utils.ClassUtils.instance
 import java.io.File
 import java.io.FileNotFoundException
@@ -11,14 +12,15 @@ import java.lang.reflect.Type
 import java.net.URLClassLoader
 import java.security.MessageDigest
 
-internal class PluginLoader(
+class PluginLoader(
     val file: File
-) : IPluginLoader {
+) : Nameable {
 
     override val name: String get() = info.name
 
-    private val loader = URLClassLoader(arrayOf(file.toURI().toURL()), this.javaClass.classLoader)
-    override val info: PluginInfo = loader.getResourceAsStream("plugin_info.json")?.let {
+    private val url = file.toURI().toURL()
+    private val loader = URLClassLoader(arrayOf(url), this.javaClass.classLoader)
+    val info: PluginInfo = loader.getResourceAsStream("plugin_info.json")?.let {
         PluginInfo.fromStream(it)
     } ?: throw FileNotFoundException("plugin_info.json not found in jar ${file.name}!")
 
@@ -28,7 +30,7 @@ internal class PluginLoader(
         LambdaMod.LOG.debug(info.toString())
     }
 
-    override fun verify(): Boolean {
+    fun verify(): Boolean {
         val bytes = file.inputStream().use {
             it.readBytes()
         }
@@ -47,7 +49,7 @@ internal class PluginLoader(
         return checksumSets.contains(result)
     }
 
-    override fun load(): Plugin {
+    fun load(): Plugin {
         if (LambdaMod.ready && !info.hotReload) {
             throw IllegalAccessException("Plugin $this cannot be hot reloaded!")
         }
@@ -66,7 +68,7 @@ internal class PluginLoader(
         return plugin
     }
 
-    override fun close() {
+    fun close() {
         loader.close()
     }
 
