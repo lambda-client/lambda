@@ -4,8 +4,8 @@ group project.modGroup
 buildscript {
     repositories {
         mavenCentral()
-        maven { url = 'https://files.minecraftforge.net/maven' }
-        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://repo.spongepowered.org/maven/' }
     }
 
     dependencies {
@@ -34,12 +34,14 @@ compileJava {
     options.encoding = 'UTF-8'
 }
 
-compileKotlin {
-    kotlinOptions.freeCompilerArgs += '-Xlambdas=indy'
+compileKotlin.kotlinOptions {
+    freeCompilerArgs += '-Xlambdas=indy'
+    freeCompilerArgs += '-Xopt-in=kotlin.RequiresOptIn'
+    freeCompilerArgs += '-Xopt-in=kotlin.contracts.ExperimentalContracts'
 }
 
 repositories {
-    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+    maven { url = 'https://repo.spongepowered.org/maven/' }
     maven { url = 'https://impactdevelopment.github.io/maven/' }
     maven { url = "https://jitpack.io" }
 }
