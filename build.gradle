@@ -125,6 +125,8 @@ dependencies {
         exclude module: 'annotations'
     }
 
+    jarLibs "com.github.cbyrneee:DiscordIPC:e18542f600"
+
     // Add them back to compileOnly (provided)
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion"
     compileOnly 'org.jetbrains:annotations:20.1.0'
