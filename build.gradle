@@ -94,10 +94,6 @@ dependencies {
         exclude module: 'guava'
     }
 
-    jarLibs('club.minnced:java-discord-rpc:2.0.2') {
-        exclude module: 'jna'
-    }
-
     // Kotlin libs
     // kotlin-stdlib-common and annotations aren't required at runtime
     jarLibs("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion") {
