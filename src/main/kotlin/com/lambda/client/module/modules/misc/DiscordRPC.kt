@@ -1,7 +1,8 @@
 package com.lambda.client.module.modules.misc
 
-import club.minnced.discord.rpc.DiscordEventHandlers
-import club.minnced.discord.rpc.DiscordRichPresence
+import com.jagrosh.discordipc.IPCClient
+import com.jagrosh.discordipc.entities.RichPresence
+import com.jagrosh.discordipc.exceptions.NoDiscordClientException
 import com.lambda.capeapi.CapeType
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ShutdownEvent
@@ -23,6 +24,7 @@ import com.lambda.commons.utils.MathUtils
 import com.lambda.event.listener.listener
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.time.OffsetDateTime
 
 object DiscordRPC : Module(
     name = "DiscordRPC",
@@ -39,8 +41,9 @@ object DiscordRPC : Module(
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
     }
 
-    private val presence = DiscordRichPresence()
-    private val rpc = club.minnced.discord.rpc.DiscordRPC.INSTANCE
+    private val ipc = IPCClient(LambdaMod.APP_ID)
+    private val rpcBuilder = RichPresence.Builder()
+        .setLargeImage("default", "lambda-client.com")
     private var connected = false
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val job = BackgroundJob("Discord RPC", 5000L) { updateRPC() }
@@ -71,13 +74,21 @@ object DiscordRPC : Module(
         if (connected) return
 
         LambdaMod.LOG.info("Starting Discord RPC")
-        connected = true
-        rpc.Discord_Initialize(LambdaMod.APP_ID, DiscordEventHandlers(), true, "")
-        presence.startTimestamp = System.currentTimeMillis() / 1000L
+        try {
+            ipc.connect()
+            connected = true
+            rpcBuilder.setStartTimestamp(OffsetDateTime.now())
+            val richPresence = rpcBuilder.build()
+            ipc.sendRichPresence(richPresence)
 
-        BackgroundScope.launchLooping(job)
+            BackgroundScope.launchLooping(job)
 
-        LambdaMod.LOG.info("Discord RPC initialised successfully")
+            LambdaMod.LOG.info("Discord RPC initialised successfully")
+        } catch (e: NoDiscordClientException) {
+            LambdaMod.LOG.error("No discord client found for RPC, stopping")
+            MessageSendHelper.sendErrorMessage("No discord client found for RPC, stopping")
+            disable()
+        }
     }
 
     private fun end() {
@@ -86,7 +97,7 @@ object DiscordRPC : Module(
         LambdaMod.LOG.info("Shutting down Discord RPC...")
         BackgroundScope.cancel(job)
         connected = false
-        rpc.Discord_Shutdown()
+        ipc.close()
     }
 
     private fun showCoordsConfirm(): Boolean {
@@ -97,10 +108,11 @@ object DiscordRPC : Module(
     }
 
     private fun updateRPC() {
-        presence.details = getLine(line1Left) + getSeparator(0) + getLine(line1Right)
-        presence.state = getLine(line2Left) + getSeparator(1) + getLine(line2Right)
-        presence.largeImageKey = "default"
-        rpc.Discord_UpdatePresence(presence)
+        val richPresence = rpcBuilder
+            .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
+            .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
+            .build()
+        ipc.sendRichPresence(richPresence)
     }
 
     private fun getLine(line: LineInfo): String {
@@ -166,14 +178,10 @@ object DiscordRPC : Module(
     }
 
     fun setCustomIcons(capeType: CapeType?) {
-        presence.smallImageKey = capeType?.imageKey ?: ""
-        presence.smallImageText = when (capeType) {
+        val text = when (capeType) {
             CapeType.CONTRIBUTOR -> "Contributor"
             else -> ""
         }
-    }
-
-    init {
-        presence.largeImageText = "lambda-client.com"
+        rpcBuilder.setSmallImage(capeType?.imageKey ?: "", text)
     }
 }
