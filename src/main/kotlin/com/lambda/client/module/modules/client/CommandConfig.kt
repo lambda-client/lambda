@@ -39,7 +39,7 @@ object CommandConfig : Module(
 
         listener<TickEvent.ClientTickEvent> {
             if (timer.tick(10000L)) {
-                if (customTitle.value) Display.setTitle(title)
+                if (customTitle.value) Display.setTitle("$title - ${mc.session.username}")
                 else Display.setTitle(prevTitle)
             }
         }
