@@ -2,16 +2,14 @@ package com.lambda.client.gui.hudgui.elements.world
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
-import com.lambda.client.gui.hudgui.elements.misc.MemoryUsage.setting
-import com.lambda.commons.utils.MathUtils.round
 import com.lambda.client.mixin.extension.writeChunkToNBT
+import com.lambda.commons.utils.MathUtils.round
 import net.minecraft.nbt.CompressedStreamTools
 import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.util.math.BlockPos
+import net.minecraft.util.datafix.DataFixer
 import net.minecraft.world.chunk.storage.AnvilChunkLoader
 import java.io.*
 import java.util.zip.DeflaterOutputStream
-
 
 internal object ChunkSize : LabelHud(
     name = "ChunkSize",
@@ -29,16 +27,14 @@ internal object ChunkSize : LabelHud(
         displayText.add("KB", secondaryColor)
     }
 
-    private fun updateChunkSize() {
-        if (mc.player.ticksExisted % updateSpeed.value == 0) {
+    private fun SafeClientEvent.updateChunkSize() {
+        if (player.ticksExisted % updateSpeed.value == 0) {
             currentChunkSize = getChunkSize()
         }
     }
 
-    private fun getChunkSize(): Int {
-        if (mc.world == null) return 0
-
-        val chunk = mc.world.getChunk(mc.player.position)
+    private fun SafeClientEvent.getChunkSize(): Int {
+        val chunk = world.getChunk(player.position)
         if (chunk.isEmpty) return 0
 
         val root = NBTTagCompound()
@@ -48,8 +44,8 @@ internal object ChunkSize : LabelHud(
         root.setInteger("DataVersion", 6969)
 
         try {
-            val loader = AnvilChunkLoader(File("kamiblue"), null)
-            loader.writeChunkToNBT(chunk, mc.world, level)
+            val loader = AnvilChunkLoader(File("lambda"), DataFixer(0))
+            loader.writeChunkToNBT(chunk, world, level)
         } catch (e: Throwable) {
             e.printStackTrace()
             return 0 // couldn't save
