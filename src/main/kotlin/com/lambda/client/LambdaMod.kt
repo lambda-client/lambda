@@ -2,6 +2,7 @@ package com.lambda.client
 
 import com.lambda.client.event.ForgeEventProcessor
 import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.WebUtils
 import com.lambda.client.util.threads.BackgroundScope
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.Mod
@@ -25,18 +26,20 @@ class LambdaMod {
         const val ID = "lambda"
         const val DIRECTORY = "lambda/"
 
-        const val VERSION = "2.09.xx-dev" // Used for debugging. R.MM.DD-hash format.
-        const val VERSION_SIMPLE = "2.09.xx-dev" // Shown to the user. R.MM.DD[-beta] format.
-        const val VERSION_MAJOR = "2.09.01" // Used for update checking. RR.MM.01 format.
+        const val VERSION = "2.10-dev"
+        const val VERSION_MAJOR = "2.10"
 
-        const val APP_ID = 835368493150502923
+        const val APP_ID = 835368493150502923 // DiscordIPC
 
-        const val DOWNLOADS_API = "" // ToDo: setup for CI
-        const val CAPES_JSON = "https://raw.githubusercontent.com/lambda-client/cape-api/capes/capes.json"
-        const val GITHUB_LINK = "https://github.com/lambda-client/"
         const val GITHUB_API = "https://api.github.com/"
-        const val ORGANIZATION = "lambda-plugins"
-        const val WEBSITE_LINK = "https://lambda-client.com"
+        private const val MAIN_ORG = "lambda-client"
+        const val PLUGIN_ORG = "lambda-plugins"
+        private const val REPO_NAME = "lambda"
+        const val CAPES_JSON = "https://raw.githubusercontent.com/${MAIN_ORG}/cape-api/capes/capes.json"
+        const val RELEASES_API = "${GITHUB_API}repos/${MAIN_ORG}/${REPO_NAME}/releases"
+        const val DOWNLOAD_LINK = "https://github.com/${MAIN_ORG}/${REPO_NAME}/releases"
+        const val GITHUB_LINK = "https://github.com/$MAIN_ORG/"
+        const val DISCORD_INVITE = "https://discord.gg/QjfBxJzE5x"
 
         const val LAMBDA = "λ"
 
@@ -50,7 +53,7 @@ class LambdaMod {
         val directory = File(DIRECTORY)
         if (!directory.exists()) directory.mkdir()
 
-//        LambdaGuiUpdateNotification.updateCheck() // ToDo: Refactor for github checks
+        WebUtils.updateCheck()
         LoaderWrapper.preLoadAll()
     }
 

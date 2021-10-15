@@ -25,11 +25,11 @@ object CommandConfig : Module(
 
     private val timer = TickTimer()
     private val prevTitle = Display.getTitle()
-    private const val title = "${LambdaMod.NAME} ${LambdaMod.LAMBDA} ${LambdaMod.VERSION_SIMPLE}"
+    private const val title = "${LambdaMod.NAME} ${LambdaMod.LAMBDA} ${LambdaMod.VERSION}"
 
     init {
         listener<ModuleToggleEvent> {
-            if (!toggleMessages) return@listener
+            if (!toggleMessages || it.module == ClickGUI) return@listener
 
             MessageSendHelper.sendChatMessage(it.module.name +
                 if (it.module.isEnabled) TextFormatting.RED format " disabled"

@@ -117,12 +117,9 @@ class LambdaGuiPluginManager(private val previousScreen: GuiScreen) : GuiScreen(
 
         defaultScope.launch(Dispatchers.IO) {
             try {
-                val rawJson = ConnectionUtils.runConnection("${LambdaMod.GITHUB_API}repos/${LambdaMod.ORGANIZATION}/${pluginEntry.pluginData.name}/releases", { connection ->
-                    connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                    connection.requestMethod = "GET"
-                    connection.inputStream.readBytes().toString(Charsets.UTF_8)
-                }) {
+                val rawJson = ConnectionUtils.requestRawJsonFrom("${LambdaMod.GITHUB_API}repos/${LambdaMod.PLUGIN_ORG}/${pluginEntry.pluginData.name}/releases") {
                     LambdaMod.LOG.error("Failed to load repo of plugin from GitHub", it)
+                    throw it
                 }
 
                 rawJson?.let { json ->

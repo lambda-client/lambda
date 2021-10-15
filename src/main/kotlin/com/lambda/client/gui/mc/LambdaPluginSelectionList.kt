@@ -62,24 +62,19 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
         if (!onlyLocal) {
             defaultScope.launch {
                 try {
-                    val rawJson = ConnectionUtils.runConnection(LambdaMod.GITHUB_API + "orgs/" + LambdaMod.ORGANIZATION + "/repos", { connection ->
-                        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                        connection.requestMethod = "GET"
-                        connection.inputStream.readBytes().toString(Charsets.UTF_8)
-                    }) {
+                    val rawJson = ConnectionUtils.requestRawJsonFrom(LambdaMod.GITHUB_API + "orgs/" + LambdaMod.PLUGIN_ORG + "/repos") {
                         LambdaMod.LOG.error("Failed to load organisation for plugins from GitHub", it)
+                        throw it
                     }
 
                     rawJson?.let { json ->
                         val jsonTree = JsonParser().parse(json).asJsonArray
 
                         jsonTree.forEach { jsonElement ->
-                            val downloadsJson = ConnectionUtils.runConnection(jsonElement.asJsonObject.get("releases_url").asString.replace("{/id}", ""), { connection ->
-                                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                                connection.requestMethod = "GET"
-                                connection.inputStream.readBytes().toString(Charsets.UTF_8)
-                            })
-
+                            val downloadsJson = ConnectionUtils.requestRawJsonFrom(jsonElement.asJsonObject.get("releases_url").asString.replace("{/id}", "")) {
+                                LambdaMod.LOG.error("Failed to load organisation for plugins from GitHub", it)
+                                throw it
+                            }
 
                             if (JsonParser().parse(downloadsJson).asJsonArray.size() > 0) {
                                 val name = jsonElement.asJsonObject.get("name").asString
