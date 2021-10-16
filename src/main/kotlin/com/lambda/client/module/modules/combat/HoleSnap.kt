@@ -94,7 +94,7 @@ object HoleSnap : Module(
             }
 
             getHole()?.let {
-                if (disableStrafe && Speed.mode.value == Speed.SpeedMode.STRAFE) Speed.disable()
+                if (disableStrafe && Speed.mode == Speed.SpeedMode.STRAFE) Speed.disable()
                 if ((airStrafe || player.onGround) && !player.isCentered(it)) {
                     val playerPos = player.positionVector
                     val targetPos = Vec3d(it.x + 0.5, player.posY, it.z + 0.5)

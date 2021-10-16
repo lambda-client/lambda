@@ -101,7 +101,7 @@ object Surround : Module(
             // Centered check
             if (!player.centerPlayer()) return@safeListener
 
-            if (disableStrafe && Speed.mode.value == Speed.SpeedMode.STRAFE) {
+            if (disableStrafe && Speed.mode == Speed.SpeedMode.STRAFE) {
                 Speed.disable()
             }
 
