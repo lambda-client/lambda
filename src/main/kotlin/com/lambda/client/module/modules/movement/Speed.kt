@@ -40,7 +40,7 @@ object Speed : Module(
 
     //onGround speed settings
     private val onGroundTimer by setting("Timer", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundTimerSpeed by setting("Timer Speed", 1.29f, 0.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
+    private val onGroundTimerSpeed by setting("Timer Speed", 1.29f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
     private val onGroundSpeed by setting("Speed", 1.31f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND })
     private val onGroundSprint by setting("Sprint", true, { mode == SpeedMode.ONGROUND })
     private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
@@ -52,7 +52,6 @@ object Speed : Module(
     private val strafeCancelInertia by setting("Cancel Inertia", false, { mode == SpeedMode.STRAFE })
 
     // onGround Mode
-    private var onGroundOffset = false
     private var wasSprintEnabled = Sprint.isEnabled
 
     // Strafe Mode
@@ -121,18 +120,11 @@ object Speed : Module(
     }
 
     private fun SafeClientEvent.onGround() {
-        sendPlayerPacket {
-            if (onGroundOffset) move(player.positionVector.add(0.0, 0.4, 0.0))
-        }
-
         if (onGroundTimer) mc.timer.tickLength = 50.0f / onGroundTimerSpeed
         else mc.timer.tickLength = 50.0f
 
         player.motionX *= onGroundSpeed
         player.motionZ *= onGroundSpeed
-        if (onGroundOffset) player.motionY += 0.4
-
-        onGroundOffset.not()
     }
 
     private fun SafeClientEvent.strafe() {
