@@ -145,9 +145,15 @@ object Speed: Module(
     }
 
     private fun SafeClientEvent.shouldOnGround(): Boolean{
-        return (world.getBlockState(player.flooredPosition.add(0.0,2.0,0.0)).material.isSolid || !onGroundCheckAbove) &&
-            player.isMoving && mc.gameSettings.keyBindForward.isKeyDown &&
-            !player.movementInput.sneak && player.onGround
+        return (world.getBlockState(player.flooredPosition.add(0.0,2.0,0.0)).material.isSolid || !onGroundCheckAbove)
+            && player.isMoving
+            && MovementUtils.isInputting
+            && !player.movementInput.sneak
+            && player.onGround
+            && !(player.isInOrAboveLiquid || player.isInWeb)
+            && !player.capabilities.isFlying
+            && !player.isElytraFlying
+            && !mc.gameSettings.keyBindSneak.isKeyDown
     }
 
     private fun SafeClientEvent.shouldStrafe(): Boolean {
