@@ -30,8 +30,9 @@ import kotlin.math.sin
 
 object Speed : Module(
     name = "Speed",
-    description = "vrooommm",
+    description = "Air control and onGround speed",
     category = Category.MOVEMENT,
+    modulePriority = 100
 ) {
     // General settings
     val mode by setting("Mode", SpeedMode.STRAFE)
@@ -64,9 +65,18 @@ object Speed : Module(
     }
 
     init {
-        safeListener<TickEvent.ClientTickEvent> {
-            if (isDisabled) return@safeListener
+        onEnable {
+            wasSprintEnabled = Sprint.isEnabled
+        }
 
+        onDisable {
+            if (!wasSprintEnabled && mode == SpeedMode.ONGROUND) Sprint.disable()
+            runSafe {
+                reset()
+            }
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
             if (mode != currentMode) {
                 currentMode = mode
                 reset()
@@ -76,18 +86,10 @@ object Speed : Module(
         }
 
         safeListener<PlayerTravelEvent> {
-            when (mode) {
-                SpeedMode.STRAFE -> {
-                    if (shouldStrafe()) strafe()
-                }
-                SpeedMode.ONGROUND -> {
-                }
-            }
+            if (mode == SpeedMode.STRAFE && shouldStrafe()) strafe()
         }
 
         safeListener<PlayerMoveEvent> {
-            if (isDisabled) return@safeListener
-
             when (mode) {
                 SpeedMode.STRAFE -> {
                     if (shouldStrafe()) setSpeed(max(player.speed, applySpeedPotionEffects(0.2873)))
@@ -102,17 +104,6 @@ object Speed : Module(
                 SpeedMode.ONGROUND -> {
                     if (shouldOnGround()) onGround()
                     else resetTimer()
-                }
-            }
-
-            onEnable {
-                wasSprintEnabled = Sprint.isEnabled
-            }
-
-            onDisable {
-                if (!wasSprintEnabled && mode == SpeedMode.ONGROUND) Sprint.disable()
-                runSafe {
-                    reset()
                 }
             }
         }
