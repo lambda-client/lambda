@@ -6,8 +6,6 @@ import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.mixin.extension.isInWeb
-import com.lambda.client.mixin.extension.tickLength
-import com.lambda.client.mixin.extension.timer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.AutoEat
@@ -103,7 +101,7 @@ object Speed : Module(
                 }
                 SpeedMode.ONGROUND -> {
                     if (shouldOnGround()) onGround()
-                    else mc.timer.tickLength = 50.0f
+                    else resetTimer()
                 }
             }
 
@@ -129,8 +127,8 @@ object Speed : Module(
     }
 
     private fun SafeClientEvent.onGround() {
-        if (onGroundTimer) mc.timer.tickLength = 50.0f / onGroundTimerSpeed
-        else mc.timer.tickLength = 50.0f
+        if (onGroundTimer) modifyTimer(50.0f / onGroundTimerSpeed)
+        else resetTimer()
 
         player.motionX *= onGroundSpeed
         player.motionZ *= onGroundSpeed
