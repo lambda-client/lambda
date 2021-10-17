@@ -6,7 +6,7 @@ import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.movement.Strafe
+import com.lambda.client.module.modules.movement.Speed
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.MovementUtils.isCentered
@@ -94,7 +94,7 @@ object HoleSnap : Module(
             }
 
             getHole()?.let {
-                if (disableStrafe) Strafe.disable()
+                if (disableStrafe && Speed.mode == Speed.SpeedMode.STRAFE) Speed.disable()
                 if ((airStrafe || player.onGround) && !player.isCentered(it)) {
                     val playerPos = player.positionVector
                     val targetPos = Vec3d(it.x + 0.5, player.posY, it.z + 0.5)

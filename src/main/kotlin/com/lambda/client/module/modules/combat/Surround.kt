@@ -7,7 +7,7 @@ import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.movement.Strafe
+import com.lambda.client.module.modules.movement.Speed
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.MovementUtils.centerPlayer
 import com.lambda.client.util.MovementUtils.speed
@@ -101,8 +101,8 @@ object Surround : Module(
             // Centered check
             if (!player.centerPlayer()) return@safeListener
 
-            if (disableStrafe) {
-                Strafe.disable()
+            if (disableStrafe && Speed.mode == Speed.SpeedMode.STRAFE) {
+                Speed.disable()
             }
 
             // The actual job

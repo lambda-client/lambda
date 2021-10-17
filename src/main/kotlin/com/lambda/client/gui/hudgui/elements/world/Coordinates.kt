@@ -6,8 +6,8 @@ import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.math.VectorUtils.times
 import net.minecraft.util.math.Vec3d
 
-internal object Coordinate : LabelHud(
-    name = "Coordinate",
+internal object Coordinates : LabelHud(
+    name = "Coordinates",
     category = Category.WORLD,
     description = "Display the current coordinate"
 ) {
