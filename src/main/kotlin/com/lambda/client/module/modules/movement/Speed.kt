@@ -11,6 +11,7 @@ import com.lambda.client.mixin.extension.tickLength
 import com.lambda.client.mixin.extension.timer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.player.AutoEat
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
@@ -35,28 +36,29 @@ object Speed : Module(
     description = "vrooommm",
     category = Category.MOVEMENT,
 ) {
-    //General settings
-    val mode by setting("Mode", SpeedMode.ONGROUND)
+    // General settings
+    val mode by setting("Mode", SpeedMode.STRAFE)
 
-    //onGround speed settings
-    private val onGroundTimer by setting("Timer", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundTimerSpeed by setting("Timer Speed", 1.29f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
-    private val onGroundSpeed by setting("Speed", 1.31f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND })
-    private val onGroundSprint by setting("Sprint", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
-
+    // strafe settings
     private val strafeAirSpeedBoost by setting("Air Speed Boost", 0.029f, 0.01f..0.04f, 0.001f, { mode == SpeedMode.STRAFE })
     private val strafeTimerBoost by setting("Timer Boost", true, { mode == SpeedMode.STRAFE })
     private val strafeAutoJump by setting("Auto Jump", true, { mode == SpeedMode.STRAFE })
     private val strafeOnHoldingSprint by setting("On Holding Sprint", false, { mode == SpeedMode.STRAFE })
     private val strafeCancelInertia by setting("Cancel Inertia", false, { mode == SpeedMode.STRAFE })
 
-    // onGround Mode
-    private var wasSprintEnabled = Sprint.isEnabled
+    // onGround settings
+    private val onGroundTimer by setting("Timer", true, { mode == SpeedMode.ONGROUND })
+    private val onGroundTimerSpeed by setting("Timer Speed", 1.29f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
+    private val onGroundSpeed by setting("Speed", 1.31f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND })
+    private val onGroundSprint by setting("Sprint", true, { mode == SpeedMode.ONGROUND })
+    private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
 
     // Strafe Mode
     private var jumpTicks = 0
     private val strafeTimer = TickTimer(TimeUnit.TICKS)
+
+    // onGround Mode
+    private var wasSprintEnabled = Sprint.isEnabled
 
     private var currentMode = mode
 
@@ -137,6 +139,7 @@ object Speed : Module(
 
     private fun SafeClientEvent.shouldOnGround(): Boolean =
         (world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid || !onGroundCheckAbove)
+            && !AutoEat.eating
             && player.isMoving
             && MovementUtils.isInputting
             && !player.movementInput.sneak

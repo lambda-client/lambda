@@ -34,7 +34,7 @@ object AutoEat : Module(
     private val pauseBaritone by setting("Pause Baritone", true)
 
     private var lastSlot = -1
-    private var eating = false
+    var eating = false
 
     enum class PreferredFood : BiPredicate<ItemStack, ItemFood> {
         GAP {
