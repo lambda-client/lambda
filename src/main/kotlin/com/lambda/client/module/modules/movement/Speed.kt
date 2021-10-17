@@ -120,20 +120,20 @@ object Speed : Module(
         }
     }
 
-    private fun SafeClientEvent.onGround() {
-        if (onGroundTimer) mc.timer.tickLength = 50.0f / onGroundTimerSpeed
-        else mc.timer.tickLength = 50.0f
-
-        player.motionX *= onGroundSpeed
-        player.motionZ *= onGroundSpeed
-    }
-
     private fun SafeClientEvent.strafe() {
         player.jumpMovementFactor = strafeAirSpeedBoost
         if (strafeTimerBoost) modifyTimer(45.87155914306640625f)
         if ((Step.isDisabled || !player.collidedHorizontally) && strafeAutoJump) jump()
 
         strafeTimer.reset()
+    }
+
+    private fun SafeClientEvent.onGround() {
+        if (onGroundTimer) mc.timer.tickLength = 50.0f / onGroundTimerSpeed
+        else mc.timer.tickLength = 50.0f
+
+        player.motionX *= onGroundSpeed
+        player.motionZ *= onGroundSpeed
     }
 
     private fun SafeClientEvent.shouldStrafe(): Boolean =
