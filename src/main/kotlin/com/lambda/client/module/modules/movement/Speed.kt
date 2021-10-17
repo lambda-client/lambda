@@ -62,7 +62,7 @@ object Speed : Module(
     private var currentMode = mode
 
     enum class SpeedMode {
-        ONGROUND, STRAFE
+        STRAFE, ONGROUND
     }
 
     init {
@@ -91,10 +91,6 @@ object Speed : Module(
             if (isDisabled) return@safeListener
 
             when (mode) {
-                SpeedMode.ONGROUND -> {
-                    if (shouldOnGround()) onGround()
-                    else mc.timer.tickLength = 50.0f
-                }
                 SpeedMode.STRAFE -> {
                     if (shouldStrafe()) setSpeed(max(player.speed, applySpeedPotionEffects(0.2873)))
                     else {
@@ -104,6 +100,10 @@ object Speed : Module(
                             player.motionZ = 0.0
                         }
                     }
+                }
+                SpeedMode.ONGROUND -> {
+                    if (shouldOnGround()) onGround()
+                    else mc.timer.tickLength = 50.0f
                 }
             }
 
@@ -136,6 +136,15 @@ object Speed : Module(
         strafeTimer.reset()
     }
 
+    private fun SafeClientEvent.shouldStrafe(): Boolean =
+        (!player.capabilities.isFlying
+            && !player.isElytraFlying
+            && !mc.gameSettings.keyBindSneak.isKeyDown
+            && (!strafeOnHoldingSprint || mc.gameSettings.keyBindSprint.isKeyDown)
+            && !BaritoneUtils.isPathing
+            && MovementUtils.isInputting
+            && !(player.isInOrAboveLiquid || player.isInWeb))
+
     private fun SafeClientEvent.shouldOnGround(): Boolean =
         (world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid || !onGroundCheckAbove)
             && !AutoEat.eating
@@ -147,15 +156,6 @@ object Speed : Module(
             && !player.capabilities.isFlying
             && !player.isElytraFlying
             && !mc.gameSettings.keyBindSneak.isKeyDown
-
-    private fun SafeClientEvent.shouldStrafe(): Boolean =
-        (!player.capabilities.isFlying
-            && !player.isElytraFlying
-            && !mc.gameSettings.keyBindSneak.isKeyDown
-            && (!strafeOnHoldingSprint || mc.gameSettings.keyBindSprint.isKeyDown)
-            && !BaritoneUtils.isPathing
-            && MovementUtils.isInputting
-            && !(player.isInOrAboveLiquid || player.isInWeb))
 
     private fun SafeClientEvent.reset() {
         player.jumpMovementFactor = 0.02f
