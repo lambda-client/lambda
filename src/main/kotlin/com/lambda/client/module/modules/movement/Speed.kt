@@ -3,14 +3,12 @@ package com.lambda.client.module.modules.movement
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.event.events.PlayerTravelEvent
-import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.mixin.extension.isInWeb
-import com.lambda.client.mixin.extension.tickLength
-import com.lambda.client.mixin.extension.timer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.player.AutoEat
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
@@ -32,42 +30,53 @@ import kotlin.math.sin
 
 object Speed : Module(
     name = "Speed",
-    description = "vrooommm",
+    description = "Air control and onGround speed",
     category = Category.MOVEMENT,
+    modulePriority = 100
 ) {
-    //General settings
-    val mode by setting("Mode", SpeedMode.ONGROUND)
+    // General settings
+    val mode by setting("Mode", SpeedMode.STRAFE)
 
-    //onGround speed settings
-    private val onGroundTimer by setting("Timer", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundTimerSpeed by setting("Timer Speed", 1.29f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
-    private val onGroundSpeed by setting("Speed", 1.31f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND })
-    private val onGroundSprint by setting("Sprint", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
-
+    // strafe settings
     private val strafeAirSpeedBoost by setting("Air Speed Boost", 0.029f, 0.01f..0.04f, 0.001f, { mode == SpeedMode.STRAFE })
     private val strafeTimerBoost by setting("Timer Boost", true, { mode == SpeedMode.STRAFE })
     private val strafeAutoJump by setting("Auto Jump", true, { mode == SpeedMode.STRAFE })
     private val strafeOnHoldingSprint by setting("On Holding Sprint", false, { mode == SpeedMode.STRAFE })
     private val strafeCancelInertia by setting("Cancel Inertia", false, { mode == SpeedMode.STRAFE })
 
-    // onGround Mode
-    private var wasSprintEnabled = Sprint.isEnabled
+    // onGround settings
+    private val onGroundTimer by setting("Timer", true, { mode == SpeedMode.ONGROUND })
+    private val onGroundTimerSpeed by setting("Timer Speed", 1.29f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
+    private val onGroundSpeed by setting("Speed", 1.31f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND })
+    private val onGroundSprint by setting("Sprint", true, { mode == SpeedMode.ONGROUND })
+    private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
 
     // Strafe Mode
     private var jumpTicks = 0
     private val strafeTimer = TickTimer(TimeUnit.TICKS)
 
+    // onGround Mode
+    private var wasSprintEnabled = Sprint.isEnabled
+
     private var currentMode = mode
 
     enum class SpeedMode {
-        ONGROUND, STRAFE
+        STRAFE, ONGROUND
     }
 
     init {
-        safeListener<TickEvent.ClientTickEvent> {
-            if (isDisabled) return@safeListener
+        onEnable {
+            wasSprintEnabled = Sprint.isEnabled
+        }
 
+        onDisable {
+            if (!wasSprintEnabled && mode == SpeedMode.ONGROUND) Sprint.disable()
+            runSafe {
+                reset()
+            }
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
             if (mode != currentMode) {
                 currentMode = mode
                 reset()
@@ -77,23 +86,11 @@ object Speed : Module(
         }
 
         safeListener<PlayerTravelEvent> {
-            when (mode) {
-                SpeedMode.STRAFE -> {
-                    if (shouldStrafe()) strafe()
-                }
-                SpeedMode.ONGROUND -> {
-                }
-            }
+            if (mode == SpeedMode.STRAFE && shouldStrafe()) strafe()
         }
 
         safeListener<PlayerMoveEvent> {
-            if (isDisabled) return@safeListener
-
             when (mode) {
-                SpeedMode.ONGROUND -> {
-                    if (shouldOnGround()) onGround()
-                    else mc.timer.tickLength = 50.0f
-                }
                 SpeedMode.STRAFE -> {
                     if (shouldStrafe()) setSpeed(max(player.speed, applySpeedPotionEffects(0.2873)))
                     else {
@@ -104,27 +101,12 @@ object Speed : Module(
                         }
                     }
                 }
-            }
-
-            onEnable {
-                wasSprintEnabled = Sprint.isEnabled
-            }
-
-            onDisable {
-                if (!wasSprintEnabled && mode == SpeedMode.ONGROUND) Sprint.disable()
-                runSafe {
-                    reset()
+                SpeedMode.ONGROUND -> {
+                    if (shouldOnGround()) onGround()
+                    else resetTimer()
                 }
             }
         }
-    }
-
-    private fun SafeClientEvent.onGround() {
-        if (onGroundTimer) mc.timer.tickLength = 50.0f / onGroundTimerSpeed
-        else mc.timer.tickLength = 50.0f
-
-        player.motionX *= onGroundSpeed
-        player.motionZ *= onGroundSpeed
     }
 
     private fun SafeClientEvent.strafe() {
@@ -135,16 +117,13 @@ object Speed : Module(
         strafeTimer.reset()
     }
 
-    private fun SafeClientEvent.shouldOnGround(): Boolean =
-        (world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid || !onGroundCheckAbove)
-            && player.isMoving
-            && MovementUtils.isInputting
-            && !player.movementInput.sneak
-            && player.onGround
-            && !(player.isInOrAboveLiquid || player.isInWeb)
-            && !player.capabilities.isFlying
-            && !player.isElytraFlying
-            && !mc.gameSettings.keyBindSneak.isKeyDown
+    private fun SafeClientEvent.onGround() {
+        if (onGroundTimer) modifyTimer(50.0f / onGroundTimerSpeed)
+        else resetTimer()
+
+        player.motionX *= onGroundSpeed
+        player.motionZ *= onGroundSpeed
+    }
 
     private fun SafeClientEvent.shouldStrafe(): Boolean =
         (!player.capabilities.isFlying
@@ -154,6 +133,18 @@ object Speed : Module(
             && !BaritoneUtils.isPathing
             && MovementUtils.isInputting
             && !(player.isInOrAboveLiquid || player.isInWeb))
+
+    private fun SafeClientEvent.shouldOnGround(): Boolean =
+        (world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid || !onGroundCheckAbove)
+            && !AutoEat.eating
+            && player.isMoving
+            && MovementUtils.isInputting
+            && !player.movementInput.sneak
+            && player.onGround
+            && !(player.isInOrAboveLiquid || player.isInWeb)
+            && !player.capabilities.isFlying
+            && !player.isElytraFlying
+            && !mc.gameSettings.keyBindSneak.isKeyDown
 
     private fun SafeClientEvent.reset() {
         player.jumpMovementFactor = 0.02f
