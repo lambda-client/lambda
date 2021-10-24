@@ -1,6 +1,7 @@
 package com.lambda.client.gui.rgui.component
 
 import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.setting.settings.impl.other.BindSetting
 import com.lambda.client.util.graphics.VertexHelper
@@ -42,6 +43,6 @@ class BindButton(
         protectedWidth = FontRenderAdapter.getStringWidth(valueText, 0.75f).toDouble()
         val posX = (renderWidth - protectedWidth - 2.0f).toFloat()
         val posY = renderHeight - 2.0f - FontRenderAdapter.getFontHeight(0.75f)
-        FontRenderAdapter.drawString(valueText, posX, posY, color = GuiColors.text, scale = 0.75f)
+        FontRenderAdapter.drawString(valueText, posX, posY, color = GuiColors.text, drawShadow = CustomFont.shadow, scale = 0.75f)
     }
 }
