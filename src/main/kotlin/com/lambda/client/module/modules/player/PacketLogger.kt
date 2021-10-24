@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import net.minecraft.network.Packet
 import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.*
+import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.io.File
 import java.io.FileWriter
@@ -131,12 +132,73 @@ object PacketLogger : Module(
     private fun receivePacket(packet: Packet<*>) {
         if (packetSide == PacketSide.SERVER || packetSide == PacketSide.BOTH) {
             when (packet) {
+                is SPacketAdvancementInfo -> {
+                    logServer(packet) {
+                        "isFirstSync" to packet.isFirstSync
+                        "advancementsToAdd" to buildString {
+                            for (entry in packet.advancementsToAdd) {
+                                append("> ")
+
+                                append(" key: ")
+                                append(entry.key)
+
+                                append(" value: ")
+                                append(entry.value)
+
+                                append(' ')
+                            }
+                        }
+                        "advancementsToRemove" to buildString {
+                            for (entry in packet.advancementsToRemove) {
+                                append("> path: ")
+                                append(entry.path)
+                                append(", namespace:")
+                                append(entry.namespace)
+                                append(' ')
+                            }
+                        }
+                        "progressUpdates" to buildString {
+                            for (entry in packet.progressUpdates) {
+                                append("> ")
+
+                                append(" key: ")
+                                append(entry.key)
+
+                                append(" value: ")
+                                append(entry.value)
+
+                                append(' ')
+                            }
+                        }
+                    }
+                }
+                is SPacketAnimation -> {
+                    "entityID" to packet.entityID
+                    "animationType" to packet.animationType
+                }
+                is SPacketBlockAction -> {
+                    "blockPosition" to packet.blockPosition
+                    "instrument" to packet.data1
+                    "pitch" to packet.data2
+                    "blockType" to packet.blockType
+                }
+                is SPacketBlockBreakAnim -> {
+                    "breakerId" to packet.breakerId
+                    "position" to packet.position
+                    "progress" to packet.progress
+                }
                 is SPacketBlockChange -> {
                     logServer(packet) {
-                        "x" to packet.blockPosition.x
-                        "y" to packet.blockPosition.y
-                        "z" to packet.blockPosition.z
+                        "blockPosition" to packet.blockPosition
+                        "block" to packet.blockState.block.localizedName
                     }
+                }
+                is SPacketCamera -> {
+                    "entityId" to packet.entityId
+                }
+                is SPacketChangeGameState -> {
+                    "value" to packet.value
+                    "gameState" to packet.gameState
                 }
                 is SPacketChat -> {
                     if (!ignoreChat) {
@@ -154,11 +216,55 @@ object PacketLogger : Module(
                         "extractedSize" to packet.extractedSize
                     }
                 }
+                is SPacketCloseWindow -> {
+                    logServer(packet) {
+                        +"Close current window."
+                    }
+                }
+                is SPacketCollectItem -> {
+                    logServer(packet) {
+                        "amount" to packet.amount
+                        "collectedItemEntityID" to packet.collectedItemEntityID
+                        "entityID" to packet.entityID
+                    }
+                }
+                is SPacketCombatEvent -> {
+                    logServer(packet) {
+                        "eventType" to packet.eventType.name
+                        "playerId" to packet.playerId
+                        "entityId" to packet.entityId
+                        "duration" to packet.duration
+                        "deathMessage" to packet.deathMessage.unformattedText
+                    }
+                }
                 is SPacketConfirmTransaction -> {
                     logServer(packet) {
                         "windowId" to packet.windowId
                         "transactionID" to packet.actionNumber
                         "accepted" to packet.wasAccepted()
+                    }
+                }
+                is SPacketCooldown -> {
+                    logServer(packet) {
+                        "item" to packet.item.registryName
+                        "ticks" to packet.ticks
+                    }
+                }
+                is SPacketCustomPayload -> {
+                    logServer(packet) {
+                        "channelName" to packet.channelName
+                        "bufferData" to packet.bufferData
+                    }
+                }
+                is SPacketCustomSound -> {
+                    logServer(packet) {
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "pitch" to packet.pitch
+                        "category" to packet.category.name
+                        "soundName" to packet.soundName
+                        "volume" to packet.volume
                     }
                 }
                 is SPacketDestroyEntities -> {
@@ -170,6 +276,25 @@ object PacketLogger : Module(
                                 append(' ')
                             }
                         }
+                    }
+                }
+                is SPacketDisconnect -> {
+                    logServer(packet) {
+                        "reason" to packet.reason.unformattedText
+                    }
+                }
+                is SPacketDisplayObjective -> {
+                    logServer(packet) {
+                        "position" to packet.position
+                        "name" to packet.name
+                    }
+                }
+                is SPacketEffect -> {
+                    logServer(packet) {
+                        "soundData" to packet.soundData
+                        "soundPos" to packet.soundPos
+                        "soundType" to packet.soundType
+                        "isSoundServerwide" to packet.isSoundServerwide
                     }
                 }
                 is SPacketEntityMetadata -> {
@@ -533,6 +658,14 @@ object PacketLogger : Module(
         infix fun String.to(value: String?) {
             if (value != null) {
                 add(this, value)
+            }
+        }
+
+        infix fun String.to(value: BlockPos?) {
+            if (value != null) {
+                add("x", value.x.toString())
+                add("y", value.y.toString())
+                add("z", value.z.toString())
             }
         }
 
