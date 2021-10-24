@@ -2,6 +2,7 @@ package com.lambda.client.gui.rgui.component
 
 import com.lambda.client.gui.rgui.InteractiveComponent
 import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Tooltips
 import com.lambda.client.util.TimedFlag
@@ -75,7 +76,7 @@ open class Slider(
                 val newWidth = lineWidth + wordWidth
 
                 lineWidth = if (newWidth > 169.0f) {
-                    displayDescription.addLine(stringBuilder.toString())
+                    displayDescription.addLine(stringBuilder.toString(), color = GuiColors.text)
                     stringBuilder.clear()
                     -spaceWidth + wordWidth
                 } else {
@@ -86,7 +87,7 @@ open class Slider(
                 stringBuilder.append(' ')
             }
 
-            if (stringBuilder.isNotEmpty()) displayDescription.addLine(stringBuilder.toString())
+            if (stringBuilder.isNotEmpty()) displayDescription.addLine(stringBuilder.toString(), color = GuiColors.text)
         }
     }
 
@@ -121,7 +122,7 @@ open class Slider(
         }*/
         val text = if (isBold) TextFormatting.BOLD format componentName else componentName
 
-        FontRenderAdapter.drawString(text, 1.5f, 1.0f, color = GuiColors.text)
+        FontRenderAdapter.drawString(text, 1.5f, 1.0f, CustomFont.shadow, color = GuiColors.text)
         //GlStateUtils.popScissor()
     }
 
@@ -157,7 +158,8 @@ open class Slider(
             glTranslatef(posX, posY, 696.0f)
 
             RenderUtils2D.drawRectFilled(vertexHelper, posEnd = Vec2d(textWidth, textHeight).plus(4.0), color = GuiColors.backGround.apply { a = (a * alpha).toInt() })
-            RenderUtils2D.drawRectOutline(vertexHelper, posEnd = Vec2d(textWidth, textHeight).plus(4.0), lineWidth = 2.0f, color = GuiColors.primary.apply { a = (a * alpha).toInt() })
+            if(ClickGUI.outline)
+            RenderUtils2D.drawRectOutline(vertexHelper, posEnd = Vec2d(textWidth, textHeight).plus(4.0), lineWidth = ClickGUI.outlineSize, color = GuiColors.primary.apply { a = (a * alpha).toInt() })
 
             displayDescription.draw(Vec2d(2.0, 2.0), 2, alpha)
 
