@@ -206,7 +206,6 @@ object AutoMend : Module(
         for (entity in mc.world.loadedEntityList) {
             if (entity !is EntityPlayer) continue
             if (entity.isFakeOrSelf) continue
-            if (AntiBot.isBot(entity)) continue
             if (mc.player.getDistance(entity) > pauseNearbyRadius) continue
             if (FriendManager.isFriend(entity.name)) continue
             return true
