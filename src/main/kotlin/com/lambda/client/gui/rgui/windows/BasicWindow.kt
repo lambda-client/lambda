@@ -25,8 +25,9 @@ open class BasicWindow(
 
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
+
         RenderUtils2D.drawRoundedRectFilled(vertexHelper, Vec2d(0.0, 0.0), Vec2f(renderWidth, renderHeight).toVec2d(), ClickGUI.radius, color = GuiColors.backGround)
-        RenderUtils2D.drawRoundedRectOutline(vertexHelper, Vec2d(0.0, 0.0), Vec2f(renderWidth, renderHeight).toVec2d(), ClickGUI.radius, lineWidth = 2.5f, color = GuiColors.primary)
+        if(ClickGUI.outline) RenderUtils2D.drawRoundedRectOutline(vertexHelper, Vec2d(0.0, 0.0), Vec2f(renderWidth, renderHeight).toVec2d(), ClickGUI.radius, lineWidth = ClickGUI.outlineSize, color = GuiColors.primary)
     }
 
 }

@@ -2,6 +2,7 @@ package com.lambda.client.gui.rgui.component
 
 import com.lambda.client.gui.rgui.InteractiveComponent
 import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Tooltips
 import com.lambda.client.util.TimedFlag
@@ -121,7 +122,7 @@ open class Slider(
         }*/
         val text = if (isBold) TextFormatting.BOLD format componentName else componentName
 
-        FontRenderAdapter.drawString(text, 1.5f, 1.0f, color = GuiColors.text)
+        FontRenderAdapter.drawString(text, 1.5f, 1.0f, CustomFont.shadow, color = GuiColors.text)
         //GlStateUtils.popScissor()
     }
 
