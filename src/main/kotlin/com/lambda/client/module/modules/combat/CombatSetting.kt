@@ -216,19 +216,17 @@ object CombatSetting : Module(
     fun getPrediction(entity: Entity) = CombatManager.target?.let {
         if (motionPrediction) {
             val ticks = if (pingSync) (InfoCalculator.ping() / 25f).ceilToInt() else ticksAhead
-            CombatManager.motionTracker.getPositionAndBBAhead(ticks) ?: it.positionVector to it.entityBoundingBox
+            CombatManager.motionTracker.getPositionAndBBAhead(ticks) ?: (it.positionVector to it.entityBoundingBox)
         } else {
             it.positionVector to it.entityBoundingBox
         }
-    } ?: entity.positionVector to entity.entityBoundingBox
+    } ?: (entity.positionVector to entity.entityBoundingBox)
     /* End of crystal damage calculation */
 
     /* Targeting */
     private fun SafeClientEvent.getTargetList(): LinkedList<EntityLivingBase> {
         val targetList = LinkedList<EntityLivingBase>()
         for (entity in getCacheList()) {
-            if (AntiBot.isBot(entity)) continue
-
             if (!tamed
                 && (entity is EntityTameable && entity.isTamed
                     || entity is AbstractHorse && entity.isTame)) continue
