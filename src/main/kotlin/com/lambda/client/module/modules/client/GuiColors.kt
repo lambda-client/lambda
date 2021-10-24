@@ -6,7 +6,7 @@ import com.lambda.client.util.color.ColorHolder
 
 object GuiColors : Module(
     name = "GuiColors",
-    description = "Opens the Click GUI",
+    description = "Change gui colors",
     showOnArray = false,
     category = Category.CLIENT,
     alwaysEnabled = true
