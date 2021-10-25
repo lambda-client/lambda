@@ -297,6 +297,45 @@ object PacketLogger : Module(
                         "isSoundServerwide" to packet.isSoundServerwide
                     }
                 }
+                is SPacketEntity -> {
+                    logServer(packet) {
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
+                        "isRotating" to packet.isRotating
+                        "onGround" to packet.onGround
+                    }
+                }
+                is SPacketEntityAttach -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "vehicleEntityId" to packet.vehicleEntityId
+                    }
+                }
+                is SPacketEntityEffect -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "duration" to packet.duration
+                        "amplifier" to packet.amplifier
+                        "effectId" to packet.effectId
+                        "isAmbient" to packet.isAmbient
+                        "isMaxDuration" to packet.isMaxDuration
+                    }
+                }
+                is SPacketEntityEquipment -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityID
+                        "duration" to packet.equipmentSlot
+                        "amplifier" to packet.itemStack.displayName
+                    }
+                }
+                is SPacketEntityHeadLook -> {
+                    logServer(packet) {
+                        "yaw" to packet.yaw
+                    }
+                }
                 is SPacketEntityMetadata -> {
                     logServer(packet) {
                         "dataEntries" to buildString {
@@ -317,7 +356,13 @@ object PacketLogger : Module(
                 }
                 is SPacketEntityProperties -> {
                     logServer(packet) {
-                        "entityID" to packet.entityId
+                        "entityId" to packet.entityId
+                        "snapshots" to packet.snapshots
+                    }
+                }
+                is SPacketEntityStatus -> {
+                    logServer(packet) {
+                        "opCode" to packet.opCode
                     }
                 }
                 is SPacketEntityTeleport -> {
@@ -330,11 +375,75 @@ object PacketLogger : Module(
                         "entityID" to packet.entityId
                     }
                 }
+                is SPacketEntityVelocity -> {
+                    logServer(packet) {
+                        "entityID" to packet.entityID
+                        "motionX" to packet.motionX
+                        "motionY" to packet.motionY
+                        "motionZ" to packet.motionZ
+                    }
+                }
+                is SPacketExplosion -> {
+                    logServer(packet) {
+                        "strength" to packet.strength
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "motionX" to packet.motionX
+                        "motionY" to packet.motionY
+                        "motionZ" to packet.motionZ
+                        "affectedBlockPositions" to buildString {
+                            for (block in packet.affectedBlockPositions) {
+                                append("> x: ")
+                                append(block.x)
+
+                                append("y: ")
+                                append(block.y)
+
+                                append("z: ")
+                                append(block.z)
+
+                                append(' ')
+                            }
+                        }
+                    }
+                }
+                is SPacketHeldItemChange -> {
+                    logServer(packet) {
+                        "heldItemHotbarIndex" to packet.heldItemHotbarIndex
+                    }
+                }
+                is SPacketJoinGame -> {
+                    logServer(packet) {
+                        "playerId" to packet.playerId
+                        "difficulty" to packet.difficulty.name
+                        "dimension" to packet.dimension
+                        "gameType" to packet.gameType.name
+                        "isHardcoreMode" to packet.isHardcoreMode
+                        "isReducedDebugInfo" to packet.isReducedDebugInfo
+                        "maxPlayers" to packet.maxPlayers
+                        "worldType" to packet.worldType
+                    }
+                }
                 is SPacketKeepAlive -> {
                     if (!ignoreKeepAlive) {
                         logServer(packet) {
                             "id" to packet.id
                         }
+                    }
+                }
+                is SPacketMaps -> {
+                    logServer(packet) {
+                        "mapId" to packet.mapId
+                    }
+                }
+                is SPacketMoveVehicle -> {
+                    logServer(packet) {
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
                     }
                 }
                 is SPacketMultiBlockChange -> {
@@ -353,6 +462,31 @@ object PacketLogger : Module(
                                 append(' ')
                             }
                         }
+                    }
+                }
+                is SPacketOpenWindow -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "windowTitle" to packet.windowTitle
+                        "guiId" to packet.guiId
+                        "windowId" to packet.windowId
+                        "slotCount" to packet.slotCount
+                    }
+                }
+                is SPacketParticles -> {
+                    logServer(packet) {
+                        "particleType" to packet.particleType.name
+                        "isLongDistance" to packet.isLongDistance
+                        "particleType" to packet.particleType.name
+                        "particleCount" to packet.particleCount
+                        "particleSpeed" to packet.particleSpeed
+                        "xCoordinate" to packet.xCoordinate
+                        "yCoordinate" to packet.yCoordinate
+                        "zCoordinate" to packet.zCoordinate
+                        "xOffset" to packet.xOffset
+                        "yOffset" to packet.yOffset
+                        "zOffset" to packet.zOffset
+                        "particleArgs" to packet.particleArgs
                     }
                 }
                 is SPacketPlayerPosLook -> {
