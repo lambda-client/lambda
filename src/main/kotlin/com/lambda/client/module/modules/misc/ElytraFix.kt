@@ -7,14 +7,14 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
 
-internal object ElytraFix: Module(
+object ElytraFix: Module(
     name = "ElytraFix",
     category = Category.MISC,
-    description = "Remove Firework Rockets on Rubberband",
+    description = "Fixes firework rubberband induced velocity desync",
 ) {
     init {
-        safeListener<PacketEvent.Receive> {
-            if (it.packet is SPacketPlayerPosLook && player.isElytraFlying) {
+        safeListener<PacketEvent.Receive> { event ->
+            if (event.packet is SPacketPlayerPosLook && player.isElytraFlying) {
                 world.getLoadedEntityList().filterIsInstance<EntityFireworkRocket>().forEach {
                     world.removeEntity(it)
                 }
