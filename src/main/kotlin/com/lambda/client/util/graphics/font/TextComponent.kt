@@ -1,5 +1,6 @@
 package com.lambda.client.util.graphics.font
 
+import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.math.Vec2d
 import org.lwjgl.opengl.GL11.*
@@ -85,7 +86,7 @@ class TextComponent(private val separator: String = " ") {
              lineSpace: Int = 2,
              alpha: Float = 1.0f,
              scale: Float = 1f,
-             drawShadow: Boolean = true,
+             drawShadow: Boolean = CustomFont.shadow,
              skipEmptyLine: Boolean = true,
              horizontalAlign: HAlign = HAlign.LEFT,
              verticalAlign: VAlign = VAlign.TOP,

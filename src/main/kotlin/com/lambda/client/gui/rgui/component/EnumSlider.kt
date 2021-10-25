@@ -1,6 +1,7 @@
 package com.lambda.client.gui.rgui.component
 
 import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.util.graphics.VertexHelper
@@ -49,6 +50,6 @@ class EnumSlider(val setting: EnumSetting<*>) : Slider(setting.name, 0.0, settin
         super.onRender(vertexHelper, absolutePos)
         val posX = (renderWidth - protectedWidth - 2.0f).toFloat()
         val posY = renderHeight - 2.0f - FontRenderAdapter.getFontHeight(0.75f)
-        FontRenderAdapter.drawString(valueText, posX, posY, color = GuiColors.text, scale = 0.75f)
+        FontRenderAdapter.drawString(valueText, posX, posY, color = GuiColors.text, drawShadow = CustomFont.shadow, scale = 0.75f)
     }
 }

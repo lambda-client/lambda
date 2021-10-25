@@ -3,7 +3,6 @@ package com.lambda.client.gui.hudgui.elements.world
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.manager.managers.FriendManager
-import com.lambda.client.module.modules.combat.AntiBot
 import com.lambda.client.util.AsyncCachedValue
 import com.lambda.client.util.color.ColorGradient
 import com.lambda.client.util.color.ColorHolder
@@ -47,7 +46,6 @@ internal object TextRadar : LabelHud(
             val list = world.playerEntities.toList().asSequence()
                 .filter { it != null && !it.isDead && it.health > 0.0f }
                 .filter { it != player && it != mc.renderViewEntity }
-                .filter { !AntiBot.isBot(it) }
                 .filter { friend || !FriendManager.isFriend(it.name) }
                 .map { it to player.getDistance(it) }
                 .filter { it.second <= range }
