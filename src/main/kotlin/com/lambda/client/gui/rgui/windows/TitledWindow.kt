@@ -4,6 +4,7 @@ import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.graphics.font.FontRenderAdapter.getStringWidth
 import com.lambda.client.util.math.Vec2f
 
 /**
@@ -23,6 +24,6 @@ open class TitledWindow(
 
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
-        FontRenderAdapter.drawString(componentName, 3.0f, 3.0f, color = GuiColors.text, drawShadow = CustomFont.shadow)
+        FontRenderAdapter.drawString(componentName, (width - getStringWidth(componentName)) / 2, 3.0f, color = GuiColors.text, drawShadow = CustomFont.shadow)
     }
 }
