@@ -1,5 +1,6 @@
 package com.lambda.client.gui.rgui.windows
 
+import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
@@ -22,6 +23,6 @@ open class TitledWindow(
 
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
-        FontRenderAdapter.drawString(componentName, 3.0f, 3.0f, color = GuiColors.text)
+        FontRenderAdapter.drawString(componentName, 3.0f, 3.0f, color = GuiColors.text, drawShadow = CustomFont.shadow)
     }
 }
