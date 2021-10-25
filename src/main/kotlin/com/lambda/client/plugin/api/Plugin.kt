@@ -33,6 +33,7 @@ open class Plugin : Nameable {
     val requiredPlugins: Array<String> get() = info.requiredPlugins
     val url: String get() = info.url
     val hotReload: Boolean get() = info.hotReload
+    var isRegistered = false
 
     /**
      * Config for the plugin
@@ -79,6 +80,8 @@ open class Plugin : Nameable {
     }
 
     internal fun register() {
+        isRegistered = true
+
         managers.close()
         commands.close()
         modules.close()
@@ -101,6 +104,8 @@ open class Plugin : Nameable {
     }
 
     internal fun unregister() {
+        isRegistered = false
+
         ConfigManager.save(config)
         ConfigManager.unregister(config)
 

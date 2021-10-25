@@ -2,18 +2,21 @@ package com.lambda.client.gui.clickgui
 
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.clickgui.component.ModuleButton
+import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.gui.clickgui.window.ModuleSettingWindow
 import com.lambda.client.gui.rgui.Component
 import com.lambda.client.gui.rgui.windows.ListWindow
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.plugin.PluginManager
 import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Keyboard
 
 object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>() {
 
-    private val moduleWindows = ArrayList<ListWindow>()
+    private val windows = ArrayList<ListWindow>()
+    private var pluginWindow: ListWindow
 
     init {
         val allButtons = ModuleManager.modules
@@ -24,11 +27,12 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         var posY = 0.0f
         val screenWidth = mc.displayWidth / ClickGUI.getScaleFactorFloat()
 
+        /* Modules */
         for ((category, buttons) in allButtons) {
             val window = ListWindow(category, posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
 
             window.children.addAll(buttons.customSort())
-            moduleWindows.add(window)
+            windows.add(window)
             posX += 90.0f
 
             if (posX > screenWidth) {
@@ -37,10 +41,15 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             }
         }
 
-        windowList.addAll(moduleWindows)
+        /* Plugins */
+        pluginWindow = ListWindow("Plugins", posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
+        windows.add(pluginWindow)
+
+        windowList.addAll(windows)
     }
 
     override fun onDisplayed() {
+        updatePlugins()
         reorderModules()
 
         super.onDisplayed()
@@ -83,14 +92,24 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         }
     }
 
+    private fun updatePlugins() {
+        PluginManager.loadedPlugins.forEach { plugin ->
+            if (pluginWindow.children.none { it.name == plugin.name }) {
+                pluginWindow.children.add(PluginButton(plugin))
+            }
+        }
+    }
+
     fun reorderModules() {
         val allButtons = ModuleManager.modules
             .groupBy { it.category.displayName }
             .mapValues { (_, modules) -> modules.map { ModuleButton(it) } }
 
-        moduleWindows.forEach { window ->
-            window.children.clear()
-            allButtons[window.name]?.let { window.children.addAll(it.customSort()) }
+        windows.forEach { window ->
+            if (window != pluginWindow) {
+                window.children.clear()
+                allButtons[window.name]?.let { window.children.addAll(it.customSort()) }
+            }
         }
     }
 
