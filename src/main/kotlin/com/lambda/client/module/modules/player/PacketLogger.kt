@@ -551,15 +551,6 @@ object PacketLogger : Module(
                         "z" to packet.pos.z
                     }
                 }
-                is SPacketOpenWindow -> {
-                    logServer(packet) {
-                        "guiId" to packet.guiId
-                        "entityId" to packet.entityId
-                        "slotCount" to packet.slotCount
-                        "windowId" to packet.windowId
-                        "windowTitle" to packet.windowTitle
-                    }
-                }
                 is SPacketWindowItems -> {
                     logServer(packet) {
                         "windowId" to packet.windowId
