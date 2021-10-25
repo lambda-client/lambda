@@ -33,7 +33,6 @@ open class ListWindow(
     override val maxHeight get() = mc.displayHeight.toFloat()
     override val resizable: Boolean get() = hoveredChild == null
 
-    val lineSpace = 3.0f
     var hoveredChild: Component? = null
         private set(value) {
             if (value == field) return
@@ -62,13 +61,13 @@ open class ListWindow(
     }
 
     private fun updateChild() {
-        var y = (if (draggableHeight != height) draggableHeight else 0.0f) + lineSpace
+        var y = (if (draggableHeight != height) draggableHeight else 0.0f) + ClickGUI.entryMargin
         for (child in children) {
             if (!child.visible) continue
-            child.posX = lineSpace * 1.618f
+            child.posX = ClickGUI.entryMargin * 1.618f
             child.posY = y
-            child.width = width - lineSpace * 3.236f
-            y += child.height + lineSpace
+            child.width = width - ClickGUI.entryMargin * 3.236f
+            y += child.height + ClickGUI.entryMargin
         }
     }
 
@@ -97,7 +96,7 @@ open class ListWindow(
         super.onTick()
         if (children.isEmpty()) return
         val lastVisible = children.lastOrNull { it.visible }
-        val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + lineSpace - height, 0.01f) }
+        val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + ClickGUI.entryMargin - height, 0.01f) }
             ?: draggableHeight
 
         scrollProgress = (scrollProgress + scrollSpeed)
@@ -132,9 +131,9 @@ open class ListWindow(
 
     private fun renderChildren(renderBlock: (Component) -> Unit) {
         GlStateUtils.scissor(
-            ((renderPosX + lineSpace * 1.618) * ClickGUI.getScaleFactor() - 0.5f).floorToInt(),
+            ((renderPosX + ClickGUI.entryMargin * 1.618) * ClickGUI.getScaleFactor() - 0.5f).floorToInt(),
             mc.displayHeight - ((renderPosY + renderHeight) * ClickGUI.getScaleFactor() - 0.5f).floorToInt(),
-            ((renderWidth - lineSpace * 3.236) * ClickGUI.getScaleFactor() + 1.0f).ceilToInt(),
+            ((renderWidth - ClickGUI.entryMargin * 3.236) * ClickGUI.getScaleFactor() + 1.0f).ceilToInt(),
             ((renderHeight - draggableHeight) * ClickGUI.getScaleFactor() + 1.0f).ceilToInt()
         )
         glEnable(GL_SCISSOR_TEST)
@@ -170,7 +169,7 @@ open class ListWindow(
     }
 
     private fun updateHovered(relativeMousePos: Vec2f) {
-        hoveredChild = if (relativeMousePos.y < draggableHeight || relativeMousePos.x < lineSpace || relativeMousePos.x > renderWidth - lineSpace) null
+        hoveredChild = if (relativeMousePos.y < draggableHeight || relativeMousePos.x < ClickGUI.entryMargin || relativeMousePos.x > renderWidth - ClickGUI.entryMargin) null
         else children.firstOrNull { it.visible && relativeMousePos.y in it.posY..it.posY + it.height }
     }
 
@@ -219,8 +218,8 @@ open class ListWindow(
         doubleClickTime = if (currentTime - doubleClickTime > 500L) {
             currentTime
         } else {
-            val sum = children.filter(Component::visible).sumByFloat { it.height + lineSpace }
-            val targetHeight = max(height, sum + draggableHeight + lineSpace)
+            val sum = children.filter(Component::visible).sumByFloat { it.height + ClickGUI.entryMargin }
+            val targetHeight = max(height, sum + draggableHeight + ClickGUI.entryMargin)
             val maxHeight = scaledDisplayHeight - 2.0f
 
             height = min(targetHeight, scaledDisplayHeight - 2.0f)

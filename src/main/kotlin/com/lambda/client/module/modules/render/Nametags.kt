@@ -3,7 +3,10 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.CustomFont
+import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.module.modules.client.Hud
 import com.lambda.client.util.EnchantmentUtils
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.color.ColorGradient
@@ -70,31 +73,21 @@ object Nametags : Module(
     private val invertHand by setting("Invert Hand", false, { page == Page.ITEM && (mainHand || offhand) })
     private val armor by setting("Armor", true, { page == Page.ITEM })
     private val count by setting("Count", true, { page == Page.ITEM && (mainHand || offhand || armor) })
-    private val dura by setting("Dura", true, { page == Page.ITEM && (mainHand || offhand || armor) })
+    private val durability by setting("Durability", true, { page == Page.ITEM && (mainHand || offhand || armor) })
     private val enchantment by setting("Enchantment", true, { page == Page.ITEM && (mainHand || offhand || armor) })
     private val itemScale by setting("Item Scale", 1f, 0.25f..2f, 0.25f, { page == Page.ITEM })
 
-    /* Frame */
-    private val nameFrame by setting("Name Frame", true, { page == Page.FRAME })
-    private val itemFrame by setting("Item Frame", false, { page == Page.FRAME })
-    private val dropItemFrame by setting("Drop Item Frame", true, { page == Page.FRAME })
-    private val filled by setting("Filled", true, { page == Page.FRAME })
-    private val colorFilled by setting("Color Filled", ColorHolder(39, 36, 64, 169), visibility = { page == Page.FRAME && filled })
-    private val outline by setting("Outline", true, { page == Page.FRAME })
-    private val colorOutline by setting("Color Outline", ColorHolder(155, 144, 255, 240), visibility = { page == Page.FRAME && outline })
-    private val outlineWidth by setting("Outline Width", 2.0f, 0.0f..5.0f, 0.1f, { page == Page.FRAME && outline })
-    private val margins by setting("Margins", 2.0f, 0.0f..10.0f, 0.1f, { page == Page.FRAME })
-    private val cornerRadius by setting("Corner Radius", 2.0f, 0.0f..10.0f, 0.1f, { page == Page.FRAME })
-
-    /* Rendering settings */
-    private val colorText by setting("Text Color", ColorHolder(232, 229, 255, 255), visibility = { page == Page.RENDERING })
+    /* Rendering */
+    private val background by setting("Background", true, { page == Page.RENDERING })
+    private val alpha by setting("Background Alpha", 150, 0..255, 1, { page == Page.RENDERING })
+    private val margins by setting("Margins", 2.0f, 0.0f..10.0f, 0.1f, { page == Page.RENDERING })
     private val yOffset by setting("Y Offset", 0.5f, -2.5f..2.5f, 0.05f, { page == Page.RENDERING })
     private val scale by setting("Scale", 1f, 0.25f..5f, 0.25f, { page == Page.RENDERING })
-    private val distScaleFactor by setting("Distance Scale Factor", 0.0f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
+    private val distScaleFactor by setting("Distance Scale Factor", 0.05f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
     private val minDistScale by setting("Min Distance Scale", 0.35f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
 
     private enum class Page {
-        ENTITY_TYPE, CONTENT, ITEM, FRAME, RENDERING
+        ENTITY_TYPE, CONTENT, ITEM, RENDERING
     }
 
     private enum class ContentType {
@@ -138,9 +131,8 @@ object Nametags : Module(
                 val dist = camPos.distanceTo(pos).toFloat() * 0.2f
                 val distFactor = if (distScaleFactor == 0f) 1f else max(1f / (dist * distScaleFactor + 1f), minDistScale)
 
-                if (drawNametag(screenPos, (scale * 2f) * distFactor, xRange, yRange, vertexHelper, nameFrame, textComponent)) {
-                    drawItems(screenPos, (scale * 2f) * distFactor, vertexHelper, entity, textComponent)
-                }
+                drawNametag(screenPos, (scale * 2f) * distFactor, xRange, yRange, vertexHelper, textComponent)
+                drawItems(screenPos, (scale * 2f) * distFactor, vertexHelper, entity, textComponent)
             }
 
             for (itemGroup in itemMap) {
@@ -149,14 +141,14 @@ object Nametags : Module(
                 val dist = camPos.distanceTo(pos).toFloat() * 0.2f
                 val distFactor = if (distScaleFactor == 0f) 1f else max(1f / (dist * distScaleFactor + 1f), minDistScale)
 
-                drawNametag(screenPos, (scale * 2f) * distFactor, xRange, yRange, vertexHelper, dropItemFrame, itemGroup.textComponent)
+                drawNametag(screenPos, (scale * 2f) * distFactor, xRange, yRange, vertexHelper, itemGroup.textComponent)
             }
 
             GlStateUtils.rescaleMc()
         }
     }
 
-    private fun drawNametag(screenPos: Vec3d, scale: Float, xRange: IntRange, yRange: IntRange, vertexHelper: VertexHelper, drawFrame: Boolean, textComponent: TextComponent): Boolean {
+    private fun drawNametag(screenPos: Vec3d, scale: Float, xRange: IntRange, yRange: IntRange, vertexHelper: VertexHelper, textComponent: TextComponent): Boolean {
         val halfWidth = textComponent.getWidth(CustomFont.isEnabled) / 2.0 + margins + 2.0
         val halfHeight = textComponent.getHeight(2, true, CustomFont.isEnabled) / 2.0 + margins + 2.0
 
@@ -171,7 +163,7 @@ object Nametags : Module(
         glPushMatrix()
         glTranslatef(screenPos.x.toFloat(), screenPos.y.toFloat(), 0f)
         glScalef(scale, scale, 1f)
-        if (drawFrame) drawFrame(vertexHelper, Vec2d(-halfWidth, -halfHeight), Vec2d(halfWidth, halfHeight))
+        drawFrame(vertexHelper, Vec2d(-halfWidth, -halfHeight), Vec2d(halfWidth, halfHeight))
         textComponent.draw(skipEmptyLine = true, horizontalAlign = HAlign.CENTER, verticalAlign = VAlign.CENTER, customFont = CustomFont.isEnabled)
         glPopMatrix()
 
@@ -194,7 +186,7 @@ object Nametags : Module(
             itemList.add(itemStack to getEnchantmentText(itemStack))
         }
 
-        if (itemList.isEmpty() || itemList.count { !it.first.isEmpty } == 0) return
+        if (itemList.isEmpty()) return
         val halfHeight = textComponent.getHeight(2, true, CustomFont.isEnabled) / 2.0 + margins + 2.0
         val halfWidth = (itemList.count { !it.first.isEmpty } * 28) / 2f
 
@@ -205,35 +197,33 @@ object Nametags : Module(
         glScalef((itemScale * 2f) / nameTagScale, (itemScale * 2f) / nameTagScale, 1f) // Scale to item scale
         glTranslatef(0f, -4f, 0f)
 
-        val drawDura = dura && itemList.firstOrNull { it.first.isItemStackDamageable } != null
+        val drawDurability = durability && itemList.firstOrNull { it.first.isItemStackDamageable } != null
 
-        if (itemFrame) {
-            glTranslatef(0f, -margins, 0f)
-            val duraHeight = if (drawDura) FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) + 2f else 0f
-            val enchantmentHeight = if (enchantment) {
-                (itemList.map { it.second.getHeight(2, customFont = CustomFont.isEnabled) }.maxOrNull() ?: 0f) + 4f
-            } else {
-                0f
-            }
-            val height = 16 + duraHeight + enchantmentHeight * 0.6f
-            val posBegin = Vec2d(-halfWidth - margins.toDouble(), -height - margins.toDouble())
-            val posEnd = Vec2d(halfWidth + margins.toDouble(), margins.toDouble())
-            drawFrame(vertexHelper, posBegin, posEnd)
+        glTranslatef(0f, -margins, 0f)
+        val durabilityHeight = if (drawDurability) FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) + 2f else 0f
+        val enchantmentHeight = if (enchantment) {
+            (itemList.map { it.second.getHeight(2, customFont = CustomFont.isEnabled) }.maxOrNull() ?: 0f) + 4f
+        } else {
+            0f
         }
+        val height = 16 + durabilityHeight + enchantmentHeight * 0.6f
+        val posBegin = Vec2d(-halfWidth - margins.toDouble(), -height - margins.toDouble())
+        val posEnd = Vec2d(halfWidth + margins.toDouble(), margins.toDouble())
+        drawFrame(vertexHelper, posBegin, posEnd)
 
         glTranslatef(-halfWidth + 4f, -16f, 0f)
-        if (drawDura) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) - 2f, 0f)
+        if (drawDurability) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) - 2f, 0f)
 
         for ((itemStack, enchantmentText) in itemList) {
             if (itemStack.isEmpty) continue
-            drawItem(itemStack, enchantmentText, drawDura)
+            drawItem(itemStack, enchantmentText, drawDurability)
         }
         glColor4f(1f, 1f, 1f, 1f)
 
         glPopMatrix()
     }
 
-    private fun drawItem(itemStack: ItemStack, enchantmentText: TextComponent, drawDura: Boolean) {
+    private fun drawItem(itemStack: ItemStack, enchantmentText: TextComponent, drawDurability: Boolean) {
         GlStateUtils.blend(true)
         GlStateUtils.depth(true)
         mc.renderItem.zLevel = -100f
@@ -243,10 +233,10 @@ object Nametags : Module(
         mc.renderItem.zLevel = 0f
         glColor4f(1f, 1f, 1f, 1f)
 
-        if (drawDura && itemStack.isItemStackDamageable) {
-            val duraPercentage = 100f - (itemStack.itemDamage.toFloat() / itemStack.maxDamage.toFloat()) * 100f
-            val color = healthColorGradient.get(duraPercentage)
-            val text = duraPercentage.roundToInt().toString()
+        if (drawDurability && itemStack.isItemStackDamageable) {
+            val durabilityPercentage = 100f - (itemStack.itemDamage.toFloat() / itemStack.maxDamage.toFloat()) * 100f
+            val color = healthColorGradient.get(durabilityPercentage)
+            val text = durabilityPercentage.roundToInt().toString()
             val textWidth = FontRenderAdapter.getStringWidth(text, customFont = CustomFont.isEnabled)
             FontRenderAdapter.drawString(text, 8f - textWidth / 2f, 17f, color = color, customFont = CustomFont.isEnabled)
         }
@@ -273,8 +263,8 @@ object Nametags : Module(
         val enchantmentList = EnchantmentUtils.getAllEnchantments(itemStack)
         val style = if (CustomFont.isEnabled) Style.BOLD else Style.REGULAR
         for (leveledEnchantment in enchantmentList) {
-            textComponent.add(leveledEnchantment.alias, ColorHolder(255, 255, 255, colorText.a), style)
-            textComponent.addLine(leveledEnchantment.levelText, ColorHolder(155, 144, 255, colorText.a), style)
+            textComponent.add(leveledEnchantment.alias, Hud.primaryColor, style)
+            textComponent.addLine(leveledEnchantment.levelText, Hud.secondaryColor, style)
         }
         return textComponent
     }
@@ -285,16 +275,42 @@ object Nametags : Module(
         else null
 
     private fun drawFrame(vertexHelper: VertexHelper, posBegin: Vec2d, posEnd: Vec2d) {
-        if (cornerRadius == 0f) {
-            if (filled)
-                RenderUtils2D.drawRectFilled(vertexHelper, posBegin, posEnd, colorFilled)
-            if (outline && outlineWidth != 0f)
-                RenderUtils2D.drawRectOutline(vertexHelper, posBegin, posEnd, outlineWidth, colorOutline)
+        if (ClickGUI.radius == 0.0) {
+            if (background)
+                RenderUtils2D.drawRectFilled(
+                    vertexHelper,
+                    posBegin,
+                    posEnd,
+                    GuiColors.backGround.apply { a = alpha }
+                )
+            if (ClickGUI.outline && ClickGUI.outlineWidth != 0f)
+                RenderUtils2D.drawRectOutline(
+                    vertexHelper,
+                    posBegin,
+                    posEnd,
+                    ClickGUI.outlineWidth,
+                    GuiColors.outline
+                )
         } else {
-            if (filled)
-                RenderUtils2D.drawRoundedRectFilled(vertexHelper, posBegin, posEnd, cornerRadius.toDouble(), 8, colorFilled)
-            if (outline && outlineWidth != 0f)
-                RenderUtils2D.drawRoundedRectOutline(vertexHelper, posBegin, posEnd, cornerRadius.toDouble(), 8, outlineWidth, colorOutline)
+            if (background)
+                RenderUtils2D.drawRoundedRectFilled(
+                    vertexHelper,
+                    posBegin,
+                    posEnd,
+                    ClickGUI.radius,
+                    8,
+                    GuiColors.backGround.apply { a = alpha }
+                )
+            if (ClickGUI.outline && ClickGUI.outlineWidth != 0f)
+                RenderUtils2D.drawRoundedRectOutline(
+                    vertexHelper,
+                    posBegin,
+                    posEnd,
+                    ClickGUI.radius,
+                    8,
+                    ClickGUI.outlineWidth,
+                    GuiColors.outline
+                )
         }
     }
 
@@ -381,10 +397,10 @@ object Nametags : Module(
         }
         ContentType.NAME -> {
             val name = entity.displayName.unformattedText
-            TextComponent.TextElement(name, colorText)
+            TextComponent.TextElement(name, GuiColors.text)
         }
         ContentType.TYPE -> {
-            TextComponent.TextElement(getEntityType(entity), colorText)
+            TextComponent.TextElement(getEntityType(entity), GuiColors.text)
         }
         ContentType.TOTAL_HP -> {
             if (entity !is EntityLivingBase) {
@@ -407,7 +423,7 @@ object Nametags : Module(
                 null
             } else {
                 val absorption = MathUtils.round(entity.absorptionAmount, 1).toString()
-                TextComponent.TextElement(absorption, ColorHolder(234, 204, 32, colorText.a))
+                TextComponent.TextElement(absorption, ColorHolder(234, 204, 32, GuiColors.text.a))
             }
         }
         ContentType.PING -> {
@@ -415,16 +431,13 @@ object Nametags : Module(
                 null
             } else {
                 val ping = mc.connection?.getPlayerInfo(entity.uniqueID)?.responseTime ?: 0
-                TextComponent.TextElement("${ping}ms", pingColorGradient.get(ping.toFloat()).apply { a = colorText.a })
+                TextComponent.TextElement("${ping}ms", pingColorGradient.get(ping.toFloat()).apply { a = GuiColors.text.a })
             }
         }
         ContentType.DISTANCE -> {
             val dist = MathUtils.round(mc.player.getDistance(entity), 1).toString()
-            TextComponent.TextElement("${dist}m", colorText)
+            TextComponent.TextElement("${dist}m", GuiColors.text)
         }
-//        ContentType.TOTEM_POPS -> {
-//            TODO
-//        }
     }
 
     private fun getEntityType(entity: Entity) = entity.javaClass.simpleName.replace("Entity", "")
@@ -433,7 +446,7 @@ object Nametags : Module(
         .replace("SP", "")
         .replace(" ", "")
 
-    private fun getHpColor(entity: EntityLivingBase) = healthColorGradient.get((entity.health / entity.maxHealth) * 100f).apply { a = colorText.a }
+    private fun getHpColor(entity: EntityLivingBase) = healthColorGradient.get((entity.health / entity.maxHealth) * 100f).apply { a = GuiColors.text.a }
 
     fun checkEntityType(entity: Entity) = (self || entity != mc.renderViewEntity)
         && (!entity.isInvisible || invisible)
@@ -522,10 +535,10 @@ object Nametags : Module(
             textComponent.clear()
             for ((index, entry) in itemCountMap.entries.sortedByDescending { it.value }.withIndex()) {
                 val text = if (dropItemCount) "${entry.key} x${entry.value}" else entry.key
-                textComponent.addLine(text, colorText)
+                textComponent.addLine(text, GuiColors.text)
                 if (index + 1 >= maxDropItems) {
                     val remaining = itemCountMap.size - index - 1
-                    if (remaining > 0) textComponent.addLine("...and $remaining more", colorText)
+                    if (remaining > 0) textComponent.addLine("...and $remaining more", GuiColors.text)
                     break
                 }
             }

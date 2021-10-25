@@ -38,8 +38,8 @@ open class BasicWindow(
                 Vec2d(0.0, 0.0),
                 Vec2f(renderWidth, renderHeight).toVec2d(),
                 ClickGUI.radius,
-                lineWidth = ClickGUI.outlineSize,
-                color = GuiColors.primary
+                lineWidth = ClickGUI.outlineWidth,
+                color = GuiColors.outline
             )
         }
     }
