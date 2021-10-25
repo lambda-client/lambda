@@ -22,6 +22,7 @@ object CustomFont : Module(
         getMatchingFontName(value) ?: getMatchingFontName(prev) ?: DEFAULT_FONT_NAME
     })
     private val sizeSetting by setting("Size", 1.0f, 0.5f..2.0f, 0.05f)
+    private val shadowSetting by setting("Shadow", false)
     private val gapSetting by setting("Gap", 0.0f, -10f..10f, 0.5f)
     private val lineSpaceSetting by setting("Line Space", 0.0f, -10f..10f, 0.05f)
     private val baselineOffsetSetting by setting("Baseline Offset", 0.0f, -10.0f..10.0f, 0.05f)
@@ -33,6 +34,7 @@ object CustomFont : Module(
     val lineSpace get() = size * (lineSpaceSetting * 0.05f + 0.77f)
     val lodBias get() = lodBiasSetting * 0.25f - 0.5f
     val baselineOffset get() = baselineOffsetSetting * 2.0f - 4.5f
+    val shadow get() = shadowSetting
 
     /** Available fonts on the system */
     val availableFonts: Map<String, String> by AsyncCachedValue(5L, TimeUnit.SECONDS) {

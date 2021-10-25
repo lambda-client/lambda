@@ -90,7 +90,6 @@ object AutoLog : Module(
     private fun SafeClientEvent.checkPlayers(): Boolean {
         for (entity in world.loadedEntityList) {
             if (entity !is EntityPlayer) continue
-            if (AntiBot.isBot(entity)) continue
             if (entity.isFakeOrSelf) continue
             if (player.getDistance(entity) > playerDistance) continue
             if (!friends && FriendManager.isFriend(entity.name)) continue

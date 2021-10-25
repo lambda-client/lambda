@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.util.EnchantmentUtils
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.color.ColorGradient
@@ -87,7 +88,6 @@ object Nametags : Module(
 
     /* Rendering settings */
     private val colorText by setting("Text Color", ColorHolder(232, 229, 255, 255), visibility = { page == Page.RENDERING })
-    private val customFont by setting("Custom Font", true, { page == Page.RENDERING })
     private val yOffset by setting("Y Offset", 0.5f, -2.5f..2.5f, 0.05f, { page == Page.RENDERING })
     private val scale by setting("Scale", 1f, 0.25f..5f, 0.25f, { page == Page.RENDERING })
     private val distScaleFactor by setting("Distance Scale Factor", 0.0f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
@@ -157,8 +157,8 @@ object Nametags : Module(
     }
 
     private fun drawNametag(screenPos: Vec3d, scale: Float, xRange: IntRange, yRange: IntRange, vertexHelper: VertexHelper, drawFrame: Boolean, textComponent: TextComponent): Boolean {
-        val halfWidth = textComponent.getWidth(customFont) / 2.0 + margins + 2.0
-        val halfHeight = textComponent.getHeight(2, true, customFont) / 2.0 + margins + 2.0
+        val halfWidth = textComponent.getWidth(CustomFont.isEnabled) / 2.0 + margins + 2.0
+        val halfHeight = textComponent.getHeight(2, true, CustomFont.isEnabled) / 2.0 + margins + 2.0
 
         val scaledHalfWidth = halfWidth * scale
         val scaledHalfHeight = halfHeight * scale
@@ -172,7 +172,7 @@ object Nametags : Module(
         glTranslatef(screenPos.x.toFloat(), screenPos.y.toFloat(), 0f)
         glScalef(scale, scale, 1f)
         if (drawFrame) drawFrame(vertexHelper, Vec2d(-halfWidth, -halfHeight), Vec2d(halfWidth, halfHeight))
-        textComponent.draw(skipEmptyLine = true, horizontalAlign = HAlign.CENTER, verticalAlign = VAlign.CENTER, customFont = customFont)
+        textComponent.draw(skipEmptyLine = true, horizontalAlign = HAlign.CENTER, verticalAlign = VAlign.CENTER, customFont = CustomFont.isEnabled)
         glPopMatrix()
 
         return true
@@ -195,7 +195,7 @@ object Nametags : Module(
         }
 
         if (itemList.isEmpty() || itemList.count { !it.first.isEmpty } == 0) return
-        val halfHeight = textComponent.getHeight(2, true, customFont) / 2.0 + margins + 2.0
+        val halfHeight = textComponent.getHeight(2, true, CustomFont.isEnabled) / 2.0 + margins + 2.0
         val halfWidth = (itemList.count { !it.first.isEmpty } * 28) / 2f
 
         glPushMatrix()
@@ -209,9 +209,9 @@ object Nametags : Module(
 
         if (itemFrame) {
             glTranslatef(0f, -margins, 0f)
-            val duraHeight = if (drawDura) FontRenderAdapter.getFontHeight(customFont = customFont) + 2f else 0f
+            val duraHeight = if (drawDura) FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) + 2f else 0f
             val enchantmentHeight = if (enchantment) {
-                (itemList.map { it.second.getHeight(2, customFont = customFont) }.maxOrNull() ?: 0f) + 4f
+                (itemList.map { it.second.getHeight(2, customFont = CustomFont.isEnabled) }.maxOrNull() ?: 0f) + 4f
             } else {
                 0f
             }
@@ -222,7 +222,7 @@ object Nametags : Module(
         }
 
         glTranslatef(-halfWidth + 4f, -16f, 0f)
-        if (drawDura) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = customFont) - 2f, 0f)
+        if (drawDura) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) - 2f, 0f)
 
         for ((itemStack, enchantmentText) in itemList) {
             if (itemStack.isEmpty) continue
@@ -247,22 +247,22 @@ object Nametags : Module(
             val duraPercentage = 100f - (itemStack.itemDamage.toFloat() / itemStack.maxDamage.toFloat()) * 100f
             val color = healthColorGradient.get(duraPercentage)
             val text = duraPercentage.roundToInt().toString()
-            val textWidth = FontRenderAdapter.getStringWidth(text, customFont = customFont)
-            FontRenderAdapter.drawString(text, 8f - textWidth / 2f, 17f, color = color, customFont = customFont)
+            val textWidth = FontRenderAdapter.getStringWidth(text, customFont = CustomFont.isEnabled)
+            FontRenderAdapter.drawString(text, 8f - textWidth / 2f, 17f, color = color, customFont = CustomFont.isEnabled)
         }
 
         if (count && itemStack.count > 1) {
             val itemCount = itemStack.count.toString()
             glTranslatef(0f, 0f, 60f)
-            val stringWidth = 17f - FontRenderAdapter.getStringWidth(itemCount, customFont = customFont)
-            FontRenderAdapter.drawString(itemCount, stringWidth, 9f, customFont = customFont)
+            val stringWidth = 17f - FontRenderAdapter.getStringWidth(itemCount, customFont = CustomFont.isEnabled)
+            FontRenderAdapter.drawString(itemCount, stringWidth, 9f, customFont = CustomFont.isEnabled)
             glTranslatef(0f, 0f, -60f)
         }
 
         glTranslatef(0f, -2f, 0f)
         if (enchantment) {
-            val scale = if (customFont) 0.6f else 0.5f
-            enchantmentText.draw(lineSpace = 2, scale = scale, verticalAlign = VAlign.BOTTOM, customFont = customFont)
+            val scale = if (CustomFont.isEnabled) 0.6f else 0.5f
+            enchantmentText.draw(lineSpace = 2, scale = scale, verticalAlign = VAlign.BOTTOM, customFont = CustomFont.isEnabled)
         }
 
         glTranslatef(28f, 2f, 0f)
@@ -271,7 +271,7 @@ object Nametags : Module(
     private fun getEnchantmentText(itemStack: ItemStack): TextComponent {
         val textComponent = TextComponent()
         val enchantmentList = EnchantmentUtils.getAllEnchantments(itemStack)
-        val style = if (customFont) Style.BOLD else Style.REGULAR
+        val style = if (CustomFont.isEnabled) Style.BOLD else Style.REGULAR
         for (leveledEnchantment in enchantmentList) {
             textComponent.add(leveledEnchantment.alias, ColorHolder(255, 255, 255, colorText.a), style)
             textComponent.addLine(leveledEnchantment.levelText, ColorHolder(155, 144, 255, colorText.a), style)
