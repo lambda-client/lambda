@@ -202,11 +202,11 @@ object AutoMend : Module(
         }
     }
 
-    private fun isNearbyPlayer(): Boolean {
-        for (entity in mc.world.loadedEntityList) {
+    private fun SafeClientEvent.isNearbyPlayer(): Boolean {
+        for (entity in world.loadedEntityList) {
             if (entity !is EntityPlayer) continue
             if (entity.isFakeOrSelf) continue
-            if (mc.player.getDistance(entity) > pauseNearbyRadius) continue
+            if (player.getDistance(entity) > pauseNearbyRadius) continue
             if (FriendManager.isFriend(entity.name)) continue
             return true
         }
