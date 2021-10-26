@@ -146,40 +146,38 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
                 LambdaMod.LOG.info("Requesting all public plugin repos from: $repoUrl")
 
-                val jsonTree = JsonParser().parse(rawJson).asJsonArray
+                val pluginRepos = JsonParser().parse(rawJson).asJsonArray
 
-                jsonTree.forEach { jsonElement ->
-                    val releaseUrl = jsonElement.asJsonObject.get("releases_url").asString.replace("{/id}", "")
-                    val downloadsJson = ConnectionUtils.requestRawJsonFrom(jsonElement.asJsonObject.get("releases_url").asString.replace("{/id}", "")) {
+                pluginRepos.forEach { pluginRepo ->
+                    val releaseUrl = pluginRepo.asJsonObject.get("releases_url").asString.replace("{/id}", "")
+                    val downloadsJson = ConnectionUtils.requestRawJsonFrom(pluginRepo.asJsonObject.get("releases_url").asString.replace("{/id}", "")) {
                         LambdaMod.LOG.error("Failed to load organisation for plugins from GitHub", it)
                         throw it
                     }
 
                     LambdaMod.LOG.info("Requesting details about: $releaseUrl")
 
-                    val latestReleaseJson = JsonParser().parse(downloadsJson)
-
-                    if (latestReleaseJson.asJsonArray.size() > 0) {
-                        latestReleaseJson.asJsonArray[0]?.let { latestRelease ->
-                            val assets = latestRelease.asJsonObject.get("assets").asJsonArray
-                            assets[0]?.let { asset ->
-                                val name = jsonElement.asJsonObject.get("name").asString
-                                if (remotePluginWindow.children.none { it.name == name } &&
-                                    PluginManager.loadedPlugins.none { it.name == name }) {
-                                    remotePluginWindow.children.add(RemotePluginButton(name,
-                                        jsonElement.asJsonObject.get("description").asString,
+                    JsonParser().parse(downloadsJson).asJsonArray[0]?.let { latestRelease ->
+                        latestRelease.asJsonObject.get("assets").asJsonArray[0]?.let { firstAsset ->
+                            val name = pluginRepo.asJsonObject.get("name").asString
+                            if (remotePluginWindow.children.none { it.name == name } &&
+                                PluginManager.loadedPlugins.none { it.name == name }) {
+                                remotePluginWindow.children.add(
+                                    RemotePluginButton(
+                                        name,
+                                        pluginRepo.asJsonObject.get("description").asString,
                                         "",
                                         "",
-                                        asset.asJsonObject.get("browser_download_url").asString,
-                                        asset.asJsonObject.get("name").asString)
+                                        firstAsset.asJsonObject.get("browser_download_url").asString,
+                                        firstAsset.asJsonObject.get("name").asString
                                     )
-                                }
+                                )
                             }
                         }
                     }
                 }
 
-                LambdaMod.LOG.info("Found remote plugins: ${jsonTree.size()}")
+                LambdaMod.LOG.info("Found remote plugins: ${pluginRepos.size()}")
             } catch (e: Exception) {
                 LambdaMod.LOG.error("Failed to parse plugin json", e)
             }
