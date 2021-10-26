@@ -15,10 +15,17 @@ import com.lambda.client.module.ModuleManager
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.plugin.PluginManager
 import com.lambda.client.util.math.Vec2f
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.commons.utils.ConnectionUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.lwjgl.input.Keyboard
+import java.io.IOException
+import java.net.URL
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>() {
 
@@ -127,7 +134,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         }
     }
 
-    fun updatePlugins() {
+    private fun updatePlugins() {
         PluginManager.loadedPlugins.forEach { plugin ->
             if (pluginWindow.children.none { it.name == plugin.name }) {
                 pluginWindow.children.add(PluginButton(plugin))
@@ -157,21 +164,24 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
                     LambdaMod.LOG.info("Requesting details about: $releaseUrl")
 
-                    JsonParser().parse(downloadsJson).asJsonArray[0]?.let { latestRelease ->
-                        latestRelease.asJsonObject.get("assets").asJsonArray[0]?.let { firstAsset ->
-                            val name = pluginRepo.asJsonObject.get("name").asString
-                            if (remotePluginWindow.children.none { it.name == name } &&
-                                PluginManager.loadedPlugins.none { it.name == name }) {
-                                remotePluginWindow.children.add(
-                                    RemotePluginButton(
-                                        name,
-                                        pluginRepo.asJsonObject.get("description").asString,
-                                        "",
-                                        "",
-                                        firstAsset.asJsonObject.get("browser_download_url").asString,
-                                        firstAsset.asJsonObject.get("name").asString
+                    val releases = JsonParser().parse(downloadsJson).asJsonArray
+                    if (releases.size() > 0) {
+                        releases[0]?.let { latestRelease ->
+                            latestRelease.asJsonObject.get("assets").asJsonArray[0]?.let { firstAsset ->
+                                val name = pluginRepo.asJsonObject.get("name").asString
+                                if (remotePluginWindow.children.none { it.name == name } &&
+                                    PluginManager.loadedPlugins.none { it.name == name }) {
+                                    remotePluginWindow.children.add(
+                                        RemotePluginButton(
+                                            name,
+                                            pluginRepo.asJsonObject.get("description").asString,
+                                            "",
+                                            "",
+                                            firstAsset.asJsonObject.get("browser_download_url").asString,
+                                            firstAsset.asJsonObject.get("name").asString
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
@@ -180,6 +190,33 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 LambdaMod.LOG.info("Found remote plugins: ${pluginRepos.size()}")
             } catch (e: Exception) {
                 LambdaMod.LOG.error("Failed to parse plugin json", e)
+            }
+        }
+    }
+
+    fun downloadPlugin(remotePluginButton: RemotePluginButton) {
+        defaultScope.launch(Dispatchers.IO) {
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} started... (${URL(remotePluginButton.downloadUrl).protocol})")
+            try {
+                // ToDo: Make it use the progress bar in button itself
+                URL(remotePluginButton.downloadUrl).openStream().use { `in` ->
+                    Files.copy(`in`, Paths.get("${PluginManager.pluginPath}/${remotePluginButton.fileName}"), StandardCopyOption.REPLACE_EXISTING)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} finished...")
+            remotePluginWindow.children.remove(remotePluginButton)
+
+            PluginManager.getLoaders().filter {
+                !PluginManager.loadedPlugins.containsName(it.name)
+            }.forEach { pluginLoader ->
+                val plugin = pluginLoader.load()
+                MessageSendHelper.sendChatMessage("[Plugin Manager] ${remotePluginButton.name} loaded.")
+                if (pluginWindow.children.none { it.name == plugin.name }) {
+                    pluginWindow.children.add(PluginButton(plugin))
+                }
             }
         }
     }

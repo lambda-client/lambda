@@ -15,7 +15,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
 class RemotePluginButton(
-    private val buttonName: String,
+    buttonName: String,
     val description: String,
     val authors: String,
     val version: String,
@@ -28,24 +28,10 @@ class RemotePluginButton(
 
     override fun onClick(mousePos: Vec2f, buttonId: Int) {
         super.onClick(mousePos, buttonId)
-        downloadPlugin()
+        LambdaClickGui.downloadPlugin(this)
     }
 
     override fun onRelease(mousePos: Vec2f, buttonId: Int) {
         super.onRelease(mousePos, buttonId)
-    }
-
-    private fun downloadPlugin() {
-        defaultScope.launch(Dispatchers.IO) {
-            try {
-                URL(downloadUrl).openStream().use { `in` ->
-                    Files.copy(`in`, Paths.get("${PluginManager.pluginPath}/$fileName"), StandardCopyOption.REPLACE_EXISTING)
-                }
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-            PluginManager.getLoaders().forEach { it.load() }
-            LambdaClickGui.updatePlugins()
-        }
     }
 }
