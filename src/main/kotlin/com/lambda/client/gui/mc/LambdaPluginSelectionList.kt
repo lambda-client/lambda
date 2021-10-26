@@ -42,7 +42,6 @@ class LambdaPluginSelectionList(val owner: LambdaGuiPluginManager, mcIn: Minecra
     }
 
     fun collectPlugins(onlyLocal: Boolean = false) {
-
         loadedPlugins.forEach { plugin ->
             plugins.firstOrNull { it.pluginData.name == plugin.name }?.let { entry ->
                 plugins.remove(entry)
