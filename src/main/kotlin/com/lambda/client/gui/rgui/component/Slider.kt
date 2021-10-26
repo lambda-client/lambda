@@ -106,13 +106,14 @@ open class Slider(
         RenderUtils2D.drawRectFilled(vertexHelper, Vec2d(0.0, 0.0), Vec2d(renderWidth.toDouble(), renderHeight.toDouble()), overlayColor)
 
         // Slider frame
-        if (ClickGUI.outline) {
+        if (ClickGUI.buttonOutline) {
             RenderUtils2D.drawRectOutline(
                 vertexHelper,
                 Vec2d(0.0, 0.0),
                 Vec2f(renderWidth, renderHeight).toVec2d(),
                 ClickGUI.outlineWidth,
-                GuiColors.outline)
+                GuiColors.outline
+            )
         }
 
         // Slider name
@@ -168,12 +169,13 @@ open class Slider(
                 vertexHelper,
                 posEnd = Vec2d(textWidth, textHeight).plus(4.0),
                 color = GuiColors.backGround.apply { a = (a * alpha).toInt() })
-            if (ClickGUI.outline) {
+            if (ClickGUI.windowOutline) {
                 RenderUtils2D.drawRectOutline(
                     vertexHelper,
                     posEnd = Vec2d(textWidth, textHeight).plus(4.0),
                     lineWidth = ClickGUI.outlineWidth,
-                    color = GuiColors.outline.apply { a = (a * alpha).toInt() })
+                    color = GuiColors.outline.apply { a = (a * alpha).toInt() }
+                )
             }
 
             displayDescription.draw(Vec2d(2.0, 2.0), 2, alpha)

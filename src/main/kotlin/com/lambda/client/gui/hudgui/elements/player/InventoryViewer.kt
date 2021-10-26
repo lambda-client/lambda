@@ -47,7 +47,7 @@ internal object InventoryViewer : HudElement(
             if (background) {
                 RenderUtils2D.drawRectFilled(vertexHelper, posEnd = Vec2d(162.0, 54.0), color = GuiColors.backGround.apply { a = alpha })
             }
-            if (ClickGUI.outline) {
+            if (ClickGUI.windowOutline) {
                 RenderUtils2D.drawRectOutline(vertexHelper, posEnd = Vec2d(162.0, 54.0), lineWidth = ClickGUI.outlineWidth, color = GuiColors.outline.apply { a = alpha })
             }
         }
