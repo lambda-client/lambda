@@ -42,12 +42,12 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
     @Inject(method = "drawScreen", at = @At("RETURN"))
     public void drawScreen$Inject$RETURN(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         FontRenderer fr = fontRenderer;
-        String slogan = TextFormatting.WHITE + LambdaMod.NAME + " " + TextFormatting.GRAY + LambdaMod.VERSION + " ";
+        String slogan = TextFormatting.WHITE + LambdaMod.NAME + " " + TextFormatting.GRAY + LambdaMod.VERSION;
         String version;
         if (WebUtils.INSTANCE.isLatestVersion()) {
             version = "";
         } else {
-            version = TextFormatting.DARK_RED + "Update Available! (" + WebUtils.INSTANCE.getLatestVersion() + ")";
+            version = TextFormatting.DARK_RED + " Update Available! (" + WebUtils.INSTANCE.getLatestVersion() + ")";
         }
         String combined = slogan + version;
         drawString(fr, combined, width - fr.getStringWidth(combined) - 2, this.height - 20, -1);

@@ -92,13 +92,13 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             }
         }
 
-        for (loader in loaders) {
-            // Required plugin check
-            if (!loadedPlugins.containsNames(loader.info.requiredPlugins)
-                && !loaderSet.containsNames(loader.info.requiredPlugins)) {
-                PluginError.REQUIRED_PLUGIN.handleError(loader)
-                invalids.add(loader)
-            }
+        // Required plugin check
+        loaders.filter {
+            !loadedPlugins.containsNames(it.info.requiredPlugins)
+                && !loaderSet.containsNames(it.info.requiredPlugins)
+        }.forEach {
+            PluginError.REQUIRED_PLUGIN.handleError(it)
+            invalids.add(it)
         }
 
         return loaders.filter { !invalids.contains(it) }

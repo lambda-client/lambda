@@ -4,7 +4,7 @@ import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.rgui.component.BooleanSlider
 import com.lambda.client.util.math.Vec2f
 
-object AddPluginButton : BooleanSlider("Add plugin...", 0.0, "Add plugins from github.") {
+object AddPluginButton : BooleanSlider("Add plugin...", 0.0, "Download plugins from github") {
     override fun onTick() {
         super.onTick()
     }

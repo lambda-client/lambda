@@ -65,8 +65,9 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
         remotePluginWindow = ListWindow("Remote plugins", posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
         remotePluginWindow.visible = false
-        populateRemotePlugins()
         windows.add(remotePluginWindow)
+
+        populateRemotePlugins()
 
         windowList.addAll(windows)
     }
@@ -137,7 +138,9 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     private fun updatePlugins() {
         PluginManager.loadedPlugins.forEach { plugin ->
             if (pluginWindow.children.none { it.name == plugin.name }) {
-                pluginWindow.children.add(PluginButton(plugin))
+                PluginManager.loadedPluginLoader[plugin.name]?.let {
+                    pluginWindow.children.add(PluginButton(plugin, it.file))
+                }
             }
         }
     }
@@ -196,11 +199,11 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
         defaultScope.launch(Dispatchers.IO) {
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} started... (${URL(remotePluginButton.downloadUrl).protocol})")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} started...")
             try {
                 // ToDo: Make it use the progress bar in button itself
-                URL(remotePluginButton.downloadUrl).openStream().use { `in` ->
-                    Files.copy(`in`, Paths.get("${PluginManager.pluginPath}/${remotePluginButton.fileName}"), StandardCopyOption.REPLACE_EXISTING)
+                URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->
+                    Files.copy(inputStream, Paths.get("${PluginManager.pluginPath}/${remotePluginButton.fileName}"), StandardCopyOption.REPLACE_EXISTING)
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -209,13 +212,14 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} finished...")
             remotePluginWindow.children.remove(remotePluginButton)
 
+            // ToDo: Update pluginLoaders in a manager job
             PluginManager.getLoaders().filter {
                 !PluginManager.loadedPlugins.containsName(it.name)
             }.forEach { pluginLoader ->
                 val plugin = pluginLoader.load()
-                MessageSendHelper.sendChatMessage("[Plugin Manager] ${remotePluginButton.name} loaded.")
                 if (pluginWindow.children.none { it.name == plugin.name }) {
-                    pluginWindow.children.add(PluginButton(plugin))
+                    pluginWindow.children.add(PluginButton(plugin, pluginLoader.file))
+                    MessageSendHelper.sendChatMessage("[Plugin Manager] ${remotePluginButton.name} loaded.")
                 }
             }
         }
