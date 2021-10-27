@@ -283,7 +283,7 @@ object Nametags : Module(
                     posEnd,
                     GuiColors.backGround.apply { a = alpha }
                 )
-            if (ClickGUI.outline && ClickGUI.outlineWidth != 0f)
+            if (ClickGUI.windowOutline && ClickGUI.outlineWidth != 0f)
                 RenderUtils2D.drawRectOutline(
                     vertexHelper,
                     posBegin,
@@ -301,7 +301,7 @@ object Nametags : Module(
                     8,
                     GuiColors.backGround.apply { a = alpha }
                 )
-            if (ClickGUI.outline && ClickGUI.outlineWidth != 0f)
+            if (ClickGUI.windowOutline && ClickGUI.outlineWidth != 0f)
                 RenderUtils2D.drawRoundedRectOutline(
                     vertexHelper,
                     posBegin,

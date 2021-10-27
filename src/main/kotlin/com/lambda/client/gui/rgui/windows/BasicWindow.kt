@@ -32,7 +32,7 @@ open class BasicWindow(
             ClickGUI.radius,
             color = GuiColors.backGround
         )
-        if (ClickGUI.outline) {
+        if (ClickGUI.windowOutline) {
             RenderUtils2D.drawRoundedRectOutline(
                 vertexHelper,
                 Vec2d(0.0, 0.0),
