@@ -21,14 +21,16 @@ import net.minecraft.util.MovementInputFromOptions
 import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-object GridMove : Module(
+object Gridmove : Module(
     name = "GridMove",
     category = Category.MOVEMENT,
     description = "Moves in a grid. Useful for stash hunting"
 ) {
     init {
-        while(true){
-            it.movementInput.moveForward = 1.0f
-        }    
+        listener<InputUpdateEvent>(6969) {
+            while(true){
+                it.movementInput.moveForward = 1.0f
+            }
+        }        
     }
 }
