@@ -28,9 +28,10 @@ object Gridmove : Module(
 ) {
     init {
         listener<InputUpdateEvent>(6969) {
-            while(true){
-                it.movementInput.moveForward = 1.0f
-            }
+            if (LagNotifier.paused && LagNotifier.pauseAutoWalk) return@listener
+
+            if (it.movementInput !is MovementInputFromOptions) return@listener
+            it.movementInput.moveForward = 1.0f
         }        
     }
 }
