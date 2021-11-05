@@ -15,7 +15,7 @@ import net.minecraft.util.MovementInputFromOptions
 import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent\
 
-object AutoWalk : Module(
+object GridMove : Module(
     name = "GridMove",
     category = Category.MOVEMENT,
     description = "Moves in a grid. Useful for stash hunting"
