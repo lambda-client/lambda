@@ -14,6 +14,7 @@ object GridMove : Module(
     category = Category.MOVEMENT,
     description = "Moves in a grid. Useful for stash hunting"
 ) {
+    private val mode = setting("Direction", GridMoveMode.FORWARD)
     private val disableOnDisconnect by setting("Disable On Disconnect", true)
     enum class GridMoveMode(override val displayName: String) : DisplayEnum {
         FORWARD("Forward"),
