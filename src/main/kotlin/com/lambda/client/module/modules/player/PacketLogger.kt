@@ -10,6 +10,7 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.interfaces.DisplayEnum
 import com.lambda.event.listener.listener
@@ -73,6 +74,10 @@ object PacketLogger : Module(
 
         onDisable {
             write()
+
+            runSafe {
+                MessageSendHelper.sendChatMessage("$chatName Log saved at $directory/${filename}")
+            }
         }
 
         safeListener<TickEvent.ClientTickEvent> {
