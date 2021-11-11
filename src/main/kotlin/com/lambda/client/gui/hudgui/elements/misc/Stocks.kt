@@ -2,10 +2,8 @@ package com.lambda.client.gui.hudgui.elements.misc
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
 
 internal object Stocks : LabelHud(
     name = "Stocks",
@@ -15,10 +13,9 @@ internal object Stocks : LabelHud(
 
     private val symbol = setting("Symbol", "TSLA")
     private val delay by setting("Delay", 100, 5..60, 1)
-
+    val timer = TickTimer(TimeUnit.SECONDS)
     override fun SafeClientEvent.updateText() {
-        val client = HttpClient(CIO)
-        if (timer.tick(delay.toLong()) {
+        if (timer.tick(delay.toLong())){
                 //get a new request from the API
                 //parse the response
                 //display the update
