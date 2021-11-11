@@ -18,7 +18,7 @@ internal object Stocks : LabelHud(
     private val symbol by setting("Symbol", "TSLA")
     private val delay by setting("Delay", 100, 5..60, 1)
     private val timer = TickTimer(TimeUnit.SECONDS)
-    private var price = "test"
+    private lateinit var price: String
     private val apiClient = DefaultApi()
     override fun SafeClientEvent.updateText() {
         if (timer.tick(delay.toLong())){
