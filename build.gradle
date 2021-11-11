@@ -13,6 +13,8 @@ buildscript {
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokkaVersion"
+        classpath "io.ktor:ktor-client-core:1.6.5"
+        classpath "io.ktor:ktor-client-cio:1.6.5"
     }
 }
 
