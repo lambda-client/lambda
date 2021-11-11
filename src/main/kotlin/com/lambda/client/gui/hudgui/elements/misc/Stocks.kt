@@ -4,6 +4,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import io.finnhub.api.apis.DefaultApi
 
 internal object Stocks : LabelHud(
     name = "Stocks",
