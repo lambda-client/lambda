@@ -14,6 +14,7 @@ internal object Stocks : LabelHud(
     private val symbol = setting("Symbol", "TSLA")
     private val delay by setting("Delay", 100, 5..60, 1)
     val timer = TickTimer(TimeUnit.SECONDS)
+    var url = "https://finnhub.io/api/v1/quote?symbol="+symbol+"&token=c5resoqad3ifnpn51ou0"
     override fun SafeClientEvent.updateText() {
         if (timer.tick(delay.toLong())){
                 //get a new request from the API
