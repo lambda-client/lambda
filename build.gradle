@@ -75,7 +75,7 @@ configurations {
 dependencies {
     // Forge
     minecraft "net.minecraftforge:forge:$minecraftVersion-$forgeVersion"
-    implementation 'io.finnhub:kotlin-client:2.0.9'
+    jarLibs('io.finnhub:kotlin-client:2.0.9')
     jarLibs('org.spongepowered:mixin:0.7.11-SNAPSHOT') {
         exclude module: 'commons-io'
         exclude module: 'gson'
