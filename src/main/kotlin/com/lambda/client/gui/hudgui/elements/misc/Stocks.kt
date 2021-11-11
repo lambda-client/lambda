@@ -1,5 +1,8 @@
 package com.lambda.client.gui.hudgui.elements.misc
 
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.LabelHud
+
 internal object Stocks : LabelHud(
     name = "Stocks",
     category = Category.MISC,
@@ -9,9 +12,6 @@ internal object Stocks : LabelHud(
     private val symbol = setting("Symbol", "TSLA")
     private val delay by setting("Delay", 100, 5..60, 1)
     override fun SafeClientEvent.updateText() {
-        if (symbol = symbol) {
-            displayText.add("Current Price of " + symbol + " is [price] "+ delay)
-        }
+        displayText.add("Current Price of $symbol is [price] $delay")
         }
     }
-}
