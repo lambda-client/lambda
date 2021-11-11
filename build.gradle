@@ -13,7 +13,6 @@ buildscript {
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokkaVersion"
-        classpath 'io.finnhub:kotlin-client:2.0.9'
     }
 }
 
