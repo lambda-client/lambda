@@ -23,7 +23,7 @@ internal object Stocks : LabelHud(
     override fun SafeClientEvent.updateText() {
         if (timer.tick(delay.toLong())){
             price = apiClient.quote(symbol).toString()
-            displayText.add("Current Price of $symbol is $price $delay")
         }
+        displayText.add("Current Price of $symbol is $price $delay")
     }
 }
