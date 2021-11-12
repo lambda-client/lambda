@@ -20,7 +20,7 @@ internal object Stocks : LabelHud(
     private val timer = TickTimer(TimeUnit.SECONDS)
     //private val apiClient = DefaultApi()
     override fun SafeClientEvent.updateText() {
-        if (timer.tick(delay.toLong())){
+        if (! timer.tick(delay.toLong())){
             //displayText.add("Current Price of $symbol is ${apiClient.quote(symbol)} $delay")
             displayText.add("THIS IS A LOT OF TEXT MARS ON TOP EZZZ")
         }
