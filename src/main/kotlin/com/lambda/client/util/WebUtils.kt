@@ -41,7 +41,7 @@ object WebUtils {
                             }
                             remoteVersion > localVersion -> {
                                 isLatestVersion = false
-                                LambdaMod.LOG.warn("You Lambda is outdated.\nCurrent: ${LambdaMod.VERSION_MAJOR}\nLatest: $latestVersion")
+                                LambdaMod.LOG.warn("Your Lambda is outdated.\nCurrent: ${LambdaMod.VERSION_MAJOR}\nLatest: $latestVersion")
                             }
                             remoteVersion < localVersion -> {
                                 LambdaMod.LOG.info("Your Lambda (" + LambdaMod.VERSION_MAJOR + ") is ahead of time.")
