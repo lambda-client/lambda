@@ -16,12 +16,13 @@ internal object Stocks : LabelHud(
         ApiClient.apiKey["token"] = "c5resoqad3ifnpn51ou0"
     }
     private val symbol by setting("Symbol", "TSLA")
-    private val delay by setting("Delay", 100, 5..60, 1)
+    private val delay by setting("Delay", 100, 1..60, 1)
     private val timer = TickTimer(TimeUnit.SECONDS)
-    private val apiClient = DefaultApi()
+    //private val apiClient = DefaultApi()
     override fun SafeClientEvent.updateText() {
         if (timer.tick(delay.toLong())){
-            displayText.add("Current Price of $symbol is ${apiClient.quote(symbol)} $delay")
+            //displayText.add("Current Price of $symbol is ${apiClient.quote(symbol)} $delay")
+            displayText.add("THIS IS A LOT OF TEXT MARS ON TOP EZZZ")
         }
     }
 }
