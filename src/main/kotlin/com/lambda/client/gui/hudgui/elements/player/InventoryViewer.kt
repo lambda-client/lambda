@@ -2,7 +2,8 @@ package com.lambda.client.gui.hudgui.elements.player
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.HudElement
-import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.graphics.VertexHelper
@@ -23,10 +24,8 @@ internal object InventoryViewer : HudElement(
     private val mcTexture by setting("Minecraft Texture", false)
     private val showIcon by setting("Show Icon", false, { !mcTexture })
     private val iconScale by setting("Icon Scale", 0.5f, 0.1f..1.0f, 0.1f, { !mcTexture && showIcon })
-    private val border by setting("Border", true, { !mcTexture })
-    private val borderColor by setting("Border Color", ColorHolder(111, 166, 222, 255), true, { !mcTexture && border })
     private val background by setting("Background", true, { !mcTexture })
-    private val backgroundColor by setting("Background Color", ColorHolder(30, 36, 48, 127), true, { !mcTexture && background })
+    private val alpha by setting("Alpha", 150, 0..255, 1, { !mcTexture })
 
     private val containerTexture = ResourceLocation("textures/gui/container/inventory.png")
     private val lambdaIcon = ResourceLocation("lambda/lambda_icon.png")
@@ -46,10 +45,10 @@ internal object InventoryViewer : HudElement(
     private fun drawFrame(vertexHelper: VertexHelper) {
         if (!mcTexture) {
             if (background) {
-                RenderUtils2D.drawRectFilled(vertexHelper, posEnd = Vec2d(162.0, 54.0), color = backgroundColor)
+                RenderUtils2D.drawRectFilled(vertexHelper, posEnd = Vec2d(162.0, 54.0), color = GuiColors.backGround.apply { a = alpha })
             }
-            if (border) {
-                RenderUtils2D.drawRectOutline(vertexHelper, posEnd = Vec2d(162.0, 54.0), lineWidth = 2.0f, color = borderColor)
+            if (ClickGUI.windowOutline) {
+                RenderUtils2D.drawRectOutline(vertexHelper, posEnd = Vec2d(162.0, 54.0), lineWidth = ClickGUI.outlineWidth, color = GuiColors.outline.apply { a = alpha })
             }
         }
     }

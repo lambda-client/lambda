@@ -4,6 +4,7 @@ import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.rgui.component.Button
 import com.lambda.client.gui.rgui.component.SettingSlider
 import com.lambda.client.gui.rgui.component.Slider
+import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.setting.GuiConfig.setting
 import com.lambda.client.setting.settings.impl.other.ColorSetting
@@ -223,7 +224,7 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
         GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
         // Outline
-        RenderUtils2D.drawRectOutline(vertexHelper, fieldPos.first.toVec2d(), fieldPos.second.toVec2d(), 1.5f, GuiColors.outline)
+        if (ClickGUI.windowOutline) RenderUtils2D.drawRectOutline(vertexHelper, fieldPos.first.toVec2d(), fieldPos.second.toVec2d(), ClickGUI.outlineWidth, GuiColors.outline)
 
         // Circle pointer
         val interpolatedSaturation = prevSaturation + (saturation - prevSaturation) * mc.renderPartialTicks
@@ -259,7 +260,7 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
         RenderUtils2D.releaseGl()
 
         // Outline
-        RenderUtils2D.drawRectOutline(vertexHelper, huePos.first.toVec2d(), huePos.second.toVec2d(), 1.5f, GuiColors.outline)
+        if (ClickGUI.windowOutline) RenderUtils2D.drawRectOutline(vertexHelper, huePos.first.toVec2d(), huePos.second.toVec2d(), ClickGUI.outlineWidth, GuiColors.outline)
 
         // Arrow pointer
         val interpolatedHue = prevHue + (hue - prevHue) * mc.renderPartialTicks
@@ -273,12 +274,12 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
 
         RenderUtils2D.drawRectFilled(vertexHelper, prevColorPos.first.toVec2d(), prevColorPos.second.toVec2d(), originalColor
             ?: ColorHolder())
-        RenderUtils2D.drawRectOutline(vertexHelper, prevColorPos.first.toVec2d(), prevColorPos.second.toVec2d(), 1.5f, GuiColors.outline)
+        if (ClickGUI.windowOutline) RenderUtils2D.drawRectOutline(vertexHelper, prevColorPos.first.toVec2d(), prevColorPos.second.toVec2d(), ClickGUI.outlineWidth, GuiColors.outline)
 
         // Current color
         val currentColor = setting?.value ?: ColorHolder()
         RenderUtils2D.drawRectFilled(vertexHelper, currentColorPos.first.toVec2d(), currentColorPos.second.toVec2d(), currentColor)
-        RenderUtils2D.drawRectOutline(vertexHelper, currentColorPos.first.toVec2d(), currentColorPos.second.toVec2d(), 1.5f, GuiColors.outline)
+        if (ClickGUI.windowOutline) RenderUtils2D.drawRectOutline(vertexHelper, currentColorPos.first.toVec2d(), currentColorPos.second.toVec2d(), ClickGUI.outlineWidth, GuiColors.outline)
 
         // Previous hex
 

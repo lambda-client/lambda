@@ -16,7 +16,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-//dude idk this mixin is so dumb ~Aven
 @Mixin({Block.class, BlockAir.class, BlockFire.class, BlockCactus.class})
 public class MixinGetCollisionBB {
 
@@ -26,9 +25,9 @@ public class MixinGetCollisionBB {
     private void getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos, CallbackInfoReturnable<AxisAlignedBB> cir) {
         if (mc.world != null && Avoid.INSTANCE.isEnabled()) {
             Block checkBlock = getBlock(pos);
-            if (checkBlock.equals(Blocks.FIRE) && Avoid.INSTANCE.getFire() ||
-                checkBlock.equals(Blocks.CACTUS) && Avoid.INSTANCE.getCactus() ||
-                (!mc.world.isBlockLoaded(pos, false) || pos.getY() < 0) && Avoid.INSTANCE.getUnloaded()) {
+            if ((checkBlock.equals(Blocks.FIRE) && Avoid.INSTANCE.getFire()) ||
+                (checkBlock.equals(Blocks.CACTUS) && Avoid.INSTANCE.getCactus()) ||
+                ((!mc.world.isBlockLoaded(pos, false) || pos.getY() < 0) && Avoid.INSTANCE.getUnloaded())) {
                 cir.cancel();
                 cir.setReturnValue(Block.FULL_BLOCK_AABB);
             }

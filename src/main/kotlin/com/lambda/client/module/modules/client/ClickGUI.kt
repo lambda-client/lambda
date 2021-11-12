@@ -19,10 +19,12 @@ object ClickGUI : Module(
     alwaysListening = true
 ) {
     private val scaleSetting = setting("Scale", 100, 50..400, 5)
-    val radius by setting("Radius", 4.0, 0.0..10.0, 0.2)
+    val radius by setting("Corner Radius", 2.0, 0.0..10.0, 0.2)
     val blur by setting("Blur", 0.0f, 0.0f..1.0f, 0.05f)
-    val outline by setting("Outline", true)
-    val outlineSize by setting("Outline Size", 2.5f, 0.5f..3.5f,0.5f)
+    val windowOutline by setting("Window Outline", false)
+    val buttonOutline by setting("Button Outline", false)
+    val outlineWidth by setting("Outline Width", 2.5f, 0.5f..3.5f,0.5f, { windowOutline || buttonOutline })
+    val entryMargin by setting("Margin", 0.0f, 0.0f..10.0f, 0.5f)
     val darkness by setting("Darkness", 0.25f, 0.0f..1.0f, 0.05f)
     val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f)
     val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f)

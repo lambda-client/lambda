@@ -12,7 +12,8 @@ object NoPacketKick : Module(
     name = "NoPacketKick",
     category = Category.PLAYER,
     description = "Suppress network exceptions and prevent getting kicked",
-    showOnArray = false
+    showOnArray = false,
+    enabledByDefault = true
 ) {
     @JvmStatic
     fun sendWarning(throwable: Throwable) {

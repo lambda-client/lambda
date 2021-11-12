@@ -25,18 +25,8 @@ jobs:
         with:
           java-version: 1.8
 
-      - name: Gradle cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-
-
       - name: Build forge mod
-        run: ./gradlew --build-cache build
+        run: ./gradlew build --no-build-cache
 
       - name: Rename built forge mod
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
@@ -61,7 +51,7 @@ jobs:
           path: lambda-${{ github.run_number }}-SHA256.txt
 
       - name: Build plugin API
-        run: ./gradlew apiJar
+        run: ./gradlew apiJar --no-build-cache
 
       - name: Rename built plugin API
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
