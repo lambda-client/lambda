@@ -21,7 +21,7 @@ internal object Stocks : LabelHud(
     private val apiClient = DefaultApi()
     override fun SafeClientEvent.updateText() {
         if (! timer.tick(delay.toLong())){
-            displayText.add("Current Price of $symbol is ${apiClient.quote(symbol)}", primaryColor)
+            displayText.add("Current Price of $symbol is ", primaryColor)
             displayText.add(" ${ apiClient.quote(symbol)}", secondaryColor)
         }
     }
