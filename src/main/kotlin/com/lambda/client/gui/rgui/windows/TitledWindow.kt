@@ -4,7 +4,6 @@ import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
-import com.lambda.client.util.graphics.font.FontRenderAdapter.getStringWidth
 import com.lambda.client.util.math.Vec2f
 
 /**
