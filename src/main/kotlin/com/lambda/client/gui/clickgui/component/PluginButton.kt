@@ -35,9 +35,4 @@ class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.na
             }
         }
     }
-
-    override fun onRelease(mousePos: Vec2f, buttonId: Int) {
-        super.onRelease(mousePos, buttonId)
-//        if (buttonId == 1) LambdaClickGui.displayPluginSettingWindow(plugin)
-    }
 }

@@ -3,10 +3,7 @@ package com.lambda.client.gui.clickgui
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
 import com.lambda.client.gui.AbstractLambdaGui
-import com.lambda.client.gui.clickgui.component.AddPluginButton
-import com.lambda.client.gui.clickgui.component.ModuleButton
-import com.lambda.client.gui.clickgui.component.PluginButton
-import com.lambda.client.gui.clickgui.component.RemotePluginButton
+import com.lambda.client.gui.clickgui.component.*
 import com.lambda.client.gui.clickgui.window.ModuleSettingWindow
 import com.lambda.client.gui.rgui.Component
 import com.lambda.client.gui.rgui.windows.ListWindow
@@ -32,6 +29,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     private val windows = ArrayList<ListWindow>()
     private var pluginWindow: ListWindow
     private var remotePluginWindow: ListWindow
+    private var disabledRemotes = ArrayList<RemotePluginButton>()
 
     init {
         val allButtons = ModuleManager.modules
@@ -58,7 +56,8 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
         /* Plugins */
         pluginWindow = ListWindow("Plugins", posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
-        pluginWindow.children.add(AddPluginButton)
+        pluginWindow.children.add(ImportPluginButton)
+        pluginWindow.children.add(DownloadPluginButton)
         windows.add(pluginWindow)
 
         posX += 90.0f
@@ -73,7 +72,6 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     }
 
     override fun onDisplayed() {
-        updatePlugins()
         reorderModules()
 
         super.onDisplayed()
@@ -124,23 +122,40 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     }
 
     private fun setPluginButtonVisibility(function: (PluginButton) -> Boolean) {
-        windowList.filterIsInstance<ListWindow>().forEach { window ->
-            window.children.filterIsInstance<PluginButton>().forEach { it.visible = function(it) }
-        }
+        pluginWindow.children.filterIsInstance<PluginButton>().forEach { it.visible = function(it) }
     }
 
     private fun setRemotePluginButtonVisibility(function: (RemotePluginButton) -> Boolean) {
-        windowList.filterIsInstance<ListWindow>().forEach { window ->
-            window.children.filterIsInstance<RemotePluginButton>().forEach { it.visible = function(it) }
-        }
+        remotePluginWindow.children.filterIsInstance<RemotePluginButton>().filter { it !in disabledRemotes }.forEach { it.visible = function(it) }
     }
 
-    private fun updatePlugins() {
-        PluginManager.loadedPlugins.forEach { plugin ->
-            if (pluginWindow.children.none { it.name == plugin.name }) {
-                PluginManager.loadedPluginLoader[plugin.name]?.let {
-                    pluginWindow.children.add(PluginButton(plugin, it.file))
+    fun updatePlugins() {
+        PluginManager.getLoaders().forEach { loader ->
+            if (!PluginManager.loadedPlugins.containsName(loader.name)) {
+                val plugin = loader.load()
+                if (pluginWindow.children.none { it.name == plugin.name }) {
+                    pluginWindow.children.add(PluginButton(plugin, loader.file))
+                    MessageSendHelper.sendChatMessage("[Plugin Manager] ${loader.name} loaded.")
                 }
+            } else {
+                if (pluginWindow.children.none { it.name == loader.name }) {
+                    PluginManager.loadedPlugins[loader.name]?.let {
+                        pluginWindow.children.add(PluginButton(it, loader.file))
+                        MessageSendHelper.sendChatMessage("[Plugin Manager] ${loader.name} registered.")
+                    }
+                }
+            }
+        }
+        pluginWindow.children.filterIsInstance<PluginButton>().forEach { button ->
+            if (PluginManager.getLoaders().none { button.name == it.name }) {
+                pluginWindow.children.remove(button)
+                remotePluginWindow.children.filter {
+                    it.name == button.name
+                }.forEach {
+                    it.visible = true
+                    disabledRemotes.remove(it as RemotePluginButton)
+                }
+                MessageSendHelper.sendChatMessage("[Plugin Manager] ${button.name} removed.")
             }
         }
     }
@@ -210,17 +225,9 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             }
 
             MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} finished...")
-            remotePluginWindow.children.remove(remotePluginButton)
-
-            // ToDo: Update pluginLoaders in a manager job
-            PluginManager.getLoaders().filter {
-                !PluginManager.loadedPlugins.containsName(it.name)
-            }.forEach { pluginLoader ->
-                val plugin = pluginLoader.load()
-                if (pluginWindow.children.none { it.name == plugin.name }) {
-                    pluginWindow.children.add(PluginButton(plugin, pluginLoader.file))
-                    MessageSendHelper.sendChatMessage("[Plugin Manager] ${remotePluginButton.name} loaded.")
-                }
+            remotePluginWindow.children.filter { remotePluginButton.name == it.name }.forEach {
+                it.visible = false
+                disabledRemotes.add(it as RemotePluginButton)
             }
         }
     }
