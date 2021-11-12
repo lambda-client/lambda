@@ -44,7 +44,6 @@ repositories {
     maven { url = 'https://repo.spongepowered.org/maven/' }
     maven { url = 'https://impactdevelopment.github.io/maven/' }
     maven { url = "https://jitpack.io" }
-    mavenCentral()
 }
 
 minecraft {
