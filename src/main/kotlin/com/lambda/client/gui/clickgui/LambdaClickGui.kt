@@ -203,8 +203,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                                         RemotePluginButton(
                                             name,
                                             pluginRepo.asJsonObject.get("description").asString,
-                                            "",
-                                            "",
+                                            latestRelease.asJsonObject.get("tag_name").asString,
                                             firstAsset.asJsonObject.get("browser_download_url").asString,
                                             firstAsset.asJsonObject.get("name").asString
                                         )

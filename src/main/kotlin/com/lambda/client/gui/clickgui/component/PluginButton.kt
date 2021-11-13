@@ -26,7 +26,8 @@ class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.na
         super.onRender(vertexHelper, absolutePos)
         val details = "v${plugin.version}"
         val margin = if (CustomFont.isEnabled) 1.5f else 5.0f
-        FontRenderAdapter.drawString(details, LambdaClickGui.pluginWindow.width - margin - LambdaFontRenderer.getStringWidth(details), 1.0f, CustomFont.shadow, color = GuiColors.backGround)
+        val color = if (value == 1.0) GuiColors.backGround else GuiColors.text
+        FontRenderAdapter.drawString(details, LambdaClickGui.pluginWindow.width - margin - LambdaFontRenderer.getStringWidth(details), 1.0f, CustomFont.shadow, color = color)
     }
 
     override fun onTick() {

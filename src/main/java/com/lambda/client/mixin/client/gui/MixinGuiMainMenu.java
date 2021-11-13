@@ -20,6 +20,11 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
     private int widthVersion;
     private int widthVersionRest;
 
+    @Inject(method = "initGui", at = @At("RETURN"))
+    public void initGui$Inject$RETURN(CallbackInfo ci) {
+        MenuShader.reset();
+    }
+
     @Inject(method = "drawScreen", at = @At("RETURN"))
     public void drawScreen$Inject$RETURN(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         FontRenderer fr = fontRenderer;
