@@ -30,6 +30,7 @@ object ClickGUI : Module(
     val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f)
     val showModifiedInBold by setting("Show Modified In Bold", false, description = "Display modified settings in a bold font")
     private val resetComponents = setting("Reset Positions", false)
+    private val resetScale = setting("Reset Scale", false)
     val sortBy = setting("Sort By", SortByOptions.ALPHABETICALLY)
 
     private var prevScale = scaleSetting.value / 100.0f
@@ -40,7 +41,7 @@ object ClickGUI : Module(
         ALPHABETICALLY, FREQUENCY, CUSTOM
     }
 
-    fun resetScale() {
+    private fun resetScale() {
         scaleSetting.value = 100
         prevScale = 1.0f
         scale = 1.0f
@@ -53,7 +54,7 @@ object ClickGUI : Module(
     init {
         safeListener<TickEvent.ClientTickEvent> {
             prevScale = scale
-            if (settingTimer.stop() > 500L) {
+            if (settingTimer.stop() > 1000L) {
                 val diff = scale - getRoundedScale()
                 when {
                     diff < -0.025 -> scale += 0.025f
@@ -74,6 +75,10 @@ object ClickGUI : Module(
                 it.resetPosition()
             }
             resetComponents.value = false
+        }
+
+        resetScale.listeners.add {
+            resetScale()
         }
     }
 
