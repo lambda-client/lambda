@@ -1,11 +1,15 @@
 package com.lambda.client.gui.clickgui.component
 
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.rgui.component.BooleanSlider
 import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.math.Vec2f
+import com.lambda.client.util.threads.defaultScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.name, 0.0, plugin.description) {
@@ -32,6 +36,10 @@ class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.na
                 }
                 ConfigUtils.loadAll()
                 plugin.isLoaded = true
+            }
+            defaultScope.launch {
+                delay(1000L)
+                LambdaClickGui.reorderModules()
             }
         }
     }

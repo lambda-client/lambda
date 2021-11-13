@@ -79,6 +79,7 @@ object ClickGUI : Module(
 
         resetScale.listeners.add {
             resetScale()
+            resetScale.value = false
         }
     }
 

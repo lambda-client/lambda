@@ -251,6 +251,11 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 allButtons[window.name]?.let { window.children.addAll(it.customSort()) }
             }
         }
+
+        setModuleButtonVisibility { moduleButton ->
+            moduleButton.module.name.contains(typedString, true)
+                || moduleButton.module.alias.any { it.contains(typedString, true) }
+        }
     }
 
     private fun List<ModuleButton>.customSort(): List<ModuleButton> {
