@@ -155,16 +155,17 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         pluginWindow.children.filterIsInstance<PluginButton>().forEach { button ->
             if (PluginManager.getLoaders().none { button.name == it.name }) {
                 pluginWindow.children.remove(button)
+                ConfigUtils.saveAll()
+                PluginManager.unload(button.plugin)
+                button.plugin.isLoaded = false
+                MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} removed.")
+
                 remotePluginWindow.children.filter {
                     it.name == button.name
                 }.forEach {
                     it.visible = true
                     disabledRemotes.remove(it as RemotePluginButton)
                 }
-                ConfigUtils.saveAll()
-                PluginManager.unload(button.plugin)
-                button.plugin.isLoaded = false
-                MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} removed.")
             }
         }
     }

@@ -9,11 +9,11 @@
     "MixinMinecraft",
     "MixinStateImplementation",
     "MixinTileEntityBeacon",
+    "accessor.AccessorAnvilChunkLoader",
     "accessor.AccessorEntity",
     "accessor.AccessorItemTool",
     "accessor.AccessorMinecraft",
     "accessor.AccessorTimer",
-    "accessor.AccessorAnvilChunkLoader",
     "accessor.gui.AccessorGuiBossOverlay",
     "accessor.gui.AccessorGuiChat",
     "accessor.gui.AccessorGuiDisconnected",
@@ -39,7 +39,6 @@
     "gui.MixinGuiChat",
     "gui.MixinGuiChest",
     "gui.MixinGuiContainer",
-    "gui.MixinGuiMainMenu",
     "gui.MixinGuiIngameForge",
     "gui.MixinGuiIngameMenu",
     "gui.MixinGuiInventory",
@@ -81,5 +80,8 @@
     "world.MixinBlockWeb",
     "world.MixinGetCollisionBB",
     "world.MixinWorld"
+  ],
+  "mixins": [
+    "accessor.AccessorEntityFireworkRocket"
   ]
 }

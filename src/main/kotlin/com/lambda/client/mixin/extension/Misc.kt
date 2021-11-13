@@ -1,12 +1,9 @@
 package com.lambda.client.mixin.extension
 
-import com.lambda.client.mixin.client.accessor.AccessorEntity
-import com.lambda.client.mixin.client.accessor.AccessorItemTool
-import com.lambda.client.mixin.client.accessor.AccessorMinecraft
-import com.lambda.client.mixin.client.accessor.AccessorTimer
-import com.lambda.client.mixin.client.accessor.AccessorAnvilChunkLoader
+import com.lambda.client.mixin.client.accessor.*
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityLivingBase
 import net.minecraft.item.ItemTool
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.Timer
@@ -15,6 +12,7 @@ import net.minecraft.world.chunk.Chunk
 import net.minecraft.world.chunk.storage.AnvilChunkLoader
 
 val Entity.isInWeb: Boolean get() = (this as AccessorEntity).isInWeb
+val Entity.boostedEntity: EntityLivingBase get() = (this as AccessorEntityFireworkRocket).boostedEntity
 
 val ItemTool.attackDamage get() = (this as AccessorItemTool).attackDamage
 
@@ -37,6 +35,6 @@ var Timer.tickLength: Float
     }
 
 fun AnvilChunkLoader.writeChunkToNBT(
-    chunkIn : Chunk,
-    worldIn : World,
-    compound : NBTTagCompound) = (this as AccessorAnvilChunkLoader).invokeWriteChunkToNBT(chunkIn, worldIn, compound)
+    chunkIn: Chunk,
+    worldIn: World,
+    compound: NBTTagCompound) = (this as AccessorAnvilChunkLoader).invokeWriteChunkToNBT(chunkIn, worldIn, compound)

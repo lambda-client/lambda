@@ -23,7 +23,7 @@ object ClickGUI : Module(
     val blur by setting("Blur", 0.0f, 0.0f..1.0f, 0.05f)
     val windowOutline by setting("Window Outline", false)
     val buttonOutline by setting("Button Outline", false)
-    val outlineWidth by setting("Outline Width", 2.5f, 0.5f..3.5f,0.5f, { windowOutline || buttonOutline })
+    val outlineWidth by setting("Outline Width", 2.5f, 0.5f..3.5f, 0.5f, { windowOutline || buttonOutline })
     val entryMargin by setting("Margin", 0.0f, 0.0f..10.0f, 0.5f)
     val darkness by setting("Darkness", 0.25f, 0.0f..1.0f, 0.05f)
     val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f)
