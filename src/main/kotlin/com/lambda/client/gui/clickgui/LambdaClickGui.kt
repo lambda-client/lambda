@@ -135,6 +135,10 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 val plugin = loader.load()
                 if (pluginWindow.children.none { it.name == plugin.name }) {
                     pluginWindow.children.add(PluginButton(plugin, loader.file))
+                    remotePluginWindow.children.filter { plugin.name == it.name }.forEach {
+                        it.visible = false
+                        disabledRemotes.add(it as RemotePluginButton)
+                    }
                     MessageSendHelper.sendChatMessage("[Plugin Manager] ${loader.name} loaded.")
                 }
             } else {
@@ -224,11 +228,11 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 e.printStackTrace()
             }
 
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} finished...")
             remotePluginWindow.children.filter { remotePluginButton.name == it.name }.forEach {
                 it.visible = false
                 disabledRemotes.add(it as RemotePluginButton)
             }
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} finished...")
         }
     }
 
