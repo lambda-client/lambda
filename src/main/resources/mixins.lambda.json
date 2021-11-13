@@ -41,7 +41,6 @@
     "gui.MixinGuiChest",
     "gui.MixinGuiContainer",
     "gui.MixinGuiIngameForge",
-    "gui.MixinGuiIngameMenu",
     "gui.MixinGuiInventory",
     "gui.MixinGuiMainMenu",
     "gui.MixinGuiNewChat",
