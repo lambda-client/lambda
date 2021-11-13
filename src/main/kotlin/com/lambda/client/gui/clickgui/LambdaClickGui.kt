@@ -11,12 +11,14 @@ import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.plugin.PluginManager
+import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.commons.utils.ConnectionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import net.minecraft.util.text.TextFormatting
 import org.lwjgl.input.Keyboard
 import java.io.IOException
 import java.net.URL
@@ -27,8 +29,8 @@ import java.nio.file.StandardCopyOption
 object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>() {
 
     private val windows = ArrayList<ListWindow>()
-    private var pluginWindow: ListWindow
-    private var remotePluginWindow: ListWindow
+    var pluginWindow: ListWindow
+    var remotePluginWindow: ListWindow
     private var disabledRemotes = ArrayList<RemotePluginButton>()
 
     init {
@@ -139,13 +141,13 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                         it.visible = false
                         disabledRemotes.add(it as RemotePluginButton)
                     }
-                    MessageSendHelper.sendChatMessage("[Plugin Manager] ${loader.name} loaded.")
+                    MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${loader.name}${TextFormatting.RESET} loaded.")
                 }
             } else {
                 if (pluginWindow.children.none { it.name == loader.name }) {
                     PluginManager.loadedPlugins[loader.name]?.let {
                         pluginWindow.children.add(PluginButton(it, loader.file))
-                        MessageSendHelper.sendChatMessage("[Plugin Manager] ${loader.name} registered.")
+                        MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${loader.name}${TextFormatting.RESET} registered.")
                     }
                 }
             }
@@ -159,7 +161,10 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                     it.visible = true
                     disabledRemotes.remove(it as RemotePluginButton)
                 }
-                MessageSendHelper.sendChatMessage("[Plugin Manager] ${button.name} removed.")
+                ConfigUtils.saveAll()
+                PluginManager.unload(button.plugin)
+                button.plugin.isLoaded = false
+                MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} removed.")
             }
         }
     }
@@ -218,7 +223,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
         defaultScope.launch(Dispatchers.IO) {
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} started...")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} has started...")
             try {
                 // ToDo: Make it use the progress bar in button itself
                 URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->
@@ -232,7 +237,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 it.visible = false
                 disabledRemotes.add(it as RemotePluginButton)
             }
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${remotePluginButton.name} finished...")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} has finished.")
         }
     }
 
