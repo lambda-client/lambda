@@ -11,6 +11,7 @@
     "MixinTileEntityBeacon",
     "accessor.AccessorAnvilChunkLoader",
     "accessor.AccessorEntity",
+    "accessor.AccessorEntityFireworkRocket",
     "accessor.AccessorItemTool",
     "accessor.AccessorMinecraft",
     "accessor.AccessorTimer",
@@ -80,8 +81,5 @@
     "world.MixinBlockWeb",
     "world.MixinGetCollisionBB",
     "world.MixinWorld"
-  ],
-  "mixins": [
-    "accessor.AccessorEntityFireworkRocket"
   ]
 }
