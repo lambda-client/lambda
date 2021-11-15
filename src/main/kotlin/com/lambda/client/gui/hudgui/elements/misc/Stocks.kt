@@ -25,8 +25,9 @@ internal object Stocks : LabelHud(
     override fun SafeClientEvent.updateText() {
             if (ticktimer.tick(tickdelay)) {
                 updateStockData()
-                displayText.add("Price of $symbol is $stockdata")
+
             }
+        displayText.add("Price of $symbol is $stockdata")
         }
     private fun updateStockData() {
         stockdata = apiClient.quote(symbol).toString()
