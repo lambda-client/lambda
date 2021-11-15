@@ -29,12 +29,13 @@ internal object Stocks : LabelHud(
     private var jsondata = "0"
     private var stockData = StockData(0)
     override fun SafeClientEvent.updateText() {
-            if (ticktimer.tick(tickdelay)) {
-                updateStockData()
+        if (ticktimer.tick(tickdelay)) {
+            updateStockData()
 
-            }
-        displayText.add("Price of $symbol is ${stockData.price}")
         }
+        displayText.add("Price of $symbol is ${stockData.price}")
+    }
+
     private fun updateStockData() {
         defaultScope.launch(Dispatchers.IO) {
             runCatching {
@@ -45,7 +46,8 @@ internal object Stocks : LabelHud(
             }
         }
     }
-    }
-    public class StockData(
+
+    private class StockData(
         val price: Int
     )
+}
