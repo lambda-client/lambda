@@ -21,13 +21,15 @@ internal object Stocks : LabelHud(
     private val tickdelay by setting("Delay", 10, 5..60, 1)
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
     private val apiClient = DefaultApi()
+    private var stockdata = "0"
     override fun SafeClientEvent.updateText() {
             if (ticktimer.tick(tickdelay)) {
-                displayText.run {
-                    add("Current Price of $symbol is ", primaryColor)
-                    add("${apiClient.quote(symbol)}", secondaryColor)
-                }
-                MessageSendHelper.sendChatMessage("Stonk")
+                updateStockData()
+                displayText.add("Price of $symbol is $stockdata")
             }
         }
+    private fun updateStockData() {
+        stockdata = apiClient.quote(symbol).toString()
+        MessageSendHelper.sendChatMessage("Stonk")
+    }
     }
