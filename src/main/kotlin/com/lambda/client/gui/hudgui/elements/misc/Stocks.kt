@@ -27,13 +27,13 @@ internal object Stocks : LabelHud(
     private val apiClient = DefaultApi()
     private val gson = Gson()
     private var jsondata = "0"
-    private var stockData = StockData(0)
+    private var stockData = StockData(420)
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
 
         }
-        displayText.add("Price of $symbol is ${stockData.price}")
+        displayText.add("Price of $symbol is ${stockData.c}")
     }
 
     private fun updateStockData() {
@@ -48,6 +48,6 @@ internal object Stocks : LabelHud(
     }
 
     private class StockData(
-        val price: Int
+        val c: Int
     )
 }
