@@ -7,6 +7,10 @@ import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageSendHelper
 import io.finnhub.api.apis.DefaultApi
 import io.finnhub.api.infrastructure.ApiClient
+import com.google.gson.Gson
+import com.lambda.client.util.threads.defaultScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 internal object Stocks : LabelHud(
     name = "Stocks",
@@ -18,19 +22,30 @@ internal object Stocks : LabelHud(
     }
 
     private val symbol by setting("Symbol", "TSLA")
-    private val tickdelay by setting("Delay", 10, 5..60, 1)
+    private val tickdelay by setting("Delay", 30, 20..120, 1)
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
     private val apiClient = DefaultApi()
-    private var stockdata = "0"
+    private val gson = Gson()
+    private var jsondata = "0"
+    private var stockData = StockData(0)
     override fun SafeClientEvent.updateText() {
             if (ticktimer.tick(tickdelay)) {
                 updateStockData()
 
             }
-        displayText.add("Price of $symbol is $stockdata")
+        displayText.add("Price of $symbol is ${stockData.price}")
         }
     private fun updateStockData() {
-        stockdata = apiClient.quote(symbol).toString()
-        MessageSendHelper.sendChatMessage("Stonk")
+        defaultScope.launch(Dispatchers.IO) {
+            runCatching {
+                jsondata = apiClient.quote(symbol).toString()
+                gson.fromJson(jsondata, StockData::class.java)
+            }.getOrNull()?.let {
+                stockData = it
+            }
+        }
     }
     }
+    public class StockData(
+        val price: Int
+    )
