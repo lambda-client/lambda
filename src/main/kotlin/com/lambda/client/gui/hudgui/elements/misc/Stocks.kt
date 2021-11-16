@@ -26,5 +26,5 @@ internal object Stocks : LabelHud(
     private fun updateStockData() {
         displayText.add("Price of $symbol is ${Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c}")
     }
-    private class StockData(val c: Int)
+    private class StockData(val c: Double)
 }
