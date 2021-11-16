@@ -39,12 +39,10 @@ internal object Stocks : LabelHud(
             runCatching {
                 val json = WebUtils.getUrlContents(url)
                 sendChatMessage("$json")
-                gson.fromJson(json, StockData::class.java)
-            }.getOrNull()?.let {
-                stockData = it
-                sendChatMessage("$stockData, ${stockData.c}")
+                val StockData: StockData = Gson().fromJson(json, StockData::class.java)
+                val outputJson: String = Gson().toJson(StockData)
+                sendChatMessage("outputjson: $outputJson, stockdata: $stockData")
             }
-
         }
     }
     private class StockData(
