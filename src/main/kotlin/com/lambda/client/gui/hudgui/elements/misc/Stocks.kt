@@ -4,17 +4,9 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonObject
-import com.google.gson.annotations.SerializedName
 import com.lambda.client.util.WebUtils
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
-import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
-import com.lambda.client.util.threads.defaultScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 internal object Stocks : LabelHud(
     name = "Stocks",
@@ -26,7 +18,7 @@ internal object Stocks : LabelHud(
     private val tickdelay by setting("Delay", 30, 20..120, 1)
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
     private val url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
-    private var stockData = StockData(0)
+    private var stockData = StockData(0.0)
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
@@ -45,6 +37,6 @@ internal object Stocks : LabelHud(
     }
 
     private class StockData(
-        val c: Int
+        val c: Double
     )
 }
