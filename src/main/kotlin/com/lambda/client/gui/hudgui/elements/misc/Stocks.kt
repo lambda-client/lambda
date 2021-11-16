@@ -15,7 +15,7 @@ internal object Stocks : LabelHud(
     private val symbol by setting("Symbol", "TSLA")
     private val tickdelay by setting("Delay", 30, 20..120, 1)
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
-    private val url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
+    private var url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
     private var stockData = StockData(0.0)
     private var price = 0.0
 
@@ -23,7 +23,8 @@ internal object Stocks : LabelHud(
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
         }
-        displayText.add("Current Price of $symbol is $price")
+        displayText.add("Current Price of $symbol is ", primaryColor)
+        displayText.add("$price", secondaryColor)
     }
 
     private fun updateStockData() {
