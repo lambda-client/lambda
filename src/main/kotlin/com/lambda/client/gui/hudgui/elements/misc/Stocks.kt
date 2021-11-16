@@ -4,7 +4,6 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.util.text.MessageSendHelper
 import io.finnhub.api.apis.DefaultApi
 import io.finnhub.api.infrastructure.ApiClient
 import com.google.gson.Gson
@@ -27,7 +26,7 @@ internal object Stocks : LabelHud(
     private val apiClient = DefaultApi()
     private val gson = Gson()
     private var jsondata = "0"
-    private var stockData = StockData(420)
+    private var stockData = StockData(0)
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
@@ -48,6 +47,6 @@ internal object Stocks : LabelHud(
     }
 
     private class StockData(
-        val c: Int
+        val c: Int,
     )
 }
