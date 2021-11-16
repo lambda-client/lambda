@@ -17,15 +17,17 @@ internal object Stocks : LabelHud(
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
     private val url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
     private var stockData = StockData(0.0)
+    private var price = 0.0
 
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
         }
+        displayText.add("Current Price of $symbol is $price")
     }
 
     private fun updateStockData() {
-        displayText.add("Price of $symbol is ${Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c}")
+        price = Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c
     }
 
     private class StockData(
