@@ -26,7 +26,6 @@ internal object Stocks : LabelHud(
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
     private val apiClient = DefaultApi()
     private val gson = Gson()
-    private var jsondata = "0"
     private var stockData = StockData(0)
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
@@ -40,7 +39,7 @@ internal object Stocks : LabelHud(
     private fun updateStockData() {
         defaultScope.launch(Dispatchers.IO) {
             runCatching {
-                jsondata = apiClient.quote(symbol).toString()
+                val jsondata = apiClient.quote(symbol).toString()
                 gson.fromJson(jsondata, StockData::class.java)
             }.getOrNull()?.let {
                 stockData = it
