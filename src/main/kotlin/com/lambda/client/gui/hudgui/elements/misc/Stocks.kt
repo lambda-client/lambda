@@ -5,6 +5,7 @@ import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.threads.defaultScope
@@ -35,8 +36,8 @@ internal object Stocks : LabelHud(
     private fun updateStockData() {
         defaultScope.launch(Dispatchers.IO) {
             runCatching {
-                val jsondata = WebUtils.getUrlContents(url)
-                gson.fromJson(jsondata, StockData::class.java)
+                val json = gson.fromJson(url, JsonObject::class.java)
+                gson.fromJson(json, StockData::class.java)
             }.getOrNull()?.let {
                 stockData = it
             }
