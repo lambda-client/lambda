@@ -35,7 +35,6 @@ internal object Stocks : LabelHud(
         }
         displayText.add("Price of $symbol is ${stockData.c}")
         sendChatMessage("tried to update, $stockData and also ${stockData.c}")
-        sendChatMessage("full data $jsondata and also $gson and also $stockData")
     }
 
     private fun updateStockData() {
