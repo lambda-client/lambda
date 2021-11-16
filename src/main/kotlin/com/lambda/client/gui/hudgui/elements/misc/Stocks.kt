@@ -7,6 +7,7 @@ import com.lambda.client.util.TimeUnit
 import io.finnhub.api.apis.DefaultApi
 import io.finnhub.api.infrastructure.ApiClient
 import com.google.gson.Gson
+import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.threads.defaultScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,6 +34,8 @@ internal object Stocks : LabelHud(
 
         }
         displayText.add("Price of $symbol is ${stockData.c}")
+        sendChatMessage("tried to update, $stockData and also ${stockData.c}")
+        sendChatMessage("full data $jsondata and also $gson and also $stockData")
     }
 
     private fun updateStockData() {
