@@ -31,7 +31,7 @@ internal object Stocks : LabelHud(
         val json = WebUtils.getUrlContents(url)
         sendChatMessage(json)
         val stockData = gson.fromJson(json, StockData::class.java)
-        sendChatMessage("made it into json")
+        sendChatMessage("made it into json $stockData")
         val outputJson: String = gson.toJson(stockData)
         sendChatMessage("outputjson $outputJson, stockdata: $stockData")
     }
