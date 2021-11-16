@@ -5,6 +5,7 @@ import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import com.lambda.client.util.WebUtils
@@ -24,7 +25,6 @@ internal object Stocks : LabelHud(
     private val symbol by setting("Symbol", "TSLA")
     private val tickdelay by setting("Delay", 30, 20..120, 1)
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
-    private val gson = Gson()
     private val url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
     private var stockData = StockData(0)
     override fun SafeClientEvent.updateText() {
@@ -35,18 +35,19 @@ internal object Stocks : LabelHud(
     }
 
     private fun updateStockData() {
-        defaultScope.launch(Dispatchers.IO) {
+        defaultScope.launch(Dispatchers.Default) {
             runCatching {
+                val gson = GsonBuilder().setPrettyPrinting().create()
                 val json = WebUtils.getUrlContents(url)
-                sendChatMessage("$json")
-                val StockData: StockData = Gson().fromJson(json, StockData::class.java)
-                val outputJson: String = Gson().toJson(StockData)
-                sendChatMessage("outputjson: $outputJson, stockdata: $stockData")
+                sendChatMessage(json)
+                val stockData = gson.fromJson(json, StockData::class.java)
+                sendChatMessage("made it into json")
+                val outputJson: String = gson.toJson(stockData)
+                sendChatMessage("outputjson $outputJson, stockdata: $stockData")
             }
         }
     }
-    private class StockData(
-        @SerializedName("c")
+    private class StockData (
         val c: Int
-    )
-}
+        )
+    }
