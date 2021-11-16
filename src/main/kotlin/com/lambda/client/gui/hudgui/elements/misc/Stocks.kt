@@ -6,8 +6,11 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.google.gson.annotations.SerializedName
 import com.lambda.client.util.WebUtils
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
+import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.defaultScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,16 +37,18 @@ internal object Stocks : LabelHud(
     private fun updateStockData() {
         defaultScope.launch(Dispatchers.IO) {
             runCatching {
-                val json = gson.fromJson(url, JsonObject::class.java)
-                sendChatMessage("$stockData and also ${stockData.c}, why not $json as well")
+                val json = WebUtils.getUrlContents(url)
+                sendChatMessage("$json")
                 gson.fromJson(json, StockData::class.java)
             }.getOrNull()?.let {
                 stockData = it
+                sendChatMessage("$stockData, ${stockData.c}")
             }
+
         }
     }
-
     private class StockData(
+        @SerializedName("c")
         val c: Int
     )
 }
