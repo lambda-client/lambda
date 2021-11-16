@@ -33,7 +33,7 @@ internal object Stocks : LabelHud(
         val stockData = gson.fromJson(json, StockData::class.java)
         sendChatMessage("made it into json $stockData")
         val outputJson: String = gson.toJson(stockData)
-        sendChatMessage("outputjson $outputJson, stockdata: $stockData")
+        sendChatMessage("outputjson $outputJson, stockdata: ${stockData.c}")
     }
 
     private class StockData(
