@@ -44,6 +44,6 @@ internal object Stocks : LabelHud(
     }
 
     private class StockData(
-        val c: Int,
+        val c: Int
     )
 }
