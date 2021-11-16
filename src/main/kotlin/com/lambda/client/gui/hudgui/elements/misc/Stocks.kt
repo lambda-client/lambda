@@ -27,16 +27,15 @@ internal object Stocks : LabelHud(
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
-
         }
         displayText.add("Price of $symbol is ${stockData.c}")
-        sendChatMessage("tried to update, $stockData and also ${stockData.c}")
     }
 
     private fun updateStockData() {
         defaultScope.launch(Dispatchers.IO) {
             runCatching {
                 val json = gson.fromJson(url, JsonObject::class.java)
+                sendChatMessage("$stockData and also ${stockData.c}, why not $json as well")
                 gson.fromJson(json, StockData::class.java)
             }.getOrNull()?.let {
                 stockData = it
