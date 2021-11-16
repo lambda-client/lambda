@@ -35,19 +35,16 @@ internal object Stocks : LabelHud(
     }
 
     private fun updateStockData() {
-        defaultScope.launch(Dispatchers.Default) {
-            runCatching {
-                val gson = GsonBuilder().setPrettyPrinting().create()
-                val json = WebUtils.getUrlContents(url)
-                sendChatMessage(json)
-                val stockData = gson.fromJson(json, StockData::class.java)
-                sendChatMessage("made it into json")
-                val outputJson: String = gson.toJson(stockData)
-                sendChatMessage("outputjson $outputJson, stockdata: $stockData")
-            }
-        }
+        val gson = GsonBuilder().setPrettyPrinting().create()
+        val json = WebUtils.getUrlContents(url)
+        sendChatMessage(json)
+        val stockData = gson.fromJson(json, StockData::class.java)
+        sendChatMessage("made it into json")
+        val outputJson: String = gson.toJson(stockData)
+        sendChatMessage("outputjson $outputJson, stockdata: $stockData")
     }
-    private class StockData (
+
+    private class StockData(
         val c: Int
-        )
-    }
+    )
+}
