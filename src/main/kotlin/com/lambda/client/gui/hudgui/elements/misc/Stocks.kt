@@ -6,13 +6,14 @@ import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.WebUtils
+import kotlin.math.round
 
 internal object Stocks : LabelHud(
     name = "Stocks",
     category = Category.MISC,
     description = "Info about a stock"
 ) {
-    private val symbol by setting("Symbol", "TSLA")
+    private var symbol by setting("Symbol", "TSLA")
     private val tickdelay by setting("Delay", 30, 20..120, 1)
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
     private var url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
@@ -24,7 +25,7 @@ internal object Stocks : LabelHud(
             updateStockData()
         }
         displayText.add("Current Price of $symbol is ", primaryColor)
-        displayText.add("$price", secondaryColor)
+        displayText.add("${round(price)}", secondaryColor)
     }
 
     private fun updateStockData() {
