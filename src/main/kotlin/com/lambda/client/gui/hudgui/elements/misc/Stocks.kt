@@ -15,7 +15,8 @@ internal object Stocks : LabelHud(
     private val symbol by setting("Symbol", "TSLA")
     private val tickdelay by setting("Delay", 30, 20..120, 1)
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
-    val url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
+    private val url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
+    private var stockData = StockData(0.0)
 
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
@@ -26,5 +27,8 @@ internal object Stocks : LabelHud(
     private fun updateStockData() {
         displayText.add("Price of $symbol is ${Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c}")
     }
-    private class StockData(val c: Double)
+
+    private class StockData(
+        val c: Double
+    )
 }
