@@ -158,17 +158,19 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                         releases[0]?.let { latestRelease ->
                             latestRelease.asJsonObject.get("assets").asJsonArray[0]?.let { firstAsset ->
                                 val name = pluginRepo.asJsonObject.get("name").asString
-                                if (!remotePluginWindow.containsName(name) &&
-                                    !PluginManager.loadedPlugins.containsName(name)) {
-                                    remotePluginWindow.children.add(
-                                        RemotePluginButton(
-                                            name,
-                                            pluginRepo.asJsonObject.get("description").asString,
-                                            latestRelease.asJsonObject.get("tag_name").asString,
-                                            firstAsset.asJsonObject.get("browser_download_url").asString,
-                                            firstAsset.asJsonObject.get("name").asString
-                                        )
+                                if (!remotePluginWindow.containsName(name)) {
+                                    val remoteButton = RemotePluginButton(
+                                        name,
+                                        pluginRepo.asJsonObject.get("description").asString,
+                                        latestRelease.asJsonObject.get("tag_name").asString,
+                                        firstAsset.asJsonObject.get("browser_download_url").asString,
+                                        firstAsset.asJsonObject.get("name").asString
                                     )
+                                    remotePluginWindow.children.add(remoteButton)
+                                    if (PluginManager.loadedPlugins.containsName(name)) {
+                                        remoteButton.visible = false
+                                        disabledRemotes.add(remoteButton)
+                                    }
                                 }
                             }
                         }
@@ -195,7 +197,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             pluginWindow.children.remove(button)
             ConfigManager.save(button.plugin.config)
             PluginManager.unload(button.plugin)
-            MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} removed.")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${button.plugin.version}${TextFormatting.RESET} removed.")
 
             remotePluginWindow.children.filter {
                 it.name == button.name
@@ -208,7 +210,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
         defaultScope.launch(Dispatchers.IO) {
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} has started...")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${remotePluginButton.version}${TextFormatting.RESET} has started...")
             try {
                 // ToDo: Make it use the progress bar in button itself
                 URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->

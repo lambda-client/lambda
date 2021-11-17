@@ -3,6 +3,7 @@ package com.lambda.client.plugin
 import com.lambda.client.LambdaMod
 import com.lambda.client.gui.mc.LambdaGuiPluginError
 import com.lambda.client.util.Wrapper
+import com.lambda.client.util.text.MessageSendHelper
 
 internal enum class PluginError {
     HOT_RELOAD,
@@ -15,16 +16,16 @@ internal enum class PluginError {
 
         when (this) {
             HOT_RELOAD -> {
-                LambdaMod.LOG.error("Plugin $loader cannot be hot reloaded.")
+                log("Plugin $loader cannot be hot reloaded.")
             }
             DUPLICATE -> {
-                LambdaMod.LOG.error("Duplicate plugin ${loader}.")
+                log("Duplicate plugin ${loader}.")
             }
             UNSUPPORTED -> {
-                LambdaMod.LOG.error("Unsupported plugin ${loader}. Required Lambda version: ${loader.info.minApiVersion}")
+                log("Unsupported plugin ${loader}. Required Lambda version: ${loader.info.minApiVersion}")
             }
             REQUIRED_PLUGIN -> {
-                LambdaMod.LOG.error("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
+                log("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
             }
         }
 
@@ -40,6 +41,17 @@ internal enum class PluginError {
 
             if (!errors.isNullOrEmpty()) {
                 Wrapper.minecraft.displayGuiScreen(LambdaGuiPluginError(Wrapper.minecraft.currentScreen, errors))
+            }
+        }
+
+        fun log(message: String?, throwable: Throwable? = null) {
+            if (throwable != null) {
+                LambdaMod.LOG.error(message, throwable)
+            } else {
+                LambdaMod.LOG.error(message)
+            }
+            if (message != null) {
+                MessageSendHelper.sendChatMessage(message)
             }
         }
     }

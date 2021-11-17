@@ -6,7 +6,6 @@ import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.gui.clickgui.component.RemotePluginButton
 import com.lambda.client.plugin.api.Plugin
-import com.lambda.client.setting.ConfigManager
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
@@ -133,13 +132,13 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        LambdaMod.LOG.warn("Main class not found in plugin $loader", it)
+                        PluginError.log("Main class not found in plugin $loader", it)
                     }
                     is IllegalAccessException -> {
-                        LambdaMod.LOG.warn(it.message, it)
+                        PluginError.log(it.message, it)
                     }
                     else -> {
-                        LambdaMod.LOG.error("Failed to load plugin $loader", it)
+                        PluginError.log("Failed to load plugin $loader", it)
                     }
                 }
                 return
@@ -148,13 +147,13 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
-                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", e)
                 return
             } catch (e: NoSuchMethodError) {
-                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", e)
                 return
             } catch (e: NoClassDefFoundError) {
-                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", e)
                 return
             }
 
@@ -171,7 +170,8 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             plugin
         }
 
-        LambdaMod.LOG.info("Loaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Loaded plugin ${plugin.name} v${plugin.version}")
+        MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${plugin.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${plugin.version}${TextFormatting.RESET} loaded.")
     }
 
     fun unloadAll() {
@@ -204,6 +204,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             }
         }
 
-        LambdaMod.LOG.info("Unloaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Unloaded plugin ${plugin.name} v${plugin.version}")
+        MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${plugin.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${plugin.version}${TextFormatting.RESET} unloaded.")
     }
 }
