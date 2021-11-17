@@ -11,7 +11,7 @@ import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.plugin.PluginManager
-import com.lambda.client.util.ConfigUtils
+import com.lambda.client.setting.ConfigManager
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
@@ -31,7 +31,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     private val windows = ArrayList<ListWindow>()
     var pluginWindow: ListWindow
     var remotePluginWindow: ListWindow
-    private var disabledRemotes = ArrayList<RemotePluginButton>()
+    var disabledRemotes = ArrayList<RemotePluginButton>()
 
     init {
         val allButtons = ModuleManager.modules
@@ -131,45 +131,6 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         remotePluginWindow.children.filterIsInstance<RemotePluginButton>().filter { it !in disabledRemotes }.forEach { it.visible = function(it) }
     }
 
-    fun updatePlugins() {
-        PluginManager.getLoaders().forEach { loader ->
-            if (!PluginManager.loadedPlugins.containsName(loader.name)) {
-                val plugin = loader.load()
-                if (pluginWindow.children.none { it.name == plugin.name }) {
-                    pluginWindow.children.add(PluginButton(plugin, loader.file))
-                    remotePluginWindow.children.filter { plugin.name == it.name }.forEach {
-                        it.visible = false
-                        disabledRemotes.add(it as RemotePluginButton)
-                    }
-                    MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${loader.name}${TextFormatting.RESET} loaded.")
-                }
-            } else {
-                if (pluginWindow.children.none { it.name == loader.name }) {
-                    PluginManager.loadedPlugins[loader.name]?.let {
-                        pluginWindow.children.add(PluginButton(it, loader.file))
-                        MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${loader.name}${TextFormatting.RESET} registered.")
-                    }
-                }
-            }
-        }
-        pluginWindow.children.filterIsInstance<PluginButton>().forEach { button ->
-            if (PluginManager.getLoaders().none { button.name == it.name }) {
-                pluginWindow.children.remove(button)
-                ConfigUtils.saveAll()
-                PluginManager.unload(button.plugin)
-                button.plugin.isLoaded = false
-                MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} removed.")
-
-                remotePluginWindow.children.filter {
-                    it.name == button.name
-                }.forEach {
-                    it.visible = true
-                    disabledRemotes.remove(it as RemotePluginButton)
-                }
-            }
-        }
-    }
-
     private fun populateRemotePlugins() {
         defaultScope.launch {
             try {
@@ -197,8 +158,8 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                         releases[0]?.let { latestRelease ->
                             latestRelease.asJsonObject.get("assets").asJsonArray[0]?.let { firstAsset ->
                                 val name = pluginRepo.asJsonObject.get("name").asString
-                                if (remotePluginWindow.children.none { it.name == name } &&
-                                    PluginManager.loadedPlugins.none { it.name == name }) {
+                                if (!remotePluginWindow.containsName(name) &&
+                                    !PluginManager.loadedPlugins.containsName(name)) {
                                     remotePluginWindow.children.add(
                                         RemotePluginButton(
                                             name,
@@ -221,6 +182,30 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         }
     }
 
+    fun updatePlugins() {
+        PluginManager.getLoaders().filter {
+            !PluginManager.loadedPluginLoader.containsName(it.name)
+                && !pluginWindow.containsName(it.name)
+        }.forEach {
+            PluginManager.load(it)
+        }
+        pluginWindow.children.filterIsInstance<PluginButton>().filter { button ->
+            PluginManager.getLoaders().none { button.name == it.name }
+        }.forEach { button ->
+            pluginWindow.children.remove(button)
+            ConfigManager.save(button.plugin.config)
+            PluginManager.unload(button.plugin)
+            MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} removed.")
+
+            remotePluginWindow.children.filter {
+                it.name == button.name
+            }.forEach {
+                it.visible = true
+                disabledRemotes.remove(it as RemotePluginButton)
+            }
+        }
+    }
+
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
         defaultScope.launch(Dispatchers.IO) {
             MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} has started...")
@@ -237,7 +222,9 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 it.visible = false
                 disabledRemotes.add(it as RemotePluginButton)
             }
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} has finished.")
+
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download completed.")
+            updatePlugins()
         }
     }
 
@@ -250,11 +237,12 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             .groupBy { it.category.displayName }
             .mapValues { (_, modules) -> modules.map { ModuleButton(it) } }
 
-        windows.forEach { window ->
-            if (window != pluginWindow && window != remotePluginWindow) {
-                window.children.clear()
-                allButtons[window.name]?.let { window.children.addAll(it.customSort()) }
-            }
+        windows.filter { window ->
+            window != pluginWindow
+                && window != remotePluginWindow
+        }.forEach { window ->
+            window.children.clear()
+            allButtons[window.name]?.let { window.children.addAll(it.customSort()) }
         }
 
         setModuleButtonVisibility { moduleButton ->

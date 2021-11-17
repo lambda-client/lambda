@@ -129,6 +129,11 @@ open class ListWindow(
         }
     }
 
+    fun containsName(name: String): Boolean =
+        children.any {
+            it.name == name
+        }
+
     private fun renderChildren(renderBlock: (Component) -> Unit) {
         GlStateUtils.scissor(
             ((renderPosX + ClickGUI.entryMargin * 1.618) * ClickGUI.getScaleFactor() - 0.5f).floorToInt(),

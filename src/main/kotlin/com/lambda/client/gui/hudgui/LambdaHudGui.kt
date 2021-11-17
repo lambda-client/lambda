@@ -76,7 +76,10 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
     }
 
     override fun keyTyped(typedChar: Char, keyCode: Int) {
-        if (keyCode == Keyboard.KEY_ESCAPE || HudEditor.bind.value.isDown(keyCode) && !searching && settingWindow?.listeningChild == null) {
+        if (keyCode == Keyboard.KEY_ESCAPE ||
+            (keyCode == ClickGUI.bind.value.key ||
+                keyCode == HudEditor.bind.value.key)
+            && !searching && settingWindow?.listeningChild == null) {
             HudEditor.disable()
         } else {
             super.keyTyped(typedChar, keyCode)

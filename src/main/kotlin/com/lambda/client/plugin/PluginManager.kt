@@ -2,9 +2,15 @@ package com.lambda.client.plugin
 
 import com.lambda.client.AsyncLoader
 import com.lambda.client.LambdaMod
+import com.lambda.client.gui.clickgui.LambdaClickGui
+import com.lambda.client.gui.clickgui.component.PluginButton
+import com.lambda.client.gui.clickgui.component.RemotePluginButton
 import com.lambda.client.plugin.api.Plugin
+import com.lambda.client.setting.ConfigManager
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
+import net.minecraft.util.text.TextFormatting
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
@@ -154,6 +160,13 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
             plugin.register()
             loadedPlugins.add(plugin)
+            LambdaClickGui.remotePluginWindow.children.filter { plugin.name == it.name }.firstOrNull {
+                it.visible = false
+                LambdaClickGui.disabledRemotes.add(it as RemotePluginButton)
+            }
+            if (!LambdaClickGui.pluginWindow.containsName(loader.name)) {
+                LambdaClickGui.pluginWindow.children.add(PluginButton(plugin, loader.file))
+            }
             loadedPluginLoader.add(loader)
             plugin
         }
@@ -193,5 +206,4 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         LambdaMod.LOG.info("Unloaded plugin ${plugin.name}")
     }
-
 }
