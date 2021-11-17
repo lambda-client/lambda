@@ -18,18 +18,18 @@ class RemotePluginButton(
 ) : BooleanSlider(pluginName, 0.0, description) {
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
-        val details = if (version.startsWith("v")) {
-            version
-        } else {
-            "v${version}"
-        }
+        val details = version.replace("v", "")
         val margin = if (CustomFont.isEnabled) 1.5f else 5.0f
         val color = if (value == 1.0) GuiColors.backGround else GuiColors.text
-        FontRenderAdapter.drawString(details, LambdaClickGui.remotePluginWindow.width - margin - LambdaFontRenderer.getStringWidth(details), 1.0f, CustomFont.shadow, color = color)
+        FontRenderAdapter.drawString(details, LambdaClickGui.remotePluginWindow.width - margin - LambdaFontRenderer.getStringWidth("v$details"), 1.0f, CustomFont.shadow, color = color)
     }
 
     override fun onClick(mousePos: Vec2f, buttonId: Int) {
         super.onClick(mousePos, buttonId)
-        if (buttonId == 0) LambdaClickGui.downloadPlugin(this)
+        if (buttonId == 0) {
+            LambdaClickGui.downloadPlugin(this)
+            visible = false
+            LambdaClickGui.disabledRemotes.add(this)
+        }
     }
 }

@@ -199,9 +199,9 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             PluginManager.unload(button.plugin)
             MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${button.plugin.version}${TextFormatting.RESET} removed.")
 
-            remotePluginWindow.children.filter {
+            remotePluginWindow.children.firstOrNull {
                 it.name == button.name
-            }.forEach {
+            }?.let {
                 it.visible = true
                 disabledRemotes.remove(it as RemotePluginButton)
             }
@@ -210,7 +210,8 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
         defaultScope.launch(Dispatchers.IO) {
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${remotePluginButton.version}${TextFormatting.RESET} has started...")
+            val version = remotePluginButton.version.replace("v", "")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${version}${TextFormatting.RESET} has started...")
             try {
                 // ToDo: Make it use the progress bar in button itself
                 URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->
@@ -218,11 +219,6 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
-            }
-
-            remotePluginWindow.children.filter { remotePluginButton.name == it.name }.forEach {
-                it.visible = false
-                disabledRemotes.add(it as RemotePluginButton)
             }
 
             MessageSendHelper.sendChatMessage("[Plugin Manager] Download completed.")
