@@ -19,18 +19,16 @@ internal object Stocks : LabelHud(
     private var url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
     private var stockData = StockData(0.0)
     private var price = 0.0
-    private var newrl = url
 
     override fun SafeClientEvent.updateText() {
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
         }
-        displayText.add("Current Price of $symbol is ", primaryColor)
+        displayText.add("Current Price of $symbol is", primaryColor)
         displayText.add("$price", secondaryColor)
     }
 
     private fun updateStockData() {
-        sendChatMessage("url: $url, newrl: $newrl ")
         url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
             price = Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c
     }
