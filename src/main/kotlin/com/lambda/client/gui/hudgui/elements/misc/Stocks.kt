@@ -24,12 +24,12 @@ internal object Stocks : LabelHud(
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
         }
-        displayText.add("Current Price of $symbol is", primaryColor)
+        displayText.add("Current Price of ${symbol.toUpperCase()} is", primaryColor)
         displayText.add("$price", secondaryColor)
     }
 
     private fun updateStockData() {
-        url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
+        url = "https://finnhub.io/api/v1/quote?symbol=${symbol.toUpperCase()}&token=c5resoqad3ifnpn51ou0"
             price = Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c
     }
 
