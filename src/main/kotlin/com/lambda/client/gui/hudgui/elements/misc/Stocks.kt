@@ -6,6 +6,7 @@ import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.WebUtils
+import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import kotlin.math.round
 
 internal object Stocks : LabelHud(
@@ -26,18 +27,13 @@ internal object Stocks : LabelHud(
             updateStockData()
         }
         displayText.add("Current Price of $symbol is ", primaryColor)
-        displayText.add("$price)", secondaryColor)
+        displayText.add("$price", secondaryColor)
     }
 
     private fun updateStockData() {
-        if (newrl == url) {
+        sendChatMessage("url: $url, newrl: $newrl ")
+        newrl = url
             price = Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c
-        } else {
-            newrl = url
-            price = Gson().fromJson(WebUtils.getUrlContents(newrl), StockData::class.java).c
-        }
-
-
     }
 
     private class StockData(
