@@ -32,6 +32,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     var pluginWindow: ListWindow
     var remotePluginWindow: ListWindow
     var disabledRemotes = ArrayList<RemotePluginButton>()
+    var moduleCount = ModuleManager.modules.size
 
     init {
         val allButtons = ModuleManager.modules
@@ -191,6 +192,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         }.forEach {
             PluginManager.load(it)
         }
+
         pluginWindow.children.filterIsInstance<PluginButton>().filter { button ->
             PluginManager.getLoaders().none { button.name == it.name }
         }.forEach { button ->
@@ -206,6 +208,8 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 disabledRemotes.remove(it as RemotePluginButton)
             }
         }
+
+        if (moduleCount != ModuleManager.modules.size) reorderModules()
     }
 
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
@@ -213,9 +217,12 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             val version = remotePluginButton.version.replace("v", "")
             MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${version}${TextFormatting.RESET} has started...")
             try {
-                // ToDo: Make it use the progress bar in button itself
                 URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->
-                    Files.copy(inputStream, Paths.get("${PluginManager.pluginPath}/${remotePluginButton.fileName}"), StandardCopyOption.REPLACE_EXISTING)
+                    Files.copy(
+                        inputStream,
+                        Paths.get("${PluginManager.pluginPath}/${remotePluginButton.fileName}"),
+                        StandardCopyOption.REPLACE_EXISTING
+                    )
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -231,6 +238,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     }
 
     fun reorderModules() {
+        moduleCount = ModuleManager.modules.size
         val allButtons = ModuleManager.modules
             .groupBy { it.category.displayName }
             .mapValues { (_, modules) -> modules.map { ModuleButton(it) } }

@@ -1,6 +1,5 @@
 package com.lambda.client.gui.clickgui.component
 
-import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.rgui.component.BooleanSlider
 import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
@@ -25,7 +24,13 @@ class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.na
         val details = "v${plugin.version}"
         val margin = if (CustomFont.isEnabled) 1.5f else 5.0f
         val color = if (value == 1.0) GuiColors.backGround else GuiColors.text
-        FontRenderAdapter.drawString(details, LambdaClickGui.pluginWindow.width - margin - LambdaFontRenderer.getStringWidth(details), 1.0f, CustomFont.shadow, color = color)
+        FontRenderAdapter.drawString(
+            details,
+            width - margin - LambdaFontRenderer.getStringWidth(details),
+            1.0f,
+            CustomFont.shadow,
+            color = color
+        )
     }
 
     override fun onTick() {
