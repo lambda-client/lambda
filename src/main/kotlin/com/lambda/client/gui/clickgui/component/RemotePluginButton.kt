@@ -21,7 +21,13 @@ class RemotePluginButton(
         val details = version.replace("v", "")
         val margin = if (CustomFont.isEnabled) 1.5f else 5.0f
         val color = if (value == 1.0) GuiColors.backGround else GuiColors.text
-        FontRenderAdapter.drawString(details, LambdaClickGui.remotePluginWindow.width - margin - LambdaFontRenderer.getStringWidth("v$details"), 1.0f, CustomFont.shadow, color = color)
+        FontRenderAdapter.drawString(
+            details,
+            LambdaClickGui.remotePluginWindow.width - margin - LambdaFontRenderer.getStringWidth("v$details"),
+            1.0f,
+            CustomFont.shadow,
+            color = color
+        )
     }
 
     override fun onClick(mousePos: Vec2f, buttonId: Int) {
