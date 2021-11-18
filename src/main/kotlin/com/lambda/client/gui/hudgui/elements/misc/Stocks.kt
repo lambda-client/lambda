@@ -7,7 +7,6 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
-import kotlin.math.round
 
 internal object Stocks : LabelHud(
     name = "Stocks",
@@ -32,7 +31,7 @@ internal object Stocks : LabelHud(
 
     private fun updateStockData() {
         sendChatMessage("url: $url, newrl: $newrl ")
-        newrl = url
+        url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=c5resoqad3ifnpn51ou0"
             price = Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c
     }
 
