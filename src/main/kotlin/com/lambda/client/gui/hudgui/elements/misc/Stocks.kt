@@ -34,9 +34,14 @@ internal object Stocks : LabelHud(
     }
 
     private fun updateStockData() {
-        url = "https://finnhub.io/api/v1/quote?symbol=${symbol.toUpperCase()}&token=$token"
+        if (token.length != 20) {
+
+        } else {
+            url = "https://finnhub.io/api/v1/quote?symbol=${symbol.toUpperCase()}&token=$token"
             price = Gson().fromJson(WebUtils.getUrlContents(url), StockData::class.java).c
+        }
     }
+
 
     private fun sendWarning() {
         MessageSendHelper.sendWarningMessage(
