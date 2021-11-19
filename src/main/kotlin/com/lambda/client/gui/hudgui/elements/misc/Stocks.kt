@@ -16,7 +16,7 @@ internal object Stocks : LabelHud(
     private val hasShownWarning = setting("Has Shown Warning", false, { false })
     private var symbol by setting("Symbol", "TSLA")
     private val tickdelay by setting("Delay", 30, 20..120, 1)
-    private var token by setting("Set your token with the command ;b set Stocks token (token)", "token")
+    private var token by setting("Token", "Set your token with the command ;b set Stocks Token (token)")
     private val ticktimer = TickTimer(TimeUnit.SECONDS)
     private var url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=$token"
     private var stockData = StockData(0.0)
@@ -48,7 +48,7 @@ internal object Stocks : LabelHud(
             "This module uses an external API, finnhub.io, which requires an api token to use." +
                 "Go to https://finnhub.io/dashboard and copy your api token." +
                 "Once you have gotten your api token, you can run this command: " +
-                ";b set Stocks token (paste token here)"
+                ";b set Stocks Token (paste token here)"
         )
         hasShownWarning.value = true
     }
