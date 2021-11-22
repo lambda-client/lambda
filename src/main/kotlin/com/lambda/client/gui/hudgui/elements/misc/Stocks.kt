@@ -13,7 +13,6 @@ internal object Stocks : LabelHud(
     category = Category.MISC,
     description = "Info about a stock"
 ) {
-    private val hasShownWarning = setting("Has Shown Warning", false, { false })
     private var symbol by setting("Symbol", "TSLA")
     private val tickdelay by setting("Delay", 30, 20..120, 1)
     private var token by setting("Token", "Set your token with the command ;set Stocks Token (token)")
@@ -21,11 +20,13 @@ internal object Stocks : LabelHud(
     private var url = "https://finnhub.io/api/v1/quote?symbol=$symbol&token=$token"
     private var stockData = StockData(0.0)
     private var price = 0.0
+    private var sentwarning = false
 
     override fun SafeClientEvent.updateText() {
-        if (!hasShownWarning.value) {
-            sendWarning()
-        }
+        if (sentwarning == false) {
+                sendWarning()
+            }
+
         if (ticktimer.tick(tickdelay)) {
             updateStockData()
         }
@@ -45,12 +46,12 @@ internal object Stocks : LabelHud(
 
     private fun sendWarning() {
         MessageSendHelper.sendWarningMessage(
-            "This module uses an external API, finnhub.io, which requires an api token to use." +
-                "Go to https://finnhub.io/dashboard and copy your api token." +
+            "This module uses an external API, finnhub.io, which requires an api token to use. " +
+                "Go to https://finnhub.io/dashboard and sign up for an account and copy your api token. " +
                 "Once you have gotten your api token, you can run this command: " +
                 ";set Stocks Token (paste token here)"
         )
-        hasShownWarning.value = true
+        sentwarning = true
     }
 
     private class StockData(
