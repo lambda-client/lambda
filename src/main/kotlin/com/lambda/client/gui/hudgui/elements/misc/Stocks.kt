@@ -46,8 +46,8 @@ internal object Stocks : LabelHud(
 
     private fun sendWarning() {
         MessageSendHelper.sendWarningMessage(
-            "This module uses an external API, finnhub.io, which requires an api token to use." +
-                "Go to https://finnhub.io/dashboard and sign up for an account and copy your api token." +
+            "This module uses an external API, finnhub.io, which requires an api token to use. " +
+                "Go to https://finnhub.io/dashboard and sign up for an account and copy your api token. " +
                 "Once you have gotten your api token, you can run this command: " +
                 ";set Stocks Token (paste token here)"
         )
