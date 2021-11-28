@@ -19,6 +19,7 @@ import com.lambda.commons.utils.ConnectionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.util.text.TextFormatting
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import org.lwjgl.input.Keyboard
 import java.io.IOException
 import java.net.URL
@@ -32,7 +33,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     var pluginWindow: ListWindow
     var remotePluginWindow: ListWindow
     var disabledRemotes = ArrayList<RemotePluginButton>()
-    var moduleCount = ModuleManager.modules.size
+    private var moduleCount = ModuleManager.modules.size
 
     init {
         val allButtons = ModuleManager.modules
@@ -47,7 +48,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         for ((category, buttons) in allButtons) {
             val window = ListWindow(category, posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
 
-            window.children.addAll(buttons.customSort())
+            window.addAll(buttons.customSort())
             windows.add(window)
             posX += 90.0f
 
@@ -58,14 +59,14 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         }
 
         /* Plugins */
-        pluginWindow = ListWindow("Plugins", posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
-        pluginWindow.children.add(ImportPluginButton)
-        pluginWindow.children.add(DownloadPluginButton)
+        pluginWindow = PluginWindow("Plugins", posX, posY)
+        pluginWindow.add(ImportPluginButton)
+        pluginWindow.add(DownloadPluginButton)
         windows.add(pluginWindow)
 
-        posX += 90.0f
+        posX += 120.0f
 
-        remotePluginWindow = ListWindow("Remote plugins", posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
+        remotePluginWindow = PluginWindow("Remote plugins", posX, posY)
         remotePluginWindow.visible = false
         windows.add(remotePluginWindow)
 
@@ -85,6 +86,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         setModuleButtonVisibility { true }
         setPluginButtonVisibility { true }
         setRemotePluginButtonVisibility { true }
+        remotePluginWindow.visible = false
     }
 
     override fun newSettingWindow(element: AbstractModule, mousePos: Vec2f): ModuleSettingWindow {
@@ -120,16 +122,25 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
     private fun setModuleButtonVisibility(function: (ModuleButton) -> Boolean) {
         windowList.filterIsInstance<ListWindow>().forEach { window ->
-            window.children.filterIsInstance<ModuleButton>().forEach { it.visible = function(it) }
+            window.children.filterIsInstance<ModuleButton>().forEach {
+                it.visible = function(it)
+            }
         }
     }
 
     private fun setPluginButtonVisibility(function: (PluginButton) -> Boolean) {
-        pluginWindow.children.filterIsInstance<PluginButton>().forEach { it.visible = function(it) }
+        pluginWindow.children.filterIsInstance<PluginButton>().forEach {
+            it.visible = function(it)
+        }
     }
 
     private fun setRemotePluginButtonVisibility(function: (RemotePluginButton) -> Boolean) {
-        remotePluginWindow.children.filterIsInstance<RemotePluginButton>().filter { it !in disabledRemotes }.forEach { it.visible = function(it) }
+        remotePluginWindow.children
+            .filterIsInstance<RemotePluginButton>()
+            .filter { it !in disabledRemotes }
+            .forEach {
+                it.visible = function(it)
+        }
     }
 
     private fun populateRemotePlugins() {
@@ -163,15 +174,12 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                                     val remoteButton = RemotePluginButton(
                                         name,
                                         pluginRepo.asJsonObject.get("description").asString,
-                                        latestRelease.asJsonObject.get("tag_name").asString,
+                                        latestRelease.asJsonObject.get("tag_name").asString.replace("v", ""),
                                         firstAsset.asJsonObject.get("browser_download_url").asString,
                                         firstAsset.asJsonObject.get("name").asString
                                     )
-                                    remotePluginWindow.children.add(remoteButton)
-                                    if (PluginManager.loadedPlugins.containsName(name)) {
-                                        remoteButton.visible = false
-                                        disabledRemotes.add(remoteButton)
-                                    }
+                                    remotePluginWindow.add(remoteButton)
+                                    updateRemoteStates()
                                 }
                             }
                         }
@@ -183,33 +191,40 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 LambdaMod.LOG.error("Failed to parse plugin json", e)
             }
         }
+//        if (ConnectionUtils.api_limit_reached)
     }
 
     fun updatePlugins() {
-        PluginManager.getLoaders().filter {
-            !PluginManager.loadedPluginLoader.containsName(it.name)
-                && !pluginWindow.containsName(it.name)
-        }.forEach {
-            PluginManager.load(it)
+        PluginManager.checkPluginLoaders(PluginManager.getLoaders(), true).forEach { loader ->
+            if (pluginWindow.children.none { loader.name == it.name }) PluginManager.load(loader)
         }
 
-        pluginWindow.children.filterIsInstance<PluginButton>().filter { button ->
-            PluginManager.getLoaders().none { button.name == it.name }
-        }.forEach { button ->
-            pluginWindow.children.remove(button)
-            ConfigManager.save(button.plugin.config)
-            PluginManager.unload(button.plugin)
-            MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${button.plugin.version}${TextFormatting.RESET} removed.")
+        val loaders = PluginManager.getLoaders()
+        pluginWindow.children
+            .filterIsInstance<PluginButton>()
+            .filter { button ->
+                loaders.none { button.name == it.name && button.plugin.version == it.info.version }
+            }.forEach { button ->
+                pluginWindow.remove(button)
+                ConfigManager.save(button.plugin.config)
+                PluginManager.unload(button.plugin)
+                MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${button.plugin.version}${TextFormatting.RESET} removed.")
 
-            remotePluginWindow.children.firstOrNull {
-                it.name == button.name
-            }?.let {
-                it.visible = true
-                disabledRemotes.remove(it as RemotePluginButton)
+                remotePluginWindow.children
+                    .filterIsInstance<RemotePluginButton>()
+                    .firstOrNull {
+                        it.name == button.name
+                    }?.let {
+                        it.visible = true
+                        disabledRemotes.remove(it)
+                    }
             }
-        }
 
-        if (moduleCount != ModuleManager.modules.size) reorderModules()
+        updateRemoteStates()
+
+        if (moduleCount != ModuleManager.modules.size) {
+            reorderModules()
+        }
     }
 
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
@@ -233,6 +248,35 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         }
     }
 
+    fun updateRemoteStates() {
+        PluginManager.loadedPlugins.forEach { plugin ->
+            remotePluginWindow.children
+                .filterIsInstance<RemotePluginButton>()
+                .filter { plugin.name == it.name }
+                .forEach { remote ->
+                    val remoteVersion = DefaultArtifactVersion(remote.version)
+                    val localVersion = DefaultArtifactVersion(plugin.version)
+                    when {
+                        remoteVersion == localVersion -> {
+                            remote.update = false
+                            remote.visible = false
+                            disabledRemotes.add(remote)
+                        }
+                        remoteVersion > localVersion -> {
+                            remote.update = true
+                            remote.visible = true
+                            disabledRemotes.remove(remote)
+                        }
+                        else -> {
+                            remote.update = false
+                            remote.visible = false
+                            disabledRemotes.add(remote)
+                        }
+                    }
+                }
+        }
+    }
+
     fun toggleRemotePluginWindow() {
         remotePluginWindow.visible = !remotePluginWindow.visible
     }
@@ -247,8 +291,10 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             window != pluginWindow
                 && window != remotePluginWindow
         }.forEach { window ->
-            window.children.clear()
-            allButtons[window.name]?.let { window.children.addAll(it.customSort()) }
+            window.clear()
+            allButtons[window.name]?.let {
+                window.addAll(it.customSort())
+            }
         }
 
         setModuleButtonVisibility { moduleButton ->

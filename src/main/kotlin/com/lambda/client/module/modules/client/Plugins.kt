@@ -1,0 +1,17 @@
+package com.lambda.client.module.modules.client
+
+import com.lambda.client.module.Category
+import com.lambda.client.module.Module
+
+object Plugins : Module(
+    name = "Plugins",
+    description = "Config for plugins",
+    showOnArray = false,
+    category = Category.CLIENT,
+    alwaysEnabled = true
+) {
+    private val tokenSetting by setting("Github OAuth", "")
+    // ToDo: Add setting for other remote repositories here and save load status of plugins
+
+    val token get() = tokenSetting
+}

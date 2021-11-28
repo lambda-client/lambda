@@ -57,7 +57,7 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
 
     internal fun register(hudElement: AbstractHudElement) {
         val button = HudButton(hudElement)
-        hudWindows[hudElement.category]!!.children.add(button)
+        hudWindows[hudElement.category]!!.add(button)
         windowList.add(hudElement)
     }
 

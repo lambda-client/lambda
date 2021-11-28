@@ -21,7 +21,7 @@ class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.na
 
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
-        val details = "v${plugin.version}"
+        val details = plugin.version.replace("v", "")
         val margin = if (CustomFont.isEnabled) 1.5f else 5.0f
         val color = if (value == 1.0) GuiColors.backGround else GuiColors.text
         FontRenderAdapter.drawString(
