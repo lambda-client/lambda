@@ -41,7 +41,9 @@ object DiscordRPC : Module(
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
     }
 
-    private val ipc = IPCClient(LambdaMod.APP_ID)
+    // Not using "by lazy" to be able to catch failure in onEnable
+    private lateinit var ipc: IPCClient
+    private var initialised = false
     private val rpcBuilder = RichPresence.Builder()
         .setLargeImage("default", "lambda-client.com")
     private var connected = false
@@ -50,6 +52,16 @@ object DiscordRPC : Module(
 
     init {
         onEnable {
+            if (!initialised) {
+                try {
+                    ipc = IPCClient(LambdaMod.APP_ID)
+                    initialised = true
+                } catch (e: UnsatisfiedLinkError) {
+                    error("Failed to initialize DiscordRPC due to missing native library", e)
+                    disable()
+                    return@onEnable
+                }
+            }
             start()
         }
 
@@ -85,14 +97,13 @@ object DiscordRPC : Module(
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
-            LambdaMod.LOG.error("No discord client found for RPC, stopping")
-            MessageSendHelper.sendErrorMessage("No discord client found for RPC, stopping")
+            error("No discord client found for RPC, stopping")
             disable()
         }
     }
 
     private fun end() {
-        if (!connected) return
+        if (!connected || !initialised) return
 
         LambdaMod.LOG.info("Shutting down Discord RPC...")
         BackgroundScope.cancel(job)
@@ -175,6 +186,12 @@ object DiscordRPC : Module(
         } else {
             if (line2Left == LineInfo.NONE || line2Right == LineInfo.NONE) " " else " | "
         }
+    }
+
+    // Change to Throwable? if more logging is ever needed
+    private fun error(message: String, error: UnsatisfiedLinkError? = null) {
+        MessageSendHelper.sendErrorMessage(message)
+        LambdaMod.LOG.error(message, error)
     }
 
     fun setCustomIcons(capeType: CapeType?) {
