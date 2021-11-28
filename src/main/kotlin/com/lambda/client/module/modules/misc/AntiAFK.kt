@@ -142,6 +142,8 @@ object AntiAFK : Module(
                     Action.SWING -> player.swingArm(EnumHand.MAIN_HAND)
                     Action.JUMP -> player.jump()
                     Action.TURN -> player.rotationYaw = Random.nextDouble(-180.0, 180.0).toFloat()
+                    else -> {
+                    }
                 }
 
                 if (walk.value && !BaritoneUtils.isActive) {
