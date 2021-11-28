@@ -1,6 +1,7 @@
 package com.lambda.client
 
 import com.lambda.client.event.ForgeEventProcessor
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.threads.BackgroundScope
@@ -53,7 +54,6 @@ class LambdaMod {
         val directory = File(DIRECTORY)
         if (!directory.exists()) directory.mkdir()
 
-        WebUtils.updateCheck()
         LoaderWrapper.preLoadAll()
     }
 
@@ -69,6 +69,9 @@ class LambdaMod {
         ConfigUtils.loadAll()
 
         BackgroundScope.start()
+
+        WebUtils.updateCheck()
+        LambdaClickGui.populateRemotePlugins()
 
         LOG.info("$NAME initialized!")
     }

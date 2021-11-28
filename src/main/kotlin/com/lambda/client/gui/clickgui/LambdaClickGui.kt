@@ -70,8 +70,6 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         remotePluginWindow.visible = false
         windows.add(remotePluginWindow)
 
-        populateRemotePlugins()
-
         windowList.addAll(windows)
     }
 
@@ -143,7 +141,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         }
     }
 
-    private fun populateRemotePlugins() {
+    fun populateRemotePlugins() {
         defaultScope.launch {
             try {
                 val repoUrl = LambdaMod.GITHUB_API + "orgs/" + LambdaMod.PLUGIN_ORG + "/repos"

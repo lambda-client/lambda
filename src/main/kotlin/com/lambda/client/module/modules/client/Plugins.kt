@@ -10,7 +10,7 @@ object Plugins : Module(
     category = Category.CLIENT,
     alwaysEnabled = true
 ) {
-    private val tokenSetting by setting("Github OAuth", "")
+    private val tokenSetting by setting("Github Token", "")
     // ToDo: Add setting for other remote repositories here and save load status of plugins
 
     val token get() = tokenSetting

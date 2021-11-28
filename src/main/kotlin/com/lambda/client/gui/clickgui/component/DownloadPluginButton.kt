@@ -20,7 +20,7 @@ object DownloadPluginButton : BooleanSlider("Download...", 0.0, "Download plugin
         if (updateCount > 0) {
             RenderUtils2D.drawCircleFilled(
                 vertexHelper,
-                Vec2d(width - 10.0, height / 2.0),
+                Vec2d(width - (height / 2.1 * 2), height / 2.0),
                 height / 2.5,
                 0,
                 GuiColors.primary
@@ -28,7 +28,7 @@ object DownloadPluginButton : BooleanSlider("Download...", 0.0, "Download plugin
 
             FontRenderAdapter.drawString(
                 "$updateCount",
-                width - height / 2.5f - 7.5f,
+                width - (height / 2.1f * 2) - FontRenderAdapter.getStringWidth(updateCount.toString(), customFont = CustomFont.isEnabled) / 2,
                 0.0f,
                 CustomFont.shadow,
                 color = GuiColors.backGround

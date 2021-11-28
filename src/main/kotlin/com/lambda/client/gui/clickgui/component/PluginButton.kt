@@ -8,7 +8,6 @@ import com.lambda.client.plugin.PluginManager
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
-import com.lambda.client.util.graphics.font.LambdaFontRenderer
 import com.lambda.client.util.math.Vec2f
 import java.io.File
 
@@ -22,11 +21,10 @@ class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.na
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
         val details = plugin.version.replace("v", "")
-        val margin = if (CustomFont.isEnabled) 1.5f else 5.0f
         val color = if (value == 1.0) GuiColors.backGround else GuiColors.text
         FontRenderAdapter.drawString(
             details,
-            width - margin - LambdaFontRenderer.getStringWidth(details),
+            width - 1.5f - FontRenderAdapter.getStringWidth(details, customFont = CustomFont.isEnabled),
             1.0f,
             CustomFont.shadow,
             color = color
