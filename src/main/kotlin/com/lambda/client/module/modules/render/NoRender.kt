@@ -14,11 +14,14 @@ import net.minecraft.client.particle.Particle
 import net.minecraft.client.particle.ParticleFirework
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
+import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.effect.EntityLightningBolt
 import net.minecraft.entity.item.*
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.passive.IAnimals
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
+import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.network.play.server.*
 import net.minecraft.tileentity.*
 import net.minecraft.util.ResourceLocation
@@ -66,8 +69,17 @@ object NoRender : Module(
     private val projectiles by setting("Projectiles", false, { page == Page.OTHER })
     private val lightning = setting("Lightning", true, { page == Page.OTHER })
 
+    //Armor
+    private val armorplayer by setting("Players", false, { page == Page.ARMOR})
+    private val armorStands by setting("Armour Stands", true, { page == Page.ARMOR})
+    private val armormobs by setting("Mobs", true, { page == Page.ARMOR})
+    private val helmet by setting("Helmet", false, { page == Page.ARMOR})
+    private val chestplate by setting("Chestplate", false, { page == Page.ARMOR})
+    private val leggings by setting("Leggings", false, { page == Page.ARMOR})
+    private val boots by setting("Boots", false, { page == Page.ARMOR})
+
     private enum class Page {
-        ENTITIES, OTHER
+        ENTITIES, OTHER, ARMOR
     }
 
     private val lambdaMap = ResourceLocation("lambda/lambda_map.png")
@@ -198,6 +210,23 @@ object NoRender : Module(
                 add(TileEntityEndGateway::class.java)
             }
         }
+    }
+
+    @JvmStatic
+    fun shouldHide(slotIn: EntityEquipmentSlot, entity: EntityLivingBase): Boolean {
+        return when (entity) {
+            is EntityPlayer -> armorplayer && shouldHidePiece(slotIn)
+            is EntityArmorStand -> armorStands && shouldHidePiece(slotIn)
+            is EntityMob -> armormobs && shouldHidePiece(slotIn)
+            else -> false
+        }
+    }
+
+    private fun shouldHidePiece(slotIn: EntityEquipmentSlot): Boolean {
+        return helmet && slotIn == EntityEquipmentSlot.HEAD
+            || chestplate && slotIn == EntityEquipmentSlot.CHEST
+            || leggings && slotIn == EntityEquipmentSlot.LEGS
+            || boots && slotIn == EntityEquipmentSlot.FEET
     }
 
     init {
