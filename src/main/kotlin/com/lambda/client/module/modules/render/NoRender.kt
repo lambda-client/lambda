@@ -74,6 +74,8 @@ object NoRender : Module(
     private val projectiles by setting("Projectiles", false, { page == Page.OTHER })
     private val lightning = setting("Lightning", true, { page == Page.OTHER })
     val fog by setting("Fog", true, { page == Page.OTHER})
+    val inventoryGlobal by setting("Inventory", true, { page == Page.OTHER})
+    val chatGlobal by setting("Chat", false, { page == Page.OTHER})
 
     //Armor
     private val armorplayer by setting("Players", false, { page == Page.ARMOR})
