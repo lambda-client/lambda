@@ -25,6 +25,10 @@ jobs:
         with:
           java-version: 1.8
 
+      # THIS SHOULDN'T BE NECESSARY BUT APPARENTLY IS, FIXES BUILDING, WHY DOES THIS WORK
+      - name: Run setup script
+        run: ./scripts/setupWorkspace.sh
+
       - name: Build forge mod
         run: ./gradlew build --no-build-cache
 
