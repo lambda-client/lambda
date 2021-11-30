@@ -4,7 +4,6 @@ import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.RenderOverlayEvent;
 import com.lambda.client.module.modules.movement.ElytraFlight;
 import com.lambda.client.module.modules.player.BlockInteraction;
-import com.lambda.client.module.modules.render.AntiFog;
 import com.lambda.client.module.modules.render.CameraClip;
 import com.lambda.client.module.modules.render.NoRender;
 import com.lambda.client.util.Wrapper;
@@ -54,7 +53,7 @@ public class MixinEntityRenderer {
 
     @Inject(method = "setupFog", at = @At(value = "RETURN"), cancellable = true)
     public void setupFog(int startCoords, float partialTicks, CallbackInfo callbackInfo) {
-        if (AntiFog.INSTANCE.isEnabled()) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getFog()) {
             GlStateManager.disableFog();
         }
     }

@@ -73,6 +73,7 @@ object NoRender : Module(
     private val enchantingTableSnow by setting("Enchanting Table Snow", false, { page == Page.OTHER }, description = "Replace enchanting table models with snow layers")
     private val projectiles by setting("Projectiles", false, { page == Page.OTHER })
     private val lightning = setting("Lightning", true, { page == Page.OTHER })
+    val fog by setting("Fog", true, { page == Page.OTHER})
 
     //Armor
     private val armorplayer by setting("Players", false, { page == Page.ARMOR})
