@@ -26,9 +26,14 @@ import net.minecraft.network.play.server.*
 import net.minecraft.tileentity.*
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.EnumSkyBlock
+import net.minecraftforge.client.event.RenderBlockOverlayEvent
+import net.minecraftforge.client.event.RenderGameOverlayEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.registries.GameData
 import org.lwjgl.opengl.GL11.GL_QUADS
+import net.minecraft.client.tutorial.TutorialSteps
+import net.minecraft.init.MobEffects
+import net.minecraftforge.client.event.RenderBlockOverlayEvent.OverlayType
 
 object NoRender : Module(
     name = "NoRender",
@@ -68,6 +73,9 @@ object NoRender : Module(
     private val enchantingTableSnow by setting("Enchanting Table Snow", false, { page == Page.OTHER }, description = "Replace enchanting table models with snow layers")
     private val projectiles by setting("Projectiles", false, { page == Page.OTHER })
     private val lightning = setting("Lightning", true, { page == Page.OTHER })
+    val fog by setting("Fog", true, { page == Page.OTHER})
+    val inventoryGlobal by setting("Inventory", true, { page == Page.OTHER})
+    val chatGlobal by setting("Chat", false, { page == Page.OTHER})
 
     //Armor
     private val armorplayer by setting("Players", false, { page == Page.ARMOR})
@@ -78,8 +86,22 @@ object NoRender : Module(
     private val leggings by setting("Leggings", false, { page == Page.ARMOR})
     private val boots by setting("Boots", false, { page == Page.ARMOR})
 
+    //Overlay
+    val hurtCamera by setting("Hurt Camera", true, { page == Page.OVERLAY})
+    private val fire by setting("Fire", true, { page == Page.OVERLAY})
+    private val water by setting("Water", true, { page == Page.OVERLAY})
+    private val blocks by setting("Blocks", true, { page == Page.OVERLAY})
+    private val portals by setting("Portals", true, { page == Page.OVERLAY})
+    private val blindness by setting("Blindness", true, { page == Page.OVERLAY})
+    private val nausea by setting("Nausea", true, { page == Page.OVERLAY})
+    val totems by setting("Totems", true, { page == Page.OVERLAY})
+    private val vignette by setting("Vignette", false, { page == Page.OVERLAY})
+    private val overlayhelmet by setting("Helmet", true, { page == Page.OVERLAY})
+    private val tutorial by setting("Tutorial", true, { page == Page.OVERLAY})
+    private val potionIcons by setting("Potion Icons", false, { page == Page.OVERLAY})
+
     private enum class Page {
-        ENTITIES, OTHER, ARMOR
+        ENTITIES, OTHER, ARMOR, OVERLAY
     }
 
     private val lambdaMap = ResourceLocation("lambda/lambda_map.png")
@@ -227,6 +249,33 @@ object NoRender : Module(
             || chestplate && slotIn == EntityEquipmentSlot.CHEST
             || leggings && slotIn == EntityEquipmentSlot.LEGS
             || boots && slotIn == EntityEquipmentSlot.FEET
+    }
+
+    init {
+        listener<RenderBlockOverlayEvent> {
+            it.isCanceled = when (it.overlayType) {
+                OverlayType.FIRE -> fire
+                OverlayType.WATER -> water
+                OverlayType.BLOCK -> blocks
+                else -> it.isCanceled
+            }
+        }
+
+        listener<RenderGameOverlayEvent.Pre> {
+            it.isCanceled = when (it.type) {
+                RenderGameOverlayEvent.ElementType.VIGNETTE -> vignette
+                RenderGameOverlayEvent.ElementType.PORTAL -> portals
+                RenderGameOverlayEvent.ElementType.HELMET -> overlayhelmet
+                RenderGameOverlayEvent.ElementType.POTION_ICONS -> potionIcons
+                else -> it.isCanceled
+            }
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
+            if (blindness) player.removeActivePotionEffect(MobEffects.BLINDNESS)
+            if (nausea) player.removeActivePotionEffect(MobEffects.NAUSEA)
+            if (tutorial) mc.gameSettings.tutorialStep = TutorialSteps.NONE
+        }
     }
 
     init {

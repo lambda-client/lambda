@@ -1,8 +1,8 @@
 package com.lambda.client.mixin.client.gui;
 
-import com.lambda.client.module.modules.render.CleanGUI;
 import com.lambda.client.module.modules.render.ContainerPreview;
 import com.lambda.client.module.modules.render.MapPreview;
+import com.lambda.client.module.modules.render.NoRender;
 import com.lambda.client.util.Wrapper;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.item.ItemMap;
@@ -32,7 +32,7 @@ public class MixinGuiScreen {
 
     @Inject(method = "drawWorldBackground(I)V", at = @At("HEAD"), cancellable = true)
     private void drawWorldBackgroundWrapper(final int tint, final CallbackInfo ci) {
-        if (Wrapper.getWorld() != null && CleanGUI.INSTANCE.isEnabled() && (CleanGUI.INSTANCE.getInventoryGlobal())) {
+        if (Wrapper.getWorld() != null && NoRender.INSTANCE.isEnabled() && (NoRender.INSTANCE.getInventoryGlobal())) {
             ci.cancel();
         }
     }
