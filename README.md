@@ -82,7 +82,7 @@ Clone the repository to your local machine. Use the link of either your fork or 
 git clone https://github.com/lambda-client/lambda
 ```
 
-Run `scripts/setupWorkspace.sh` to initialize the environment. 
+Run `setupWorkspace.sh` to initialize the environment. 
 With terminal on Linux or [Git Bash](https://gitforwindows.org/) for Windows
 ```
 ./setupWorkspace.sh
