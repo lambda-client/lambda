@@ -27,8 +27,8 @@ class LambdaMod {
         const val ID = "lambda"
         const val DIRECTORY = "lambda/"
 
-        const val VERSION = "2.11-dev"
-        const val VERSION_MAJOR = "2.11"
+        const val VERSION = "2.12-dev"
+        const val VERSION_MAJOR = "2.12"
 
         const val APP_ID = 835368493150502923 // DiscordIPC
 

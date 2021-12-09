@@ -36,7 +36,7 @@ jobs:
             ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-
 
       - name: Prepare workspace
-        run: ./gradlew --no-daemon classes
+        run: ./gradlew --build-cache --no-daemon classes
 
       - name : Build forge mod
         run : ./gradlew --build-cache build
