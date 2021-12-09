@@ -44,7 +44,9 @@ How do I...
 <details>
   <summary>... install plugins?</summary>
 
-> Open the ClickGUI by pressing `y`. The window called `Plugins` contains all loaded plugins. Either  You can download official plugins there. They are hosted on [GitHub](https://github.com/lambda-plugins/). If you want to load a third party plugin click the `open plugins folder` button and put the jar into the folder. CAUTION: Third party plugins can contain dangerous code! Only use plugins from trusted sources!
+> Open the ClickGUI by pressing `y`. The window called `Plugins` contains all installed plugins. Either you get an official plugin by opening the `Remote Plugins` window which are hosted on [GitHub](https://github.com/lambda-plugins/). Or if you want to load a third party plugin click the `Import` button and put the jar into the folder.
+
+> CAUTION: Third party plugins can contain dangerous code! Only use plugins from trusted sources!
 
 </details>
 
