@@ -200,7 +200,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         }
 
         LambdaMod.LOG.info("Loaded plugin ${plugin.name} v${plugin.version}")
-        MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${plugin.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${plugin.version}${TextFormatting.RESET} loaded.")
+        MessageSendHelper.sendChatMessage("[Plugin Manager] ${LambdaClickGui.printInfo(plugin.name, plugin.version)} loaded.")
     }
 
     fun unloadAll() {
@@ -234,6 +234,6 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         }
 
         LambdaMod.LOG.info("Unloaded plugin ${plugin.name} v${plugin.version}")
-        MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${plugin.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${plugin.version}${TextFormatting.RESET} unloaded.")
+        MessageSendHelper.sendChatMessage("[Plugin Manager] ${LambdaClickGui.printInfo(plugin.name, plugin.version)} unloaded.")
     }
 }

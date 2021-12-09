@@ -206,7 +206,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 pluginWindow.remove(button)
                 ConfigManager.save(button.plugin.config)
                 PluginManager.unload(button.plugin)
-                MessageSendHelper.sendChatMessage("[Plugin Manager] ${TextFormatting.GREEN}${button.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${button.plugin.version}${TextFormatting.RESET} removed.")
+                MessageSendHelper.sendChatMessage("[Plugin Manager] ${printInfo(button.name, button.plugin.version)} removed.")
 
                 remotePluginWindow.children
                     .filterIsInstance<RemotePluginButton>()
@@ -228,7 +228,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     fun downloadPlugin(remotePluginButton: RemotePluginButton) {
         defaultScope.launch(Dispatchers.IO) {
             val version = remotePluginButton.version.replace("v", "")
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${TextFormatting.GREEN}${remotePluginButton.name}${TextFormatting.RESET} ${TextFormatting.GRAY}v${version}${TextFormatting.RESET} has started...")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${printInfo(remotePluginButton.name, version)} started...")
             try {
                 URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->
                     Files.copy(
@@ -241,7 +241,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 e.printStackTrace()
             }
 
-            MessageSendHelper.sendChatMessage("[Plugin Manager] Download completed.")
+            MessageSendHelper.sendChatMessage("[Plugin Manager] Download of ${printInfo(remotePluginButton.name, version)} finished.")
             updatePlugins()
         }
     }
@@ -300,6 +300,9 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 || moduleButton.module.alias.any { it.contains(typedString, true) }
         }
     }
+
+    fun printInfo(name: String, version: String) =
+        "${TextFormatting.GREEN}$name${TextFormatting.RESET} ${TextFormatting.GRAY}v$version${TextFormatting.RESET}"
 
     private fun List<ModuleButton>.customSort(): List<ModuleButton> {
         return when (ClickGUI.sortBy.value) {

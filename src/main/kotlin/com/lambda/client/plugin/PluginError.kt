@@ -45,13 +45,14 @@ internal enum class PluginError {
         }
 
         fun log(message: String?, throwable: Throwable? = null) {
-            if (throwable != null) {
-                LambdaMod.LOG.error(message, throwable)
-            } else {
-                LambdaMod.LOG.error(message)
-            }
-            if (message != null) {
-                MessageSendHelper.sendChatMessage(message)
+            message?.let {
+                MessageSendHelper.sendChatMessage(it)
+
+                if (throwable != null) {
+                    LambdaMod.LOG.error(message, throwable)
+                } else {
+                    LambdaMod.LOG.error(message)
+                }
             }
         }
     }
