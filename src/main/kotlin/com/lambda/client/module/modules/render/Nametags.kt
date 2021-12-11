@@ -77,6 +77,7 @@ object Nametags : Module(
     private val durability by setting("Durability", true, { page == Page.ITEM && (mainHand || offhand || armor) })
     private val enchantment by setting("Enchantment", true, { page == Page.ITEM && (mainHand || offhand || armor) })
     private val itemScale by setting("Item Scale", 1f, 0.25f..2f, 0.25f, { page == Page.ITEM })
+    private val mainHandBeforeArmor by setting("Main Hand Before Armor", false, { page == Page.ITEM && mainHand && armor })
 
     /* Rendering */
     private val background by setting("Background", true, { page == Page.RENDERING })
@@ -86,6 +87,7 @@ object Nametags : Module(
     private val scale by setting("Scale", 1f, 0.25f..5f, 0.25f, { page == Page.RENDERING })
     private val distScaleFactor by setting("Distance Scale Factor", 0.05f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
     private val minDistScale by setting("Min Distance Scale", 0.35f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
+    private val xDistScale by setting("X Distance Scale", 1f, 0f..5f, 0.01f, { page == Page.RENDERING })
 
     private enum class Page {
         ENTITY_TYPE, CONTENT, ITEM, RENDERING
@@ -180,14 +182,14 @@ object Nametags : Module(
             if (itemStack.item !is ItemAir) itemList.add(itemStack to getEnchantmentText(itemStack))
         }
 
-        if (armor) for (armor in entity.armorInventoryList.reversed()) { // Armor
-            if (armor.item !is ItemAir) itemList.add(armor to getEnchantmentText(armor))
-        }
+        if (armor && !mainHandBeforeArmor) addArmor(entity, itemList) // Armor
 
         getEnumHand(if (invertHand) EnumHandSide.LEFT else EnumHandSide.RIGHT)?.let { // Hand
             val itemStack = entity.getHeldItem(it)
             if (itemStack.item !is ItemAir) itemList.add(itemStack to getEnchantmentText(itemStack))
         }
+
+        if (armor && mainHandBeforeArmor) addArmor(entity, itemList)
 
         if (itemList.isEmpty()) return
         val halfHeight = textComponent.getHeight(2, true, CustomFont.isEnabled) / 2.0 + margins + 2.0
@@ -210,11 +212,11 @@ object Nametags : Module(
             0f
         }
         val height = 16 + durabilityHeight + enchantmentHeight * 0.6f
-        val posBegin = Vec2d(-halfWidth - margins.toDouble(), -height - margins.toDouble())
-        val posEnd = Vec2d(halfWidth + margins.toDouble(), margins.toDouble())
+        val posBegin = Vec2d(-halfWidth * xDistScale - margins.toDouble(), -height - margins.toDouble())
+        val posEnd = Vec2d(halfWidth * xDistScale + margins.toDouble(), margins.toDouble())
         drawFrame(vertexHelper, posBegin, posEnd)
 
-        glTranslatef(-halfWidth + 4f, -16f, 0f)
+        glTranslatef((-halfWidth + 4f) * xDistScale, -16f, 0f)
         if (drawDurability) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) - 2f, 0f)
 
         for ((itemStack, enchantmentText) in itemList) {
@@ -257,8 +259,7 @@ object Nametags : Module(
             val scale = if (CustomFont.isEnabled) 0.6f else 0.5f
             enchantmentText.draw(lineSpace = 2, scale = scale, verticalAlign = VAlign.BOTTOM, customFont = CustomFont.isEnabled)
         }
-
-        glTranslatef(28f, 2f, 0f)
+        glTranslatef(28 * xDistScale, 2f, 0f)
     }
 
     private fun getEnchantmentText(itemStack: ItemStack): TextComponent {
@@ -315,6 +316,10 @@ object Nametags : Module(
                     GuiColors.outline
                 )
         }
+    }
+
+    private fun addArmor(entity: Entity, itemList: ArrayList<Pair<ItemStack, TextComponent>>) {
+        for (armor in entity.armorInventoryList.reversed().filter { it !is ItemAir }) itemList.add(armor to getEnchantmentText(armor))
     }
 
     init {
