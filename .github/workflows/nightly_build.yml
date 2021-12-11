@@ -25,18 +25,18 @@ jobs:
         with:
           java-version: 1.8
 
-      - name : Gradle cache
-        uses : actions/cache@v2
-        with :
-          path : |
+      - name: Gradle cache
+        uses: actions/cache@v2
+        with:
+          path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key : ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/*.gradle*') }}
-          restore-keys : |
+          key: ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
             ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-
 
       - name: Prepare workspace
-        run: ./gradlew --build-cache --no-daemon classes
+        run: ./gradlew --no-daemon classes
 
       - name : Build forge mod
         run : ./gradlew --build-cache build
