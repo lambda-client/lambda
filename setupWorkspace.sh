@@ -6,15 +6,10 @@
 #
 # Usage: "./setupWorkspace.sh"
 
-__dir="$(cd "$(dirname "$0")" && pwd)"
-
 #
 
-echo "[$(date +"%H:%M:%S")] Found script in dir '$__dir', trying to cd into Lambda folder"
-cd "$__dir" || exit $?
-cd ../ || exit $?
-
-#
+# To allow use from outside the lambda directory
+cd "$(dirname "$0")"
 
 echo "[$(date +"%H:%M:%S")] Checking if git is installed..."
 if [ -z "$(which git)" ]; then
