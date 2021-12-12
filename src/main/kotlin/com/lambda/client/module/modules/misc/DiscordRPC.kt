@@ -1,9 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.jagrosh.discordipc.IPCClient
-import com.jagrosh.discordipc.IPCListener
 import com.jagrosh.discordipc.entities.RichPresence
-import com.jagrosh.discordipc.entities.User
 import com.jagrosh.discordipc.entities.pipe.PipeStatus
 import com.jagrosh.discordipc.exceptions.NoDiscordClientException
 import com.lambda.capeapi.CapeType
@@ -83,15 +81,11 @@ object DiscordRPC : Module(
         if (isConnected()) return
 
         LambdaMod.LOG.info("Starting Discord RPC")
-        ipc.setListener(object : IPCListener {
-            override fun onReady(client: IPCClient, user: User) {
-                rpcBuilder.setStartTimestamp(OffsetDateTime.now())
-                val richPresence = rpcBuilder.build()
-                ipc.sendRichPresence(richPresence)
-            }
-        })
         try {
             ipc.connect()
+            rpcBuilder.setStartTimestamp(OffsetDateTime.now())
+            val richPresence = rpcBuilder.build()
+            ipc.sendRichPresence(richPresence)
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
