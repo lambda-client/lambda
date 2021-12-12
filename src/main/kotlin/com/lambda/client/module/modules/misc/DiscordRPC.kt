@@ -76,9 +76,6 @@ object DiscordRPC : Module(
         if (connected) return
 
         BackgroundScope.launchLooping(job)
-        connected = true
-
-        if (isConnected()) return
 
         LambdaMod.LOG.info("Starting Discord RPC")
         try {
@@ -86,6 +83,7 @@ object DiscordRPC : Module(
             rpcBuilder.setStartTimestamp(OffsetDateTime.now())
             val richPresence = rpcBuilder.build()
             ipc.sendRichPresence(richPresence)
+            connected = true
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
@@ -101,10 +99,7 @@ object DiscordRPC : Module(
         BackgroundScope.cancel(job)
         connected = false
 
-        if (!isConnected()) return
-
         LambdaMod.LOG.info("Shutting down Discord RPC...")
-        ipc.close()
     }
 
     private fun showCoordsConfirm(): Boolean {
@@ -115,12 +110,13 @@ object DiscordRPC : Module(
     }
 
     private fun updateRPC() {
-        if (!isConnected(false)) return
-        val richPresence = rpcBuilder
-            .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
-            .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
-            .build()
-        ipc.sendRichPresence(richPresence)
+        if (ipc.status == PipeStatus.CONNECTED) {
+            val richPresence = rpcBuilder
+                .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
+                .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
+                .build()
+            ipc.sendRichPresence(richPresence)
+        }
     }
 
     private fun getLine(line: LineInfo): String {
@@ -183,11 +179,6 @@ object DiscordRPC : Module(
         } else {
             if (line2Left == LineInfo.NONE || line2Right == LineInfo.NONE) " " else " | "
         }
-    }
-
-    private fun isConnected(countConnecting: Boolean = true): Boolean {
-        val status = ipc.status
-        return status == PipeStatus.CONNECTED || (countConnecting && status == PipeStatus.CONNECTING)
     }
 
     fun setCustomIcons(capeType: CapeType?) {
