@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.misc
 
 import com.jagrosh.discordipc.IPCClient
 import com.jagrosh.discordipc.entities.RichPresence
+import com.jagrosh.discordipc.entities.pipe.PipeStatus
 import com.jagrosh.discordipc.exceptions.NoDiscordClientException
 import com.lambda.capeapi.CapeType
 import com.lambda.client.LambdaMod
@@ -44,6 +45,7 @@ object DiscordRPC : Module(
     private val ipc = IPCClient(LambdaMod.APP_ID)
     private val rpcBuilder = RichPresence.Builder()
         .setLargeImage("default", "lambda-client.com")
+    // To properly cancel/start the background job in the event of an external disconnect
     private var connected = false
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val job = BackgroundJob("Discord RPC", 5000L) { updateRPC() }
@@ -73,15 +75,17 @@ object DiscordRPC : Module(
     private fun start() {
         if (connected) return
 
+        BackgroundScope.launchLooping(job)
+        connected = true
+
+        if (isConnected()) return
+
         LambdaMod.LOG.info("Starting Discord RPC")
         try {
             ipc.connect()
-            connected = true
             rpcBuilder.setStartTimestamp(OffsetDateTime.now())
             val richPresence = rpcBuilder.build()
             ipc.sendRichPresence(richPresence)
-
-            BackgroundScope.launchLooping(job)
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
@@ -94,9 +98,12 @@ object DiscordRPC : Module(
     private fun end() {
         if (!connected) return
 
-        LambdaMod.LOG.info("Shutting down Discord RPC...")
         BackgroundScope.cancel(job)
         connected = false
+
+        if (!isConnected()) return
+
+        LambdaMod.LOG.info("Shutting down Discord RPC...")
         ipc.close()
     }
 
@@ -108,6 +115,7 @@ object DiscordRPC : Module(
     }
 
     private fun updateRPC() {
+        if (!isConnected(false)) return
         val richPresence = rpcBuilder
             .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
             .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
@@ -175,6 +183,11 @@ object DiscordRPC : Module(
         } else {
             if (line2Left == LineInfo.NONE || line2Right == LineInfo.NONE) " " else " | "
         }
+    }
+
+    private fun isConnected(countConnecting: Boolean = true): Boolean {
+        val status = ipc.status
+        return status == PipeStatus.CONNECTED || (countConnecting && status == PipeStatus.CONNECTING)
     }
 
     fun setCustomIcons(capeType: CapeType?) {
