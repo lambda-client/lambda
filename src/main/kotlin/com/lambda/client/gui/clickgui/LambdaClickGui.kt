@@ -193,7 +193,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     }
 
     fun updatePlugins() {
-        PluginManager.checkPluginLoaders(PluginManager.getLoaders(), true).forEach { loader ->
+        PluginManager.checkPluginLoaders(PluginManager.getLoaders()).forEach { loader ->
             if (pluginWindow.children.none { loader.name == it.name }) PluginManager.load(loader)
         }
 

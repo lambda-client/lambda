@@ -64,7 +64,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         LambdaMod.LOG.info("Loaded ${loadedPlugins.size} plugins!")
     }
 
-    fun checkPluginLoaders(loaders: List<PluginLoader>, silent: Boolean = false): List<PluginLoader> {
+    fun checkPluginLoaders(loaders: List<PluginLoader>): List<PluginLoader> {
         val loaderSet = NameableSet<PluginLoader>()
         val invalids = HashSet<PluginLoader>()
 
@@ -76,7 +76,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
             // Unsupported check
             if (DefaultArtifactVersion(loader.info.minApiVersion) > lambdaVersion) {
-                if (!silent) PluginError.UNSUPPORTED.handleError(loader)
+                PluginError.UNSUPPORTED.handleError(loader)
                 invalids.add(loader)
             }
 
@@ -92,7 +92,6 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
                             LambdaClickGui.pluginWindow.remove(it)
                         }
                     } else {
-                        if (!silent) PluginError.DUPLICATE.handleError(loader)
                         invalids.add(loader)
                     }
                 }
@@ -132,7 +131,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             !loadedPlugins.containsNames(it.info.requiredPlugins)
                 && !loaderSet.containsNames(it.info.requiredPlugins)
         }.forEach {
-            if (!silent) PluginError.REQUIRED_PLUGIN.handleError(it)
+            PluginError.REQUIRED_PLUGIN.handleError(it)
             invalids.add(it)
         }
 

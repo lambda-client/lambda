@@ -1,7 +1,6 @@
 package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
-import com.lambda.client.plugin.PluginError
 import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager
 import com.lambda.client.plugin.api.Plugin
@@ -41,8 +40,6 @@ object PluginCommand : ClientCommand(
 
                     val stopTime = System.currentTimeMillis() - time
                     MessageSendHelper.sendChatMessage("Loaded plugin ${formatValue(name)}, took $stopTime ms!")
-
-                    PluginError.displayErrors()
                 }
             }
         }
@@ -70,8 +67,6 @@ object PluginCommand : ClientCommand(
 
                     val stopTime = System.currentTimeMillis() - time
                     MessageSendHelper.sendChatMessage("Reloaded plugin ${formatValue(name)}, took $stopTime ms!")
-
-                    PluginError.displayErrors()
                 }
             }
 
@@ -86,8 +81,6 @@ object PluginCommand : ClientCommand(
 
                 val stopTime = System.currentTimeMillis() - time
                 MessageSendHelper.sendChatMessage("Reloaded all plugins, took $stopTime ms!")
-
-                PluginError.displayErrors()
             }
         }
 
