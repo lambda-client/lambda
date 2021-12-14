@@ -57,6 +57,8 @@ object PlayerInventoryManager : Manager {
             actionQueue.firstOrNull()
         }
 
+    fun isDone() = actionQueue.isEmpty()
+
     /**
      * Adds a new task to the inventory manager
      *
