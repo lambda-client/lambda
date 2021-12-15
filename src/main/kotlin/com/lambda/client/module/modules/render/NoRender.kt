@@ -14,6 +14,7 @@ import net.minecraft.client.particle.Particle
 import net.minecraft.client.particle.ParticleFirework
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
+import net.minecraft.client.tutorial.TutorialSteps
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.effect.EntityLightningBolt
 import net.minecraft.entity.item.*
@@ -21,19 +22,18 @@ import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.passive.IAnimals
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
+import net.minecraft.init.MobEffects
 import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.network.play.server.*
 import net.minecraft.tileentity.*
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.EnumSkyBlock
 import net.minecraftforge.client.event.RenderBlockOverlayEvent
+import net.minecraftforge.client.event.RenderBlockOverlayEvent.OverlayType
 import net.minecraftforge.client.event.RenderGameOverlayEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.registries.GameData
 import org.lwjgl.opengl.GL11.GL_QUADS
-import net.minecraft.client.tutorial.TutorialSteps
-import net.minecraft.init.MobEffects
-import net.minecraftforge.client.event.RenderBlockOverlayEvent.OverlayType
 
 object NoRender : Module(
     name = "NoRender",
@@ -60,48 +60,48 @@ object NoRender : Module(
     private val crystal = setting("Crystals", false, { page == Page.ENTITIES })
     private val firework = setting("Firework", false, { page == Page.ENTITIES })
 
-    // Others
-    val map by setting("Maps", false, { page == Page.OTHER })
-    private val explosion by setting("Explosions", true, { page == Page.OTHER })
-    val signText by setting("Sign Text", false, { page == Page.OTHER })
-    private val particles = setting("Particles", true, { page == Page.OTHER })
-    private val falling = setting("Falling Blocks", true, { page == Page.OTHER })
-    val beacon by setting("Beacon Beams", true, { page == Page.OTHER })
-    private val allLightingUpdates by setting("All Lighting Updates", true, { page == Page.OTHER })
-    private val skylight by setting("SkyLight Updates", true, { page == Page.OTHER && !allLightingUpdates })
-    private val enchantingTable = setting("Enchanting Books", true, { page == Page.OTHER })
-    private val enchantingTableSnow by setting("Enchanting Table Snow", false, { page == Page.OTHER }, description = "Replace enchanting table models with snow layers")
-    private val projectiles by setting("Projectiles", false, { page == Page.OTHER })
-    private val lightning = setting("Lightning", true, { page == Page.OTHER })
-    val fog by setting("Fog", true, { page == Page.OTHER})
-    val inventoryGlobal by setting("Inventory", true, { page == Page.OTHER})
-    val chatGlobal by setting("Chat", false, { page == Page.OTHER})
-
     //Armor
-    private val armorplayer by setting("Players", false, { page == Page.ARMOR})
-    private val armorStands by setting("Armour Stands", true, { page == Page.ARMOR})
-    private val armormobs by setting("Mobs", true, { page == Page.ARMOR})
-    private val helmet by setting("Helmet", false, { page == Page.ARMOR})
-    private val chestplate by setting("Chestplate", false, { page == Page.ARMOR})
-    private val leggings by setting("Leggings", false, { page == Page.ARMOR})
-    private val boots by setting("Boots", false, { page == Page.ARMOR})
+    private val armorPlayer by setting("Players", false, { page == Page.ARMOR })
+    private val armorStands by setting("Armour Stands", false, { page == Page.ARMOR })
+    private val armorMobs by setting("Mobs", false, { page == Page.ARMOR })
+    private val helmet by setting("Helmet", true, { page == Page.ARMOR })
+    private val chestplate by setting("Chestplate", true, { page == Page.ARMOR })
+    private val leggings by setting("Leggings", true, { page == Page.ARMOR })
+    private val boots by setting("Boots", true, { page == Page.ARMOR })
 
     //Overlay
-    val hurtCamera by setting("Hurt Camera", true, { page == Page.OVERLAY})
-    private val fire by setting("Fire", true, { page == Page.OVERLAY})
-    private val water by setting("Water", true, { page == Page.OVERLAY})
-    private val blocks by setting("Blocks", true, { page == Page.OVERLAY})
-    private val portals by setting("Portals", true, { page == Page.OVERLAY})
-    private val blindness by setting("Blindness", true, { page == Page.OVERLAY})
-    private val nausea by setting("Nausea", true, { page == Page.OVERLAY})
-    val totems by setting("Totems", true, { page == Page.OVERLAY})
-    private val vignette by setting("Vignette", false, { page == Page.OVERLAY})
-    private val overlayhelmet by setting("Helmet", true, { page == Page.OVERLAY})
-    private val tutorial by setting("Tutorial", true, { page == Page.OVERLAY})
-    private val potionIcons by setting("Potion Icons", false, { page == Page.OVERLAY})
+    val hurtCamera by setting("Hurt Camera", false, { page == Page.OVERLAY })
+    private val fire by setting("Fire", false, { page == Page.OVERLAY })
+    private val water by setting("Water", false, { page == Page.OVERLAY })
+    private val blocks by setting("Blocks", false, { page == Page.OVERLAY })
+    private val portals by setting("Portals", false, { page == Page.OVERLAY })
+    private val blindness by setting("Blindness", false, { page == Page.OVERLAY })
+    private val nausea by setting("Nausea", false, { page == Page.OVERLAY })
+    val totems by setting("Totems", false, { page == Page.OVERLAY })
+    private val vignette by setting("Vignette", false, { page == Page.OVERLAY })
+    private val pumpkin by setting("Pumpkin", false, { page == Page.OVERLAY })
+    private val tutorial by setting("Tutorial", false, { page == Page.OVERLAY })
+    private val potionIcons by setting("Potion Icons", false, { page == Page.OVERLAY })
+
+    // Others
+    val map by setting("Maps", false, { page == Page.OTHER })
+    private val explosion by setting("Explosions", false, { page == Page.OTHER })
+    val signText by setting("Sign Text", false, { page == Page.OTHER })
+    private val particles = setting("Particles", false, { page == Page.OTHER })
+    private val falling = setting("Falling Blocks", false, { page == Page.OTHER })
+    val beacon by setting("Beacon Beams", false, { page == Page.OTHER })
+    private val allLightingUpdates by setting("All Lighting Updates", false, { page == Page.OTHER })
+    private val skylight by setting("SkyLight Updates", false, { page == Page.OTHER && !allLightingUpdates })
+    private val enchantingTable = setting("Enchanting Books", false, { page == Page.OTHER })
+    private val enchantingTableSnow by setting("Enchanting Table Snow", false, { page == Page.OTHER }, description = "Replace enchanting table models with snow layers")
+    private val projectiles by setting("Projectiles", false, { page == Page.OTHER })
+    private val lightning = setting("Lightning", false, { page == Page.OTHER })
+    val fog by setting("Fog", false, { page == Page.OTHER })
+    val inventoryGlobal by setting("Inventory", false, { page == Page.OTHER })
+    val chatGlobal by setting("Chat", false, { page == Page.OTHER })
 
     private enum class Page {
-        ENTITIES, OTHER, ARMOR, OVERLAY
+        ENTITIES, ARMOR, OVERLAY, OTHER
     }
 
     private val lambdaMap = ResourceLocation("lambda/lambda_map.png")
@@ -237,9 +237,9 @@ object NoRender : Module(
     @JvmStatic
     fun shouldHide(slotIn: EntityEquipmentSlot, entity: EntityLivingBase): Boolean {
         return when (entity) {
-            is EntityPlayer -> armorplayer && shouldHidePiece(slotIn)
+            is EntityPlayer -> armorPlayer && shouldHidePiece(slotIn)
             is EntityArmorStand -> armorStands && shouldHidePiece(slotIn)
-            is EntityMob -> armormobs && shouldHidePiece(slotIn)
+            is EntityMob -> armorMobs && shouldHidePiece(slotIn)
             else -> false
         }
     }
@@ -265,7 +265,7 @@ object NoRender : Module(
             it.isCanceled = when (it.type) {
                 RenderGameOverlayEvent.ElementType.VIGNETTE -> vignette
                 RenderGameOverlayEvent.ElementType.PORTAL -> portals
-                RenderGameOverlayEvent.ElementType.HELMET -> overlayhelmet
+                RenderGameOverlayEvent.ElementType.HELMET -> pumpkin
                 RenderGameOverlayEvent.ElementType.POTION_ICONS -> potionIcons
                 else -> it.isCanceled
             }
