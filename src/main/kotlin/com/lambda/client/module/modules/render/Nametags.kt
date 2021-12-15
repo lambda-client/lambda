@@ -27,6 +27,7 @@ import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.item.ItemAir
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumHand
 import net.minecraft.util.EnumHandSide
@@ -176,14 +177,16 @@ object Nametags : Module(
 
         getEnumHand(if (invertHand) EnumHandSide.RIGHT else EnumHandSide.LEFT)?.let { // Hand
             val itemStack = entity.getHeldItem(it)
-            itemList.add(itemStack to getEnchantmentText(itemStack))
+            if (itemStack.item !is ItemAir) itemList.add(itemStack to getEnchantmentText(itemStack))
         }
 
-        if (armor) for (armor in entity.armorInventoryList.reversed()) itemList.add(armor to getEnchantmentText(armor)) // Armor
+        if (armor) for (armor in entity.armorInventoryList.reversed()) { // Armor
+            if (armor.item !is ItemAir) itemList.add(armor to getEnchantmentText(armor))
+        }
 
         getEnumHand(if (invertHand) EnumHandSide.LEFT else EnumHandSide.RIGHT)?.let { // Hand
             val itemStack = entity.getHeldItem(it)
-            itemList.add(itemStack to getEnchantmentText(itemStack))
+            if (itemStack.item !is ItemAir) itemList.add(itemStack to getEnchantmentText(itemStack))
         }
 
         if (itemList.isEmpty()) return
@@ -202,7 +205,7 @@ object Nametags : Module(
         glTranslatef(0f, -margins, 0f)
         val durabilityHeight = if (drawDurability) FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) + 2f else 0f
         val enchantmentHeight = if (enchantment) {
-            (itemList.map { it.second.getHeight(2, customFont = CustomFont.isEnabled) }.maxOrNull() ?: 0f) + 4f
+            (itemList.maxOfOrNull { it.second.getHeight(2, customFont = isEnabled) } ?: 0f) + 4f
         } else {
             0f
         }
