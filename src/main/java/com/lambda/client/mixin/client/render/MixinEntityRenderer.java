@@ -4,9 +4,8 @@ import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.RenderOverlayEvent;
 import com.lambda.client.module.modules.movement.ElytraFlight;
 import com.lambda.client.module.modules.player.BlockInteraction;
-import com.lambda.client.module.modules.render.AntiFog;
-import com.lambda.client.module.modules.render.AntiOverlay;
 import com.lambda.client.module.modules.render.CameraClip;
+import com.lambda.client.module.modules.render.NoRender;
 import com.lambda.client.util.Wrapper;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -47,21 +46,21 @@ public class MixinEntityRenderer {
 
     @Inject(method = "displayItemActivation", at = @At(value = "HEAD"), cancellable = true)
     public void displayItemActivation(ItemStack stack, CallbackInfo ci) {
-        if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getTotems()) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getTotems()) {
             ci.cancel();
         }
     }
 
     @Inject(method = "setupFog", at = @At(value = "RETURN"), cancellable = true)
     public void setupFog(int startCoords, float partialTicks, CallbackInfo callbackInfo) {
-        if (AntiFog.INSTANCE.isEnabled()) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getFog()) {
             GlStateManager.disableFog();
         }
     }
 
     @Inject(method = "hurtCameraEffect", at = @At("HEAD"), cancellable = true)
     public void hurtCameraEffect(float ticks, CallbackInfo ci) {
-        if (AntiOverlay.INSTANCE.isEnabled() && AntiOverlay.INSTANCE.getHurtCamera()) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getHurtCamera()) {
             ci.cancel();
         }
     }
