@@ -1,7 +1,7 @@
 package com.lambda.client.mixin.client.gui;
 
 import com.lambda.client.module.modules.chat.ExtraChatHistory;
-import com.lambda.client.module.modules.render.CleanGUI;
+import com.lambda.client.module.modules.render.NoRender;
 import net.minecraft.client.gui.ChatLine;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiNewChat;
@@ -23,7 +23,7 @@ public abstract class MixinGuiNewChat {
 
     @Redirect(method = "drawChat", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiNewChat;drawRect(IIIII)V"))
     private void drawRectBackgroundClean(int left, int top, int right, int bottom, int color) {
-        if (!CleanGUI.INSTANCE.isEnabled() || !CleanGUI.INSTANCE.getChatGlobal()) {
+        if (!NoRender.INSTANCE.isEnabled() || !NoRender.INSTANCE.getChatGlobal()) {
             Gui.drawRect(left, top, right, bottom, color);
         }
     }
