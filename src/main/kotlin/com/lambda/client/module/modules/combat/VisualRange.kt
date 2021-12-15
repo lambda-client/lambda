@@ -33,6 +33,8 @@ object VisualRange : Module(
     private val logToFile by setting("Log To File", false)
     private val enterMessage by setting("Enter Message", "$NAME_FORMAT spotted!")
     private val leaveMessage by setting("Leave Message", "$NAME_FORMAT left!", { leaving })
+    private val publicEnter by setting("Public Message On Enter", false)
+    private val publicEnterMessage by setting("Public Enter Message", "Hello $NAME_FORMAT", { publicEnter })
 
     private val playerSet = LinkedHashSet<EntityPlayer>()
     private val timer = TickTimer(TimeUnit.SECONDS)
@@ -67,7 +69,9 @@ object VisualRange : Module(
 
         sendNotification(message)
         if (logToFile) WaypointManager.add(player.flooredPosition, message)
-        if (uwuAura) sendServerMessage("/w ${player.name} hi uwu")
+        val name = player.name
+        if (uwuAura) sendServerMessage("/w $name hi uwu")
+        if (publicEnter) sendServerMessage(publicEnterMessage.replace(NAME_FORMAT, name))
     }
 
     private fun onLeave(player: EntityPlayer) {
