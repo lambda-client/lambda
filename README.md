@@ -14,13 +14,13 @@
 Lambda is a free, open-source, Minecraft 1.12.2 utility mod providing a visionary system for plugins that allow customizing the clients features thanks to an ingame plugin store.
 
 <p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/2.12/lambda-2.12.jar"><img alt="lambda-2.12.jar - December 11, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
+    <a href="https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar"><img alt="lambda-2.07.01.jar - July 1, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
 </p>
 
 ## Installation
 1. Install Minecraft 1.12.2
 2. Install Forge
-3. Download the mod file [here](https://github.com/lambda-client/lambda/releases/download/2.12/lambda-2.12.jar)
+3. Download the mod file [here](https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar)
 4. Put the file in your `.minecraft/mods` folder
 
 ## FAQ
