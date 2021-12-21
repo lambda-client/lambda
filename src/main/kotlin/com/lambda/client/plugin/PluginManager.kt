@@ -223,6 +223,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         synchronized(this) {
             if (loadedPlugins.remove(plugin)) {
+                plugin.modules.forEach { it.disable() }
                 plugin.unregister()
                 plugin.onUnload()
                 loadedPluginLoader[plugin.name]?.let {

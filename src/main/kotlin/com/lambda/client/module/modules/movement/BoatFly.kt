@@ -36,14 +36,17 @@ object BoatFly : Module(
     private val forceInteract by setting("Force Interact", true)
     private val teleportSpoof by setting("Teleport Spoof", false)
     private val cancelPlayer by setting("Cancel Player Packets", false)
+    private val antiDesync by setting("Anti Desync", false)
     val opacity by setting("Boat Opacity", 1.0f, 0.0f..1.0f, 0.01f)
     val size by setting("Boat Scale", 1.0, 0.05..1.5, 0.01)
 
     init {
         onDisable {
-            runSafe {
-                connection.sendPacket(CPacketInput(0.0f, 0.0f, false, true))
-                player.dismountRidingEntity()
+            if (antiDesync) {
+                runSafe {
+                    connection.sendPacket(CPacketInput(0.0f, 0.0f, false, true))
+                    player.dismountRidingEntity()
+                }
             }
         }
 
