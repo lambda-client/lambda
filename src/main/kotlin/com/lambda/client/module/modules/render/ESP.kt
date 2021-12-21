@@ -10,7 +10,6 @@ import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.EntityUtils.getTargetList
-import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.LambdaTessellator

@@ -45,8 +45,6 @@ object DiscordRPC : Module(
     private val ipc = IPCClient(LambdaMod.APP_ID)
     private val rpcBuilder = RichPresence.Builder()
         .setLargeImage("default", "lambda-client.com")
-    // To properly cancel/start the background job in the event of an external disconnect
-    private var connected = false
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val job = BackgroundJob("Discord RPC", 5000L) { updateRPC() }
 
@@ -73,8 +71,6 @@ object DiscordRPC : Module(
     }
 
     private fun start() {
-        if (connected) return
-
         BackgroundScope.launchLooping(job)
 
         LambdaMod.LOG.info("Starting Discord RPC")
@@ -83,7 +79,6 @@ object DiscordRPC : Module(
             rpcBuilder.setStartTimestamp(OffsetDateTime.now())
             val richPresence = rpcBuilder.build()
             ipc.sendRichPresence(richPresence)
-            connected = true
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
@@ -94,10 +89,7 @@ object DiscordRPC : Module(
     }
 
     private fun end() {
-        if (!connected) return
-
         BackgroundScope.cancel(job)
-        connected = false
 
         LambdaMod.LOG.info("Shutting down Discord RPC...")
     }

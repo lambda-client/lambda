@@ -2,9 +2,13 @@ package com.lambda.client.plugin
 
 import com.lambda.client.AsyncLoader
 import com.lambda.client.LambdaMod
+import com.lambda.client.gui.clickgui.LambdaClickGui
+import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.plugin.api.Plugin
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
+import net.minecraft.util.text.TextFormatting
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
@@ -19,7 +23,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     private val lambdaVersion = DefaultArtifactVersion(LambdaMod.VERSION_MAJOR)
 
-    override fun preLoad0() = getLoaders()
+    override fun preLoad0() = checkPluginLoaders(getLoaders())
 
     override fun load0(input: List<PluginLoader>) {
         loadAll(input)
@@ -60,7 +64,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         LambdaMod.LOG.info("Loaded ${loadedPlugins.size} plugins!")
     }
 
-    private fun checkPluginLoaders(loaders: List<PluginLoader>): List<PluginLoader> {
+    fun checkPluginLoaders(loaders: List<PluginLoader>): List<PluginLoader> {
         val loaderSet = NameableSet<PluginLoader>()
         val invalids = HashSet<PluginLoader>()
 
@@ -78,27 +82,57 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
             // Duplicate check
             if (loadedPluginLoader.contains(loader)) {
-                PluginError.DUPLICATE.handleError(loader)
-                invalids.add(loader)
+                loadedPlugins.firstOrNull { loader.name == it.name }?.let { plugin ->
+                    val loadingVersion = DefaultArtifactVersion(loader.info.version)
+                    val loadedVersion = DefaultArtifactVersion(plugin.version)
+                    if (loadingVersion > loadedVersion) {
+                        MessageSendHelper.sendChatMessage("[Plugin Manager] Updating ${TextFormatting.GREEN}${loader.name}${TextFormatting.RESET} from ${TextFormatting.GRAY}$loadedVersion${TextFormatting.RESET} to ${TextFormatting.GRAY}$loadingVersion")
+                        unload(plugin)
+                        LambdaClickGui.pluginWindow.children.firstOrNull { plugin.name == it.name }?.let {
+                            LambdaClickGui.pluginWindow.remove(it)
+                        }
+                    } else {
+                        invalids.add(loader)
+                    }
+                }
             } else {
+                var upgradeLoader = false
                 loaderSet[loader.name]?.let {
-                    PluginError.DUPLICATE.handleError(loader)
-                    invalids.add(loader)
-                    PluginError.DUPLICATE.handleError(it)
-                    invalids.add(it)
+                    // Choose latest plugin
+                    val nowVersion = DefaultArtifactVersion(loader.info.version)
+                    val thenVersion = DefaultArtifactVersion(it.info.version)
+                    when {
+                        nowVersion == thenVersion -> {
+                            PluginError.DUPLICATE.handleError(loader)
+                            invalids.add(loader)
+                            PluginError.DUPLICATE.handleError(it)
+                            invalids.add(it)
+                        }
+                        nowVersion > thenVersion -> {
+                            upgradeLoader = true
+                            invalids.add(it)
+                        }
+                        else -> {
+                            invalids.add(loader)
+                        }
+                    }
                 } ?: run {
+                    loaderSet.add(loader)
+                }
+                if (upgradeLoader) {
+                    loaderSet.remove(loader)
                     loaderSet.add(loader)
                 }
             }
         }
 
-        for (loader in loaders) {
-            // Required plugin check
-            if (!loadedPlugins.containsNames(loader.info.requiredPlugins)
-                && !loaderSet.containsNames(loader.info.requiredPlugins)) {
-                PluginError.REQUIRED_PLUGIN.handleError(loader)
-                invalids.add(loader)
-            }
+        // Required plugin check
+        loaders.filter {
+            !loadedPlugins.containsNames(it.info.requiredPlugins)
+                && !loaderSet.containsNames(it.info.requiredPlugins)
+        }.forEach {
+            PluginError.REQUIRED_PLUGIN.handleError(it)
+            invalids.add(it)
         }
 
         return loaders.filter { !invalids.contains(it) }
@@ -127,13 +161,13 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        LambdaMod.LOG.warn("Main class not found in plugin $loader", it)
+                        PluginError.log("Main class not found in plugin $loader", it)
                     }
                     is IllegalAccessException -> {
-                        LambdaMod.LOG.warn(it.message, it)
+                        PluginError.log(it.message, it)
                     }
                     else -> {
-                        LambdaMod.LOG.error("Failed to load plugin $loader", it)
+                        PluginError.log("Failed to load plugin $loader", it)
                     }
                 }
                 return
@@ -142,23 +176,30 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
-                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", e)
                 return
             } catch (e: NoSuchMethodError) {
-                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", e)
                 return
             } catch (e: NoClassDefFoundError) {
-                LambdaMod.LOG.error("Please do not load plugin in unobfuscated environment")
+                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", e)
                 return
             }
 
             plugin.register()
             loadedPlugins.add(plugin)
+
+            if (!LambdaClickGui.pluginWindow.containsName(loader.name)) {
+                LambdaClickGui.pluginWindow.children.add(PluginButton(plugin, loader.file))
+            }
+
+            LambdaClickGui.updateRemoteStates()
             loadedPluginLoader.add(loader)
             plugin
         }
 
-        LambdaMod.LOG.info("Loaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Loaded plugin ${plugin.name} v${plugin.version}")
+        MessageSendHelper.sendChatMessage("[Plugin Manager] ${LambdaClickGui.printInfo(plugin.name, plugin.version)} loaded.")
     }
 
     fun unloadAll() {
@@ -182,6 +223,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         synchronized(this) {
             if (loadedPlugins.remove(plugin)) {
+                plugin.modules.forEach { it.disable() }
                 plugin.unregister()
                 plugin.onUnload()
                 loadedPluginLoader[plugin.name]?.let {
@@ -191,7 +233,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             }
         }
 
-        LambdaMod.LOG.info("Unloaded plugin ${plugin.name}")
+        LambdaMod.LOG.info("Unloaded plugin ${plugin.name} v${plugin.version}")
+        MessageSendHelper.sendChatMessage("[Plugin Manager] ${LambdaClickGui.printInfo(plugin.name, plugin.version)} unloaded.")
     }
-
 }

@@ -14,7 +14,7 @@ import kotlin.math.floor
 
 fun World.isLiquidBelow(entity: Entity): Boolean {
     val results = rayTraceBoundingBoxToGround(entity, true)
-    if (results.all { it.typeOfHit == RayTraceResult.Type.MISS || it.hitVec?.y ?: 911.0 < 0.0 }) {
+    if (results.all { it.typeOfHit == RayTraceResult.Type.MISS || (it.hitVec?.y ?: 911.0) < 0.0 }) {
         return true
     }
 
@@ -43,7 +43,7 @@ private fun World.rayTraceBoundingBoxToGround(entity: Entity, stopOnLiquid: Bool
 
 fun World.getGroundPos(entity: Entity): Vec3d {
     val results = rayTraceBoundingBoxToGround(entity, false)
-    if (results.all { it.typeOfHit == RayTraceResult.Type.MISS || it.hitVec?.y ?: 911.0 < 0.0 }) {
+    if (results.all { it.typeOfHit == RayTraceResult.Type.MISS || (it.hitVec?.y ?: 911.0) < 0.0 }) {
         return Vec3d(0.0, -999.0, 0.0)
     }
 

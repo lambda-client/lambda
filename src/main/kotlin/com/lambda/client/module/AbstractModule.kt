@@ -79,7 +79,7 @@ abstract class AbstractModule(
     protected fun onEnable(block: (Boolean) -> Unit) {
         enabled.valueListeners.add { _, input ->
             if (input) {
-                block(input)
+                block(true)
             }
         }
     }
@@ -87,7 +87,7 @@ abstract class AbstractModule(
     protected fun onDisable(block: (Boolean) -> Unit) {
         enabled.valueListeners.add { _, input ->
             if (!input) {
-                block(input)
+                block(false)
             }
         }
     }
