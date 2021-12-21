@@ -319,7 +319,7 @@ object Nametags : Module(
     }
 
     private fun addArmor(entity: Entity, itemList: ArrayList<Pair<ItemStack, TextComponent>>) {
-        for (armor in entity.armorInventoryList.reversed().filter { it !is ItemAir }) itemList.add(armor to getEnchantmentText(armor))
+        for (armor in entity.armorInventoryList.reversed().filter { it.item !is ItemAir }) itemList.add(armor to getEnchantmentText(armor))
     }
 
     init {
