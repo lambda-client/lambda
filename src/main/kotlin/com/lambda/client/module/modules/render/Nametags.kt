@@ -87,7 +87,7 @@ object Nametags : Module(
     private val scale by setting("Scale", 1f, 0.25f..5f, 0.25f, { page == Page.RENDERING })
     private val distScaleFactor by setting("Distance Scale Factor", 0.05f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
     private val minDistScale by setting("Min Distance Scale", 0.35f, 0.0f..1.0f, 0.05f, { page == Page.RENDERING })
-    private val xDistScale by setting("X Distance Scale", 1f, 0f..5f, 0.01f, { page == Page.RENDERING })
+    private val xScale by setting("X Scale", 1f, 0.35f..3f, 0.01f, { page == Page.RENDERING })
 
     private enum class Page {
         ENTITY_TYPE, CONTENT, ITEM, RENDERING
@@ -212,11 +212,11 @@ object Nametags : Module(
             0f
         }
         val height = 16 + durabilityHeight + enchantmentHeight * 0.6f
-        val posBegin = Vec2d(-halfWidth * xDistScale - margins.toDouble(), -height - margins.toDouble())
-        val posEnd = Vec2d(halfWidth * xDistScale + margins.toDouble(), margins.toDouble())
+        val posBegin = Vec2d(-halfWidth * xScale - margins.toDouble(), -height - margins.toDouble())
+        val posEnd = Vec2d(halfWidth * xScale + margins.toDouble(), margins.toDouble())
         drawFrame(vertexHelper, posBegin, posEnd)
 
-        glTranslatef((-halfWidth + 4f) * xDistScale, -16f, 0f)
+        glTranslatef((-halfWidth + 4f) * xScale, -16f, 0f)
         if (drawDurability) glTranslatef(0f, -FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) - 2f, 0f)
 
         for ((itemStack, enchantmentText) in itemList) {
@@ -259,7 +259,7 @@ object Nametags : Module(
             val scale = if (CustomFont.isEnabled) 0.6f else 0.5f
             enchantmentText.draw(lineSpace = 2, scale = scale, verticalAlign = VAlign.BOTTOM, customFont = CustomFont.isEnabled)
         }
-        glTranslatef(28 * xDistScale, 2f, 0f)
+        glTranslatef(28 * xScale, 2f, 0f)
     }
 
     private fun getEnchantmentText(itemStack: ItemStack): TextComponent {
