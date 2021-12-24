@@ -9,7 +9,7 @@
 #
 
 # To allow use from outside the lambda directory
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit
 
 echo "[$(date +"%H:%M:%S")] Checking if git is installed..."
 if [ -z "$(which git)" ]; then
