@@ -15,6 +15,7 @@ object GuiColors : Module(
     private val outlineSetting by setting("Outline Color", ColorHolder(78, 0, 31, 200))
     private val backgroundSetting by setting("Background Color", ColorHolder(31, 10, 18, 235))
     private val textSetting by setting("Text Color", ColorHolder(255, 205, 225, 255))
+    private val espSetting by setting("ESP Color", ColorHolder(255, 0, 0, 255))
     private val aHover by setting("Hover Alpha", 32, 0..255, 1)
 
     val primary get() = primarySetting.clone()
@@ -24,4 +25,5 @@ object GuiColors : Module(
     val backGround get() = backgroundSetting.clone()
     val outline get() = outlineSetting.clone()
     val text get() = textSetting.clone()
+    val esp get() = espSetting.clone()
 }
