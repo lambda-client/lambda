@@ -24,7 +24,7 @@ object EntitySpeed : Module(
     init {
         safeListener<PlayerTravelEvent> {
             player.ridingEntity?.let { entity ->
-                if (entity is EntityPig || entity is AbstractHorse && entity.controllingPassenger == player) {
+                if (entity is EntityPig || entity is AbstractHorse && entity.controllingPassenger == player || entity is EntityBoat && entity.controllingPassenger == player) {
                     steerEntity(entity, speed, antiStuck)
 
                     if (entity is EntityHorse) {
