@@ -8,6 +8,7 @@ import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.Quad
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.combat.CrystalUtils.canPlaceCollide
@@ -55,7 +56,7 @@ object CrystalESP : Module(
     private val animationScale by setting("Animation Scale", 1.0f, 0.0f..2.0f, 0.1f, { page.value == Page.CRYSTAL_ESP && crystalESP })
     private val crystalRange by setting("Crystal ESP Range", 16.0f, 0.0f..16.0f, 0.5f, { page.value == Page.CRYSTAL_ESP })
 
-    private val color by setting("Color", ColorHolder(155, 144, 255), false, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP })
+    private val color by setting("Color", GuiColors.primary, false, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP })
     private val aFilled by setting("Filled Alpha", 47, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP && filled })
     private val aOutline by setting("Outline Alpha", 127, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP && outline })
     private val aTracer by setting("Tracer Alpha", 200, 0..255, 1, { page.value == Page.CRYSTAL_ESP_COLOR && crystalESP && tracer })
