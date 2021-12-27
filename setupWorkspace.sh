@@ -1,15 +1,13 @@
 #!/bin/sh
 
-# Created by l1ving on 17/02/20
-#
-# Used to setup workspace on unix and fix building
+# Used to setup workspace and fix building on unix / Git BASH
 #
 # Usage: "./setupWorkspace.sh"
 
 #
 
 # To allow use from outside the lambda directory
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit
 
 echo "[$(date +"%H:%M:%S")] Checking if git is installed..."
 if [ -z "$(which git)" ]; then

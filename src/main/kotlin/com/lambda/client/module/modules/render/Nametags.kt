@@ -80,6 +80,7 @@ object Nametags : Module(
 
     /* Rendering */
     private val background by setting("Background", true, { page == Page.RENDERING })
+    private val outline by setting("Outline", ClickGUI.windowOutline, { page == Page.RENDERING })
     private val alpha by setting("Background Alpha", 150, 0..255, 1, { page == Page.RENDERING })
     private val margins by setting("Margins", 2.0f, 0.0f..10.0f, 0.1f, { page == Page.RENDERING })
     private val yOffset by setting("Y Offset", 0.5f, -2.5f..2.5f, 0.05f, { page == Page.RENDERING })
@@ -286,7 +287,7 @@ object Nametags : Module(
                     posEnd,
                     GuiColors.backGround.apply { a = alpha }
                 )
-            if (ClickGUI.windowOutline && ClickGUI.outlineWidth != 0f)
+            if (outline && ClickGUI.outlineWidth != 0f)
                 RenderUtils2D.drawRectOutline(
                     vertexHelper,
                     posBegin,
@@ -304,7 +305,7 @@ object Nametags : Module(
                     8,
                     GuiColors.backGround.apply { a = alpha }
                 )
-            if (ClickGUI.windowOutline && ClickGUI.outlineWidth != 0f)
+            if (outline && ClickGUI.outlineWidth != 0f)
                 RenderUtils2D.drawRoundedRectOutline(
                     vertexHelper,
                     posBegin,
