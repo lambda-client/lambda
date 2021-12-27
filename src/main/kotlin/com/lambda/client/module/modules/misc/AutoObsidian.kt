@@ -120,7 +120,6 @@ object AutoObsidian : Module(
     private val rotateTimer = TickTimer(TimeUnit.TICKS)
     private val shulkerOpenTimer = TickTimer(TimeUnit.TICKS)
     private val miningTimer = TickTimer(TimeUnit.TICKS)
-    private val miningTimeoutTimer = TickTimer(TimeUnit.SECONDS)
 
     private val miningMap = HashMap<BlockPos, Pair<Int, Long>>() // <BlockPos, <Breaker ID, Last Update Time>>
 
@@ -576,8 +575,9 @@ object AutoObsidian : Module(
 
         if (miningTimer.tick(ticksNeeded, true)) {
             connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
-        } else connection.sendPacket(CPacketAnimation(EnumHand.MAIN_HAND))
+        }
 
+        connection.sendPacket(CPacketAnimation(EnumHand.MAIN_HAND))
         player.swingArm(EnumHand.MAIN_HAND)
         lastMiningSide = side
     }
