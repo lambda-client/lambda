@@ -1,8 +1,6 @@
 #!/bin/sh
 
-# Created by l1ving on 17/02/20
-#
-# Used to setup workspace on unix and fix building
+# Used to setup workspace and fix building on unix / Git BASH
 #
 # Usage: "./setupWorkspace.sh"
 

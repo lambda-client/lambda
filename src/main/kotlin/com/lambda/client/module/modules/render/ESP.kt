@@ -55,6 +55,7 @@ object ESP : Module(
 
     /* Rendering settings */
     private val mode = setting("Mode", ESPMode.SHADER, { page == Page.RENDERING })
+    private val espColor by setting("Color", GuiColors.primary, false, { page == Page.RENDERING && mode.value == ESPMode.SHADER })
     private val hideOriginal by setting("Hide Original", false, { page == Page.RENDERING && mode.value == ESPMode.SHADER })
     private val filled by setting("Filled", false, { page == Page.RENDERING && (mode.value == ESPMode.BOX || mode.value == ESPMode.SHADER) })
     private val outline by setting("Outline", true, { page == Page.RENDERING && (mode.value == ESPMode.BOX || mode.value == ESPMode.SHADER) })
@@ -101,7 +102,7 @@ object ESP : Module(
                     renderer.aOutline = if (outline) aOutline else 0
                     renderer.thickness = width
                     for (entity in entityList) {
-                        renderer.add(entity, GuiColors.esp)
+                        renderer.add(entity, espColor)
                     }
                     renderer.render(true)
                 }
@@ -234,7 +235,7 @@ object ESP : Module(
     }
 
     private fun setShaderSettings(shader: Shader) {
-        shader.shaderManager.getShaderUniform("color")?.set(GuiColors.esp.r / 255f, GuiColors.esp.g / 255f, GuiColors.esp.b / 255f)
+        shader.shaderManager.getShaderUniform("color")?.set(espColor.r / 255f, espColor.g / 255f, espColor.b / 255f)
         shader.shaderManager.getShaderUniform("outlineAlpha")?.set(if (outline) aOutline / 255f else 0f)
         shader.shaderManager.getShaderUniform("filledAlpha")?.set(if (filled) aFilled / 255f else 0f)
         shader.shaderManager.getShaderUniform("width")?.set(width)
