@@ -9,7 +9,7 @@ object KamiCheck {
     fun runCheck() {
         val kamiCheckList: List<URL> = this.javaClass.classLoader.getResources("org/kamiblue/client/KamiMod.class").toList()
         if (kamiCheckList.isNotEmpty()) {
-            LambdaMod.LOG.error("KamiBlue detected! This mod is not compatible with KamiBlue!")
+            LambdaMod.LOG.error("KAMI Blue detected!")
             isKami = true
         }
     }
