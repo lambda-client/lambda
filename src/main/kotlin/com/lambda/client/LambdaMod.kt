@@ -3,6 +3,7 @@ package com.lambda.client
 import com.lambda.client.event.ForgeEventProcessor
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.KamiCheck
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.threads.BackgroundScope
 import net.minecraftforge.common.MinecraftForge
@@ -13,6 +14,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.io.File
+import java.net.URL
 
 @Suppress("UNUSED_PARAMETER")
 @Mod(
@@ -74,6 +76,8 @@ class LambdaMod {
 
         WebUtils.updateCheck()
         LambdaClickGui.populateRemotePlugins()
+
+        KamiCheck.runCheck()
 
         LOG.info("$NAME initialized!")
     }
