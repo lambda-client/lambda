@@ -22,7 +22,10 @@ import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.util.threads.*
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThread
+import com.lambda.client.util.threads.onMainThreadSafe
+import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.*
 import com.lambda.commons.interfaces.DisplayEnum
 import com.lambda.event.listener.listener
@@ -41,7 +44,6 @@ import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemShulkerBox
-import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -53,9 +55,7 @@ import net.minecraft.util.math.RayTraceResult
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.EnumDifficulty
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.lang.Math.pow
 import kotlin.math.ceil
-import kotlin.math.pow
 
 
 object AutoObsidian : Module(
@@ -569,12 +569,12 @@ object AutoObsidian : Module(
         lastHitVec = center
         rotateTimer.reset()
 
-        if(pre) {
+        if (pre) {
             connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
             if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
         }
 
-        if(miningTimer.tick(ticksNeeded, true)) {
+        if (miningTimer.tick(ticksNeeded, true)) {
             connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
         } else connection.sendPacket(CPacketAnimation(EnumHand.MAIN_HAND))
 
