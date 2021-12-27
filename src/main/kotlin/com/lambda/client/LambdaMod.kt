@@ -18,7 +18,8 @@ import java.io.File
 @Mod(
     modid = LambdaMod.ID,
     name = LambdaMod.NAME,
-    version = LambdaMod.VERSION
+    version = LambdaMod.VERSION,
+    dependencies = LambdaMod.DEPENDENCIES
 )
 class LambdaMod {
 
@@ -31,6 +32,7 @@ class LambdaMod {
         const val VERSION_MAJOR = "2.12"
 
         const val APP_ID = 835368493150502923 // DiscordIPC
+        const val DEPENDENCIES = "required-after:forge@[14.23.5.2860,);"
 
         const val GITHUB_API = "https://api.github.com/"
         private const val MAIN_ORG = "lambda-client"
