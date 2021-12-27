@@ -26,7 +26,8 @@ class PluginLoader(
     init {
         // This will trigger the null checks in PluginInfo
         // In order to make sure all required infos are present
-        LambdaMod.LOG.debug(info.toString())
+        var safetyCheck : String? = null
+        safetyCheck = info.toString()
     }
 
     fun verify(): Boolean {
