@@ -6,6 +6,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.steerEntity
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.Entity
+import net.minecraft.entity.item.EntityBoat
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraft.entity.passive.EntityHorse
 import net.minecraft.entity.passive.EntityPig
@@ -24,7 +25,9 @@ object EntitySpeed : Module(
     init {
         safeListener<PlayerTravelEvent> {
             player.ridingEntity?.let { entity ->
-                if (entity is EntityPig || entity is AbstractHorse && entity.controllingPassenger == player) {
+                if (entity is EntityPig
+                    || entity is AbstractHorse && entity.controllingPassenger == player
+                    || entity is EntityBoat && entity.controllingPassenger == player) {
                     steerEntity(entity, speed, antiStuck)
 
                     if (entity is EntityHorse) {
