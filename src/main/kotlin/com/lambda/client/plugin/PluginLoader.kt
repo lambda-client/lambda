@@ -26,8 +26,7 @@ class PluginLoader(
     init {
         // This will trigger the null checks in PluginInfo
         // In order to make sure all required infos are present
-        var safetyCheck : String? = null
-        safetyCheck = info.toString()
+        info.toString()
     }
 
     fun verify(): Boolean {
