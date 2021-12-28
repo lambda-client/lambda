@@ -1,7 +1,9 @@
 package com.lambda.client.mixin.client.gui;
 
 import com.lambda.client.LambdaMod;
+import com.lambda.client.gui.mc.LambdaGuiIncompat;
 import com.lambda.client.module.modules.client.MenuShader;
+import com.lambda.client.util.KamiCheck;
 import com.lambda.client.util.WebUtils;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiMainMenu;
@@ -27,6 +29,10 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
 
     @Inject(method = "drawScreen", at = @At("RETURN"))
     public void drawScreen$Inject$RETURN(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+        if (KamiCheck.INSTANCE.isKami() && !KamiCheck.INSTANCE.getDidDisplayWarning()) {
+            KamiCheck.INSTANCE.setDidDisplayWarning(true);
+            mc.displayGuiScreen(new LambdaGuiIncompat());
+        }
         FontRenderer fr = fontRenderer;
         String slogan = TextFormatting.WHITE + LambdaMod.NAME + " " + TextFormatting.GRAY + LambdaMod.VERSION;
         String version;

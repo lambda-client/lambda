@@ -3,6 +3,7 @@ package com.lambda.client
 import com.lambda.client.event.ForgeEventProcessor
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.KamiCheck
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.threads.BackgroundScope
 import net.minecraftforge.common.MinecraftForge
@@ -74,6 +75,8 @@ class LambdaMod {
 
         WebUtils.updateCheck()
         LambdaClickGui.populateRemotePlugins()
+
+        KamiCheck.runCheck()
 
         LOG.info("$NAME initialized!")
     }
