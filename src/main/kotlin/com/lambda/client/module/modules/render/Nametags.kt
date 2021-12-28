@@ -27,6 +27,7 @@ import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.item.EntityXPOrb
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.item.ItemAir
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumHand
 import net.minecraft.util.EnumHandSide
@@ -79,6 +80,7 @@ object Nametags : Module(
 
     /* Rendering */
     private val background by setting("Background", true, { page == Page.RENDERING })
+    private val outline by setting("Outline", ClickGUI.windowOutline, { page == Page.RENDERING })
     private val alpha by setting("Background Alpha", 150, 0..255, 1, { page == Page.RENDERING })
     private val margins by setting("Margins", 2.0f, 0.0f..10.0f, 0.1f, { page == Page.RENDERING })
     private val yOffset by setting("Y Offset", 0.5f, -2.5f..2.5f, 0.05f, { page == Page.RENDERING })
@@ -176,14 +178,16 @@ object Nametags : Module(
 
         getEnumHand(if (invertHand) EnumHandSide.RIGHT else EnumHandSide.LEFT)?.let { // Hand
             val itemStack = entity.getHeldItem(it)
-            itemList.add(itemStack to getEnchantmentText(itemStack))
+            if (itemStack.item !is ItemAir) itemList.add(itemStack to getEnchantmentText(itemStack))
         }
 
-        if (armor) for (armor in entity.armorInventoryList.reversed()) itemList.add(armor to getEnchantmentText(armor)) // Armor
+        if (armor) for (armor in entity.armorInventoryList.reversed()) { // Armor
+            if (armor.item !is ItemAir) itemList.add(armor to getEnchantmentText(armor))
+        }
 
         getEnumHand(if (invertHand) EnumHandSide.LEFT else EnumHandSide.RIGHT)?.let { // Hand
             val itemStack = entity.getHeldItem(it)
-            itemList.add(itemStack to getEnchantmentText(itemStack))
+            if (itemStack.item !is ItemAir) itemList.add(itemStack to getEnchantmentText(itemStack))
         }
 
         if (itemList.isEmpty()) return
@@ -202,7 +206,7 @@ object Nametags : Module(
         glTranslatef(0f, -margins, 0f)
         val durabilityHeight = if (drawDurability) FontRenderAdapter.getFontHeight(customFont = CustomFont.isEnabled) + 2f else 0f
         val enchantmentHeight = if (enchantment) {
-            (itemList.map { it.second.getHeight(2, customFont = CustomFont.isEnabled) }.maxOrNull() ?: 0f) + 4f
+            (itemList.maxOfOrNull { it.second.getHeight(2, customFont = isEnabled) } ?: 0f) + 4f
         } else {
             0f
         }
@@ -283,7 +287,7 @@ object Nametags : Module(
                     posEnd,
                     GuiColors.backGround.apply { a = alpha }
                 )
-            if (ClickGUI.windowOutline && ClickGUI.outlineWidth != 0f)
+            if (outline && ClickGUI.outlineWidth != 0f)
                 RenderUtils2D.drawRectOutline(
                     vertexHelper,
                     posBegin,
@@ -301,7 +305,7 @@ object Nametags : Module(
                     8,
                     GuiColors.backGround.apply { a = alpha }
                 )
-            if (ClickGUI.windowOutline && ClickGUI.outlineWidth != 0f)
+            if (outline && ClickGUI.outlineWidth != 0f)
                 RenderUtils2D.drawRoundedRectOutline(
                     vertexHelper,
                     posBegin,

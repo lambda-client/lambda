@@ -17,6 +17,12 @@ Lambda is a free, open-source, Minecraft 1.12.2 utility mod providing a visionar
     <a href="https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar"><img alt="lambda-2.07.01.jar - July 1, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
 </p>
 
+## Installation
+1. Install Minecraft 1.12.2
+2. Install Forge
+3. Download the mod file [here](https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar)
+4. Put the file in your `.minecraft/mods` folder
+
 ## FAQ
 
 How do I...
@@ -38,7 +44,9 @@ How do I...
 <details>
   <summary>... install plugins?</summary>
 
-> Open the lambda menu either on main menu or escape menu. You can download official plugins there. They are hosted on [GitHub](https://github.com/lambda-plugins/). If you want to load a third party plugin click the `open plugins folder` button and put the jar into the folder. CAUTION: Third party plugins can contain dangerous code! Only use plugins from trusted sources!
+> Open the ClickGUI by pressing `y`. The window called `Plugins` contains all installed plugins. Either you get an official plugin by opening the `Remote Plugins` window which are hosted on [GitHub](https://github.com/lambda-plugins/). Or if you want to load a third party plugin click the `Import` button and put the jar into the folder.
+
+> CAUTION: Third party plugins can contain dangerous code! Only use plugins from trusted sources!
 
 </details>
 
@@ -74,7 +82,7 @@ Clone the repository to your local machine. Use the link of either your fork or 
 git clone https://github.com/lambda-client/lambda
 ```
 
-Run `scripts/setupWorkspace.sh` to initialize the environment. 
+Run `setupWorkspace.sh` to initialize the environment. 
 With terminal on Linux or [Git Bash](https://gitforwindows.org/) for Windows
 ```
 ./setupWorkspace.sh
@@ -108,3 +116,6 @@ Our [contributors](https://github.com/lambda-client/lambda/graphs/contributors)
 
 ### Stargazers
 [![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
+
+> ### Disclaimer
+> This software does not contain any copyrighted Minecraft code. This is a Forge utility mod. Only meant for use in anarchy environments. Do not use without permission of server administration.

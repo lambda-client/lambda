@@ -6,9 +6,6 @@ import com.lambda.client.util.color.ColorHolder
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.round
 
-/**
- * For the sake of dumb Minecraftia simps
- */
 object FontRenderAdapter {
     private val mcFontRenderer = Wrapper.minecraft.fontRenderer
     val useCustomFont get() = CustomFont.isEnabled

@@ -89,7 +89,7 @@ dependencies {
         exclude module: 'gson'
     }
 
-    jarLibs('org.reflections:reflections:0.9.12') {
+    jarLibs('org.reflections:reflections:0.10.2') {
         exclude module: 'gson'
         exclude module: 'guava'
     }
@@ -125,7 +125,7 @@ dependencies {
 
     // Add them back to compileOnly (provided)
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion"
-    compileOnly 'org.jetbrains:annotations:20.1.0'
+    compileOnly 'org.jetbrains:annotations:22.0.0'
 
     // This Baritone will NOT be included in the jar
     implementation 'com.github.cabaletta:baritone:1.2.14'
@@ -175,11 +175,9 @@ jar {
             'Manifest-Version': 1.0,
             'MixinConfigs': 'mixins.lambda.json',
             'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
-            'TweakOrder': 0,
             'FMLCorePluginContainsFMLMod': 'true',
-            'FMLCorePlugin': 'com.lambda.client.mixin.MixinLoaderForge',
-            'ForceLoadAsMod': 'true',
-            'Main-Class': 'com.lambda.client.installer.Installer'
+            'FMLCorePlugin': 'com.lambda.client.LambdaCoreMod',
+            'ForceLoadAsMod': 'true'
     )
 
     // Copy needed libs to jar

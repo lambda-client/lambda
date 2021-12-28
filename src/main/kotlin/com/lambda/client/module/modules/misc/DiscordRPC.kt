@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.misc
 
 import com.jagrosh.discordipc.IPCClient
 import com.jagrosh.discordipc.entities.RichPresence
+import com.jagrosh.discordipc.entities.pipe.PipeStatus
 import com.jagrosh.discordipc.exceptions.NoDiscordClientException
 import com.lambda.capeapi.CapeType
 import com.lambda.client.LambdaMod
@@ -46,7 +47,6 @@ object DiscordRPC : Module(
     private var initialised = false
     private val rpcBuilder = RichPresence.Builder()
         .setLargeImage("default", "lambda-client.com")
-    private var connected = false
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val job = BackgroundJob("Discord RPC", 5000L) { updateRPC() }
 
@@ -57,7 +57,7 @@ object DiscordRPC : Module(
                     ipc = IPCClient(LambdaMod.APP_ID)
                     initialised = true
                 } catch (e: UnsatisfiedLinkError) {
-                    error("Failed to initialize DiscordRPC due to missing native library", e)
+                    error("Failed to initialise DiscordRPC due to missing native library", e)
                     disable()
                     return@onEnable
                 }
@@ -83,17 +83,14 @@ object DiscordRPC : Module(
     }
 
     private fun start() {
-        if (connected) return
+        BackgroundScope.launchLooping(job)
 
         LambdaMod.LOG.info("Starting Discord RPC")
         try {
             ipc.connect()
-            connected = true
             rpcBuilder.setStartTimestamp(OffsetDateTime.now())
             val richPresence = rpcBuilder.build()
             ipc.sendRichPresence(richPresence)
-
-            BackgroundScope.launchLooping(job)
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
@@ -104,11 +101,9 @@ object DiscordRPC : Module(
 
     private fun end() {
         if (!connected || !initialised) return
+        BackgroundScope.cancel(job)
 
         LambdaMod.LOG.info("Shutting down Discord RPC...")
-        BackgroundScope.cancel(job)
-        connected = false
-        ipc.close()
     }
 
     private fun showCoordsConfirm(): Boolean {
@@ -119,11 +114,13 @@ object DiscordRPC : Module(
     }
 
     private fun updateRPC() {
-        val richPresence = rpcBuilder
-            .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
-            .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
-            .build()
-        ipc.sendRichPresence(richPresence)
+        if (ipc.status == PipeStatus.CONNECTED) {
+            val richPresence = rpcBuilder
+                .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
+                .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
+                .build()
+            ipc.sendRichPresence(richPresence)
+        }
     }
 
     private fun getLine(line: LineInfo): String {

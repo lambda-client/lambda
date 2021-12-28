@@ -1,20 +1,13 @@
 #!/bin/sh
 
-# Created by l1ving on 17/02/20
-#
-# Used to setup workspace on unix and fix building
+# Used to setup workspace and fix building on unix / Git BASH
 #
 # Usage: "./setupWorkspace.sh"
 
-__dir="$(cd "$(dirname "$0")" && pwd)"
-
 #
 
-echo "[$(date +"%H:%M:%S")] Found script in dir '$__dir', trying to cd into Lambda folder"
-cd "$__dir" || exit $?
-cd ../ || exit $?
-
-#
+# To allow use from outside the lambda directory
+cd "$(dirname "$0")" || exit
 
 echo "[$(date +"%H:%M:%S")] Checking if git is installed..."
 if [ -z "$(which git)" ]; then
@@ -51,7 +44,7 @@ echo "[$(date +"%H:%M:%S")] Running gradlew classes without daemon..."
 
 #
 
-cat scripts/ascii.txt 2>/dev/null
+cat logo_ascii.txt 2>/dev/null
 echo "=========================================================================="
 echo ""
 echo "[$(date +"%H:%M:%S")] Build succeeded! All checks passed, you can build normally now!"

@@ -1,7 +1,9 @@
 package com.lambda.client
 
 import com.lambda.client.event.ForgeEventProcessor
+import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.KamiCheck
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.threads.BackgroundScope
 import net.minecraftforge.common.MinecraftForge
@@ -17,7 +19,8 @@ import java.io.File
 @Mod(
     modid = LambdaMod.ID,
     name = LambdaMod.NAME,
-    version = LambdaMod.VERSION
+    version = LambdaMod.VERSION,
+    dependencies = LambdaMod.DEPENDENCIES
 )
 class LambdaMod {
 
@@ -26,10 +29,11 @@ class LambdaMod {
         const val ID = "lambda"
         const val DIRECTORY = "lambda/"
 
-        const val VERSION = "2.11-dev"
-        const val VERSION_MAJOR = "2.11"
+        const val VERSION = "2.12-dev"
+        const val VERSION_MAJOR = "2.12"
 
         const val APP_ID = 835368493150502923 // DiscordIPC
+        const val DEPENDENCIES = "required-after:forge@[14.23.5.2860,);"
 
         const val GITHUB_API = "https://api.github.com/"
         private const val MAIN_ORG = "lambda-client"
@@ -53,7 +57,6 @@ class LambdaMod {
         val directory = File(DIRECTORY)
         if (!directory.exists()) directory.mkdir()
 
-        WebUtils.updateCheck()
         LoaderWrapper.preLoadAll()
     }
 
@@ -69,6 +72,11 @@ class LambdaMod {
         ConfigUtils.loadAll()
 
         BackgroundScope.start()
+
+        WebUtils.updateCheck()
+        LambdaClickGui.populateRemotePlugins()
+
+        KamiCheck.runCheck()
 
         LOG.info("$NAME initialized!")
     }

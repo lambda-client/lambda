@@ -11,6 +11,9 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.commons.extension.ceilToInt
 import com.lambda.commons.extension.floorToInt
 import com.lambda.commons.extension.sumByFloat
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.max
@@ -26,6 +29,7 @@ open class ListWindow(
     vararg childrenIn: Component
 ) : TitledWindow(name, posX, posY, width, height, saveToConfig) {
     val children = ArrayList<Component>()
+    private val contentMutex = Mutex()
 
     override val minWidth = 80.0f
     override val minHeight = 200.0f
@@ -60,14 +64,50 @@ open class ListWindow(
         updateChild()
     }
 
+    fun addAll(all: Collection<Component>) {
+        runBlocking {
+            contentMutex.withLock {
+                children.addAll(all)
+            }
+        }
+    }
+
+    fun add(c: Component) {
+        runBlocking {
+            contentMutex.withLock {
+                children.add(c)
+            }
+        }
+    }
+
+    fun remove(c: Component) {
+        runBlocking {
+            contentMutex.withLock {
+                children.remove(c)
+            }
+        }
+    }
+
+    fun clear() {
+        runBlocking {
+            contentMutex.withLock {
+                children.clear()
+            }
+        }
+    }
+
     private fun updateChild() {
-        var y = (if (draggableHeight != height) draggableHeight else 0.0f) + ClickGUI.entryMargin
-        for (child in children) {
-            if (!child.visible) continue
-            child.posX = ClickGUI.entryMargin * 1.618f
-            child.posY = y
-            child.width = width - ClickGUI.entryMargin * 3.236f
-            y += child.height + ClickGUI.entryMargin
+        runBlocking {
+            contentMutex.withLock {
+                var y = (if (draggableHeight != height) draggableHeight else 0.0f) + ClickGUI.entryMargin
+                for (child in children) {
+                    if (!child.visible) continue
+                    child.posX = ClickGUI.entryMargin * 1.618f
+                    child.posY = y
+                    child.width = width - ClickGUI.entryMargin * 3.236f
+                    y += child.height + ClickGUI.entryMargin
+                }
+            }
         }
     }
 
@@ -116,18 +156,31 @@ open class ListWindow(
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
 
-        renderChildren {
-            it.onRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
+        runBlocking {
+            contentMutex.withLock {
+                renderChildren {
+                    it.onRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
+                }
+            }
         }
     }
 
     override fun onPostRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onPostRender(vertexHelper, absolutePos)
 
-        renderChildren {
-            it.onPostRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
+        runBlocking {
+            contentMutex.withLock {
+                renderChildren {
+                    it.onPostRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
+                }
+            }
         }
     }
+
+    fun containsName(name: String): Boolean =
+        children.any {
+            it.name == name
+        }
 
     private fun renderChildren(renderBlock: (Component) -> Unit) {
         GlStateUtils.scissor(

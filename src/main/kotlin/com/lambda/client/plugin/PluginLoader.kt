@@ -9,8 +9,8 @@ import com.lambda.commons.utils.ClassUtils.instance
 import java.io.File
 import java.io.FileNotFoundException
 import java.lang.reflect.Type
-import java.net.URLClassLoader
 import java.security.MessageDigest
+import java.util.jar.JarFile
 
 class PluginLoader(
     val file: File
@@ -18,8 +18,7 @@ class PluginLoader(
 
     override val name: String get() = info.name
 
-    private val url = file.toURI().toURL()
-    private val loader = URLClassLoader(arrayOf(url), this.javaClass.classLoader)
+    private val loader = PluginClassLoader(JarFile(file), this.javaClass.classLoader)
     val info: PluginInfo = loader.getResourceAsStream("plugin_info.json")?.let {
         PluginInfo.fromStream(it)
     } ?: throw FileNotFoundException("plugin_info.json not found in jar ${file.name}!")
@@ -27,7 +26,7 @@ class PluginLoader(
     init {
         // This will trigger the null checks in PluginInfo
         // In order to make sure all required infos are present
-        LambdaMod.LOG.debug(info.toString())
+        info.toString()
     }
 
     fun verify(): Boolean {

@@ -4,7 +4,6 @@ import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.BlockBreakEvent
-import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.module.Category
@@ -23,10 +22,12 @@ import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.util.threads.*
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThread
+import com.lambda.client.util.threads.onMainThreadSafe
+import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.*
 import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.listener.asyncListener
 import com.lambda.event.listener.listener
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -43,10 +44,10 @@ import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemShulkerBox
+import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
-import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
@@ -55,6 +56,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.world.EnumDifficulty
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.ceil
+
 
 object AutoObsidian : Module(
     name = "AutoObsidian",
@@ -66,8 +68,6 @@ object AutoObsidian : Module(
     private val searchShulker by setting("Search Shulker", false)
     private val leaveEmptyShulkers by setting("Leave Empty Shulkers", true, { searchShulker })
     private val autoRefill by setting("Auto Refill", false, { fillMode != FillMode.INFINITE })
-    private val instantMining by setting("Instant Mining", true)
-    private val instantMiningDelay by setting("Instant Mining Delay", 10, 1..20, 1, { instantMining })
     private val threshold by setting("Refill Threshold", 32, 1..64, 1, { autoRefill && fillMode != FillMode.INFINITE })
     private val targetStacks by setting("Target Stacks", 1, 1..20, 1, { fillMode == FillMode.TARGET_STACKS })
     private val delayTicks by setting("Delay Ticks", 4, 1..10, 1)
@@ -120,7 +120,6 @@ object AutoObsidian : Module(
     private val rotateTimer = TickTimer(TimeUnit.TICKS)
     private val shulkerOpenTimer = TickTimer(TimeUnit.TICKS)
     private val miningTimer = TickTimer(TimeUnit.TICKS)
-    private val miningTimeoutTimer = TickTimer(TimeUnit.SECONDS)
 
     private val miningMap = HashMap<BlockPos, Pair<Int, Long>>() // <BlockPos, <Breaker ID, Last Update Time>>
 
@@ -142,30 +141,6 @@ object AutoObsidian : Module(
         safeListener<BlockBreakEvent> {
             if (it.breakerID != player.entityId) {
                 miningMap[it.position] = it.breakerID to System.currentTimeMillis()
-            }
-        }
-
-        asyncListener<PacketEvent.PostSend> {
-            if (!instantMining || it.packet !is CPacketPlayerDigging) return@asyncListener
-
-            if (it.packet.position != placingPos || it.packet.facing != lastMiningSide) {
-                canInstantMine = false
-            }
-        }
-
-        safeAsyncListener<PacketEvent.Receive> {
-            if (!instantMining || it.packet !is SPacketBlockChange) return@safeAsyncListener
-            if (it.packet.blockPosition != placingPos) return@safeAsyncListener
-
-            val prevBlock = world.getBlockState(it.packet.blockPosition).block
-            val newBlock = it.packet.blockState.block
-
-            if (prevBlock != newBlock) {
-                if (prevBlock != Blocks.AIR && newBlock == Blocks.AIR) {
-                    canInstantMine = true
-                }
-                miningTimer.reset()
-                miningTimeoutTimer.reset()
             }
         }
 
@@ -585,34 +560,26 @@ object AutoObsidian : Module(
         val center = pos.toVec3dCenter()
         val diff = player.getPositionEyes(1.0f).subtract(center)
         val normalizedVec = diff.normalize()
-        var side = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
+        val blockState = world.getBlockState(pos)
+
+        val ticksNeeded = ceil((1 / (blockState.getPlayerRelativeBlockHardness(player, world, pos)))).toInt()
+        val side = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
 
         lastHitVec = center
         rotateTimer.reset()
 
-        if (instantMining && canInstantMine) {
-            if (!miningTimer.tick(instantMiningDelay.toLong(), false)) return
-
-            if (!miningTimeoutTimer.tick(2L, false)) {
-                side = side.opposite
-            } else {
-                canInstantMine = false
-            }
+        if (pre) {
+            connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
+            if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
         }
 
-        defaultScope.launch {
-            delay(20L)
-            onMainThreadSafe {
-                if (pre || miningTimeoutTimer.tick(8L)) {
-                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, pos, side))
-                    if (state != State.SEARCHING) state = State.MINING else searchingState = SearchingState.MINING
-                } else {
-                    connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
-                }
-                player.swingArm(EnumHand.MAIN_HAND)
-                lastMiningSide = side
-            }
+        if (miningTimer.tick(ticksNeeded, true)) {
+            connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, side))
         }
+
+        connection.sendPacket(CPacketAnimation(EnumHand.MAIN_HAND))
+        player.swingArm(EnumHand.MAIN_HAND)
+        lastMiningSide = side
     }
 
     /**
