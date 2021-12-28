@@ -100,7 +100,7 @@ object DiscordRPC : Module(
     }
 
     private fun end() {
-        if (!connected || !initialised) return
+        if (!initialised) return
         BackgroundScope.cancel(job)
 
         LambdaMod.LOG.info("Shutting down Discord RPC...")
