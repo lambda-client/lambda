@@ -104,6 +104,7 @@ object DiscordRPC : Module(
         BackgroundScope.cancel(job)
 
         LambdaMod.LOG.info("Shutting down Discord RPC...")
+        ipc.close()
     }
 
     private fun showCoordsConfirm(): Boolean {
