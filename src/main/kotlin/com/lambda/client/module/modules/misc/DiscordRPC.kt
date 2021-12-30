@@ -6,7 +6,6 @@ import com.jagrosh.discordipc.entities.pipe.PipeStatus
 import com.jagrosh.discordipc.exceptions.NoDiscordClientException
 import com.lambda.capeapi.CapeType
 import com.lambda.client.LambdaMod
-import com.lambda.client.event.events.ShutdownEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.InfoCalculator
@@ -22,7 +21,6 @@ import com.lambda.client.util.threads.BackgroundScope
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.utils.MathUtils
-import com.lambda.event.listener.listener
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.time.OffsetDateTime
@@ -42,7 +40,9 @@ object DiscordRPC : Module(
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
     }
 
-    private val ipc = IPCClient(LambdaMod.APP_ID)
+    // Not using "by lazy" to be able to catch failure in onEnable
+    private lateinit var ipc: IPCClient
+    private var initialised = false
     private val rpcBuilder = RichPresence.Builder()
         .setLargeImage("default", "lambda-client.com")
     private val timer = TickTimer(TimeUnit.SECONDS)
@@ -50,6 +50,16 @@ object DiscordRPC : Module(
 
     init {
         onEnable {
+            if (!initialised) {
+                try {
+                    ipc = IPCClient(LambdaMod.APP_ID)
+                    initialised = true
+                } catch (e: UnsatisfiedLinkError) {
+                    error("Failed to initialise DiscordRPC due to missing native library", e)
+                    disable()
+                    return@onEnable
+                }
+            }
             start()
         }
 
@@ -63,10 +73,6 @@ object DiscordRPC : Module(
                     "This will display your coords on the discord rpc. " +
                     "Do NOT use this if you do not want your coords displayed")
             }
-        }
-
-        listener<ShutdownEvent> {
-            end()
         }
     }
 
@@ -82,16 +88,17 @@ object DiscordRPC : Module(
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
-            LambdaMod.LOG.error("No discord client found for RPC, stopping")
-            MessageSendHelper.sendErrorMessage("No discord client found for RPC, stopping")
+            error("No discord client found for RPC, stopping")
             disable()
         }
     }
 
     private fun end() {
+        if (!initialised || ipc.status != PipeStatus.CONNECTED) return
         BackgroundScope.cancel(job)
 
         LambdaMod.LOG.info("Shutting down Discord RPC...")
+        ipc.close()
     }
 
     private fun showCoordsConfirm(): Boolean {
@@ -171,6 +178,12 @@ object DiscordRPC : Module(
         } else {
             if (line2Left == LineInfo.NONE || line2Right == LineInfo.NONE) " " else " | "
         }
+    }
+
+    // Change to Throwable? if more logging is ever needed
+    private fun error(message: String, error: UnsatisfiedLinkError? = null) {
+        MessageSendHelper.sendErrorMessage(message)
+        LambdaMod.LOG.error(message, error)
     }
 
     fun setCustomIcons(capeType: CapeType?) {
