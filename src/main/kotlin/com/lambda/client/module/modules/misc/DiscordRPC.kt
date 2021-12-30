@@ -6,7 +6,6 @@ import com.jagrosh.discordipc.entities.pipe.PipeStatus
 import com.jagrosh.discordipc.exceptions.NoDiscordClientException
 import com.lambda.capeapi.CapeType
 import com.lambda.client.LambdaMod
-import com.lambda.client.event.events.ShutdownEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.InfoCalculator
@@ -22,7 +21,6 @@ import com.lambda.client.util.threads.BackgroundScope
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.utils.MathUtils
-import com.lambda.event.listener.listener
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.time.OffsetDateTime
@@ -76,10 +74,6 @@ object DiscordRPC : Module(
                     "Do NOT use this if you do not want your coords displayed")
             }
         }
-
-        listener<ShutdownEvent> {
-            end()
-        }
     }
 
     private fun start() {
@@ -100,7 +94,7 @@ object DiscordRPC : Module(
     }
 
     private fun end() {
-        if (!initialised) return
+        if (!initialised || ipc.status != PipeStatus.CONNECTED) return
         BackgroundScope.cancel(job)
 
         LambdaMod.LOG.info("Shutting down Discord RPC...")
