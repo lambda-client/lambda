@@ -187,10 +187,11 @@ object DiscordRPC : Module(
     }
 
     fun setCustomIcons(capeType: CapeType?) {
+        // The nullability here is VERY important, DO NOT switch this for an empty string, it causes discord to break
         val text = when (capeType) {
             CapeType.CONTRIBUTOR -> "Contributor"
-            else -> ""
+            else -> null
         }
-        rpcBuilder.setSmallImage(capeType?.imageKey ?: "", text)
+        rpcBuilder.setSmallImage(capeType?.imageKey, text)
     }
 }
