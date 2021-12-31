@@ -53,6 +53,7 @@ object Nametags : Module(
     private val players by setting("Players", true, { page == Page.ENTITY_TYPE })
     private val mobs by setting("Mobs", true, { page == Page.ENTITY_TYPE })
     private val passive by setting("Passive Mobs", false, { page == Page.ENTITY_TYPE && mobs })
+    private val tamable by setting("Tamable Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val neutral by setting("Neutral Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val hostile by setting("Hostile Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val invisible by setting("Invisible", true, { page == Page.ENTITY_TYPE })
@@ -456,7 +457,7 @@ object Nametags : Module(
         && (!entity.isInvisible || invisible)
         && (entity is EntityXPOrb && experience
         || entity is EntityPlayer && players && EntityUtils.playerTypeCheck(entity, friend = true, sleeping = true)
-        || EntityUtils.mobTypeSettings(entity, mobs, passive, neutral, hostile))
+        || EntityUtils.mobTypeSettings(entity, mobs, passive, neutral, hostile, tamable))
 
     private class ItemGroup {
         private val itemSet = HashSet<EntityItem>()

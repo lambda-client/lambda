@@ -70,8 +70,8 @@ object EntityUtils {
         }
     }
 
-    fun mobTypeSettings(entity: Entity, mobs: Boolean, passive: Boolean, neutral: Boolean, hostile: Boolean): Boolean {
-        return mobs && (passive && entity.isPassive || neutral && entity.isNeutral || hostile && entity.isHostile)
+    fun mobTypeSettings(entity: Entity, mobs: Boolean, passive: Boolean, neutral: Boolean, hostile: Boolean, tamable: Boolean = false): Boolean {
+        return mobs && (passive && entity.isPassive || neutral && entity.isNeutral || hostile && entity.isHostile || tamable && entity is EntityTameable)
     }
 
     /**
