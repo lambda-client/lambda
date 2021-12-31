@@ -77,14 +77,14 @@ object DiscordRPC : Module(
     }
 
     private fun start() {
-        BackgroundScope.launchLooping(job)
-
         LambdaMod.LOG.info("Starting Discord RPC")
+
         try {
             ipc.connect()
             rpcBuilder.setStartTimestamp(OffsetDateTime.now())
             val richPresence = rpcBuilder.build()
             ipc.sendRichPresence(richPresence)
+            BackgroundScope.launchLooping(job)
 
             LambdaMod.LOG.info("Discord RPC initialised successfully")
         } catch (e: NoDiscordClientException) {
@@ -94,11 +94,11 @@ object DiscordRPC : Module(
     }
 
     private fun end() {
-        if (!initialised || ipc.status != PipeStatus.CONNECTED) return
-        BackgroundScope.cancel(job)
-
         LambdaMod.LOG.info("Shutting down Discord RPC...")
-        ipc.close()
+        BackgroundScope.cancel(job)
+        if (initialised && ipc.status == PipeStatus.CONNECTED) {
+            ipc.close()
+        }
     }
 
     private fun showCoordsConfirm(): Boolean {
@@ -109,12 +109,34 @@ object DiscordRPC : Module(
     }
 
     private fun updateRPC() {
-        if (ipc.status == PipeStatus.CONNECTED) {
-            val richPresence = rpcBuilder
-                .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
-                .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
-                .build()
-            ipc.sendRichPresence(richPresence)
+        when (ipc.status) {
+            PipeStatus.CONNECTED -> {
+                val richPresence = rpcBuilder
+                    .setDetails(getLine(line1Left) + getSeparator(0) + getLine(line1Right))
+                    .setState(getLine(line2Left) + getSeparator(1) + getLine(line2Right))
+                    .build()
+                ipc.sendRichPresence(richPresence)
+            }
+
+            PipeStatus.UNINITIALIZED -> {
+                tryConnect()
+            }
+
+            PipeStatus.DISCONNECTED -> {
+                tryConnect()
+            }
+
+            else -> {
+                // Why is this necessary now kotlin? WHY
+            }
+        }
+    }
+
+    private fun tryConnect() {
+        try {
+            ipc.connect()
+        } catch (e: NoDiscordClientException) {
+            // Add something here if you want to spam the log i guess
         }
     }
 
