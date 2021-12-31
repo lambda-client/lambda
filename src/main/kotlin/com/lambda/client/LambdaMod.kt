@@ -29,7 +29,7 @@ class LambdaMod {
         const val ID = "lambda"
         const val DIRECTORY = "lambda/"
 
-        const val VERSION = "3.0" // Will change to dev on next commit
+        const val VERSION = "3.0-dev"
         const val VERSION_MAJOR = "3.0"
 
         const val APP_ID = 835368493150502923 // DiscordIPC
