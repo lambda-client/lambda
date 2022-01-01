@@ -161,28 +161,29 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        PluginError.log("Main class not found in plugin $loader", it)
+                        PluginError.log("Main class not found in plugin $loader", throwable = it)
                     }
                     is IllegalAccessException -> {
-                        PluginError.log(it.message, it)
+                        PluginError.log(it.message, throwable = it)
                     }
                     else -> {
-                        PluginError.log("Failed to load plugin $loader", it)
+                        PluginError.log("Failed to load plugin $loader", throwable = it)
                     }
                 }
                 return
             }
 
+            val hotReload = plugin.hotReload
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", e)
+                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", hotReload, e)
                 return
             } catch (e: NoSuchMethodError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", e)
+                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", hotReload, e)
                 return
             } catch (e: NoClassDefFoundError) {
-                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", e)
+                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", hotReload, e)
                 return
             }
 
@@ -208,17 +209,19 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
         LambdaMod.LOG.info("Unloaded all plugins!")
     }
 
-    fun unload(plugin: Plugin) {
+    fun unload(plugin: Plugin): Boolean {
         if (loadedPlugins.any { it.requiredPlugins.contains(plugin.name) }) {
             throw IllegalArgumentException("Plugin $plugin is required by another plugin!")
         }
 
-        unloadWithoutCheck(plugin)
+        return unloadWithoutCheck(plugin)
     }
 
-    private fun unloadWithoutCheck(plugin: Plugin) {
+    private fun unloadWithoutCheck(plugin: Plugin): Boolean {
+        // Necessary because of plugin GUI
         if (!plugin.hotReload) {
-            throw IllegalArgumentException("Plugin $plugin cannot be hot reloaded!")
+            PluginError.log("Plugin ${plugin.name} cannot be hot reloaded!")
+            return false
         }
 
         synchronized(this) {
@@ -235,5 +238,6 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         LambdaMod.LOG.info("Unloaded plugin ${plugin.name} v${plugin.version}")
         MessageSendHelper.sendChatMessage("[Plugin Manager] ${LambdaClickGui.printInfo(plugin.name, plugin.version)} unloaded.")
+        return true
     }
 }

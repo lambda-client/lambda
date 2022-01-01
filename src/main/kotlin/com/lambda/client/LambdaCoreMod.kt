@@ -1,5 +1,6 @@
 package com.lambda.client
 
+import com.lambda.client.plugin.PluginManager
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin.MCVersion
 import org.apache.logging.log4j.LogManager
@@ -34,6 +35,13 @@ class LambdaCoreMod : IFMLLoadingPlugin {
 
         MixinBootstrap.init()
         Mixins.addConfigurations("mixins.lambda.json", "mixins.baritone.json")
+
+        PluginManager.getLoaders().forEach {
+            if (!it.info.hotReload) {
+                Mixins.addConfiguration("mixins.${it.name}.json")
+            }
+        }
+
         MixinEnvironment.getDefaultEnvironment().obfuscationContext = "searge"
         logger.info("Lambda and Baritone mixins initialised.")
     }

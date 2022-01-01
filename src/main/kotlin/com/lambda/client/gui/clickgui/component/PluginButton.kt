@@ -40,7 +40,7 @@ class PluginButton(var plugin: Plugin, var file: File) : BooleanSlider(plugin.na
         super.onClick(mousePos, buttonId)
         if (buttonId == 0) {
             if (isLoaded) {
-                PluginManager.unload(plugin)
+                if (!PluginManager.unload(plugin)) return
                 isLoaded = false
             } else {
                 PluginManager.load(PluginLoader(file))
