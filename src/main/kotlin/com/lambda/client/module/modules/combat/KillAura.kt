@@ -41,6 +41,7 @@ object KillAura : Module(
     private val minSwapHealth by setting("Min Swap Health", 5.0f, 1.0f..20.0f, 0.5f)
     private val swapDelay by setting("Swap Delay", 10, 0..50, 1)
     private val fireballs by setting("Target Fireballs", false)
+    private val fireballForceViewLock by setting("Force ViewLock", true, { fireballs }, description = "Only applies to fireballs")
     val range by setting("Range", 4.0f, 0.0f..6.0f, 0.1f)
 
     private val timer = TickTimer(TimeUnit.TICKS)
@@ -99,6 +100,11 @@ object KillAura : Module(
     }
 
     private fun SafeClientEvent.rotate(target: Entity) {
+        if (fireballForceViewLock && target is EntityLargeFireball) {
+            faceEntityClosest(target)
+            return
+        }
+
         when (rotationMode) {
             RotationMode.SPOOF -> {
                 sendPlayerPacket {
