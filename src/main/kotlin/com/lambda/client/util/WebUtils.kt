@@ -34,17 +34,17 @@ object WebUtils {
 
                     latestVersion?.let {
                         val remoteVersion = DefaultArtifactVersion(it)
-                        val localVersion = DefaultArtifactVersion(LambdaMod.VERSION_MAJOR)
+                        val localVersion = DefaultArtifactVersion(LambdaMod.VERSION)
                         when {
                             remoteVersion == localVersion -> {
-                                LambdaMod.LOG.info("Your Lambda (" + LambdaMod.VERSION_MAJOR + ") is up-to-date with the latest stable release.")
+                                LambdaMod.LOG.info("Your Lambda (" + LambdaMod.VERSION + ") is up-to-date with the latest stable release.")
                             }
                             remoteVersion > localVersion -> {
                                 isLatestVersion = false
-                                LambdaMod.LOG.warn("Your Lambda is outdated.\nCurrent: ${LambdaMod.VERSION_MAJOR}\nLatest: $latestVersion")
+                                LambdaMod.LOG.warn("Your Lambda is outdated.\nCurrent: ${LambdaMod.VERSION}\nLatest: $latestVersion")
                             }
                             remoteVersion < localVersion -> {
-                                LambdaMod.LOG.info("Your Lambda (" + LambdaMod.VERSION_MAJOR + ") is ahead of time.")
+                                LambdaMod.LOG.info("Your Lambda (" + LambdaMod.VERSION + ") is ahead of time.")
                             }
                         }
                     }

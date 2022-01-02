@@ -21,7 +21,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     const val pluginPath = "${LambdaMod.DIRECTORY}plugins/"
 
-    private val lambdaVersion = DefaultArtifactVersion(LambdaMod.VERSION_MAJOR)
+    private val lambdaVersion = DefaultArtifactVersion(LambdaMod.VERSION)
 
     override fun preLoad0() = checkPluginLoaders(getLoaders())
 
