@@ -150,128 +150,138 @@ object PacketCancel : Module(
     private val SPacketAnimationSetting by setting("SPacketAnimation", false, { side == Side.SERVER && categorySetting == CategorySlider.PLAYER })
     private val SPacketAdvancementInfoSetting by setting("SPacketAdvancementInfo", false, { side == Side.SERVER && categorySetting == CategorySlider.PLAYER })
 
+    private var numPackets = 0
+
+    override fun getHudInfo(): String {
+        return numPackets.toString()
+    }
+
     init {
+        onDisable {
+            numPackets = 0
+        }
+
         listener<PacketEvent.Send> {
             when (it.packet) {
-                is CPacketAnimation -> if (CPacketAnimationSetting) it.cancel()
-                is CPacketUseEntity -> if (CPacketUseEntitySetting) it.cancel()
-                is CPacketChatMessage -> if (CPacketChatMessageSetting) it.cancel()
-                is CPacketClickWindow -> if (CPacketClickWindowSetting) it.cancel()
-                is CPacketClientSettings -> if (CPacketClientSettingsSetting) it.cancel()
-                is CPacketClientStatus -> if (CPacketClientStatusSetting) it.cancel()
-                is CPacketCloseWindow -> if (CPacketCloseWindowSetting) it.cancel()
-                is CPacketConfirmTeleport -> if (CPacketConfirmTeleportSetting) it.cancel()
-                is CPacketConfirmTransaction -> if (CPacketConfirmTransactionSetting) it.cancel()
-                is CPacketCreativeInventoryAction -> if (CPacketCreativeInventoryActionSetting) it.cancel()
-                is CPacketCustomPayload -> if (CPacketCustomPayloadSetting) it.cancel()
-                is CPacketEnchantItem -> if (CPacketEnchantItemSetting) it.cancel()
-                is CPacketEntityAction -> if (CPacketEntityActionSetting) it.cancel()
-                is CPacketPlayer -> if (CPacketPlayerSetting) it.cancel()
-                is CPacketHeldItemChange -> if (CPacketHeldItemChangeSetting) it.cancel()
-                is CPacketInput -> if (CPacketInputSetting) it.cancel()
-                is CPacketPlaceRecipe -> if (CPacketPlaceRecipeSetting) it.cancel()
-                is CPacketPlayerAbilities -> if (CPacketPlayerAbilitiesSetting) it.cancel()
-                is CPacketPlayerTryUseItem -> if (CPacketPlayerTryUseItemSetting) it.cancel()
-                is CPacketPlayerTryUseItemOnBlock -> if (CPacketPlayerTryUseItemOnBlockSetting) it.cancel()
-                is CPacketServerQuery -> if (CPacketServerQuerySetting) it.cancel()
-                is CPacketLoginStart -> if (CPacketLoginStartSetting) it.cancel()
-                is CPacketPing -> if (CPacketPingSetting) it.cancel()
-                is CPacketEncryptionResponse -> if (CPacketEncryptionResponseSetting) it.cancel()
-                is CPacketVehicleMove -> if (CPacketVehicleMoveSetting) it.cancel()
-                is CPacketUpdateSign -> if (CPacketUpdateSignSetting) it.cancel()
-                is CPacketTabComplete -> if (CPacketTabCompleteSetting) it.cancel()
-                is CPacketSteerBoat -> if (CPacketSteerBoatSetting) it.cancel()
-                is CPacketSpectate -> if (CPacketSpectateSetting) it.cancel()
-                is CPacketSeenAdvancements -> if (CPacketSeenAdvancementsSetting) it.cancel()
-                is CPacketResourcePackStatus -> if (CPacketResourcePackStatusSetting) it.cancel()
-                is CPacketRecipeInfo -> if (CPacketRecipeInfoSetting) it.cancel()
-                is CPacketPlayerDigging -> if (CPacketPlayerDiggingSetting) it.cancel()
-                is CPacketKeepAlive -> if (CPacketKeepAliveSetting) it.cancel()
+                is CPacketAnimation -> if (CPacketAnimationSetting) it.cancel().also { numPackets++ }
+                is CPacketUseEntity -> if (CPacketUseEntitySetting) it.cancel().also { numPackets++ }
+                is CPacketChatMessage -> if (CPacketChatMessageSetting) it.cancel().also { numPackets++ }
+                is CPacketClickWindow -> if (CPacketClickWindowSetting) it.cancel().also { numPackets++ }
+                is CPacketClientSettings -> if (CPacketClientSettingsSetting) it.cancel().also { numPackets++ }
+                is CPacketClientStatus -> if (CPacketClientStatusSetting) it.cancel().also { numPackets++ }
+                is CPacketCloseWindow -> if (CPacketCloseWindowSetting) it.cancel().also { numPackets++ }
+                is CPacketConfirmTeleport -> if (CPacketConfirmTeleportSetting) it.cancel().also { numPackets++ }
+                is CPacketConfirmTransaction -> if (CPacketConfirmTransactionSetting) it.cancel().also { numPackets++ }
+                is CPacketCreativeInventoryAction -> if (CPacketCreativeInventoryActionSetting) it.cancel().also { numPackets++ }
+                is CPacketCustomPayload -> if (CPacketCustomPayloadSetting) it.cancel().also { numPackets++ }
+                is CPacketEnchantItem -> if (CPacketEnchantItemSetting) it.cancel().also { numPackets++ }
+                is CPacketEntityAction -> if (CPacketEntityActionSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayer -> if (CPacketPlayerSetting) it.cancel().also { numPackets++ }
+                is CPacketHeldItemChange -> if (CPacketHeldItemChangeSetting) it.cancel().also { numPackets++ }
+                is CPacketInput -> if (CPacketInputSetting) it.cancel().also { numPackets++ }
+                is CPacketPlaceRecipe -> if (CPacketPlaceRecipeSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerAbilities -> if (CPacketPlayerAbilitiesSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerTryUseItem -> if (CPacketPlayerTryUseItemSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerTryUseItemOnBlock -> if (CPacketPlayerTryUseItemOnBlockSetting) it.cancel().also { numPackets++ }
+                is CPacketServerQuery -> if (CPacketServerQuerySetting) it.cancel().also { numPackets++ }
+                is CPacketLoginStart -> if (CPacketLoginStartSetting) it.cancel().also { numPackets++ }
+                is CPacketPing -> if (CPacketPingSetting) it.cancel().also { numPackets++ }
+                is CPacketEncryptionResponse -> if (CPacketEncryptionResponseSetting) it.cancel().also { numPackets++ }
+                is CPacketVehicleMove -> if (CPacketVehicleMoveSetting) it.cancel().also { numPackets++ }
+                is CPacketUpdateSign -> if (CPacketUpdateSignSetting) it.cancel().also { numPackets++ }
+                is CPacketTabComplete -> if (CPacketTabCompleteSetting) it.cancel().also { numPackets++ }
+                is CPacketSteerBoat -> if (CPacketSteerBoatSetting) it.cancel().also { numPackets++ }
+                is CPacketSpectate -> if (CPacketSpectateSetting) it.cancel().also { numPackets++ }
+                is CPacketSeenAdvancements -> if (CPacketSeenAdvancementsSetting) it.cancel().also { numPackets++ }
+                is CPacketResourcePackStatus -> if (CPacketResourcePackStatusSetting) it.cancel().also { numPackets++ }
+                is CPacketRecipeInfo -> if (CPacketRecipeInfoSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerDigging -> if (CPacketPlayerDiggingSetting) it.cancel().also { numPackets++ }
+                is CPacketKeepAlive -> if (CPacketKeepAliveSetting) it.cancel().also { numPackets++ }
             }
         }
         listener<PacketEvent.Receive> {
             when (it.packet) {
-                is SPacketEntity.S17PacketEntityLookMove -> if (SPacketEntityS17PacketEntityLookMoveSetting) it.cancel()
-                is SPacketEntity.S16PacketEntityLook -> if (SPacketEntityS16PacketEntityLookSetting) it.cancel()
-                is SPacketEntity.S15PacketEntityRelMove -> if (SPacketEntityS15PacketEntityRelMoveSetting) it.cancel()
-                is SPacketServerInfo -> if (SPacketServerInfoSetting) it.cancel()
-                is SPacketLoginSuccess -> if (SPacketLoginSuccessSetting) it.cancel()
-                is SPacketWorldBorder -> if (SPacketWorldBorderSetting) it.cancel()
-                is SPacketWindowProperty -> if (SPacketWindowPropertySetting) it.cancel()
-                is SPacketWindowItems -> if (SPacketWindowItemsSetting) it.cancel()
-                is SPacketPong -> if (SPacketPongSetting) it.cancel()
-                is SPacketEncryptionRequest -> if (SPacketEncryptionRequestSetting) it.cancel()
-                is SPacketEnableCompression -> if (SPacketEnableCompressionSetting) it.cancel()
-                is SPacketDisconnect -> if (SPacketDisconnectSetting) it.cancel()
-                is SPacketUseBed -> if (SPacketUseBedSetting) it.cancel()
-                is SPacketUpdateTileEntity -> if (SPacketUpdateTileEntitySetting) it.cancel()
-                is SPacketUpdateScore -> if (SPacketUpdateScoreSetting) it.cancel()
-                is SPacketUpdateHealth -> if (SPacketUpdateHealthSetting) it.cancel()
-                is SPacketUpdateBossInfo -> if (SPacketUpdateBossInfoSetting) it.cancel()
-                is SPacketUnloadChunk -> if (SPacketUnloadChunkSetting) it.cancel()
-                is SPacketTitle -> if (SPacketTitleSetting) it.cancel()
-                is SPacketTimeUpdate -> if (SPacketTimeUpdateSetting) it.cancel()
-                is SPacketTeams -> if (SPacketTeamsSetting) it.cancel()
-                is SPacketTabComplete -> if (SPacketTabCompleteSetting) it.cancel()
-                is SPacketStatistics -> if (SPacketStatisticsSetting) it.cancel()
-                is SPacketSpawnPosition -> if (SPacketSpawnPositionSetting) it.cancel()
-                is SPacketSpawnPainting -> if (SPacketSpawnPaintingSetting) it.cancel()
-                is SPacketSpawnObject -> if (SPacketSpawnObjectSetting) it.cancel()
-                is SPacketSpawnPlayer -> if (SPacketSpawnPlayerSetting) it.cancel()
-                is SPacketSpawnMob -> if (SPacketSpawnMobSetting) it.cancel()
-                is SPacketSpawnGlobalEntity -> if (SPacketSpawnGlobalEntitySetting) it.cancel()
-                is SPacketSpawnExperienceOrb -> if (SPacketSpawnExperienceOrbSetting) it.cancel()
-                is SPacketSoundEffect -> if (SPacketSoundEffectSetting) it.cancel()
-                is SPacketSignEditorOpen -> if (SPacketSignEditorOpenSetting) it.cancel()
-                is SPacketSetSlot -> if (SPacketSetSlotSetting) it.cancel()
-                is SPacketSetExperience -> if (SPacketSetExperienceSetting) it.cancel()
-                is SPacketServerDifficulty -> if (SPacketServerDifficultySetting) it.cancel()
-                is SPacketSelectAdvancementsTab -> if (SPacketSelectAdvancementsTabSetting) it.cancel()
-                is SPacketScoreboardObjective -> if (SPacketScoreboardObjectiveSetting) it.cancel()
-                is SPacketRespawn -> if (SPacketRespawnSetting) it.cancel()
-                is SPacketResourcePackSend -> if (SPacketResourcePackSendSetting) it.cancel()
-                is SPacketRemoveEntityEffect -> if (SPacketRemoveEntityEffectSetting) it.cancel()
-                is SPacketRecipeBook -> if (SPacketRecipeBookSetting) it.cancel()
-                is SPacketPlayerListItem -> if (SPacketPlayerListItemSetting) it.cancel()
-                is SPacketPlayerListHeaderFooter -> if (SPacketPlayerListHeaderFooterSetting) it.cancel()
-                is SPacketPlayerAbilities -> if (SPacketPlayerAbilitiesSetting) it.cancel()
-                is SPacketPlaceGhostRecipe -> if (SPacketPlaceGhostRecipeSetting) it.cancel()
-                is SPacketParticles -> if (SPacketParticlesSetting) it.cancel()
-                is SPacketOpenWindow -> if (SPacketOpenWindowSetting) it.cancel()
-                is SPacketMultiBlockChange -> if (SPacketMultiBlockChangeSetting) it.cancel()
-                is SPacketMaps -> if (SPacketMapsSetting) it.cancel()
-                is SPacketKeepAlive -> if (SPacketKeepAliveSetting) it.cancel()
-                is SPacketJoinGame -> if (SPacketJoinGameSetting) it.cancel()
-                is SPacketHeldItemChange -> if (SPacketHeldItemChangeSetting) it.cancel()
-                is SPacketExplosion -> if (SPacketExplosionSetting) it.cancel()
-                is SPacketEntityVelocity -> if (SPacketEntityVelocitySetting) it.cancel()
-                is SPacketEntityTeleport -> if (SPacketEntityTeleportSetting) it.cancel()
-                is SPacketEntityStatus -> if (SPacketEntityStatusSetting) it.cancel()
-                is SPacketEntityProperties -> if (SPacketEntityPropertiesSetting) it.cancel()
-                is SPacketEntityMetadata -> if (SPacketEntityMetadataSetting) it.cancel()
-                is SPacketEntityHeadLook -> if (SPacketEntityHeadLookSetting) it.cancel()
-                is SPacketEntityEquipment -> if (SPacketEntityEquipmentSetting) it.cancel()
-                is SPacketEntityEffect -> if (SPacketEntityEffectSetting) it.cancel()
-                is SPacketEntityAttach -> if (SPacketEntityAttachSetting) it.cancel()
-                is SPacketEffect -> if (SPacketEffectSetting) it.cancel()
-                is SPacketDisplayObjective -> if (SPacketDisplayObjectiveSetting) it.cancel()
-                is SPacketDestroyEntities -> if (SPacketDestroyEntitiesSetting) it.cancel()
-                is SPacketCustomSound -> if (SPacketCustomSoundSetting) it.cancel()
-                is SPacketCustomPayload -> if (SPacketCustomPayloadSetting) it.cancel()
-                is SPacketCooldown -> if (SPacketCooldownSetting) it.cancel()
-                is SPacketConfirmTransaction -> if (SPacketConfirmTransactionSetting) it.cancel()
-                is SPacketCombatEvent -> if (SPacketCombatEventSetting) it.cancel()
-                is SPacketCollectItem -> if (SPacketCollectItemSetting) it.cancel()
-                is SPacketCloseWindow -> if (SPacketCloseWindowSetting) it.cancel()
-                is SPacketChunkData -> if (SPacketChunkDataSetting) it.cancel()
-                is SPacketChat -> if (SPacketChatSetting) it.cancel()
-                is SPacketChangeGameState -> if (SPacketChangeGameStateSetting) it.cancel()
-                is SPacketCamera -> if (SPacketCameraSetting) it.cancel()
-                is SPacketBlockChange -> if (SPacketBlockChangeSetting) it.cancel()
-                is SPacketBlockBreakAnim -> if (SPacketBlockBreakAnimSetting) it.cancel()
-                is SPacketBlockAction -> if (SPacketBlockActionSetting) it.cancel()
-                is SPacketAnimation -> if (SPacketAnimationSetting) it.cancel()
-                is SPacketAdvancementInfo -> if (SPacketAdvancementInfoSetting) it.cancel()
+                is SPacketEntity.S17PacketEntityLookMove -> if (SPacketEntityS17PacketEntityLookMoveSetting) it.cancel().also { numPackets++ }
+                is SPacketEntity.S16PacketEntityLook -> if (SPacketEntityS16PacketEntityLookSetting) it.cancel().also { numPackets++ }
+                is SPacketEntity.S15PacketEntityRelMove -> if (SPacketEntityS15PacketEntityRelMoveSetting) it.cancel().also { numPackets++ }
+                is SPacketServerInfo -> if (SPacketServerInfoSetting) it.cancel().also { numPackets++ }
+                is SPacketLoginSuccess -> if (SPacketLoginSuccessSetting) it.cancel().also { numPackets++ }
+                is SPacketWorldBorder -> if (SPacketWorldBorderSetting) it.cancel().also { numPackets++ }
+                is SPacketWindowProperty -> if (SPacketWindowPropertySetting) it.cancel().also { numPackets++ }
+                is SPacketWindowItems -> if (SPacketWindowItemsSetting) it.cancel().also { numPackets++ }
+                is SPacketPong -> if (SPacketPongSetting) it.cancel().also { numPackets++ }
+                is SPacketEncryptionRequest -> if (SPacketEncryptionRequestSetting) it.cancel().also { numPackets++ }
+                is SPacketEnableCompression -> if (SPacketEnableCompressionSetting) it.cancel().also { numPackets++ }
+                is SPacketDisconnect -> if (SPacketDisconnectSetting) it.cancel().also { numPackets++ }
+                is SPacketUseBed -> if (SPacketUseBedSetting) it.cancel().also { numPackets++ }
+                is SPacketUpdateTileEntity -> if (SPacketUpdateTileEntitySetting) it.cancel().also { numPackets++ }
+                is SPacketUpdateScore -> if (SPacketUpdateScoreSetting) it.cancel().also { numPackets++ }
+                is SPacketUpdateHealth -> if (SPacketUpdateHealthSetting) it.cancel().also { numPackets++ }
+                is SPacketUpdateBossInfo -> if (SPacketUpdateBossInfoSetting) it.cancel().also { numPackets++ }
+                is SPacketUnloadChunk -> if (SPacketUnloadChunkSetting) it.cancel().also { numPackets++ }
+                is SPacketTitle -> if (SPacketTitleSetting) it.cancel().also { numPackets++ }
+                is SPacketTimeUpdate -> if (SPacketTimeUpdateSetting) it.cancel().also { numPackets++ }
+                is SPacketTeams -> if (SPacketTeamsSetting) it.cancel().also { numPackets++ }
+                is SPacketTabComplete -> if (SPacketTabCompleteSetting) it.cancel().also { numPackets++ }
+                is SPacketStatistics -> if (SPacketStatisticsSetting) it.cancel().also { numPackets++ }
+                is SPacketSpawnPosition -> if (SPacketSpawnPositionSetting) it.cancel().also { numPackets++ }
+                is SPacketSpawnPainting -> if (SPacketSpawnPaintingSetting) it.cancel().also { numPackets++ }
+                is SPacketSpawnObject -> if (SPacketSpawnObjectSetting) it.cancel().also { numPackets++ }
+                is SPacketSpawnPlayer -> if (SPacketSpawnPlayerSetting) it.cancel().also { numPackets++ }
+                is SPacketSpawnMob -> if (SPacketSpawnMobSetting) it.cancel().also { numPackets++ }
+                is SPacketSpawnGlobalEntity -> if (SPacketSpawnGlobalEntitySetting) it.cancel().also { numPackets++ }
+                is SPacketSpawnExperienceOrb -> if (SPacketSpawnExperienceOrbSetting) it.cancel().also { numPackets++ }
+                is SPacketSoundEffect -> if (SPacketSoundEffectSetting) it.cancel().also { numPackets++ }
+                is SPacketSignEditorOpen -> if (SPacketSignEditorOpenSetting) it.cancel().also { numPackets++ }
+                is SPacketSetSlot -> if (SPacketSetSlotSetting) it.cancel().also { numPackets++ }
+                is SPacketSetExperience -> if (SPacketSetExperienceSetting) it.cancel().also { numPackets++ }
+                is SPacketServerDifficulty -> if (SPacketServerDifficultySetting) it.cancel().also { numPackets++ }
+                is SPacketSelectAdvancementsTab -> if (SPacketSelectAdvancementsTabSetting) it.cancel().also { numPackets++ }
+                is SPacketScoreboardObjective -> if (SPacketScoreboardObjectiveSetting) it.cancel().also { numPackets++ }
+                is SPacketRespawn -> if (SPacketRespawnSetting) it.cancel().also { numPackets++ }
+                is SPacketResourcePackSend -> if (SPacketResourcePackSendSetting) it.cancel().also { numPackets++ }
+                is SPacketRemoveEntityEffect -> if (SPacketRemoveEntityEffectSetting) it.cancel().also { numPackets++ }
+                is SPacketRecipeBook -> if (SPacketRecipeBookSetting) it.cancel().also { numPackets++ }
+                is SPacketPlayerListItem -> if (SPacketPlayerListItemSetting) it.cancel().also { numPackets++ }
+                is SPacketPlayerListHeaderFooter -> if (SPacketPlayerListHeaderFooterSetting) it.cancel().also { numPackets++ }
+                is SPacketPlayerAbilities -> if (SPacketPlayerAbilitiesSetting) it.cancel().also { numPackets++ }
+                is SPacketPlaceGhostRecipe -> if (SPacketPlaceGhostRecipeSetting) it.cancel().also { numPackets++ }
+                is SPacketParticles -> if (SPacketParticlesSetting) it.cancel().also { numPackets++ }
+                is SPacketOpenWindow -> if (SPacketOpenWindowSetting) it.cancel().also { numPackets++ }
+                is SPacketMultiBlockChange -> if (SPacketMultiBlockChangeSetting) it.cancel().also { numPackets++ }
+                is SPacketMaps -> if (SPacketMapsSetting) it.cancel().also { numPackets++ }
+                is SPacketKeepAlive -> if (SPacketKeepAliveSetting) it.cancel().also { numPackets++ }
+                is SPacketJoinGame -> if (SPacketJoinGameSetting) it.cancel().also { numPackets++ }
+                is SPacketHeldItemChange -> if (SPacketHeldItemChangeSetting) it.cancel().also { numPackets++ }
+                is SPacketExplosion -> if (SPacketExplosionSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityVelocity -> if (SPacketEntityVelocitySetting) it.cancel().also { numPackets++ }
+                is SPacketEntityTeleport -> if (SPacketEntityTeleportSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityStatus -> if (SPacketEntityStatusSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityProperties -> if (SPacketEntityPropertiesSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityMetadata -> if (SPacketEntityMetadataSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityHeadLook -> if (SPacketEntityHeadLookSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityEquipment -> if (SPacketEntityEquipmentSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityEffect -> if (SPacketEntityEffectSetting) it.cancel().also { numPackets++ }
+                is SPacketEntityAttach -> if (SPacketEntityAttachSetting) it.cancel().also { numPackets++ }.also { numPackets++ }
+                is SPacketEffect -> if (SPacketEffectSetting) it.cancel().also { numPackets++ }
+                is SPacketDisplayObjective -> if (SPacketDisplayObjectiveSetting) it.cancel().also { numPackets++ }
+                is SPacketDestroyEntities -> if (SPacketDestroyEntitiesSetting) it.cancel().also { numPackets++ }
+                is SPacketCustomSound -> if (SPacketCustomSoundSetting) it.cancel().also { numPackets++ }
+                is SPacketCustomPayload -> if (SPacketCustomPayloadSetting) it.cancel().also { numPackets++ }
+                is SPacketCooldown -> if (SPacketCooldownSetting) it.cancel().also { numPackets++ }
+                is SPacketConfirmTransaction -> if (SPacketConfirmTransactionSetting) it.cancel().also { numPackets++ }
+                is SPacketCombatEvent -> if (SPacketCombatEventSetting) it.cancel().also { numPackets++ }
+                is SPacketCollectItem -> if (SPacketCollectItemSetting) it.cancel().also { numPackets++ }
+                is SPacketCloseWindow -> if (SPacketCloseWindowSetting) it.cancel().also { numPackets++ }
+                is SPacketChunkData -> if (SPacketChunkDataSetting) it.cancel().also { numPackets++ }
+                is SPacketChat -> if (SPacketChatSetting) it.cancel().also { numPackets++ }
+                is SPacketChangeGameState -> if (SPacketChangeGameStateSetting) it.cancel().also { numPackets++ }
+                is SPacketCamera -> if (SPacketCameraSetting) it.cancel().also { numPackets++ }
+                is SPacketBlockChange -> if (SPacketBlockChangeSetting) it.cancel().also { numPackets++ }
+                is SPacketBlockBreakAnim -> if (SPacketBlockBreakAnimSetting) it.cancel().also { numPackets++ }
+                is SPacketBlockAction -> if (SPacketBlockActionSetting) it.cancel().also { numPackets++ }
+                is SPacketAnimation -> if (SPacketAnimationSetting) it.cancel().also { numPackets++ }
+                is SPacketAdvancementInfo -> if (SPacketAdvancementInfoSetting) it.cancel().also { numPackets++ }
             }
         }
     }
