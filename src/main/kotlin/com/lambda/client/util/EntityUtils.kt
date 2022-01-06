@@ -71,7 +71,12 @@ object EntityUtils {
     }
 
     fun mobTypeSettings(entity: Entity, mobs: Boolean, passive: Boolean, neutral: Boolean, hostile: Boolean, tamable: Boolean = false): Boolean {
-        return mobs && (passive && entity.isPassive || neutral && entity.isNeutral || hostile && entity.isHostile || tamable && entity is EntityTameable)
+        val tamed = when (entity) {
+            is EntityTameable -> entity.isTamed || entity.ownerId != null
+            is AbstractHorse -> entity.isTame || entity.ownerUniqueId != null
+            else -> false
+        }
+        return mobs && (passive && entity.isPassive || neutral && entity.isNeutral || hostile && entity.isHostile || tamable && tamed)
     }
 
     /**

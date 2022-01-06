@@ -73,7 +73,7 @@ object BoatFly : Module(
                 is SPacketSetPassengers -> {
                     if (remount) {
                         world.getEntityByID(it.packet.entityId)?.let { entity ->
-                            if ((it.packet.passengerIds.isEmpty())
+                            if (!it.packet.passengerIds.contains(player.entityId)
                                 && ridingEntity.entityId == it.packet.entityId) {
                                 if (teleportSpoof) it.cancel()
                                 connection.sendPacket(CPacketUseEntity(entity, EnumHand.OFF_HAND))
