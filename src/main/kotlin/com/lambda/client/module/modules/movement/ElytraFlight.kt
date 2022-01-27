@@ -92,7 +92,7 @@ object ElytraFlight : Module(
     /* End of Mode Settings */
 
     private enum class ElytraFlightMode {
-        BOOST, CONTROL, CREATIVE, PACKET
+        BOOST, CONTROL, CREATIVE, PACKET, VANILLA
     }
 
     private enum class Page {
@@ -116,6 +116,11 @@ object ElytraFlight : Module(
     private var packetPitch = 0.0f
     private var hoverState = false
     private var boostingTick = 0
+
+    /* Vanilla mode state */
+    private var lastY = 0.0
+    private var shouldDescend = false
+    private var lastHighY = 0.0
 
     /* Event Listeners */
     init {
@@ -151,6 +156,7 @@ object ElytraFlight : Module(
                         ElytraFlightMode.CONTROL -> controlMode(it)
                         ElytraFlightMode.CREATIVE -> creativeMode()
                         ElytraFlightMode.PACKET -> packetMode(it)
+                        ElytraFlightMode.VANILLA -> vanillaMode()
                     }
                 }
                 spoofRotation()
@@ -343,6 +349,7 @@ object ElytraFlight : Module(
             ElytraFlightMode.CONTROL -> speedControl
             ElytraFlightMode.CREATIVE -> speedCreative
             ElytraFlightMode.PACKET -> speedPacket
+            ElytraFlightMode.VANILLA -> 1f
         }
     }
 
@@ -464,6 +471,21 @@ object ElytraFlight : Module(
         player.motionY = (if (player.movementInput.sneak) -downSpeedPacket else -fallSpeedPacket).toDouble()
 
         event.cancel()
+    }
+
+    private fun SafeClientEvent.vanillaMode() {
+        val playerY = player.posY
+        val lastShouldDescend = shouldDescend
+        shouldDescend = lastY > playerY && lastHighY - 60 < playerY
+        player.rotationPitch = if (shouldDescend) {
+            if (!lastShouldDescend) {
+                lastHighY = playerY
+            }
+            30f
+        } else {
+            -50f
+        }
+        lastY = playerY
     }
 
     fun shouldSwing(): Boolean {
