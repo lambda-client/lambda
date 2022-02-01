@@ -1,6 +1,5 @@
 package com.lambda.client.gui.hudgui.elements.player
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.HudElement
 import com.lambda.client.module.modules.client.ClickGUI
