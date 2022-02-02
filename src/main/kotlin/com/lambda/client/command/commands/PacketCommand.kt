@@ -2,7 +2,7 @@ package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.mixin.extension.id
+import com.lambda.client.mixin.extension.useEntityId
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.entity.passive.EntityDonkey
 import net.minecraft.inventory.ClickType
@@ -397,7 +397,7 @@ object PacketCommand : ClientCommand(
             int("ID") { id ->
                 executeSafe {
                     val packet = CPacketUseEntity()
-                    packet.id = id.value
+                    packet.useEntityId = id.value
 
                     deployPacket(
                         packet,
