@@ -1,17 +1,14 @@
 package com.lambda.client.mixin.extension
 
 import com.lambda.client.mixin.client.accessor.network.*
-import net.minecraft.network.play.client.CPacketChatMessage
-import net.minecraft.network.play.client.CPacketCloseWindow
-import net.minecraft.network.play.client.CPacketPlayer
-import net.minecraft.network.play.client.CPacketUseEntity
+import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.SPacketChat
 import net.minecraft.network.play.server.SPacketEntityVelocity
 import net.minecraft.network.play.server.SPacketExplosion
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.text.ITextComponent
 
-var CPacketChatMessage.packetMessage: String
+var CPacketChatMessage.chatMessage: String
     get() = this.message
     set(value) {
         (this as AccessorCPacketChatMessage).setMessage(value)
@@ -21,46 +18,46 @@ val CPacketCloseWindow.windowID: Int
     get() = (this as AccessorCPacketCloseWindow).kbGetWindowID()
 
 
-var CPacketPlayer.x: Double
+var CPacketPlayer.playerX: Double
     get() = this.getX(0.0)
     set(value) {
         (this as AccessorCPacketPlayer).setX(value)
     }
-var CPacketPlayer.y: Double
+var CPacketPlayer.playerY: Double
     get() = this.getY(0.0)
     set(value) {
         (this as AccessorCPacketPlayer).setY(value)
     }
-var CPacketPlayer.z: Double
+var CPacketPlayer.playerZ: Double
     get() = this.getZ(0.0)
     set(value) {
         (this as AccessorCPacketPlayer).setZ(value)
     }
-var CPacketPlayer.yaw: Float
+var CPacketPlayer.playerYaw: Float
     get() = this.getYaw(0.0f)
     set(value) {
         (this as AccessorCPacketPlayer).setYaw(value)
     }
-var CPacketPlayer.pitch: Float
+var CPacketPlayer.playerPitch: Float
     get() = this.getPitch(0.0f)
     set(value) {
         (this as AccessorCPacketPlayer).setPitch(value)
     }
-var CPacketPlayer.onGround: Boolean
+var CPacketPlayer.playerIsOnGround: Boolean
     get() = this.isOnGround
     set(value) {
         (this as AccessorCPacketPlayer).setOnGround(value)
     }
-val CPacketPlayer.moving: Boolean get() = (this as AccessorCPacketPlayer).moving
-val CPacketPlayer.rotating: Boolean get() = (this as AccessorCPacketPlayer).rotating
+val CPacketPlayer.playerMoving: Boolean get() = (this as AccessorCPacketPlayer).moving
+val CPacketPlayer.playerRotating: Boolean get() = (this as AccessorCPacketPlayer).rotating
 
-var CPacketUseEntity.id: Int
+var CPacketUseEntity.useEntityId: Int
     get() = (this as AccessorCPacketUseEntity).id
     set(value) {
         (this as AccessorCPacketUseEntity).id = value
     }
 
-var CPacketUseEntity.packetAction: CPacketUseEntity.Action
+var CPacketUseEntity.useEntityAction: CPacketUseEntity.Action
     get() = this.action
     set(value) {
         (this as AccessorCPacketUseEntity).setAction(value)
@@ -72,44 +69,44 @@ var SPacketChat.textComponent: ITextComponent
         (this as AccessorSPacketChat).setChatComponent(value)
     }
 
-var SPacketEntityVelocity.packetMotionX: Int
+var SPacketEntityVelocity.entityVelocityMotionX: Int
     get() = this.motionX
     set(value) {
         (this as AccessorSPacketEntityVelocity).setMotionX(value)
     }
-var SPacketEntityVelocity.packetMotionY: Int
+var SPacketEntityVelocity.entityVelocityMotionY: Int
     get() = this.motionY
     set(value) {
         (this as AccessorSPacketEntityVelocity).setMotionY(value)
     }
-var SPacketEntityVelocity.packetMotionZ: Int
+var SPacketEntityVelocity.entityVelocityMotionZ: Int
     get() = this.motionZ
     set(value) {
         (this as AccessorSPacketEntityVelocity).setMotionZ(value)
     }
 
-var SPacketExplosion.packetMotionX: Float
+var SPacketExplosion.explosionMotionX: Float
     get() = this.motionX
     set(value) {
         (this as AccessorSPacketExplosion).setMotionX(value)
     }
-var SPacketExplosion.packetMotionY: Float
+var SPacketExplosion.explosionMotionY: Float
     get() = this.motionY
     set(value) {
         (this as AccessorSPacketExplosion).setMotionY(value)
     }
-var SPacketExplosion.packetMotionZ: Float
+var SPacketExplosion.explosionMotionZ: Float
     get() = this.motionZ
     set(value) {
         (this as AccessorSPacketExplosion).setMotionZ(value)
     }
 
-var SPacketPlayerPosLook.rotationYaw: Float
+var SPacketPlayerPosLook.playerPosLookYaw: Float
     get() = this.yaw
     set(value) {
         (this as AccessorSPacketPosLook).setYaw(value)
     }
-var SPacketPlayerPosLook.rotationPitch: Float
+var SPacketPlayerPosLook.playerPosLookPitch: Float
     get() = this.pitch
     set(value) {
         (this as AccessorSPacketPosLook).setPitch(value)

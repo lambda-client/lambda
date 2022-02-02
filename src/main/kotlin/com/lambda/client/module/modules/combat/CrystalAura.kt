@@ -12,8 +12,8 @@ import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.client.mixin.extension.id
-import com.lambda.client.mixin.extension.packetAction
+import com.lambda.client.mixin.extension.useEntityId
+import com.lambda.client.mixin.extension.useEntityAction
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Bind
@@ -368,8 +368,8 @@ object CrystalAura : Module(
         if (calculation.distance > explodeRange) return
 
         val attackPacket = CPacketUseEntity().apply {
-            id = entityID
-            packetAction = CPacketUseEntity.Action.ATTACK
+            useEntityId = entityID
+            useEntityAction = CPacketUseEntity.Action.ATTACK
         }
 
         synchronized(packetList) {

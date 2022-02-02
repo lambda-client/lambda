@@ -3,9 +3,9 @@ package com.lambda.client.module.modules.player
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.mixin.extension.x
-import com.lambda.client.mixin.extension.y
-import com.lambda.client.mixin.extension.z
+import com.lambda.client.mixin.extension.playerX
+import com.lambda.client.mixin.extension.playerY
+import com.lambda.client.mixin.extension.playerZ
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.runSafe
@@ -79,7 +79,7 @@ object Blink : Module(
         mc.addScheduledTask {
             runSafe {
                 if (cancelPacket) {
-                    packets.peek()?.let { player.setPosition(it.x, it.y, it.z) }
+                    packets.peek()?.let { player.setPosition(it.playerX, it.playerY, it.playerZ) }
                     packets.clear()
                 } else {
                     sending = true

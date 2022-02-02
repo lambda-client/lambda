@@ -36,7 +36,7 @@ object EntityTools : Module(
                         }
                         Mode.INFO -> {
                             val tag = NBTTagCompound().apply { it.entityHit.writeToNBT(this) }
-                            MessageSendHelper.sendChatMessage("""$chatName &6Entity Tags:$tag""".trimIndent())
+                            MessageSendHelper.sendChatMessage("""$chatName &6ID: ${it.entityHit.entityId} Tags:$tag""".trimIndent())
                         }
                     }
                 }
