@@ -165,7 +165,7 @@ object EntityUtils {
     fun SafeClientEvent.getDroppedItems(itemId: Int, range: Float): ArrayList<EntityItem> {
         val entityList = ArrayList<EntityItem>()
         for (entity in world.loadedEntityList) {
-            if (entity !is EntityItem) continue /* Entites that are dropped item */
+            if (entity !is EntityItem) continue /* Entities that are dropped item */
             if (entity.item.item.id != itemId) continue /* Dropped items that are has give item id */
             if (entity.getDistance(player) > range) continue /* Entities within specified  blocks radius */
 
