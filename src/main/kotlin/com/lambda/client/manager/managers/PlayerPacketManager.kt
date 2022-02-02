@@ -40,13 +40,13 @@ object PlayerPacketManager : Manager {
         listener<PacketEvent.PostSend>(-6969) {
             if (it.cancelled || it.packet !is CPacketPlayer) return@listener
 
-            if (it.packet.moving) {
-                serverSidePosition = Vec3d(it.packet.x, it.packet.y, it.packet.z)
+            if (it.packet.playerMoving) {
+                serverSidePosition = Vec3d(it.packet.playerX, it.packet.playerY, it.packet.playerZ)
             }
 
-            if (it.packet.rotating) {
-                serverSideRotation = Vec2f(it.packet.yaw, it.packet.pitch)
-                Wrapper.player?.let { player -> player.rotationYawHead = it.packet.yaw }
+            if (it.packet.playerRotating) {
+                serverSideRotation = Vec2f(it.packet.playerYaw, it.packet.playerPitch)
+                Wrapper.player?.let { player -> player.rotationYawHead = it.packet.playerYaw }
             }
         }
 

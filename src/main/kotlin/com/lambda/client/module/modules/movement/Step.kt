@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.movement
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.PlayerPacketManager
-import com.lambda.client.mixin.extension.y
+import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
@@ -118,7 +118,7 @@ object Step : Module(
             if (ignoredPackets.remove(event.packet)) return@safeListener
 
             val prevPos = PlayerPacketManager.prevServerSidePosition
-            if (player.ticksExisted - lastCollidedTick <= 5) getStepArray(event.packet.y - prevPos.y)?.let {
+            if (player.ticksExisted - lastCollidedTick <= 5) getStepArray(event.packet.playerY - prevPos.y)?.let {
                 for (posY in it) {
                     val packet = CPacketPlayer.Position(prevPos.x, prevPos.y + posY, prevPos.z, true)
                     ignoredPackets.add(packet)

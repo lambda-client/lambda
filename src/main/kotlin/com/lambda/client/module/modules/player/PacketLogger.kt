@@ -647,26 +647,26 @@ object PacketLogger : Module(
                 }
                 is CPacketPlayer.Rotation -> {
                     logClient(packet) {
-                        "yaw" to packet.yaw
-                        "pitch" to packet.pitch
+                        "yaw" to packet.playerYaw
+                        "pitch" to packet.playerPitch
                         "onGround" to packet.isOnGround
                     }
                 }
                 is CPacketPlayer.Position -> {
                     logClient(packet) {
-                        "x" to packet.x
-                        "y" to packet.y
-                        "z" to packet.z
+                        "x" to packet.playerX
+                        "y" to packet.playerY
+                        "z" to packet.playerZ
                         "onGround" to packet.isOnGround
                     }
                 }
                 is CPacketPlayer.PositionRotation -> {
                     logClient(packet) {
-                        "x" to packet.x
-                        "y" to packet.y
-                        "z" to packet.z
-                        "yaw" to packet.yaw
-                        "pitch" to packet.pitch
+                        "x" to packet.playerX
+                        "y" to packet.playerY
+                        "z" to packet.playerZ
+                        "yaw" to packet.playerYaw
+                        "pitch" to packet.playerPitch
                         "onGround" to packet.isOnGround
                     }
                 }
