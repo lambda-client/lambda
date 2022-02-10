@@ -178,6 +178,7 @@ jar {
 
     // Copy needed libs to jar
     from {
+        exclude "**/module-info.class"
         configurations.jarLibs.collect {
             it.isDirectory() ? it : zipTree(it)
         }
