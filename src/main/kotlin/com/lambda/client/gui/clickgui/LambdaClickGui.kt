@@ -233,7 +233,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->
                     Files.copy(
                         inputStream,
-                        Paths.get("${PluginManager.pluginPath}/${remotePluginButton.fileName}"),
+                        Paths.get("${LambdaMod.PLUGIN_PATH}/${remotePluginButton.fileName}"),
                         StandardCopyOption.REPLACE_EXISTING
                     )
                 }
