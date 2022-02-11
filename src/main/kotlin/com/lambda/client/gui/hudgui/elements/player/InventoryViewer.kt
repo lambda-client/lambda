@@ -35,7 +35,7 @@ internal object InventoryViewer : HudElement(
     private val alpha by setting("Alpha", 150, 0..255, 1, { !mcTexture })
     private val containerTexture = ResourceLocation("textures/gui/container/inventory.png")
     private val lambdaIcon = ResourceLocation("lambda/lambda_icon.png")
-    private var enderChestContents : MutableList<ItemStack> = MutableList(27) { ItemStack(Blocks.AIR) }
+    private var enderChestContents: MutableList<ItemStack> = MutableList(27) { ItemStack(Blocks.AIR) }
 
     override val hudWidth: Float = 162.0f
     override val hudHeight: Float = 54.0f
@@ -96,9 +96,9 @@ internal object InventoryViewer : HudElement(
 
     private fun checkEnderChest() {
         if (mc.currentScreen is GuiContainer) {
-            val container : Container = (mc.currentScreen as GuiContainer).inventorySlots
+            val container = (mc.currentScreen as GuiContainer).inventorySlots
             if (container is ContainerChest && container.lowerChestInventory is InventoryBasic) {
-                val inv : InventoryBasic = (container.lowerChestInventory as InventoryBasic)
+                val inv = (container.lowerChestInventory as InventoryBasic)
                 if (inv.name.equals("Ender Chest", true)) {
                     for (i in 0..26) enderChestContents[i] = container.inventory[i]
                 }
