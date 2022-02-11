@@ -46,10 +46,6 @@ class LambdaMod {
 
         const val LAMBDA = "λ"
 
-        const val PLUGIN_PATH = "${DIRECTORY}plugins/"
-        const val PACKET_LOG_PATH = "${DIRECTORY}packet-logs/"
-        const val SONGS_PATH = "${DIRECTORY}songs/"
-
         val LOG: Logger = LogManager.getLogger(NAME)
 
         var ready: Boolean = false; private set

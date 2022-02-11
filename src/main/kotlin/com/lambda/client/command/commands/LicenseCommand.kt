@@ -9,7 +9,7 @@ object LicenseCommand : ClientCommand(
 ) {
     init {
         execute {
-            MessageSendHelper.sendChatMessage("You can view Lambda's &7client&f License (LGPLv3) at &9https://lambda-client.org/license")
+            MessageSendHelper.sendChatMessage("You can view Lambda's &7client&f License (LGPLv3) at &9https://github.com/lambda-client/lambda/blob/master/LICENSE.md")
         }
     }
 }

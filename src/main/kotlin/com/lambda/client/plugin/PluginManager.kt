@@ -5,6 +5,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.plugin.api.Plugin
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
@@ -28,7 +29,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     }
 
     fun getLoaders(): List<PluginLoader> {
-        val dir = File(LambdaMod.PLUGIN_PATH)
+        val dir = File(FolderUtils.pluginFolder)
         if (!dir.exists()) dir.mkdir()
 
         val files = dir.listFiles() ?: return emptyList()
