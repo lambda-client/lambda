@@ -1,5 +1,6 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager
@@ -18,7 +19,7 @@ object PluginCommand : ClientCommand(
             string("jar name") { nameArg ->
                 execute {
                     val name = "${nameArg.value.removeSuffix(".jar")}.jar"
-                    val file = File("${PluginManager.pluginPath}$name")
+                    val file = File("${LambdaMod.PLUGIN_PATH}$name")
 
                     if (!file.exists()) {
                         MessageSendHelper.sendErrorMessage("${formatValue(name)} is not a valid jar file name!")

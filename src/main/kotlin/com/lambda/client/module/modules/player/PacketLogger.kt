@@ -20,6 +20,7 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.*
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.io.File
 import java.io.FileWriter
@@ -48,7 +49,6 @@ object PacketLogger : Module(
     private var lastTick = 0L
     private val timer = TickTimer(TimeUnit.SECONDS)
 
-    private const val directory = "${LambdaMod.DIRECTORY}packetLogs"
     private var filename = ""
     private var lines = ArrayList<String>()
 
@@ -76,7 +76,7 @@ object PacketLogger : Module(
             write()
 
             runSafe {
-                MessageSendHelper.sendChatMessage("$chatName Log saved at $directory/${filename}")
+                MessageSendHelper.sendChatMessage("$chatName Log saved at ${TextFormatting.GREEN}${LambdaMod.PACKET_LOG_PATH}${filename}")
             }
         }
 
@@ -735,11 +735,11 @@ object PacketLogger : Module(
 
         defaultScope.launch(Dispatchers.IO) {
             try {
-                with(File(directory)) {
+                with(File(LambdaMod.PACKET_LOG_PATH)) {
                     if (!exists()) mkdir()
                 }
 
-                FileWriter("$directory/${filename}", true).buffered().use {
+                FileWriter("${LambdaMod.PACKET_LOG_PATH}${filename}", true).buffered().use {
                     for (line in lines) it.write(line)
                 }
             } catch (e: Exception) {

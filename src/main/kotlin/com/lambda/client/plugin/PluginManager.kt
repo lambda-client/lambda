@@ -19,8 +19,6 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     val loadedPlugins = NameableSet<Plugin>()
     val loadedPluginLoader = NameableSet<PluginLoader>()
 
-    const val pluginPath = "${LambdaMod.DIRECTORY}plugins/"
-
     private val lambdaVersion = DefaultArtifactVersion(LambdaMod.VERSION)
 
     override fun preLoad0() = checkPluginLoaders(getLoaders())
@@ -30,7 +28,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     }
 
     fun getLoaders(): List<PluginLoader> {
-        val dir = File(pluginPath)
+        val dir = File(LambdaMod.PLUGIN_PATH)
         if (!dir.exists()) dir.mkdir()
 
         val files = dir.listFiles() ?: return emptyList()
