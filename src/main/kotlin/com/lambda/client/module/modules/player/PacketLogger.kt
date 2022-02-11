@@ -20,6 +20,7 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.*
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.io.File
 import java.io.FileWriter
@@ -48,7 +49,6 @@ object PacketLogger : Module(
     private var lastTick = 0L
     private val timer = TickTimer(TimeUnit.SECONDS)
 
-    private const val directory = "${LambdaMod.DIRECTORY}packetLogs"
     private var filename = ""
     private var lines = ArrayList<String>()
 
@@ -76,7 +76,7 @@ object PacketLogger : Module(
             write()
 
             runSafe {
-                MessageSendHelper.sendChatMessage("$chatName Log saved at $directory/${filename}")
+                MessageSendHelper.sendChatMessage("$chatName Log saved at ${TextFormatting.GREEN}${LambdaMod.PACKET_LOG_PATH}${filename}")
             }
         }
 
@@ -647,26 +647,26 @@ object PacketLogger : Module(
                 }
                 is CPacketPlayer.Rotation -> {
                     logClient(packet) {
-                        "yaw" to packet.yaw
-                        "pitch" to packet.pitch
+                        "yaw" to packet.playerYaw
+                        "pitch" to packet.playerPitch
                         "onGround" to packet.isOnGround
                     }
                 }
                 is CPacketPlayer.Position -> {
                     logClient(packet) {
-                        "x" to packet.x
-                        "y" to packet.y
-                        "z" to packet.z
+                        "x" to packet.playerX
+                        "y" to packet.playerY
+                        "z" to packet.playerZ
                         "onGround" to packet.isOnGround
                     }
                 }
                 is CPacketPlayer.PositionRotation -> {
                     logClient(packet) {
-                        "x" to packet.x
-                        "y" to packet.y
-                        "z" to packet.z
-                        "yaw" to packet.yaw
-                        "pitch" to packet.pitch
+                        "x" to packet.playerX
+                        "y" to packet.playerY
+                        "z" to packet.playerZ
+                        "yaw" to packet.playerYaw
+                        "pitch" to packet.playerPitch
                         "onGround" to packet.isOnGround
                     }
                 }
@@ -735,11 +735,11 @@ object PacketLogger : Module(
 
         defaultScope.launch(Dispatchers.IO) {
             try {
-                with(File(directory)) {
+                with(File(LambdaMod.PACKET_LOG_PATH)) {
                     if (!exists()) mkdir()
                 }
 
-                FileWriter("$directory/${filename}", true).buffered().use {
+                FileWriter("${LambdaMod.PACKET_LOG_PATH}${filename}", true).buffered().use {
                     for (line in lines) it.write(line)
                 }
             } catch (e: Exception) {

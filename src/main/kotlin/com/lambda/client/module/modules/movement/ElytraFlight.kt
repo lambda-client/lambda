@@ -4,7 +4,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.client.mixin.extension.rotationPitch
+import com.lambda.client.mixin.extension.playerPosLookPitch
 import com.lambda.client.mixin.extension.tickLength
 import com.lambda.client.mixin.extension.timer
 import com.lambda.client.module.Category
@@ -123,7 +123,7 @@ object ElytraFlight : Module(
             if (player.isSpectator || !elytraIsEquipped || elytraDurability <= 1 || !isFlying || mode.value == ElytraFlightMode.BOOST) return@safeListener
             if (it.packet is SPacketPlayerPosLook && mode.value != ElytraFlightMode.PACKET) {
                 val packet = it.packet
-                packet.rotationPitch = player.rotationPitch
+                packet.playerPosLookPitch = player.rotationPitch
             }
 
             /* Cancels the elytra opening animation */

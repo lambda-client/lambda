@@ -1,6 +1,8 @@
 package com.lambda.client.util.filesystem
 
+import java.awt.Desktop
 import java.io.File
+import java.net.URL
 
 object FolderUtils {
     @JvmStatic
@@ -20,6 +22,24 @@ object FolderUtils {
             OperatingSystem.OSX -> System.getProperty("user.home") + "/Library/Application Support/minecraft/"
             OperatingSystem.WINDOWS -> System.getenv("APPDATA") + File.separator + ".minecraft" + File.separator
         }
+
+    /**
+     * Opens the given folder using the right library based on OS
+     */
+    fun openFolder(path: String) {
+        Thread {
+            if (getOS() == OperatingSystem.WINDOWS) Desktop.getDesktop().open(File(path))
+            else Runtime.getRuntime().exec(getURLOpenCommand(File(path).toURI().toURL()))
+        }.start()
+    }
+
+    private fun getURLOpenCommand(url: URL): Array<String> {
+        var string: String = url.toString()
+        if ("file" == url.protocol) {
+            string = string.replace("file:", "file://")
+        }
+        return arrayOf("xdg-open", string)
+    }
 
     /**
      * @return current OperatingSystem

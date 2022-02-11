@@ -106,7 +106,7 @@ object NoteBot : Module(
 
     private fun loadSong() {
         defaultScope.launch(Dispatchers.IO) {
-            val path = "${LambdaMod.DIRECTORY}songs/$songName"
+            val path = "${LambdaMod.SONGS_PATH}$songName"
 
             try {
                 parse(path).let {

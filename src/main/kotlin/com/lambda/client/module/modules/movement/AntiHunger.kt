@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.mixin.extension.onGround
+import com.lambda.client.mixin.extension.playerIsOnGround
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
@@ -30,7 +30,7 @@ object AntiHunger : Module(
                     }
                 }
                 is CPacketPlayer -> {
-                    it.packet.onGround = (player.fallDistance <= 0 || mc.playerController.isHittingBlock) && player.isElytraFlying
+                    it.packet.playerIsOnGround = (player.fallDistance <= 0 || mc.playerController.isHittingBlock) && player.isElytraFlying
                 }
             }
         }

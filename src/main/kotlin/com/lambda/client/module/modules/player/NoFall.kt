@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.player
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.mixin.extension.onGround
+import com.lambda.client.mixin.extension.playerIsOnGround
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils
@@ -50,7 +50,7 @@ object NoFall : Module(
         safeListener<PacketEvent.Send> {
             if (it.packet !is CPacketPlayer || player.isElytraFlying) return@safeListener
             if ((mode == Mode.FALL && fallModeSetting == FallMode.PACKET || mode == Mode.CATCH)) {
-                it.packet.onGround = true
+                it.packet.playerIsOnGround = true
             }
         }
 

@@ -16,32 +16,26 @@ object EntitySpeed : Module(
     category = Category.MOVEMENT,
     description = "Abuse client-sided movement to shape sound barrier breaking rideables"
 ) {
-    private val speed by setting("Speed", 1.0f, 0.1f..25.0f, 0.1f)
+    private val boatSpeed by setting("Boat Speed", 1.4f, 0.1f..10.0f, 0.05f)
+    private val abstractHorseSpeed by setting("Horse Types Speed", 0.7f, 0.1f..10.0f, 0.05f)
+    private val pigSpeed by setting("Pig Speed", 1.0f, 0.1f..10.0f, 0.05f)
     private val antiStuck by setting("Anti Stuck", true)
-    private val flight by setting("Flight", false)
-    private val glideSpeed by setting("Glide Speed", 0.1f, 0.0f..1.0f, 0.01f, { flight })
-    private val upSpeed by setting("Up Speed", 1.0f, 0.0f..5.0f, 0.1f, { flight })
 
     init {
         safeListener<PlayerTravelEvent> {
             player.ridingEntity?.let { entity ->
-                if (entity is EntityPig
-                    || entity is AbstractHorse && entity.controllingPassenger == player
-                    || entity is EntityBoat && entity.controllingPassenger == player) {
+                var tamper = false
+                val speed = when {
+                    entity is AbstractHorse && entity.controllingPassenger == player -> abstractHorseSpeed.also { tamper = true }
+                    entity is EntityBoat && entity.controllingPassenger == player -> boatSpeed.also { tamper = true }
+                    entity is EntityPig -> pigSpeed.also { tamper = true }
+                    else -> .0f
+                }
+                if (tamper) {
                     steerEntity(entity, speed, antiStuck)
-
-                    if (entity is EntityHorse) {
-                        entity.rotationYaw = player.rotationYaw
-                    }
-
-                    if (flight) fly(entity)
+                    entity.rotationYaw = player.rotationYaw
                 }
             }
         }
-    }
-
-    private fun fly(entity: Entity) {
-        if (!entity.isInWater) entity.motionY = -glideSpeed.toDouble()
-        if (mc.gameSettings.keyBindJump.isKeyDown) entity.motionY += upSpeed / 2.0
     }
 }
