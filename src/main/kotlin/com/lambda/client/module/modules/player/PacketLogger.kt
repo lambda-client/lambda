@@ -8,6 +8,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
@@ -76,7 +77,7 @@ object PacketLogger : Module(
             write()
 
             runSafe {
-                MessageSendHelper.sendChatMessage("$chatName Log saved at ${TextFormatting.GREEN}${LambdaMod.PACKET_LOG_PATH}${filename}")
+                MessageSendHelper.sendChatMessage("$chatName Log saved at ${TextFormatting.GREEN}${FolderUtils.packetLogFolder}${filename}")
             }
         }
 
@@ -735,11 +736,11 @@ object PacketLogger : Module(
 
         defaultScope.launch(Dispatchers.IO) {
             try {
-                with(File(LambdaMod.PACKET_LOG_PATH)) {
+                with(File(FolderUtils.packetLogFolder)) {
                     if (!exists()) mkdir()
                 }
 
-                FileWriter("${LambdaMod.PACKET_LOG_PATH}${filename}", true).buffered().use {
+                FileWriter("${FolderUtils.packetLogFolder}${filename}", true).buffered().use {
                     for (line in lines) it.write(line)
                 }
             } catch (e: Exception) {

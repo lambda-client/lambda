@@ -12,6 +12,7 @@ import com.lambda.client.module.ModuleManager
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.plugin.PluginManager
 import com.lambda.client.setting.ConfigManager
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
@@ -233,7 +234,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 URL(remotePluginButton.downloadUrl).openStream().use { inputStream ->
                     Files.copy(
                         inputStream,
-                        Paths.get("${LambdaMod.PLUGIN_PATH}/${remotePluginButton.fileName}"),
+                        Paths.get("${FolderUtils.pluginFolder}/${remotePluginButton.fileName}"),
                         StandardCopyOption.REPLACE_EXISTING
                     )
                 }

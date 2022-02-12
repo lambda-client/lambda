@@ -1,10 +1,15 @@
-package com.lambda.client.util.filesystem
+package com.lambda.client.util
 
+import com.lambda.client.LambdaMod
 import java.awt.Desktop
 import java.io.File
 import java.net.URL
 
 object FolderUtils {
+    @JvmStatic
+    val minecraftFolder: String
+        get() = "${File("").absolutePath}${File.separator}"
+
     @JvmStatic
     val versionsFolder
         get() = "${minecraftFolder}versions${File.separator}"
@@ -13,23 +18,42 @@ object FolderUtils {
     val modsFolder
         get() = "${minecraftFolder}mods${File.separator}"
 
-    /**
-     * The Minecraft folder specific to the current operating system
-     */
-    private val minecraftFolder: String
-        get() = when (getOS()) {
-            OperatingSystem.UNIX -> System.getProperty("user.home") + "/.minecraft/"
-            OperatingSystem.OSX -> System.getProperty("user.home") + "/Library/Application Support/minecraft/"
-            OperatingSystem.WINDOWS -> System.getenv("APPDATA") + File.separator + ".minecraft" + File.separator
-        }
+    @JvmStatic
+    val logFolder
+        get() = "${minecraftFolder}logs${File.separator}"
+
+    @JvmStatic
+    val screenshotFolder
+        get() = "${minecraftFolder}screenshots${File.separator}"
+
+    @JvmStatic
+    val lambdaFolder
+        get() = "$minecraftFolder${LambdaMod.DIRECTORY}${File.separator}"
+
+    @JvmStatic
+    val pluginFolder
+        get() = "${lambdaFolder}plugins${File.separator}"
+
+    @JvmStatic
+    val packetLogFolder
+        get() = "${lambdaFolder}packet-logs${File.separator}"
+
+    @JvmStatic
+    val songFolder
+        get() = "${lambdaFolder}songs${File.separator}"
 
     /**
-     * Opens the given folder using the right library based on OS
+     * Opens the given path using the right library based on OS
      */
     fun openFolder(path: String) {
         Thread {
-            if (getOS() == OperatingSystem.WINDOWS) Desktop.getDesktop().open(File(path))
-            else Runtime.getRuntime().exec(getURLOpenCommand(File(path).toURI().toURL()))
+            val file = File(path)
+            if (!file.exists()) file.mkdir()
+            if (getOS() == OperatingSystem.WINDOWS) {
+                Desktop.getDesktop().open(file)
+            } else {
+                Runtime.getRuntime().exec(getURLOpenCommand(file.toURI().toURL()))
+            }
         }.start()
     }
 
@@ -62,7 +86,7 @@ object FolderUtils {
         }
     }
 
-    private enum class OperatingSystem {
+    enum class OperatingSystem {
         UNIX, OSX, WINDOWS
     }
 }

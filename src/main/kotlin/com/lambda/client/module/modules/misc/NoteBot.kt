@@ -1,6 +1,5 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderWorldEvent
@@ -8,6 +7,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
@@ -106,7 +106,7 @@ object NoteBot : Module(
 
     private fun loadSong() {
         defaultScope.launch(Dispatchers.IO) {
-            val path = "${LambdaMod.SONGS_PATH}$songName"
+            val path = "${FolderUtils.songFolder}$songName"
 
             try {
                 parse(path).let {
