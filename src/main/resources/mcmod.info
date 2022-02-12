@@ -2,9 +2,9 @@
   {
     "modid": "lambda",
     "name": "Lambda",
-    "description": "λ\nLambda is a free, open-source, Minecraft 1.12.2 utility mod made for the anarchy experience.\nA visionary plugin system that allows additional modules to be added, without the need to create a fork!\nCustomize your experience, and improve your efficiency!",
+    "description": "λ\nLambda v${version} is a free, open-source, Minecraft ${mcversion} utility mod made for the anarchy experience.\nA visionary plugin system that allows additional modules to be added, without the need to create a Lambda fork!\nCustomize your experience, and improve your efficiency!",
     "version": "${version}",
-    "mcversion": "1.12.2",
+    "mcversion": "${mcversion}",
     "url": "https://github.com/lambda-client/lambda",
     "updateUrl": "",
     "authorList": [

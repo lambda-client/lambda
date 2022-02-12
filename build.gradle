@@ -144,9 +144,13 @@ mixin {
 }
 
 processResources {
-    inputs.property 'version', project.version
-
     exclude '**/rawimagefiles'
+
+    from(sourceSets.main.resources.srcDirs) {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        include 'mcmod.info'
+        expand version: version, 'mcversion': minecraftVersion
+    }
 }
 
 task sourceJar(type: Jar) { // Generate sources
