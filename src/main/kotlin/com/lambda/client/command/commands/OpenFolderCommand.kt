@@ -11,7 +11,7 @@ object OpenFolderCommand : ClientCommand(
     init {
         literal("lambda") {
             execute {
-                FolderUtils.openFolder(FolderUtils.songFolder)
+                FolderUtils.openFolder(FolderUtils.lambdaFolder)
             }
         }
 
