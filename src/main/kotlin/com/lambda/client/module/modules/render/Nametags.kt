@@ -53,18 +53,19 @@ object Nametags : Module(
     private val players by setting("Players", true, { page == Page.ENTITY_TYPE })
     private val mobs by setting("Mobs", true, { page == Page.ENTITY_TYPE })
     private val passive by setting("Passive Mobs", false, { page == Page.ENTITY_TYPE && mobs })
+    private val tamable by setting("Tamable Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val neutral by setting("Neutral Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val hostile by setting("Hostile Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val invisible by setting("Invisible", true, { page == Page.ENTITY_TYPE })
     private val range by setting("Range", 64, 0..256, 4, { page == Page.ENTITY_TYPE })
 
     /* Content */
-    private val line1left by setting("Line 1 Left", ContentType.NONE, { page == Page.CONTENT })
-    private val line1center by setting("Line 1 Center", ContentType.NONE, { page == Page.CONTENT })
-    private val line1right by setting("Line 1 Right", ContentType.NONE, { page == Page.CONTENT })
-    private val line2left by setting("Line 2 Left", ContentType.NAME, { page == Page.CONTENT })
-    private val line2center by setting("Line 2 Center", ContentType.PING, { page == Page.CONTENT })
-    private val line2right by setting("Line 2 Right", ContentType.TOTAL_HP, { page == Page.CONTENT })
+    private val line1left = setting("Line 1 Left", ContentType.NONE, { page == Page.CONTENT })
+    private val line1center = setting("Line 1 Center", ContentType.NONE, { page == Page.CONTENT })
+    private val line1right = setting("Line 1 Right", ContentType.NONE, { page == Page.CONTENT })
+    private val line2left = setting("Line 2 Left", ContentType.NAME, { page == Page.CONTENT })
+    private val line2center = setting("Line 2 Center", ContentType.PING, { page == Page.CONTENT })
+    private val line2right = setting("Line 2 Right", ContentType.TOTAL_HP, { page == Page.CONTENT })
     private val dropItemCount by setting("Drop Item Count", true, { page == Page.CONTENT && items })
     private val maxDropItems by setting("Max Drop Items", 5, 2..16, 1, { page == Page.CONTENT && items })
 
@@ -93,7 +94,7 @@ object Nametags : Module(
     }
 
     private enum class ContentType {
-        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE
+        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE, ENTITY_ID
     }
 
     private val pingColorGradient = ColorGradient(
@@ -379,14 +380,14 @@ object Nametags : Module(
                 } else {
                     var isLine1Empty = true
                     for (contentType in line1Settings) {
-                        getContent(contentType, entity)?.let {
+                        getContent(contentType.value, entity)?.let {
                             textComponent.add(it)
                             isLine1Empty = false
                         }
                     }
                     if (!isLine1Empty) textComponent.currentLine++
                     for (contentType in line2Settings) {
-                        getContent(contentType, entity)?.let {
+                        getContent(contentType.value, entity)?.let {
                             textComponent.add(it)
                         }
                     }
@@ -442,6 +443,9 @@ object Nametags : Module(
             val dist = MathUtils.round(mc.player.getDistance(entity), 1).toString()
             TextComponent.TextElement("${dist}m", GuiColors.text)
         }
+        ContentType.ENTITY_ID -> {
+            TextComponent.TextElement("ID: ${entity.entityId}", GuiColors.text)
+        }
     }
 
     private fun getEntityType(entity: Entity) = entity.javaClass.simpleName.replace("Entity", "")
@@ -456,7 +460,7 @@ object Nametags : Module(
         && (!entity.isInvisible || invisible)
         && (entity is EntityXPOrb && experience
         || entity is EntityPlayer && players && EntityUtils.playerTypeCheck(entity, friend = true, sleeping = true)
-        || EntityUtils.mobTypeSettings(entity, mobs, passive, neutral, hostile))
+        || EntityUtils.mobTypeSettings(entity, mobs, passive, neutral, hostile, tamable))
 
     private class ItemGroup {
         private val itemSet = HashSet<EntityItem>()
@@ -522,7 +526,7 @@ object Nametags : Module(
                     if (remove) toRemove.add(entityItem)
                 }
             }
-            itemSet.removeAll(toRemove)
+            itemSet.removeAll(toRemove.toSet())
         }
 
         fun updateText() {

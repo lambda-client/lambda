@@ -2,8 +2,8 @@ package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
-import com.lambda.client.mixin.extension.moving
-import com.lambda.client.mixin.extension.y
+import com.lambda.client.mixin.extension.playerMoving
+import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
@@ -52,13 +52,13 @@ object Jesus : Module(
         }
 
         safeListener<PacketEvent.Send> {
-            if (it.packet !is CPacketPlayer || !it.packet.moving) return@safeListener
+            if (it.packet !is CPacketPlayer || !it.packet.playerMoving) return@safeListener
             if (mc.gameSettings.keyBindSneak.isKeyDown || player.ticksExisted % 2 != 0) return@safeListener
 
             val entity = player.ridingEntity ?: player
 
             if (EntityUtils.isAboveLiquid(entity, true) && !isInWater(entity)) {
-                it.packet.y += 0.02
+                it.packet.playerY += 0.02
             }
         }
     }

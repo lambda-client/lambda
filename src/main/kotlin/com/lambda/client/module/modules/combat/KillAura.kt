@@ -18,7 +18,7 @@ import com.lambda.client.util.math.RotationUtils.getRotationToEntityClosest
 import com.lambda.client.util.threads.safeListener
 import com.lambda.commons.interfaces.DisplayEnum
 import net.minecraft.entity.Entity
-import net.minecraft.entity.EntityLivingBase
+import net.minecraft.entity.projectile.EntityLargeFireball
 import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
@@ -40,6 +40,8 @@ object KillAura : Module(
     private val prefer by setting("Prefer", CombatUtils.PreferWeapon.SWORD, { autoWeapon })
     private val minSwapHealth by setting("Min Swap Health", 5.0f, 1.0f..20.0f, 0.5f)
     private val swapDelay by setting("Swap Delay", 10, 0..50, 1)
+    private val fireballs by setting("Target Fireballs", false)
+    private val fireballForceViewLock by setting("Force ViewLock", true, { fireballs }, description = "Only applies to fireballs")
     val range by setting("Range", 4.0f, 0.0f..6.0f, 0.1f)
 
     private val timer = TickTimer(TimeUnit.TICKS)
@@ -75,13 +77,16 @@ object KillAura : Module(
                 if (disableOnDeath) disable()
                 return@safeListener
             }
-            val target = CombatManager.target ?: return@safeListener
+            val target = getFireball() ?: CombatManager.target ?: return@safeListener
 
             if (!CombatManager.isOnTopPriority(KillAura) || CombatSetting.pause) return@safeListener
-            if (player.getDistance(target) >= range) return@safeListener
-            if (player.scaledHealth > minSwapHealth && autoWeapon) equipBestWeapon(prefer)
-            if (weaponOnly && !player.heldItemMainhand.item.isWeapon) return@safeListener
-            if (swapDelay > 0 && System.currentTimeMillis() - HotbarManager.swapTime < swapDelay * 50L) return@safeListener
+
+            if (target !is EntityLargeFireball) {
+                if (player.getDistance(target) >= range) return@safeListener
+                if (player.scaledHealth > minSwapHealth && autoWeapon) equipBestWeapon(prefer)
+                if (weaponOnly && !player.heldItemMainhand.item.isWeapon) return@safeListener
+                if (swapDelay > 0 && System.currentTimeMillis() - HotbarManager.swapTime < swapDelay * 50L) return@safeListener
+            }
 
             inactiveTicks = 0
             rotate(target)
@@ -89,7 +94,17 @@ object KillAura : Module(
         }
     }
 
-    private fun SafeClientEvent.rotate(target: EntityLivingBase) {
+    private fun SafeClientEvent.getFireball(): EntityLargeFireball? {
+        if (!fireballs) return null
+        return world.loadedEntityList.firstOrNull { it is EntityLargeFireball && player.getDistance(it) < range } as EntityLargeFireball?
+    }
+
+    private fun SafeClientEvent.rotate(target: Entity) {
+        if (fireballForceViewLock && target is EntityLargeFireball) {
+            faceEntityClosest(target)
+            return
+        }
+
         when (rotationMode) {
             RotationMode.SPOOF -> {
                 sendPlayerPacket {

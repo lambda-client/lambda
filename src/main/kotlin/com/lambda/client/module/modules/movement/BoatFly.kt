@@ -2,8 +2,8 @@ package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
-import com.lambda.client.mixin.extension.rotationPitch
-import com.lambda.client.mixin.extension.rotationYaw
+import com.lambda.client.mixin.extension.playerPosLookPitch
+import com.lambda.client.mixin.extension.playerPosLookYaw
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.steerEntity
@@ -73,7 +73,7 @@ object BoatFly : Module(
                 is SPacketSetPassengers -> {
                     if (remount) {
                         world.getEntityByID(it.packet.entityId)?.let { entity ->
-                            if ((it.packet.passengerIds.isEmpty())
+                            if (!it.packet.passengerIds.contains(player.entityId)
                                 && ridingEntity.entityId == it.packet.entityId) {
                                 if (teleportSpoof) it.cancel()
                                 connection.sendPacket(CPacketUseEntity(entity, EnumHand.OFF_HAND))
@@ -89,8 +89,8 @@ object BoatFly : Module(
                 }
                 is SPacketPlayerPosLook -> {
                     if (antiForceLook) {
-                        it.packet.rotationYaw = player.rotationYaw
-                        it.packet.rotationPitch = player.rotationPitch
+                        it.packet.playerPosLookYaw = player.rotationYaw
+                        it.packet.playerPosLookPitch = player.rotationPitch
                     }
                 }
                 is SPacketEntityTeleport -> {

@@ -5,6 +5,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.plugin.api.Plugin
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
@@ -19,9 +20,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     val loadedPlugins = NameableSet<Plugin>()
     val loadedPluginLoader = NameableSet<PluginLoader>()
 
-    const val pluginPath = "${LambdaMod.DIRECTORY}plugins/"
-
-    private val lambdaVersion = DefaultArtifactVersion(LambdaMod.VERSION_MAJOR)
+    private val lambdaVersion = DefaultArtifactVersion(LambdaMod.VERSION)
 
     override fun preLoad0() = checkPluginLoaders(getLoaders())
 
@@ -30,7 +29,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     }
 
     fun getLoaders(): List<PluginLoader> {
-        val dir = File(pluginPath)
+        val dir = File(FolderUtils.pluginFolder)
         if (!dir.exists()) dir.mkdir()
 
         val files = dir.listFiles() ?: return emptyList()

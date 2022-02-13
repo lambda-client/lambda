@@ -27,11 +27,12 @@ object MobOwner : Module(
             for (entity in world.loadedEntityList) {
                 /* Non Horse types, such as wolves */
                 if (entity is EntityTameable) {
-                    val owner = entity.owner
-                    if (!entity.isTamed || owner == null) continue
+                    val ownerUUID = entity.ownerId
+                    if (!entity.isTamed || ownerUUID == null) continue
 
+                    val ownerName = UUIDManager.getByUUID(ownerUUID)?.name ?: invalidText
                     entity.alwaysRenderNameTag = true
-                    entity.customNameTag = "Owner: " + owner.displayName.formattedText + getHealth(entity)
+                    entity.customNameTag = "Owner: " + ownerName + getHealth(entity)
                 }
 
                 if (entity is AbstractHorse) {

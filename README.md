@@ -11,16 +11,20 @@
 <img src="https://img.shields.io/github/repo-size/lambda-client/lambda.svg" alt="GitHub repo size"/>
 <img src="https://tokei.rs/b1/github/lambda-client/lambda?category=code" alt="Lines of Code"/>
 
-Lambda is a free, open-source, Minecraft 1.12.2 utility mod providing a visionary system for plugins that allow customizing the clients features thanks to an ingame plugin store.
+Lambda is a free, open-source, Minecraft 1.12.2 utility mod made for the anarchy experience.
+A visionary plugin system that allows additional modules to be added, without the need to create a fork!
+Customize your experience, and improve your efficiency!
+
+Find our plugins [here](https://github.com/lambda-plugins).
 
 <p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar"><img alt="lambda-2.07.01.jar - July 1, 2021 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button.png" width="540" height="140"></a>
+    <a href="https://github.com/lambda-client/lambda/releases/download/3.0.1/lambda-3.0.1.jar"><img alt="lambda-3.0.1.jar - 6. January, 2022 - 12.0 Mb" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.0.1.png" width="70%" height="70%"></a>
 </p>
 
 ## Installation
 1. Install Minecraft 1.12.2
 2. Install Forge
-3. Download the mod file [here](https://github.com/lambda-client/lambda/releases/download/2.07.01/lambda-2.07.01.jar)
+3. Download the mod file [here](https://github.com/lambda-client/lambda/releases/download/3.0.1/lambda-3.0.1.jar)
 4. Put the file in your `.minecraft/mods` folder
 
 ## FAQ
@@ -72,6 +76,10 @@ How do I...
 > Run the command `;set clickgui scale 100`
 
 </details>
+
+<p align="center">
+    <img alt="" src="https://raw.githubusercontent.com/lambda-client/assets/main/footer.png">
+</p>
 
 ## Contributing
 
