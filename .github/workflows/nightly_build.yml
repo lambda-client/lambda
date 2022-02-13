@@ -35,6 +35,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Prepare workspace
+        run: ./gradlew --no-daemon classes
+
       - name : Build forge mod
         run : ./gradlew --build-cache build
 
