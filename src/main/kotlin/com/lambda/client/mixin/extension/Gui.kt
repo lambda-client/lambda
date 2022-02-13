@@ -1,9 +1,9 @@
 package com.lambda.client.mixin.extension
 
-import com.lambda.client.mixin.client.accessor.gui.AccessorGuiBossOverlay
-import com.lambda.client.mixin.client.accessor.gui.AccessorGuiChat
-import com.lambda.client.mixin.client.accessor.gui.AccessorGuiDisconnected
-import com.lambda.client.mixin.client.accessor.gui.AccessorGuiEditSign
+import com.lambda.mixin.accessor.gui.AccessorGuiBossOverlay
+import com.lambda.mixin.accessor.gui.AccessorGuiChat
+import com.lambda.mixin.accessor.gui.AccessorGuiDisconnected
+import com.lambda.mixin.accessor.gui.AccessorGuiEditSign
 import net.minecraft.client.gui.*
 import net.minecraft.client.gui.inventory.GuiEditSign
 import net.minecraft.tileentity.TileEntitySign

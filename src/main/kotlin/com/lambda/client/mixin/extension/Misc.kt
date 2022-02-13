@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.extension
 
-import com.lambda.client.mixin.client.accessor.*
+import com.lambda.mixin.accessor.*
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase

@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.mixin.client.gui.MixinGuiScreen
+import com.lambda.mixin.gui.MixinGuiScreen
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.GuiColors

@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.extension
 
-import com.lambda.client.mixin.client.accessor.player.AccessorPlayerControllerMP
+import com.lambda.mixin.accessor.player.AccessorPlayerControllerMP
 import net.minecraft.client.multiplayer.PlayerControllerMP
 
 var PlayerControllerMP.blockHitDelay: Int

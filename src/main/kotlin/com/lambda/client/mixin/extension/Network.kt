@@ -1,6 +1,6 @@
 package com.lambda.client.mixin.extension
 
-import com.lambda.client.mixin.client.accessor.network.*
+import com.lambda.mixin.accessor.network.*
 import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.SPacketChat
 import net.minecraft.network.play.server.SPacketEntityVelocity

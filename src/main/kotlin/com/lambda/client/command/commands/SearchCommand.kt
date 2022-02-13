@@ -20,7 +20,6 @@ object SearchCommand : ClientCommand(
                         val blockName = blockArg.value.registryName.toString()
                         addBlock(blockName)
                     }
-
                 }
 
                 execute("Add a block to search list") {

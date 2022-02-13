@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.mixin.client.entity.MixinEntity
+import com.lambda.mixin.entity.MixinEntity
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.Scaffold

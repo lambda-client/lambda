@@ -5,6 +5,7 @@ import com.lambda.client.plugin.PluginLoader
 import com.lambda.client.plugin.PluginManager
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
 import java.io.File
@@ -18,7 +19,7 @@ object PluginCommand : ClientCommand(
             string("jar name") { nameArg ->
                 execute {
                     val name = "${nameArg.value.removeSuffix(".jar")}.jar"
-                    val file = File("${PluginManager.pluginPath}$name")
+                    val file = File("${FolderUtils.pluginFolder}$name")
 
                     if (!file.exists()) {
                         MessageSendHelper.sendErrorMessage("${formatValue(name)} is not a valid jar file name!")

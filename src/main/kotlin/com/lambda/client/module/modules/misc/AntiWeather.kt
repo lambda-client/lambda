@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.mixin.client.world.MixinWorld
+import com.lambda.mixin.world.MixinWorld
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 

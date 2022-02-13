@@ -8,6 +8,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
@@ -20,6 +21,7 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.*
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.io.File
 import java.io.FileWriter
@@ -48,7 +50,6 @@ object PacketLogger : Module(
     private var lastTick = 0L
     private val timer = TickTimer(TimeUnit.SECONDS)
 
-    private const val directory = "${LambdaMod.DIRECTORY}packetLogs"
     private var filename = ""
     private var lines = ArrayList<String>()
 
@@ -76,7 +77,7 @@ object PacketLogger : Module(
             write()
 
             runSafe {
-                MessageSendHelper.sendChatMessage("$chatName Log saved at $directory/${filename}")
+                MessageSendHelper.sendChatMessage("$chatName Log saved at ${TextFormatting.GREEN}${FolderUtils.packetLogFolder}${filename}")
             }
         }
 
@@ -735,11 +736,11 @@ object PacketLogger : Module(
 
         defaultScope.launch(Dispatchers.IO) {
             try {
-                with(File(directory)) {
+                with(File(FolderUtils.packetLogFolder)) {
                     if (!exists()) mkdir()
                 }
 
-                FileWriter("$directory/${filename}", true).buffered().use {
+                FileWriter("${FolderUtils.packetLogFolder}${filename}", true).buffered().use {
                     for (line in lines) it.write(line)
                 }
             } catch (e: Exception) {

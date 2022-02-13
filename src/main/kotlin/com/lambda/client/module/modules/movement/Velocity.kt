@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.mixin.client.entity.MixinEntity
-import com.lambda.client.mixin.client.world.MixinBlockLiquid
+import com.lambda.mixin.entity.MixinEntity
+import com.lambda.mixin.world.MixinBlockLiquid
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module

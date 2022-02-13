@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.player
 
-import com.lambda.client.mixin.client.MixinMinecraft
-import com.lambda.client.mixin.client.render.MixinEntityRenderer
-import com.lambda.client.mixin.client.world.MixinBlockLiquid
+import com.lambda.mixin.MixinMinecraft
+import com.lambda.mixin.render.MixinEntityRenderer
+import com.lambda.mixin.world.MixinBlockLiquid
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import net.minecraft.item.ItemBlock
