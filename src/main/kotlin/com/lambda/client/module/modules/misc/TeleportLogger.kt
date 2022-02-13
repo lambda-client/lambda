@@ -6,7 +6,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.isFakeOrSelf
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.utils.MathUtils
+import com.lambda.client.commons.utils.MathUtils
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 

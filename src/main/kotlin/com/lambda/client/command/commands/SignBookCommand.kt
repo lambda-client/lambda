@@ -5,7 +5,7 @@ import com.lambda.client.util.items.itemPayload
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.text.formatValue
-import com.lambda.commons.extension.max
+import com.lambda.client.commons.extension.max
 import net.minecraft.item.ItemWritableBook
 import net.minecraft.nbt.NBTTagList
 import net.minecraft.nbt.NBTTagString

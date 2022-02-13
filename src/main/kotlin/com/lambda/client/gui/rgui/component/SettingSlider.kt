@@ -9,7 +9,7 @@ import com.lambda.client.setting.settings.impl.number.NumberSetting
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
-import com.lambda.commons.utils.MathUtils
+import com.lambda.client.commons.utils.MathUtils
 import org.lwjgl.input.Keyboard
 import kotlin.math.abs
 import kotlin.math.floor

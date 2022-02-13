@@ -18,10 +18,10 @@ import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.floorToInt
-import com.lambda.commons.extension.toRadian
-import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.commons.extension.toRadian
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP

@@ -8,7 +8,7 @@ import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
-import com.lambda.commons.interfaces.Nameable
+import com.lambda.client.commons.interfaces.Nameable
 
 /**
  * Window with rectangle rendering

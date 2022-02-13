@@ -17,13 +17,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Check out submodules
-        uses: snickerbockers/submodules-init@v4
-
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
+
+      - name: Fix wrapper permissions
+        run: chmod +x ./gradlew
 
       - name: Gradle cache
         uses: actions/cache@v2
@@ -31,12 +31,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-${{ hashFiles('**/*.gradle*') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-${{ secrets.CACHE_VERSION }}-
-
-      - name: Prepare workspace
-        run: ./gradlew --no-daemon classes
+            ${{ runner.os }}-gradle-
 
       - name : Build forge mod
         run : ./gradlew --build-cache build

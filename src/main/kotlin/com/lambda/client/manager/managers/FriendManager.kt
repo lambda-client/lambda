@@ -3,11 +3,11 @@ package com.lambda.client.manager.managers
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
-import com.lambda.capeapi.PlayerProfile
+import com.lambda.client.capeapi.PlayerProfile
 import com.lambda.client.LambdaMod
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
-import com.lambda.commons.extension.synchronized
+import com.lambda.client.commons.extension.synchronized
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter

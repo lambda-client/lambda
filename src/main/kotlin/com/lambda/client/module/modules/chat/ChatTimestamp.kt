@@ -6,7 +6,7 @@ import com.lambda.client.util.TimeUtils
 import com.lambda.client.util.color.EnumTextColor
 import com.lambda.client.util.text.format
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.interfaces.DisplayEnum
+import com.lambda.client.commons.interfaces.DisplayEnum
 import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 

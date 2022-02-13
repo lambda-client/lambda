@@ -6,7 +6,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.SpamFilters
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 import java.util.concurrent.ConcurrentHashMap

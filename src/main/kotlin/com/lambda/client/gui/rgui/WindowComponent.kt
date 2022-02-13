@@ -6,7 +6,7 @@ import com.lambda.client.util.graphics.AnimationUtils
 import com.lambda.client.util.graphics.font.HAlign
 import com.lambda.client.util.graphics.font.VAlign
 import com.lambda.client.util.math.Vec2f
-import com.lambda.commons.interfaces.Nameable
+import com.lambda.client.commons.interfaces.Nameable
 import kotlin.math.max
 import kotlin.math.min
 

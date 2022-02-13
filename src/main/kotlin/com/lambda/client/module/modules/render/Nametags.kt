@@ -16,10 +16,10 @@ import com.lambda.client.util.graphics.font.*
 import com.lambda.client.util.items.originalName
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.ceilToInt
-import com.lambda.commons.extension.floorToInt
-import com.lambda.commons.utils.MathUtils
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.entity.Entity

@@ -10,8 +10,8 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.text.formatValue
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.synchronized
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.event.listener.listener
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent

@@ -1,6 +1,6 @@
 package com.lambda.client.util.graphics.font
 
-import com.lambda.commons.interfaces.DisplayEnum
+import com.lambda.client.commons.interfaces.DisplayEnum
 
 enum class HAlign(override val displayName: String, val multiplier: Float, val offset: Float) : DisplayEnum {
     LEFT("Left", 0.0f, -1.0f),

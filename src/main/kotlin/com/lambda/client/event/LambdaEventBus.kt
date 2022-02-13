@@ -1,9 +1,9 @@
 package com.lambda.client.event
 
 import com.lambda.client.util.Wrapper
-import com.lambda.event.eventbus.AbstractAsyncEventBus
-import com.lambda.event.listener.AsyncListener
-import com.lambda.event.listener.Listener
+import com.lambda.client.event.eventbus.AbstractAsyncEventBus
+import com.lambda.client.event.listener.AsyncListener
+import com.lambda.client.event.listener.Listener
 import io.netty.util.internal.ConcurrentSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

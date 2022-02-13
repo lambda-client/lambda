@@ -11,8 +11,8 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.color.HueCycler
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.utils.MathUtils.convertRange
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.utils.MathUtils.convertRange
+import com.lambda.client.event.listener.listener
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent

@@ -4,8 +4,8 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.Plugin
-import com.lambda.commons.interfaces.Nameable
-import com.lambda.commons.utils.ClassUtils.instance
+import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.commons.utils.ClassUtils.instance
 import java.io.File
 import java.io.FileNotFoundException
 import java.lang.reflect.Type

@@ -12,7 +12,7 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemStack

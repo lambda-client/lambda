@@ -2,7 +2,7 @@ package com.lambda.client.setting
 
 import com.lambda.client.LambdaMod
 import com.lambda.client.setting.configs.IConfig
-import com.lambda.commons.collections.NameableSet
+import com.lambda.client.commons.collections.NameableSet
 
 internal object ConfigManager {
     private val configSet = NameableSet<IConfig>()

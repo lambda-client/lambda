@@ -10,7 +10,7 @@ import com.lambda.client.util.color.HueCycler
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
 import com.lambda.client.util.threads.safeAsyncListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch

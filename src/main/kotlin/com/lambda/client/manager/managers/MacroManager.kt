@@ -7,7 +7,7 @@ import com.lambda.client.command.CommandManager
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Keyboard
 import java.io.File

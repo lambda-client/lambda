@@ -19,8 +19,8 @@ import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.utils.MathUtils
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.event.listener.listener
 import net.minecraft.init.Items
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumHand

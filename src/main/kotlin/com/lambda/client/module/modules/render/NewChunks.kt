@@ -19,7 +19,7 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeAsyncListener
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.asyncListener
+import com.lambda.client.event.listener.asyncListener
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.network.play.server.SPacketChunkData

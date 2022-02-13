@@ -12,8 +12,8 @@ import com.lambda.client.setting.settings.impl.other.BindSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.commons.interfaces.Alias
-import com.lambda.commons.interfaces.Nameable
+import com.lambda.client.commons.interfaces.Alias
+import com.lambda.client.commons.interfaces.Nameable
 import net.minecraft.client.Minecraft
 
 @Suppress("UNCHECKED_CAST")

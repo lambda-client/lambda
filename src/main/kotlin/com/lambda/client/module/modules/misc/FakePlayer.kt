@@ -11,7 +11,7 @@ import com.lambda.client.util.text.formatValue
 import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.runSafeR
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import com.mojang.authlib.GameProfile
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.entity.EntityOtherPlayerMP

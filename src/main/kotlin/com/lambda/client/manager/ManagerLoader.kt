@@ -3,8 +3,8 @@ package com.lambda.client.manager
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.StopTimer
-import com.lambda.commons.utils.ClassUtils
-import com.lambda.commons.utils.ClassUtils.instance
+import com.lambda.client.commons.utils.ClassUtils
+import com.lambda.client.commons.utils.ClassUtils.instance
 import kotlinx.coroutines.Deferred
 
 internal object ManagerLoader : com.lambda.client.AsyncLoader<List<Class<out Manager>>> {

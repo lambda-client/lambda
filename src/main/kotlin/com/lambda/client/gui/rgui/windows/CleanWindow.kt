@@ -3,7 +3,7 @@ package com.lambda.client.gui.rgui.windows
 import com.lambda.client.gui.rgui.WindowComponent
 import com.lambda.client.setting.GuiConfig
 import com.lambda.client.setting.configs.AbstractConfig
-import com.lambda.commons.interfaces.Nameable
+import com.lambda.client.commons.interfaces.Nameable
 
 /**
  * Window with no rendering

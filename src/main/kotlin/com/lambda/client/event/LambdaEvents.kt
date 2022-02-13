@@ -1,7 +1,7 @@
 package com.lambda.client.event
 
-import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.eventbus.IEventBus
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.event.eventbus.IEventBus
 
 interface Event
 

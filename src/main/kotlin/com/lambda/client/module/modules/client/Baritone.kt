@@ -9,7 +9,7 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.util.math.BlockPos
 
 object Baritone : Module(

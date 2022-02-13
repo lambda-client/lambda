@@ -3,7 +3,7 @@ package com.lambda.client.util
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
 import com.lambda.client.util.threads.mainScope
-import com.lambda.commons.utils.ConnectionUtils
+import com.lambda.client.commons.utils.ConnectionUtils
 import kotlinx.coroutines.launch
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.awt.Desktop

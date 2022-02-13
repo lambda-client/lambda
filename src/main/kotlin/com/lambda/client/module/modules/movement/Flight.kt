@@ -11,7 +11,7 @@ import com.lambda.client.util.MovementUtils
 import com.lambda.client.util.MovementUtils.calcMoveYaw
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketCloseWindow
 import kotlin.math.cos

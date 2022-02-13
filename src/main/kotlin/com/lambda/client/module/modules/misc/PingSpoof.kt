@@ -5,7 +5,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.onMainThreadSafe
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.network.play.client.CPacketKeepAlive

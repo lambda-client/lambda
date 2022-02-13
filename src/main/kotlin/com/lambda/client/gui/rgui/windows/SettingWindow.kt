@@ -11,7 +11,7 @@ import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
-import com.lambda.commons.extension.sumByFloat
+import com.lambda.client.commons.extension.sumByFloat
 import org.lwjgl.input.Keyboard
 
 abstract class SettingWindow<T : Any>(

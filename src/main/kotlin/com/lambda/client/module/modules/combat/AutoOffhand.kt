@@ -14,7 +14,7 @@ import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.*
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.next
+import com.lambda.client.commons.extension.next
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityMob

@@ -4,7 +4,7 @@ import com.lambda.client.manager.managers.MessageManager.newMessageModifier
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
-import com.lambda.commons.utils.MathUtils
+import com.lambda.client.commons.utils.MathUtils
 import kotlin.math.min
 
 object FancyChat : Module(

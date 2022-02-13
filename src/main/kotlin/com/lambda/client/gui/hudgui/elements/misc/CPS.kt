@@ -5,7 +5,7 @@ import com.lambda.client.event.events.RunGameLoopEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.graphics.AnimationUtils
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Mouse
 

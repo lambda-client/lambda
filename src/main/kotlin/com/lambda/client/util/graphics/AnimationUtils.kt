@@ -1,6 +1,6 @@
 package com.lambda.client.util.graphics
 
-import com.lambda.commons.utils.MathUtils
+import com.lambda.client.commons.utils.MathUtils
 import kotlin.math.*
 
 object AnimationUtils {

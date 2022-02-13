@@ -6,7 +6,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
-import com.lambda.commons.utils.ConnectionUtils
+import com.lambda.client.commons.utils.ConnectionUtils
 
 object CreditsCommand : ClientCommand(
     name = "credits",

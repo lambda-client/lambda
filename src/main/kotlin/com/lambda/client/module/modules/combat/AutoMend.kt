@@ -15,8 +15,8 @@ import com.lambda.client.util.items.swapToSlot
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.utils.MathUtils.reverseNumber
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.utils.MathUtils.reverseNumber
+import com.lambda.client.event.listener.listener
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Enchantments

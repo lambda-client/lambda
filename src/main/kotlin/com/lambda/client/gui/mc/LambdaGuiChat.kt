@@ -9,9 +9,9 @@ import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.defaultScope
-import com.lambda.command.args.AbstractArg
-import com.lambda.command.args.AutoComplete
-import com.lambda.command.args.GreedyStringArg
+import com.lambda.client.command.args.AbstractArg
+import com.lambda.client.command.args.AutoComplete
+import com.lambda.client.command.args.GreedyStringArg
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiChat
 import org.lwjgl.input.Keyboard
