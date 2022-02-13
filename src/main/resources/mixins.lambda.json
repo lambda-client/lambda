@@ -1,7 +1,7 @@
 {
   "required": true,
   "compatibilityLevel": "JAVA_8",
-  "package": "com.lambda.client.mixin.client",
+  "package": "com.lambda.mixin",
   "refmap": "mixins.lambda.refmap.json",
   "client": [
     "MixinElytraSound",

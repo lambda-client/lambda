@@ -2,8 +2,8 @@ package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.mixin.client.world.MixinBlockSoulSand
-import com.lambda.client.mixin.client.world.MixinBlockWeb
+import com.lambda.mixin.world.MixinBlockSoulSand
+import com.lambda.mixin.world.MixinBlockWeb
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.flooredPosition

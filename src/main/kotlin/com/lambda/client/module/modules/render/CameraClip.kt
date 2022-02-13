@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.mixin.client.render.MixinEntityRenderer
+import com.lambda.mixin.render.MixinEntityRenderer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 

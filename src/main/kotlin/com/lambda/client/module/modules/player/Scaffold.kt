@@ -9,7 +9,7 @@ import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.client.mixin.client.entity.MixinEntity
+import com.lambda.mixin.entity.MixinEntity
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module

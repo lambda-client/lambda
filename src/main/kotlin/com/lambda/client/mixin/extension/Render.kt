@@ -1,9 +1,9 @@
 package com.lambda.client.mixin.extension
 
-import com.lambda.client.mixin.client.accessor.render.AccessorRenderGlobal
-import com.lambda.client.mixin.client.accessor.render.AccessorRenderManager
-import com.lambda.client.mixin.client.accessor.render.AccessorShaderGroup
-import com.lambda.client.mixin.client.accessor.render.AccessorViewFrustum
+import com.lambda.mixin.accessor.render.AccessorRenderGlobal
+import com.lambda.mixin.accessor.render.AccessorRenderManager
+import com.lambda.mixin.accessor.render.AccessorShaderGroup
+import com.lambda.mixin.accessor.render.AccessorViewFrustum
 import net.minecraft.client.renderer.RenderGlobal
 import net.minecraft.client.renderer.ViewFrustum
 import net.minecraft.client.renderer.entity.RenderManager

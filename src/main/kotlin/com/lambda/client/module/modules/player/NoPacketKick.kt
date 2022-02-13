@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.player
 
-import com.lambda.client.mixin.client.network.MixinNetworkManager
+import com.lambda.mixin.network.MixinNetworkManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageSendHelper.sendWarningMessage
