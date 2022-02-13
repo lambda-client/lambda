@@ -38,8 +38,8 @@ jobs:
       - name: Prepare workspace
         run: ./gradlew --no-daemon classes
 
-      - name : Build forge mod
-        run : ./gradlew --build-cache build
+      - name: Build forge mod
+        run: ./gradlew --build-cache build
 
       - name: Rename built forge mod
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
