@@ -50,7 +50,7 @@ class PluginLoader(
             toString()
         }
 
-        // ToDo: Do no spam when in Lambda menu
+        // ToDo: Use plugin database to verify trusted files
 //        LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
 
         return checksumSets.contains(result)
