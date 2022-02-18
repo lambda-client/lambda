@@ -29,7 +29,7 @@ class PluginLoader(
         // In order to make sure all required infos are present
         info.toString()
 
-        if (!info.hotReload) {
+        if (info.mixins.isNotEmpty()) {
             Launch.classLoader.addURL(file.toURI().toURL())
             // May not be necessary, a consistency thing for now
             closeWithoutCheck()
@@ -57,7 +57,7 @@ class PluginLoader(
     }
 
     fun load(): Plugin {
-        if (LambdaMod.ready && !info.hotReload) {
+        if (LambdaMod.ready && info.mixins.isNotEmpty()) {
             throw IllegalAccessException("Plugin $this cannot be hot reloaded!")
         }
 
@@ -76,7 +76,7 @@ class PluginLoader(
     }
 
     fun close() {
-        if (info.hotReload) {
+        if (info.mixins.isEmpty()) {
             closeWithoutCheck()
         }
     }

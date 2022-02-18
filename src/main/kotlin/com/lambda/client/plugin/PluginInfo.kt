@@ -15,7 +15,7 @@ class PluginInfo private constructor(
     @SerializedName("min_api_version") private val minApiVersion0: String?,
     @SerializedName("required_plugins") private val requiredPlugins0: Array<String>?,
     @SerializedName("main_class") private val mainClass0: String?,
-    @SerializedName("hot_reload") private val hotReload0: Boolean?
+    @SerializedName("mixins") private val mixins0: Array<String>?
 ) : Nameable {
 
     /** The name of the plugin, will be used as both an identifier and a display name */
@@ -43,7 +43,7 @@ class PluginInfo private constructor(
     val mainClass: String get() = mainClass0.nonBlank("main_class")
 
     /** Whether this plugin can be hot reloaded or not, this should be false if the plugin uses mixin */
-    val hotReload: Boolean get() = hotReload0 ?: true
+    val mixins: Array<String> get() = mixins0 ?: mixinsNull
 
     private fun String?.nonBlank(name: String = "String") =
         when {
@@ -71,6 +71,7 @@ class PluginInfo private constructor(
         private const val descriptionNull: String = "No Description"
         private const val urlNull: String = "No Url"
         private val requiredPluginsNull: Array<String> = emptyArray()
+        private val mixinsNull: Array<String> = emptyArray()
 
         private val gson = Gson()
 

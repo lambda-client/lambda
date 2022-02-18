@@ -69,7 +69,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         for (loader in loaders) {
             // Hot reload check, the error shouldn't be show when reload in game
-            if (LambdaMod.ready && !loader.info.hotReload) {
+            if (LambdaMod.ready && loader.info.mixins.isNotEmpty()) {
                 invalids.add(loader)
             }
 
@@ -139,7 +139,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     fun load(loader: PluginLoader) {
         synchronized(this) {
-            val hotReload = LambdaMod.ready && !loader.info.hotReload
+            val hotReload = LambdaMod.ready && loader.info.mixins.isNotEmpty()
             val duplicate = loadedPlugins.containsName(loader.name)
             val unsupported = DefaultArtifactVersion(loader.info.minApiVersion) > lambdaVersion
             val missing = !loadedPlugins.containsNames(loader.info.requiredPlugins)
@@ -172,7 +172,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
                 return
             }
 
-            val hotReload = plugin.hotReload
+            val hotReload = plugin.mixins.isEmpty()
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
@@ -203,7 +203,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     }
 
     fun unloadAll() {
-        loadedPlugins.filter { it.hotReload }.forEach(PluginManager::unloadWithoutCheck)
+        loadedPlugins.filter { it.mixins.isEmpty() }.forEach(PluginManager::unloadWithoutCheck)
 
         LambdaMod.LOG.info("Unloaded all plugins!")
     }
@@ -218,7 +218,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     private fun unloadWithoutCheck(plugin: Plugin): Boolean {
         // Necessary because of plugin GUI
-        if (!plugin.hotReload) {
+        if (plugin.mixins.isNotEmpty()) {
             PluginError.log("Plugin ${plugin.name} cannot be hot reloaded!")
             return false
         }

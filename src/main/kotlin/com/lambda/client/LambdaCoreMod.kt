@@ -2,14 +2,13 @@ package com.lambda.client
 
 import com.lambda.client.plugin.PluginManager
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin
-import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin.MCVersion
 import org.apache.logging.log4j.LogManager
 import org.spongepowered.asm.launch.MixinBootstrap
 import org.spongepowered.asm.mixin.MixinEnvironment
 import org.spongepowered.asm.mixin.Mixins
 
 @IFMLLoadingPlugin.Name("LambdaCoreMod")
-@MCVersion("1.12.2")
+@IFMLLoadingPlugin.MCVersion("1.12.2")
 class LambdaCoreMod : IFMLLoadingPlugin {
     override fun getASMTransformerClass(): Array<String> {
         return emptyArray()
@@ -23,7 +22,6 @@ class LambdaCoreMod : IFMLLoadingPlugin {
         return null
     }
 
-
     override fun injectData(data: Map<String, Any>) {}
 
     override fun getAccessTransformerClass(): String? {
@@ -36,11 +34,12 @@ class LambdaCoreMod : IFMLLoadingPlugin {
         MixinBootstrap.init()
         Mixins.addConfigurations("mixins.lambda.json", "mixins.baritone.json")
 
-        PluginManager.getLoaders().forEach {
-            if (!it.info.hotReload) {
-                Mixins.addConfiguration("mixins.${it.name}.json")
+        PluginManager.getLoaders()
+            .filter { it.info.mixins.isNotEmpty() }
+            .forEach {
+                logger.info("Initialised mixins of ${it.info.name}.")
+                Mixins.addConfigurations(*it.info.mixins)
             }
-        }
 
         MixinEnvironment.getDefaultEnvironment().obfuscationContext = "searge"
         logger.info("Lambda and Baritone mixins initialised.")
