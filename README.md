@@ -71,7 +71,7 @@ How do I...
   <summary>... fix problems with Gradle?</summary>
 
 > Make sure you have a Java 8 JDK installed and in your PATH.
-We recommend using the [Termurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) variant of OpenJDK 
+We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) variant of OpenJDK 
 
 </details>
 
