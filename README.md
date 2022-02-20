@@ -2,14 +2,12 @@
     <img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%">
 </p>
 
-![GitHub All Releases](https://img.shields.io/github/downloads/lambda-client/lambda/total)
-[![CodeFactor](https://www.codefactor.io/repository/github/lambda-client/lambda/badge)](https://www.codefactor.io/repository/github/lambda-client/lambda)
-[![build](https://github.com/lambda-client/lambda/workflows/gradle_build/badge.svg)](https://github.com/lambda-client/lambda/actions)
-[![Discord Mine](https://img.shields.io/discord/834570721070022687?label=chat&logo=discord&logoColor=white)](https://discord.gg/QjfBxJzE5x)
-![minecraft](https://img.shields.io/badge/Minecraft-1.12.2-blue.svg)
-<img src="https://img.shields.io/github/languages/code-size/lambda-client/lambda.svg" alt="Code size"/>
-<img src="https://img.shields.io/github/repo-size/lambda-client/lambda.svg" alt="GitHub repo size"/>
-<img src="https://tokei.rs/b1/github/lambda-client/lambda?category=code" alt="Lines of Code"/>
+![GitHub all releases](https://img.shields.io/github/downloads/lambda-client/lambda/total?color=seagreen)
+![CodeFactor grade](https://img.shields.io/codefactor/grade/github/lambda-client/lambda?color=royalblue)
+![GitHub workflow status](https://img.shields.io/github/workflow/status/lambda-client/lambda/gradle_build?logo=gradle)
+[![Discord](https://img.shields.io/discord/834570721070022687?color=skyblue&logo=discord&logoColor=white)](https://discord.gg/QjfBxJzE5x)
+![GitHub repo size](https://img.shields.io/github/repo-size/lambda-client/lambda)
+![Lines of code](https://img.shields.io/tokei/lines/github/lambda-client/lambda?color=lightcoral&label=lines%20of%20code)
 
 Lambda is a free, open-source, Minecraft 1.12.2 utility mod made for the anarchy experience.
 A visionary plugin system that allows additional modules to be added, without the need to create a fork!
@@ -55,18 +53,25 @@ How do I...
 </details>
 
 <details>
-  <summary>... export KAMI blue config to lambda?</summary>
+  <summary>... export KAMI blue config to Lambda?</summary>
 
 > Rename `.minecraft/kamiblue` to `.minecraft/lambda`
 
 </details>
-
 
 <details>
   <summary>... fix most crashes on startup?</summary>
 
 > Possibly you have multiple mods loaded. Forge loads mods in alphabetical order, so you can change the name of the Mod jar to make it load earlier or later. Add for example an exclamation mark to lambda jar to make it load first.
 > If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the noverify tag from your arguments.
+
+</details>
+
+<details>
+  <summary>... fix problems with Gradle?</summary>
+
+> Make sure you have a Java 8 JDK installed and in your PATH.
+We recommend using the [Termurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) variant of OpenJDK 
 
 </details>
 
@@ -102,13 +107,13 @@ In this guide we will use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as ID
 1. Open the project from `File > Open...`
 2. Let the IDE collect dependencies and index the code.
 3. Goto `File > Project Structure... > SDKs` and make sure an SDK for Java 8 is installed and selected, if not download
-   it [here](https://adoptopenjdk.net/index.html?variant=openjdk8&jvmVariant=hotspot)
+   it [here](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/)
 
 ### Gradle build
 
 Test if the environment is set up correctly by building the client and run it inside IDE using the Gradle tab on the right side of the IDE.
 1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client or create a native run using `lambda > Tasks > fg_runs > genIntelliJRuns`.
-2. To build the client as a jar run `lambda > Tasks > build > build`. IntelliJ will create a new directory called `build`. The final built jar will be in `build/libs`
+2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`
 
 ## Thanks to
 
@@ -120,10 +125,10 @@ Test if the environment is set up correctly by building the client and run it in
 
 [MinecraftForge](https://github.com/MinecraftForge) for [Forge](https://github.com/MinecraftForge/MinecraftForge)
 
-Our [contributors](https://github.com/lambda-client/lambda/graphs/contributors)
+Our [contributors](https://github.com/lambda-client/lambda/graphs/contributors) ❤️
 
 ### Stargazers
 [![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
 
 > ### Disclaimer
-> This software does not contain any copyrighted Minecraft code. This is a Forge utility mod. Only meant for use in anarchy environments. Do not use without permission of server administration.
+> This software does not contain any copyrighted Minecraft code. This is a Forge utility mod, Only meant for use in anarchy environments. Do not use without permission of server administration.
