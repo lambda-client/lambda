@@ -69,7 +69,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         for (loader in loaders) {
             // Hot reload check, the error shouldn't be show when reload in game
-            if (LambdaMod.ready && !loader.info.hotReload) {
+            if (LambdaMod.ready && loader.info.mixins.isNotEmpty()) {
                 invalids.add(loader)
             }
 
@@ -139,7 +139,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     fun load(loader: PluginLoader) {
         synchronized(this) {
-            val hotReload = LambdaMod.ready && !loader.info.hotReload
+            val hotReload = LambdaMod.ready && loader.info.mixins.isNotEmpty()
             val duplicate = loadedPlugins.containsName(loader.name)
             val unsupported = DefaultArtifactVersion(loader.info.minApiVersion) > lambdaVersion
             val missing = !loadedPlugins.containsNames(loader.info.requiredPlugins)
@@ -160,28 +160,29 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        PluginError.log("Main class not found in plugin $loader", it)
+                        PluginError.log("Main class not found in plugin $loader", throwable = it)
                     }
                     is IllegalAccessException -> {
-                        PluginError.log(it.message, it)
+                        PluginError.log(it.message, throwable = it)
                     }
                     else -> {
-                        PluginError.log("Failed to load plugin $loader", it)
+                        PluginError.log("Failed to load plugin $loader", throwable = it)
                     }
                 }
                 return
             }
 
+            val hotReload = plugin.mixins.isEmpty()
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", e)
+                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", hotReload, e)
                 return
             } catch (e: NoSuchMethodError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", e)
+                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", hotReload, e)
                 return
             } catch (e: NoClassDefFoundError) {
-                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", e)
+                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", hotReload, e)
                 return
             }
 
@@ -202,22 +203,24 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     }
 
     fun unloadAll() {
-        loadedPlugins.filter { it.hotReload }.forEach(PluginManager::unloadWithoutCheck)
+        loadedPlugins.filter { it.mixins.isEmpty() }.forEach(PluginManager::unloadWithoutCheck)
 
         LambdaMod.LOG.info("Unloaded all plugins!")
     }
 
-    fun unload(plugin: Plugin) {
+    fun unload(plugin: Plugin): Boolean {
         if (loadedPlugins.any { it.requiredPlugins.contains(plugin.name) }) {
             throw IllegalArgumentException("Plugin $plugin is required by another plugin!")
         }
 
-        unloadWithoutCheck(plugin)
+        return unloadWithoutCheck(plugin)
     }
 
-    private fun unloadWithoutCheck(plugin: Plugin) {
-        if (!plugin.hotReload) {
-            throw IllegalArgumentException("Plugin $plugin cannot be hot reloaded!")
+    private fun unloadWithoutCheck(plugin: Plugin): Boolean {
+        // Necessary because of plugin GUI
+        if (plugin.mixins.isNotEmpty()) {
+            PluginError.log("Plugin ${plugin.name} cannot be hot reloaded!")
+            return false
         }
 
         synchronized(this) {
@@ -234,5 +237,6 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
         LambdaMod.LOG.info("Unloaded plugin ${plugin.name} v${plugin.version}")
         MessageSendHelper.sendChatMessage("[Plugin Manager] ${LambdaClickGui.printInfo(plugin.name, plugin.version)} unloaded.")
+        return true
     }
 }
