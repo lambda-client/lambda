@@ -6,6 +6,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.commons.interfaces.Nameable
 import com.lambda.commons.utils.ClassUtils.instance
+import net.minecraft.launchwrapper.Launch
 import java.io.File
 import java.io.FileNotFoundException
 import java.lang.reflect.Type
@@ -18,7 +19,7 @@ class PluginLoader(
 
     override val name: String get() = info.name
 
-    private val loader = PluginClassLoader(JarFile(file), this.javaClass.classLoader)
+    private var loader: ClassLoader = PluginClassLoader(JarFile(file), this.javaClass.classLoader)
     val info: PluginInfo = loader.getResourceAsStream("plugin_info.json")?.let {
         PluginInfo.fromStream(it)
     } ?: throw FileNotFoundException("plugin_info.json not found in jar ${file.name}!")
@@ -27,6 +28,13 @@ class PluginLoader(
         // This will trigger the null checks in PluginInfo
         // In order to make sure all required infos are present
         info.toString()
+
+        if (info.mixins.isNotEmpty()) {
+            Launch.classLoader.addURL(file.toURI().toURL())
+            // May not be necessary, a consistency thing for now
+            closeWithoutCheck()
+            loader = Launch.classLoader
+        }
     }
 
     fun verify(): Boolean {
@@ -42,14 +50,14 @@ class PluginLoader(
             toString()
         }
 
-        // ToDo: Do no spam when in Lambda menu
+        // ToDo: Use plugin database to verify trusted files
 //        LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
 
         return checksumSets.contains(result)
     }
 
     fun load(): Plugin {
-        if (LambdaMod.ready && !info.hotReload) {
+        if (LambdaMod.ready && info.mixins.isNotEmpty()) {
             throw IllegalAccessException("Plugin $this cannot be hot reloaded!")
         }
 
@@ -68,11 +76,17 @@ class PluginLoader(
     }
 
     fun close() {
-        loader.close()
+        if (info.mixins.isEmpty()) {
+            closeWithoutCheck()
+        }
     }
 
     override fun toString(): String {
         return "${runCatching { info.name }.getOrDefault("Unknown Plugin")}(${file.name})"
+    }
+
+    private fun closeWithoutCheck() {
+        (loader as PluginClassLoader).close()
     }
 
     private companion object {
