@@ -1,54 +1,41 @@
 package com.lambda.client.plugin
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.manager.managers.NotificationManager
+import java.io.File
 
 internal enum class PluginError {
     HOT_RELOAD,
     DUPLICATE,
     UNSUPPORTED,
-    REQUIRED_PLUGIN;
+    REQUIRED_PLUGIN,
+    OTHERS;
 
-    fun handleError(loader: PluginLoader) {
-        val list = latestErrors ?: ArrayList<Pair<PluginLoader, PluginError>>().also { latestErrors = it }
-
-        if (latestErrors?.none { it.first.file.name == loader.file.name && it.second == this } == true) {
-            list.add(loader to this)
-
-            when (this) {
-                HOT_RELOAD -> {
-                    log("Plugin $loader cannot be hot reloaded.")
-                }
-                DUPLICATE -> {
-                    log("Duplicate plugin ${loader}.")
-                }
-                UNSUPPORTED -> {
-                    log("Unsupported plugin ${loader}. Minimum required Lambda version: ${loader.info.minApiVersion}")
-                }
-                REQUIRED_PLUGIN -> {
-                    log("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
-                }
+    fun handleError(loader: PluginLoader, message: String? = null, throwable: Throwable? = null) {
+        when (this) {
+            HOT_RELOAD -> {
+                log("Plugin $loader cannot be hot reloaded.")
+            }
+            DUPLICATE -> {
+                log("Duplicate plugin ${loader}.")
+            }
+            UNSUPPORTED -> {
+                log("Unsupported plugin ${loader}. Minimum required Lambda version: ${loader.info.minApiVersion}")
+            }
+            REQUIRED_PLUGIN -> {
+                log("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
+            }
+            OTHERS -> {
+                log(message, throwable)
             }
         }
+
+        loader.file.renameTo(File("${loader.file.path}.disabled"))
     }
 
-    companion object {
-        private var latestErrors: ArrayList<Pair<PluginLoader, PluginError>>? = null
+    fun log(message: String?, throwable: Throwable? = null) {
+        message?.let { NotificationManager.registerNotification("[Plugin Manager] Failed to load plugin: $it") }
 
-        fun log(message: String?, shouldChat: Boolean = true, throwable: Throwable? = null) {
-            message?.let {
-                // DO NOT ACCESS MINECRAFT IN COREMODSPACE
-                if (shouldChat) {
-                    MessageSendHelper.sendErrorMessage("[Plugin Manager] $it")
-                }
-
-                if (throwable != null) {
-                    LambdaMod.LOG.error(message, throwable)
-                } else {
-                    LambdaMod.LOG.error(message)
-                }
-            }
-        }
+        LambdaMod.LOG.error(message, throwable)
     }
-
 }

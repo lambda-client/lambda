@@ -160,29 +160,32 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        PluginError.log("Main class not found in plugin $loader", throwable = it)
+                        PluginError.OTHERS.handleError(loader, message = "Main class not found", throwable = it)
                     }
                     is IllegalAccessException -> {
-                        PluginError.log(it.message, throwable = it)
+                        PluginError.OTHERS.handleError(loader, message = "Illegal access violation", throwable = it)
                     }
                     else -> {
-                        PluginError.log("Failed to load plugin $loader", throwable = it)
+                        PluginError.OTHERS.handleError(loader, throwable = it)
                     }
                 }
                 return
             }
 
-            val hotReload = plugin.mixins.isEmpty()
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", hotReload, e)
+                PluginError.OTHERS.handleError(loader, throwable = e)
                 return
             } catch (e: NoSuchMethodError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", hotReload, e)
+                if (e.message?.contains("getModules()Lcom") == true) {
+                    PluginError.UNSUPPORTED.handleError(loader)
+                } else {
+                    PluginError.OTHERS.handleError(loader, throwable = e)
+                }
                 return
             } catch (e: NoClassDefFoundError) {
-                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", hotReload, e)
+                PluginError.OTHERS.handleError(loader, throwable = e)
                 return
             }
 
@@ -219,7 +222,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     private fun unloadWithoutCheck(plugin: Plugin): Boolean {
         // Necessary because of plugin GUI
         if (plugin.mixins.isNotEmpty()) {
-            PluginError.log("Plugin ${plugin.name} cannot be hot reloaded!")
+            PluginError.OTHERS.log("Plugin ${plugin.name} cannot be hot reloaded!")
             return false
         }
 
