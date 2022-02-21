@@ -32,7 +32,7 @@ open class Plugin : Nameable {
     val authors: Array<String> get() = info.authors
     val requiredPlugins: Array<String> get() = info.requiredPlugins
     val url: String get() = info.url
-    val hotReload: Boolean get() = info.hotReload
+    val mixins: Array<String> get() = info.mixins
 
     /**
      * Config for the plugin

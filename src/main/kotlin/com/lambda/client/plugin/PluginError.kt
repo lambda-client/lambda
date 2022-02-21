@@ -35,9 +35,12 @@ internal enum class PluginError {
     companion object {
         private var latestErrors: ArrayList<Pair<PluginLoader, PluginError>>? = null
 
-        fun log(message: String?, throwable: Throwable? = null) {
+        fun log(message: String?, shouldChat: Boolean = true, throwable: Throwable? = null) {
             message?.let {
-                MessageSendHelper.sendErrorMessage("[Plugin Manager] $it")
+                // DO NOT ACCESS MINECRAFT IN COREMODSPACE
+                if (shouldChat) {
+                    MessageSendHelper.sendErrorMessage("[Plugin Manager] $it")
+                }
 
                 if (throwable != null) {
                     LambdaMod.LOG.error(message, throwable)
