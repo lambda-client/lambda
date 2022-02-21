@@ -3,14 +3,17 @@ package com.lambda.client.command.commands
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.mixin.extension.useEntityId
+import com.lambda.client.util.items.clickSlot
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.entity.passive.EntityDonkey
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemStack
 import net.minecraft.network.Packet
 import net.minecraft.network.play.client.*
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.EnumHandSide
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.text.TextComponentString
 import net.minecraft.util.text.TextFormatting
@@ -45,22 +48,11 @@ object PacketCommand : ClientCommand(
         literal("ClickWindow") {
             int("windowId") { windowId ->
                 int("slotId") { slotId ->
-                    int("packedClickData") { packedClickData ->
-                        enum<ClickType>("mode") { mode ->
-                            short("actionNumber") { actionNumber ->
-                                executeSafe {
-                                    // ToDo: Dynamic ItemStack
-                                    deployPacket(
-                                        CPacketClickWindow(windowId.value,
-                                            slotId.value,
-                                            packedClickData.value,
-                                            mode.value,
-                                            ItemStack.EMPTY,
-                                            actionNumber.value
-                                        ),
-                                        "${windowId.value} ${slotId.value} ${packedClickData.value} ${mode.value} ${ItemStack.EMPTY} ${actionNumber.value}"
-                                    )
-                                }
+                    int("buttonId") { buttonId ->
+                        enum<ClickType>("clickType") { clickType ->
+                            executeSafe {
+                                clickSlot(windowId.value, slotId.value, buttonId.value, clickType.value)
+                                MessageSendHelper.sendChatMessage("Sent ${TextFormatting.GRAY}CPacketClickWindow${TextFormatting.DARK_RED} > ${TextFormatting.GRAY}windowId: ${windowId.value}, slotId: ${slotId.value}, buttonId: ${buttonId.value}, clickType: ${clickType.value}")
                             }
                         }
                     }
@@ -69,14 +61,36 @@ object PacketCommand : ClientCommand(
         }
 
         literal("ClientSettings") {
-            executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+            string("lang") { lang ->
+                int ("renderDistanceIn") { renderDistanceIn ->
+                    enum<EntityPlayer.EnumChatVisibility>("chatVisibilityIn") { chatVisibilityIn ->
+                        boolean("chatColorsIn") { chatColorsIn ->
+                            int("modelPartsIn") { modelPartsIn ->
+                                enum<EnumHandSide>("mainHandIn") { mainHandIn ->
+                                    executeSafe {
+                                        deployPacket(
+                                            CPacketClientSettings(
+                                                lang.value,
+                                                renderDistanceIn.value,
+                                                chatVisibilityIn.value,
+                                                chatColorsIn.value,
+                                                modelPartsIn.value,
+                                                mainHandIn.value
+                                            ),
+                                            "${lang.value} ${renderDistanceIn.value} ${chatVisibilityIn.value} ${chatColorsIn.value} ${modelPartsIn.value} ${mainHandIn.value}"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
         literal("ClientStatus") {
             executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
 
@@ -131,7 +145,7 @@ object PacketCommand : ClientCommand(
 
         literal("CustomPayload") {
             executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
 
@@ -202,7 +216,7 @@ object PacketCommand : ClientCommand(
 
         literal("PlaceRecipe") {
             executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
 
@@ -261,7 +275,7 @@ object PacketCommand : ClientCommand(
 
         literal("PlayerAbilities") {
             executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
 
@@ -314,7 +328,7 @@ object PacketCommand : ClientCommand(
 
         literal("RecipeInfo") {
             executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
 
@@ -331,13 +345,13 @@ object PacketCommand : ClientCommand(
 
         literal("SeenAdvancements") {
             executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
 
         literal("Spectate") {
             executeSafe {
-                MessageSendHelper.sendChatMessage("To be implemented")
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
 
@@ -447,21 +461,8 @@ object PacketCommand : ClientCommand(
         }
 
         literal("VehicleMove") {
-            double("x") { x ->
-                double("y") { y ->
-                    double("z") { z ->
-                        float("yaw") { yaw ->
-                            float("pitch") { pitch ->
-                                executeSafe {
-                                    deployPacket(
-                                        CPacketVehicleMove(player),
-                                        "${player.entityId}"
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            executeSafe {
+                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
             }
         }
     }
