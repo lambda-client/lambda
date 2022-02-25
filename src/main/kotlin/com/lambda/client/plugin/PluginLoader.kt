@@ -50,7 +50,6 @@ class PluginLoader(
             toString()
         }
 
-        // ToDo: Use plugin database to verify trusted files
 //        LambdaMod.LOG.info("SHA-256 checksum for ${file.name}: $result")
 
         return checksumSets.contains(result)
@@ -89,6 +88,7 @@ class PluginLoader(
         (loader as PluginClassLoader).close()
     }
 
+    // ToDo: Use plugin database to verify trusted files
     private companion object {
         val sha256: MessageDigest = MessageDigest.getInstance("SHA-256")
         val type: Type = object : TypeToken<HashSet<String>>() {}.type
