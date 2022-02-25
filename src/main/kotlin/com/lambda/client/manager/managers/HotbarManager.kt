@@ -8,11 +8,11 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeoutFlag
 import com.lambda.client.util.items.HotbarSlot
 import com.lambda.client.util.threads.runSafe
-import com.lambda.commons.extension.firstEntryOrNull
-import com.lambda.commons.extension.firstKeyOrNull
-import com.lambda.commons.extension.firstValue
-import com.lambda.commons.extension.synchronized
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.firstEntryOrNull
+import com.lambda.client.commons.extension.firstKeyOrNull
+import com.lambda.client.commons.extension.firstValue
+import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketHeldItemChange

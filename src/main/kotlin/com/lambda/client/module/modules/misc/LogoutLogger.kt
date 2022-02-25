@@ -12,7 +12,7 @@ import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.asyncListener
+import com.lambda.client.event.listener.asyncListener
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.util.math.BlockPos

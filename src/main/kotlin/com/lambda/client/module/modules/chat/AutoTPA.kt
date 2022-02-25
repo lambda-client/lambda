@@ -6,7 +6,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.server.SPacketChat
 
 object AutoTPA : Module(

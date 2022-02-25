@@ -7,7 +7,7 @@ import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
-import com.lambda.commons.extension.readableName
+import com.lambda.client.commons.extension.readableName
 import kotlin.math.floor
 
 class EnumSlider(val setting: EnumSetting<*>) : Slider(setting.name, 0.0, setting.description, setting.visibility) {

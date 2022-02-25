@@ -4,10 +4,10 @@ import com.lambda.client.event.ClientEvent
 import com.lambda.client.event.ClientExecuteEvent
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.SafeExecuteEvent
-import com.lambda.event.ListenerManager
-import com.lambda.event.listener.AsyncListener
-import com.lambda.event.listener.DEFAULT_PRIORITY
-import com.lambda.event.listener.Listener
+import com.lambda.client.event.ListenerManager
+import com.lambda.client.event.listener.AsyncListener
+import com.lambda.client.event.listener.DEFAULT_PRIORITY
+import com.lambda.client.event.listener.Listener
 import kotlinx.coroutines.CompletableDeferred
 
 inline fun <reified T : Any> Any.safeAsyncListener(noinline function: suspend SafeClientEvent.(T) -> Unit) {

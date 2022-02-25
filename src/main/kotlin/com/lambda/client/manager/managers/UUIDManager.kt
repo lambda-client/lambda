@@ -1,8 +1,8 @@
 package com.lambda.client.manager.managers
 
-import com.lambda.capeapi.AbstractUUIDManager
-import com.lambda.capeapi.PlayerProfile
-import com.lambda.capeapi.UUIDUtils
+import com.lambda.client.capeapi.AbstractUUIDManager
+import com.lambda.client.capeapi.PlayerProfile
+import com.lambda.client.capeapi.UUIDUtils
 import com.lambda.client.LambdaMod
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.Wrapper

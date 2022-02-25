@@ -4,7 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ResolutionUpdateEvent
 import com.lambda.client.util.Wrapper
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.OpenGlHelper
 import net.minecraft.client.shader.Framebuffer

@@ -1,8 +1,8 @@
 package com.lambda.client.util.math
 
-import com.lambda.commons.extension.PI_FLOAT
-import com.lambda.commons.extension.ceilToInt
-import com.lambda.commons.extension.floorToInt
+import com.lambda.client.commons.extension.PI_FLOAT
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos

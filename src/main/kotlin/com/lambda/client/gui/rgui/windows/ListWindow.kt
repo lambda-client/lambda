@@ -8,9 +8,9 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.math.Vec2f
-import com.lambda.commons.extension.ceilToInt
-import com.lambda.commons.extension.floorToInt
-import com.lambda.commons.extension.sumByFloat
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.commons.extension.sumByFloat
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

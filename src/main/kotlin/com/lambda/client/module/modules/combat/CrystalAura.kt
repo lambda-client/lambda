@@ -37,9 +37,9 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getClosestVisibleSide
-import com.lambda.commons.extension.synchronized
-import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.event.listener.listener
 import it.unimi.dsi.fastutil.ints.Int2LongMaps
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap
 import net.minecraft.client.entity.EntityPlayerSP

@@ -9,7 +9,7 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.items.block
 import com.lambda.client.util.math.Vec2d
-import com.lambda.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.init.Blocks
 import net.minecraft.inventory.IInventory

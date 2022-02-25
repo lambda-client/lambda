@@ -5,7 +5,7 @@ import com.lambda.client.mixin.extension.rightClickDelayTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.init.Items
 import net.minecraft.item.*
 import net.minecraft.network.play.client.CPacketPlayerDigging

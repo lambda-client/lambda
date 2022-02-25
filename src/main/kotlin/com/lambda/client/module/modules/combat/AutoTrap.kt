@@ -20,7 +20,7 @@ import com.lambda.client.util.threads.isActiveOrFalse
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.buildStructure
 import com.lambda.client.util.world.isPlaceable
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.minecraft.init.Blocks

@@ -11,7 +11,7 @@ import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent

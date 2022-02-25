@@ -8,8 +8,8 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.event.listener.listener
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.MobEffects

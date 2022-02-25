@@ -8,7 +8,7 @@ import com.lambda.client.util.color.ColorGradient
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.color.DyeColors
 import com.lambda.client.util.threads.runSafeR
-import com.lambda.commons.utils.MathUtils
+import com.lambda.client.commons.utils.MathUtils
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
 

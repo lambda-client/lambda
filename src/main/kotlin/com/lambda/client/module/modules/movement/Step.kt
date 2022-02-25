@@ -13,7 +13,7 @@ import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent

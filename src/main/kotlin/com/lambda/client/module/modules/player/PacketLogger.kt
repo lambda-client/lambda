@@ -13,8 +13,8 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.network.Packet

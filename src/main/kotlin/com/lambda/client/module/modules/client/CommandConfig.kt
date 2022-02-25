@@ -7,7 +7,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.format
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.Display

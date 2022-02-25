@@ -10,7 +10,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent

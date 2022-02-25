@@ -16,7 +16,7 @@ import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
-import com.lambda.commons.utils.ConnectionUtils
+import com.lambda.client.commons.utils.ConnectionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.util.text.TextFormatting

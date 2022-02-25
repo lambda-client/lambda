@@ -4,7 +4,7 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraftforge.fml.common.gameevent.TickEvent
 

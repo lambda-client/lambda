@@ -7,7 +7,7 @@ import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.commons.collections.NameableSet
+import com.lambda.client.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
 import net.minecraft.util.text.TextFormatting
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
@@ -160,29 +160,32 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        PluginError.log("Main class not found in plugin $loader", throwable = it)
+                        PluginError.CLASS_NOT_FOUND.handleError(loader, throwable = it)
                     }
                     is IllegalAccessException -> {
-                        PluginError.log(it.message, throwable = it)
+                        PluginError.ILLEGAL_ACCESS.handleError(loader, throwable = it)
                     }
                     else -> {
-                        PluginError.log("Failed to load plugin $loader", throwable = it)
+                        PluginError.OTHERS.handleError(loader, throwable = it)
                     }
                 }
                 return
             }
 
-            val hotReload = plugin.mixins.isEmpty()
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchFieldError)", hotReload, e)
+                PluginError.MISSING_DEFINITION.handleError(loader, throwable = e)
                 return
             } catch (e: NoSuchMethodError) {
-                PluginError.log("Failed to load plugin $loader (NoSuchMethodError)", hotReload, e)
+                if (e.message?.contains("getModules()Lcom") == true) {
+                    PluginError.OUTDATED_PLUGIN.handleError(loader)
+                } else {
+                    PluginError.MISSING_DEFINITION.handleError(loader, throwable = e)
+                }
                 return
             } catch (e: NoClassDefFoundError) {
-                PluginError.log("Failed to load plugin $loader (NoClassDefFoundError)", hotReload, e)
+                PluginError.MISSING_DEFINITION.handleError(loader, throwable = e)
                 return
             }
 
@@ -210,7 +213,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     fun unload(plugin: Plugin): Boolean {
         if (loadedPlugins.any { it.requiredPlugins.contains(plugin.name) }) {
-            throw IllegalArgumentException("Plugin $plugin is required by another plugin!")
+            MessageSendHelper.sendErrorMessage("Plugin ${plugin.name} is required by another plugin!")
         }
 
         return unloadWithoutCheck(plugin)
@@ -219,7 +222,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     private fun unloadWithoutCheck(plugin: Plugin): Boolean {
         // Necessary because of plugin GUI
         if (plugin.mixins.isNotEmpty()) {
-            PluginError.log("Plugin ${plugin.name} cannot be hot reloaded!")
+            MessageSendHelper.sendErrorMessage("Plugin ${plugin.name} cannot be hot reloaded because of contained mixins.")
             return false
         }
 

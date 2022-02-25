@@ -5,7 +5,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.texture.MipmapTexture
-import com.lambda.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats

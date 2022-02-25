@@ -25,7 +25,7 @@ import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.hasNeighbour
 import com.lambda.client.util.world.isPlaceable
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack

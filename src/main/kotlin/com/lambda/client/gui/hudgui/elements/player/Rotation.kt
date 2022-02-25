@@ -3,7 +3,7 @@ package com.lambda.client.gui.hudgui.elements.player
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.math.RotationUtils
-import com.lambda.commons.utils.MathUtils
+import com.lambda.client.commons.utils.MathUtils
 
 internal object Rotation : LabelHud(
     name = "Rotation",

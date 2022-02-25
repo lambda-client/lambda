@@ -7,8 +7,8 @@ import com.lambda.client.mixin.extension.timer
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.commons.extension.synchronized
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.event.listener.listener
 import java.util.*
 
 object TimerManager : Manager {

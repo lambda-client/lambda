@@ -6,7 +6,7 @@ import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.min

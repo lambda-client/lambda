@@ -3,7 +3,7 @@ package com.lambda.client.gui.hudgui.elements.world
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.mixin.extension.writeChunkToNBT
-import com.lambda.commons.utils.MathUtils.round
+import com.lambda.client.commons.utils.MathUtils.round
 import net.minecraft.nbt.CompressedStreamTools
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.datafix.DataFixer

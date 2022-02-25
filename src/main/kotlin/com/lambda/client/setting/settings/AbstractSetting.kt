@@ -4,7 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import com.lambda.commons.interfaces.Nameable
+import com.lambda.client.commons.interfaces.Nameable
 import kotlin.reflect.KProperty
 
 abstract class AbstractSetting<T : Any> : Nameable {

@@ -27,8 +27,8 @@ import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.*
-import com.lambda.commons.interfaces.DisplayEnum
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking

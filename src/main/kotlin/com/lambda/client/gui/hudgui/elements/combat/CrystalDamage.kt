@@ -5,7 +5,7 @@ import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.util.Quad
 import com.lambda.client.util.combat.CrystalUtils.canPlaceCollide
-import com.lambda.commons.utils.MathUtils
+import com.lambda.client.commons.utils.MathUtils
 import kotlin.math.max
 
 internal object CrystalDamage : LabelHud(

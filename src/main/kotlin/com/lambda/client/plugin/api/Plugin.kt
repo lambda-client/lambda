@@ -11,9 +11,9 @@ import com.lambda.client.setting.ConfigManager
 import com.lambda.client.setting.configs.PluginConfig
 import com.lambda.client.util.threads.BackgroundJob
 import com.lambda.client.util.threads.BackgroundScope
-import com.lambda.commons.collections.CloseableList
-import com.lambda.commons.interfaces.Nameable
-import com.lambda.event.ListenerManager
+import com.lambda.client.commons.collections.CloseableList
+import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.event.ListenerManager
 
 /**
  * A plugin. All plugin main classes must extend this class.

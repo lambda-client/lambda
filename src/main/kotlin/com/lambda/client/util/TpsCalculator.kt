@@ -4,7 +4,7 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.CircularArray.Companion.average
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.server.SPacketTimeUpdate
 
 object TpsCalculator {

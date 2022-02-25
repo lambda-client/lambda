@@ -13,7 +13,7 @@ import com.lambda.client.module.modules.client.HudEditor
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.math.Vec2f
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11.*

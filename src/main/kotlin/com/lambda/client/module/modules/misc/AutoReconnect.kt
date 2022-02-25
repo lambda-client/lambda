@@ -7,7 +7,7 @@ import com.lambda.client.mixin.extension.reason
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.StopTimer
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.gui.GuiDisconnected
 import net.minecraft.client.multiplayer.GuiConnecting
 import net.minecraft.client.multiplayer.ServerData

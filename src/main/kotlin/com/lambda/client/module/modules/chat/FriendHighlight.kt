@@ -5,7 +5,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.EnumTextColor
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.SoundEvents
 import net.minecraft.util.text.TextComponentString

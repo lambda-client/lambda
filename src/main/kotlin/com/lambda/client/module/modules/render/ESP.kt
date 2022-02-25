@@ -16,7 +16,7 @@ import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ShaderHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.event.listener.listener
+import com.lambda.client.event.listener.listener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.shader.Shader
 import net.minecraft.entity.Entity

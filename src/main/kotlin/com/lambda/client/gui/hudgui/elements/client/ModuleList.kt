@@ -15,8 +15,8 @@ import com.lambda.client.util.graphics.font.HAlign
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.graphics.font.VAlign
 import com.lambda.client.util.threads.safeAsyncListener
-import com.lambda.commons.extension.sumByFloat
-import com.lambda.commons.interfaces.DisplayEnum
+import com.lambda.client.commons.extension.sumByFloat
+import com.lambda.client.commons.interfaces.DisplayEnum
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.awt.Color

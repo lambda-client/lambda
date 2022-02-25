@@ -9,8 +9,8 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.ceilToInt
-import com.lambda.commons.extension.floorToInt
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
 import net.minecraft.block.Block
 import net.minecraft.block.BlockLiquid
 import net.minecraft.entity.Entity

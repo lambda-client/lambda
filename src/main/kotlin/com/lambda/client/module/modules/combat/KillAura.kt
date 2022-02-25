@@ -16,7 +16,7 @@ import com.lambda.client.util.items.isWeapon
 import com.lambda.client.util.math.RotationUtils.faceEntityClosest
 import com.lambda.client.util.math.RotationUtils.getRotationToEntityClosest
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.interfaces.DisplayEnum
+import com.lambda.client.commons.interfaces.DisplayEnum
 import net.minecraft.entity.Entity
 import net.minecraft.entity.projectile.EntityLargeFireball
 import net.minecraft.util.EnumHand

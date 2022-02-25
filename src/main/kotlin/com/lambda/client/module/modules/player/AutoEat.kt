@@ -9,7 +9,7 @@ import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.next
+import com.lambda.client.commons.extension.next
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
 import net.minecraft.inventory.Slot

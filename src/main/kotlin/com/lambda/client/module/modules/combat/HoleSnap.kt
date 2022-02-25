@@ -21,9 +21,9 @@ import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.toVec3d
 import com.lambda.client.util.threads.safeAsyncListener
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.ceilToInt
-import com.lambda.commons.extension.toRadian
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.toRadian
+import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.MovementInputFromOptions
 import net.minecraft.util.math.BlockPos

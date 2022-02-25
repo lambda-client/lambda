@@ -18,7 +18,7 @@ import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getGroundPos
 import com.lambda.client.util.world.isLiquidBelow
-import com.lambda.commons.extension.toRadian
+import com.lambda.client.commons.extension.toRadian
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents

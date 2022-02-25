@@ -11,8 +11,8 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.text.format
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.synchronized
-import com.lambda.event.listener.listener
+import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.event.listener.listener
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.network.play.server.SPacketEntityStatus
 import net.minecraft.util.text.TextFormatting

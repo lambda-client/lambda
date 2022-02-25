@@ -6,7 +6,7 @@ import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.items.foodValue
 import com.lambda.client.util.items.saturation
 import com.lambda.client.util.threads.safeListener
-import com.lambda.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.gui.Gui
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.init.MobEffects
