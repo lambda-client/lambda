@@ -9,6 +9,10 @@ internal enum class PluginError {
     DUPLICATE,
     UNSUPPORTED,
     REQUIRED_PLUGIN,
+    OUTDATED_PLUGIN,
+    CLASS_NOT_FOUND,
+    ILLEGAL_ACCESS,
+    MISSING_DEFINITION,
     OTHERS;
 
     fun handleError(loader: PluginLoader, message: String? = null, throwable: Throwable? = null) {
@@ -17,13 +21,25 @@ internal enum class PluginError {
                 log("Plugin $loader cannot be hot reloaded.")
             }
             DUPLICATE -> {
-                log("Duplicate plugin ${loader}.")
+                log("Duplicate plugin $loader.")
             }
             UNSUPPORTED -> {
-                log("Unsupported plugin ${loader}. Minimum required Lambda version: ${loader.info.minApiVersion}")
+                log("Unsupported plugin $loader. Minimum required Lambda version: ${loader.info.minApiVersion}")
             }
             REQUIRED_PLUGIN -> {
-                log("Missing required plugin for ${loader}. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
+                log("Missing required plugin for $loader. Required plugins: ${loader.info.requiredPlugins.joinToString()}")
+            }
+            OUTDATED_PLUGIN -> {
+                log("The in $loader used Lambda API is outdated. Please update the plugin or notify the developer ${loader.info.authors.joinToString()}")
+            }
+            CLASS_NOT_FOUND -> {
+                log("Main class not found", throwable)
+            }
+            ILLEGAL_ACCESS -> {
+                log("Illegal access violation", throwable)
+            }
+            MISSING_DEFINITION -> {
+                log("Missing definition. Please make sure compatible Lambda API is used.", throwable)
             }
             OTHERS -> {
                 log(message, throwable)
@@ -34,7 +50,7 @@ internal enum class PluginError {
     }
 
     fun log(message: String?, throwable: Throwable? = null) {
-        message?.let { NotificationManager.registerNotification("[Plugin Manager] Failed to load plugin: $it") }
+        message?.let { NotificationManager.registerNotification("[Plugin Manager] Failed to load plugin. $it") }
 
         LambdaMod.LOG.error(message, throwable)
     }

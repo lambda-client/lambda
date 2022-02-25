@@ -160,10 +160,10 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             val plugin = runCatching(loader::load).getOrElse {
                 when (it) {
                     is ClassNotFoundException -> {
-                        PluginError.OTHERS.handleError(loader, message = "Main class not found", throwable = it)
+                        PluginError.CLASS_NOT_FOUND.handleError(loader, throwable = it)
                     }
                     is IllegalAccessException -> {
-                        PluginError.OTHERS.handleError(loader, message = "Illegal access violation", throwable = it)
+                        PluginError.ILLEGAL_ACCESS.handleError(loader, throwable = it)
                     }
                     else -> {
                         PluginError.OTHERS.handleError(loader, throwable = it)
@@ -175,17 +175,17 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
             try {
                 plugin.onLoad()
             } catch (e: NoSuchFieldError) {
-                PluginError.OTHERS.handleError(loader, throwable = e)
+                PluginError.MISSING_DEFINITION.handleError(loader, throwable = e)
                 return
             } catch (e: NoSuchMethodError) {
                 if (e.message?.contains("getModules()Lcom") == true) {
-                    PluginError.UNSUPPORTED.handleError(loader)
+                    PluginError.OUTDATED_PLUGIN.handleError(loader)
                 } else {
-                    PluginError.OTHERS.handleError(loader, throwable = e)
+                    PluginError.MISSING_DEFINITION.handleError(loader, throwable = e)
                 }
                 return
             } catch (e: NoClassDefFoundError) {
-                PluginError.OTHERS.handleError(loader, throwable = e)
+                PluginError.MISSING_DEFINITION.handleError(loader, throwable = e)
                 return
             }
 
@@ -213,7 +213,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
 
     fun unload(plugin: Plugin): Boolean {
         if (loadedPlugins.any { it.requiredPlugins.contains(plugin.name) }) {
-            throw IllegalArgumentException("Plugin $plugin is required by another plugin!")
+            MessageSendHelper.sendErrorMessage("Plugin ${plugin.name} is required by another plugin!")
         }
 
         return unloadWithoutCheck(plugin)
@@ -222,7 +222,7 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     private fun unloadWithoutCheck(plugin: Plugin): Boolean {
         // Necessary because of plugin GUI
         if (plugin.mixins.isNotEmpty()) {
-            PluginError.OTHERS.log("Plugin ${plugin.name} cannot be hot reloaded!")
+            MessageSendHelper.sendErrorMessage("Plugin ${plugin.name} cannot be hot reloaded because of contained mixins.")
             return false
         }
 
