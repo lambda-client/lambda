@@ -3,6 +3,7 @@
   "compatibilityLevel": "JAVA_8",
   "package": "com.lambda.mixin",
   "refmap": "mixins.lambda.refmap.json",
+  "minVersion": "0.8.3",
   "client": [
     "MixinElytraSound",
     "MixinKeyBinding",
