@@ -1,26 +1,24 @@
-version project.modVersion
-group project.modGroup
-
 buildscript {
     repositories {
         mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
         maven { url = 'https://repo.spongepowered.org/maven/' }
     }
-
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:5.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokkaVersion"
     }
 }
 
-apply plugin: 'idea'
-apply plugin: 'kotlin'
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "$kotlinVersion"
+}
+
 apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.jetbrains.dokka'
 apply plugin: 'org.spongepowered.mixin'
+
+version project.modVersion
+group project.modGroup
 
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
