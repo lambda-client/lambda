@@ -56,6 +56,7 @@ How do I...
   <summary>... export KAMI blue config to Lambda?</summary>
 
 > Rename `.minecraft/kamiblue` to `.minecraft/lambda`
+> Note that this might cause stability issues.
 
 </details>
 
@@ -71,7 +72,7 @@ How do I...
   <summary>... fix problems with Gradle?</summary>
 
 > Make sure you have a Java 8 JDK installed and in your PATH.
-We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) variant of OpenJDK 
+We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) distribution of the OpenJDK 
 
 </details>
 
@@ -112,7 +113,7 @@ In this guide we will use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as ID
 ### Gradle build
 
 Test if the environment is set up correctly by building the client and run it inside IDE using the Gradle tab on the right side of the IDE.
-1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client or create a native run using `lambda > Tasks > fg_runs > genIntelliJRuns`.
+1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client.
 2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`
 
 ## Thanks to
