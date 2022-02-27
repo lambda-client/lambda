@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.combat
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
@@ -25,7 +26,6 @@ import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.hasNeighbour
 import com.lambda.client.util.world.isPlaceable
-import com.lambda.client.event.listener.listener
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack
@@ -145,9 +145,7 @@ object CrystalBasePlace : Module(
         val eyePos = player.getPositionEyes(1.0f)
         val posList = VectorUtils.getBlockPosInSphere(eyePos, range)
         val maxCurrentDamage = CombatManager.placeMap.entries
-            .filter { eyePos.distanceTo(it.key) < range }
-            .map { it.value.targetDamage }
-            .maxOrNull() ?: 0.0f
+            .filter { eyePos.distanceTo(it.key) < range }.maxOfOrNull { it.value.targetDamage } ?: 0.0f
 
         for (pos in posList) {
             // Placeable check
