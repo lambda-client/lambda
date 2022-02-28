@@ -64,7 +64,7 @@ How do I...
   <summary>... fix most crashes on startup?</summary>
 
 > Possibly you have multiple mods loaded. Forge loads mods in alphabetical order, so you can change the name of the Mod jar to make it load earlier or later. Add for example an exclamation mark to lambda jar to make it load first.
-> If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the noverify tag from your arguments.
+> If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the `-noverify` tag from your arguments.
 
 </details>
 
@@ -72,7 +72,7 @@ How do I...
   <summary>... fix problems with Gradle?</summary>
 
 > Make sure you have a Java 8 JDK installed and in your PATH.
-We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) distribution of the OpenJDK 
+We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) distribution of OpenJDK 
 
 </details>
 
