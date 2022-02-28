@@ -1,5 +1,7 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.mixin.extension.playerMoving
@@ -8,9 +10,8 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
 import net.minecraft.block.Block
 import net.minecraft.block.BlockLiquid
 import net.minecraft.entity.Entity
@@ -33,6 +34,13 @@ object Jesus : Module(
     private val waterWalkBox = AxisAlignedBB(0.0, 0.0, 0.0, 1.0, 0.99, 1.0)
 
     init {
+        onEnable {
+            if (mc.isSingleplayer && mode == Mode.SOLID) {
+                MessageSendHelper.sendErrorMessage("ERROR: Jesus mode solid causes glitches in singleplayer! Disabling...")
+                disable()
+            }
+        }
+
         onToggle {
             BaritoneUtils.settings?.assumeWalkOnWater?.value = it
         }

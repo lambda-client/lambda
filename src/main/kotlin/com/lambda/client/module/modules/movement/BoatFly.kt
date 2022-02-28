@@ -7,6 +7,7 @@ import com.lambda.client.mixin.extension.playerPosLookYaw
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.steerEntity
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.Entity
@@ -27,6 +28,7 @@ object BoatFly : Module(
     category = Category.MOVEMENT,
     description = "Fly using boats"
 ) {
+    private val hasShownWarning = setting("Has Shown Warning", false, { false })
     private val speed by setting("Speed", 1.0f, 0.1f..50.0f, 0.1f)
     private val upSpeed by setting("Up Speed", 1.0f, 0.0f..10.0f, 0.1f)
     private val glideSpeed by setting("Glide Speed", 0.1f, 0.0f..1.0f, 0.01f)
@@ -41,6 +43,14 @@ object BoatFly : Module(
     val size by setting("Boat Scale", 1.0, 0.05..1.5, 0.01)
 
     init {
+        onEnable {
+            if (mc.isSingleplayer && !hasShownWarning.value) {
+                MessageSendHelper.sendWarningMessage("WARNING: BoatFly is very unreliable in singleplayer and might cause desyncs. Use with caution!")
+                hasShownWarning.value = true
+                disable()
+            }
+        }
+
         onDisable {
             if (antiDesync) {
                 runSafe {
