@@ -32,10 +32,10 @@ compileKotlin.kotlinOptions {
 }
 
 repositories {
+    mavenCentral()
     maven { url = 'https://repo.spongepowered.org/maven/' }
     maven { url = 'https://impactdevelopment.github.io/maven/' }
-    maven { url = "https://jitpack.io" }
-    mavenCentral()
+    maven { url = 'https://jitpack.io' }
 }
 
 minecraft {
@@ -68,14 +68,14 @@ dependencies {
     // Forge
     minecraft "net.minecraftforge:forge:$minecraftVersion-$forgeVersion"
 
-    jarLibs('org.spongepowered:mixin:0.8.3') {
+    jarLibs('org.spongepowered:mixin:0.8.5') {
         exclude module: 'commons-io'
         exclude module: 'gson'
         exclude module: 'guava'
     }
 
     // Hacky way to get mixin work
-    annotationProcessor('org.spongepowered:mixin:0.8.3:processor') {
+    annotationProcessor('org.spongepowered:mixin:0.8.5:processor') {
         exclude module: 'gson'
     }
 
@@ -97,7 +97,7 @@ dependencies {
         exclude module: 'kotlin-stdlib-common'
     }
 
-    jarLibs("com.github.cbyrneee:DiscordIPC:e18542f600") {
+    jarLibs('com.github.cbyrneee:DiscordIPC:e18542f600') {
         exclude module: 'junixsocket-common'
         exclude module: 'junixsocket-native-common'
         exclude module: 'json'
@@ -166,10 +166,7 @@ jar {
     // Copy needed libs to jar
     from {
         exclude '**/module-info.class',
-                'LICENSE-Slick2D TrueTypeFont.txt',
-                'assets/fonts/OTF.txt',
                 'DebugProbesKt.bin',
-                'LICENSE.txt',
                 'META-INF/maven/**',
                 'META-INF/proguard/**',
                 'META-INF/versions/**',
