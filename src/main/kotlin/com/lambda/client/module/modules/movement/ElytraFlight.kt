@@ -19,7 +19,9 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getGroundPos
 import com.lambda.client.util.world.isLiquidBelow
 import com.lambda.client.commons.extension.toRadian
+import com.lambda.client.mixin.extension.boostedEntity
 import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.entity.item.EntityFireworkRocket
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
@@ -477,7 +479,10 @@ object ElytraFlight : Module(
         val playerY = player.posY
         val lastShouldDescend = shouldDescend
         shouldDescend = lastY > playerY && lastHighY - 60 < playerY
-        player.rotationPitch = if (shouldDescend) {
+        val isBoosted = world.getLoadedEntityList().any { it is EntityFireworkRocket && it.boostedEntity == player }
+        player.rotationPitch = if (isBoosted) {
+            -50f
+        } else if (shouldDescend) {
             if (!lastShouldDescend) {
                 lastHighY = playerY
             }
