@@ -119,13 +119,14 @@ object Flight : Module(
         }
 
         listener<OnUpdateWalkingPlayerEvent> {
-            if (it.phase != Phase.PRE) return@listener
+            if (it.phase != Phase.PRE || mode != FlightMode.PACKET) return@listener
             sendPlayerPacket {
                 cancelAll()
             }
         }
 
         safeListener<PacketEvent.Receive> {
+            if (mode != FlightMode.PACKET) return@safeListener
             when (it.packet) {
                 is SPacketPlayerPosLook -> {
                     it.packet.playerPosLookYaw = player.rotationYaw
