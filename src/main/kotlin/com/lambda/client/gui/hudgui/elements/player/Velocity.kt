@@ -9,12 +9,16 @@ internal object Velocity : LabelHud(
     category = Category.PLAYER
 ) {
     private val newlines by setting("Vertical", true)
+    private val showVelocity by setting("Show \"Velocity: \"", true)
     override fun SafeClientEvent.updateText() {
-        displayText.addLine("Velocity: ", primaryColor)
         if (newlines) {
+            if (showVelocity) displayText.addLine("Velocity: ", primaryColor)
             displayText.addLine("X " + String.format("%.3f", player.motionX), secondaryColor)
             displayText.addLine("Y " + String.format("%.3f", player.motionY), secondaryColor)
             displayText.add("Z " + String.format("%.3f", player.motionZ), secondaryColor)
-        } else displayText.addLine("X " + String.format("%.3f", player.motionX) + ", Y " + String.format("%.3f", player.motionY) + ", Z " + String.format("%.3f", player.motionZ), secondaryColor)
+        } else {
+            if (showVelocity) displayText.add("Velocity: ", primaryColor)
+            displayText.addLine("X " + String.format("%.3f", player.motionX) + ", Y " + String.format("%.3f", player.motionY) + ", Z " + String.format("%.3f", player.motionZ), secondaryColor)
+        }
     }
 }
