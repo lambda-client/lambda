@@ -11,7 +11,7 @@ object IceSpeed : Module(
     description = "Changes how slippery ice is",
     category = Category.MOVEMENT
 ) {
-    private val slipperiness by setting("Slipperiness", 0.4f, 0.1f..1.0f, 0.01f)
+    private val slipperiness by setting("Slipperiness", 0.4f, 0.3f..0.5f, 0.005f)
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
