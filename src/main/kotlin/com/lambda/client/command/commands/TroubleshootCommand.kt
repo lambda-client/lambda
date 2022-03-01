@@ -19,6 +19,7 @@ object TroubleshootCommand : ClientCommand(
             MessageSendHelper.sendErrorMessage("&l&cSend a screenshot of all information below this line!")
             MessageSendHelper.sendChatMessage("Enabled Modules:\n" + ModuleManager.modules.filter { it.isEnabled }.joinToString { it.name })
             MessageSendHelper.sendChatMessage("${LambdaMod.NAME} ${LambdaMod.LAMBDA} ${LambdaMod.VERSION}")
+            MessageSendHelper.sendChatMessage("Forge ${ForgeVersion.getMajorVersion()}.${ForgeVersion.getMinorVersion()}.${ForgeVersion.getRevisionVersion()}.${ForgeVersion.getBuildVersion()}")
             MessageSendHelper.sendChatMessage("Operating System: ${System.getProperty("os.name").lowercase(Locale.getDefault()).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} ${System.getProperty("os.version")} ")
             MessageSendHelper.sendChatMessage("JVM: ${System.getProperty("java.version")} ${System.getProperty("java.vendor")}")
             MessageSendHelper.sendChatMessage("GPU: ${GlStateManager.glGetString(GL11.GL_VENDOR)}")
