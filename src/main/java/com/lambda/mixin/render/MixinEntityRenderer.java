@@ -51,7 +51,7 @@ public class MixinEntityRenderer {
         }
     }
 
-    @Inject(method = "setupFog", at = @At(value = "RETURN"), cancellable = true)
+    @Inject(method = "setupFog", at = @At(value = "RETURN"))
     public void setupFog(int startCoords, float partialTicks, CallbackInfo callbackInfo) {
         if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getFog()) {
             GlStateManager.disableFog();

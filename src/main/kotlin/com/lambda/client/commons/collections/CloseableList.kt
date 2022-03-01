@@ -36,7 +36,7 @@ class CloseableList<E>(
 
     override fun removeAll(elements: Collection<E>) =
         if (closed) throw IllegalAccessException("This list is immutable!")
-        else list.removeAll(elements)
+        else list.removeAll(elements.toSet())
 
     override fun removeAt(index: Int): E =
         if (closed) throw IllegalAccessException("This list is immutable!")
@@ -44,7 +44,7 @@ class CloseableList<E>(
 
     override fun retainAll(elements: Collection<E>) =
         if (closed) throw IllegalAccessException("This list is immutable!")
-        else list.retainAll(elements)
+        else list.retainAll(elements.toSet())
 
     override fun set(index: Int, element: E): E =
         if (closed) throw IllegalAccessException("This list is immutable!")
