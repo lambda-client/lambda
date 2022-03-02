@@ -29,7 +29,6 @@ object VoidESP : Module(
     private val range by setting("Range", 8, 4..32, 1)
     private val dangerous by setting("Show safe void", false, description = "Show all void holes, rather than just dangerous ones")
 
-    @Suppress("UNUSED")
     private enum class Mode {
         BLOCK_HOLE, BLOCK_VOID, FLAT
     }

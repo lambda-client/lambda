@@ -18,7 +18,6 @@ abstract class AbstractUUIDManager(
 
     private val file = File(filePath)
 
-    @Suppress("DEPRECATION")
     private val parser = JsonParser()
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val type = TypeToken.getArray(PlayerProfile::class.java).type
@@ -79,7 +78,7 @@ abstract class AbstractUUIDManager(
             null
         } else {
             try {
-                @Suppress("DEPRECATION") val jsonElement = parser.parse(response)
+                val jsonElement = parser.parse(response)
                 if (isUUID) {
                     val name = jsonElement.asJsonArray.last().asJsonObject["name"].asString
                     PlayerProfile(UUID.fromString(nameOrUUID), name)
