@@ -56,6 +56,7 @@ How do I...
   <summary>... export KAMI blue config to Lambda?</summary>
 
 > Rename `.minecraft/kamiblue` to `.minecraft/lambda`
+> Note that this might cause stability issues.
 
 </details>
 
@@ -63,7 +64,7 @@ How do I...
   <summary>... fix most crashes on startup?</summary>
 
 > Possibly you have multiple mods loaded. Forge loads mods in alphabetical order, so you can change the name of the Mod jar to make it load earlier or later. Add for example an exclamation mark to lambda jar to make it load first.
-> If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the noverify tag from your arguments.
+> If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the `-noverify` tag from your arguments.
 
 </details>
 
@@ -71,7 +72,7 @@ How do I...
   <summary>... fix problems with Gradle?</summary>
 
 > Make sure you have a Java 8 JDK installed and in your PATH.
-We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) variant of OpenJDK 
+We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) distribution of OpenJDK 
 
 </details>
 
@@ -112,7 +113,7 @@ In this guide we will use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as ID
 ### Gradle build
 
 Test if the environment is set up correctly by building the client and run it inside IDE using the Gradle tab on the right side of the IDE.
-1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client or create a native run using `lambda > Tasks > fg_runs > genIntelliJRuns`.
+1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client.
 2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`
 
 ## Thanks to
