@@ -5,10 +5,8 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.steerEntity
 import com.lambda.client.util.threads.safeListener
-import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityBoat
 import net.minecraft.entity.passive.AbstractHorse
-import net.minecraft.entity.passive.EntityHorse
 import net.minecraft.entity.passive.EntityPig
 
 object EntitySpeed : Module(

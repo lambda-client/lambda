@@ -1,6 +1,5 @@
 package com.lambda.mixin.accessor;
 
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityFireworkRocket;
 import org.spongepowered.asm.mixin.Mixin;

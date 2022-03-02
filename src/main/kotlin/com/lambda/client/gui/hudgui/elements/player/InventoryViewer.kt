@@ -15,7 +15,6 @@ import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.init.Blocks
-import net.minecraft.inventory.Container
 import net.minecraft.inventory.ContainerChest
 import net.minecraft.inventory.InventoryBasic
 import net.minecraft.item.ItemStack
