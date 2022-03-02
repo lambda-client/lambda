@@ -6,6 +6,7 @@ import com.lambda.client.module.ModuleManager
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.OpenGlHelper
+import net.minecraftforge.common.ForgeVersion
 import org.lwjgl.opengl.GL11
 import java.util.*
 
