@@ -31,13 +31,13 @@ object Flight : Module(
     private val mode by setting("Mode", FlightMode.PACKET)
     private val speed by setting("Speed", 1.0f, 0.0f..10.0f, 0.1f)
     private val glideSpeed by setting("Glide Speed", 0.05, 0.0..0.3, 0.001)
-    private val packetMode by setting("Packet Mode", PacketMode.NEGATIVE)
+    private val packetMode by setting("Packet Mode", PacketMode.NEGATIVE, { mode == FlightMode.PACKET })
     private val upSpeed by setting("Up Speed", 0.0622, 0.0..0.3, 0.001, { mode == FlightMode.PACKET })
     private val antiKick by setting("Anti Kick", true, { mode == FlightMode.PACKET })
-    private val antiKickSpeed by setting("Anti Kick Speed", 0.0622, 0.0..0.3, 0.001)
-    private val antiKickDelay by setting("Anti Kick Delay", 14, 0..100, 1)
-    private val hShrinkAmount by setting("Horizontal Shrink Amount", 4.0, 1.0..10.0, 0.1)
-    private val vShrinkAmount by setting("Vertical Shrink Amount", 2.70, 1.0..10.0, 0.1)
+    private val antiKickSpeed by setting("Anti Kick Speed", 0.0622, 0.0..0.3, 0.001, { mode == FlightMode.PACKET && antiKick })
+    private val antiKickDelay by setting("Anti Kick Delay", 14, 0..100, 1, { mode == FlightMode.PACKET && antiKick})
+    private val hShrinkAmount by setting("Horizontal Shrink Amount", 4.0, 1.0..10.0, 0.1, { mode == FlightMode.PACKET })
+    private val vShrinkAmount by setting("Vertical Shrink Amount", 2.70, 1.0..10.0, 0.1, { mode == FlightMode.PACKET })
 
     private enum class FlightMode {
         PACKET, VANILLA, STATIC
@@ -64,10 +64,10 @@ object Flight : Module(
 
                     player.motionY = if (mc.gameSettings.keyBindJump.isKeyDown xor mc.gameSettings.keyBindSneak.isKeyDown) {
                         if (mc.gameSettings.keyBindJump.isKeyDown) {
-                            if (player.ticksExisted % antiKickDelay != 0) {
-                                upSpeed / vShrinkAmount
-                            } else {
+                            if (player.ticksExisted % antiKickDelay == 0 && antiKick) {
                                 -antiKickSpeed / vShrinkAmount
+                            } else {
+                                upSpeed / vShrinkAmount
                             }
                         } else (-upSpeed / vShrinkAmount)
                     } else {
@@ -79,10 +79,8 @@ object Flight : Module(
                         -glideSpeed / vShrinkAmount
                     }
 
-                    val antiKickOffset = if (player.ticksExisted % (antiKickDelay + 1) == 0 && antiKick) -antiKickSpeed else 0.0
-
                     val posX = player.posX + (player.motionX * hShrinkAmount)
-                    val posY = player.posY + (player.motionY * vShrinkAmount) + antiKickOffset
+                    val posY = player.posY + (player.motionY * vShrinkAmount)
                     val posZ = player.posZ + (player.motionZ * hShrinkAmount)
 
                     val invalidPacketOffset = when (packetMode) {
