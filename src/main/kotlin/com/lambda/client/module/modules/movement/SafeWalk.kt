@@ -1,18 +1,17 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.event.events.SafewalkEvent
 import com.lambda.mixin.entity.MixinEntity
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.player.Scaffold
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.VectorUtils.toVec3d
 import com.lambda.client.util.threads.runSafeR
+import com.lambda.client.util.threads.safeListener
 
 /**
- * @see MixinEntity.moveInvokeIsSneakingPre
- * @see MixinEntity.moveInvokeIsSneakingPost
+ * @see MixinEntity.move_isSneaking
  */
 object SafeWalk : Module(
     name = "SafeWalk",
@@ -22,20 +21,14 @@ object SafeWalk : Module(
     private val checkFallDist by setting("Check Fall Distance", true, description = "Check fall distance from edge")
 
     init {
-        onToggle {
-            BaritoneUtils.settings?.assumeSafeWalk?.value = it
+
+        safeListener<SafewalkEvent> {
+
+            BaritoneUtils.settings?.assumeSafeWalk?.value = isEdgeSafe || !checkFallDist
+            it.sneak = isEdgeSafe || !checkFallDist
+
         }
-    }
 
-    @JvmStatic
-    fun shouldSafewalk(entityID: Int) =
-        (Wrapper.player?.let { !it.isSneaking && it.entityId == entityID } ?: false)
-            && (isEnabled || Scaffold.isEnabled && Scaffold.safeWalk)
-            && (!checkFallDist && !BaritoneUtils.isPathing || !isEdgeSafe)
-
-    @JvmStatic
-    fun setSneaking(state: Boolean) {
-        Wrapper.player?.movementInput?.sneak = state
     }
 
     private val isEdgeSafe: Boolean

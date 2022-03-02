@@ -3,6 +3,7 @@ package com.lambda.mixin.player;
 import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent;
 import com.lambda.client.event.events.PlayerMoveEvent;
+import com.lambda.client.event.events.SpoofSneakEvent;
 import com.lambda.client.gui.mc.LambdaGuiBeacon;
 import com.lambda.client.manager.managers.MessageManager;
 import com.lambda.client.manager.managers.PlayerPacketManager;
@@ -175,6 +176,16 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
 
         event = event.nextPhase();
         LambdaEventBus.INSTANCE.post(event);
+    }
+
+    @Redirect(method = "onUpdateWalkingPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isSneaking()Z"))
+    public boolean isSneaking(EntityPlayerSP instance) {
+
+        SpoofSneakEvent event = new SpoofSneakEvent(instance.isSneaking());
+        LambdaEventBus.INSTANCE.post(event);
+
+        return event.getSneaking();
+
     }
 
     private void sendSprintPacket() {
