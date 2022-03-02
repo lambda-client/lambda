@@ -5,6 +5,7 @@ import com.lambda.client.event.events.SafewalkEvent
 import com.lambda.client.event.events.SpoofSneakEvent
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
+import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.items.block
@@ -34,7 +35,7 @@ object Scaffold : Module(
     name = "Scaffold",
     category = Category.PLAYER,
     description = "Places blocks under you",
-    modulePriority = 500
+    modulePriority = 400
 ) {
 
     private val extend by setting("Extend", 3.0, 0.0..25.0, 0.5)
@@ -42,6 +43,7 @@ object Scaffold : Module(
     private val bypass by setting("Bypass", 8,0..30,1, {tower}, description = "How many blocks to tower before pausing to bypass NCP")
     private val down by setting("Down", true, description = "Sneak to scaffold downward")
     private val keepY by setting("Keep Y", false, description = "Ensure Y level stays the same unless towering")
+    private val timer by setting("Timer Boost", 1.0, 1.0..10.0, 0.1, description = "Use timer when towering")
     private val rotate by setting("Rotate", true, description = "Rotate server side to bypass NCP")
 
     var phase : Int = 0
@@ -117,6 +119,8 @@ object Scaffold : Module(
                         2 -> mc.player.motionY = .25
                     }
 
+                    modifyTimer(50f / timer.toFloat())
+
                 }
 
                 phase++
@@ -126,6 +130,8 @@ object Scaffold : Module(
 
                 if (keepY)
                     pos = BlockPos(pos.x, keptY, pos.z)
+
+                modifyTimer(50f)
 
             }
 
