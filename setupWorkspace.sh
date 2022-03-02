@@ -22,10 +22,10 @@ echo "Generating InteliJ runs"
   exit 1
 }
 
-clear
 cat logo_ascii.txt 2>/dev/null
 echo "=========================================================================="
 echo ""
-echo "Build succeeded in $(($SECONDS / 60)) minutes and $(($SECONDS % 60)) seconds! All checks passed, you can build normally now! Welcome to Lambda."
+# shellcheck disable=SC2039
+echo "Build succeeded in $((SECONDS / 60)) minutes and $((SECONDS % 60)) seconds! All checks passed, you can build normally now! Welcome to Lambda."
 echo ""
 echo "=========================================================================="
