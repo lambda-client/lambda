@@ -99,7 +99,6 @@ object Scaffold : Module(
                         mc.gameSettings.keyBindForward.isKeyDown ||
                         mc.gameSettings.keyBindBack.isKeyDown
                 )) {
-                pos = BlockPos(mc.player.positionVector).down()
 
                 // set our XZ motion to 0
                 mc.player.motionX = 0.0
@@ -111,17 +110,15 @@ object Scaffold : Module(
                     mc.player.motionY = -1.0
                     phase = -1
                 } else if (phase > 0) {
-                    // set motion every tick to control it, making sure it adds to 1 every 3 ticks
-                    when (phase % 3) {
-                        bypass -> mc.player.motionY = mc.player.posY - floor(mc.player.posY)
-                        0 -> mc.player.motionY = .42
-                        1 -> mc.player.motionY = .33
-                        2 -> mc.player.motionY = .25
-                    }
+
+                    if (mc.world.isAirBlock(BlockPos(mc.player.positionVector).down()))
+                        mc.player.jump()
 
                     modifyTimer(50f / timer.toFloat())
 
                 }
+
+                pos = BlockPos(mc.player.positionVector).down()
 
                 phase++
 
@@ -211,7 +208,7 @@ object Scaffold : Module(
 
     private fun SafeClientEvent.place(pos: BlockPos, block : Block) = defaultScope.launch {
 
-        getNeighbour(pos, 1, 6.5f)?.let {
+        getNeighbour(pos, 1, 100f)?.let {
             placeBlock(
                 it
             )
