@@ -1,9 +1,9 @@
 package com.lambda.client.gui.rgui
 
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.setting.GuiConfig
 import com.lambda.client.setting.configs.AbstractConfig
 import com.lambda.client.util.math.Vec2f
-import com.lambda.client.commons.interfaces.Nameable
 
 open class InteractiveComponent(
     name: String,
@@ -65,7 +65,6 @@ open class InteractiveComponent(
 
     private fun isInComponent(mousePos: Vec2f) = mousePos.x in 0.0f..width && mousePos.y in 0.0f..height
 
-    @Suppress("UNUSED")
     enum class MouseState {
         NONE, HOVER, CLICK, DRAG
     }

@@ -4,6 +4,7 @@ import com.lambda.client.command.CommandManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.GuiEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageSendHelper
@@ -11,7 +12,6 @@ import com.lambda.client.util.text.formatValue
 import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.runSafeR
-import com.lambda.client.event.listener.listener
 import com.mojang.authlib.GameProfile
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.entity.EntityOtherPlayerMP
@@ -34,7 +34,7 @@ object FakePlayer : Module(
     private val copyPotions by setting("Copy Potions", true)
     private val maxArmor by setting("Max Armor", false)
     private val gappleEffects by setting("Gapple Effects", false)
-    val playerName by setting("Player Name", "Player")
+    private val playerName by setting("Player Name", "Player")
 
     private const val ENTITY_ID = -696969420
     private var fakePlayer: EntityOtherPlayerMP? = null
