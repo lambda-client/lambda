@@ -21,7 +21,7 @@ Find our plugins [here](https://github.com/lambda-plugins).
 
 ## Installation
 1. Install Minecraft 1.12.2
-2. Install Forge
+2. Install Forge latest installer [here](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
 3. Download the mod file [here](https://github.com/lambda-client/lambda/releases/download/3.1/lambda-3.1.jar)
 4. Put the file in your `.minecraft/mods` folder
 
