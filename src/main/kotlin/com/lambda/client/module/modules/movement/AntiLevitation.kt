@@ -66,15 +66,16 @@ object AntiLevitation : Module(
                 /* Makes the player fly and set the speed to the user's preference */
                 if (MovementUtils.isInputting && !vertical) {
                     val yaw = calcMoveYaw()
+                    player.isSprinting = false //disables sprinting so you can't go too fast
                     player.motionX = -sin(yaw) * speed
                     player.motionZ = cos(yaw) * speed
                 } else {
-                    player.motionX = 0.0
+                    /* Make the motion slowly become 0 so it looks smooth */
+                    player.motionX *= 0.85 //Possible memory leak? cuz it keeps making the number smaller i guess
                     player.motionY = 0.0
-                    player.motionZ = 0.0
+                    player.motionZ *= 0.85
                 }
                 //TODO: make it not flag when crouching
-                //TODO: disable sprinting
                 //TODO: find optimal speed that never flags
 
                 /* Apply Y motion the player wants to move to trick the anticheat */
@@ -83,8 +84,8 @@ object AntiLevitation : Module(
                 }
 
                 /* Vertical movement */
-                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = (speed / 1.1f).toDouble()
-                if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = -(speed / 0.5f).toDouble() // You can go down way faster then going up
+                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = 0.145
+                if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = -0.45 // You can go down way faster then going up
             }
         }
     }
