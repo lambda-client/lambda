@@ -18,7 +18,6 @@ import com.lambda.client.util.world.isReplaceable
 import com.lambda.client.util.world.placeBlock
 import com.lambda.mixin.entity.MixinEntity
 import kotlinx.coroutines.launch
-import net.minecraft.block.Block
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
@@ -40,14 +39,16 @@ object Scaffold : Module(
 
     private val extend by setting("Extend", 3.0, 0.0..25.0, 0.5)
     private val tower by setting("Tower", true, description = "Go up faster by jumping")
-    private val bypass by setting("Bypass", 8,0..30,1, {tower}, description = "How many blocks to tower before pausing to bypass NCP")
+    private val bypass by setting("Bypass", 8, 0..30, 1, { tower }, description = "How many blocks to tower before pausing to bypass NCP")
     private val down by setting("Down", true, description = "Sneak to scaffold downward")
     private val keepY by setting("Keep Y", false, description = "Ensure Y level stays the same unless towering")
     private val timer by setting("Timer Boost", 1.0, 1.0..10.0, 0.1, description = "Use timer when towering")
     private val rotate by setting("Rotate", true, description = "Rotate server side to bypass NCP")
 
-    var phase : Int = 0
-    var keptY : Int = 0
+    private var phase: Int = 0
+    private var keptY: Int = 0
+
+    var placed: HashMap<BlockPos, Long> = HashMap()
 
     init {
 
@@ -65,17 +66,12 @@ object Scaffold : Module(
 
             var slot = -1
 
-            // will always be updated before placement so matters not what the block is
-            var block : Block = Blocks.AIR
-
             for (i in 0..8) {
 
                 val item = mc.player.inventory.getStackInSlot(i).item
-
                 if (mc.player.inventory.getStackInSlot(i).item.block != Blocks.AIR)
                     if (item.block.defaultState.isFullBlock) {
                         slot = i
-                        block = item.block
                         break
                     }
 
@@ -84,7 +80,7 @@ object Scaffold : Module(
             if (slot < 0)
                 return@safeListener
 
-            // set our position (set our extend to 1 if we are jumping as otherwise we may not land on the block)
+            // set our position (set extend to 1 if we are jumping as otherwise we may not land on the block)
             var pos = BlockPos(
                 mc.player.posX + (mc.player.motionX * (if (!mc.gameSettings.keyBindJump.isKeyDown) extend else 1).toInt()),
                 mc.player.posY - 1,
@@ -98,14 +94,14 @@ object Scaffold : Module(
                         mc.gameSettings.keyBindRight.isKeyDown ||
                         mc.gameSettings.keyBindForward.isKeyDown ||
                         mc.gameSettings.keyBindBack.isKeyDown
-                )) {
+                    )) {
 
                 // set our XZ motion to 0
                 mc.player.motionX = 0.0
                 mc.player.motionZ = 0.0
 
                 // it should be * 3 but * 6 makes it bypass blocks until we return to ground
-                if (phase - (bypass*6) > 0 && bypass != 0) {
+                if (phase - (bypass * 6) > 0 && bypass != 0) {
                     // pause every few blocks to bypass NCP
                     mc.player.motionY = -1.0
                     phase = -1
@@ -121,6 +117,9 @@ object Scaffold : Module(
                 pos = BlockPos(mc.player.positionVector).down()
 
                 phase++
+
+                // when towering we want to update our keptY
+                keptY = floor(mc.player.posY).toInt() - 1
 
             } else {
                 phase = 0
@@ -168,15 +167,26 @@ object Scaffold : Module(
                         pos = BlockPos(pos.x, keptY, pos.z)
                 }
 
-            // if the position is not replacable, don't bother trying to replace it
+                // if the position is not replaceable, don't bother trying to replace it
             } else if (!mc.world.getBlockState(pos).isReplaceable)
                 return@safeListener
 
             spoofHotbar(slot)
-            place(pos, block)
+            place(pos)
+            placed[pos] = System.currentTimeMillis()
+
+            for (position in placed.keys) {
+
+                val time = placed[position]
+
+                // half second for server to place block for us client side while we just assume it was placed
+                if (System.currentTimeMillis() - time!! < 500)
+                    placed.remove(position)
+
+            }
 
             if (rotate) {
-                sendPlayerPacket{
+                sendPlayerPacket {
                     rotate(getRotationTo(Vec3d(pos)))
                 }
             }
@@ -206,18 +216,19 @@ object Scaffold : Module(
 
     }
 
-    private fun SafeClientEvent.place(pos: BlockPos, block : Block) = defaultScope.launch {
+    private fun SafeClientEvent.place(pos: BlockPos) = defaultScope.launch {
 
         getNeighbour(pos, 1, 100f)?.let {
             placeBlock(
-                it
+                it,
+                silent = true,
+                swing = false
             )
-            mc.world.setBlockState(pos, block.defaultState)
         }
 
     }
 
-    private fun canPlace(pos: BlockPos) : Boolean {
+    private fun canPlace(pos: BlockPos): Boolean {
 
         for (i in EnumFacing.values()) {
 

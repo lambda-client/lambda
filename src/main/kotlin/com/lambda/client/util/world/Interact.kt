@@ -8,6 +8,7 @@ import com.lambda.client.util.threads.runSafeSuspend
 import kotlinx.coroutines.delay
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemBlock
+import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
@@ -270,12 +271,21 @@ private suspend fun SafeClientEvent.doPlace(
  */
 fun SafeClientEvent.placeBlock(
     placeInfo: PlaceInfo,
-    hand: EnumHand = EnumHand.MAIN_HAND
+    hand: EnumHand = EnumHand.MAIN_HAND,
+    silent: Boolean = false,
+    swing: Boolean = true
 ) {
     if (!world.isPlaceable(placeInfo.placedPos)) return
 
     connection.sendPacket(placeInfo.toPlacePacket(hand))
-    player.swingArm(hand)
+
+    if (swing)
+        player.swingArm(hand)
+    else
+        connection.sendPacket(CPacketAnimation(hand))
+
+    if (silent)
+        return
 
     val itemStack = player.serverSideItem
     val block = (itemStack.item as? ItemBlock?)?.block ?: return

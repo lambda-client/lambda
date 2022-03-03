@@ -1,6 +1,7 @@
 package com.lambda.mixin.world;
 
 import com.lambda.client.module.modules.movement.Avoid;
+import com.lambda.client.module.modules.player.Scaffold;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockCactus;
@@ -25,9 +26,16 @@ public class MixinGetCollisionBB {
     private void getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos, CallbackInfoReturnable<AxisAlignedBB> cir) {
         if (mc.world != null && Avoid.INSTANCE.isEnabled()) {
             Block checkBlock = getBlock(pos);
-            if ((checkBlock.equals(Blocks.FIRE) && Avoid.INSTANCE.getFire()) ||
+            if (
+                // Avoid
+                (checkBlock.equals(Blocks.FIRE) && Avoid.INSTANCE.getFire()) ||
                 (checkBlock.equals(Blocks.CACTUS) && Avoid.INSTANCE.getCactus()) ||
-                ((!mc.world.isBlockLoaded(pos, false) || pos.getY() < 0) && Avoid.INSTANCE.getUnloaded())) {
+                ((!mc.world.isBlockLoaded(pos, false) || pos.getY() < 0) && Avoid.INSTANCE.getUnloaded())
+                ||
+
+                // Scaffold
+                    (Scaffold.INSTANCE.getPlaced().containsKey(pos))
+            ) {
                 cir.cancel();
                 cir.setReturnValue(Block.FULL_BLOCK_AABB);
             }
