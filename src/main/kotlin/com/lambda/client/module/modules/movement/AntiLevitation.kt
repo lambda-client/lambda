@@ -4,12 +4,15 @@ import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.MovementUtils
+import com.lambda.client.util.MovementUtils.calcMoveYaw
 import com.lambda.client.util.MovementUtils.isMoving
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.init.MobEffects
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import kotlin.math.cos
+import kotlin.math.sin
 
 object AntiLevitation : Module(
     name = "AntiLevitation",
@@ -19,7 +22,7 @@ object AntiLevitation : Module(
     private val fly by setting("Fly", true, description = "Allows you to \"fly\" when you have levitation")
     private val vertical by setting("Only Vertical", false, { fly }, description = "doesn't apply extra speed when enabled")
     private val YMotion by setting("Constant Motion UP", 0.002f, 0.0f..0.02f, 0.001f, { fly }, description = "The Y Motion that is always applied to bypass the anticheat")
-    private val speed by setting("Speed",  0.15f, 0.01f..0.2f, 0.005f, { fly }, description = "The speed you fly at")
+    private val speed by setting("Speed",  0.28f, 0.15f..0.3f, 0.005f, { fly }, description = "The speed you fly at")
 
     private var ready = false
 
@@ -61,8 +64,18 @@ object AntiLevitation : Module(
         safeListener<PlayerTravelEvent> {
             if (ready) {
                 /* Makes the player fly and set the speed to the user's preference */
-                if (!vertical) player.capabilities.isFlying = true
-                if (!vertical) player.capabilities.flySpeed = speed / 11.11f
+                if (MovementUtils.isInputting && !vertical) {
+                    val yaw = calcMoveYaw()
+                    player.motionX = -sin(yaw) * speed
+                    player.motionZ = cos(yaw) * speed
+                } else {
+                    player.motionX = 0.0
+                    player.motionY = 0.0
+                    player.motionZ = 0.0
+                }
+                //TODO: make it not flag when crouching
+                //TODO: disable sprinting
+                //TODO: find optimal speed that never flags
 
                 /* Apply Y motion the player wants to move to trick the anticheat */
                 if (MovementUtils.isInputting || player.isMoving) {
