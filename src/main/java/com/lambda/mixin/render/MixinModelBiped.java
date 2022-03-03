@@ -109,7 +109,7 @@ public abstract class MixinModelBiped extends ModelBase {
                 this.bipedLeftArm.rotationPointX = MathHelper.cos(this.bipedBody.rotateAngleY) * 5.0F;
                 this.bipedRightArm.rotateAngleY += this.bipedBody.rotateAngleY;
                 this.bipedLeftArm.rotateAngleY += this.bipedBody.rotateAngleY;
-                this.bipedLeftArm.rotateAngleX += this.bipedBody.rotateAngleY;
+                this.bipedLeftArm.rotateAngleX += this.bipedBody.rotateAngleX;
                 f1 = 1.0F - this.swingProgress;
                 f1 = f1 * f1;
                 f1 = f1 * f1;

@@ -61,7 +61,7 @@ object LogoutLogger : Module(
                     }
                 }
 
-                loggedPlayers.keys.removeAll(toRemove)
+                loggedPlayers.keys.removeAll(toRemove.toSet())
             }
         }
     }

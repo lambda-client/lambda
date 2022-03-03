@@ -26,7 +26,7 @@ public abstract class MixinRenderPlayer extends RenderLivingBase<AbstractClientP
     @Shadow
     protected abstract void setModelVisibilities(AbstractClientPlayer clientPlayer);
 
-    @Inject(method = "applyRotations", at = @At("RETURN"))
+    @Inject(method = "applyRotations(Lnet/minecraft/client/entity/AbstractClientPlayer;FFF)V", at = @At("RETURN"))
     protected void applyRotations(AbstractClientPlayer entityLiving, float ageInTicks, float rotationYaw, float partialTicks, CallbackInfo ci) {
         if (entityLiving == Wrapper.getMinecraft().player && ElytraFlight.INSTANCE.shouldSwing()) {
             Vec3d vec3d = entityLiving.getLook(partialTicks);
@@ -42,7 +42,7 @@ public abstract class MixinRenderPlayer extends RenderLivingBase<AbstractClientP
     }
 
     // Force it to render the original player in Freecam
-    @Inject(method = "doRender", at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/entity/RenderManager;renderViewEntity:Lnet/minecraft/entity/Entity;"))
+    @Inject(method = "doRender(Lnet/minecraft/client/entity/AbstractClientPlayer;DDDFF)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/entity/RenderManager;renderViewEntity:Lnet/minecraft/entity/Entity;"))
     public void doRenderGetRenderViewEntity(AbstractClientPlayer entity, double x, double y, double z, float entityYaw, float partialTicks, CallbackInfo ci) {
         if (Freecam.INSTANCE.isEnabled() && Wrapper.getMinecraft().getRenderViewEntity() != entity) {
             double renderY = y;

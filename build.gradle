@@ -1,26 +1,24 @@
-version project.modVersion
-group project.modGroup
-
 buildscript {
     repositories {
         mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
         maven { url = 'https://repo.spongepowered.org/maven/' }
     }
-
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:5.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokkaVersion"
     }
 }
 
-apply plugin: 'idea'
-apply plugin: 'kotlin'
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "$kotlinVersion"
+}
+
 apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.jetbrains.dokka'
 apply plugin: 'org.spongepowered.mixin'
+
+version project.modVersion
+group project.modGroup
 
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
@@ -34,10 +32,10 @@ compileKotlin.kotlinOptions {
 }
 
 repositories {
+    mavenCentral()
     maven { url = 'https://repo.spongepowered.org/maven/' }
     maven { url = 'https://impactdevelopment.github.io/maven/' }
-    maven { url = "https://jitpack.io" }
-    mavenCentral()
+    maven { url = 'https://jitpack.io' }
 }
 
 minecraft {
@@ -70,36 +68,20 @@ dependencies {
     // Forge
     minecraft "net.minecraftforge:forge:$minecraftVersion-$forgeVersion"
 
-    jarLibs('org.spongepowered:mixin:0.8.3') {
+    jarLibs('org.spongepowered:mixin:0.8.5') {
         exclude module: 'commons-io'
         exclude module: 'gson'
         exclude module: 'guava'
-        exclude module: 'launchwrapper'
-        exclude module: 'log4j-core' // we want to exclude this as well because 0.8.3 includes it too new for MC
     }
 
     // Hacky way to get mixin work
-    annotationProcessor('org.spongepowered:mixin:0.8.3:processor') {
+    annotationProcessor('org.spongepowered:mixin:0.8.5:processor') {
         exclude module: 'gson'
     }
 
     // Not the latest Reflections because it breaks Future compatibility :/
-    jarLibs('org.reflections:reflections:0.9.12') {
-        exclude module: 'gson'
-        exclude module: 'guava'
-    }
-
-    // Kotlin libs
-    // kotlin-stdlib-common and annotations aren't required at runtime
-    jarLibs("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion") {
-        exclude module: 'kotlin-stdlib-common'
-        exclude module: 'annotations'
-    }
-
-    jarLibs("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion") {
-        exclude module: 'kotlin-stdlib-common'
-        exclude module: 'annotations'
-    }
+    //noinspection GradlePackageUpdate
+    jarLibs 'org.reflections:reflections:0.9.12'
 
     jarLibs("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion") {
         exclude module: 'kotlin-stdlib-common'
@@ -107,16 +89,19 @@ dependencies {
     }
 
     jarLibs("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion") {
-        exclude module: 'kotlin-stdlib-common'
-        exclude module: 'annotations'
+        exclude module: 'kotlin-stdlib'
     }
 
     jarLibs("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion") {
+        exclude module: 'kotlin-stdlib-jdk8'
         exclude module: 'kotlin-stdlib-common'
-        exclude module: 'annotations'
     }
 
-    jarLibs "com.github.cbyrneee:DiscordIPC:e18542f600"
+    jarLibs('com.github.cbyrneee:DiscordIPC:e18542f600') {
+        exclude module: 'junixsocket-common'
+        exclude module: 'junixsocket-native-common'
+        exclude module: 'json'
+    }
 
     // Add them back to compileOnly (provided)
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion"
@@ -134,7 +119,11 @@ dependencies {
 
 mixin {
     defaultObfuscationEnv 'searge'
-    add sourceSets.main, 'mixins.lambda.refmap.json'
+    sourceSets {
+        main {
+            ext.refMap = 'mixins.lambda.refmap.json'
+        }
+    }
 }
 
 processResources {
@@ -151,7 +140,7 @@ task sourceJar(type: Jar) { // Generate sources
     group 'build'
     description 'Assemble API library source archive'
 
-    archiveClassifier.set('api-source')
+    archiveClassifier.set 'api-source'
     from sourceSets.main.allSource
 }
 
@@ -159,7 +148,7 @@ task apiJar(type: Jar) {
     group 'build'
     description 'Assemble API library archive'
 
-    archiveClassifier.set('api')
+    archiveClassifier.set 'api'
     from sourceSets.main.output
 }
 
@@ -176,7 +165,17 @@ jar {
 
     // Copy needed libs to jar
     from {
-        exclude "**/module-info.class"
+        exclude '**/module-info.class',
+                'DebugProbesKt.bin',
+                'META-INF/maven/**',
+                'META-INF/proguard/**',
+                'META-INF/versions/**',
+                'META-INF/**.RSA',
+                'META-INF/com.android.tools/**',
+                'META-INF/*.kotlin_module',
+                'kotlin/**/*.kotlin_metadata',
+                'kotlin/**/*.kotlin_builtins',
+                'META-INF/*.version'
         configurations.jarLibs.collect {
             it.isDirectory() ? it : zipTree(it)
         }

@@ -19,7 +19,7 @@ public class MixinTileEntitySignRenderer {
 
     private final Minecraft mc = Minecraft.getMinecraft();
 
-    @Redirect(method = "render", at = @At(value = "FIELD", target = "Lnet/minecraft/tileentity/TileEntitySign;signText:[Lnet/minecraft/util/text/ITextComponent;", opcode = Opcodes.GETFIELD))
+    @Redirect(method = "render(Lnet/minecraft/tileentity/TileEntitySign;DDDFIF)V", at = @At(value = "FIELD", target = "Lnet/minecraft/tileentity/TileEntitySign;signText:[Lnet/minecraft/util/text/ITextComponent;", opcode = Opcodes.GETFIELD))
     public ITextComponent[] getRenderViewEntity(TileEntitySign sign) {
         if (NoRender.INSTANCE.isEnabled() && NoRender.INSTANCE.getSignText()) {
             GuiScreen screen = mc.currentScreen;

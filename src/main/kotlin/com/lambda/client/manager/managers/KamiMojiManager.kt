@@ -68,7 +68,7 @@ object LambdaMojiManager : Manager {
             if (globalVer != null) {
                 if (!globalVer.has("version")) {
                     updateEmojis()
-                } else if (globalVer["version"].asInt != localVer?.get("version")?.asInt ?: 8) {
+                } else if (globalVer["version"].asInt != (localVer?.get("version")?.asInt ?: 8)) {
                     updateEmojis()
                 }
             }
