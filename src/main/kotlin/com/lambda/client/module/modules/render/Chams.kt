@@ -25,8 +25,8 @@ import org.lwjgl.opengl.GL11.*
 
 object Chams : Module(
     name = "Chams",
-    category = Category.RENDER,
-    description = "Modify entity rendering"
+    description = "Modify entity rendering",
+    category = Category.RENDER
 ) {
     private val page by setting("Page", Page.ENTITY_TYPE)
 

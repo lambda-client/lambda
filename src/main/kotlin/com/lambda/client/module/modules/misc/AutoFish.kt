@@ -16,8 +16,8 @@ import kotlin.math.abs
 
 object AutoFish : Module(
     name = "AutoFish",
-    category = Category.MISC,
-    description = "Automatically catch fish"
+    description = "Automatically catch fish",
+    category = Category.MISC
 ) {
     private val mode by setting("Mode", Mode.BOUNCE)
     private val autoCast by setting("Auto Cast", true)

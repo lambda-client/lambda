@@ -4,6 +4,7 @@ import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.BaritoneSettingsInitEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
@@ -14,7 +15,6 @@ import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.server.SPacketChat
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
@@ -28,8 +28,8 @@ import kotlin.random.Random
  */
 object AntiAFK : Module(
     name = "AntiAFK",
-    category = Category.MISC,
-    description = "Prevents being kicked for AFK"
+    description = "Prevents being kicked for AFK",
+    category = Category.MISC
 ) {
     private val delay by setting("Action Delay", 50, 5..100, 5)
     private val variation by setting("Variation", 25, 0..50, 5)

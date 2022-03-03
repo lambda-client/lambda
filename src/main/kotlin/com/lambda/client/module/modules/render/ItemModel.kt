@@ -10,9 +10,9 @@ import net.minecraft.util.EnumHandSide
 
 object ItemModel : Module(
     name = "ItemModel",
-    alias = arrayOf("ViewModel", "SmallShield", "LowerOffhand"),
     description = "Modify hand item rendering in first person",
-    category = Category.RENDER
+    category = Category.RENDER,
+    alias = arrayOf("ViewModel", "SmallShield", "LowerOffhand")
 ) {
     private val mode by setting("Mode", Mode.BOTH)
     private val page by setting("Page", Page.POSITION)

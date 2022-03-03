@@ -7,8 +7,8 @@ import com.lambda.client.util.color.ColorHolder
 object GuiColors : Module(
     name = "GuiColors",
     description = "Customize gui colors",
-    showOnArray = false,
     category = Category.CLIENT,
+    showOnArray = false,
     alwaysEnabled = true
 ) {
     private val primarySetting by setting("Primary Color", ColorHolder(108, 0, 43, 255))

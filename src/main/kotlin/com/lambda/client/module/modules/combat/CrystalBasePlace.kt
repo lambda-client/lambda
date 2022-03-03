@@ -42,7 +42,7 @@ import java.util.*
 @CombatManager.CombatModule
 object CrystalBasePlace : Module(
     name = "CrystalBasePlace",
-    description = "Places obby for placing crystal on",
+    description = "Places obsidian for placing crystal on",
     category = Category.COMBAT,
     modulePriority = 90
 ) {

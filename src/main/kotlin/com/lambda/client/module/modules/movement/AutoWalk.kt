@@ -1,9 +1,12 @@
 package com.lambda.client.module.modules.movement
 
 import baritone.api.pathing.goals.GoalXZ
+import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.BaritoneCommandEvent
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.LagNotifier
@@ -14,17 +17,14 @@ import com.lambda.client.util.math.Direction
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.floorToInt
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.event.listener.listener
 import net.minecraft.util.MovementInputFromOptions
 import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoWalk : Module(
     name = "AutoWalk",
-    category = Category.MOVEMENT,
-    description = "Automatically walks somewhere"
+    description = "Automatically walks somewhere",
+    category = Category.MOVEMENT
 ) {
     private val mode = setting("Direction", AutoWalkMode.BARITONE)
     private val disableOnDisconnect by setting("Disable On Disconnect", true)

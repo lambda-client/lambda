@@ -24,8 +24,8 @@ import net.minecraft.util.math.Vec3d
 
 object BoatFly : Module(
     name = "BoatFly",
-    category = Category.MOVEMENT,
-    description = "Fly using boats"
+    description = "Fly using boats",
+    category = Category.MOVEMENT
 ) {
     private val speed by setting("Speed", 1.0f, 0.1f..50.0f, 0.1f)
     private val upSpeed by setting("Up Speed", 1.0f, 0.0f..10.0f, 0.1f)

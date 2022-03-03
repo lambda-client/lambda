@@ -1,7 +1,9 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.utils.MathUtils.reverseNumber
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.GuiEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
@@ -15,8 +17,6 @@ import com.lambda.client.util.items.swapToSlot
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.utils.MathUtils.reverseNumber
-import com.lambda.client.event.listener.listener
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Enchantments
@@ -28,10 +28,9 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoMend : Module(
     name = "AutoMend",
-    category = Category.COMBAT,
-    description = "Automatically mends armour"
+    description = "Automatically mends armour",
+    category = Category.COMBAT
 ) {
-
     private val autoThrow by setting("Auto Throw", true)
     private val throwDelay = setting("Throw Delay", 2, 0..5, 1, description = "Number of ticks between throws to allow absorption")
     private val autoSwitch by setting("Auto Switch", true)

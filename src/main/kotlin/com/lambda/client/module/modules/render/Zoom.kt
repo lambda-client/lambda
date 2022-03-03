@@ -5,8 +5,8 @@ import com.lambda.client.module.Module
 
 object Zoom : Module(
     name = "Zoom",
-    category = Category.RENDER,
     description = "Configures FOV",
+    category = Category.RENDER,
     showOnArray = false
 ) {
     private var fov = 0f

@@ -14,8 +14,8 @@ import net.minecraft.network.play.client.CPacketPlayer
  */
 object AntiHunger : Module(
     name = "AntiHunger",
-    category = Category.MOVEMENT,
-    description = "Reduces hunger lost when moving around"
+    description = "Reduces hunger lost when moving around",
+    category = Category.MOVEMENT
 ) {
     private val cancelMovementState by setting("Cancel Movement State", true)
 

@@ -2,19 +2,19 @@ package com.lambda.client.module.modules.player
 
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.min
 
 object PacketLimiter : Module(
     name = "PacketLimiter",
-    category = Category.PLAYER,
     description = "Adjust timer automatically to ensure not sending too many movement packets",
+    category = Category.PLAYER,
     modulePriority = 1000
 ) {
     private val maxPacketsLong by setting("Max Packets Long", 22.0f, 10.0f..40.0f, 0.25f,

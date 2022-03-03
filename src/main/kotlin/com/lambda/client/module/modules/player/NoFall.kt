@@ -23,8 +23,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object NoFall : Module(
     name = "NoFall",
-    category = Category.PLAYER,
-    description = "Prevents fall damage"
+    description = "Prevents fall damage",
+    category = Category.PLAYER
 ) {
     private val distance by setting("Distance", 3, 1..10, 1)
     private val mode by setting("Mode", Mode.CATCH)

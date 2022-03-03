@@ -4,6 +4,7 @@ import com.lambda.client.event.Phase
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderEntityEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -16,7 +17,6 @@ import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ShaderHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.shader.Shader
 import net.minecraft.entity.Entity
@@ -32,8 +32,8 @@ import org.lwjgl.opengl.GL11.GL_PROJECTION
 
 object ESP : Module(
     name = "ESP",
-    category = Category.RENDER,
-    description = "Highlights entities"
+    description = "Highlights entities",
+    category = Category.RENDER
 ) {
     private val page by setting("Page", Page.ENTITY_TYPE)
 

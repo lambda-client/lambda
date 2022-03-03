@@ -19,11 +19,10 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoArmor : Module(
     name = "AutoArmor",
-    category = Category.COMBAT,
     description = "Automatically equips armour",
+    category = Category.COMBAT,
     modulePriority = 500
 ) {
-
     private val delay by setting("Delay", 5, 1..10, 1)
 
     private val timer = TickTimer(TimeUnit.TICKS)

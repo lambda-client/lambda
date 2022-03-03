@@ -30,7 +30,7 @@ import kotlin.math.sin
 
 object Speed : Module(
     name = "Speed",
-    description = "Air control and onGround speed",
+    description = "Move faster",
     category = Category.MOVEMENT,
     modulePriority = 100
 ) {

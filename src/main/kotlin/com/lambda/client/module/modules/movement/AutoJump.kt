@@ -9,8 +9,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoJump : Module(
     name = "AutoJump",
-    category = Category.MOVEMENT,
-    description = "Automatically jumps if possible"
+    description = "Automatically jumps if possible",
+    category = Category.MOVEMENT
 ) {
     private val delay by setting("Tick Delay", 10, 0..40, 1)
 

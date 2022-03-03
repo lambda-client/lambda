@@ -12,8 +12,8 @@ import java.awt.GraphicsEnvironment
 object CustomFont : Module(
     name = "CustomFont",
     description = "Use different GUI fonts",
-    showOnArray = false,
     category = Category.CLIENT,
+    showOnArray = false,
     enabledByDefault = true
 ) {
     private const val DEFAULT_FONT_NAME = "Fira Sans"

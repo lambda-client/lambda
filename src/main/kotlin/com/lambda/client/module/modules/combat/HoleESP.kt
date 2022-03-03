@@ -18,8 +18,8 @@ import net.minecraft.util.math.AxisAlignedBB
 
 object HoleESP : Module(
     name = "HoleESP",
-    category = Category.COMBAT,
-    description = "Show safe holes for crystal pvp"
+    description = "Show safe holes for crystal pvp",
+    category = Category.COMBAT
 ) {
     private val range by setting("Render Distance", 8, 4..32, 1)
     private val filled by setting("Filled", true)

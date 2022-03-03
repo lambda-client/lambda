@@ -4,6 +4,7 @@ import com.lambda.client.event.Phase
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -11,7 +12,6 @@ import com.lambda.client.util.MovementUtils
 import com.lambda.client.util.MovementUtils.calcMoveYaw
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketCloseWindow
 import kotlin.math.cos
@@ -19,8 +19,8 @@ import kotlin.math.sin
 
 object Flight : Module(
     name = "Flight",
-    category = Category.MOVEMENT,
     description = "Makes the player fly",
+    category = Category.MOVEMENT,
     modulePriority = 500
 ) {
     private val mode by setting("Mode", FlightMode.VANILLA)

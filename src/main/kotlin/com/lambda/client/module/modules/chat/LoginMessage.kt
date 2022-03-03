@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.chat
 
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.MovementUtils.isMoving
@@ -10,7 +11,6 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -19,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 object LoginMessage : Module(
     name = "LoginMessage",
-    description = "Sends a given message(s) to public chat on login.",
+    description = "Sends a given message(s) to public chat on login",
     category = Category.CHAT,
     showOnArray = false,
     modulePriority = 150

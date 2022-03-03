@@ -16,8 +16,8 @@ import org.lwjgl.input.Mouse
 
 object MidClickPearl : Module(
     name = "MidClickPearl",
-    category = Category.COMBAT,
-    description = "Throws a pearl automatically when you middle click in air"
+    description = "Throws a pearl automatically when you middle click in air",
+    category = Category.COMBAT
 ) {
     private var prevSlot = -1
     private var startTime = -1L

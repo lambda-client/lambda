@@ -1,16 +1,16 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.manager.managers.MessageManager.newMessageModifier
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
-import com.lambda.client.commons.utils.MathUtils
 import kotlin.math.min
 
 object FancyChat : Module(
     name = "FancyChat",
-    category = Category.CHAT,
     description = "Makes messages you send fancy",
+    category = Category.CHAT,
     showOnArray = false,
     modulePriority = 100
 ) {

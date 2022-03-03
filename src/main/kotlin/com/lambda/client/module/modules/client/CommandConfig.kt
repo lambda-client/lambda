@@ -2,20 +2,20 @@ package com.lambda.client.module.modules.client
 
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ModuleToggleEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.format
-import com.lambda.client.event.listener.listener
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.Display
 
 object CommandConfig : Module(
     name = "CommandConfig",
-    category = Category.CLIENT,
     description = "Configures client chat related stuff",
+    category = Category.CLIENT,
     showOnArray = false,
     alwaysEnabled = true
 ) {

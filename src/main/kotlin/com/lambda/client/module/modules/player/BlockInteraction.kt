@@ -1,10 +1,10 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.module.Category
+import com.lambda.client.module.Module
 import com.lambda.mixin.MixinMinecraft
 import com.lambda.mixin.render.MixinEntityRenderer
 import com.lambda.mixin.world.MixinBlockLiquid
-import com.lambda.client.module.Category
-import com.lambda.client.module.Module
 import net.minecraft.item.ItemBlock
 import net.minecraft.item.ItemPickaxe
 import net.minecraft.util.math.RayTraceResult
@@ -16,9 +16,9 @@ import net.minecraft.util.math.RayTraceResult
  */
 object BlockInteraction : Module(
     name = "BlockInteraction",
-    alias = arrayOf("LiquidInteract", "MultiTask", "NoEntityTrace", "NoMiningTrace"),
+    description = "Modifies block interaction",
     category = Category.PLAYER,
-    description = "Modifies block interaction"
+    alias = arrayOf("LiquidInteract", "MultiTask", "NoEntityTrace", "NoMiningTrace")
 ) {
     private val liquidInteract by setting("Liquid Interact", false, description = "Place block on liquid")
     private val multiTask by setting("Multi Task", true, description = "Breaks block and uses item at the same time")
