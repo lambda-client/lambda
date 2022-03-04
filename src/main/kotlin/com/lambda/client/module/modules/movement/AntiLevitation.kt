@@ -61,9 +61,11 @@ object AntiLevitation : Module(
                 }
             } else {
                 if (mode == Mode.FLIGHT && ready || mode == Mode.LEGIT && legitReady) {
-                    MessageSendHelper.sendChatMessage("Levitation ran out. Brace for impact....")
+                    resetTimer()
                     ready = false
                     legitReady = false
+                    MessageSendHelper.sendChatMessage("Levitation ran out. Brace for impact....")
+                    mc.player.setVelocity(0.0,0.0,0.0) //Reset velocity to make anticheat glitch out less
                 }
             }
         }
@@ -82,8 +84,8 @@ object AntiLevitation : Module(
                     player.motionY = 0.0 // Makes the Y motion always be 0.0 when not pressing any key so you can stand still in the air
 
                     /* Make the motion slowly become 0 so it flattens out smooth */
-                    player.motionX *= 0.85 // Possible memory leak? cuz it keeps making the number smaller i guess
-                    player.motionZ *= 0.85
+                    player.motionX *= 0.8 // Possible memory leak? cuz it keeps making the number smaller i guess
+                    player.motionZ *= 0.8
                 }
 
                 /* Apply tiny Y motion when the player wants to move to trick the anticheat */
@@ -92,7 +94,7 @@ object AntiLevitation : Module(
                 }
 
                 /* Vertical movement */
-                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = 0.1
+                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = 0.0925
                 if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = -0.49 // You can go down way faster then going up for some reason
             } else if (legitReady) {
                 /* Override vanilla motion with our own motion */
