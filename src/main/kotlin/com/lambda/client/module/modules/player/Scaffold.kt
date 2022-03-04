@@ -8,8 +8,10 @@ import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.MovementUtils.isMoving
 import com.lambda.client.util.items.block
 import com.lambda.client.util.math.RotationUtils.getRotationTo
+import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.safeListener
@@ -44,10 +46,12 @@ object Scaffold : Module(
     private val keepY by setting("Keep Y", false, description = "Ensure Y level stays the same unless towering")
     private val timer by setting("Timer Boost", 1.0, 1.0..10.0, 0.1, description = "Use timer when towering")
     private val rotate by setting("Rotate", true, description = "Rotate server side to bypass NCP")
+    private val keepRotation by setting("Lock Rotations", true, { rotate } , description = "Bypass some rotation checks")
 
     private var phase: Int = 0
     private var keptY: Int = 0
 
+    private var oldRot: Vec2f = Vec2f(-1f,-1f)
     var placed: HashMap<BlockPos, Long> = HashMap()
 
     init {
@@ -62,6 +66,12 @@ object Scaffold : Module(
             if (mc.player == null || mc.world == null) {
                 disable()
                 return@safeListener
+            }
+
+            if (rotate && keepRotation && (mc.player.isMoving || mc.gameSettings.keyBindJump.isKeyDown)) {
+                sendPlayerPacket {
+                    rotate(oldRot)
+                }
             }
 
             var slot = -1
@@ -187,7 +197,8 @@ object Scaffold : Module(
 
             if (rotate) {
                 sendPlayerPacket {
-                    rotate(getRotationTo(Vec3d(pos)))
+                    oldRot = getRotationTo(Vec3d(pos))
+                    rotate(oldRot)
                 }
             }
 
