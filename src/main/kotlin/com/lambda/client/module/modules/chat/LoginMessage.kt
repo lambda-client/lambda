@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.chat
 
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.MovementUtils.isMoving
@@ -19,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 object LoginMessage : Module(
     name = "LoginMessage",
-    description = "Sends a given message(s) to public chat on login.",
+    description = "Sends a given message(s) to public chat on login",
     category = Category.CHAT,
     showOnArray = false,
     modulePriority = 150

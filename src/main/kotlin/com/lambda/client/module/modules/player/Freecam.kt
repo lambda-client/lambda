@@ -1,10 +1,14 @@
 package com.lambda.client.module.modules.player
 
 import baritone.api.pathing.goals.GoalTwoBlocks
+import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.commons.extension.toRadian
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerAttackEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
@@ -18,10 +22,6 @@ import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.floorToInt
-import com.lambda.client.commons.extension.toRadian
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
@@ -48,8 +48,8 @@ import kotlin.math.sin
 
 object Freecam : Module(
     name = "Freecam",
-    category = Category.PLAYER,
-    description = "Leave your body and transcend into the realm of the gods"
+    description = "Leave your body and transcend into the realm of the gods",
+    category = Category.PLAYER
 ) {
     private val directionMode by setting("Flight Mode", FlightMode.CREATIVE)
     private val horizontalSpeed by setting("Horizontal Speed", 20.0f, 1.0f..50.0f, 1f)

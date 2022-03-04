@@ -2,12 +2,12 @@ package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.mixin.world.MixinBlockSoulSand
-import com.lambda.mixin.world.MixinBlockWeb
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.threads.safeListener
+import com.lambda.mixin.world.MixinBlockSoulSand
+import com.lambda.mixin.world.MixinBlockWeb
 import net.minecraft.init.Blocks
 import net.minecraft.item.*
 import net.minecraft.network.play.client.CPacketPlayer
@@ -23,8 +23,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
  */
 object NoSlowDown : Module(
     name = "NoSlowDown",
-    category = Category.MOVEMENT,
-    description = "Prevents being slowed down when using an item or going through cobwebs"
+    description = "Prevents being slowed down when using an item or going through cobwebs",
+    category = Category.MOVEMENT
 ) {
     private val ncpStrict by setting("NCP Strict", true)
     private val sneak by setting("Sneak", false)

@@ -10,8 +10,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object FastFall : Module(
     name = "FastFall",
-    category = Category.MOVEMENT,
     description = "Makes you fall faster",
+    category = Category.MOVEMENT,
     modulePriority = 50
 ) {
     private val mode by setting("Mode", Mode.MOTION)

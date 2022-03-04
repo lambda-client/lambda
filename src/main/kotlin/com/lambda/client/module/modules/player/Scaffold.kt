@@ -43,8 +43,8 @@ import kotlin.math.roundToInt
  */
 object Scaffold : Module(
     name = "Scaffold",
-    category = Category.PLAYER,
     description = "Places blocks under you",
+    category = Category.PLAYER,
     modulePriority = 500
 ) {
     private val tower by setting("Tower", true)

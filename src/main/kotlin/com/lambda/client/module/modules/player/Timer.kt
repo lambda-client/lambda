@@ -9,8 +9,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object Timer : Module(
     name = "Timer",
-    category = Category.PLAYER,
     description = "Changes your client tick speed",
+    category = Category.PLAYER,
     modulePriority = 500
 ) {
     private val slow by setting("Slow Mode", false)

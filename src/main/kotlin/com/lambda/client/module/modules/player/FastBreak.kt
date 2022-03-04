@@ -16,8 +16,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object FastBreak : Module(
     name = "FastBreak",
-    category = Category.PLAYER,
-    description = "Breaks block faster and nullifies the break delay"
+    description = "Breaks block faster and nullifies the break delay",
+    category = Category.PLAYER
 ) {
     private val breakDelay by setting("Break Delay", 0, 0..5, 1)
     private val packetMine by setting("Packet Mine", true)

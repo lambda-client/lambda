@@ -10,8 +10,8 @@ import net.minecraft.network.play.server.SPacketPlayerPosLook
 
 object ElytraFix : Module(
     name = "ElytraFix",
-    category = Category.MISC,
     description = "Fixes firework rubberband induced velocity desync",
+    category = Category.MISC
 ) {
     init {
         safeListener<PacketEvent.Receive> { event ->

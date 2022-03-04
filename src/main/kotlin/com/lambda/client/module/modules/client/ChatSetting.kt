@@ -5,8 +5,8 @@ import com.lambda.client.module.Module
 
 object ChatSetting : Module(
     name = "ChatSetting",
-    category = Category.CLIENT,
     description = "Configures chat message manager",
+    category = Category.CLIENT,
     showOnArray = false,
     alwaysEnabled = true
 ) {

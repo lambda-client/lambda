@@ -1,10 +1,13 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.Phase
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RunGameLoopEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.HotbarManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
@@ -12,8 +15,8 @@ import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.client.mixin.extension.useEntityId
 import com.lambda.client.mixin.extension.useEntityAction
+import com.lambda.client.mixin.extension.useEntityId
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Bind
@@ -37,9 +40,6 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getClosestVisibleSide
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.event.listener.listener
 import it.unimi.dsi.fastutil.ints.Int2LongMaps
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap
 import net.minecraft.client.entity.EntityPlayerSP
@@ -71,9 +71,9 @@ import kotlin.math.min
 @CombatManager.CombatModule
 object CrystalAura : Module(
     name = "CrystalAura",
-    alias = arrayOf("CA", "AC", "AutoCrystal"),
     description = "Places End Crystals to kill enemies",
     category = Category.COMBAT,
+    alias = arrayOf("CA", "AC", "AutoCrystal"),
     modulePriority = 80
 ) {
     /* Settings */

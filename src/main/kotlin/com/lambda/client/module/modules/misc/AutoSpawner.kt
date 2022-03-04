@@ -31,8 +31,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
  */
 object AutoSpawner : Module(
     name = "AutoSpawner",
-    category = Category.MISC,
-    description = "Automatically spawns Withers, Iron Golems and Snowmen"
+    description = "Automatically spawns Withers, Iron Golems and Snowmen",
+    category = Category.MISC
 ) {
     private val useMode by setting("Use Mode", UseMode.SPAM)
     private val party by setting("Party", false)
@@ -237,7 +237,7 @@ object AutoSpawner : Module(
             rotationPlaceableX = true
             rotationPlaceableZ = true
 
-            // dont place on grass
+            // don't place on grass
             val block = world.getBlockState(it).block
             if (block is BlockTallGrass || block is BlockDeadBush) return false
             if (getPlaceableSide(it) == null) return false

@@ -26,7 +26,7 @@ class PluginLoader(
 
     init {
         // This will trigger the null checks in PluginInfo
-        // In order to make sure all required infos are present
+        // In order to make sure all required info is present
         info.toString()
 
         if (info.mixins.isNotEmpty()) {

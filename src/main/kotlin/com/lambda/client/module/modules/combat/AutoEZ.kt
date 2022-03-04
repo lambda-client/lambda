@@ -1,7 +1,9 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
@@ -10,8 +12,6 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.text.formatValue
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.event.listener.listener
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -19,8 +19,8 @@ import java.util.*
 
 object AutoEZ : Module(
     name = "AutoEZ",
-    category = Category.COMBAT,
-    description = "Sends an insult in chat after killing someone"
+    description = "Sends an insult in chat after killing someone",
+    category = Category.COMBAT
 ) {
     private const val UNCHANGED = "Unchanged"
     private const val NAME = "\$NAME"

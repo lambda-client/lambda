@@ -3,11 +3,11 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.event.Phase
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderEntityEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.block.BlockSnow
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.particle.Particle
@@ -37,10 +37,9 @@ import org.lwjgl.opengl.GL11.GL_QUADS
 
 object NoRender : Module(
     name = "NoRender",
-    category = Category.RENDER,
-    description = "Ignore entity spawn packets"
+    description = "Ignore entity spawn packets",
+    category = Category.RENDER
 ) {
-
     private val packets by setting("Cancel Packets", true)
     private val page by setting("Page", Page.OTHER)
 

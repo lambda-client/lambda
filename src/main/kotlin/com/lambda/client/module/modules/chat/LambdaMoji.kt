@@ -1,11 +1,11 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.manager.managers.LambdaMojiManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.texture.MipmapTexture
-import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
@@ -13,7 +13,7 @@ import org.lwjgl.opengl.GL11.*
 
 object LambdaMoji : Module(
     name = "LambdaMoji",
-    description = "Add emojis to chat using LambdaMoji, courtesy of the EmojiAPI.",
+    description = "Add emojis to chat using LambdaMoji, courtesy of the EmojiAPI",
     category = Category.CHAT
 ) {
     @JvmStatic

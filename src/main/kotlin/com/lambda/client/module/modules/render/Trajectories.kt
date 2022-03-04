@@ -31,8 +31,8 @@ import kotlin.math.sin
 
 object Trajectories : Module(
     name = "Trajectories",
-    category = Category.RENDER,
-    description = "Draws lines to where trajectories are going to fall"
+    description = "Draws lines to where trajectories are going to fall",
+    category = Category.RENDER
 ) {
     private val showEntity by setting("Show Entity", true)
     private val showBlock by setting("Show Block", false)

@@ -2,9 +2,11 @@ package com.lambda.client.module.modules.misc
 
 import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalNear
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.BlockBreakEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -27,8 +29,6 @@ import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.*
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -60,8 +60,8 @@ import kotlin.math.ceil
 
 object AutoObsidian : Module(
     name = "AutoObsidian",
-    category = Category.MISC,
     description = "Breaks down Ender Chests to restock obsidian",
+    category = Category.MISC,
     modulePriority = 15
 ) {
     private val fillMode by setting("Fill Mode", FillMode.TARGET_STACKS)

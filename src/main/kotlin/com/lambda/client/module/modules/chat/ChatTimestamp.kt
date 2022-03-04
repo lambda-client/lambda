@@ -1,19 +1,19 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TimeUtils
 import com.lambda.client.util.color.EnumTextColor
 import com.lambda.client.util.text.format
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.interfaces.DisplayEnum
 import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 
 object ChatTimestamp : Module(
     name = "ChatTimestamp",
-    category = Category.CHAT,
     description = "Shows the time a message was sent beside the message",
+    category = Category.CHAT,
     showOnArray = false
 ) {
     private val color by setting("Color", EnumTextColor.GRAY)

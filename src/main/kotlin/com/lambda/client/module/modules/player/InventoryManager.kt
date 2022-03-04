@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
@@ -12,7 +13,6 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemStack
@@ -20,8 +20,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object InventoryManager : Module(
     name = "InventoryManager",
-    category = Category.PLAYER,
-    description = "Manages your inventory automatically"
+    description = "Manages your inventory automatically",
+    category = Category.PLAYER
 ) {
     private val defaultEjectList = linkedSetOf(
         "minecraft:grass",

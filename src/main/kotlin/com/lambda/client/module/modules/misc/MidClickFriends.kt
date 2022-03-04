@@ -15,8 +15,8 @@ import org.lwjgl.input.Mouse
 
 object MidClickFriends : Module(
     name = "MidClickFriends",
+    description = "Logs when a player leaves the game",
     category = Category.MISC,
-    description = "Middle click players to friend or unfriend them",
     showOnArray = false
 ) {
     private val timer = TickTimer()
