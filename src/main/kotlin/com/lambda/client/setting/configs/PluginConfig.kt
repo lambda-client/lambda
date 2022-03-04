@@ -1,6 +1,5 @@
 package com.lambda.client.setting.configs
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.plugin.api.IPluginClass
 import com.lambda.client.plugin.api.PluginHudElement
 import com.lambda.client.plugin.api.PluginModule
@@ -14,11 +13,12 @@ import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.Bind
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.color.ColorHolder
 import java.io.File
 
 class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(
-    pluginName, "${LambdaMod.DIRECTORY}config/plugins/$pluginName"
+    pluginName, "${FolderUtils.lambdaFolder}config/plugins/$pluginName"
 ) {
     override val file: File get() = File("$filePath/default.json")
     override val backup: File get() = File("$filePath/default.bak")

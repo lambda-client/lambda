@@ -7,6 +7,7 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.WaypointUpdateEvent
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.CoordinateConverter
 import com.lambda.client.util.math.CoordinateConverter.asString
@@ -19,7 +20,7 @@ import java.util.concurrent.ConcurrentSkipListSet
 
 object WaypointManager : Manager {
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val file = File(LambdaMod.DIRECTORY + "waypoints.json")
+    private val file = File(FolderUtils.lambdaFolder + "waypoints.json")
     private val sdf = SimpleDateFormat("HH:mm:ss dd/MM/yyyy")
 
     val waypoints = ConcurrentSkipListSet<Waypoint>(compareBy { it.id })
