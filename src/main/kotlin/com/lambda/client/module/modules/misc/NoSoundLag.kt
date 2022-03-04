@@ -1,17 +1,17 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.event.listener.listener
 import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.server.SPacketSoundEffect
 import net.minecraft.util.SoundCategory
 
 object NoSoundLag : Module(
     name = "NoSoundLag",
-    category = Category.MISC,
-    description = "Prevents lag caused by sound machines"
+    description = "Prevents lag caused by sound machines",
+    category = Category.MISC
 ) {
     init {
         listener<PacketEvent.Receive> {

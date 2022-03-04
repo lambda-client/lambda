@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.asyncListener
 import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -12,7 +13,6 @@ import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.asyncListener
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.util.math.BlockPos
@@ -20,8 +20,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object LogoutLogger : Module(
     name = "LogoutLogger",
-    category = Category.MISC,
-    description = "Logs when a player leaves the game"
+    description = "Logs when a player leaves the game",
+    category = Category.MISC
 ) {
     private val saveWaypoint by setting("Save Waypoint", true)
     private val print by setting("Print To Chat", true)

@@ -9,8 +9,8 @@ import net.minecraft.network.play.client.CPacketCloseWindow
 
 object XCarry : Module(
     name = "XCarry",
-    category = Category.PLAYER,
-    description = "Store items in crafting slots"
+    description = "Store items in crafting slots",
+    category = Category.PLAYER
 ) {
     init {
         listener<PacketEvent.Send> {

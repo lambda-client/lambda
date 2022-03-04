@@ -1,15 +1,15 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerAttackEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.isInWeb
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.event.listener.listener
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.MobEffects
@@ -22,8 +22,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object Criticals : Module(
     name = "Criticals",
-    category = Category.COMBAT,
-    description = "Always do critical attacks"
+    description = "Always do critical attacks",
+    category = Category.COMBAT
 ) {
     private val mode by setting("Mode", Mode.PACKET)
     private val jumpMotion by setting("Jump Motion", 0.25, 0.1..0.5, 0.01, { mode == Mode.MINI_JUMP }, fineStep = 0.001)

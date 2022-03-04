@@ -17,7 +17,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object ElytraReplace : Module(
     name = "ElytraReplace",
-    description = "Automatically swap and replace your chestplate and elytra.",
+    description = "Automatically swap and replace your chestplate and elytra",
     category = Category.MOVEMENT
 ) {
     private val inventoryMode by setting("Inventory", false)

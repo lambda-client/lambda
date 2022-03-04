@@ -2,10 +2,12 @@ package com.lambda.client.module.modules.client
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.lambda.client.LambdaMod
 import com.lambda.client.capeapi.Cape
 import com.lambda.client.capeapi.CapeType
 import com.lambda.client.capeapi.CapeUser
-import com.lambda.client.LambdaMod
+import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.commons.utils.ConnectionUtils
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -16,8 +18,6 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.color.DyeColors
 import com.lambda.client.util.threads.BackgroundScope
 import com.lambda.client.util.threads.defaultScope
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.commons.utils.ConnectionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,8 +38,8 @@ import kotlin.math.sin
 
 object Capes : Module(
     name = "Capes",
-    category = Category.CLIENT,
     description = "Controls the display of Lambda capes",
+    category = Category.CLIENT,
     showOnArray = false,
     enabledByDefault = true
 ) {

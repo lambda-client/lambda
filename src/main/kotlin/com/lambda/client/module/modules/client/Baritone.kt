@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.client
 
 import com.lambda.client.event.events.BaritoneSettingsInitEvent
 import com.lambda.client.event.events.RenderRadarEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
@@ -9,13 +10,12 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.util.math.BlockPos
 
 object Baritone : Module(
     name = "Baritone",
-    category = Category.CLIENT,
     description = "Configures Baritone settings",
+    category = Category.CLIENT,
     showOnArray = false,
     alwaysEnabled = true
 ) {

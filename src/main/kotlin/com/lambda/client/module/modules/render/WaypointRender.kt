@@ -30,7 +30,6 @@ object WaypointRender : Module(
     description = "Render saved waypoints",
     category = Category.RENDER
 ) {
-
     private val renderMode by setting("Mode", RenderMode.BOTH)
     private val page by setting("Page", Page.INFO_BOX)
 

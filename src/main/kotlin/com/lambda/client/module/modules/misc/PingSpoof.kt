@@ -13,8 +13,8 @@ import net.minecraft.network.play.server.SPacketKeepAlive
 
 object PingSpoof : Module(
     name = "PingSpoof",
-    category = Category.MISC,
-    description = "Cancels or adds delay to your ping packets"
+    description = "Cancels or adds delay to your ping packets",
+    category = Category.MISC
 ) {
     private val delay by setting("Delay", 100, 0..2000, 25)
 

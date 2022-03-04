@@ -9,8 +9,8 @@ import kotlin.math.min
 
 object CustomChat : Module(
     name = "CustomChat",
-    category = Category.CHAT,
     description = "Add a custom ending to your message!",
+    category = Category.CHAT,
     showOnArray = false,
     modulePriority = 200
 ) {
@@ -25,7 +25,7 @@ object CustomChat : Module(
     }
 
     private enum class TextMode {
-        NAME, ON_TOP, WEBSITE, CUSTOM
+        NAME, ON_TOP, CUSTOM
     }
 
     private val modifier = newMessageModifier(
@@ -57,7 +57,6 @@ object CustomChat : Module(
     private fun getText() = when (textMode) {
         TextMode.NAME -> "ʟᴀᴍʙᴅᴀ"
         TextMode.ON_TOP -> "ʟᴀᴍʙᴅᴀ ᴏɴ ᴛᴏᴘ"
-        TextMode.WEBSITE -> "ｌａｍｂｄａ－ｃｌｉｅｎｔ．ｃｏｍ"
         TextMode.CUSTOM -> customText
     }
 

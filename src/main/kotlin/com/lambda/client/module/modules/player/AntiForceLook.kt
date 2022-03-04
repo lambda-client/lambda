@@ -10,8 +10,8 @@ import net.minecraft.network.play.server.SPacketPlayerPosLook
 
 object AntiForceLook : Module(
     name = "AntiForceLook",
-    category = Category.PLAYER,
-    description = "Stops server packets from turning your head"
+    description = "Stops server packets from turning your head",
+    category = Category.PLAYER
 ) {
     init {
         safeListener<PacketEvent.Receive> {

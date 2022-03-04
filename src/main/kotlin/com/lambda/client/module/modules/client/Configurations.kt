@@ -1,7 +1,9 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.Category
@@ -20,8 +22,6 @@ import com.lambda.client.util.text.formatValue
 import com.lambda.client.util.threads.BackgroundScope
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -40,7 +40,7 @@ internal object Configurations : AbstractModule(
     private const val defaultPreset = "default"
 
     private val autoSaving by setting("Auto Saving", true)
-    private val savingFeedBack by setting("Saving FeedBack", false, { autoSaving })
+    private val savingFeedBack by setting("Log autosaves in chat", false, { autoSaving })
     private val savingInterval by setting("Interval", 10, 1..30, 1, { autoSaving }, description = "Frequency of auto saving in minutes")
     val serverPreset by setting("Server Preset", false)
     private val guiPresetSetting = setting("Gui Preset", defaultPreset)

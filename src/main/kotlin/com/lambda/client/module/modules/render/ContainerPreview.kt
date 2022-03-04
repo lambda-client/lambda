@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.render
 
+import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.ColorHolder
@@ -9,7 +10,6 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.items.block
 import com.lambda.client.util.math.Vec2d
-import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.init.Blocks
 import net.minecraft.inventory.IInventory
@@ -22,8 +22,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 
 object ContainerPreview : Module(
     name = "ContainerPreview",
-    category = Category.RENDER,
-    description = "Previews shulkers and ender chests in the game GUI"
+    description = "Previews shulkers and ender chests in the game GUI",
+    category = Category.RENDER
 ) {
     private val useCustomFont by setting("Use Custom Font", false)
     private val backgroundColor by setting("Background Color", ColorHolder(16, 0, 16, 255))

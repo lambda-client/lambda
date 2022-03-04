@@ -4,8 +4,9 @@ import com.jagrosh.discordipc.IPCClient
 import com.jagrosh.discordipc.entities.RichPresence
 import com.jagrosh.discordipc.entities.pipe.PipeStatus
 import com.jagrosh.discordipc.exceptions.NoDiscordClientException
-import com.lambda.client.capeapi.CapeType
 import com.lambda.client.LambdaMod
+import com.lambda.client.capeapi.CapeType
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.InfoCalculator
@@ -20,15 +21,14 @@ import com.lambda.client.util.threads.BackgroundJob
 import com.lambda.client.util.threads.BackgroundScope
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.utils.MathUtils
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.time.OffsetDateTime
 
 object DiscordRPC : Module(
     name = "DiscordRPC",
-    category = Category.MISC,
-    description = "Discord Rich Presence"
+    description = "Discord Rich Presence",
+    category = Category.MISC
 ) {
     private val line1Left by setting("Line 1 Left", LineInfo.VERSION) // details left
     private val line1Right by setting("Line 1 Right", LineInfo.USERNAME) // details right

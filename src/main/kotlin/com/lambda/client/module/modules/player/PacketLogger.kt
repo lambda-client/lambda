@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter
 
 object PacketLogger : Module(
     name = "PacketLogger",
-    description = "Logs sent packets to a file",
+    description = "Logs sent packets to a file or chat",
     category = Category.PLAYER
 ) {
     private val showClientTicks by setting("Show Client Ticks", true, description = "Show timestamps of client ticks.")

@@ -32,8 +32,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 @CombatManager.CombatModule
 object HoleMiner : Module(
     name = "HoleMiner",
-    category = Category.COMBAT,
     description = "Mines your opponent's hole",
+    category = Category.COMBAT,
     modulePriority = 100
 ) {
     private val delay by setting("Delay", 2, 1..10, 1)

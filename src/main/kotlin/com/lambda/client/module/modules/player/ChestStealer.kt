@@ -18,8 +18,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object ChestStealer : Module(
     name = "ChestStealer",
-    category = Category.PLAYER,
-    description = "Automatically steal or store items from containers"
+    description = "Automatically steal or store items from containers",
+    category = Category.PLAYER
 ) {
     val mode by setting("Mode", Mode.TOGGLE)
     private val movingMode by setting("Moving Mode", MovingMode.QUICK_MOVE)

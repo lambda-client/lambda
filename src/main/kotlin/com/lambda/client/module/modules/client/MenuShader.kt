@@ -15,8 +15,8 @@ import java.util.*
 object MenuShader : Module(
     name = "MenuShader",
     description = "Shows a shader on the main menu",
-    showOnArray = false,
     category = Category.CLIENT,
+    showOnArray = false,
     enabledByDefault = true
 ) {
     private val mode by setting("Mode", Mode.SET)
