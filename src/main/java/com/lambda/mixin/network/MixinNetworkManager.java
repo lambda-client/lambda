@@ -34,7 +34,7 @@ public class MixinNetworkManager {
         }
     }
 
-    @Inject(method = "channelRead0", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void channelReadPre(ChannelHandlerContext context, Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.Receive(packet);
         LambdaEventBus.INSTANCE.post(event);
@@ -44,7 +44,7 @@ public class MixinNetworkManager {
         }
     }
 
-    @Inject(method = "channelRead0", at = @At("RETURN"))
+    @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V", at = @At("RETURN"))
     private void channelReadPost(ChannelHandlerContext context, Packet<?> packet, CallbackInfo callbackInfo) {
         PacketEvent event = new PacketEvent.PostReceive(packet);
         LambdaEventBus.INSTANCE.post(event);

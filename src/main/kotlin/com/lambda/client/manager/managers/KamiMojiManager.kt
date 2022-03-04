@@ -9,6 +9,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
 import com.lambda.client.manager.Manager
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.graphics.texture.MipmapTexture
 import com.lambda.client.util.threads.defaultScope
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,7 @@ import javax.imageio.ImageIO
 
 object LambdaMojiManager : Manager {
 
-    private const val directory = "${LambdaMod.DIRECTORY}emojis"
+    private val directory = "${FolderUtils.lambdaFolder}emojis"
     private const val versionURL = "https://raw.githubusercontent.com/2b2t-Utilities/emojis/master/version.json"
     private const val zipUrl = "https://github.com/2b2t-Utilities/emojis/archive/master.zip"
 
@@ -68,7 +69,7 @@ object LambdaMojiManager : Manager {
             if (globalVer != null) {
                 if (!globalVer.has("version")) {
                     updateEmojis()
-                } else if (globalVer["version"].asInt != localVer?.get("version")?.asInt ?: 8) {
+                } else if (globalVer["version"].asInt != (localVer?.get("version")?.asInt ?: 8)) {
                     updateEmojis()
                 }
             }

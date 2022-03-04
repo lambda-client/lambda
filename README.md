@@ -21,8 +21,8 @@ Find our plugins [here](https://github.com/lambda-plugins).
 
 ## Installation
 1. Install Minecraft 1.12.2
-2. Install Forge
-3. Download the mod file [here](https://github.com/lambda-client/lambda/releases/download/3.1/lambda-3.1.jar)
+2. Install the latest Forge for 1.12.2 [(download)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
+3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/3.1/lambda-3.1.jar)
 4. Put the file in your `.minecraft/mods` folder
 
 ## FAQ
@@ -56,6 +56,7 @@ How do I...
   <summary>... export KAMI blue config to Lambda?</summary>
 
 > Rename `.minecraft/kamiblue` to `.minecraft/lambda`
+> Note that this might cause stability issues.
 
 </details>
 
@@ -63,7 +64,7 @@ How do I...
   <summary>... fix most crashes on startup?</summary>
 
 > Possibly you have multiple mods loaded. Forge loads mods in alphabetical order, so you can change the name of the Mod jar to make it load earlier or later. Add for example an exclamation mark to lambda jar to make it load first.
-> If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the noverify tag from your arguments.
+> If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the `-noverify` tag from your arguments.
 
 </details>
 
@@ -71,7 +72,7 @@ How do I...
   <summary>... fix problems with Gradle?</summary>
 
 > Make sure you have a Java 8 JDK installed and in your PATH.
-We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) variant of OpenJDK 
+We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) distribution of OpenJDK 
 
 </details>
 
@@ -112,7 +113,7 @@ In this guide we will use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as ID
 ### Gradle build
 
 Test if the environment is set up correctly by building the client and run it inside IDE using the Gradle tab on the right side of the IDE.
-1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client or create a native run using `lambda > Tasks > fg_runs > genIntelliJRuns`.
+1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client.
 2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`
 
 ## Thanks to

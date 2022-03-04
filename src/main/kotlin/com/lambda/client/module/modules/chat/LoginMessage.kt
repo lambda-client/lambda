@@ -1,6 +1,5 @@
 package com.lambda.client.module.modules.chat
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -11,6 +10,7 @@ import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.listener
+import com.lambda.client.util.FolderUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -26,7 +26,7 @@ object LoginMessage : Module(
 ) {
     private val sendAfterMoving by setting("Send After Moving", false, description = "Wait until you have moved after logging in")
 
-    private val file = File(LambdaMod.DIRECTORY + "loginmsg.txt")
+    private val file = File(FolderUtils.lambdaFolder + "loginmsg.txt")
     private val loginMessages = CopyOnWriteArrayList<String>()
     private var sent = false
     private var moved = false

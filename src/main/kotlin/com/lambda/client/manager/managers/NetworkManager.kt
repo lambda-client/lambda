@@ -11,7 +11,6 @@ object NetworkManager : Manager {
 
     init {
         BackgroundScope.launchLooping("offline", 1500L) {
-            @Suppress("BlockingMethodInNonBlockingContext")
             isOffline = try {
                 Socket().use { socket ->
                     socket.connect(InetSocketAddress("1.1.1.1", 80), 100)

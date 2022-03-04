@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinLayerCape {
     @Shadow @Final private RenderPlayer playerRenderer;
 
-    @Inject(method = "doRenderLayer", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "doRenderLayer(Lnet/minecraft/client/entity/AbstractClientPlayer;FFFFFFF)V", at = @At("HEAD"), cancellable = true)
     public void doRenderLayer(AbstractClientPlayer player, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch, float scale, CallbackInfo ci) {
         if (Capes.INSTANCE.tryRenderCape(playerRenderer, player, partialTicks))
             ci.cancel();

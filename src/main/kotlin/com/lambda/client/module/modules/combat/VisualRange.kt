@@ -60,7 +60,7 @@ object VisualRange : Module(
                     if (isEnabled) onLeave(player)
                 }
             }
-            playerSet.removeAll(toRemove)
+            playerSet.removeAll(toRemove.toSet())
         }
     }
 

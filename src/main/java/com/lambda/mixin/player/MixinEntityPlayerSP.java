@@ -120,7 +120,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         }
     }
 
-    @Inject(method = "sendChatMessage", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "sendChatMessage", at = @At("HEAD"))
     public void sendChatMessage(String message, CallbackInfo ci) {
         MessageManager.INSTANCE.setLastPlayerMessage(message);
     }

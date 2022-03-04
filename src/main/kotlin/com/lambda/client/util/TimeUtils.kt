@@ -38,7 +38,6 @@ object TimeUtils {
         HH("hh")
     }
 
-    @Suppress("UNUSED")
     enum class TimeUnit {
         H12, H24
     }

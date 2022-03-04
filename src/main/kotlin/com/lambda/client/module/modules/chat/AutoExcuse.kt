@@ -5,6 +5,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageSendHelper
@@ -54,7 +55,7 @@ object AutoExcuse : Module(
         "The CPU cheated!"
     )
 
-    private val file = File(LambdaMod.DIRECTORY + "excuses.txt")
+    private val file = File(FolderUtils.lambdaFolder + "excuses.txt")
     private var loadedExcuses = defaultExcuses
 
     private val clients = arrayOf(

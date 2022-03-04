@@ -1,6 +1,10 @@
 package com.lambda.client.command
 
 import com.lambda.client.capeapi.PlayerProfile
+import com.lambda.client.command.CommandBuilder
+import com.lambda.client.command.args.AbstractArg
+import com.lambda.client.command.utils.BuilderBlock
+import com.lambda.client.command.utils.ExecuteBlock
 import com.lambda.client.event.ClientExecuteEvent
 import com.lambda.client.event.SafeExecuteEvent
 import com.lambda.client.gui.hudgui.AbstractHudElement
@@ -9,10 +13,6 @@ import com.lambda.client.module.modules.client.CommandConfig
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.toSafe
-import com.lambda.client.command.CommandBuilder
-import com.lambda.client.command.args.AbstractArg
-import com.lambda.client.command.utils.BuilderBlock
-import com.lambda.client.command.utils.ExecuteBlock
 import kotlinx.coroutines.launch
 import net.minecraft.block.Block
 import net.minecraft.item.Item
