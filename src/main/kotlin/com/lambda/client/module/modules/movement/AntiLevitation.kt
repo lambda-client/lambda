@@ -92,14 +92,14 @@ object AntiLevitation : Module(
                 }
 
                 /* Vertical movement */
-                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = 0.145
+                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = 0.1
                 if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = -0.49 // You can go down way faster then going up for some reason
             } else if (legitReady) {
                 /* Override vanilla motion with our own motion */
                 player.motionY = LegitYMotion.toDouble()
 
                 /* Jump boost */
-                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY += 0.1
+                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = 0.0875
 
                 /* Shift slow down */
                 if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = 0.005
