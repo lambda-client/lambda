@@ -1,10 +1,10 @@
 package com.lambda.client.command.commands
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.Category
 import com.lambda.client.module.ModuleManager
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -16,7 +16,7 @@ object GenerateWebsiteCommand : ClientCommand(
     name = "generatewebsite",
     description = "Generates the website modules to the file"
 ) {
-    private const val path = "${LambdaMod.DIRECTORY}modules.md"
+    private val path = "${FolderUtils.lambdaFolder}modules.md"
 
     init {
         executeAsync {

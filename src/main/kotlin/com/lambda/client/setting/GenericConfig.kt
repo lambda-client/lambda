@@ -1,9 +1,9 @@
 package com.lambda.client.setting
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.setting.configs.NameableConfig
+import com.lambda.client.util.FolderUtils
 
 internal object GenericConfig : NameableConfig<GenericConfigClass>(
     "generic",
-    "${LambdaMod.DIRECTORY}config/"
+    "${FolderUtils.lambdaFolder}config/"
 )

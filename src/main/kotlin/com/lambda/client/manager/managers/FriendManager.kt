@@ -8,13 +8,14 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.util.FolderUtils
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
 
 object FriendManager : Manager {
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val file = File(LambdaMod.DIRECTORY + "friends.json")
+    private val file = File(FolderUtils.lambdaFolder + "friends.json")
 
     private var friendFile = FriendFile()
     val friends = HashMap<String, PlayerProfile>().synchronized()
