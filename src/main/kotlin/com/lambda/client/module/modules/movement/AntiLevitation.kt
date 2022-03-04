@@ -112,7 +112,7 @@ object AntiLevitation : Module(
                     player.motionX = -sin(yaw) * 0.26
                     player.motionZ = cos(yaw) * 0.26
                 }
-            }
+            } else return@safeListener
         }
     }
 }
