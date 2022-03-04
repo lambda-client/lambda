@@ -1,11 +1,11 @@
 package com.lambda.client.module.modules.player
 
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.rightClickDelayTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.init.Items
 import net.minecraft.item.*
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -20,8 +20,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
  */
 object FastUse : Module(
     name = "FastUse",
-    category = Category.PLAYER,
-    description = "Use items faster"
+    description = "Use items faster",
+    category = Category.PLAYER
 ) {
     private val delay by setting("Delay", 0, 0..10, 1)
     private val blocks by setting("Blocks", false)

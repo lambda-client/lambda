@@ -12,7 +12,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 @CombatManager.CombatModule
 object AimBot : Module(
     name = "AimBot",
-    description = "Automatically aims at entities for you.",
+    description = "Automatically aims at entities for you",
     category = Category.COMBAT,
     modulePriority = 20
 ) {

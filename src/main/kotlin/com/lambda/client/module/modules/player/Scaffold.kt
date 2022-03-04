@@ -32,9 +32,9 @@ import kotlin.math.floor
 
 object Scaffold : Module(
     name = "Scaffold",
-    category = Category.PLAYER,
     description = "Places blocks under you",
-    modulePriority = 400
+    modulePriority = 400,
+    category = Category.PLAYER
 ) {
 
     private val extend by setting("Extend", 3.0, 0.0..25.0, 0.5)

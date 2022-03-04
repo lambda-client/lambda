@@ -14,8 +14,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object NoBreakAnimation : Module(
     name = "NoBreakAnimation",
-    category = Category.PLAYER,
-    description = "Prevents block break animation server side"
+    description = "Prevents block break animation server side",
+    category = Category.PLAYER
 ) {
     private var isMining = false
     private var lastPos: BlockPos? = null

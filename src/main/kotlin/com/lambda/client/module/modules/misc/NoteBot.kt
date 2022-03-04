@@ -3,18 +3,18 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getMiningSide
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.init.Blocks
@@ -41,10 +41,9 @@ import kotlin.math.roundToInt
 
 object NoteBot : Module(
     name = "NoteBot",
-    category = Category.MISC,
-    description = "Plays music with note blocks; put .mid or .nbs songs in .minecraft/lambda/songs"
+    description = "Plays music with note blocks; put .mid or .nbs songs in .minecraft/lambda/songs",
+    category = Category.MISC
 ) {
-
     private val togglePlay = setting("Toggle Play", false)
     private val reloadSong = setting("Reload Song", false)
     private val songName by setting("Song Name", "Unchanged")

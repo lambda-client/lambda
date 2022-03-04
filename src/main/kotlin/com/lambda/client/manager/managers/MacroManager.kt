@@ -8,6 +8,7 @@ import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.event.listener.listener
+import com.lambda.client.util.FolderUtils
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Keyboard
 import java.io.File
@@ -22,7 +23,7 @@ object MacroManager : Manager {
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val type = object : TypeToken<TreeMap<Int, List<String>>>() {}.type
-    private val file get() = File(LambdaMod.DIRECTORY + "macros.json")
+    private val file get() = File(FolderUtils.lambdaFolder + "macros.json")
 
     init {
         listener<InputEvent.KeyInputEvent> {

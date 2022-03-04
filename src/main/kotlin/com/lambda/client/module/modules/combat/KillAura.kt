@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.HotbarManager
@@ -16,7 +17,6 @@ import com.lambda.client.util.items.isWeapon
 import com.lambda.client.util.math.RotationUtils.faceEntityClosest
 import com.lambda.client.util.math.RotationUtils.getRotationToEntityClosest
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.interfaces.DisplayEnum
 import net.minecraft.entity.Entity
 import net.minecraft.entity.projectile.EntityLargeFireball
 import net.minecraft.util.EnumHand
@@ -25,9 +25,9 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 @CombatManager.CombatModule
 object KillAura : Module(
     name = "KillAura",
-    alias = arrayOf("KA", "Aura", "TriggerBot"),
-    category = Category.COMBAT,
     description = "Hits entities around you",
+    category = Category.COMBAT,
+    alias = arrayOf("KA", "Aura", "TriggerBot"),
     modulePriority = 50
 ) {
     private val mode by setting("Mode", Mode.COOLDOWN)

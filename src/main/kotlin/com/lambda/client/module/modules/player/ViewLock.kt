@@ -14,9 +14,9 @@ import kotlin.math.sign
 
 object ViewLock : Module(
     name = "ViewLock",
-    alias = arrayOf("YawLock", "PitchLock"),
+    description = "Locks your camera view",
     category = Category.PLAYER,
-    description = "Locks your camera view"
+    alias = arrayOf("YawLock", "PitchLock")
 ) {
     private val page by setting("Page", Page.YAW)
 

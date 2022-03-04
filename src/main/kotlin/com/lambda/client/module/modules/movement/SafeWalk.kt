@@ -15,8 +15,8 @@ import com.lambda.client.util.threads.safeListener
  */
 object SafeWalk : Module(
     name = "SafeWalk",
-    category = Category.MOVEMENT,
-    description = "Keeps you from walking off edges"
+    description = "Keeps you from walking off edges",
+    category = Category.MOVEMENT
 ) {
     private val checkFallDist by setting("Check Fall Distance", true, description = "Check fall distance from edge")
 

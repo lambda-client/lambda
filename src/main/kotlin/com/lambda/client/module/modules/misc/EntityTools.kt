@@ -13,8 +13,8 @@ import org.lwjgl.input.Mouse
 
 object EntityTools : Module(
     name = "EntityTools",
-    category = Category.MISC,
-    description = "Right click entities to perform actions on them"
+    description = "Right click entities to perform actions on them",
+    category = Category.MISC
 ) {
     private val mode by setting("Mode", Mode.INFO)
 

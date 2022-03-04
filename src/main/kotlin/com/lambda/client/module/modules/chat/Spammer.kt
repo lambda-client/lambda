@@ -1,6 +1,5 @@
 package com.lambda.client.module.modules.chat
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
@@ -11,6 +10,7 @@ import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.util.FolderUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -29,7 +29,7 @@ object Spammer : Module(
     private val loadRemote by setting("Load From URL", false)
     private val remoteURL by setting("Remote URL", "Unchanged", { loadRemote })
 
-    private val file = File(LambdaMod.DIRECTORY + "spammer.txt")
+    private val file = File(FolderUtils.lambdaFolder + "spammer.txt")
     private val spammer = ArrayList<String>().synchronized()
     private val timer = TickTimer(TimeUnit.SECONDS)
     private var currentLine = 0

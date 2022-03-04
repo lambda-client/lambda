@@ -8,9 +8,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 
 object ExtraChatHistory : Module(
     name = "ExtraChatHistory",
-    alias = arrayOf("InfiniteChat", "InfiniteChatHistory"),
-    category = Category.CHAT,
     description = "Show more messages in the chat history",
+    category = Category.CHAT,
+    alias = arrayOf("InfiniteChat", "InfiniteChatHistory"),
     showOnArray = false
 ) {
     private val maxMessages by setting("Max Message", 1000, 100..5000, 100)

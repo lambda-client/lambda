@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.render
 
+import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.items.foodValue
 import com.lambda.client.util.items.saturation
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
 import net.minecraft.client.gui.Gui
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.init.MobEffects
@@ -21,7 +21,7 @@ import kotlin.math.min
 
 object HungerOverlay : Module(
     name = "HungerOverlay",
-    description = "Displays a helpful overlay over your hunger bar.",
+    description = "Displays a helpful overlay over your hunger bar",
     category = Category.RENDER
 ) {
     private val saturationOverlay by setting("Saturation Overlay", true)

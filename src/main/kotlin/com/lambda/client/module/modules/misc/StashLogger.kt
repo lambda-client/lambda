@@ -25,8 +25,8 @@ import kotlin.math.roundToInt
 
 object StashLogger : Module(
     name = "StashLogger",
-    category = Category.MISC,
-    description = "Logs storage units in render distance."
+    description = "Logs storage units in render distance",
+    category = Category.MISC
 ) {
     private val saveToWaypoints by setting("Save To Waypoints", true)
     private val logToChat by setting("Log To Chat", true)

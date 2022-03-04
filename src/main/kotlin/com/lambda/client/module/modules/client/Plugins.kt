@@ -6,8 +6,8 @@ import com.lambda.client.module.Module
 object Plugins : Module(
     name = "Plugins",
     description = "Config for plugins",
-    showOnArray = false,
     category = Category.CLIENT,
+    showOnArray = false,
     alwaysEnabled = true
 ) {
     private val tokenSetting by setting("Github Token", "")

@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.combat
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
@@ -20,7 +21,6 @@ import com.lambda.client.util.threads.isActiveOrFalse
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.buildStructure
 import com.lambda.client.util.world.isPlaceable
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.minecraft.init.Blocks
@@ -32,8 +32,8 @@ import org.lwjgl.input.Keyboard
 @CombatManager.CombatModule
 object AutoTrap : Module(
     name = "AutoTrap",
-    category = Category.COMBAT,
     description = "Traps your enemies in obsidian",
+    category = Category.COMBAT,
     modulePriority = 60
 ) {
     private val trapMode by setting("Trap Mode", TrapMode.FULL_TRAP)

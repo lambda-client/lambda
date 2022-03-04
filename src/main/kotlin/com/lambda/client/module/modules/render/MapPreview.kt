@@ -1,6 +1,5 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.mixin.gui.MixinGuiScreen
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.GuiColors
@@ -11,6 +10,7 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter.getFontHeight
 import com.lambda.client.util.graphics.font.FontRenderAdapter.getStringWidth
 import com.lambda.client.util.math.Vec2d
+import com.lambda.mixin.gui.MixinGuiScreen
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.client.renderer.Tessellator
@@ -26,8 +26,8 @@ import java.awt.Color
  */
 object MapPreview : Module(
     name = "MapPreview",
-    category = Category.RENDER,
-    description = "Previews maps when hovering over them"
+    description = "Previews maps when hovering over them",
+    category = Category.RENDER
 ) {
     private val mapBackground = ResourceLocation("textures/map/map_background.png")
 
