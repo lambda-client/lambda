@@ -1,9 +1,11 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.commons.extension.toRadian
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
+import com.lambda.client.mixin.extension.boostedEntity
 import com.lambda.client.mixin.extension.playerPosLookPitch
 import com.lambda.client.mixin.extension.tickLength
 import com.lambda.client.mixin.extension.timer
@@ -18,8 +20,6 @@ import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getGroundPos
 import com.lambda.client.util.world.isLiquidBelow
-import com.lambda.client.commons.extension.toRadian
-import com.lambda.client.mixin.extension.boostedEntity
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityFireworkRocket
 import net.minecraft.init.Items
@@ -27,7 +27,10 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketEntityMetadata
 import net.minecraft.network.play.server.SPacketPlayerPosLook
+import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.Vec3d
 import kotlin.math.*
+
 
 // TODO: Rewrite
 object ElytraFlight : Module(
@@ -50,13 +53,13 @@ object ElytraFlight : Module(
     private val minTakeoffHeight by setting("Min Takeoff Height", 0.5f, 0.0f..1.5f, 0.1f, { easyTakeOff && !highPingOptimize && page == Page.GENERIC_SETTINGS })
 
     /* Acceleration */
-    private val accelerateStartSpeed by setting("Start Speed", 100, 0..100, 5, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
-    private val accelerateTime by setting("Accelerate Time", 0.0f, 0.0f..20.0f, 0.25f, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
+    private val accelerateStartSpeed by setting("Start Speed", 100, 0..100, 5, { mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && page == Page.GENERIC_SETTINGS })
+    private val accelerateTime by setting("Accelerate Time", 0.0f, 0.0f..20.0f, 0.25f, { mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && page == Page.GENERIC_SETTINGS })
 
     /* Spoof Pitch */
-    private val spoofPitch by setting("Spoof Pitch", true, { mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
-    private val blockInteract by setting("Block Interact", false, { spoofPitch && mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
-    private val forwardPitch by setting("Forward Pitch", 0, -90..90, 5, { spoofPitch && mode.value != ElytraFlightMode.BOOST && page == Page.GENERIC_SETTINGS })
+    private val spoofPitch by setting("Spoof Pitch", true, { mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && page == Page.GENERIC_SETTINGS })
+    private val blockInteract by setting("Block Interact", false, { spoofPitch && mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && page == Page.GENERIC_SETTINGS })
+    private val forwardPitch by setting("Forward Pitch", 0, -90..90, 5, { spoofPitch && mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && page == Page.GENERIC_SETTINGS })
 
     /* Extra */
     val elytraSounds by setting("Elytra Sounds", true, { page == Page.GENERIC_SETTINGS })
@@ -91,6 +94,13 @@ object ElytraFlight : Module(
     private val speedPacket by setting("Speed P", 1.8f, 0.0f..20.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
     private val fallSpeedPacket by setting("Fall Speed P", 0.00001f, 0.0f..0.3f, 0.01f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
     private val downSpeedPacket by setting("Down Speed P", 1.0f, 0.1f..5.0f, 0.1f, { mode.value == ElytraFlightMode.PACKET && page == Page.MODE_SETTINGS })
+
+
+    /* Vanilla */
+    private val upPitch by setting("Up Pitch", 50f,90f..10f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+    private val downPitch by setting("Down Pitch", 30f,0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+    private val rocketPitch by setting("Rocket Pitch", 50f,90f..10f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+
     /* End of Mode Settings */
 
     private enum class ElytraFlightMode {
@@ -158,7 +168,7 @@ object ElytraFlight : Module(
                         ElytraFlightMode.CONTROL -> controlMode(it)
                         ElytraFlightMode.CREATIVE -> creativeMode()
                         ElytraFlightMode.PACKET -> packetMode(it)
-                        ElytraFlightMode.VANILLA -> vanillaMode()
+                        ElytraFlightMode.VANILLA -> vanillaMode(it)
                     }
                 }
                 spoofRotation()
@@ -475,22 +485,71 @@ object ElytraFlight : Module(
         event.cancel()
     }
 
-    private fun SafeClientEvent.vanillaMode() {
+    private fun SafeClientEvent.vanillaMode(event: PlayerTravelEvent) {
         val playerY = player.posY
         val lastShouldDescend = shouldDescend
         shouldDescend = lastY > playerY && lastHighY - 60 < playerY
         val isBoosted = world.getLoadedEntityList().any { it is EntityFireworkRocket && it.boostedEntity == player }
-        player.rotationPitch = if (isBoosted) {
-            -50f
+        packetPitch = if (isBoosted) {
+            -rocketPitch
         } else if (shouldDescend) {
             if (!lastShouldDescend) {
                 lastHighY = playerY
             }
-            30f
+            downPitch
         } else {
-            -50f
+            -upPitch
         }
         lastY = playerY
+
+        //region mc code
+        val f0 = MathHelper.cos(-player.rotationYaw * 0.017453292f - Math.PI.toFloat())
+        val f1 = MathHelper.sin(-player.rotationYaw * 0.017453292f - Math.PI.toFloat())
+        val f2 = -MathHelper.cos(-packetPitch * 0.017453292f)
+        val f3 = MathHelper.sin(-packetPitch * 0.017453292f)
+
+        val vec3d = Vec3d((f1 * f2).toDouble(), f3.toDouble(), (f0 * f2).toDouble())
+        val f: Float = packetPitch * 0.017453292f
+        val d6 = sqrt(vec3d.x * vec3d.x + vec3d.z * vec3d.z)
+        val d8 = sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)
+        val d1: Double = vec3d.length()
+        var f4 = MathHelper.cos(f)
+        f4 = (f4.toDouble() * f4.toDouble() * 1.0.coerceAtMost(d1 / 0.4)).toFloat()
+        player.motionY += -0.08 + f4.toDouble() * 0.06
+
+        if (player.motionY < 0.0 && d6 > 0.0) {
+            val d2: Double = player.motionY * -0.1 * f4.toDouble()
+            player.motionY += d2
+            player.motionX += vec3d.x * d2 / d6
+            player.motionZ += vec3d.z * d2 / d6
+        }
+
+        if (f < 0.0f) {
+            val d10 = d8 * (-MathHelper.sin(f)).toDouble() * 0.04
+            player.motionY += d10 * 3.2
+            player.motionX -= vec3d.x * d10 / d6
+            player.motionZ -= vec3d.z * d10 / d6
+        }
+
+        if (d6 > 0.0) {
+            player.motionX += (vec3d.x / d6 * d8 - player.motionX) * 0.1
+            player.motionZ += (vec3d.z / d6 * d8 - player.motionZ) * 0.1
+        }
+        //endregion
+
+        player.motionX *= 0.99
+        player.motionY *= 0.98
+        player.motionZ *= 0.99
+
+
+        if (isBoosted) {
+            player.motionX += vec3d.x * 0.1 + (vec3d.x * 1.5 - player.motionX) * 0.5
+            player.motionY += vec3d.y * 0.1 + (vec3d.y * 1.5 - player.motionY) * 0.5
+            player.motionZ += vec3d.z * 0.1 + (vec3d.z * 1.5 - player.motionZ) * 0.5
+        }
+
+        event.cancel()
+
     }
 
     fun shouldSwing(): Boolean {
@@ -505,7 +564,7 @@ object ElytraFlight : Module(
 
         if (autoLanding) {
             rotation = Vec2f(rotation.x, -20f)
-        } else if (mode.value != ElytraFlightMode.BOOST) {
+        } else if (mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA) {
             if (!isStandingStill && mode.value != ElytraFlightMode.CREATIVE) rotation = Vec2f(packetYaw, rotation.y)
             if (spoofPitch) {
                 if (!isStandingStill) rotation = Vec2f(rotation.x, packetPitch)
@@ -513,6 +572,10 @@ object ElytraFlight : Module(
                 /* Cancels rotation packets if player is not moving and not clicking */
                 cancelRotation = isStandingStill && ((!mc.gameSettings.keyBindUseItem.isKeyDown && !mc.gameSettings.keyBindAttack.isKeyDown && blockInteract) || !blockInteract)
             }
+        } else if (mode.value == ElytraFlightMode.VANILLA) {
+
+            rotation = Vec2f(rotation.x, packetPitch)
+
         }
 
         sendPlayerPacket {
