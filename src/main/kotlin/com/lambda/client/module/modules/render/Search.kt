@@ -35,7 +35,10 @@ object Search : Module(
     category = Category.RENDER
 ) {
     private val defaultSearchList = linkedSetOf("minecraft:portal", "minecraft:end_portal_frame", "minecraft:bed")
-
+    private val shulkerColorList = arrayOf(Blocks.WHITE_SHULKER_BOX, Blocks.ORANGE_SHULKER_BOX, Blocks.MAGENTA_SHULKER_BOX, Blocks.LIGHT_BLUE_SHULKER_BOX, Blocks.YELLOW_SHULKER_BOX,
+        Blocks.LIME_SHULKER_BOX, Blocks.PINK_SHULKER_BOX, Blocks.GRAY_SHULKER_BOX,Blocks.SILVER_SHULKER_BOX, Blocks.CYAN_SHULKER_BOX, Blocks.PURPLE_SHULKER_BOX, Blocks.BLUE_SHULKER_BOX,
+        Blocks.BROWN_SHULKER_BOX,Blocks.GREEN_SHULKER_BOX,Blocks.RED_SHULKER_BOX,Blocks.BLACK_SHULKER_BOX)
+    
     private val updateDelay by setting("Update Delay", 1000, 500..3000, 50)
     private val range by setting("Search Range", 128, 0..256, 8)
     private val yRangeBottom by setting("Top Y", 256, 0..256, 1)
@@ -50,6 +53,7 @@ object Search : Module(
     private val aOutline by setting("Outline Alpha", 127, 0..255, 1, { outline })
     private val aTracer by setting("Tracer Alpha", 200, 0..255, 1, { tracer })
     private val thickness by setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f)
+    private val searchColoredShulkers by setting("Search for Shulkers", true)
 
     var overrideWarning by setting("Override Warning", false, { false })
     val searchList = setting(CollectionSetting("Search List", defaultSearchList, { false }))
@@ -150,7 +154,7 @@ object Search : Module(
             val block = blockState.block
 
             if (block == Blocks.AIR) continue
-            if (!searchList.contains(block.registryName.toString())) continue
+            if (!searchList.contains(block.registryName.toString()) && !(searchColoredShulkers && shulkerColorList.contains(block))) continue
 
             val dist = eyePos.distanceTo(pos)
             if (dist > range) continue
