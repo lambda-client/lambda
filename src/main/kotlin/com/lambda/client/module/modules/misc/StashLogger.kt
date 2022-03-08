@@ -166,7 +166,13 @@ object StashLogger : Module(
         }
 
         override fun toString(): String {
-            return "($chests chests, $shulkers shulkers, $droppers droppers, $dispensers dispensers, $hoppers hoppers)"
+            var str = "";
+			if ((chests > 0) && logChests){ str = str + "$chests chests " }
+			if ((shulkers > 0) && logShulkers){ str = str + "$shulkers shulkers " }
+			if ((droppers > 0) && logDroppers){ str = str + "$droppers droppers " }
+			if ((dispensers > 0) && logDispensers){ str = str + "$dispensers dispensers " }
+			if ((hoppers > 0) && logHoppers){ str = str + "$hoppers hoppers "}
+			return str;
         }
     }
 }
