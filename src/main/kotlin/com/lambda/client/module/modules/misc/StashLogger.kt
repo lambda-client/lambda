@@ -88,7 +88,7 @@ object StashLogger : Module(
                 MessageSendHelper.sendChatMessage("$chatName $positionString $string")
             }
 
-            found = found || true
+            found = true
         }
 
         if (found) {
