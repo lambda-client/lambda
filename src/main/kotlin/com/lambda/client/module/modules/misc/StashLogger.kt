@@ -167,12 +167,12 @@ object StashLogger : Module(
 
         override fun toString(): String {
             val statList = mutableListOf<String>()
-			if (chests > 0 && logChests) statList.add("$chests chests")
-			if (shulkers > 0 && logShulkers) statList.add("$shulkers shulkers")
-			if (droppers > 0 && logDroppers) statList.add("$droppers droppers")
-			if (dispensers > 0 && logDispensers) statList.add("$dispensers dispensers")
-			if (hoppers > 0 && logHoppers) statList.add("$hoppers hoppers")
-			return statList.joinToString()
+		    if (chests > 0 && logChests) statList.add("$chests chests")
+		    if (shulkers > 0 && logShulkers) statList.add("$shulkers shulkers")
+		    if (droppers > 0 && logDroppers) statList.add("$droppers droppers")
+		    if (dispensers > 0 && logDispensers) statList.add("$dispensers dispensers")
+		    if (hoppers > 0 && logHoppers) statList.add("$hoppers hoppers")
+		    return statList.joinToString()
         }
     }
 }
