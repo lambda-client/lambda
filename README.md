@@ -120,7 +120,7 @@ In this guide we will use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as ID
 
 Test if the environment is set up correctly by building the client and run it inside IDE using the Gradle tab on the right side of the IDE.
 1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client.
-2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`
+2. To build the client as a jar run `lambda > Tasks > shadow > shadowJar`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`
 
 ## Thanks to
 
