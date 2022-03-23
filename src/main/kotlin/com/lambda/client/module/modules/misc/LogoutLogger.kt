@@ -32,6 +32,7 @@ object LogoutLogger : Module(
     private val esp by setting("ESP", true)
     private val espAlpha by setting("ESP Alpha", 47, 0..255, 1, { esp })
     private val espColor by setting("ESP Color", GuiColors.primary, false, { esp })
+    private val clearEsp by setting("Disable Clear ESP", false, { esp })
 
     private val loggedPlayers = LinkedHashMap<GameProfile, BlockPos>()
     private val timer = TickTimer(TimeUnit.SECONDS)
@@ -78,6 +79,10 @@ object LogoutLogger : Module(
 
                 loggedPlayers.keys.removeAll(toRemove.toSet())
             }
+        }
+        
+        onDisable { 
+            if (clearEsp) loggedOutPlayers.clear()
         }
         
         listener<RenderWorldEvent> { 
