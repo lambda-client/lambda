@@ -1,14 +1,18 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.asyncListener
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.EntityUtils.isFakeOrSelf
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.onMainThread
@@ -25,14 +29,21 @@ object LogoutLogger : Module(
 ) {
     private val saveWaypoint by setting("Save Waypoint", true)
     private val print by setting("Print To Chat", true)
+    private val esp by setting("ESP", true)
+    private val espAlpha by setting("ESP Alpha", 47, 0..255, 1, { esp })
+    private val espColor by setting("ESP Color", GuiColors.primary, false, { esp })
 
     private val loggedPlayers = LinkedHashMap<GameProfile, BlockPos>()
     private val timer = TickTimer(TimeUnit.SECONDS)
-
+    private val renderer = ESPRenderer()
+    private val renderTimer = TickTimer(TimeUnit.SECONDS)
+    private val loggedOutPlayers = mutableMapOf<GameProfile, BlockPos>()
+    
     init {
         asyncListener<ConnectionEvent.Disconnect> {
             onMainThread {
                 loggedPlayers.clear()
+                loggedOutPlayers.clear()
             }
         }
 
@@ -45,6 +56,9 @@ object LogoutLogger : Module(
 
                 val info = connection.getPlayerInfo(loadedPlayer.gameProfile.id) ?: continue
                 loggedPlayers[info.gameProfile] = loadedPlayer.flooredPosition
+                for ((profile, _) in loggedOutPlayers) {
+                    if (profile.id == info.gameProfile.id) loggedOutPlayers.remove(profile)
+                }
             }
 
             if (timer.tick(1L)) {
@@ -55,6 +69,7 @@ object LogoutLogger : Module(
                     if (connection.getPlayerInfo(profile.id) == null) {
                         if (saveWaypoint) WaypointManager.add(pos, "${profile.name} Logout Spot")
                         if (print) MessageSendHelper.sendChatMessage("${profile.name} logged out at ${pos.asString()}")
+                        loggedOutPlayers[profile] = pos
                         true
                     } else {
                         false
@@ -63,6 +78,19 @@ object LogoutLogger : Module(
 
                 loggedPlayers.keys.removeAll(toRemove.toSet())
             }
+        }
+        
+        listener<RenderWorldEvent> { 
+            if (!esp) return@listener
+            renderer.aFilled = espAlpha
+            val shouldUpdate = renderTimer.tick(3)
+            if (shouldUpdate) {
+                renderer.clear()
+                for ((_, pos) in loggedOutPlayers) {
+                    renderer.add(pos, espColor)
+                }
+            }
+            renderer.render(false)
         }
     }
 }
