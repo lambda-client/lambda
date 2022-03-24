@@ -14,7 +14,7 @@ import com.lambda.client.util.text.MessageDetection
 import net.minecraftforge.client.event.*
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent
-import net.minecraftforge.event.world.ChunkEvent
+import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
@@ -98,8 +98,11 @@ internal object ForgeEventProcessor {
         LambdaEventBus.post(event)
     }
 
+    /**
+     * Includes events of subclasses like ChunkEvent, ChunkDataEvent, BlockEvent, NoteBlockEvent, GetCollisionBoxesEvent
+     */
     @SubscribeEvent
-    fun onChunkLoaded(event: ChunkEvent.Unload) {
+    fun onWorldEvent(event: WorldEvent) {
         LambdaEventBus.post(event)
     }
 
