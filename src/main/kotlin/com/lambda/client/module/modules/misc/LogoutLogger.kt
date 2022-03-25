@@ -19,6 +19,7 @@ import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeListener
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.entity.EntityOtherPlayerMP
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
@@ -30,7 +31,8 @@ object LogoutLogger : Module(
     private val saveWaypoint by setting("Save Waypoint", true)
     private val print by setting("Print To Chat", true)
     private val esp by setting("ESP", true)
-    private val espAlpha by setting("ESP Alpha", 47, 0..255, 1, { esp })
+    private val espFilledAlpha by setting("ESP Filled Alpha", 47, 0..255, 1, { esp })
+    private val espOutlineAlpha by setting("ESP Outline Alpha", 0, 0..255, 1, { esp })
     private val espColor by setting("ESP Color", GuiColors.primary, false, { esp })
     private val clearEsp by setting("Disable Clear ESP", false, { esp })
 
@@ -38,7 +40,7 @@ object LogoutLogger : Module(
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val renderer = ESPRenderer()
     private val renderTimer = TickTimer(TimeUnit.SECONDS)
-    private val loggedOutPlayers = mutableMapOf<GameProfile, BlockPos>()
+    private val loggedOutPlayers = mutableMapOf<GameProfile, AxisAlignedBB>()
     
     init {
         asyncListener<ConnectionEvent.Disconnect> {
@@ -70,7 +72,8 @@ object LogoutLogger : Module(
                     if (connection.getPlayerInfo(profile.id) == null) {
                         if (saveWaypoint) WaypointManager.add(pos, "${profile.name} Logout Spot")
                         if (print) MessageSendHelper.sendChatMessage("${profile.name} logged out at ${pos.asString()}")
-                        loggedOutPlayers[profile] = pos
+                        val aabb = AxisAlignedBB(pos)
+                        loggedOutPlayers[profile] = aabb.setMaxY(aabb.maxY + 1)
                         true
                     } else {
                         false
@@ -87,12 +90,13 @@ object LogoutLogger : Module(
         
         listener<RenderWorldEvent> { 
             if (!esp) return@listener
-            renderer.aFilled = espAlpha
+            renderer.aFilled = espFilledAlpha
+            renderer.aOutline = espOutlineAlpha
             val shouldUpdate = renderTimer.tick(3)
             if (shouldUpdate) {
                 renderer.clear()
-                for ((_, pos) in loggedOutPlayers) {
-                    renderer.add(pos, espColor)
+                for ((_, aabb) in loggedOutPlayers) {
+                    renderer.add(aabb, espColor)
                 }
             }
             renderer.render(false)
