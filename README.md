@@ -9,6 +9,8 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/lambda-client/lambda)
 ![Lines of code](https://img.shields.io/tokei/lines/github/lambda-client/lambda?color=lightcoral&label=lines%20of%20code)
 
+#MARS EDITION
+
 Lambda is a free, open-source, Minecraft 1.12.2 utility mod made for the anarchy experience.
 A visionary plugin system that allows additional modules to be added, without the need to create a fork!
 Customize your experience, and improve your efficiency!
