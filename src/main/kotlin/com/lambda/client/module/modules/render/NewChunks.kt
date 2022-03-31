@@ -32,11 +32,15 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.apache.commons.lang3.SystemUtils
 import org.lwjgl.opengl.GL11.GL_LINE_LOOP
 import org.lwjgl.opengl.GL11.glLineWidth
-import java.io.*
+import java.io.BufferedWriter
+import java.io.FileWriter
+import java.io.IOException
+import java.io.PrintWriter
 import java.nio.file.Files
+import java.io.File
 import java.nio.file.Path
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
 import kotlin.collections.LinkedHashSet
 
 object NewChunks : Module(
@@ -367,8 +371,9 @@ object NewChunks : Module(
                 || mc.currentServerData?.serverIP != ip
         }
 
+
         private fun update() {
-            lastSaveOption = saveOption as SaveOption
+            lastSaveOption = saveOption
             lastInRegion = saveInRegionFolder
             lastSaveNormal = alsoSaveNormalCoords
             dimension = mc.player.dimension
