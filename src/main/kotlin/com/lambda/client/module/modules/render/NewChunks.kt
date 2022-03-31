@@ -21,6 +21,7 @@ import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeAsyncListener
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.asyncListener
+import com.lambda.client.module.modules.render.NewChunks.saveOption
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
@@ -51,9 +52,9 @@ object NewChunks : Module(
     private val relative by setting("Relative", false, description = "Renders the chunks at relative Y level to player")
     private val renderMode by setting("Render Mode", RenderMode.BOTH)
     private val saveNewChunks by setting("Save New Chunks", false)
-    val saveOption by setting("SaveOption", saveOption.EXTRA_FOLDER, { saveNewChunks })
-    val saveInRegionFolder by setting("InRegion", false, { saveNewChunks })
-    val alsoSaveNormalCoords by setting("SaveNormalCoords", false, { saveNewChunks })
+    private val saveOption by setting("SaveOption", SaveOption.EXTRA_FOLDER, { saveNewChunks })
+    private val saveInRegionFolder by setting("InRegion", false, { saveNewChunks })
+    private val alsoSaveNormalCoords by setting("SaveNormalCoords", false, { saveNewChunks })
     private var closeFile by setting("CloseFile", false, { saveNewChunks})
     private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
@@ -63,12 +64,21 @@ object NewChunks : Module(
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
     private val range by setting("Render Range", 512, 64..2048, 32, description = "Maximum range for chunks to be highlighted")
     private val autoClear by setting("Auto Clear", false, description = "Clears the new chunks every 10 minutes")
-    private val removeMode by setting("Remove Mode", removeMode.MAX_NUMBER, description = "Mode to use for removing chunks")
-    private val maxNumber by setting("Max Number", 5000, 1000..10000, 500, { removeMode == removeMode.MAX_NUMBER }, description = "Maximum number of chunks to keep")
+    private val removeMode by setting("Remove Mode", RemoveMode.MAX_NUM, description = "Mode to use for removing chunks")
+    private val maxNumber by setting("Max Number", 5000, 1000..10000, 500, { removeMode == RemoveMode.MAX_NUM }, description = "Maximum number of chunks to keep")
 
     enum class RenderMode {
         WORLD, RADAR, BOTH
     }
+
+    private enum class RemoveMode {
+        UNLOAD, MAX_NUM, NEVER
+    }
+
+    private enum class SaveOption {
+        EXTRA_FOLDER, LITE_LOADER_WDL, NHACK_WDL
+    }
+
 
     private val timer = TickTimer(TimeUnit.MINUTES)
     private val chunks = LinkedHashSet<ChunkPos>()
@@ -163,7 +173,7 @@ object NewChunks : Module(
 
             onMainThread {
                 if (chunks.add(chunk.pos)) {
-                    if (removeMode == removeMode.MAX_NUMBER && chunks.size > maxNumber) {
+                    if (removeMode == RemoveMode.MAX_NUM && chunks.size > maxNumber) {
                         chunks.maxByOrNull { player.distanceTo(it) }?.let {
                             chunks.remove(it)
                         }
@@ -174,7 +184,7 @@ object NewChunks : Module(
 
         asyncListener<ChunkEvent.Unload> {
             onMainThread {
-                if (removeMode == removeMode.UNLOAD) {
+                if (removeMode == RemoveMode.UNLOAD) {
                     chunks.remove(it.chunk.pos)
                 }
             }
@@ -291,12 +301,12 @@ object NewChunks : Module(
         var rV = Minecraft.getMinecraft().gameDir
         var folderName: String
         when (saveOption) {
-            saveOption.LITE_LOADER_WDL -> {
+            SaveOption.LITE_LOADER_WDL -> {
                 folderName = mc.currentServerData?.serverName ?: "Offline"
                 rV = File(rV, "saves")
                 rV = File(rV, folderName)
             }
-            saveOption.NHACK_WDL -> {
+            SaveOption.NHACK_WDL -> {
                 folderName = nHackInetName
                 rV = File(rV, "config")
                 rV = File(rV, "wdl-saves")
@@ -379,14 +389,6 @@ object NewChunks : Module(
             dimension = mc.player.dimension
             ip = mc.currentServerData?.serverIP
         }
-    private enum class SaveOption {
-        EXTRA_FOLDER, LITE_LOADER_WDL, NHACK_WDL
-    }
-
-    @Suppress("unused")
-    private enum class RemoveMode {
-        UNLOAD, MAX_NUM, NEVER
-    }
 
     init {
             if (closeFile) {
