@@ -384,7 +384,6 @@ object NewChunks : Module(
     }
 
     init {
-        closeFile.settingListener = SettingListeners {
             if (closeFile) {
                 logWriterClose()
                 MessageSendHelper.sendChatMessage("$chatName Saved file!")
@@ -392,5 +391,4 @@ object NewChunks : Module(
             }
         }
     }
-}
 }
