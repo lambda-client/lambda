@@ -21,7 +21,6 @@ import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeAsyncListener
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.asyncListener
-import com.lambda.client.module.modules.render.NewChunks.saveOption
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
@@ -55,7 +54,7 @@ object NewChunks : Module(
     private val saveOption by setting("SaveOption", SaveOption.EXTRA_FOLDER, { saveNewChunks })
     private val saveInRegionFolder by setting("InRegion", false, { saveNewChunks })
     private val alsoSaveNormalCoords by setting("SaveNormalCoords", false, { saveNewChunks })
-    private var closeFile by setting("CloseFile", false, { saveNewChunks})
+    private val closeFile = setting("CloseFile", false, { saveNewChunks })
     private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
     private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
@@ -203,6 +202,7 @@ object NewChunks : Module(
     }
     private fun saveNewChunk(chunk: Chunk) {
         saveNewChunk(testAndGetLogWriter(), getNewChunkInfo(chunk))
+        MessageSendHelper.sendChatMessage("saved chunks!")
     }
 
     private fun getNewChunkInfo(chunk: Chunk): String {
@@ -237,7 +237,7 @@ object NewChunks : Module(
             if (alsoSaveNormalCoords) {
                 head += ",x coordinate,z coordinate"
             }
-            logWriter!!.println(head)
+            logWriter.println(head)
         } catch (e: Exception) {
             e.printStackTrace()
             LambdaMod.LOG.error(chatName + " some exception happened when trying to start the logging -> " + e.message)
@@ -319,6 +319,7 @@ object NewChunks : Module(
                 }
             }
             else -> {
+                MessageSendHelper.sendChatMessage("made folder")
                 folderName = mc.currentServerData?.serverName + "-" + mc.currentServerData?.serverIP
                 if (SystemUtils.IS_OS_WINDOWS) {
                     folderName = folderName.replace(":", "_")
@@ -390,11 +391,13 @@ object NewChunks : Module(
             ip = mc.currentServerData?.serverIP
         }
 
-    init {
-            if (closeFile) {
-                logWriterClose()
-                MessageSendHelper.sendChatMessage("$chatName Saved file!")
-                closeFile = false
+        init {
+            closeFile.valueListeners.add { _, _ ->
+                if (closeFile.value) {
+                    logWriterClose()
+                    MessageSendHelper.sendChatMessage("$chatName Saved file!")
+                    closeFile.value = false
+                }
             }
         }
     }
