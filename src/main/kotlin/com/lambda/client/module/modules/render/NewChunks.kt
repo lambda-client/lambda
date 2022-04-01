@@ -30,6 +30,7 @@ import net.minecraft.world.chunk.Chunk
 import net.minecraftforge.event.world.ChunkEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.apache.commons.lang3.SystemUtils
+import org.apache.logging.log4j.LogManager
 import org.lwjgl.opengl.GL11.GL_LINE_LOOP
 import org.lwjgl.opengl.GL11.glLineWidth
 import java.io.BufferedWriter
@@ -222,6 +223,7 @@ object NewChunks : Module(
     }
 
     private fun logWriterClose() {
+        LogManager.getLogger("Closed Log Writer")
         if (logWriter != null) {
             logWriter!!.close()
             logWriter = null
@@ -230,6 +232,7 @@ object NewChunks : Module(
     }
 
     private fun logWriterOpen() {
+        LogManager.getLogger("Opened Log Writer")
         val filepath = path.toString()
         try {
             var logWriter = PrintWriter(BufferedWriter(FileWriter(filepath, true)), true)
@@ -255,6 +258,7 @@ object NewChunks : Module(
             // If there is an integrated server running (Aka Singleplayer) then do magic to find the world save file
             if (mc.isSingleplayer) {
                 try {
+                    LogManager.getLogger("Making singleplayer world")
                     file = mc.integratedServer?.getWorld(dimension)?.chunkSaveLocation
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -298,6 +302,7 @@ object NewChunks : Module(
         }
 
     private fun makeMultiplayerDirectory(): Path {
+        LogManager.getLogger("Making Multiplayer Dir")
         var rV = Minecraft.getMinecraft().gameDir
         var folderName: String
         when (saveOption) {
@@ -324,7 +329,7 @@ object NewChunks : Module(
                 if (SystemUtils.IS_OS_WINDOWS) {
                     folderName = folderName.replace(":", "_")
                 }
-                rV = File(rV, "KAMI_NewChunks")
+                rV = File(rV, "Lambda_NewChunks")
                 rV = File(rV, folderName)
             }
         }
