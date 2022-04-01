@@ -25,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.network.play.server.SPacketChunkData
-import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.chunk.Chunk
 import net.minecraftforge.event.world.ChunkEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -81,7 +80,7 @@ object NewChunks : Module(
 
 
     private val timer = TickTimer(TimeUnit.MINUTES)
-    private val chunks = LinkedHashSet<ChunkPos>()
+    private val chunks = LinkedHashSet<Chunk>()
     private var logWriter: PrintWriter? = null
     private var lastSetting = LastSetting()
 
@@ -115,14 +114,14 @@ object NewChunks : Module(
 
             val buffer = LambdaTessellator.buffer
 
-            for (chunkPos in chunks) {
-                if (player.distanceTo(chunkPos) > range) continue
+            for (chunk in chunks) {
+                if (player.distanceTo(chunk.pos) > range) continue
 
                 buffer.begin(GL_LINE_LOOP, DefaultVertexFormats.POSITION_COLOR)
-                buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
-                buffer.pos(chunkPos.xEnd + 1.0, y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
-                buffer.pos(chunkPos.xEnd + 1.0, y, chunkPos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
-                buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunk.pos.xStart.toDouble(), y, chunk.pos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunk.pos.xEnd + 1.0, y, chunk.pos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunk.pos.xEnd + 1.0, y, chunk.pos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunk.pos.xStart.toDouble(), y, chunk.pos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
                 LambdaTessellator.render()
             }
 
@@ -152,12 +151,12 @@ object NewChunks : Module(
                             RenderUtils2D.drawRectFilled(it.vertexHelper, pos0, pos1, distantChunkColor)
                         }
                         RenderUtils2D.drawRectOutline(it.vertexHelper, pos0, pos1, 0.3f, chunkGridColor)
-                        if (saveNewChunks) saveNewChunk(chunk)
                     }
                 }
             }
 
             for (chunk in chunks) {
+                if (saveNewChunks) saveNewChunk(chunk)
                 val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
                 val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
                 if (isSquareInRadius(pos0, pos1, it.radius)) {
@@ -170,11 +169,10 @@ object NewChunks : Module(
             if (event.packet !is SPacketChunkData || event.packet.isFullChunk) return@safeAsyncListener
             val chunk = world.getChunk(event.packet.chunkX, event.packet.chunkZ)
             if (chunk.isEmpty) return@safeAsyncListener
-
             onMainThread {
-                if (chunks.add(chunk.pos)) {
+                if (chunks.add(chunk)) {
                     if (removeMode == RemoveMode.MAX_NUM && chunks.size > maxNumber) {
-                        chunks.maxByOrNull { player.distanceTo(it) }?.let {
+                        chunks.maxByOrNull { player.distanceTo(chunk.pos) }?.let {
                             chunks.remove(it)
                         }
                     }
@@ -185,7 +183,7 @@ object NewChunks : Module(
         asyncListener<ChunkEvent.Unload> {
             onMainThread {
                 if (removeMode == RemoveMode.UNLOAD) {
-                    chunks.remove(it.chunk.pos)
+                    chunks.remove(it.chunk)
                 }
             }
         }
@@ -203,7 +201,6 @@ object NewChunks : Module(
     }
     private fun saveNewChunk(chunk: Chunk) {
         saveNewChunk(testAndGetLogWriter(), getNewChunkInfo(chunk))
-        MessageSendHelper.sendChatMessage("saved chunks!")
     }
 
     private fun getNewChunkInfo(chunk: Chunk): String {
@@ -223,7 +220,6 @@ object NewChunks : Module(
     }
 
     private fun logWriterClose() {
-        LogManager.getLogger("Closed Log Writer")
         if (logWriter != null) {
             logWriter!!.close()
             logWriter = null
@@ -232,15 +228,14 @@ object NewChunks : Module(
     }
 
     private fun logWriterOpen() {
-        LogManager.getLogger("Opened Log Writer")
         val filepath = path.toString()
         try {
-            var logWriter = PrintWriter(BufferedWriter(FileWriter(filepath, true)), true)
+            logWriter = PrintWriter(BufferedWriter(FileWriter(filepath, true)), true)
             var head = "timestamp,ChunkX,ChunkZ"
             if (alsoSaveNormalCoords) {
                 head += ",x coordinate,z coordinate"
             }
-            logWriter.println(head)
+            logWriter!!.println(head)
         } catch (e: Exception) {
             e.printStackTrace()
             LambdaMod.LOG.error(chatName + " some exception happened when trying to start the logging -> " + e.message)
@@ -257,9 +252,7 @@ object NewChunks : Module(
 
             // If there is an integrated server running (Aka Singleplayer) then do magic to find the world save file
             if (mc.isSingleplayer) {
-                LogManager.getLogger("Making singleplayer world")
                 try {
-                    LogManager.getLogger("Making singleplayer world")
                     file = mc.integratedServer?.getWorld(dimension)?.chunkSaveLocation
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -287,7 +280,7 @@ object NewChunks : Module(
             }
             file = File(file, "newChunkLogs")
             val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date())
-            file = File(file, mc.getSession().username + "_" + date + ".csv") // maybe dont safe the name actually. But I also dont want to make another option...
+            file = File(file, mc.session.username + "_" + date + ".csv") // maybe dont safe the name actually. But I also dont want to make another option...
             val rV = file.toPath()
             try {
                 if (!Files.exists(rV)) { // ovsly always...
