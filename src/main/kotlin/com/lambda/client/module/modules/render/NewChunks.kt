@@ -152,6 +152,7 @@ object NewChunks : Module(
                             RenderUtils2D.drawRectFilled(it.vertexHelper, pos0, pos1, distantChunkColor)
                         }
                         RenderUtils2D.drawRectOutline(it.vertexHelper, pos0, pos1, 0.3f, chunkGridColor)
+                        if (saveNewChunks) saveNewChunk(chunk)
                     }
                 }
             }
@@ -159,7 +160,6 @@ object NewChunks : Module(
             for (chunk in chunks) {
                 val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
                 val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
-
                 if (isSquareInRadius(pos0, pos1, it.radius)) {
                     RenderUtils2D.drawRectFilled(it.vertexHelper, pos0, pos1, newChunkColor)
                 }
@@ -257,6 +257,7 @@ object NewChunks : Module(
 
             // If there is an integrated server running (Aka Singleplayer) then do magic to find the world save file
             if (mc.isSingleplayer) {
+                LogManager.getLogger("Making singleplayer world")
                 try {
                     LogManager.getLogger("Making singleplayer world")
                     file = mc.integratedServer?.getWorld(dimension)?.chunkSaveLocation
@@ -401,6 +402,7 @@ object NewChunks : Module(
                 if (closeFile.value) {
                     logWriterClose()
                     MessageSendHelper.sendChatMessage("$chatName Saved file!")
+                    MessageSendHelper.sendChatMessage("$path")
                     closeFile.value = false
                 }
             }
