@@ -13,10 +13,10 @@ import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
-import com.lambda.client.util.Wrapper.world
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.threads.safeAsyncListener
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.network.play.server.SPacketChunkData
 import net.minecraft.world.chunk.Chunk
 import net.minecraftforge.event.world.ChunkEvent
@@ -30,7 +30,6 @@ import java.io.IOException
 import java.io.PrintWriter
 import java.nio.file.Files
 import java.io.File
-import java.lang.Math.sqrt
 import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -47,9 +46,6 @@ object NewChunks : Module(
     private val saveInRegionFolder by setting("InRegion", false, { saveNewChunks })
     private val alsoSaveNormalCoords by setting("SaveNormalCoords", false, { saveNewChunks })
     private val closeFile = setting("CloseFile", false, { saveNewChunks })
-    private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
-    private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
-    private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val yOffset by setting("Y Offset", 0, -256..256, 4, fineStep = 1, description = "Render offset in Y axis")
     private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "Highlighting color")
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
@@ -83,22 +79,28 @@ object NewChunks : Module(
             }
         }
 
-        listener<RenderWorldEvent> {
-            if (renderMode == RenderMode.RADAR) return@listener
-            val y = yOffset.toDouble() + if (relative) getInterpolatedPos(mc.player, LambdaTessellator.pTicks()).y else 0.0
-            glLineWidth(2.0f)
+        safeListener<RenderWorldEvent> {
+            if (renderMode == RenderMode.RADAR) return@safeListener
+
+            val y = yOffset.toDouble() + if (relative) getInterpolatedPos(player, LambdaTessellator.pTicks()).y else 0.0
+
+            glLineWidth(thickness)
             GlStateUtils.depth(false)
-            val color = chunkGridColor
+
             val buffer = LambdaTessellator.buffer
+
             for (chunk in chunks) {
-                if (sqrt(chunk.pos.getDistanceSq(mc.player)) > range) continue
-                LambdaTessellator.begin(GL_LINE_LOOP)
-                buffer.pos(chunk.pos.xStart.toDouble(), y, chunk.pos.zStart.toDouble()).color(color.r, color.g, color.b, 255).endVertex()
-                buffer.pos(chunk.pos.xEnd + 1.toDouble(), y, chunk.pos.zStart.toDouble()).color(color.r, color.g, color.b, 255).endVertex()
-                buffer.pos(chunk.pos.xEnd + 1.toDouble(), y, chunk.pos.zEnd + 1.toDouble()).color(color.r, color.g, color.b, 255).endVertex()
-                buffer.pos(chunk.pos.xStart.toDouble(), y, chunk.pos.zEnd + 1.toDouble()).color(color.r, color.g, color.b, 255).endVertex()
+                if (player.distanceTo(chunk.pos) > range) continue
+
+                buffer.begin(GL_LINE_LOOP, DefaultVertexFormats.POSITION_COLOR)
+                buffer.pos(chunk.pos.xEnd.toDouble(), y, chunk.pos.zEnd.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunk.pos.xEnd.toDouble() + 1.0, y, chunk.pos.z.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunk.pos.xEnd.toDouble() + 1.0, y, chunk.pos.zEnd.toDouble() + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunk.pos.xStart.toDouble(), y, chunk.pos.zEnd.toDouble() + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
                 LambdaTessellator.render()
             }
+
+            glLineWidth(1.0f)
             GlStateUtils.depth(true)
         }
 
@@ -296,9 +298,6 @@ object NewChunks : Module(
         WORLD, RADAR, BOTH
     }
 
-    val isRadarMode get() = renderMode == RenderMode.BOTH || renderMode == RenderMode.RADAR
-    private val isWorldMode get() = renderMode == RenderMode.BOTH || renderMode == RenderMode.WORLD
-
     private class LastSetting {
         var lastSaveOption: SaveOption? = null
         var lastInRegion = false
@@ -324,7 +323,7 @@ object NewChunks : Module(
         }
 
         private fun update() {
-            lastSaveOption = saveOption as SaveOption
+            lastSaveOption = saveOption
             lastInRegion = saveInRegionFolder
             lastSaveNormal = alsoSaveNormalCoords
             dimension = mc.player.dimension
