@@ -14,7 +14,7 @@ object Timer : Module(
     modulePriority = 500
 ) {
     private val slow by setting("Slow Mode", false)
-    private val tickNormal by setting("Tick N", 2.0f, 1f..2000f, 0.1f, { !slow })
+    private val tickNormal by setting("Tick N", 2.0f, 1f..10f, 0.1f, { !slow })
     private val tickSlow by setting("Tick S", 8f, 1f..10f, 0.1f, { slow })
 
     init {
