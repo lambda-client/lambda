@@ -17,7 +17,9 @@ internal object Effects : LabelHud(
     private val coloredEffectNames by setting("Colored Effect Names", true)
 
     override fun SafeClientEvent.updateText() {
-        player.activePotionEffects.forEach{
+        val potionComparator = Comparator{ pot1: PotionEffect, pot2: PotionEffect -> pot1.duration - pot2.duration }
+
+        player.activePotionEffects.sortedWith(potionComparator).forEach {
             val amplifier = if (romanNumerals) RomanNumerals.numberToRoman(it.amplifier + 1) else (it.amplifier + 1).toString()
             val duration = Potion.getPotionDurationString(it, 1f)
             val color = if (coloredEffectNames) ColorConverter.hexToRgb(it.potion.liquidColor) else secondaryColor
