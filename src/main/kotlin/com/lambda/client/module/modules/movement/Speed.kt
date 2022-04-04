@@ -1,11 +1,12 @@
 package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
-import com.lambda.client.mixin.extension.isInWeb
+import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.AutoEat
@@ -23,8 +24,10 @@ import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.settings.KeyBinding
+import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Double.max
+import java.lang.Double.min
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -38,7 +41,7 @@ object Speed : Module(
     val mode by setting("Mode", SpeedMode.STRAFE)
 
     // strafe settings
-    private val strafeAirSpeedBoost by setting("Air Speed Boost", 0.029f, 0.01f..0.04f, 0.001f, { mode == SpeedMode.STRAFE })
+    private val strafeAirSpeedBoost by setting("Air Speed Boost", 0.028f, 0.01f..0.04f, 0.001f, { mode == SpeedMode.STRAFE })
     private val strafeTimerBoost by setting("Timer Boost", true, { mode == SpeedMode.STRAFE })
     private val strafeAutoJump by setting("Auto Jump", true, { mode == SpeedMode.STRAFE })
     private val strafeOnHoldingSprint by setting("On Holding Sprint", false, { mode == SpeedMode.STRAFE })
@@ -46,10 +49,13 @@ object Speed : Module(
 
     // onGround settings
     private val onGroundTimer by setting("Timer", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundTimerSpeed by setting("Timer Speed", 1.29f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
+    private val onGroundTimerSpeed by setting("Timer Speed", 1.088f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
     private val onGroundSpeed by setting("Speed", 1.31f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND })
     private val onGroundSprint by setting("Sprint", true, { mode == SpeedMode.ONGROUND })
     private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
+
+    // boost settings
+    private val boostSpeed by setting("Boost Speed", .61, 0.28..1.0, 0.01, {mode == SpeedMode.BOOST})
 
     // Strafe Mode
     private var jumpTicks = 0
@@ -60,8 +66,10 @@ object Speed : Module(
 
     private var currentMode = mode
 
+    private var spoofUp = true
+
     enum class SpeedMode {
-        STRAFE, ONGROUND
+        STRAFE, ONGROUND, BOOST
     }
 
     init {
@@ -105,13 +113,49 @@ object Speed : Module(
                     if (shouldOnGround()) onGround()
                     else resetTimer()
                 }
+                SpeedMode.BOOST -> {
+
+                    handleBoost(it)
+
+                }
             }
         }
+
+        safeListener<PacketEvent.Send> {
+
+            if (mode == SpeedMode.BOOST) {
+
+                if (it.packet is CPacketPlayer) {
+
+                    if (it.packet.playerMoving && spoofUp) {
+
+                        it.packet.playerIsOnGround = false
+
+                        it.packet.playerY =
+                            (
+                                if (
+                                    world.collidesWithAnyBlock(
+                                        player.entityBoundingBox
+                                            .offset(it.packet.playerX, it.packet.playerY, it.packet.playerZ)
+                                            .offset(0.0,.42,0.0))
+                                )
+                                    .2
+                                else
+                                    .42
+                                ) + player.posY
+                    }
+                }
+
+            }
+
+        }
+
     }
 
     private fun SafeClientEvent.strafe() {
         player.jumpMovementFactor = strafeAirSpeedBoost
-        if (strafeTimerBoost) modifyTimer(45.87155914306640625f)
+        // slightly slower timer speed bypasses better (1.088)
+        if (strafeTimerBoost) modifyTimer(45.955883f)
         if ((Step.isDisabled || !player.collidedHorizontally) && strafeAutoJump) jump()
 
         strafeTimer.reset()
@@ -168,4 +212,30 @@ object Speed : Module(
 
         jumpTicks--
     }
+
+    private fun SafeClientEvent.handleBoost(event : PlayerMoveEvent) {
+
+        spoofUp = !spoofUp && player.onGround
+
+        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f) {
+            modifyTimer(50f)
+            spoofUp = false
+            return
+        }
+
+        modifyTimer(45.955883f)
+
+        val speed = if (spoofUp) boostSpeed else .2873
+
+        val yaw = calcMoveYaw()
+        event.x = -sin(yaw) * speed
+        if (spoofUp) {
+            event.y = min(0.0, event.y)
+        } else if (player.movementInput.jump) {
+            jump()
+        }
+        event.z = cos(yaw) * speed
+
+    }
+
 }
