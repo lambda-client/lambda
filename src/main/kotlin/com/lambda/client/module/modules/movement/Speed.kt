@@ -55,7 +55,7 @@ object Speed : Module(
     private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
 
     // boost settings
-    private val boostSpeed by setting("Boost Speed", .61, 0.28..1.0, 0.01, {mode == SpeedMode.BOOST})
+    private val boostSpeed by setting("Boost Speed", .388, 0.28..1.0, 0.01, {mode == SpeedMode.BOOST})
 
     // Strafe Mode
     private var jumpTicks = 0
@@ -131,18 +131,18 @@ object Speed : Module(
 
                         it.packet.playerIsOnGround = false
 
-                        it.packet.playerY =
+                        val pos =
                             (
                                 if (
-                                    world.collidesWithAnyBlock(
-                                        player.entityBoundingBox
-                                            .offset(it.packet.playerX, it.packet.playerY, it.packet.playerZ)
-                                            .offset(0.0,.42,0.0))
+                                    world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid
                                 )
                                     .2
                                 else
                                     .42
                                 ) + player.posY
+
+                        it.packet.playerY = pos
+
                     }
                 }
 
@@ -217,7 +217,7 @@ object Speed : Module(
 
         spoofUp = !spoofUp && player.onGround
 
-        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f) {
+        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown) {
             modifyTimer(50f)
             spoofUp = false
             return
@@ -231,10 +231,10 @@ object Speed : Module(
         event.x = -sin(yaw) * speed
         if (spoofUp) {
             event.y = min(0.0, event.y)
-        } else if (player.movementInput.jump) {
-            jump()
         }
         event.z = cos(yaw) * speed
+
+        player.setVelocity(event.x,event.y,event.z)
 
     }
 
