@@ -14,6 +14,7 @@ import com.lambda.client.util.text.MessageDetection
 import net.minecraftforge.client.event.*
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent
+import net.minecraftforge.event.world.BlockEvent
 import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -99,10 +100,18 @@ internal object ForgeEventProcessor {
     }
 
     /**
-     * Includes events of subclasses like ChunkEvent, ChunkDataEvent, BlockEvent, NoteBlockEvent, GetCollisionBoxesEvent
+     * Includes events of subclasses like ChunkEvent and GetCollisionBoxesEvent
      */
     @SubscribeEvent
     fun onWorldEvent(event: WorldEvent) {
+        LambdaEventBus.post(event)
+    }
+
+    /**
+     * Also includes NoteBlockEvent
+     */
+    @SubscribeEvent
+    fun onBlockEvent(event: BlockEvent) {
         LambdaEventBus.post(event)
     }
 
