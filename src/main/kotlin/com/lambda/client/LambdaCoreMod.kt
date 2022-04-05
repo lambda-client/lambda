@@ -42,6 +42,6 @@ class LambdaCoreMod : IFMLLoadingPlugin {
             }
 
         MixinEnvironment.getDefaultEnvironment().obfuscationContext = "searge"
-        logger.info("Lambda and Baritone mixins initialised.")
+        logger.info("Lambda and Baritone mixins initialised. (${MixinEnvironment.getDefaultEnvironment().obfuscationContext})")
     }
 }
