@@ -85,7 +85,7 @@ object StashLogger : Module(
 
             if (logToChat) {
                 val positionString = center.asString()
-                MessageSendHelper.sendChatMessage("$chatName $positionString $string")
+                MessageSendHelper.sendChatMessage("$chatName Found $string at ($positionString) ")
             }
 
             found = true
@@ -167,11 +167,11 @@ object StashLogger : Module(
 
         override fun toString(): String {
             val statList = mutableListOf<String>()
-            if (chests > 0 && logChests) statList.add("$chests chests")
-            if (shulkers > 0 && logShulkers) statList.add("$shulkers shulkers")
-            if (droppers > 0 && logDroppers) statList.add("$droppers droppers")
-            if (dispensers > 0 && logDispensers) statList.add("$dispensers dispensers")
-            if (hoppers > 0 && logHoppers) statList.add("$hoppers hoppers")
+            if (chests > 0 && logChests) statList.add("$chests chest${if (chests == 1) "" else "s"}")
+            if (shulkers > 0 && logShulkers) statList.add("$shulkers shulker${if (shulkers == 1) "" else "s"}")
+            if (droppers > 0 && logDroppers) statList.add("$droppers dropper${if (droppers == 1) "" else "s"}")
+            if (dispensers > 0 && logDispensers) statList.add("$dispensers dispenser${if (dispensers == 1) "" else "s"}")
+            if (hoppers > 0 && logHoppers) statList.add("$hoppers hopper${if (hoppers == 1) "" else "s"}")
             return statList.joinToString()
         }
     }
