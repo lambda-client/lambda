@@ -1,7 +1,6 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.events.ConnectionEvent
-import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.asyncListener
 import com.lambda.client.event.listener.listener
@@ -9,13 +8,10 @@ import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.GuiColors
-import com.lambda.client.module.modules.render.Nametags
-import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.EntityUtils.isFakeOrSelf
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.graphics.ESPRenderer
-import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.text.MessageSendHelper
@@ -23,9 +19,6 @@ import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeListener
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.entity.EntityOtherPlayerMP
-import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.concurrent.ConcurrentHashMap
@@ -59,17 +52,19 @@ object LogoutLogger : Module(
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.END) return@safeListener
 
-            for (loadedPlayer in world.playerEntities) {
-                if (loadedPlayer !is EntityOtherPlayerMP) continue
-                if (loadedPlayer.isFakeOrSelf) continue
+            world.playerEntities
+                .filterIsInstance<EntityOtherPlayerMP>()
+                .filter { entityOtherPlayerMP -> !entityOtherPlayerMP.isFakeOrSelf }
+                .forEach { entityOtherPlayerMP ->
+                    @Suppress("UNNECESSARY_SAFE_CALL")
+                    connection.getPlayerInfo(entityOtherPlayerMP.gameProfile.id)?.let { networkPlayerInfo ->
+                        loggedPlayers[networkPlayerInfo.gameProfile] = entityOtherPlayerMP
 
-                val info = connection.getPlayerInfo(loadedPlayer.gameProfile.id) ?: continue
-                loggedPlayers[info.gameProfile] = loadedPlayer
-
-                loggedOutPlayers.entries.removeIf { (profile, _) ->
-                    profile.id == info.gameProfile.id
+                        loggedOutPlayers.entries.removeIf { (profile, _) ->
+                            profile.id == networkPlayerInfo.gameProfile.id
+                        }
+                    }
                 }
-            }
 
             loggedPlayers.entries.removeIf { (profile, entityOtherPlayerMP) ->
                 @Suppress("SENSELESS_COMPARISON")
@@ -81,8 +76,10 @@ object LogoutLogger : Module(
                         MessageSendHelper.sendChatMessage("$chatName ${TextFormatting.RED}${profile.name}${TextFormatting.RESET} logged out at (${entityOtherPlayerMP.entityBoundingBox.center.toBlockPos().asString()})")
                     }
 
-                    entityOtherPlayerMP.setNoGravity(true) // try to fix glitching nametags
-                    entityOtherPlayerMP.setVelocity(.0, .0, .0) // try to fix glitching nametags
+                    // prevent render glitches caused by interpolation
+                    entityOtherPlayerMP.prevPosX = entityOtherPlayerMP.posX
+                    entityOtherPlayerMP.prevPosY = entityOtherPlayerMP.posY
+                    entityOtherPlayerMP.prevPosZ = entityOtherPlayerMP.posZ
 
                     loggedOutPlayers[profile] = entityOtherPlayerMP
                     true
@@ -91,18 +88,18 @@ object LogoutLogger : Module(
                 }
             }
         }
-        
-        onDisable { 
+
+        onDisable {
             if (clearEsp) loggedOutPlayers.clear()
         }
-        
-        listener<RenderWorldEvent> { 
+
+        listener<RenderWorldEvent> {
             if (!esp) return@listener
 
             renderer.aFilled = espFilledAlpha
             renderer.aOutline = espOutlineAlpha
 
-            if (renderTimer.tick(3)) {
+            if (renderTimer.tick(1)) {
                 renderer.clear()
                 loggedOutPlayers.values.forEach {
                     renderer.add(it, espColor)
