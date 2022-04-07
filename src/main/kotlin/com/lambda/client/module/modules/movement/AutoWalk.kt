@@ -28,6 +28,7 @@ object AutoWalk : Module(
 ) {
     private val mode = setting("Direction", AutoWalkMode.BARITONE)
     private val disableOnDisconnect by setting("Disable On Disconnect", true)
+    private var pauseOnBackwards by setting("Pause on opposite movement", true)
 
     private enum class AutoWalkMode(override val displayName: String) : DisplayEnum {
         FORWARD("Forward"),
@@ -73,21 +74,24 @@ object AutoWalk : Module(
 
             if (it.movementInput !is MovementInputFromOptions) return@listener
 
-            when (mode.value) {
+            it.movementInput.moveForward = when (mode.value) {
                 AutoWalkMode.FORWARD -> {
-                    it.movementInput.moveForward = 1.0f
+                    if (pauseOnBackwards && mc.gameSettings.keyBindBack.isKeyDown) 0.0f else 1.0f
                 }
                 AutoWalkMode.BACKWARD -> {
-                    it.movementInput.moveForward = -1.0f
+                    if (pauseOnBackwards && mc.gameSettings.keyBindForward.isKeyDown) 0.0f else -1.0f
                 }
                 else -> {
-                    // Baritone mode
+                    0.0f
                 }
             }
         }
 
         safeListener<TickEvent.ClientTickEvent> {
-            if (mode.value == AutoWalkMode.BARITONE && !checkBaritoneElytra() && !isActive()) {
+            if (mode.value == AutoWalkMode.BARITONE
+                && !checkBaritoneElytra()
+                && !isActive()
+            ) {
                 startPathing()
             }
         }
