@@ -10,6 +10,7 @@ import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.Bind
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
+import com.lambda.client.util.combat.SurroundUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
@@ -33,6 +34,7 @@ object Step : Module(
     private val upStep = setting("Up Step", true)
     private val downStep = setting("Down Step", false)
     private val entityStep by setting("Entities", true)
+    private val checkHole by setting("Check Hole", false)
     private val height by setting("Height", 1.0f, 0.25f..2.0f, 0.25f)
     private val downSpeed by setting("Down Speed", 0.2f, 0.0f..1.0f, 0.05f)
     private val bindUpStep by setting("Bind Up Step", Bind())
@@ -97,6 +99,7 @@ object Step : Module(
             && !player.capabilities.isFlying
             && !player.isOnLadder
             && !player.isInOrAboveLiquid
+            && (!checkHole.value || SurrondUtils.checkHole(player) == SurroundUtils.HoleType.NONE)
 
     private fun SafeClientEvent.setStepHeight() {
         player.stepHeight = if (upStep.value && player.onGround && player.collidedHorizontally) height else defaultHeight
