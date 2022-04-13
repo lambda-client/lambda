@@ -99,7 +99,7 @@ object Step : Module(
             && !player.capabilities.isFlying
             && !player.isOnLadder
             && !player.isInOrAboveLiquid
-            && (!checkHole.value || SurrondUtils.checkHole(player) == SurroundUtils.HoleType.NONE)
+            && (!checkHole.value || SurroundUtils.checkHole(player) == SurroundUtils.HoleType.NONE)
 
     private fun SafeClientEvent.setStepHeight() {
         player.stepHeight = if (upStep.value && player.onGround && player.collidedHorizontally) height else defaultHeight
