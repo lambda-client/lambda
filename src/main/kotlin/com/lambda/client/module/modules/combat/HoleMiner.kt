@@ -49,7 +49,7 @@ object HoleMiner : Module(
             runSafeR {
                 val target = CombatManager.target
                 if (target != null) {
-                    if (checkHole(target) != SurroundUtils.HoleType.OBBY) {
+                    if (checkHole(target) != SurroundUtils.HoleType.OBSIDIAN) {
                         MessageSendHelper.sendChatMessage("$chatName Target is not in a valid hole, disabling")
                         disable()
                     } else {

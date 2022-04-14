@@ -72,7 +72,7 @@ object HoleESP : Module(
 
                 val bb = AxisAlignedBB(if (renderMode == Mode.BLOCK_FLOOR) pos.down() else pos)
 
-                if (holeType == SurroundUtils.HoleType.OBBY && shouldAddObsidian()) {
+                if (holeType == SurroundUtils.HoleType.OBSIDIAN && shouldAddObsidian()) {
                     cached.add(Triple(bb, colorObsidian, side))
                 }
 

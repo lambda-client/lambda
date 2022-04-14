@@ -14,6 +14,7 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.listener
+import com.lambda.client.module.modules.combat.Surround.inHoleCheck
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -33,6 +34,7 @@ object Step : Module(
     private val upStep = setting("Up Step", true)
     private val downStep = setting("Down Step", false)
     private val entityStep by setting("Entities", true)
+    private val checkHole by setting("Check Hole", false)
     private val height by setting("Height", 1.0f, 0.25f..2.0f, 0.25f)
     private val downSpeed by setting("Down Speed", 0.2f, 0.0f..1.0f, 0.05f)
     private val bindUpStep by setting("Bind Up Step", Bind())
@@ -97,6 +99,7 @@ object Step : Module(
             && !player.capabilities.isFlying
             && !player.isOnLadder
             && !player.isInOrAboveLiquid
+            && (!checkHole || !inHoleCheck())
 
     private fun SafeClientEvent.setStepHeight() {
         player.stepHeight = if (upStep.value && player.onGround && player.collidedHorizontally) height else defaultHeight

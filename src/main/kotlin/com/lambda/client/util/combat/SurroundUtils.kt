@@ -9,8 +9,6 @@ import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 
 object SurroundUtils {
-    private val mc = Wrapper.minecraft
-
     val surroundOffset = arrayOf(
         BlockPos(0, -1, 0), // down
         BlockPos(0, 0, -1), // north
@@ -36,7 +34,7 @@ object SurroundUtils {
                 break
             }
 
-            if (block != Blocks.BEDROCK) type = HoleType.OBBY
+            if (block != Blocks.BEDROCK) type = HoleType.OBSIDIAN
         }
 
         return type
@@ -47,6 +45,6 @@ object SurroundUtils {
     }
 
     enum class HoleType {
-        NONE, OBBY, BEDROCK
+        NONE, OBSIDIAN, BEDROCK
     }
 }
