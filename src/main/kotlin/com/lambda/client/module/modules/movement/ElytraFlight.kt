@@ -27,8 +27,6 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketEntityMetadata
 import net.minecraft.network.play.server.SPacketPlayerPosLook
-import net.minecraft.util.math.MathHelper
-import net.minecraft.util.math.Vec3d
 import kotlin.math.*
 
 
@@ -39,7 +37,7 @@ object ElytraFlight : Module(
     category = Category.MOVEMENT,
     modulePriority = 1000
 ) {
-    private val mode = setting("Mode", ElytraFlightMode.CONTROL)
+    val mode = setting("Mode", ElytraFlightMode.CONTROL)
     private val page by setting("Page", Page.GENERIC_SETTINGS)
     private val durabilityWarning by setting("Durability Warning", true, { page == Page.GENERIC_SETTINGS })
     private val threshold by setting("Warning Threshold", 5, 1..50, 1, { durabilityWarning && page == Page.GENERIC_SETTINGS }, description = "Threshold of durability to start sending warnings")
@@ -103,7 +101,7 @@ object ElytraFlight : Module(
 
     /* End of Mode Settings */
 
-    private enum class ElytraFlightMode {
+    enum class ElytraFlightMode {
         BOOST, CONTROL, CREATIVE, PACKET, VANILLA
     }
 
@@ -125,7 +123,7 @@ object ElytraFlight : Module(
     /* Control mode states */
     private var hoverTarget = -1.0
     private var packetYaw = 0.0f
-    private var packetPitch = 0.0f
+    var packetPitch = 0.0f
     private var hoverState = false
     private var boostingTick = 0
 
@@ -168,7 +166,7 @@ object ElytraFlight : Module(
                         ElytraFlightMode.CONTROL -> controlMode(it)
                         ElytraFlightMode.CREATIVE -> creativeMode()
                         ElytraFlightMode.PACKET -> packetMode(it)
-                        ElytraFlightMode.VANILLA -> vanillaMode(it)
+                        ElytraFlightMode.VANILLA -> vanillaMode()
                     }
                 }
                 spoofRotation()
@@ -485,7 +483,7 @@ object ElytraFlight : Module(
         event.cancel()
     }
 
-    private fun SafeClientEvent.vanillaMode(event: PlayerTravelEvent) {
+    private fun SafeClientEvent.vanillaMode() {
         val playerY = player.posY
         val lastShouldDescend = shouldDescend
         shouldDescend = lastY > playerY && lastHighY - 60 < playerY
@@ -501,55 +499,6 @@ object ElytraFlight : Module(
             -upPitch
         }
         lastY = playerY
-
-        //region mc code
-        val f0 = MathHelper.cos(-player.rotationYaw * 0.017453292f - Math.PI.toFloat())
-        val f1 = MathHelper.sin(-player.rotationYaw * 0.017453292f - Math.PI.toFloat())
-        val f2 = -MathHelper.cos(-packetPitch * 0.017453292f)
-        val f3 = MathHelper.sin(-packetPitch * 0.017453292f)
-
-        val vec3d = Vec3d((f1 * f2).toDouble(), f3.toDouble(), (f0 * f2).toDouble())
-        val f: Float = packetPitch * 0.017453292f
-        val d6 = sqrt(vec3d.x * vec3d.x + vec3d.z * vec3d.z)
-        val d8 = sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)
-        val d1: Double = vec3d.length()
-        var f4 = MathHelper.cos(f)
-        f4 = (f4.toDouble() * f4.toDouble() * 1.0.coerceAtMost(d1 / 0.4)).toFloat()
-        player.motionY += -0.08 + f4.toDouble() * 0.06
-
-        if (player.motionY < 0.0 && d6 > 0.0) {
-            val d2: Double = player.motionY * -0.1 * f4.toDouble()
-            player.motionY += d2
-            player.motionX += vec3d.x * d2 / d6
-            player.motionZ += vec3d.z * d2 / d6
-        }
-
-        if (f < 0.0f) {
-            val d10 = d8 * (-MathHelper.sin(f)).toDouble() * 0.04
-            player.motionY += d10 * 3.2
-            player.motionX -= vec3d.x * d10 / d6
-            player.motionZ -= vec3d.z * d10 / d6
-        }
-
-        if (d6 > 0.0) {
-            player.motionX += (vec3d.x / d6 * d8 - player.motionX) * 0.1
-            player.motionZ += (vec3d.z / d6 * d8 - player.motionZ) * 0.1
-        }
-        //endregion
-
-        player.motionX *= 0.99
-        player.motionY *= 0.98
-        player.motionZ *= 0.99
-
-
-        if (isBoosted) {
-            player.motionX += vec3d.x * 0.1 + (vec3d.x * 1.5 - player.motionX) * 0.5
-            player.motionY += vec3d.y * 0.1 + (vec3d.y * 1.5 - player.motionY) * 0.5
-            player.motionZ += vec3d.z * 0.1 + (vec3d.z * 1.5 - player.motionZ) * 0.5
-        }
-
-        event.cancel()
-
     }
 
     fun shouldSwing(): Boolean {
