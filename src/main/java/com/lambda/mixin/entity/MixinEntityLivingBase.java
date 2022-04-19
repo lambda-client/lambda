@@ -50,8 +50,7 @@ public abstract class MixinEntityLivingBase extends Entity {
     @ModifyVariable(
         method = "travel(FFF)V",
         at = @At(value = "STORE", ordinal = 0),
-        ordinal = 3,
-        print = true
+        ordinal = 3
     )
     private float f(float original) {
         if (shouldWork()) {
