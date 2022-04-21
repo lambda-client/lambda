@@ -27,8 +27,8 @@ compileJava {
 
 compileKotlin.kotlinOptions {
     freeCompilerArgs += '-Xlambdas=indy'
-    freeCompilerArgs += '-Xopt-in=kotlin.RequiresOptIn'
-    freeCompilerArgs += '-Xopt-in=kotlin.contracts.ExperimentalContracts'
+    freeCompilerArgs += '-opt-in=kotlin.RequiresOptIn'
+    freeCompilerArgs += '-opt-in=kotlin.contracts.ExperimentalContracts'
 }
 
 repositories {

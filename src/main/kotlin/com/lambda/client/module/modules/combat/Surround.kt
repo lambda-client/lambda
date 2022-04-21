@@ -130,7 +130,7 @@ object Surround : Module(
         }
     }
 
-    private fun SafeClientEvent.inHoleCheck() = player.onGround && player.speed < 0.15 && checkHole(player) == SurroundUtils.HoleType.OBBY
+    fun SafeClientEvent.inHoleCheck() = player.onGround && player.speed < 0.15 && checkHole(player) == SurroundUtils.HoleType.OBSIDIAN
 
     private fun outOfHoleCheck() {
         if (autoDisable == AutoDisableMode.OUT_OF_HOLE) {

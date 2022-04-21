@@ -1,6 +1,7 @@
 package com.lambda.client.util
 
 import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.capitalize
 import com.lambda.client.util.text.formatValue
 import org.lwjgl.input.Keyboard
 
@@ -8,9 +9,7 @@ object KeyboardUtils {
     val allKeys = IntArray(Keyboard.KEYBOARD_SIZE) { it }
 
     private val displayNames = Array(Keyboard.KEYBOARD_SIZE) { name ->
-        Keyboard.getKeyName(name)?.lowercase()?.replaceFirstChar {
-            if (it.isLowerCase()) it.titlecase() else it.toString()
-        }
+        Keyboard.getKeyName(name)?.lowercase()?.capitalize()
     }
 
     private val keyMap: Map<String, Int> = HashMap<String, Int>().apply {

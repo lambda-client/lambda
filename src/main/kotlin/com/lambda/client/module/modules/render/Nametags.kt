@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.render
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -20,6 +21,7 @@ import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.listener.listener
+import com.lambda.client.module.modules.misc.LogoutLogger
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.entity.Entity
@@ -113,7 +115,7 @@ object Nametags : Module(
 
     private val line1Settings = arrayOf(line1left, line1center, line1right)
     private val line2Settings = arrayOf(line2left, line2center, line2right)
-    private val entityMap = TreeMap<Entity, TextComponent>(compareByDescending { mc.player.getPositionEyes(1f).distanceTo(it.getPositionEyes(1f)) })
+    val entityMap = TreeMap<Entity, TextComponent>(compareByDescending { mc.player.getPositionEyes(1f).distanceTo(it.getPositionEyes(1f)) })
     private val itemMap = TreeSet<ItemGroup>(compareByDescending { mc.player.getPositionEyes(1f).distanceTo(it.getCenter(1f)) })
 
     private var updateTick = 0
@@ -347,6 +349,12 @@ object Nametags : Module(
                         if (entity is EntityItem) continue
                         if (player.getDistance(entity) > range) continue
                         entityMap[entity] = TextComponent()
+                    }
+
+                    LogoutLogger.loggedOutPlayers.values.filter {
+                        player.getDistance(it) <= range
+                    }.forEach {
+                        entityMap[it] = TextComponent()
                     }
                 }
                 2 -> { // Removing items
