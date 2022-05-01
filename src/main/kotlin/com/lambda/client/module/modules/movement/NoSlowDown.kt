@@ -57,6 +57,7 @@ object NoSlowDown : Module(
 
         safeListener<PacketEvent.Send> {
             if (itemMovement
+                && player.onGround
                 && it.packet is CPacketClickWindow
                 && it.packet != savedClickWindow
             ) {
