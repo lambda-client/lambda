@@ -10,6 +10,8 @@ import com.lambda.mixin.world.MixinBlockSoulSand
 import com.lambda.mixin.world.MixinBlockWeb
 import net.minecraft.init.Blocks
 import net.minecraft.item.*
+import net.minecraft.network.play.client.CPacketClickWindow
+import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerDigging.Action
@@ -28,6 +30,7 @@ object NoSlowDown : Module(
 ) {
     private val ncpStrict by setting("NCP Strict", true)
     private val sneak by setting("Sneak", false)
+    private val itemMovement by setting("Item Movement", false)
     val soulSand by setting("Soul Sand", true)
     val cobweb by setting("Cobweb", true)
     private val slime by setting("Slime", true)
@@ -37,6 +40,7 @@ object NoSlowDown : Module(
     private val potion by setting("Potions", true, { !allItems })
     private val shield by setting("Shield", true, { !allItems })
 
+    private var savedClickWindow = CPacketClickWindow()
     /*
      * InputUpdateEvent is called just before the player is slowed down @see EntityPlayerSP.onLivingUpdate)
      * We'll abuse this fact, and multiply moveStrafe and moveForward by 5 to nullify the *0.2f hardcoded by Mojang.
@@ -48,6 +52,29 @@ object NoSlowDown : Module(
             if (sneak && player.isSneaking || passItemCheck(player.activeItemStack.item)) {
                 it.movementInput.moveStrafe *= 5f
                 it.movementInput.moveForward *= 5f
+            }
+        }
+
+        safeListener<PacketEvent.Send> {
+            if (itemMovement
+                && player.onGround
+                && it.packet is CPacketClickWindow
+                && it.packet != savedClickWindow
+            ) {
+                savedClickWindow = it.packet
+
+                it.cancel()
+
+                if (player.isSprinting) {
+                    player.connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SPRINTING))
+                }
+
+                player.connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.0626, player.posZ, false))
+                player.connection.sendPacket(it.packet)
+
+                if (player.isSprinting) {
+                    player.connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SPRINTING))
+                }
             }
         }
 
