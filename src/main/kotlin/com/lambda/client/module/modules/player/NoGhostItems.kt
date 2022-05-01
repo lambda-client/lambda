@@ -1,6 +1,5 @@
 package com.lambda.client.module.modules.player
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
@@ -11,22 +10,23 @@ import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketClickWindow
 import net.minecraft.network.play.server.SPacketConfirmTransaction
-import java.util.concurrent.ConcurrentHashMap
 
 object NoGhostItems : Module(
     name = "NoGhostItems",
     description = "Syncs inventory transactions for strict environments",
     category = Category.PLAYER
 ) {
-    private val pendingTransactions = ConcurrentHashMap<Short, InventoryTransaction>()
+    private val timeout by setting("Timeout in ticks", 5, 1..50, 1)
+
+    private var pendingTransaction: InventoryTransaction? = null
+    private var lastPending = System.currentTimeMillis()
 
     init {
         listener<PacketEvent.Receive> { event ->
             if (event.packet is SPacketConfirmTransaction) {
-                pendingTransactions[event.packet.actionNumber]?.let {
+                pendingTransaction?.let {
                     it.player.openContainer.slotClick(it.slotId, it.mouseButton, it.type, it.player)
-                    pendingTransactions.remove(event.packet.actionNumber)
-                    LambdaMod.LOG.info("Accepted transaction: ${event.packet.actionNumber}")
+                    pendingTransaction = null
                 }
             }
         }
@@ -35,11 +35,11 @@ object NoGhostItems : Module(
     fun handleWindowClick(windowId: Int, slotId: Int, mouseButton: Int, type: ClickType, player: EntityPlayer) {
         val transaction = InventoryTransaction(windowId, slotId, mouseButton, type, player)
 
-        if (!pendingTransactions.values.contains(transaction)) {
+        if (pendingTransaction == null || System.currentTimeMillis() - lastPending > timeout * 50L) {
             val transactionID = transaction.player.openContainer.getNextTransactionID(transaction.player.inventory)
-            pendingTransactions[transactionID] = transaction
+            pendingTransaction = transaction
+            lastPending = System.currentTimeMillis()
 
-            LambdaMod.LOG.info("Started transaction: transactionID: $transactionID transaction: $transaction")
             runSafe {
                 connection.sendPacket(CPacketClickWindow(transaction.windowId, transaction.slotId, transaction.mouseButton, transaction.type, ItemStack.EMPTY, transactionID))
             }
