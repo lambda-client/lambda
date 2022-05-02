@@ -42,6 +42,10 @@ object FolderUtils {
     val songFolder
         get() = "${lambdaFolder}songs${File.separator}"
 
+    @JvmStatic
+    val newChunksFolder
+        get() = "${lambdaFolder}newChunks${File.separator}"
+
     /**
      * Opens the given path using the right library based on OS
      */
