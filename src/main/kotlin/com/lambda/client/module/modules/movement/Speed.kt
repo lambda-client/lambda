@@ -6,7 +6,9 @@ import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
-import com.lambda.client.mixin.extension.*
+import com.lambda.client.mixin.extension.isInWeb
+import com.lambda.client.mixin.extension.playerMoving
+import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.AutoEat
@@ -55,7 +57,7 @@ object Speed : Module(
     private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
 
     // boost settings
-    private val boostSpeed by setting("Boost Speed", .388, 0.28..1.0, 0.01, {mode == SpeedMode.BOOST})
+    private val boostSpeed by setting("Boost Speed", 0.388, 0.28..1.0, 0.01, { mode == SpeedMode.BOOST })
 
     // Strafe Mode
     private var jumpTicks = 0
@@ -192,11 +194,11 @@ object Speed : Module(
         jumpTicks--
     }
 
-    private fun SafeClientEvent.handleBoost(event : PlayerMoveEvent) {
+    private fun SafeClientEvent.handleBoost(event: PlayerMoveEvent) {
         spoofUp = !spoofUp && player.onGround
 
         if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown) {
-            modifyTimer(50f)
+            resetTimer()
             spoofUp = false
             return
         }
