@@ -5,12 +5,16 @@ import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.runSafe
+import com.lambda.mixin.player.MixinPlayerControllerMP
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketClickWindow
 import net.minecraft.network.play.server.SPacketConfirmTransaction
 
+/**
+ * @see MixinPlayerControllerMP.onWindowClick
+ */
 object NoGhostItems : Module(
     name = "NoGhostItems",
     description = "Syncs inventory transactions for strict environments",

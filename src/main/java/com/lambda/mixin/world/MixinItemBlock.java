@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(ItemBlock.class)
 public class MixinItemBlock {
     @Redirect(method = "placeBlockAt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
-    private boolean setVoid(World instance, BlockPos p_setBlockState_1_, IBlockState p_setBlockState_2_, int p_setBlockState_3_) {
+    private boolean ignoreSetBlockState(World instance, BlockPos p_setBlockState_1_, IBlockState p_setBlockState_2_, int p_setBlockState_3_) {
         if (NoGlitchBlocks.INSTANCE.isEnabled()) {
             return true;
         } else {
