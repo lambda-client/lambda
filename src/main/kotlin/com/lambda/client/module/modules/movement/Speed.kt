@@ -114,42 +114,21 @@ object Speed : Module(
                     else resetTimer()
                 }
                 SpeedMode.BOOST -> {
-
                     handleBoost(it)
-
                 }
             }
         }
 
         safeListener<PacketEvent.Send> {
-
-            if (mode == SpeedMode.BOOST) {
-
-                if (it.packet is CPacketPlayer) {
-
-                    if (it.packet.playerMoving && spoofUp) {
-
-                        it.packet.playerIsOnGround = false
-
-                        val pos =
-                            (
-                                if (
-                                    world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid
-                                )
-                                    .2
-                                else
-                                    .42
-                                ) + player.posY
-
-                        it.packet.playerY = pos
-
-                    }
-                }
-
+            if (mode == SpeedMode.BOOST
+                && it.packet is CPacketPlayer
+                && it.packet.playerMoving
+                && spoofUp
+            ) {
+                val hasRoof = world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid
+                it.packet.playerY = (if (hasRoof) .2 else .42) + player.posY
             }
-
         }
-
     }
 
     private fun SafeClientEvent.strafe() {
@@ -214,7 +193,6 @@ object Speed : Module(
     }
 
     private fun SafeClientEvent.handleBoost(event : PlayerMoveEvent) {
-
         spoofUp = !spoofUp && player.onGround
 
         if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown) {
@@ -234,8 +212,6 @@ object Speed : Module(
         }
         event.z = cos(yaw) * speed
 
-        player.setVelocity(event.x,event.y,event.z)
-
+        player.setVelocity(event.x, event.y, event.z)
     }
-
 }
