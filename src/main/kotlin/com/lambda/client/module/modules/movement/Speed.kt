@@ -1,22 +1,22 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
-import com.lambda.client.mixin.extension.*
+import com.lambda.client.mixin.extension.isInWeb
+import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.player.AutoEat
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.MovementUtils
 import com.lambda.client.util.MovementUtils.applySpeedPotionEffects
 import com.lambda.client.util.MovementUtils.calcMoveYaw
-import com.lambda.client.util.MovementUtils.isMoving
 import com.lambda.client.util.MovementUtils.setSpeed
 import com.lambda.client.util.MovementUtils.speed
 import com.lambda.client.util.TickTimer
@@ -29,6 +29,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Double.max
 import java.lang.Double.min
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 object Speed : Module(
@@ -47,38 +48,35 @@ object Speed : Module(
     private val strafeOnHoldingSprint by setting("On Holding Sprint", false, { mode == SpeedMode.STRAFE })
     private val strafeCancelInertia by setting("Cancel Inertia", false, { mode == SpeedMode.STRAFE })
 
-    // onGround settings
-    private val onGroundTimer by setting("Timer", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundTimerSpeed by setting("Timer Speed", 1.088f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND && onGroundTimer })
-    private val onGroundSpeed by setting("Speed", 1.31f, 1.0f..2.0f, 0.01f, { mode == SpeedMode.ONGROUND })
-    private val onGroundSprint by setting("Sprint", true, { mode == SpeedMode.ONGROUND })
-    private val onGroundCheckAbove by setting("Smart Mode", true, { mode == SpeedMode.ONGROUND })
-
-    // boost settings
-    private val boostSpeed by setting("Boost Speed", .388, 0.28..1.0, 0.01, {mode == SpeedMode.BOOST})
+    // yport settings
+    // no need for speed slider as I got this shit from
+    // https://github.com/NoCheatPlus/NoCheatPlus/blob/master/NCPCore/src/main/java/fr/neatmonster/nocheatplus/checks/moving/player/SurvivalFly.java
+    // add one if you want ig
+    private val accelerate by setting("Accelerate", true, { mode == SpeedMode.YPORT })
 
     // Strafe Mode
     private var jumpTicks = 0
     private val strafeTimer = TickTimer(TimeUnit.TICKS)
 
-    // onGround Mode
-    private var wasSprintEnabled = Sprint.isEnabled
-
     private var currentMode = mode
 
-    private var spoofUp = true
+    // yport stuff
+    private var currentSpeed = .2873
+    private var phase = 1
+    private var lastDistance = 0.0
 
-    enum class SpeedMode {
-        STRAFE, ONGROUND, BOOST
+    enum class SpeedMode(override val displayName: String) : DisplayEnum {
+        STRAFE("Strafe"),
+        YPORT("YPort")
     }
 
     init {
         onEnable {
-            wasSprintEnabled = Sprint.isEnabled
+            currentSpeed = .2873
+            phase = 1
         }
 
         onDisable {
-            if (!wasSprintEnabled && mode == SpeedMode.ONGROUND) Sprint.disable()
             runSafe {
                 reset()
             }
@@ -90,7 +88,7 @@ object Speed : Module(
                 reset()
             }
 
-            if (mode == SpeedMode.ONGROUND && Sprint.isDisabled && onGroundSprint) Sprint.enable()
+            lastDistance = hypot(player.posX - player.prevPosX, player.posZ - player.prevPosZ)
         }
 
         safeListener<PlayerTravelEvent> {
@@ -109,11 +107,7 @@ object Speed : Module(
                         }
                     }
                 }
-                SpeedMode.ONGROUND -> {
-                    if (shouldOnGround()) onGround()
-                    else resetTimer()
-                }
-                SpeedMode.BOOST -> {
+                SpeedMode.YPORT -> {
 
                     handleBoost(it)
 
@@ -123,33 +117,22 @@ object Speed : Module(
 
         safeListener<PacketEvent.Send> {
 
-            if (mode == SpeedMode.BOOST) {
+            if (mode == SpeedMode.YPORT
+                && it.packet is CPacketPlayer
+                // phase is set to 3 in phase 2, so we are detecting when our speed is increased
+                && phase == 3) {
 
-                if (it.packet is CPacketPlayer) {
+                val pos = (
+                        if (world.getBlockState(player.flooredPosition.add(.0, 2.0, .0)).isFullBlock)
+                            .2
+                        else
+                            .42
+                        ) + player.posY
 
-                    if (it.packet.playerMoving && spoofUp) {
-
-                        it.packet.playerIsOnGround = false
-
-                        val pos =
-                            (
-                                if (
-                                    world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid
-                                )
-                                    .2
-                                else
-                                    .42
-                                ) + player.posY
-
-                        it.packet.playerY = pos
-
-                    }
-                }
+                it.packet.playerY = pos
 
             }
-
         }
-
     }
 
     private fun SafeClientEvent.strafe() {
@@ -161,14 +144,6 @@ object Speed : Module(
         strafeTimer.reset()
     }
 
-    private fun SafeClientEvent.onGround() {
-        if (onGroundTimer) modifyTimer(50.0f / onGroundTimerSpeed)
-        else resetTimer()
-
-        player.motionX *= onGroundSpeed
-        player.motionZ *= onGroundSpeed
-    }
-
     private fun SafeClientEvent.shouldStrafe(): Boolean =
         (!player.capabilities.isFlying
             && !player.isElytraFlying
@@ -177,18 +152,6 @@ object Speed : Module(
             && !BaritoneUtils.isPathing
             && MovementUtils.isInputting
             && !(player.isInOrAboveLiquid || player.isInWeb))
-
-    private fun SafeClientEvent.shouldOnGround(): Boolean =
-        (world.getBlockState(player.flooredPosition.add(0.0, 2.0, 0.0)).material.isSolid || !onGroundCheckAbove)
-            && !AutoEat.eating
-            && player.isMoving
-            && MovementUtils.isInputting
-            && !player.movementInput.sneak
-            && player.onGround
-            && !(player.isInOrAboveLiquid || player.isInWeb)
-            && !player.capabilities.isFlying
-            && !player.isElytraFlying
-            && !mc.gameSettings.keyBindSneak.isKeyDown
 
     private fun SafeClientEvent.reset() {
         player.jumpMovementFactor = 0.02f
@@ -215,24 +178,44 @@ object Speed : Module(
 
     private fun SafeClientEvent.handleBoost(event : PlayerMoveEvent) {
 
-        spoofUp = !spoofUp && player.onGround
-
-        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown) {
-            modifyTimer(50f)
-            spoofUp = false
+        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown || !player.onGround) {
+            resetTimer()
+            currentSpeed = .2873
             return
         }
 
         modifyTimer(45.955883f)
 
-        val speed = if (spoofUp) boostSpeed else .2873
+        when (phase) {
+
+            1 -> {
+                currentSpeed = max(currentSpeed, .2873)
+                phase = 2
+            }
+
+            2 -> {
+                // NCP says hDistance < 2.15 * hDistanceBaseRef
+                currentSpeed *= 2.149
+                phase = 3
+            }
+
+            3 -> {
+                // NCP says hDistDiff >= 0.66 * (lastMove.hDistance - hDistanceBaseRef)
+                currentSpeed = if (accelerate) {
+                    lastDistance - .66 * (lastDistance - .2873)
+                } else {
+                    .2873
+                }
+                phase = 2
+            }
+
+        }
 
         val yaw = calcMoveYaw()
-        event.x = -sin(yaw) * speed
-        if (spoofUp) {
-            event.y = min(0.0, event.y)
-        }
-        event.z = cos(yaw) * speed
+
+        event.x = -sin(yaw) * currentSpeed
+        event.y = min(0.0, event.y)
+        event.z = cos(yaw) * currentSpeed
 
         player.setVelocity(event.x,event.y,event.z)
 
