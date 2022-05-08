@@ -41,18 +41,21 @@ object Speed : Module(
     // General settings
     val mode by setting("Mode", SpeedMode.STRAFE)
 
-    // strafe settings
+    // Strafe settings
     private val strafeAirSpeedBoost by setting("Air Speed Boost", 0.028f, 0.01f..0.04f, 0.001f, { mode == SpeedMode.STRAFE })
     private val strafeTimerBoost by setting("Timer Boost", true, { mode == SpeedMode.STRAFE })
     private val strafeAutoJump by setting("Auto Jump", true, { mode == SpeedMode.STRAFE })
     private val strafeOnHoldingSprint by setting("On Holding Sprint", false, { mode == SpeedMode.STRAFE })
     private val strafeCancelInertia by setting("Cancel Inertia", false, { mode == SpeedMode.STRAFE })
 
-    // yport settings
-    // no need for speed slider as I got this shit from
-    // https://github.com/NoCheatPlus/NoCheatPlus/blob/master/NCPCore/src/main/java/fr/neatmonster/nocheatplus/checks/moving/player/SurvivalFly.java
-    // add one if you want ig
-    private val accelerate by setting("Accelerate", true, { mode == SpeedMode.YPORT })
+    // YPort settings
+
+    private val yPortAccelerate by setting("Accelerate", true, { mode == SpeedMode.YPORT })
+    private val yPortStrict by setting("Strict", false, { mode == SpeedMode.YPORT }, description = "Only allow YPort when you are under a block")
+    private val yPortCustomValues by setting("Custom Values", false, { mode == SpeedMode.YPORT })
+    private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode == SpeedMode.YPORT && yPortCustomValues })
+    private val yPortDecay by setting("Decay Amount", 0.66, 0.0..1.0, 0.001, { mode == SpeedMode.YPORT && yPortCustomValues })
+
 
     // Strafe Mode
     private var jumpTicks = 0
@@ -178,7 +181,8 @@ object Speed : Module(
 
     private fun SafeClientEvent.handleBoost(event : PlayerMoveEvent) {
 
-        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown || !player.onGround) {
+        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown
+            || !player.onGround || !world.collidesWithAnyBlock(player.entityBoundingBox.offset(0.0, 0.42, 0.0)) && yPortStrict) {
             resetTimer()
             currentSpeed = .2873
             return
@@ -195,14 +199,14 @@ object Speed : Module(
 
             2 -> {
                 // NCP says hDistance < 2.15 * hDistanceBaseRef
-                currentSpeed *= 2.149
+                currentSpeed *= if (yPortCustomValues) yPortAcceleration else 2.149
                 phase = 3
             }
 
             3 -> {
                 // NCP says hDistDiff >= 0.66 * (lastMove.hDistance - hDistanceBaseRef)
-                currentSpeed = if (accelerate) {
-                    lastDistance - .66 * (lastDistance - .2873)
+                currentSpeed = if (yPortAccelerate) {
+                    lastDistance - (if (yPortCustomValues) yPortDecay else .66) * (lastDistance - .2873)
                 } else {
                     .2873
                 }
