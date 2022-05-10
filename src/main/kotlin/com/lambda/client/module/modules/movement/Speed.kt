@@ -21,7 +21,6 @@ import com.lambda.client.util.MovementUtils.setSpeed
 import com.lambda.client.util.MovementUtils.speed
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.settings.KeyBinding
@@ -135,40 +134,35 @@ object Speed : Module(
                 && goUp) {
 
 
-                var pos = (
+                var offset = (
                     if (world.getBlockState(player.flooredPosition.add(.0, 2.0, .0)).isFullBlock)
                         .2
                     else
                         .42
                     )
 
-                if (currentY > 0.0)
-                    pos = currentY
+                val unModOffset = offset
+
+                if (currentY + unModOffset > 0)
+                    offset += currentY
                 else if (yPortAirStrict && phase == 4 && prevPhase == 4) {
 
                     var predictedY = currentY
                     predictedY -= 0.08
-                    predictedY *= 0.9800000190734863
+                    predictedY *= 0.9800000190734863 // 0.333200006 vs 0.341599999
 
-                    if (predictedY < 0.0) {
+                    if (predictedY + player.posY <= player.posY) {
                         phase = 0
-                        MessageSendHelper.sendChatMessage("YPort: Phase 0")
                     }
 
                 }
 
-                it.packet.playerY = pos + player.posY
+                it.packet.playerY = (offset + player.posY)
 
-                MessageSendHelper.sendChatMessage("^^^ $pos $phase")
-                currentY = pos
-
-            } else if (mode == SpeedMode.YPORT
-                && it.packet is CPacketPlayer
-                && !goUp) {
-
-                MessageSendHelper.sendChatMessage("vvv 0.0 $phase")
+                currentY = offset - unModOffset
 
             }
+
         }
 
         safeListener<PacketEvent.Receive> {
@@ -179,7 +173,8 @@ object Speed : Module(
                     currentSpeed = 0.0
                     currentY = 0.0
                     goUp = false
-                    phase = 0
+                    // 3 extra ticks at base speed
+                    phase = -3
 
                 }
 
