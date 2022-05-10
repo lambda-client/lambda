@@ -130,14 +130,14 @@ public abstract class MixinMinecraft {
     public void rightClickMousePre(CallbackInfo ci) {
         if (BlockInteraction.isMultiTaskEnabled()) {
             isHittingBlock = playerController.getIsHittingBlock();
-            ((AccessorPlayerControllerMP) playerController).kbSetIsHittingBlock(false);
+            ((AccessorPlayerControllerMP) playerController).setIsHittingBlockFun(false);
         }
     }
 
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
     public void rightClickMousePost(CallbackInfo ci) {
         if (BlockInteraction.isMultiTaskEnabled() && !playerController.getIsHittingBlock()) {
-            ((AccessorPlayerControllerMP) playerController).kbSetIsHittingBlock(isHittingBlock);
+            ((AccessorPlayerControllerMP) playerController).setIsHittingBlockFun(isHittingBlock);
         }
     }
 
