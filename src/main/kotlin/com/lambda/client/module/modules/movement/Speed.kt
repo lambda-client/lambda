@@ -21,10 +21,12 @@ import com.lambda.client.util.MovementUtils.setSpeed
 import com.lambda.client.util.MovementUtils.speed
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.settings.KeyBinding
 import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Double.max
 import java.lang.Double.min
@@ -49,9 +51,10 @@ object Speed : Module(
     private val strafeCancelInertia by setting("Cancel Inertia", false, { mode == SpeedMode.STRAFE })
 
     // YPort settings
-
     private val yPortAccelerate by setting("Accelerate", true, { mode == SpeedMode.YPORT })
-    private val yPortStrict by setting("Strict", false, { mode == SpeedMode.YPORT }, description = "Only allow YPort when you are under a block")
+    private val yPortStrict by setting("Head Strict", false, { mode == SpeedMode.YPORT }, description = "Only allow YPort when you are under a block")
+    private val yPortAirStrict by setting("Air Strict", false, { mode == SpeedMode.YPORT }, description = "Force YPort to handle Y movement differently, slows this down A LOT")
+    private val yPortMaxSpeed by setting("Maximum Speed", 0.0, 0.0..2.0, 0.001, { mode == SpeedMode.YPORT })
     private val yPortCustomValues by setting("Custom Values", false, { mode == SpeedMode.YPORT })
     private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode == SpeedMode.YPORT && yPortCustomValues })
     private val yPortDecay by setting("Decay Amount", 0.66, 0.0..1.0, 0.001, { mode == SpeedMode.YPORT && yPortCustomValues })
@@ -65,7 +68,10 @@ object Speed : Module(
 
     // yport stuff
     private var currentSpeed = .2873
+    private var currentY = 0.0
     private var phase = 1
+    private var prevPhase = 1
+    private var goUp = false
     private var lastDistance = 0.0
 
     enum class SpeedMode(override val displayName: String) : DisplayEnum {
@@ -77,6 +83,9 @@ object Speed : Module(
         onEnable {
             currentSpeed = .2873
             phase = 1
+            prevPhase = 1
+            goUp = false
+            currentY = 0.0
         }
 
         onDisable {
@@ -123,19 +132,60 @@ object Speed : Module(
             if (mode == SpeedMode.YPORT
                 && it.packet is CPacketPlayer
                 // phase is set to 3 in phase 2, so we are detecting when our speed is increased
-                && phase == 3) {
+                && goUp) {
 
-                val pos = (
-                        if (world.getBlockState(player.flooredPosition.add(.0, 2.0, .0)).isFullBlock)
-                            .2
-                        else
-                            .42
-                        ) + player.posY
 
-                it.packet.playerY = pos
+                var pos = (
+                    if (world.getBlockState(player.flooredPosition.add(.0, 2.0, .0)).isFullBlock)
+                        .2
+                    else
+                        .42
+                    )
+
+                if (currentY > 0.0)
+                    pos = currentY
+                else if (yPortAirStrict && phase == 4 && prevPhase == 4) {
+
+                    var predictedY = currentY
+                    predictedY -= 0.08
+                    predictedY *= 0.9800000190734863
+
+                    if (predictedY < 0.0) {
+                        phase = 0
+                        MessageSendHelper.sendChatMessage("YPort: Phase 0")
+                    }
+
+                }
+
+                it.packet.playerY = pos + player.posY
+
+                MessageSendHelper.sendChatMessage("^^^ $pos $phase")
+                currentY = pos
+
+            } else if (mode == SpeedMode.YPORT
+                && it.packet is CPacketPlayer
+                && !goUp) {
+
+                MessageSendHelper.sendChatMessage("vvv 0.0 $phase")
 
             }
         }
+
+        safeListener<PacketEvent.Receive> {
+
+            if (mode == SpeedMode.YPORT)
+                if (it.packet is SPacketPlayerPosLook) {
+
+                    currentSpeed = 0.0
+                    currentY = 0.0
+                    goUp = false
+                    phase = 0
+
+                }
+
+
+        }
+
     }
 
     private fun SafeClientEvent.strafe() {
@@ -179,7 +229,7 @@ object Speed : Module(
         jumpTicks--
     }
 
-    private fun SafeClientEvent.handleBoost(event : PlayerMoveEvent) {
+    private fun SafeClientEvent.handleBoost(event: PlayerMoveEvent) {
 
         if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown
             || !player.onGround || !world.collidesWithAnyBlock(player.entityBoundingBox.offset(0.0, 0.42, 0.0)) && yPortStrict) {
@@ -192,18 +242,19 @@ object Speed : Module(
 
         when (phase) {
 
-            1 -> {
-                currentSpeed = max(currentSpeed, .2873)
-                phase = 2
-            }
-
             2 -> {
+                prevPhase = 2
+
                 // NCP says hDistance < 2.15 * hDistanceBaseRef
                 currentSpeed *= if (yPortCustomValues) yPortAcceleration else 2.149
-                phase = 3
+                phase = if (yPortAirStrict) 4 else 3
+                goUp = true
+                currentY = 0.0
             }
 
             3 -> {
+                prevPhase = 3
+
                 // NCP says hDistDiff >= 0.66 * (lastMove.hDistance - hDistanceBaseRef)
                 currentSpeed = if (yPortAccelerate) {
                     lastDistance - (if (yPortCustomValues) yPortDecay else .66) * (lastDistance - .2873)
@@ -211,17 +262,48 @@ object Speed : Module(
                     .2873
                 }
                 phase = 2
+                goUp = false
             }
 
+            4 -> {
+
+                if (prevPhase == 2)
+                    currentSpeed = if (yPortAccelerate) {
+                        lastDistance - (if (yPortCustomValues) yPortDecay else .66) * (lastDistance - .2873)
+                    } else {
+                        .2873
+                    }
+
+                prevPhase = 4
+
+                goUp = true
+
+                currentSpeed -= currentSpeed / 159
+
+                currentY -= 0.08
+                currentY *= 0.9800000190734863
+
+            }
+
+            else -> {
+                prevPhase = 1
+
+                currentSpeed = max(currentSpeed, .2873)
+                phase++
+                goUp = false
+            }
         }
 
         val yaw = calcMoveYaw()
+
+        if (yPortMaxSpeed != 0.0)
+            currentSpeed = currentSpeed.coerceAtMost(yPortMaxSpeed)
 
         event.x = -sin(yaw) * currentSpeed
         event.y = min(0.0, event.y)
         event.z = cos(yaw) * currentSpeed
 
-        player.setVelocity(event.x,event.y,event.z)
+        player.setVelocity(event.x, event.y, event.z)
 
     }
 
