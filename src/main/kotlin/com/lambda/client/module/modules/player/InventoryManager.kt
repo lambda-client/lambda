@@ -65,7 +65,7 @@ object InventoryManager : Module(
 
         safeListener<PlayerTravelEvent> {
             if (player.isSpectator || !pauseMovement || !paused) return@safeListener
-            player.setVelocity(0.0, mc.player.motionY, 0.0)
+            player.setVelocity(0.0, player.motionY, 0.0)
             it.cancel()
         }
 

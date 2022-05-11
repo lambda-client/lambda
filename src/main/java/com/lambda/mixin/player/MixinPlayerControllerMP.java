@@ -40,8 +40,11 @@ public class MixinPlayerControllerMP {
 
     @Inject(method = "windowClick", at = @At("HEAD"), cancellable = true)
     public void onWindowClick(int windowId, int slotId, int mouseButton, ClickType type, EntityPlayer player, CallbackInfoReturnable<ItemStack> cir) {
-        if (NoGhostItems.INSTANCE.isEnabled()) {
-            NoGhostItems.INSTANCE.handleWindowClick(windowId, slotId, mouseButton, type, player);
+        NoGhostItems instance = NoGhostItems.INSTANCE;
+        if (instance.isEnabled()
+            && (instance.getBaritoneSync() || instance.getSyncMode() != NoGhostItems.SyncMode.MODULES)
+        ) {
+            instance.handleWindowClick(windowId, slotId, mouseButton, type);
             cir.cancel();
         }
     }

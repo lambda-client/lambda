@@ -24,38 +24,47 @@ object InventoryTester : Module(
     description = "",
     category = Category.MISC
 ) {
-    private val makeTransaction = setting("GO", false)
-    private val makeTransactionn = setting("shuffle", false)
-    private val makeTransactionnn = setting("rid", false)
+    private val one = setting("1", false)
+    private val two = setting("2", false)
+    private val three = setting("3", false)
+    private val four = setting("4", false)
 
     init {
-        makeTransaction.consumers.add { _, it ->
+        one.consumers.add { _, it ->
             if (it) {
                 runSafe {
-                    moveStuff()
+                    one()
                 }
             }
             false
         }
-        makeTransactionn.consumers.add { _, it ->
+        two.consumers.add { _, it ->
             if (it) {
                 runSafe {
-                    shuffle()
+                    two()
                 }
             }
             false
         }
-        makeTransactionnn.consumers.add { _, it ->
+        three.consumers.add { _, it ->
             if (it) {
                 runSafe {
-                    throwAll()
+                    three()
+                }
+            }
+            false
+        }
+        four.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    four()
                 }
             }
             false
         }
     }
 
-    private fun SafeClientEvent.moveStuff() {
+    private fun SafeClientEvent.one() {
         player.inventorySlots.firstBlock(Blocks.OBSIDIAN)?.let {
             addInventoryTask(
                 PlayerInventoryManager.ClickInfo(0, it.slotNumber, type = ClickType.QUICK_MOVE)
@@ -63,7 +72,7 @@ object InventoryTester : Module(
         }
     }
 
-    private fun SafeClientEvent.moveStufff() {
+    private fun SafeClientEvent.two() {
         val moveList = mutableListOf<PlayerInventoryManager.ClickInfo>()
         player.inventorySlots.filterByBlock(Blocks.OBSIDIAN).forEach {
             moveList.add(PlayerInventoryManager.ClickInfo(0, it.slotNumber, type = ClickType.QUICK_MOVE))
@@ -71,7 +80,7 @@ object InventoryTester : Module(
         addInventoryTask(*moveList.toTypedArray())
     }
 
-    private fun SafeClientEvent.shuffle() {
+    private fun SafeClientEvent.three() {
         val moveList = mutableListOf<PlayerInventoryManager.ClickInfo>()
         player.inventorySlots.filter { !it.stack.isEmpty }.forEach {
             moveList.add(PlayerInventoryManager.ClickInfo(0, it.slotNumber, type = ClickType.QUICK_MOVE))
@@ -79,7 +88,7 @@ object InventoryTester : Module(
         addInventoryTask(*moveList.toTypedArray())
     }
 
-    private fun SafeClientEvent.throwAll() {
+    private fun SafeClientEvent.four() {
         player.inventorySlots.filter { !it.stack.isEmpty }.forEach {
             addInventoryTask(
                 PlayerInventoryManager.ClickInfo(0, it.slotNumber, 0, type = ClickType.SWAP)

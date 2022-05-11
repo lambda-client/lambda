@@ -12,6 +12,7 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.items.removeHoldingItem
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.listener
+import com.lambda.client.module.modules.player.NoGhostItems
 import com.lambda.client.util.threads.onMainThreadSafe
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.gui.inventory.GuiContainer
@@ -25,7 +26,6 @@ import java.util.concurrent.ConcurrentSkipListSet
 
 object PlayerInventoryManager : Manager {
     private val timer = TickTimer()
-    private const val timeout = 1000L
     private val transactionQueue = ConcurrentSkipListSet<InventoryTask>(Comparator.reverseOrder())
 
     private var currentId = 0
@@ -44,7 +44,7 @@ object PlayerInventoryManager : Manager {
                         LambdaMod.LOG.info("Transaction id: ${packet.actionNumber} window: ${packet.windowId} accepted.")
                         getContainerOrNull(packet.windowId)?.let { container ->
                             container.slotClick(clickInfo.slot, clickInfo.mouseButton, clickInfo.type, player)
-                            LambdaMod.LOG.info("Transaction ${clickInfo.transactionId} client sided executed.")
+                            LambdaMod.LOG.info("Transaction id: ${clickInfo.transactionId} client sided executed.")
 
                             currentTask.nextInfo()
                             if (currentTask.isDone) transactionQueue.pollFirst()
@@ -53,7 +53,7 @@ object PlayerInventoryManager : Manager {
                             transactionQueue.pollFirst()
                         }
                     } else {
-                        LambdaMod.LOG.info("Transaction ${clickInfo.transactionId} was not accepted. (Packet transactionId: ${packet.actionNumber} windowId: ${packet.windowId})")
+                        LambdaMod.LOG.info("############################# Transaction id: ${clickInfo.transactionId} was not accepted. (Packet transactionId: ${packet.actionNumber} windowId: ${packet.windowId})")
                         transactionQueue.pollFirst()
                     }
                 }
@@ -63,11 +63,11 @@ object PlayerInventoryManager : Manager {
         safeListener<RenderOverlayEvent>(0) {
 //            if (!timer.tick((1000 / TpsCalculator.tickRate).toLong())) return@safeListener
 
-            if (!player.inventory.itemStack.isEmpty) {
-                if (mc.currentScreen is GuiContainer) timer.reset(250L) // Wait for 5 extra ticks if player is moving item
-                else removeHoldingItem()
-                return@safeListener
-            }
+//            if (!player.inventory.itemStack.isEmpty) {
+//                if (mc.currentScreen is GuiContainer) timer.reset(250L) // Wait for 5 extra ticks if player is moving item
+//                else removeHoldingItem()
+//                return@safeListener
+//            }
 
             if (transactionQueue.isEmpty()) {
                 currentId = 0
@@ -76,7 +76,8 @@ object PlayerInventoryManager : Manager {
 
             transactionQueue.firstOrNull()?.let { currentTask ->
                 currentTask.currentInfo()?.let { currentInfo ->
-                    if (currentInfo.transactionId < 0 || timer.tick(timeout)) {
+//                    if (currentInfo.transactionId < 0 || timer.tick(NoGhostItems.timeout)) {
+                    if (currentInfo.transactionId < 0) {
                         deployWindowClick(currentInfo)
                     }
                 }
@@ -84,8 +85,7 @@ object PlayerInventoryManager : Manager {
         }
 
         listener<ConnectionEvent.Disconnect> {
-            transactionQueue.clear()
-            currentId = 0
+            reset()
         }
     }
 
@@ -93,10 +93,12 @@ object PlayerInventoryManager : Manager {
         val transactionId = clickSlotServerSide(currentInfo.windowId, currentInfo.slot, currentInfo.mouseButton, currentInfo.type)
         if (transactionId > -1) {
             currentInfo.transactionId = transactionId
-            LambdaMod.LOG.info("Transaction ${currentInfo.transactionId} successfully initiated.")
-            timer.reset()
+            LambdaMod.LOG.info("Transaction $transactionId successfully initiated.")
+            LambdaMod.LOG.info(transactionQueue.joinToString("\n"))
+//            timer.reset()
         } else {
             LambdaMod.LOG.info("Container outdated.\n")
+            transactionQueue.pollFirst()
         }
     }
 
@@ -112,7 +114,13 @@ object PlayerInventoryManager : Manager {
             player.inventory?.let { inventory ->
                 transactionID = activeContainer.getNextTransactionID(inventory)
 
-                connection.sendPacket(CPacketClickWindow(windowId, slot, mouseButton, type, ItemStack.EMPTY, transactionID))
+                val itemStack = if (type == ClickType.PICKUP && slot != -999) {
+                    getContainerOrNull(windowId)?.inventorySlots?.getOrNull(slot)?.stack ?: ItemStack.EMPTY
+                } else {
+                    ItemStack.EMPTY
+                }
+
+                connection.sendPacket(CPacketClickWindow(windowId, slot, mouseButton, type, itemStack, transactionID))
 
                 runBlocking {
                     onMainThreadSafe { playerController.updateController() }
@@ -137,6 +145,11 @@ object PlayerInventoryManager : Manager {
         }
 
     fun isDone() = transactionQueue.isEmpty()
+
+    fun reset() {
+        transactionQueue.clear()
+        currentId = 0
+    }
 
     /**
      * Adds a new task to the inventory manager
@@ -192,5 +205,8 @@ object PlayerInventoryManager : Manager {
 
     }
 
-    data class ClickInfo(val windowId: Int = 0, val slot: Int, val mouseButton: Int = 0, val type: ClickType, var transactionId: Short = -1)
+    data class ClickInfo(val windowId: Int = 0, val slot: Int, val mouseButton: Int = 0, val type: ClickType) {
+        var transactionId: Short = -1
+        val tries = 0
+    }
 }

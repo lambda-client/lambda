@@ -35,6 +35,7 @@ import kotlin.math.ceil
 
 object AutoOffhand : Module(
     name = "AutoOffhand",
+    alias = arrayOf("AutoTotem"),
     description = "Manages item in your offhand",
     category = Category.COMBAT
 ) {
