@@ -9,13 +9,11 @@ import com.lambda.client.manager.Manager
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.util.TaskState
 import com.lambda.client.util.TickTimer
-import com.lambda.client.util.items.removeHoldingItem
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.modules.player.NoGhostItems
 import com.lambda.client.util.threads.onMainThreadSafe
 import kotlinx.coroutines.runBlocking
-import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Container
 import net.minecraft.item.ItemStack
@@ -25,7 +23,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentSkipListSet
 
 object PlayerInventoryManager : Manager {
-    private val timer = TickTimer()
+    val timer = TickTimer()
     private val transactionQueue = ConcurrentSkipListSet<InventoryTask>(Comparator.reverseOrder())
 
     private var currentId = 0
@@ -40,30 +38,28 @@ object PlayerInventoryManager : Manager {
                 if (packet.actionNumber == clickInfo.transactionId
                     && packet.windowId == clickInfo.windowId
                 ) {
-                    if (packet.wasAccepted()) {
-                        LambdaMod.LOG.info("Transaction id: ${packet.actionNumber} window: ${packet.windowId} accepted.")
-                        getContainerOrNull(packet.windowId)?.let { container ->
-                            container.slotClick(clickInfo.slot, clickInfo.mouseButton, clickInfo.type, player)
-                            LambdaMod.LOG.info("Transaction id: ${clickInfo.transactionId} client sided executed.")
+                    if (!packet.wasAccepted()) {
+                        LambdaMod.LOG.error("Transaction ${clickInfo.transactionId} was denied. Skipping task. (id=${packet.actionNumber}, window=${packet.windowId})")
+                        next()
+                        return@safeListener
+                    }
 
-                            currentTask.nextInfo()
-                            if (currentTask.isDone) transactionQueue.pollFirst()
-                        } ?: run {
-                            LambdaMod.LOG.info("Container outdated: packet id: ${packet.windowId} current id: ${player.openContainer}")
-                            transactionQueue.pollFirst()
-                        }
-                    } else {
-                        LambdaMod.LOG.info("############################# Transaction id: ${clickInfo.transactionId} was not accepted. (Packet transactionId: ${packet.actionNumber} windowId: ${packet.windowId})")
-                        transactionQueue.pollFirst()
+                    LambdaMod.LOG.info("Transaction accepted. (id=${packet.actionNumber}, window=${packet.windowId})")
+                    getContainerOrNull(packet.windowId)?.let { container ->
+                        container.slotClick(clickInfo.slot, clickInfo.mouseButton, clickInfo.type, player)
+
+                        currentTask.nextInfo()
+                        if (currentTask.isDone) transactionQueue.pollFirst()
+                    } ?: run {
+                        LambdaMod.LOG.error("Container outdated in window: ${player.openContainer}. Skipping task. (id=${packet.actionNumber}, window=${packet.windowId})")
+                        next()
                     }
                 }
             }
         }
 
         safeListener<RenderOverlayEvent>(0) {
-//            if (!timer.tick((1000 / TpsCalculator.tickRate).toLong())) return@safeListener
-
-//            if (!player.inventory.itemStack.isEmpty) {
+//            if (!player.inventory.itemStack.isEmpty) { ToDo: Rewrite idea
 //                if (mc.currentScreen is GuiContainer) timer.reset(250L) // Wait for 5 extra ticks if player is moving item
 //                else removeHoldingItem()
 //                return@safeListener
@@ -76,8 +72,13 @@ object PlayerInventoryManager : Manager {
 
             transactionQueue.firstOrNull()?.let { currentTask ->
                 currentTask.currentInfo()?.let { currentInfo ->
-//                    if (currentInfo.transactionId < 0 || timer.tick(NoGhostItems.timeout)) {
-                    if (currentInfo.transactionId < 0) {
+                    if (currentInfo.transactionId < 0 || timer.tick(NoGhostItems.timeout)) {
+                        if (currentInfo.tries > NoGhostItems.maxRetries) {
+                            LambdaMod.LOG.info("Max inventory transaction tries exceeded. Skipping task.")
+                            next()
+                        }
+
+                        LambdaMod.LOG.info(transactionQueue.joinToString("\n"))
                         deployWindowClick(currentInfo)
                     }
                 }
@@ -90,15 +91,14 @@ object PlayerInventoryManager : Manager {
     }
 
     private fun SafeClientEvent.deployWindowClick(currentInfo: ClickInfo) {
-        val transactionId = clickSlotServerSide(currentInfo.windowId, currentInfo.slot, currentInfo.mouseButton, currentInfo.type)
+        val transactionId = clickSlotServerSide(currentInfo)
         if (transactionId > -1) {
             currentInfo.transactionId = transactionId
-            LambdaMod.LOG.info("Transaction $transactionId successfully initiated.")
-            LambdaMod.LOG.info(transactionQueue.joinToString("\n"))
-//            timer.reset()
+            currentInfo.tries++
+            LambdaMod.LOG.info("Transaction successfully initiated. (id=$transactionId)")
         } else {
-            LambdaMod.LOG.info("Container outdated.\n")
-            transactionQueue.pollFirst()
+            LambdaMod.LOG.error("Container outdated. Skipping task. (id=$transactionId)")
+            next()
         }
     }
 
@@ -107,20 +107,30 @@ object PlayerInventoryManager : Manager {
      *
      * @return Transaction id
      */
-    private fun SafeClientEvent.clickSlotServerSide(windowId: Int = 0, slot: Int, mouseButton: Int = 0, type: ClickType): Short {
+    private fun SafeClientEvent.clickSlotServerSide(currentInfo: ClickInfo): Short {
         var transactionID: Short = -1
 
-        getContainerOrNull(windowId)?.let { activeContainer ->
+        getContainerOrNull(currentInfo.windowId)?.let { activeContainer ->
             player.inventory?.let { inventory ->
                 transactionID = activeContainer.getNextTransactionID(inventory)
 
-                val itemStack = if (type == ClickType.PICKUP && slot != -999) {
-                    getContainerOrNull(windowId)?.inventorySlots?.getOrNull(slot)?.stack ?: ItemStack.EMPTY
+                val itemStack = if (currentInfo.type == ClickType.PICKUP && currentInfo.slot != -999) {
+                    getContainerOrNull(currentInfo.windowId)
+                        ?.inventorySlots
+                        ?.getOrNull(currentInfo.slot)
+                        ?.stack ?: ItemStack.EMPTY
                 } else {
                     ItemStack.EMPTY
                 }
 
-                connection.sendPacket(CPacketClickWindow(windowId, slot, mouseButton, type, itemStack, transactionID))
+                connection.sendPacket(CPacketClickWindow(
+                    currentInfo.windowId,
+                    currentInfo.slot,
+                    currentInfo.mouseButton,
+                    currentInfo.type,
+                    itemStack,
+                    transactionID
+                ))
 
                 runBlocking {
                     onMainThreadSafe { playerController.updateController() }
@@ -146,6 +156,11 @@ object PlayerInventoryManager : Manager {
 
     fun isDone() = transactionQueue.isEmpty()
 
+    fun next() {
+        transactionQueue.pollFirst()
+        timer.skipTime(NoGhostItems.timeout)
+    }
+
     fun reset() {
         transactionQueue.clear()
         currentId = 0
@@ -161,7 +176,6 @@ object PlayerInventoryManager : Manager {
     fun AbstractModule.addInventoryTask(vararg clickInfo: ClickInfo) =
         InventoryTask(currentId++, modulePriority, clickInfo).let {
             transactionQueue.add(it)
-            LambdaMod.LOG.info("PlayerInventoryManager: $it")
             it.taskState
         }
 
@@ -207,6 +221,6 @@ object PlayerInventoryManager : Manager {
 
     data class ClickInfo(val windowId: Int = 0, val slot: Int, val mouseButton: Int = 0, val type: ClickType) {
         var transactionId: Short = -1
-        val tries = 0
+        var tries = 0
     }
 }

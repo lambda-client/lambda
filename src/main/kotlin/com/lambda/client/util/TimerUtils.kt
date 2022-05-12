@@ -5,10 +5,21 @@ open class Timer {
 
     protected val currentTime get() = System.currentTimeMillis()
 
+    fun reset(offset: Int) {
+        reset(offset.toLong())
+    }
+
     fun reset(offset: Long = 0L) {
         time = currentTime + offset
     }
 
+    fun skipTime(delay: Int) {
+        skipTime(delay.toLong())
+    }
+
+    fun skipTime(delay: Long) {
+        time = currentTime - delay
+    }
 }
 
 class TickTimer(val timeUnit: TimeUnit = TimeUnit.MILLISECONDS) : Timer() {

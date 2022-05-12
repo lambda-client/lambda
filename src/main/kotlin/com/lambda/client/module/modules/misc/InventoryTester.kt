@@ -1,23 +1,20 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.PlayerInventoryManager
 import com.lambda.client.manager.managers.PlayerInventoryManager.addInventoryTask
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.player.NoGhostItems
+import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.filterByBlock
 import com.lambda.client.util.items.firstBlock
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.threads.runSafe
-import com.lambda.client.util.threads.safeListener
-import net.minecraft.block.BlockObsidian
-import net.minecraft.entity.passive.AbstractChestHorse
 import net.minecraft.init.Blocks
 import net.minecraft.inventory.ClickType
-import net.minecraft.network.play.client.CPacketUseEntity
+import net.minecraftforge.event.world.NoteBlockEvent.Play
+import kotlin.math.min
 
 object InventoryTester : Module(
     name = "InventoryTester",
@@ -28,6 +25,11 @@ object InventoryTester : Module(
     private val two = setting("2", false)
     private val three = setting("3", false)
     private val four = setting("4", false)
+    private val five = setting("5", false)
+    private val six = setting("6", false)
+    private val seven = setting("7", false)
+    private val r = setting("r", false)
+    private val rp = setting("rp", false)
 
     init {
         one.consumers.add { _, it ->
@@ -62,6 +64,38 @@ object InventoryTester : Module(
             }
             false
         }
+        five.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    five()
+                }
+            }
+            false
+        }
+        six.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    six()
+                }
+            }
+            false
+        }
+        seven.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    seven()
+                }
+            }
+            false
+        }
+        r.consumers.add { _, it ->
+            if (it) PlayerInventoryManager.timer.reset()
+            false
+        }
+        rp.consumers.add { _, it ->
+            if (it) PlayerInventoryManager.timer.skipTime(NoGhostItems.timeout)
+            false
+        }
     }
 
     private fun SafeClientEvent.one() {
@@ -94,5 +128,43 @@ object InventoryTester : Module(
                 PlayerInventoryManager.ClickInfo(0, it.slotNumber, 0, type = ClickType.SWAP)
             )
         }
+    }
+
+    private fun SafeClientEvent.five() {
+        val moveList = mutableListOf<PlayerInventoryManager.ClickInfo>()
+        player.inventorySlots.filter { !it.stack.isEmpty }.forEach {
+            moveList.add(PlayerInventoryManager.ClickInfo(0, it.slotNumber, 0, type = ClickType.SWAP))
+        }
+        moveList.shuffle()
+        addInventoryTask(*moveList.toTypedArray())
+    }
+
+    private fun SafeClientEvent.six() {
+        val moveList = mutableListOf<PlayerInventoryManager.ClickInfo>()
+        val emptySlots = player.inventorySlots.countEmpty()
+        var count = 0
+        var start = 0
+
+        player.inventorySlots.sortedBy { it.stack.count }.reversed().firstOrNull()?.let {
+            count = it.stack.count
+            start = it.slotNumber
+            moveList.add(PlayerInventoryManager.ClickInfo(0, it.slotNumber, 0, type = ClickType.PICKUP))
+        }
+
+        moveList.add(PlayerInventoryManager.ClickInfo(0, -999, 4, type = ClickType.QUICK_CRAFT))
+        player.inventorySlots.filter { it.stack.isEmpty }.take(min(count, emptySlots)).forEach {
+            moveList.add(PlayerInventoryManager.ClickInfo(0, it.slotNumber, 5, type = ClickType.QUICK_CRAFT))
+        }
+        moveList.add(PlayerInventoryManager.ClickInfo(0, -999, 6, type = ClickType.QUICK_CRAFT))
+
+        moveList.add(PlayerInventoryManager.ClickInfo(0, start, 0, type = ClickType.PICKUP))
+
+        addInventoryTask(*moveList.toTypedArray())
+    }
+
+    private fun SafeClientEvent.seven() {
+        addInventoryTask(PlayerInventoryManager.ClickInfo(0, -999, 0, type = ClickType.PICKUP))
+        addInventoryTask(PlayerInventoryManager.ClickInfo(1, 0, 0, type = ClickType.QUICK_MOVE))
+        addInventoryTask(PlayerInventoryManager.ClickInfo(0, 36, 0, type = ClickType.CLONE))
     }
 }
