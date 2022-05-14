@@ -11,7 +11,10 @@ import com.lambda.client.util.TaskState
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.listener
+import com.lambda.client.module.modules.player.LagNotifier
 import com.lambda.client.module.modules.player.NoGhostItems
+import com.lambda.client.process.PauseProcess.pauseBaritone
+import com.lambda.client.process.PauseProcess.unpauseBaritone
 import com.lambda.client.util.threads.onMainThreadSafe
 import kotlinx.coroutines.runBlocking
 import net.minecraft.inventory.ClickType
@@ -65,21 +68,26 @@ object PlayerInventoryManager : Manager {
 //                return@safeListener
 //            }
 
+            if (LagNotifier.paused) return@safeListener
+
             if (transactionQueue.isEmpty()) {
                 currentId = 0
+                if (NoGhostItems.baritoneSync) NoGhostItems.unpauseBaritone()
                 return@safeListener
             }
 
+            if (NoGhostItems.baritoneSync) NoGhostItems.pauseBaritone()
+
             transactionQueue.firstOrNull()?.let { currentTask ->
                 currentTask.currentInfo()?.let { currentInfo ->
-                    if (currentInfo.transactionId < 0 || timer.tick(NoGhostItems.timeout)) {
+                    if (currentInfo.transactionId < 0 || timer.tick(NoGhostItems.timeout, false)) {
                         if (currentInfo.tries > NoGhostItems.maxRetries) {
-                            LambdaMod.LOG.info("Max inventory transaction tries exceeded. Skipping task.")
+                            LambdaMod.LOG.error("Max inventory transaction tries exceeded. Skipping task.")
                             next()
                         }
 
-                        LambdaMod.LOG.info(transactionQueue.joinToString("\n"))
                         deployWindowClick(currentInfo)
+                        timer.reset()
                     }
                 }
             }
@@ -95,9 +103,9 @@ object PlayerInventoryManager : Manager {
         if (transactionId > -1) {
             currentInfo.transactionId = transactionId
             currentInfo.tries++
-            LambdaMod.LOG.info("Transaction successfully initiated. (id=$transactionId)")
+            LambdaMod.LOG.info("Transaction successfully initiated. $currentInfo")
         } else {
-            LambdaMod.LOG.error("Container outdated. Skipping task. (id=$transactionId)")
+            LambdaMod.LOG.error("Container outdated. Skipping task. $currentInfo")
             next()
         }
     }
@@ -153,8 +161,6 @@ object PlayerInventoryManager : Manager {
                 null
             }
         }
-
-    fun isDone() = transactionQueue.isEmpty()
 
     fun next() {
         transactionQueue.pollFirst()
@@ -222,5 +228,9 @@ object PlayerInventoryManager : Manager {
     data class ClickInfo(val windowId: Int = 0, val slot: Int, val mouseButton: Int = 0, val type: ClickType) {
         var transactionId: Short = -1
         var tries = 0
+
+        override fun toString(): String {
+            return "(id=$transactionId, tries=$tries, windowId=$windowId, slot=$slot, mouseButton=$mouseButton, type=$type)"
+        }
     }
 }

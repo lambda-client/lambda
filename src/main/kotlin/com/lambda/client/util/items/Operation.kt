@@ -297,7 +297,6 @@ fun SafeClientEvent.quickMoveSlot(windowId: Int, slot: Slot): Short {
     return clickSlot(windowId, slot, type = ClickType.QUICK_MOVE)
 }
 
-
 /**
  * Throw all the item in [slot] in player inventory
  */
@@ -338,7 +337,6 @@ fun SafeClientEvent.removeHoldingItem() {
 
     clickSlot(slot = slot, type = ClickType.PICKUP)
 }
-
 
 /**
  * Performs inventory clicking in specific window, slot, mouseButton, and click type
