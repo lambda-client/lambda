@@ -71,10 +71,6 @@ object AutoOffhand : Module(
     // General
     private val priority by setting("Priority", Priority.HOTBAR)
     private val switchMessage by setting("Switch Message", true)
-    private val delay by setting("Delay", 2, 1..20, 1,
-        description = "Ticks to wait between each move")
-    private val confirmTimeout by setting("Confirm Timeout", 5, 1..20, 1,
-        description = "Maximum ticks to wait for confirm packets from server")
 
     private enum class Type(val filter: (ItemStack) -> Boolean) {
         TOTEM({ it.item.id == 449 }),
@@ -88,9 +84,6 @@ object AutoOffhand : Module(
         HOTBAR, INVENTORY
     }
 
-    private val transactionLog = HashMap<Short, Boolean>()
-    private val confirmTimer = TickTimer(TimeUnit.TICKS)
-    private val movingTimer = TickTimer(TimeUnit.TICKS)
     private var maxDamage = 0f
 
     init {
@@ -104,31 +97,10 @@ object AutoOffhand : Module(
             }
         }
 
-        safeListener<PacketEvent.Receive> {
-            if (it.packet !is SPacketConfirmTransaction || it.packet.windowId != 0 || !transactionLog.containsKey(it.packet.actionNumber)) return@safeListener
-
-            transactionLog[it.packet.actionNumber] = true
-            if (!transactionLog.containsValue(false)) {
-                confirmTimer.reset(confirmTimeout * -50L) // If all the click packets were accepted then we reset the timer for next moving
-            }
-        }
-
         safeListener<TickEvent.ClientTickEvent>(1100) {
             if (player.isDead || player.health <= 0.0f) return@safeListener
 
-            if (!confirmTimer.tick(confirmTimeout.toLong(), false)) return@safeListener
-            if (!movingTimer.tick(delay.toLong(), false)) return@safeListener // Delays `delay` ticks
-
             updateDamage()
-
-            if (!player.inventory.itemStack.isEmpty) { // If player is holding an in inventory
-                if (mc.currentScreen is GuiContainer) { // If inventory is open (playing moving item)
-                    movingTimer.reset() // reset movingTimer as the user is currently interacting with the inventory.
-                } else { // If inventory is not open (ex. inventory desync)
-                    removeHoldingItem()
-                }
-                return@safeListener
-            }
 
             switchToType(getType(), true)
         }
@@ -169,15 +141,7 @@ object AutoOffhand : Module(
         getItemSlot(typeOriginal, attempts)?.let { (slot, typeAlt) ->
             if (slot == player.offhandSlot) return
 
-            transactionLog.clear()
-            moveToSlot(slot, player.offhandSlot).forEach {
-                transactionLog[it] = false
-            }
-
-            playerController.updateController()
-
-            confirmTimer.reset()
-            movingTimer.reset()
+            moveToSlot(slot, player.offhandSlot)
 
             if (switchMessage) MessageSendHelper.sendChatMessage("$chatName Offhand now has a ${typeAlt.toString().lowercase()}")
         }

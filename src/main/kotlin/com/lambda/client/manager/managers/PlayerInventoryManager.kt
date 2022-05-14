@@ -25,6 +25,9 @@ import net.minecraft.network.play.server.SPacketConfirmTransaction
 import java.util.*
 import java.util.concurrent.ConcurrentSkipListSet
 
+/**
+ * @see NoGhostItems
+ */
 object PlayerInventoryManager : Manager {
     val timer = TickTimer()
     private val transactionQueue = ConcurrentSkipListSet<InventoryTask>(Comparator.reverseOrder())
@@ -76,8 +79,6 @@ object PlayerInventoryManager : Manager {
                 return@safeListener
             }
 
-            if (NoGhostItems.baritoneSync) NoGhostItems.pauseBaritone()
-
             transactionQueue.firstOrNull()?.let { currentTask ->
                 currentTask.currentInfo()?.let { currentInfo ->
                     if (currentInfo.transactionId < 0 || timer.tick(NoGhostItems.timeout, false)) {
@@ -103,7 +104,7 @@ object PlayerInventoryManager : Manager {
         if (transactionId > -1) {
             currentInfo.transactionId = transactionId
             currentInfo.tries++
-            LambdaMod.LOG.info("Transaction successfully initiated. $currentInfo")
+            LambdaMod.LOG.info("Transaction successfully initiated. ${transactionQueue.size} left. $currentInfo")
         } else {
             LambdaMod.LOG.error("Container outdated. Skipping task. $currentInfo")
             next()
@@ -123,10 +124,7 @@ object PlayerInventoryManager : Manager {
                 transactionID = activeContainer.getNextTransactionID(inventory)
 
                 val itemStack = if (currentInfo.type == ClickType.PICKUP && currentInfo.slot != -999) {
-                    getContainerOrNull(currentInfo.windowId)
-                        ?.inventorySlots
-                        ?.getOrNull(currentInfo.slot)
-                        ?.stack ?: ItemStack.EMPTY
+                    activeContainer.inventorySlots?.getOrNull(currentInfo.slot)?.stack ?: ItemStack.EMPTY
                 } else {
                     ItemStack.EMPTY
                 }
@@ -144,22 +142,19 @@ object PlayerInventoryManager : Manager {
                     onMainThreadSafe { playerController.updateController() }
                 }
             }
+        } ?: run {
+            LambdaMod.LOG.error("Container outdated. Skipping task. $currentInfo")
+            next()
         }
 
         return transactionID
     }
 
     private fun SafeClientEvent.getContainerOrNull(windowId: Int): Container? =
-        when (windowId) {
-            player.inventoryContainer.windowId -> {
-                player.inventoryContainer
-            }
-            player.openContainer.windowId -> {
-                player.openContainer
-            }
-            else -> {
-                null
-            }
+        if (windowId == player.openContainer.windowId) {
+            player.openContainer
+        } else {
+            null
         }
 
     fun next() {
@@ -179,8 +174,16 @@ object PlayerInventoryManager : Manager {
      *
      * @return [TaskState] representing the state of this task
      */
-    fun AbstractModule.addInventoryTask(vararg clickInfo: ClickInfo) =
-        InventoryTask(currentId++, modulePriority, clickInfo).let {
+    fun AbstractModule.addInventoryTask(vararg clickInfo: ClickInfo): TaskState {
+        if (NoGhostItems.baritoneSync) NoGhostItems.pauseBaritone()
+        return InventoryTask(currentId++, modulePriority, clickInfo).let {
+            transactionQueue.add(it)
+            it.taskState
+        }
+    }
+
+    fun addInventoryTask(vararg clickInfo: ClickInfo) =
+        InventoryTask(currentId++, 0, clickInfo).let {
             transactionQueue.add(it)
             it.taskState
         }
