@@ -3,9 +3,11 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.events.RenderRadarEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.getInterpolatedPos
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
@@ -13,6 +15,8 @@ import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.LambdaTessellator
+import com.lambda.client.util.graphics.RenderUtils2D
+import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.math.VectorUtils.distanceTo
@@ -43,6 +47,9 @@ object NewChunks : Module(
 ) {
     private val relative by setting("Relative", false, description = "Renders the chunks at relative Y level to player")
     private val renderMode by setting("Render Mode", RenderMode.BOTH)
+    private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
+    private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
+    private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val saveNewChunks by setting("Save New Chunks", false)
     private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
     private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
@@ -104,6 +111,42 @@ object NewChunks : Module(
 
             glLineWidth(1.0f)
             GlStateUtils.depth(true)
+        }
+
+        safeListener<RenderRadarEvent> {
+            if (renderMode == RenderMode.WORLD) return@safeListener
+
+            val playerOffset = Vec2d((player.posX - (player.chunkCoordX shl 4)), (player.posZ - (player.chunkCoordZ shl 4)))
+            val chunkDist = (it.radius * it.scale).toInt() shr 4
+
+            for (chunkX in -chunkDist..chunkDist) {
+                for (chunkZ in -chunkDist..chunkDist) {
+                    val pos0 = getChunkPos(chunkX, chunkZ, playerOffset, it.scale)
+                    val pos1 = getChunkPos(chunkX + 1, chunkZ + 1, playerOffset, it.scale)
+
+                    if (isSquareInRadius(pos0, pos1, it.radius)) {
+                        val chunk = world.getChunk(player.chunkCoordX + chunkX, player.chunkCoordZ + chunkZ)
+                        val isCachedChunk =
+                            BaritoneUtils.primary?.worldProvider?.currentWorld?.cachedWorld?.isCached(
+                                (player.chunkCoordX + chunkX) shl 4, (player.chunkCoordZ + chunkZ) shl 4
+                            ) ?: false
+
+                        if (!chunk.isLoaded && !isCachedChunk) {
+                            RenderUtils2D.drawRectFilled(it.vertexHelper, pos0, pos1, distantChunkColor)
+                        }
+                        RenderUtils2D.drawRectOutline(it.vertexHelper, pos0, pos1, 0.3f, chunkGridColor)
+                    }
+                }
+            }
+
+            chunks.keys.forEach { chunk ->
+                val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
+                val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
+
+                if (isSquareInRadius(pos0, pos1, it.radius)) {
+                    RenderUtils2D.drawRectFilled(it.vertexHelper, pos0, pos1, newChunkColor)
+                }
+            }
         }
 
         safeListener<PacketEvent.PostReceive> { event ->
@@ -282,6 +325,17 @@ object NewChunks : Module(
         val ending = sp[sp.size - 1]
         // if it is numeric it means it might be a port...
         return ending.toIntOrNull() != null
+    }
+
+    // p2.x > p1.x and p2.y > p1.y is assumed
+    private fun isSquareInRadius(p1: Vec2d, p2: Vec2d, radius: Float): Boolean {
+        val x = if (p1.x + p2.x > 0) p2.x else p1.x
+        val y = if (p1.y + p2.y > 0) p2.y else p1.y
+        return Vec2d(x, y).length() < radius
+    }
+
+    private fun getChunkPos(x: Int, z: Int, playerOffset: Vec2d, scale: Float): Vec2d {
+        return Vec2d((x shl 4).toDouble(), (z shl 4).toDouble()).minus(playerOffset).div(scale.toDouble())
     }
 
     private fun saveNewChunk(log: PrintWriter?, data: String) {
