@@ -5,6 +5,7 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.MovementUtils.isMoving
 import com.lambda.client.util.threads.safeListener
 import com.lambda.mixin.world.MixinBlockSoulSand
 import com.lambda.mixin.world.MixinBlockWeb
@@ -41,6 +42,9 @@ object NoSlowDown : Module(
     private val shield by setting("Shield", true, { !allItems })
 
     private var savedClickWindow = CPacketClickWindow()
+
+    private const val upSpoofDistance = 0.0656
+
     /*
      * InputUpdateEvent is called just before the player is slowed down @see EntityPlayerSP.onLivingUpdate)
      * We'll abuse this fact, and multiply moveStrafe and moveForward by 5 to nullify the *0.2f hardcoded by Mojang.
@@ -60,6 +64,8 @@ object NoSlowDown : Module(
                 && player.onGround
                 && it.packet is CPacketClickWindow
                 && it.packet != savedClickWindow
+                && player.isMoving
+                && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, upSpoofDistance, 0.0)).isEmpty()
             ) {
                 savedClickWindow = it.packet
 
@@ -69,7 +75,7 @@ object NoSlowDown : Module(
                     player.connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SPRINTING))
                 }
 
-                player.connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.0626, player.posZ, false))
+                player.connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + upSpoofDistance, player.posZ, false))
                 player.connection.sendPacket(it.packet)
 
                 if (player.isSprinting) {
