@@ -221,14 +221,17 @@ object PacketCommand : ClientCommand(
         }
 
         literal("PlayerPosition") {
-            double("x") { x ->
-                double("y") { y ->
-                    double("z") { z ->
+            string("x") { x ->
+                string("y") { y ->
+                    string("z") { z ->
                         boolean("onGround") { onGround ->
                             executeSafe {
+                                val xAbs = x.value.handleRelativePos(player.posX)
+                                val yAbs = y.value.handleRelativePos(player.posY)
+                                val zAbs = z.value.handleRelativePos(player.posZ)
                                 deployPacket(
-                                    CPacketPlayer.Position(x.value, y.value, z.value, onGround.value),
-                                    "${x.value} ${y.value} ${z.value} ${onGround.value}"
+                                    CPacketPlayer.Position(xAbs, yAbs, zAbs, onGround.value),
+                                    "${xAbs} ${yAbs} ${zAbs} ${onGround.value}"
                                 )
                             }
                         }
@@ -238,15 +241,18 @@ object PacketCommand : ClientCommand(
         }
 
         literal("PlayerPositionRotation") {
-            double("x") { x ->
-                double("y") { y ->
-                    double("z") { z ->
+            string("x") { x ->
+                string("y") { y ->
+                    string("z") { z ->
                         float("yaw") { yaw ->
                             float("pitch") { pitch ->
                                 boolean("onGround") { onGround ->
                                     executeSafe {
+                                        val xAbs = x.value.handleRelativePos(player.posX)
+                                        val yAbs = y.value.handleRelativePos(player.posY)
+                                        val zAbs = z.value.handleRelativePos(player.posZ)
                                         deployPacket(
-                                            CPacketPlayer.PositionRotation(x.value, y.value, z.value, yaw.value, pitch.value, onGround.value),
+                                            CPacketPlayer.PositionRotation(xAbs, yAbs, zAbs, yaw.value, pitch.value, onGround.value),
                                             "${x.value} ${y.value} ${z.value} ${yaw.value} ${pitch.value} ${onGround.value}"
                                         )
                                     }
@@ -439,14 +445,18 @@ object PacketCommand : ClientCommand(
 
         literal("UseEntityInteractAt") {
             enum<EnumHand>("hand") { hand ->
-                double("x") { x ->
-                    double("y") { y ->
-                        double("z") { z ->
+                string("x") { x ->
+                    string("y") { y ->
+                        string("z") { z ->
                             int("ID") { id ->
                                 executeSafe {
+                                    val xAbs = x.value.handleRelativePos(player.posX)
+                                    val yAbs = y.value.handleRelativePos(player.posY)
+                                    val zAbs = z.value.handleRelativePos(player.posZ)
+
                                     val entity = EntityDonkey(world)
                                     entity.entityId = id.value
-                                    val vec = Vec3d(x.value, y.value, z.value)
+                                    val vec = Vec3d(xAbs, yAbs, zAbs)
 
                                     deployPacket(
                                         CPacketUseEntity(entity, hand.value, vec),
@@ -470,5 +480,13 @@ object PacketCommand : ClientCommand(
     private fun SafeClientEvent.deployPacket(packet: Packet<*>, info: String) {
         connection.sendPacket(packet)
         MessageSendHelper.sendChatMessage("Sent ${TextFormatting.GRAY}${packet.javaClass.name.split(".").lastOrNull()}${TextFormatting.DARK_RED} > ${TextFormatting.GRAY}$info")
+    }
+}
+
+private fun String.handleRelativePos(origin: Double): Double {
+    return if (this.startsWith("~")) {
+        this.substring(1).toDouble() + origin
+    } else {
+        this.toDouble()
     }
 }
