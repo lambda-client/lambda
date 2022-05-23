@@ -231,7 +231,7 @@ object PacketCommand : ClientCommand(
                                 val zAbs = z.value.handleRelativePos(player.posZ)
                                 deployPacket(
                                     CPacketPlayer.Position(xAbs, yAbs, zAbs, onGround.value),
-                                    "${xAbs} ${yAbs} ${zAbs} ${onGround.value}"
+                                    "$xAbs $yAbs $zAbs ${onGround.value}"
                                 )
                             }
                         }
@@ -481,12 +481,20 @@ object PacketCommand : ClientCommand(
         connection.sendPacket(packet)
         MessageSendHelper.sendChatMessage("Sent ${TextFormatting.GRAY}${packet.javaClass.name.split(".").lastOrNull()}${TextFormatting.DARK_RED} > ${TextFormatting.GRAY}$info")
     }
-}
 
-private fun String.handleRelativePos(origin: Double): Double {
-    return if (this.startsWith("~")) {
-        this.substring(1).toDouble() + origin
-    } else {
-        this.toDouble()
+    private fun String.handleRelativePos(origin: Double): Double {
+        return if (this.startsWith("~")) {
+            try {
+                this.drop(1).toDouble() + origin
+            } catch (e: NumberFormatException) {
+                origin
+            }
+        } else {
+            try {
+                this.toDouble()
+            } catch (e: NumberFormatException) {
+                origin
+            }
+        }
     }
 }
