@@ -34,10 +34,10 @@ internal object ModuleList : HudElement(
     private val rainbow by setting("Rainbow", true)
     private val rainbowLength by setting("Rainbow Length", 10.0f, 1.0f..20.0f, 0.5f, { rainbow })
     private val indexedHue by setting("Indexed Hue", 0.5f, 0.0f..1.0f, 0.05f, { rainbow })
-    private val primary by setting("Primary Color", ColorHolder(155, 144, 255), false)
-    private val secondary by setting("Secondary Color", ColorHolder(255, 255, 255), false)
     private val saturation by setting("Saturation", 1.0f, 0.0f..1.0f, 0.05f, { rainbow })
     private val brightness by setting("Brightness", 1.0f, 0.0f..1.0f, 0.05f, { rainbow })
+    private val primary by setting("Primary Color", ColorHolder(155, 144, 255), false)
+    private val secondary by setting("Secondary Color", ColorHolder(255, 255, 255), false)
 
     @Suppress("UNUSED")
     private enum class SortingMode(
@@ -105,7 +105,6 @@ internal object ModuleList : HudElement(
     }
 
     private fun drawModuleList() {
-        val primaryHsb = Color.RGBtoHSB(primary.r, primary.g, primary.b, null)
         val lengthMs = rainbowLength * 1000.0f
         val timedHue = System.currentTimeMillis() % lengthMs.toLong() / lengthMs
 
