@@ -36,6 +36,8 @@ internal object ModuleList : HudElement(
     private val indexedHue by setting("Indexed Hue", 0.5f, 0.0f..1.0f, 0.05f, { rainbow })
     private val primary by setting("Primary Color", ColorHolder(155, 144, 255), false)
     private val secondary by setting("Secondary Color", ColorHolder(255, 255, 255), false)
+    private val saturation by setting("Saturation", 1.0f, 0.0f..1.0f, 0.05f, { rainbow })
+    private val brightness by setting("Brightness", 1.0f, 0.0f..1.0f, 0.05f, { rainbow })
 
     @Suppress("UNUSED")
     private enum class SortingMode(
@@ -127,7 +129,7 @@ internal object ModuleList : HudElement(
 
             if (rainbow) {
                 val hue = timedHue + indexedHue * 0.05f * index++
-                val color = ColorConverter.hexToRgb(Color.HSBtoRGB(hue, primaryHsb[1], primaryHsb[2]))
+                val color = ColorConverter.hexToRgb(Color.HSBtoRGB(hue, saturation, brightness))
                 module.newTextLine(color).drawLine(progress, true, HAlign.LEFT, FontRenderAdapter.useCustomFont)
             } else {
                 textLine.drawLine(progress, true, HAlign.LEFT, FontRenderAdapter.useCustomFont)
