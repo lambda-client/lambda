@@ -2,12 +2,15 @@ package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.PlayerAttackEvent;
+import com.lambda.client.module.modules.player.NoGhostItems;
 import com.lambda.client.module.modules.player.TpsSync;
 import com.lambda.client.util.TpsCalculator;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.ClickType;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PlayerControllerMP.class)
 public class MixinPlayerControllerMP {
@@ -31,6 +35,14 @@ public class MixinPlayerControllerMP {
         LambdaEventBus.INSTANCE.post(event);
         if (event.getCancelled()) {
             ci.cancel();
+        }
+    }
+
+    @Inject(method = "windowClick", at = @At("HEAD"), cancellable = true)
+    public void onWindowClick(int windowId, int slotId, int mouseButton, ClickType type, EntityPlayer player, CallbackInfoReturnable<ItemStack> cir) {
+        if (NoGhostItems.INSTANCE.isEnabled()) {
+            NoGhostItems.INSTANCE.handleWindowClick(windowId, slotId, mouseButton, type, player);
+            cir.cancel();
         }
     }
 }
