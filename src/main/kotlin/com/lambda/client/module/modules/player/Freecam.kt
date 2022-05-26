@@ -58,7 +58,6 @@ object Freecam : Module(
     private val arrowKeyMove by setting("Arrow Key Move", true)
     private val disableOnDisconnect by setting("Disconnect Disable", true)
     private val leftClickCome by setting("Left Click Come", false)
-    private val yplus1 by setting("TODO: find good setting name", true, { leftClickCome })
     private val relative by setting("Relative", false)
 
     private enum class FlightMode(override val displayName: String) : DisplayEnum {
@@ -168,8 +167,9 @@ object Freecam : Module(
                 val result : BlockPos =  mc.objectMouseOver.blockPos ?: return@listener
 
                 if (mc.objectMouseOver.typeOfHit == RayTraceResult.Type.BLOCK) {
+                    val pos = result.offset(mc.objectMouseOver.sideHit)
                     BaritoneUtils.cancelEverything()
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalTwoBlocks(BlockPos(result.x, (if (yplus1) result.y + 1 else result.y), result.z)))
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalTwoBlocks(pos))
                 }
             }
         }
