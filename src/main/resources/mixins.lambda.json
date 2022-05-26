@@ -81,6 +81,7 @@
     "world.MixinBlockSoulSand",
     "world.MixinBlockWeb",
     "world.MixinGetCollisionBB",
+    "world.MixinItemBlock",
     "world.MixinWorld"
   ]
 }

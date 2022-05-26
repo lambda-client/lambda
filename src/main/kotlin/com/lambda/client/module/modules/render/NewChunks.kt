@@ -1,5 +1,7 @@
 package com.lambda.client.module.modules.render
 
+import com.lambda.client.LambdaMod
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderRadarEvent
 import com.lambda.client.event.events.RenderWorldEvent
@@ -7,6 +9,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.getInterpolatedPos
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.color.ColorHolder
@@ -14,20 +17,28 @@ import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.math.Vec2d
-import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.util.threads.onMainThread
-import com.lambda.client.util.threads.safeAsyncListener
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.asyncListener
-import kotlinx.coroutines.runBlocking
+import com.lambda.client.util.math.VectorUtils.distanceTo
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.network.play.server.SPacketChunkData
 import net.minecraft.util.math.ChunkPos
 import net.minecraftforge.event.world.ChunkEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.apache.commons.lang3.SystemUtils
 import org.lwjgl.opengl.GL11.GL_LINE_LOOP
 import org.lwjgl.opengl.GL11.glLineWidth
+import java.io.BufferedWriter
+import java.io.FileWriter
+import java.io.IOException
+import java.io.PrintWriter
+import java.nio.file.Files
+import java.io.File
+import java.nio.file.Path
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.concurrent.ConcurrentHashMap
 
 object NewChunks : Module(
     name = "NewChunks",
@@ -39,43 +50,43 @@ object NewChunks : Module(
     private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
     private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
+    private val saveNewChunks by setting("Save New Chunks", false)
+    private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
+    private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
+    private val alsoSaveNormalCoords by setting("Save Normal Coords", false, { saveNewChunks })
+    private val closeFile = setting("CloseFile", false, { saveNewChunks })
     private val yOffset by setting("Y Offset", 0, -256..256, 4, fineStep = 1, description = "Render offset in Y axis")
     private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "Highlighting color")
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
     private val range by setting("Render Range", 512, 64..2048, 32, description = "Maximum range for chunks to be highlighted")
-    private val autoClear by setting("Auto Clear", false, description = "Clears the new chunks every 10 minutes")
-    private val removeMode by setting("Remove Mode", RemoveMode.MAX_NUMBER, description = "Mode to use for removing chunks")
-    private val maxNumber by setting("Max Number", 5000, 1000..10000, 500, { removeMode == RemoveMode.MAX_NUMBER }, description = "Maximum number of chunks to keep")
+    private val removeMode by setting("Remove Mode", RemoveMode.AGE, description = "Mode to use for removing chunks")
+    private val maxAge by setting("Max age in minutes", 10, 1..600, 1, { removeMode == RemoveMode.AGE }, description = "Maximum age of chunks since recording")
 
-    @Suppress("unused")
-    private enum class RemoveMode {
-        NEVER, UNLOAD, MAX_NUMBER
-    }
-
-    enum class RenderMode {
-        WORLD, RADAR, BOTH
-    }
-
-    private val timer = TickTimer(TimeUnit.MINUTES)
-    private val chunks = LinkedHashSet<ChunkPos>()
+    private var lastSetting = LastSetting()
+    private var logWriter: PrintWriter? = null
+    private val chunks = ConcurrentHashMap<ChunkPos, Long>()
+    private val timer = TickTimer(TimeUnit.SECONDS)
 
     init {
+        onDisable {
+            logWriterClose()
+            chunks.clear()
+            MessageSendHelper.sendChatMessage("$chatName Saved and cleared chunks!")
+        }
+
         onEnable {
             timer.reset()
         }
+    }
 
-        onDisable {
-            runBlocking {
-                onMainThread {
-                    chunks.clear()
-                }
-            }
-        }
-
+    init {
         safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase == TickEvent.Phase.END && autoClear && timer.tick(10L)) {
-                chunks.clear()
-                MessageSendHelper.sendChatMessage("$chatName Cleared chunks!")
+            if (it.phase == TickEvent.Phase.END
+                && removeMode == RemoveMode.AGE
+                && timer.tick(5)
+            ) {
+                val currentTime = System.currentTimeMillis()
+                chunks.values.removeIf { chunkAge -> currentTime - chunkAge > maxAge * 60 * 1000 }
             }
         }
 
@@ -89,14 +100,12 @@ object NewChunks : Module(
 
             val buffer = LambdaTessellator.buffer
 
-            for (chunkPos in chunks) {
-                if (player.distanceTo(chunkPos) > range) continue
-
+            chunks.filter { player.distanceTo(it.key) < range }.keys.forEach { chunkPos ->
                 buffer.begin(GL_LINE_LOOP, DefaultVertexFormats.POSITION_COLOR)
                 buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
-                buffer.pos(chunkPos.xEnd + 1.0, y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
-                buffer.pos(chunkPos.xEnd + 1.0, y, chunkPos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
-                buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zEnd + 1.0).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunkPos.xEnd + 1.toDouble(), y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunkPos.xEnd + 1.toDouble(), y, chunkPos.zEnd + 1.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
+                buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zEnd + 1.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
                 LambdaTessellator.render()
             }
 
@@ -130,7 +139,7 @@ object NewChunks : Module(
                 }
             }
 
-            for (chunk in chunks) {
+            chunks.keys.forEach { chunk ->
                 val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
                 val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
 
@@ -140,29 +149,182 @@ object NewChunks : Module(
             }
         }
 
-        safeAsyncListener<PacketEvent.PostReceive> { event ->
-            if (event.packet !is SPacketChunkData || event.packet.isFullChunk) return@safeAsyncListener
-            val chunk = world.getChunk(event.packet.chunkX, event.packet.chunkZ)
-            if (chunk.isEmpty) return@safeAsyncListener
-
-            onMainThread {
-                if (chunks.add(chunk.pos)) {
-                    if (removeMode == RemoveMode.MAX_NUMBER && chunks.size > maxNumber) {
-                        chunks.maxByOrNull { player.distanceTo(it) }?.let {
-                            chunks.remove(it)
-                        }
-                    }
-                }
+        safeListener<PacketEvent.PostReceive> { event ->
+            if (event.packet is SPacketChunkData
+                && !event.packet.isFullChunk
+            ) {
+                val chunkPos = ChunkPos(event.packet.chunkX, event.packet.chunkZ)
+                chunks[chunkPos] = System.currentTimeMillis()
+                if (saveNewChunks) saveNewChunk(chunkPos)
             }
         }
 
-        asyncListener<ChunkEvent.Unload> {
-            onMainThread {
-                if (removeMode == RemoveMode.UNLOAD) {
-                    chunks.remove(it.chunk.pos)
+        safeListener<ChunkEvent.Unload> {
+            if (removeMode == RemoveMode.UNLOAD)
+                chunks.remove(it.chunk.pos)
+        }
+    }
+
+    // needs to be synchronized so no data gets lost
+    private fun SafeClientEvent.saveNewChunk(chunk: ChunkPos) {
+        saveNewChunk(testAndGetLogWriter(), getNewChunkInfo(chunk))
+    }
+
+    private fun getNewChunkInfo(chunk: ChunkPos): String {
+        var chunkInfo = String.format("%d,%d,%d", System.currentTimeMillis(), chunk.x, chunk.z)
+        if (alsoSaveNormalCoords) {
+            chunkInfo += String.format(",%d,%d", chunk.x * 16 + 8, chunk.z * 16 + 8)
+        }
+        return chunkInfo
+    }
+
+    private fun SafeClientEvent.testAndGetLogWriter(): PrintWriter? {
+        if (lastSetting.testChangeAndUpdate(this)) {
+            logWriterClose()
+            logWriterOpen()
+        }
+        return logWriter
+    }
+
+    private fun logWriterClose() {
+        if (logWriter != null) {
+            logWriter!!.close()
+            logWriter = null
+            lastSetting = LastSetting() // what if the settings stay the same?
+        }
+    }
+
+    private fun logWriterOpen() {
+        val fileWriter = try {
+            FileWriter(path.toString(), true)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            LambdaMod.LOG.error(chatName + " some exception happened when trying to start the logging -> " + e.message)
+            MessageSendHelper.sendErrorMessage("$chatName Can't access $path")
+            disable()
+            return
+        }
+
+        PrintWriter(BufferedWriter(fileWriter), true).let {
+            logWriter = it
+
+            var head = "timestamp,ChunkX,ChunkZ"
+            if (alsoSaveNormalCoords) {
+                head += ",x,z"
+            }
+
+            it.println(head)
+        }
+    }
+
+    private val path: Path
+        get() {
+            // code from baritone (https://github.com/cabaletta/baritone/blob/master/src/main/java/baritone/cache/WorldProvider.java)
+
+            var file: File? = null
+            val dimension = mc.player.dimension
+
+            // If there is an integrated server running (Aka Singleplayer) then do magic to find the world save file
+            if (mc.isSingleplayer) {
+                try {
+                    file = mc.integratedServer?.getWorld(dimension)?.chunkSaveLocation
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    LambdaMod.LOG.error("some exception happened when getting canonicalFile -> " + e.message)
+                    MessageSendHelper.sendErrorMessage(chatName + " onGetPath: " + e.message)
+                    disable()
+                }
+
+                // Gets the "depth" of this directory relative to the game's run directory, 2 is the location of the world
+                if (file?.toPath()?.relativize(mc.gameDir.toPath())?.nameCount != 2) {
+                    // subdirectory of the main save directory for this world
+                    file = file?.parentFile
+                }
+            } else { // Otherwise, the server must be remote...
+                file = makeMultiplayerDirectory().toFile()
+            }
+
+            // We will actually store the world data in a subfolder: "DIM<id>"
+            if (dimension != 0) { // except if it's the overworld
+                file = File(file, "DIM$dimension")
+            }
+
+            // maybe we want to save it in region folder
+            if (saveInRegionFolder) {
+                file = File(file, "region")
+            }
+            file = File(file, "newChunkLogs")
+            val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date())
+            file = File(file, mc.session.username + "_" + date + ".csv") // maybe don't safe the name, actually. But I also don't want to make another option...
+            val filePath = file.toPath()
+            try {
+                if (!Files.exists(filePath)) {
+                    Files.createDirectories(filePath.parent)
+                    Files.createFile(filePath)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+                LambdaMod.LOG.error("some exception happened when trying to make the file -> " + e.message)
+                MessageSendHelper.sendErrorMessage(chatName + " onCreateFile: " + e.message)
+                disable()
+            }
+            return filePath
+        }
+
+    private fun makeMultiplayerDirectory(): Path {
+        var rV = Minecraft.getMinecraft().gameDir
+        var folderName: String
+        when (saveOption) {
+            SaveOption.EXTRA_FOLDER -> {
+                folderName = mc.currentServerData?.serverName + "-" + mc.currentServerData?.serverIP
+                if (SystemUtils.IS_OS_WINDOWS) {
+                    folderName = folderName.replace(":", "_")
+                }
+                rV = File(FolderUtils.newChunksFolder)
+                rV = File(rV, folderName)
+            }
+            SaveOption.LITE_LOADER_WDL -> {
+                folderName = mc.currentServerData?.serverName ?: "Offline"
+                rV = File(rV, "saves")
+                rV = File(rV, folderName)
+            }
+            SaveOption.NHACK_WDL -> {
+                folderName = nHackInetName
+                rV = File(rV, "config")
+                rV = File(rV, "wdl-saves")
+                rV = File(rV, folderName)
+
+                // extra because name might be different
+                if (!rV.exists()) {
+                    MessageSendHelper.sendWarningMessage("$chatName nhack wdl directory doesnt exist: $folderName")
+                    MessageSendHelper.sendWarningMessage("$chatName creating the directory now. It is recommended to update the ip")
                 }
             }
         }
+        return rV.toPath()
+    }
+
+    // if there is no port then we have to manually include the standard port..
+    private val nHackInetName: String
+        get() {
+            var folderName = mc.currentServerData?.serverIP ?: "Offline"
+            if (SystemUtils.IS_OS_WINDOWS) {
+                folderName = folderName.replace(":", "_")
+            }
+            if (hasNoPort(folderName)) {
+                folderName += "_25565" // if there is no port then we have to manually include the standard port..
+            }
+            return folderName
+        }
+
+    private fun hasNoPort(ip: String): Boolean {
+        if (!ip.contains("_")) {
+            return true
+        }
+        val sp = ip.split("_").toTypedArray()
+        val ending = sp[sp.size - 1]
+        // if it is numeric it means it might be a port...
+        return ending.toIntOrNull() != null
     }
 
     // p2.x > p1.x and p2.y > p1.y is assumed
@@ -174,5 +336,66 @@ object NewChunks : Module(
 
     private fun getChunkPos(x: Int, z: Int, playerOffset: Vec2d, scale: Float): Vec2d {
         return Vec2d((x shl 4).toDouble(), (z shl 4).toDouble()).minus(playerOffset).div(scale.toDouble())
+    }
+
+    private fun saveNewChunk(log: PrintWriter?, data: String) {
+        log!!.println(data)
+    }
+
+    private enum class SaveOption {
+        EXTRA_FOLDER, LITE_LOADER_WDL, NHACK_WDL
+    }
+
+    @Suppress("unused")
+    private enum class RemoveMode {
+        UNLOAD, AGE, NEVER
+    }
+
+    enum class RenderMode {
+        WORLD, RADAR, BOTH
+    }
+
+    private class LastSetting {
+        var lastSaveOption: SaveOption? = null
+        var lastInRegion = false
+        var lastSaveNormal = false
+        var dimension = 0
+        var ip: String? = null
+        fun testChangeAndUpdate(event: SafeClientEvent): Boolean {
+            if (testChange(event)) {
+                // so we dont have to do this process again next time
+                update(event)
+                return true
+            }
+            return false
+        }
+
+        fun testChange(event: SafeClientEvent): Boolean {
+            // these somehow include the test whether its null
+            return saveOption != lastSaveOption
+                || saveInRegionFolder != lastInRegion
+                || alsoSaveNormalCoords != lastSaveNormal
+                || dimension != event.player.dimension
+                || mc.currentServerData?.serverIP != ip
+        }
+
+        private fun update(event: SafeClientEvent) {
+            lastSaveOption = saveOption
+            lastInRegion = saveInRegionFolder
+            lastSaveNormal = alsoSaveNormalCoords
+            dimension = event.player.dimension
+            ip = mc.currentServerData?.serverIP
+        }
+    }
+
+    init {
+        closeFile.valueListeners.add { _, _ ->
+            if (closeFile.value) {
+                logWriterClose()
+                MessageSendHelper.sendChatMessage("$chatName Saved file!")
+                MessageSendHelper.sendChatMessage("$path")
+                closeFile.value = false
+            }
+        }
     }
 }

@@ -5,7 +5,7 @@ buildscript {
         maven { url = 'https://repo.spongepowered.org/maven/' }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:5.+'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:4.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
@@ -27,8 +27,8 @@ compileJava {
 
 compileKotlin.kotlinOptions {
     freeCompilerArgs += '-Xlambdas=indy'
-    freeCompilerArgs += '-Xopt-in=kotlin.RequiresOptIn'
-    freeCompilerArgs += '-Xopt-in=kotlin.contracts.ExperimentalContracts'
+    freeCompilerArgs += '-opt-in=kotlin.RequiresOptIn'
+    freeCompilerArgs += '-opt-in=kotlin.contracts.ExperimentalContracts'
 }
 
 repositories {
