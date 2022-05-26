@@ -486,8 +486,10 @@ object ElytraFlight : Module(
     private fun SafeClientEvent.vanillaMode() {
         val playerY = player.posY
         val lastShouldDescend = shouldDescend
-        shouldDescend = lastY > playerY && lastHighY - 60 < playerY
         val isBoosted = world.getLoadedEntityList().any { it is EntityFireworkRocket && it.boostedEntity == player }
+
+        shouldDescend = lastY > playerY && lastHighY - 60 < playerY
+
         packetPitch = if (isBoosted) {
             -rocketPitch
         } else if (shouldDescend) {
@@ -498,6 +500,7 @@ object ElytraFlight : Module(
         } else {
             -upPitch
         }
+
         lastY = playerY
     }
 
@@ -522,9 +525,7 @@ object ElytraFlight : Module(
                 cancelRotation = isStandingStill && ((!mc.gameSettings.keyBindUseItem.isKeyDown && !mc.gameSettings.keyBindAttack.isKeyDown && blockInteract) || !blockInteract)
             }
         } else if (mode.value == ElytraFlightMode.VANILLA) {
-
             rotation = Vec2f(rotation.x, packetPitch)
-
         }
 
         sendPlayerPacket {
