@@ -35,6 +35,7 @@
     "accessor.render.AccessorViewFrustum",
     "baritone.MixinBaritoneSettings",
     "entity.MixinEntity",
+    "entity.MixinEntityLivingBase",
     "entity.MixinEntityLlama",
     "entity.MixinEntityPig",
     "gui.MixinGuiChat",
