@@ -167,6 +167,8 @@ object PlayerInventoryManager : Manager {
         currentId = 0
     }
 
+    fun isDone() = transactionQueue.isEmpty()
+
     /**
      * Adds a new task to the inventory manager
      *
