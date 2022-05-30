@@ -2,6 +2,7 @@ package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.PlayerAttackEvent;
+import com.lambda.client.module.modules.player.AutoEat;
 import com.lambda.client.module.modules.player.NoGhostItems;
 import com.lambda.client.module.modules.player.TpsSync;
 import com.lambda.client.util.TpsCalculator;
@@ -43,6 +44,13 @@ public class MixinPlayerControllerMP {
         if (NoGhostItems.INSTANCE.isEnabled()) {
             NoGhostItems.INSTANCE.handleWindowClick(windowId, slotId, mouseButton, type, player);
             cir.cancel();
+        }
+    }
+
+    @Inject(method = "onStoppedUsingItem", at = @At("HEAD"), cancellable = true)
+    public void onStoppedUsingItemMixin(EntityPlayer player, CallbackInfo ci) {
+        if (AutoEat.INSTANCE.getEating()) {
+            ci.cancel();
         }
     }
 }
