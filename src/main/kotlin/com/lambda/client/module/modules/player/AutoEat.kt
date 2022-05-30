@@ -10,6 +10,8 @@ import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.commons.extension.next
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
 import net.minecraft.inventory.Slot
@@ -31,9 +33,11 @@ object AutoEat : Module(
     private val belowHealth by setting("Below Health", 10, 1..20, 1, description = "When to eat a golden apple")
     private val eGapOnFire by setting("Fire Prot", false, description = "Eats an enchanted golden apple whilst on fire")
     private val eatBadFood by setting("Eat Bad Food", false)
+    private val packetSpeed by setting("Packet Speed", 20, 1..100, 1, description = "How many ticks delay between packets")
     private val pauseBaritone by setting("Pause Baritone", true)
 
     private var lastSlot = -1
+    private val eatTimer = TickTimer(TimeUnit.TICKS)
     var eating = false
 
     enum class PreferredFood : BiPredicate<ItemStack, ItemFood> {
@@ -110,7 +114,7 @@ object AutoEat : Module(
             || preferredFood != PreferredFood.NORMAL
 
     private fun SafeClientEvent.eat(hand: EnumHand) {
-        if (!eating || !player.isHandActive || player.activeHand != hand) {
+        if (eatTimer.tick(packetSpeed)) {
             connection.sendPacket(CPacketPlayerTryUseItem(hand))
         }
         startEating()

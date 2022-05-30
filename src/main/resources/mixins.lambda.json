@@ -5,7 +5,6 @@
   "refmap": "mixins.lambda.refmap.json",
   "client": [
     "MixinElytraSound",
-    "MixinKeyBinding",
     "MixinMinecraft",
     "MixinStateImplementation",
     "MixinTileEntityBeacon",
@@ -35,6 +34,7 @@
     "accessor.render.AccessorViewFrustum",
     "baritone.MixinBaritoneSettings",
     "entity.MixinEntity",
+    "entity.MixinEntityLivingBase",
     "entity.MixinEntityLlama",
     "entity.MixinEntityPig",
     "gui.MixinGuiChat",
