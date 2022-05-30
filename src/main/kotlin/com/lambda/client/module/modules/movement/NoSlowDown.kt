@@ -31,7 +31,6 @@ object NoSlowDown : Module(
 ) {
     private val ncpStrict by setting("NCP Strict", true)
     private val sneak by setting("Sneak", false)
-    private val itemMovement by setting("Item Movement", false)
     val soulSand by setting("Soul Sand", true)
     val cobweb by setting("Cobweb", true)
     private val slime by setting("Slime", true)
@@ -40,10 +39,6 @@ object NoSlowDown : Module(
     private val bow by setting("Bows", true, { !allItems })
     private val potion by setting("Potions", true, { !allItems })
     private val shield by setting("Shield", true, { !allItems })
-
-    private var savedClickWindow = CPacketClickWindow()
-
-    private const val upSpoofDistance = 0.0656
 
     /*
      * InputUpdateEvent is called just before the player is slowed down @see EntityPlayerSP.onLivingUpdate)
@@ -56,31 +51,6 @@ object NoSlowDown : Module(
             if (sneak && player.isSneaking || passItemCheck(player.activeItemStack.item)) {
                 it.movementInput.moveStrafe *= 5f
                 it.movementInput.moveForward *= 5f
-            }
-        }
-
-        safeListener<PacketEvent.Send> {
-            if (itemMovement
-                && player.onGround
-                && it.packet is CPacketClickWindow
-                && it.packet != savedClickWindow
-                && player.isMoving
-                && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, upSpoofDistance, 0.0)).isEmpty()
-            ) {
-                savedClickWindow = it.packet
-
-                it.cancel()
-
-                if (player.isSprinting) {
-                    player.connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SPRINTING))
-                }
-
-                player.connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + upSpoofDistance, player.posZ, false))
-                player.connection.sendPacket(it.packet)
-
-                if (player.isSprinting) {
-                    player.connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SPRINTING))
-                }
             }
         }
 
