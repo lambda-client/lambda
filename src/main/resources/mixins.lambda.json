@@ -5,7 +5,6 @@
   "refmap": "mixins.lambda.refmap.json",
   "client": [
     "MixinElytraSound",
-    "MixinKeyBinding",
     "MixinMinecraft",
     "MixinStateImplementation",
     "MixinTileEntityBeacon",
