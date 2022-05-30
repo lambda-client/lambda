@@ -13,6 +13,7 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.modules.player.LagNotifier
 import com.lambda.client.module.modules.player.NoGhostItems
+import com.lambda.client.module.modules.player.NoGhostItems.debugLog
 import com.lambda.client.process.PauseProcess.pauseBaritone
 import com.lambda.client.process.PauseProcess.unpauseBaritone
 import com.lambda.client.util.threads.onMainThreadSafe
@@ -50,7 +51,7 @@ object PlayerInventoryManager : Manager {
                         return@safeListener
                     }
 
-                    LambdaMod.LOG.info("Transaction accepted. (id=${packet.actionNumber}, window=${packet.windowId})")
+                    if (debugLog) LambdaMod.LOG.info("Transaction accepted. (id=${packet.actionNumber}, window=${packet.windowId})")
                     getContainerOrNull(packet.windowId)?.let { container ->
                         container.slotClick(clickInfo.slot, clickInfo.mouseButton, clickInfo.type, player)
 
@@ -104,7 +105,7 @@ object PlayerInventoryManager : Manager {
         if (transactionId > -1) {
             currentInfo.transactionId = transactionId
             currentInfo.tries++
-            LambdaMod.LOG.info("Transaction successfully initiated. ${transactionQueue.size} left. $currentInfo")
+            if (debugLog) LambdaMod.LOG.info("Transaction successfully initiated. ${transactionQueue.size} left. $currentInfo")
         } else {
             LambdaMod.LOG.error("Container outdated. Skipping task. $currentInfo")
             next()

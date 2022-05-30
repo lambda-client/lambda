@@ -21,6 +21,7 @@ object NoGhostItems : Module(
     val baritoneSync by setting("Baritone pause", true, description = "Pauses Baritone until transaction is complete.")
     val timeout by setting("Timeout in ms", 800, 1..2500, 25)
     val maxRetries by setting("Max retries", 8, 0..20, 1)
+    val debugLog by setting("Debug log", false)
     private val clearQueue = setting("Clear Transaction Queue", false)
 
     enum class SyncMode {
