@@ -83,6 +83,12 @@ We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVaria
 
 </details>
 
+<details>
+  <summary>... crashing with liteloader?</summary>
+
+> Use liteloader as a forge mod, it is available [here](https://jenkins.liteloader.com/view/1.12.2/job/LiteLoader%201.12.2/lastSuccessfulBuild/artifact/build/libs/liteloader-1.12.2-SNAPSHOT-release.jar)
+</details>
+
 <p align="center">
     <img alt="" src="https://raw.githubusercontent.com/lambda-client/assets/main/footer.png">
 </p>
