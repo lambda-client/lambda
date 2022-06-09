@@ -16,6 +16,8 @@ import com.lambda.client.commons.extension.synchronized
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.entity.Entity
+import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.init.SoundEvents
 import net.minecraft.tileentity.*
 import net.minecraft.util.math.BlockPos
@@ -41,9 +43,10 @@ object StashLogger : Module(
     private val dispenserDensity by setting("Min Dispensers", 5, 1..20, 1, { logDispensers })
     private val logHoppers by setting("Hoppers", true)
     private val hopperDensity by setting("Min Hoppers", 5, 1..20, 1, { logHoppers })
+    private val logMinecarts by setting("Minecarts", value=true)
+    private val MinecartDensity by setting("Min Minecarts", 5, 1..20, 1, { logMinecarts })
     private val disableAutoWalk by setting("Disable Auto Walk", false, description = "Disables AutoWalk when a stash is found")
     private val cancelBaritone by setting("Cancel Baritone", false, description = "Cancels Baritone when a stash is found")
-
     private val chunkData = LinkedHashMap<Long, ChunkStats>()
     private val knownPositions = HashSet<BlockPos>()
     private val timer = TickTimer(TimeUnit.SECONDS)
@@ -55,6 +58,7 @@ object StashLogger : Module(
             defaultScope.launch {
                 coroutineScope {
                     launch {
+                        world.loadedEntityList.toList().forEach(::logEntity)
                         world.loadedTileEntityList.toList().forEach(::logTileEntity)
                         notification()
                     }
@@ -97,6 +101,31 @@ object StashLogger : Module(
         }
     }
 
+
+
+
+    private fun logEntity(entity: Entity){
+        if (!checkEntityType(entity)) return
+        if (!knownPositions.add(entity.position)) return
+
+        val chunk = ChunkPos.asLong(entity.position.x shr 4, entity.position.z shr 4)
+        val chunkStats = chunkData.getOrPut(chunk, ::ChunkStats)
+        chunkStats.add(entity)
+
+
+
+    }
+
+    private fun checkEntityType(entity: Entity) =
+        logMinecarts && entity is EntityMinecart
+
+
+
+
+
+
+
+
     private fun logTileEntity(tileEntity: TileEntity) {
         if (!checkTileEntityType(tileEntity)) return
         if (!knownPositions.add(tileEntity.pos)) return
@@ -107,6 +136,8 @@ object StashLogger : Module(
         chunkStats.add(tileEntity)
     }
 
+
+
     private fun checkTileEntityType(tileEntity: TileEntity) =
         logChests && tileEntity is TileEntityChest
             || logShulkers && tileEntity is TileEntityShulkerBox
@@ -114,16 +145,46 @@ object StashLogger : Module(
             || logDispensers && tileEntity is TileEntityDispenser
             || logHoppers && tileEntity is TileEntityHopper
 
+
+
+
+
+
+
+
+
     private class ChunkStats {
         var chests = 0; private set
         var shulkers = 0; private set
         var droppers = 0; private set
         var dispensers = 0; private set
         var hoppers = 0; private set
+        var minecarts = 0; private set
 
         var hot = false
 
         private val tileEntities = ArrayList<TileEntity>().synchronized()
+        private val entities = ArrayList<Entity>().synchronized()
+
+
+
+        fun add(entity: Entity) {
+            when (entity) {
+                is EntityMinecart -> minecarts++
+                else -> return
+            }
+
+
+            entities.add(entity)
+
+            if (minecarts >= MinecartDensity) {
+                hot = true
+
+
+            }
+        }
+
+
 
         fun add(tileEntity: TileEntity) {
             when (tileEntity) {
@@ -132,6 +193,7 @@ object StashLogger : Module(
                 is TileEntityDropper -> droppers++
                 is TileEntityDispenser -> dispensers++
                 is TileEntityHopper -> hoppers++
+
                 else -> return
             }
 
@@ -146,17 +208,29 @@ object StashLogger : Module(
             }
         }
 
+
+
+
         fun center(): BlockPos {
             var x = 0.0
             var y = 0.0
             var z = 0.0
-            val size = tileEntities.size
+            val size = tileEntities.size.also{entities.size}
+            //val size = entities.size
+
+            for (entity in entities){
+                x += entity.position.x
+                y += entity.position.y
+                z += entity.position.z
+
+            }
 
             for (tileEntity in tileEntities) {
                 x += tileEntity.pos.x
                 y += tileEntity.pos.y
                 z += tileEntity.pos.z
             }
+
 
             x /= size
             y /= size
@@ -172,6 +246,7 @@ object StashLogger : Module(
             if (droppers > 0 && logDroppers) statList.add("$droppers dropper${if (droppers == 1) "" else "s"}")
             if (dispensers > 0 && logDispensers) statList.add("$dispensers dispenser${if (dispensers == 1) "" else "s"}")
             if (hoppers > 0 && logHoppers) statList.add("$hoppers hopper${if (hoppers == 1) "" else "s"}")
+            if (minecarts > 0 && logMinecarts) statList.add("$minecarts minecart${if (minecarts == 1) "" else "s"}")
             return statList.joinToString()
         }
     }
