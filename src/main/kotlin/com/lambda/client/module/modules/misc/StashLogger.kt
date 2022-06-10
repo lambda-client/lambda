@@ -225,7 +225,6 @@ object StashLogger : Module(
             var y = 0.0
             var z = 0.0
             val size = tileEntities.size.or(entities.size)
-            //val size = entities.size
 
 
 
