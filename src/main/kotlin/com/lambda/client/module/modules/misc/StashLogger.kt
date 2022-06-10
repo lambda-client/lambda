@@ -44,10 +44,10 @@ object StashLogger : Module(
     private val dispenserDensity by setting("Min Dispensers", 5, 1..20, 1, { logDispensers })
     private val logHoppers by setting("Hoppers", true)
     private val hopperDensity by setting("Min Hoppers", 5, 1..20, 1, { logHoppers })
-    private val logMinecartChests by setting("MinecartChests", value=true)
-    private val MinecartChestDensity by setting("Min MinecartChests", 5, 1..20, 1, { logMinecartChests })
-    private val logMinecartHoppers by setting("MinecartHoppers", value=true)
-    private val MinecartHopperDensity by setting("Min MinecartHoppers", 5, 1..20, 1, { logMinecartHoppers })
+    private val logMinecartChests by setting("MinecartChests", true)
+    private val minecartChestDensity by setting("Min MinecartChests", 5, 1..20, 1, { logMinecartChests })
+    private val logMinecartHoppers by setting("MinecartHoppers", true)
+    private val minecartHopperDensity by setting("Min MinecartHoppers", 5, 1..20, 1, { logMinecartHoppers })
 
     private val disableAutoWalk by setting("Disable Auto Walk", false, description = "Disables AutoWalk when a stash is found")
     private val cancelBaritone by setting("Cancel Baritone", false, description = "Cancels Baritone when a stash is found")
@@ -165,8 +165,8 @@ object StashLogger : Module(
         var droppers = 0; private set
         var dispensers = 0; private set
         var hoppers = 0; private set
-        var minecartChest = 0; private set
-        var minecartHopper = 0; private set
+        var minecartChests = 0; private set
+        var minecartHoppers = 0; private set
 
         var hot = false
 
@@ -177,16 +177,16 @@ object StashLogger : Module(
 
         fun add(entity: Entity) {
             when (entity) {
-                is EntityMinecartChest -> minecartChest++
-                is EntityMinecartHopper -> minecartHopper++
+                is EntityMinecartChest -> minecartChests++
+                is EntityMinecartHopper -> minecartHoppers++
                 else -> return
             }
 
 
             entities.add(entity)
 
-            if (minecartChest >= MinecartChestDensity
-                || minecartHopper >= MinecartHopperDensity) {
+            if (minecartChests >= minecartChestDensity
+                || minecartHoppers >= minecartHopperDensity) {
                 hot = true
 
 
@@ -256,8 +256,8 @@ object StashLogger : Module(
             if (droppers > 0 && logDroppers) statList.add("$droppers dropper${if (droppers == 1) "" else "s"}")
             if (dispensers > 0 && logDispensers) statList.add("$dispensers dispenser${if (dispensers == 1) "" else "s"}")
             if (hoppers > 0 && logHoppers) statList.add("$hoppers hopper${if (hoppers == 1) "" else "s"}")
-            if (minecartChest > 0 && logMinecartChests) statList.add("$minecartChest minecartchest${if (minecartChest == 1) "" else "s"}")
-            if (minecartHopper > 0 && logMinecartHoppers) statList.add("$minecartHopper minecartHopper${if (minecartHopper == 1) "" else "s"}")
+            if (minecartChests > 0 && logMinecartChests) statList.add("$minecartChests minecartchest${if (minecartChests == 1) "" else "s"}")
+            if (minecartHoppers > 0 && logMinecartHoppers) statList.add("$minecartHoppers minecartHopper${if (minecartHoppers == 1) "" else "s"}")
 
             return statList.joinToString()
         }
