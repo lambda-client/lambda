@@ -46,12 +46,12 @@ object StashLogger : Module(
     private val hopperDensity by setting("Min Hoppers", 5, 1..20, 1, { logHoppers })
     private val logMinecartChests by setting("MinecartChests", value=true)
     private val MinecartChestDensity by setting("Min MinecartChests", 5, 1..20, 1, { logMinecartChests })
-
     private val logMinecartHoppers by setting("MinecartHoppers", value=true)
     private val MinecartHopperDensity by setting("Min MinecartHoppers", 5, 1..20, 1, { logMinecartHoppers })
 
     private val disableAutoWalk by setting("Disable Auto Walk", false, description = "Disables AutoWalk when a stash is found")
     private val cancelBaritone by setting("Cancel Baritone", false, description = "Cancels Baritone when a stash is found")
+
     private val chunkData = LinkedHashMap<Long, ChunkStats>()
     private val knownPositions = HashSet<BlockPos>()
     private val timer = TickTimer(TimeUnit.SECONDS)
