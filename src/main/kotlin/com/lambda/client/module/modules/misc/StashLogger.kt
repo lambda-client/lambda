@@ -119,10 +119,6 @@ object StashLogger : Module(
 
         if (!checkEntityID(entity)) return
 
-
-        //knownPositions.add(entity.position
-
-
         val chunk = ChunkPos.asLong(entity.position.x shr 4 , entity.position.z shr 4)
         val chunkStats = chunkData.getOrPut(chunk, ::ChunkStats)
         chunkStats.add2(entity)
@@ -138,13 +134,9 @@ object StashLogger : Module(
            if(entity.uniqueID == entitiesRepeatCheck[count].uniqueID) {
                return false
            }
-
         }
-
         entitiesRepeatCheck.add(entity)
         return true
-
-
     }
 
 
@@ -152,9 +144,6 @@ object StashLogger : Module(
     private fun checkEntityType(entity: Entity) =
         logMinecartChests && entity is EntityMinecartChest
             || logMinecartHoppers && entity is EntityMinecartHopper
-
-
-
 
 
 
