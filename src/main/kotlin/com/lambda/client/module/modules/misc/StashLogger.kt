@@ -55,6 +55,8 @@ object StashLogger : Module(
     private val chunkData = LinkedHashMap<Long, ChunkStats>()
     private val knownPositions = HashSet<BlockPos>()
     private val timer = TickTimer(TimeUnit.SECONDS)
+    //val entities2 = ArrayList<Entity>()
+    val entities3 = ArrayList<Entity>()
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
@@ -63,6 +65,8 @@ object StashLogger : Module(
             defaultScope.launch {
                 coroutineScope {
                     launch {
+
+
                         world.loadedEntityList.toList().forEach(::logEntity)
                         world.loadedTileEntityList.toList().forEach(::logTileEntity)
                         notification()
@@ -104,22 +108,47 @@ object StashLogger : Module(
             if (disableAutoWalk && AutoWalk.isEnabled) AutoWalk.disable()
             if (cancelBaritone && (BaritoneUtils.isPathing || BaritoneUtils.isActive)) BaritoneUtils.cancelEverything()
         }
+
     }
 
 
 
 
     private fun logEntity(entity: Entity){
-        if (!checkEntityType(entity)) return
-        if (!knownPositions.add(entity.position)) return
 
-        val chunk = ChunkPos.asLong(entity.position.x shr 4, entity.position.z shr 4)
+        if (!checkEntityType(entity)) return
+
+        if (!checkEntityID(entity)) return
+
+
+        //knownPositions.add(entity.position
+
+
+        val chunk = ChunkPos.asLong(entity.position.x shr 4 , entity.position.z shr 4)
         val chunkStats = chunkData.getOrPut(chunk, ::ChunkStats)
-        chunkStats.add(entity)
+        chunkStats.add2(entity)
 
 
 
     }
+
+    private fun checkEntityID(entity: Entity): Boolean{
+
+        for((count) in entities3.withIndex()){
+
+           if(entity.uniqueID == entities3[count].uniqueID) {
+               return false
+           }
+
+        }
+
+        entities3.add(entity)
+        return true
+
+
+    }
+
+
 
     private fun checkEntityType(entity: Entity) =
         logMinecartChests && entity is EntityMinecartChest
@@ -170,12 +199,14 @@ object StashLogger : Module(
 
         var hot = false
 
+
+       // private var entities2 = ArrayList<Entity>()
         private val tileEntities = ArrayList<TileEntity>().synchronized()
         private val entities = ArrayList<Entity>().synchronized()
 
 
 
-        fun add(entity: Entity) {
+        fun add2(entity: Entity) {
             when (entity) {
                 is EntityMinecartChest -> minecartChests++
                 is EntityMinecartHopper -> minecartHoppers++
@@ -258,6 +289,7 @@ object StashLogger : Module(
             if (hoppers > 0 && logHoppers) statList.add("$hoppers hopper${if (hoppers == 1) "" else "s"}")
             if (minecartChests > 0 && logMinecartChests) statList.add("$minecartChests minecartchest${if (minecartChests == 1) "" else "s"}")
             if (minecartHoppers > 0 && logMinecartHoppers) statList.add("$minecartHoppers minecartHopper${if (minecartHoppers == 1) "" else "s"}")
+
 
             return statList.joinToString()
         }
