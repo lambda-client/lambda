@@ -55,8 +55,7 @@ object StashLogger : Module(
     private val chunkData = LinkedHashMap<Long, ChunkStats>()
     private val knownPositions = HashSet<BlockPos>()
     private val timer = TickTimer(TimeUnit.SECONDS)
-    //val entities2 = ArrayList<Entity>()
-    val entities3 = ArrayList<Entity>()
+    private val entitiesRepeatCheck = ArrayList<Entity>()
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
@@ -134,15 +133,15 @@ object StashLogger : Module(
 
     private fun checkEntityID(entity: Entity): Boolean{
 
-        for((count) in entities3.withIndex()){
+        for((count) in entitiesRepeatCheck.withIndex()){
 
-           if(entity.uniqueID == entities3[count].uniqueID) {
+           if(entity.uniqueID == entitiesRepeatCheck[count].uniqueID) {
                return false
            }
 
         }
 
-        entities3.add(entity)
+        entitiesRepeatCheck.add(entity)
         return true
 
 
