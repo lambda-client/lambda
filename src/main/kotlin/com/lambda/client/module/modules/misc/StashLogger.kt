@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.misc
 
+import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -12,10 +13,13 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.synchronized
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.minecraft.client.audio.PositionedSoundRecord
+import net.minecraft.entity.Entity
+import net.minecraft.entity.item.EntityMinecartChest
+import net.minecraft.entity.item.EntityMinecartContainer
+import net.minecraft.entity.item.EntityMinecartHopper
 import net.minecraft.init.SoundEvents
 import net.minecraft.tileentity.*
 import net.minecraft.util.math.BlockPos
@@ -41,11 +45,17 @@ object StashLogger : Module(
     private val dispenserDensity by setting("Min Dispensers", 5, 1..20, 1, { logDispensers })
     private val logHoppers by setting("Hoppers", true)
     private val hopperDensity by setting("Min Hoppers", 5, 1..20, 1, { logHoppers })
+    private val logMinecartChests by setting("Minecart Chests", true)
+    private val minecartChestDensity by setting("Min Minecart Chests", 5, 1..20, 1, { logMinecartChests })
+    private val logMinecartHoppers by setting("Minecart Hoppers", true)
+    private val minecartHopperDensity by setting("Min Minecart Hoppers", 5, 1..20, 1, { logMinecartHoppers })
+
     private val disableAutoWalk by setting("Disable Auto Walk", false, description = "Disables AutoWalk when a stash is found")
     private val cancelBaritone by setting("Cancel Baritone", false, description = "Cancels Baritone when a stash is found")
 
     private val chunkData = LinkedHashMap<Long, ChunkStats>()
     private val knownPositions = HashSet<BlockPos>()
+    private val knownEntityMinecartContainers = HashSet<EntityMinecartContainer>()
     private val timer = TickTimer(TimeUnit.SECONDS)
 
     init {
@@ -55,6 +65,7 @@ object StashLogger : Module(
             defaultScope.launch {
                 coroutineScope {
                     launch {
+                        world.loadedEntityList.toList().filterIsInstance<EntityMinecartContainer>().forEach(::logEntityMinecartContainer)
                         world.loadedTileEntityList.toList().forEach(::logTileEntity)
                         notification()
                     }
@@ -97,6 +108,19 @@ object StashLogger : Module(
         }
     }
 
+    private fun logEntityMinecartContainer(entity: EntityMinecartContainer) {
+        if (!checkEntityType(entity)) return
+        if (!knownEntityMinecartContainers.add(entity)) return
+
+        val chunk = ChunkPos.asLong(entity.position.x shr 4, entity.position.z shr 4)
+        val chunkStats = chunkData.getOrPut(chunk, ::ChunkStats)
+        chunkStats.addEntity(entity)
+    }
+
+    private fun checkEntityType(entity: Entity) =
+        logMinecartChests && entity is EntityMinecartChest
+            || logMinecartHoppers && entity is EntityMinecartHopper
+
     private fun logTileEntity(tileEntity: TileEntity) {
         if (!checkTileEntityType(tileEntity)) return
         if (!knownPositions.add(tileEntity.pos)) return
@@ -104,7 +128,7 @@ object StashLogger : Module(
         val chunk = ChunkPos.asLong(tileEntity.pos.x shr 4, tileEntity.pos.z shr 4)
         val chunkStats = chunkData.getOrPut(chunk, ::ChunkStats)
 
-        chunkStats.add(tileEntity)
+        chunkStats.addTileEntity(tileEntity)
     }
 
     private fun checkTileEntityType(tileEntity: TileEntity) =
@@ -120,18 +144,37 @@ object StashLogger : Module(
         var droppers = 0; private set
         var dispensers = 0; private set
         var hoppers = 0; private set
+        var minecartChests = 0; private set
+        var minecartHoppers = 0; private set
 
         var hot = false
 
         private val tileEntities = ArrayList<TileEntity>().synchronized()
+        private val entityMinecartContainers = ArrayList<EntityMinecartContainer>().synchronized()
 
-        fun add(tileEntity: TileEntity) {
+        fun addEntity(entity: EntityMinecartContainer) {
+            when (entity) {
+                is EntityMinecartChest -> minecartChests++
+                is EntityMinecartHopper -> minecartHoppers++
+                else -> return
+            }
+
+            entityMinecartContainers.add(entity)
+
+            if (minecartChests >= minecartChestDensity
+                || minecartHoppers >= minecartHopperDensity) {
+                hot = true
+            }
+        }
+
+        fun addTileEntity(tileEntity: TileEntity) {
             when (tileEntity) {
                 is TileEntityChest -> chests++
                 is TileEntityShulkerBox -> shulkers++
                 is TileEntityDropper -> droppers++
                 is TileEntityDispenser -> dispensers++
                 is TileEntityHopper -> hoppers++
+
                 else -> return
             }
 
@@ -150,7 +193,13 @@ object StashLogger : Module(
             var x = 0.0
             var y = 0.0
             var z = 0.0
-            val size = tileEntities.size
+            val size = tileEntities.size.or(entityMinecartContainers.size)
+
+            for (entity in entityMinecartContainers) {
+                x += entity.position.x
+                y += entity.position.y
+                z += entity.position.z
+            }
 
             for (tileEntity in tileEntities) {
                 x += tileEntity.pos.x
@@ -172,6 +221,9 @@ object StashLogger : Module(
             if (droppers > 0 && logDroppers) statList.add("$droppers dropper${if (droppers == 1) "" else "s"}")
             if (dispensers > 0 && logDispensers) statList.add("$dispensers dispenser${if (dispensers == 1) "" else "s"}")
             if (hoppers > 0 && logHoppers) statList.add("$hoppers hopper${if (hoppers == 1) "" else "s"}")
+            if (minecartChests > 0 && logMinecartChests) statList.add("$minecartChests minecart chest${if (minecartChests == 1) "" else "s"}")
+            if (minecartHoppers > 0 && logMinecartHoppers) statList.add("$minecartHoppers minecart hopper${if (minecartHoppers == 1) "" else "s"}")
+
             return statList.joinToString()
         }
     }
