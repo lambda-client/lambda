@@ -31,8 +31,8 @@ object AntiAFK : Module(
     description = "Prevents being kicked for AFK",
     category = Category.MISC
 ) {
-    private val delay by setting("Action Delay", 50, 5..100, 5)
-    private val variation by setting("Variation", 25, 0..50, 5)
+    private val delay by setting("Action Delay", 50, 5..100, 5, unit = " ticks")
+    private val variation by setting("Variation", 25, 0..50, 5, unit = " ticks")
     private val autoReply by setting("Auto Reply", true)
     private val replyMessage by setting("Reply Message", "I am AFK with Lambda!", { autoReply })
     private val swing = setting("Swing", true)
@@ -40,7 +40,7 @@ object AntiAFK : Module(
     private val turn = setting("Turn", true)
     private val walk = setting("Walk", true)
     private val radius by setting("Radius", 64, 8..128, 8, fineStep = 1)
-    private val inputTimeout by setting("Idle Timeout", 0, 0..15, 1, description = "Starts AntiAFK after being idle for longer than specific minutes, 0 to disable")
+    private val inputTimeout by setting("Idle Timeout", 0, 0..15, 1, description = "Starts AntiAFK after being idle for longer than specific minutes, 0 to disable", unit = "m")
     private val allowBreak by setting("Allow Breaking Blocks", false, { walk.value })
 
     private var startPos: BlockPos? = null

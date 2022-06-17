@@ -70,7 +70,7 @@ object AutoObsidian : Module(
     private val autoRefill by setting("Auto Refill", false, { fillMode != FillMode.INFINITE })
     private val threshold by setting("Refill Threshold", 32, 1..64, 1, { autoRefill && fillMode != FillMode.INFINITE })
     private val targetStacks by setting("Target Stacks", 1, 1..20, 1, { fillMode == FillMode.TARGET_STACKS })
-    private val delayTicks by setting("Delay Ticks", 4, 1..10, 1)
+    private val delayTicks by setting("Delay", 4, 1..10, 1, unit = " ticks")
     private val rotationMode by setting("Rotation Mode", RotationMode.SPOOF)
     private val maxReach by setting("Max Reach", 4.9f, 2.0f..6.0f, 0.1f)
 

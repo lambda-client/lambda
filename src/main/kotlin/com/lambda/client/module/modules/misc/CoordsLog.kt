@@ -19,7 +19,7 @@ object CoordsLog : Module(
 ) {
     private val saveOnDeath by setting("Save On Death", true)
     private val autoLog by setting("Automatically Log", false)
-    private val delay by setting("Delay", 15, 1..60, 1)
+    private val delay by setting("Delay", 15, 1..60, 1, unit = "s")
 
     private var previousCoord: String? = null
     private var savedDeath = false

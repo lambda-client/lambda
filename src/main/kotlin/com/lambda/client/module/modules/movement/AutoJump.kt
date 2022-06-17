@@ -12,7 +12,7 @@ object AutoJump : Module(
     description = "Automatically jumps if possible",
     category = Category.MOVEMENT
 ) {
-    private val delay by setting("Tick Delay", 10, 0..40, 1)
+    private val delay by setting("Delay", 10, 0..40, 1, unit = " ticks")
 
     private val timer = TickTimer(TimeUnit.TICKS)
 

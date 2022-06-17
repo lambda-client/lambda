@@ -67,16 +67,16 @@ class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(
         return setting(StringSetting(name, value, visibility, consumer, description))
     }
 
-    override fun IPluginClass.setting(name: String, value: Double, range: ClosedFloatingPointRange<Double>, step: Double, visibility: () -> Boolean, consumer: (prev: Double, input: Double) -> Double, description: String, fineStep: Double): DoubleSetting {
-        return setting(DoubleSetting(name, value, range, step, visibility, consumer, description))
+    override fun IPluginClass.setting(name: String, value: Double, range: ClosedFloatingPointRange<Double>, step: Double, visibility: () -> Boolean, consumer: (prev: Double, input: Double) -> Double, description: String, unit: String, fineStep: Double): DoubleSetting {
+        return setting(DoubleSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
     }
 
-    override fun IPluginClass.setting(name: String, value: Float, range: ClosedFloatingPointRange<Float>, step: Float, visibility: () -> Boolean, consumer: (prev: Float, input: Float) -> Float, description: String, fineStep: Float): FloatSetting {
-        return setting(FloatSetting(name, value, range, step, visibility, consumer, description, fineStep))
+    override fun IPluginClass.setting(name: String, value: Float, range: ClosedFloatingPointRange<Float>, step: Float, visibility: () -> Boolean, consumer: (prev: Float, input: Float) -> Float, description: String, unit: String, fineStep: Float): FloatSetting {
+        return setting(FloatSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
     }
 
-    override fun IPluginClass.setting(name: String, value: Int, range: IntRange, step: Int, visibility: () -> Boolean, consumer: (prev: Int, input: Int) -> Int, description: String, fineStep: Int): IntegerSetting {
-        return setting(IntegerSetting(name, value, range, step, visibility, consumer, description, fineStep))
+    override fun IPluginClass.setting(name: String, value: Int, range: IntRange, step: Int, visibility: () -> Boolean, consumer: (prev: Int, input: Int) -> Int, description: String, unit: String, fineStep: Int): IntegerSetting {
+        return setting(IntegerSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
     }
 
     override fun IPluginClass.setting(name: String, value: Bind, visibility: () -> Boolean, description: String): BindSetting {

@@ -41,7 +41,7 @@ internal object Configurations : AbstractModule(
 
     private val autoSaving by setting("Auto Saving", true)
     private val savingFeedBack by setting("Log autosaves in chat", false, { autoSaving })
-    private val savingInterval by setting("Interval", 10, 1..30, 1, { autoSaving }, description = "Frequency of auto saving in minutes")
+    private val savingInterval by setting("Interval", 10, 1..30, 1, { autoSaving }, description = "Frequency of auto saving", unit = "m")
     val serverPreset by setting("Server Preset", false)
     private val guiPresetSetting = setting("Gui Preset", defaultPreset)
     private val modulePresetSetting = setting("Module Preset", defaultPreset)

@@ -25,7 +25,7 @@ object Spammer : Module(
     modulePriority = 100
 ) {
     private val modeSetting by setting("Order", Mode.RANDOM_ORDER)
-    private val delay by setting("Delay", 10, 1..600, 1, description = "Delay between messages, in seconds")
+    private val delay by setting("Delay", 10, 1..600, 1, description = "Delay between messages", unit = "s")
     private val loadRemote by setting("Load From URL", false)
     private val remoteURL by setting("Remote URL", "Unchanged", { loadRemote })
 
