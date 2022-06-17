@@ -36,7 +36,7 @@ object HoleMiner : Module(
     category = Category.COMBAT,
     modulePriority = 100
 ) {
-    private val delay by setting("Delay", 2, 1..10, 1)
+    private val delay by setting("Delay", 2, 1..10, 1, unit = " ticks")
     private val range by setting("Range", 5.0f, 1.0f..8.0f, 0.25f)
 
     private val timer = TickTimer(TimeUnit.TICKS)

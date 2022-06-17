@@ -111,7 +111,7 @@ object Speed : Module(
 
     private fun SafeClientEvent.strafe() {
         player.jumpMovementFactor = strafeAirSpeedBoost
-        if (strafeTimerBoost) modifyTimer(45.87155914306640625f)
+        if (strafeTimerBoost) modifyTimer(45.87156f)
         if ((Step.isDisabled || !player.collidedHorizontally) && strafeAutoJump) jump()
 
         strafeTimer.reset()

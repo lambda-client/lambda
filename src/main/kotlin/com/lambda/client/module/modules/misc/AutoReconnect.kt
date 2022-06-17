@@ -19,7 +19,7 @@ object AutoReconnect : Module(
     category = Category.MISC,
     alwaysListening = true
 ) {
-    private val delay by setting("Delay", 5.0f, 0.5f..100.0f, 0.5f)
+    private val delay by setting("Delay", 5.0f, 0.5f..100.0f, 0.5f, unit = "s")
 
     private var prevServerDate: ServerData? = null
 

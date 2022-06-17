@@ -60,7 +60,7 @@ object PlayerInventoryManager : Manager {
     fun isDone() = actionQueue.isEmpty()
 
     /**
-     * Adds a new task to the inventory manager
+     * Adds a new task to the inventory manager respecting the module origin.
      *
      * @param clickInfo group of the click info in this task
      *

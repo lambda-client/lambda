@@ -32,7 +32,7 @@ object AutoMend : Module(
     category = Category.COMBAT
 ) {
     private val autoThrow by setting("Auto Throw", true)
-    private val throwDelay = setting("Throw Delay", 2, 0..5, 1, description = "Number of ticks between throws to allow absorption")
+    private val throwDelay = setting("Throw Delay", 2, 0..5, 1, description = "Number of ticks between throws to allow absorption", unit = " ticks")
     private val autoSwitch by setting("Auto Switch", true)
     private val autoDisableExp by setting("Auto Disable", false, { autoSwitch }, description = "Disable when you run out of XP bottles")
     private val autoDisableComplete by setting("Disable on Complete", false)

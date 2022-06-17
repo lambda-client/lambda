@@ -42,9 +42,9 @@ object Surround : Module(
     private val disableStrafe by setting("Disable Strafe", true)
     private val strictDirection by setting("Strict Direction", false)
     private val autoDisable by setting("Auto Disable", AutoDisableMode.OUT_OF_HOLE)
-    private val outOfHoleTimeout by setting("Out Of Hole Timeout", 10, 1..50, 5, { autoDisable == AutoDisableMode.OUT_OF_HOLE }, description = "Delay before disabling Surround when you are out of hole, in ticks")
+    private val outOfHoleTimeout by setting("Out Of Hole Timeout", 10, 1..50, 5, { autoDisable == AutoDisableMode.OUT_OF_HOLE }, description = "Delay before disabling Surround when you are out of hole", unit = " ticks")
     private val enableInHole = setting("Enable In Hole", false)
-    private val inHoleTimeout by setting("In Hole Timeout", 50, 1..100, 5, { enableInHole.value }, description = "Delay before enabling Surround when you are in hole, in ticks")
+    private val inHoleTimeout by setting("In Hole Timeout", 50, 1..100, 5, { enableInHole.value }, description = "Delay before enabling Surround when you are in hole", unit = " ticks")
     private val toggleMessage by setting("Toggle Message", true)
 
     private enum class AutoDisableMode {

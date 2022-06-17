@@ -17,7 +17,8 @@ open class MutableSetting<T : Any>(
     valueIn: T,
     override val visibility: () -> Boolean,
     consumer: (prev: T, input: T) -> T,
-    override val description: String
+    override val description: String,
+    override val unit: String
 ) : AbstractSetting<T>() {
 
     override val defaultValue = valueIn

@@ -14,6 +14,7 @@ abstract class AbstractSetting<T : Any> : Nameable {
     abstract val valueClass: Class<T>
     abstract val visibility: () -> Boolean
     abstract val description: String
+    abstract val unit: String
 
     val listeners = ArrayList<() -> Unit>()
     val valueListeners = ArrayList<(prev: T, input: T) -> Unit>()
@@ -33,7 +34,7 @@ abstract class AbstractSetting<T : Any> : Nameable {
     abstract fun write(): JsonElement
     abstract fun read(jsonElement: JsonElement?)
 
-    override fun toString() = value.toString()
+    override fun toString() = "$value$unit"
 
     override fun equals(other: Any?) = this === other
         || (other is AbstractSetting<*>

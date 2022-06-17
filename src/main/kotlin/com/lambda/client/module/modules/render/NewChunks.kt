@@ -60,7 +60,7 @@ object NewChunks : Module(
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
     private val range by setting("Render Range", 512, 64..2048, 32, description = "Maximum range for chunks to be highlighted")
     private val removeMode by setting("Remove Mode", RemoveMode.AGE, description = "Mode to use for removing chunks")
-    private val maxAge by setting("Max age in minutes", 10, 1..600, 1, { removeMode == RemoveMode.AGE }, description = "Maximum age of chunks since recording")
+    private val maxAge by setting("Max age", 10, 1..600, 1, { removeMode == RemoveMode.AGE }, description = "Maximum age of chunks since recording", unit = "m")
 
     private var lastSetting = LastSetting()
     private var logWriter: PrintWriter? = null

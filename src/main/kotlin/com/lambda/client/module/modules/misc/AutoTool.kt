@@ -24,7 +24,7 @@ object AutoTool : Module(
     category = Category.MISC
 ) {
     private val switchBack = setting("Switch Back", true)
-    private val timeout by setting("Timeout", 20, 1..100, 5, { switchBack.value })
+    private val timeout by setting("Timeout", 20, 1..100, 5, { switchBack.value }, unit = "s")
     private val swapWeapon by setting("Switch Weapon", false)
     private val preferWeapon by setting("Prefer", CombatUtils.PreferWeapon.SWORD)
 

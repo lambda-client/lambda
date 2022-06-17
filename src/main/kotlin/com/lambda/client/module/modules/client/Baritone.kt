@@ -31,7 +31,7 @@ object Baritone : Module(
     private val allowParkourPlace by setting("Allow Parkour Place", true)
     private val avoidPortals by setting("Avoid Portals", false)
     private val renderGoal by setting("Render Goals", true)
-    private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1)
+    private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1, unit = "s")
     private val blockReachDistance by setting("Reach Distance", 4.5f, 1.0f..10.0f, 0.5f)
 
     init {

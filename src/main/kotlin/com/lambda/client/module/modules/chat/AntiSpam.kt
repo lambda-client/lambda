@@ -36,7 +36,7 @@ object AntiSpam : Module(
     /* Page Two */
     private val aggressiveFiltering by setting("Aggressive Filtering", true, { page == Page.SETTINGS })
     private val duplicates by setting("Duplicates", true, { page == Page.SETTINGS })
-    private val duplicatesTimeout by setting("Duplicates Timeout", 30, 1..600, 5, { duplicates && page == Page.SETTINGS })
+    private val duplicatesTimeout by setting("Duplicates Timeout", 30, 1..600, 5, { duplicates && page == Page.SETTINGS }, unit = "s")
     private val filterOwn by setting("Filter Own", false, { page == Page.SETTINGS })
     private val filterDMs by setting("Filter DMs", false, { page == Page.SETTINGS })
     private val filterServer by setting("Filter Server", false, { page == Page.SETTINGS })
