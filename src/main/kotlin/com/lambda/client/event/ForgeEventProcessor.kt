@@ -126,7 +126,7 @@ internal object ForgeEventProcessor {
     }
 
     @SubscribeEvent
-    fun onLeftClickBlock(event: PlayerInteractEvent.LeftClickBlock) {
+    fun onPlayerInteractEvent(event: PlayerInteractEvent) {
         LambdaEventBus.post(event)
     }
 
