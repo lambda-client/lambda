@@ -44,7 +44,7 @@ object WaypointRender : Module(
 
     /* Page two */
     private val espRangeLimit by setting("Render Range", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })
-    private val espRange by setting("Range", 4096, 1024..16384, 1024, { page == Page.RENDER && espRangeLimit && renderMode != RenderMode.RADAR })
+    private val espRange by setting("Range", 4096, 1024..16384, 1024, { page == Page.RENDER && espRangeLimit && renderMode != RenderMode.RADAR }, unit = " blocks")
     private val filled by setting("Filled", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })
     private val outline by setting("Outline", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })
     private val tracer by setting("Tracer", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })

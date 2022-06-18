@@ -13,5 +13,5 @@ object CameraClip : Module(
     category = Category.RENDER,
     showOnArray = false
 ) {
-    val distance by setting("Distance", 4.0, 1.0..10.0, 0.1, description = "Distance to player")
+    val distance by setting("Distance", 4.0, 1.0..10.0, 0.1, description = "Distance to player", unit = " blocks")
 }

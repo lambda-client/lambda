@@ -35,7 +35,7 @@ object Flight : Module(
     private val upSpeed by setting("Up Speed", 0.0622, 0.0..0.3, 0.001, { mode == FlightMode.PACKET })
     private val antiKick by setting("Anti Kick", true, { mode == FlightMode.PACKET })
     private val antiKickSpeed by setting("Anti Kick Speed", 0.0622, 0.0..0.3, 0.001, { mode == FlightMode.PACKET && antiKick })
-    private val antiKickDelay by setting("Anti Kick Delay", 14, 0..100, 1, { mode == FlightMode.PACKET && antiKick})
+    private val antiKickDelay by setting("Anti Kick Delay", 14, 0..100, 1, { mode == FlightMode.PACKET && antiKick }, unit = " ticks")
     private val hShrinkAmount by setting("Horizontal Shrink Amount", 4.0, 1.0..10.0, 0.1, { mode == FlightMode.PACKET })
     private val vShrinkAmount by setting("Vertical Shrink Amount", 2.70, 1.0..10.0, 0.1, { mode == FlightMode.PACKET })
 

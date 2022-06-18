@@ -26,7 +26,7 @@ object VoidESP : Module(
     private val aFilled by setting("Filled Alpha", 127, 0..255, 1)
     private val aOutline by setting("Outline Alpha", 255, 0..255, 1)
     private val renderMode by setting("Mode", Mode.BLOCK_HOLE)
-    private val range by setting("Range", 8, 4..32, 1)
+    private val range by setting("Range", 8, 4..32, 1, unit = " blocks")
     private val dangerous by setting("Show safe void", false, description = "Show all void holes, rather than just dangerous ones")
 
     private enum class Mode {

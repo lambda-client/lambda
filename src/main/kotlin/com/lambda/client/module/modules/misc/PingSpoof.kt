@@ -16,7 +16,7 @@ object PingSpoof : Module(
     description = "Cancels or adds delay to your ping packets",
     category = Category.MISC
 ) {
-    private val delay by setting("Delay", 100, 0..2000, 25)
+    private val delay by setting("Delay", 100, 0..2000, 25, unit = "ms")
 
     init {
         listener<PacketEvent.Receive> {

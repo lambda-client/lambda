@@ -10,10 +10,11 @@ class EnumSetting<T : Enum<T>>(
     value: T,
     visibility: () -> Boolean = { true },
     consumer: (prev: T, input: T) -> T = { _, input -> input },
-    description: String = ""
-) : MutableSetting<T>(name, value, visibility, consumer, description) {
+    description: String = "",
+    unit: String = ""
+) : MutableSetting<T>(name, value, visibility, consumer, description, unit) {
 
-    private val enumClass: Class<T> = value.declaringClass
+    private val enumClass: Class<T> = value.declaringJavaClass
     val enumValues: Array<out T> = enumClass.enumConstants
 
     fun nextValue() {

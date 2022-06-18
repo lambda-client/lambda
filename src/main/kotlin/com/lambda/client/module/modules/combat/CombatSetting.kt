@@ -75,7 +75,7 @@ object CombatSetting : Module(
     private val pauseForEating by setting("Pause For Eating", true, { page == Page.IN_COMBAT })
     private val ignoreOffhandEating by setting("Ignore Offhand Eating", true, { page == Page.IN_COMBAT && pauseForEating })
     private val pauseBaritone by setting("Pause Baritone", true, { page == Page.IN_COMBAT })
-    private val resumeDelay by setting("Resume Delay", 3, 1..10, 1, { page == Page.IN_COMBAT && pauseBaritone })
+    private val resumeDelay by setting("Resume Delay", 3, 1..10, 1, { page == Page.IN_COMBAT && pauseBaritone }, unit = "s")
     private val motionPrediction by setting("Motion Prediction", true, { page == Page.IN_COMBAT })
     private val pingSync by setting("Ping Sync", true, { page == Page.IN_COMBAT && motionPrediction })
     private val ticksAhead by setting("Ticks Ahead", 5, 0..20, 1, { page == Page.IN_COMBAT && motionPrediction && !pingSync })

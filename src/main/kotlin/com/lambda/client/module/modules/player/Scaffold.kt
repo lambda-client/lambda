@@ -52,7 +52,7 @@ object Scaffold : Module(
     val safeWalk by setting("Safe Walk", true)
     private val sneak by setting("Sneak", true)
     private val strictDirection by setting("Strict Direction", false)
-    private val delay by setting("Delay", 2, 1..10, 1)
+    private val delay by setting("Delay", 2, 1..10, 1, unit = " ticks")
     private val maxRange by setting("Max Range", 1, 0..3, 1)
 
     private var lastHitVec: Vec3d? = null

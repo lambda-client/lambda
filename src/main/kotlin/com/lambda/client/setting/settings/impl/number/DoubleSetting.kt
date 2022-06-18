@@ -10,8 +10,9 @@ class DoubleSetting(
     visibility: () -> Boolean = { true },
     consumer: (prev: Double, input: Double) -> Double = { _, input -> input },
     description: String = "",
+    unit: String = "",
     fineStep: Double = step
-) : NumberSetting<Double>(name, value, range, step, visibility, consumer, description, fineStep) {
+) : NumberSetting<Double>(name, value, range, step, visibility, consumer, description, unit, fineStep) {
 
     init {
         consumers.add(0) { _, it ->

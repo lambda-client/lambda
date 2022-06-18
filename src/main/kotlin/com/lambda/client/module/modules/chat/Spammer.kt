@@ -1,7 +1,9 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageDetection
@@ -9,8 +11,6 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.util.FolderUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -25,7 +25,7 @@ object Spammer : Module(
     modulePriority = 100
 ) {
     private val modeSetting by setting("Order", Mode.RANDOM_ORDER)
-    private val delay by setting("Delay", 10, 1..180, 1, description = "Delay between messages, in seconds")
+    private val delay by setting("Delay", 10, 1..600, 1, description = "Delay between messages", unit = "s")
     private val loadRemote by setting("Load From URL", false)
     private val remoteURL by setting("Remote URL", "Unchanged", { loadRemote })
 

@@ -35,7 +35,7 @@ object EyeFinder : Module(
     private val neutral by setting("Neutral Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val hostile by setting("Hostile Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val invisible by setting("Invisible", true, { page == Page.ENTITY_TYPE })
-    private val range by setting("Range", 64, 8..128, 8, { page == Page.ENTITY_TYPE })
+    private val range by setting("Range", 64, 8..128, 8, { page == Page.ENTITY_TYPE }, unit = " blocks")
 
     /* Rendering settings */
     private val color by setting("Color", ColorHolder(155, 144, 255, 200), visibility = { page == Page.RENDERING })

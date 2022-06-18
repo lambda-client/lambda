@@ -8,8 +8,9 @@ class MapSetting<K : Any, V : Any, T : MutableMap<K, V>>(
     name: String,
     override val value: T,
     visibility: () -> Boolean = { true },
-    description: String = ""
-) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description) {
+    description: String = "",
+    unit: String = ""
+) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description, unit) {
     override val defaultValue: T = valueClass.newInstance()
     private val type = object : TypeToken<Map<K, V>>() {}.type
 
