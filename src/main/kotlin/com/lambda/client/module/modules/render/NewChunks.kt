@@ -338,6 +338,22 @@ object NewChunks : Module(
         return Vec2d((x shl 4).toDouble(), (z shl 4).toDouble()).minus(playerOffset).div(scale.toDouble())
     }
 
+    fun getChunks(): ConcurrentHashMap<ChunkPos, Long> {
+        return chunks
+    }
+
+    fun addChunk(chunk: ChunkPos) {
+        chunks[chunk] = System.currentTimeMillis()
+    }
+
+    fun addChunk(chunk: ChunkPos, time: Long) {
+        chunks[chunk] = time
+    }
+
+    fun removeChunk(chunk: ChunkPos) {
+        chunks.remove(chunk)
+    }
+
     private fun saveNewChunk(log: PrintWriter?, data: String) {
         log!!.println(data)
     }
