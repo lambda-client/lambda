@@ -28,15 +28,8 @@ object AutoArmor : Module(
     private val timer = TickTimer(TimeUnit.TICKS)
     private var lastTask = TaskState(true)
 
-    var isPaused = false
-
     init {
-        onToggle {
-            isPaused = false
-        }
-
         safeListener<TickEvent.ClientTickEvent> {
-            if (isPaused) return@safeListener
             if (!timer.tick(delay.toLong()) || !lastTask.done) return@safeListener
 
             if (!player.inventory.itemStack.isEmpty) {

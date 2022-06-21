@@ -57,6 +57,10 @@ object PlayerInventoryManager : Manager {
 
                         currentTask.nextInfo()
                         if (currentTask.isDone) transactionQueue.pollFirst()
+
+                        currentTask.owner?.let { owner ->
+                            if (transactionQueue.none { it.owner == owner }) owner.unpause()
+                        }
                     } ?: run {
                         LambdaMod.LOG.error("Container outdated in window: ${player.openContainer}. Skipping task. (id=${packet.actionNumber}, window=${packet.windowId})")
                         next()
@@ -72,7 +76,7 @@ object PlayerInventoryManager : Manager {
 //                return@safeListener
 //            }
 
-            if (LagNotifier.paused) return@safeListener
+            if (LagNotifier.isBaritonePaused) return@safeListener
 
             if (transactionQueue.isEmpty()) {
                 currentId = 0
@@ -179,21 +183,22 @@ object PlayerInventoryManager : Manager {
      */
     fun AbstractModule.addInventoryTask(vararg clickInfo: ClickInfo): TaskState {
         if (NoGhostItems.baritoneSync) NoGhostItems.pauseBaritone()
-        return InventoryTask(currentId++, modulePriority, clickInfo).let {
+        if (!isPaused) pause()
+        return InventoryTask(currentId++, this, clickInfo).let {
             transactionQueue.add(it)
             it.taskState
         }
     }
 
     fun addInventoryTask(vararg clickInfo: ClickInfo) =
-        InventoryTask(currentId++, 0, clickInfo).let {
+        InventoryTask(currentId++, null, clickInfo).let {
             transactionQueue.add(it)
             it.taskState
         }
 
     private data class InventoryTask(
         private val id: Int,
-        private val priority: Int,
+        val owner: AbstractModule?,
         private val infoArray: Array<out ClickInfo>,
         val taskState: TaskState = TaskState(),
         private var index: Int = 0
@@ -208,7 +213,7 @@ object PlayerInventoryManager : Manager {
         }
 
         override fun compareTo(other: InventoryTask): Int {
-            val result = priority - other.priority
+            val result = (owner?.modulePriority ?: 0) - (other.owner?.modulePriority ?: 0)
             return if (result != 0) result
             else other.id - id
         }
@@ -224,7 +229,11 @@ object PlayerInventoryManager : Manager {
         }
 
         override fun toString(): String {
-            return "id: $id priority: $priority taskState: ${taskState.done} index: $index \n${infoArray.joinToString("\n")}"
+            return if (owner != null) {
+                "id: $id priority: ${owner.modulePriority} taskState: ${taskState.done} index: $index \n${infoArray.joinToString("\n")}"
+            } else {
+                "id: $id taskState: ${taskState.done} index: $index \n${infoArray.joinToString("\n")}"
+            }
         }
 
         override fun hashCode() = 31 * infoArray.contentHashCode() + index

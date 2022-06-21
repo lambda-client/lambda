@@ -1,5 +1,6 @@
 package com.lambda.client.module
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ModuleToggleEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui
@@ -42,6 +43,7 @@ abstract class AbstractModule(
 
     val isEnabled: Boolean get() = enabled.value || alwaysEnabled
     val isDisabled: Boolean get() = !isEnabled
+    var isPaused = false
     val chatName: String get() = "[${name}]"
     val isVisible: Boolean get() = visible.value
 
@@ -56,6 +58,7 @@ abstract class AbstractModule(
 
     fun toggle() {
         enabled.value = !enabled.value
+        isPaused = false
         if (enabled.value) clicks.value++
     }
 
@@ -66,6 +69,18 @@ abstract class AbstractModule(
 
     fun disable() {
         enabled.value = false
+    }
+
+    fun pause() {
+        isPaused = true
+        LambdaEventBus.unsubscribe(this)
+        MessageSendHelper.sendChatMessage("$chatName paused.")
+    }
+
+    fun unpause() {
+        isPaused = false
+        LambdaEventBus.subscribe(this)
+        MessageSendHelper.sendChatMessage("$chatName unpaused.")
     }
 
     open fun isActive(): Boolean {

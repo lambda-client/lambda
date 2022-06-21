@@ -50,7 +50,7 @@ object InventoryManager : Module(
     }
 
     private var currentState = State.IDLE
-    private var paused = false
+    private var isBaritonePaused = false
     private val timer = TickTimer(TimeUnit.TICKS)
 
     override fun isActive(): Boolean {
@@ -59,12 +59,12 @@ object InventoryManager : Module(
 
     init {
         onDisable {
-            paused = false
+            isBaritonePaused = false
             unpauseBaritone()
         }
 
         safeListener<PlayerTravelEvent> {
-            if (player.isSpectator || !pauseMovement || !paused) return@safeListener
+            if (player.isSpectator || !pauseMovement || !isBaritonePaused) return@safeListener
             player.setVelocity(0.0, player.motionY, 0.0)
             it.cancel()
         }
@@ -97,7 +97,7 @@ object InventoryManager : Module(
             else -> State.IDLE
         }
 
-        paused = if (currentState != State.IDLE && pauseMovement) {
+        isBaritonePaused = if (currentState != State.IDLE && pauseMovement) {
             pauseBaritone()
             true
         } else {

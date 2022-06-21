@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.PlayerInventoryManager
 import com.lambda.client.manager.managers.PlayerInventoryManager.addInventoryTask
 import com.lambda.client.module.Category
@@ -10,10 +11,11 @@ import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.filterByBlock
 import com.lambda.client.util.items.firstBlock
 import com.lambda.client.util.items.inventorySlots
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.init.Blocks
 import net.minecraft.inventory.ClickType
-import net.minecraftforge.event.world.NoteBlockEvent.Play
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.min
 
 object InventoryTester : Module(
@@ -32,6 +34,12 @@ object InventoryTester : Module(
     private val rp = setting("rp", false)
 
     init {
+        listener<TickEvent.ClientTickEvent> {
+            if (it.phase == TickEvent.Phase.END) return@listener
+
+            MessageSendHelper.sendChatMessage("Running")
+        }
+
         one.consumers.add { _, it ->
             if (it) {
                 runSafe {
