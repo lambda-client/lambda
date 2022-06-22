@@ -1,5 +1,8 @@
 package com.lambda.client.gui.hudgui
 
+import com.lambda.client.commons.interfaces.Alias
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.gui.rgui.windows.BasicWindow
 import com.lambda.client.module.modules.client.GuiColors
@@ -15,9 +18,6 @@ import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.interfaces.Alias
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.commons.interfaces.Nameable
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.glScalef
 

@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.mixin.world.MixinWorld
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.mixin.world.MixinWorld
 
 /**
  * @see MixinWorld.getThunderStrengthHead

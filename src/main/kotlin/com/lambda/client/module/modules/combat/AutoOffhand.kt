@@ -1,21 +1,17 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.extension.next
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Bind
-import com.lambda.client.util.TickTimer
-import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.combat.CombatUtils.calcDamageFromMob
 import com.lambda.client.util.combat.CombatUtils.calcDamageFromPlayer
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.*
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.next
-import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
@@ -25,7 +21,6 @@ import net.minecraft.item.ItemAppleGold
 import net.minecraft.item.ItemEndCrystal
 import net.minecraft.item.ItemPotion
 import net.minecraft.item.ItemStack
-import net.minecraft.network.play.server.SPacketConfirmTransaction
 import net.minecraft.potion.PotionUtils
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent

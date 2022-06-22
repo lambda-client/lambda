@@ -1,9 +1,9 @@
 package com.lambda.client.module.modules.player
 
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.login.client.CPacketEncryptionResponse
 import net.minecraft.network.login.client.CPacketLoginStart
 import net.minecraft.network.login.server.SPacketEnableCompression
@@ -123,7 +123,7 @@ object PacketCancel : Module(
     private val SPacketExplosionSetting by setting("SPacketExplosion", false, { side == Side.SERVER && categorySetting == CategorySlider.WORLD })
     private val SPacketEntityVelocitySetting by setting("SPacketEntityVelocity", false, { side == Side.SERVER && categorySetting == CategorySlider.ENTITY })
     private val SPacketEntityTeleportSetting by setting("SPacketEntityTeleport", false, { side == Side.SERVER && categorySetting == CategorySlider.ENTITY })
-    private val SPacketEntityStatusSetting by setting("SPacketEntityStatus", false, { side == Side.SERVER && categorySetting == CategorySlider.ENTITY})
+    private val SPacketEntityStatusSetting by setting("SPacketEntityStatus", false, { side == Side.SERVER && categorySetting == CategorySlider.ENTITY })
     private val SPacketEntityPropertiesSetting by setting("SPacketEntityProperties", false, { side == Side.SERVER && categorySetting == CategorySlider.ENTITY })
     private val SPacketEntityMetadataSetting by setting("SPacketEntityMetadata", false, { side == Side.SERVER && categorySetting == CategorySlider.ENTITY })
     private val SPacketEntityHeadLookSetting by setting("SPacketEntityHeadLook", false, { side == Side.SERVER && categorySetting == CategorySlider.ENTITY })

@@ -1,11 +1,11 @@
 package com.lambda.client.module.modules.render
 
+import com.lambda.client.commons.utils.MathUtils.round
 import com.lambda.client.manager.managers.UUIDManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.utils.MathUtils.round
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraft.entity.passive.EntityTameable
 import net.minecraftforge.fml.common.gameevent.TickEvent

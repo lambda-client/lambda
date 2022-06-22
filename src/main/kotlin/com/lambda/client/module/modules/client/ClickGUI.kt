@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.event.events.ShutdownEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.StopTimer
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import kotlin.math.round

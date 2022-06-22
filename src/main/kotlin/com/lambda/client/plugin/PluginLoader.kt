@@ -3,9 +3,9 @@ package com.lambda.client.plugin
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.lambda.client.LambdaMod
-import com.lambda.client.plugin.api.Plugin
 import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.commons.utils.ClassUtils.instance
+import com.lambda.client.plugin.api.Plugin
 import net.minecraft.launchwrapper.Launch
 import java.io.File
 import java.io.FileNotFoundException

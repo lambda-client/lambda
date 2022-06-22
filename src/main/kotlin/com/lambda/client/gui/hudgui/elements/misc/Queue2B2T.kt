@@ -2,6 +2,7 @@ package com.lambda.client.gui.hudgui.elements.misc
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import com.lambda.client.commons.utils.grammar
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.manager.managers.NetworkManager
@@ -11,7 +12,6 @@ import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.WebUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
-import com.lambda.client.commons.utils.grammar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

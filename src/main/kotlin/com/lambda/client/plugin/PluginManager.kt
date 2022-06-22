@@ -2,12 +2,12 @@ package com.lambda.client.plugin
 
 import com.lambda.client.AsyncLoader
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.collections.NameableSet
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.plugin.api.Plugin
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.commons.collections.NameableSet
 import kotlinx.coroutines.Deferred
 import net.minecraft.util.text.TextFormatting
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion

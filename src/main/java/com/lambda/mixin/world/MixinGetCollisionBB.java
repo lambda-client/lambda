@@ -33,5 +33,8 @@ public class MixinGetCollisionBB {
             }
         }
     }
-    public Block getBlock(BlockPos var0) {return mc.world.getBlockState(var0).getBlock();}
+
+    public Block getBlock(BlockPos var0) {
+        return mc.world.getBlockState(var0).getBlock();
+    }
 }

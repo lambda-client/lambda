@@ -1,8 +1,10 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.NetworkManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -14,8 +16,6 @@ import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.utils.MathUtils
-import com.lambda.client.event.listener.listener
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.math.Vec3d

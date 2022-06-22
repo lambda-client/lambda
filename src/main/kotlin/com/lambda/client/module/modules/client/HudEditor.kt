@@ -1,10 +1,10 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.event.events.ShutdownEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.hudgui.LambdaHudGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.event.listener.listener
 
 object HudEditor : Module(
     name = "HudEditor",

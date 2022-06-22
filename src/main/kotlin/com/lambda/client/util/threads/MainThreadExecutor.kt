@@ -2,8 +2,8 @@ package com.lambda.client.util.threads
 
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.RunGameLoopEvent
-import com.lambda.client.util.Wrapper
 import com.lambda.client.event.listener.listener
+import com.lambda.client.util.Wrapper
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.completeWith
 import kotlinx.coroutines.runBlocking

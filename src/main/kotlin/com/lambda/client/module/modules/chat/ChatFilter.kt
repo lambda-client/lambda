@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
-import com.lambda.client.event.listener.listener
-import com.lambda.client.util.FolderUtils
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 import java.io.File
 import java.io.FileNotFoundException

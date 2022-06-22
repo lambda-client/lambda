@@ -1,10 +1,10 @@
 package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
+import com.lambda.client.commons.utils.SystemUtils
 import com.lambda.client.event.SafeExecuteEvent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
-import com.lambda.client.commons.utils.SystemUtils
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.JsonToNBT
 import net.minecraft.nbt.NBTTagCompound

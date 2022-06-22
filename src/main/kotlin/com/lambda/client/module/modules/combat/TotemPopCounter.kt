@@ -1,8 +1,10 @@
 package com.lambda.client.module.modules.combat
 
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -11,8 +13,6 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.text.format
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.event.listener.listener
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.network.play.server.SPacketEntityStatus
 import net.minecraft.util.text.TextFormatting

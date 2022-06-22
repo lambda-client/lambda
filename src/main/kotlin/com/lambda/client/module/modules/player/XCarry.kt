@@ -1,10 +1,10 @@
 package com.lambda.client.module.modules.player
 
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.windowID
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketCloseWindow
 
 object XCarry : Module(

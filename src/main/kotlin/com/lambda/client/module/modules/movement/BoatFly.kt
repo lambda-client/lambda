@@ -55,8 +55,8 @@ object BoatFly : Module(
             if (ridingEntity !is EntityBoat || !cancelPlayer) return@safeListener
 
             if (it.packet is CPacketPlayer
-                    || it.packet is CPacketInput
-                    || it.packet is CPacketSteerBoat) {
+                || it.packet is CPacketInput
+                || it.packet is CPacketSteerBoat) {
                 if (it.packet is CPacketInput && it.packet == CPacketInput(0.0f, 0.0f, false, true)) {
                     return@safeListener
                 } else {

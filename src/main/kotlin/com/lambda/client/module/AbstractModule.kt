@@ -1,6 +1,7 @@
 package com.lambda.client.module
 
-import com.lambda.client.LambdaMod
+import com.lambda.client.commons.interfaces.Alias
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ModuleToggleEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui
@@ -13,8 +14,6 @@ import com.lambda.client.setting.settings.impl.other.BindSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.commons.interfaces.Alias
-import com.lambda.client.commons.interfaces.Nameable
 import net.minecraft.client.Minecraft
 
 @Suppress("UNCHECKED_CAST")

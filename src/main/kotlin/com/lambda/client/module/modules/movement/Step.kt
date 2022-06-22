@@ -2,10 +2,12 @@ package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.combat.Surround.inHoleCheck
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.Bind
@@ -13,8 +15,6 @@ import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
-import com.lambda.client.module.modules.combat.Surround.inHoleCheck
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent

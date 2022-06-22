@@ -1,9 +1,12 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.toRadian
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.movement.Speed
@@ -21,9 +24,6 @@ import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.toVec3d
 import com.lambda.client.util.threads.safeAsyncListener
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.toRadian
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.MovementInputFromOptions
 import net.minecraft.util.math.BlockPos

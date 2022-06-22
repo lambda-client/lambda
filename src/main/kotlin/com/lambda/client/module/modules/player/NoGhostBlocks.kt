@@ -12,5 +12,4 @@ object NoGhostBlocks : Module(
     alias = arrayOf("NoGlitchBlocks"),
     description = "Syncs block interactions for strict environments",
     category = Category.PLAYER
-) {
-}
+)

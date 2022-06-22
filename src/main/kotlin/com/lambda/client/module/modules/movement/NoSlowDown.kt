@@ -5,14 +5,11 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.MovementUtils.isMoving
 import com.lambda.client.util.threads.safeListener
 import com.lambda.mixin.world.MixinBlockSoulSand
 import com.lambda.mixin.world.MixinBlockWeb
 import net.minecraft.init.Blocks
 import net.minecraft.item.*
-import net.minecraft.network.play.client.CPacketClickWindow
-import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.client.CPacketPlayerDigging.Action

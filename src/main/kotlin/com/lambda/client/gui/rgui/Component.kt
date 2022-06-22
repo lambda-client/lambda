@@ -1,6 +1,7 @@
 package com.lambda.client.gui.rgui
 
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.GuiConfig
 import com.lambda.client.setting.GuiConfig.setting
@@ -10,7 +11,6 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.HAlign
 import com.lambda.client.util.graphics.font.VAlign
 import com.lambda.client.util.math.Vec2f
-import com.lambda.client.commons.interfaces.Nameable
 import kotlin.math.max
 
 open class Component(

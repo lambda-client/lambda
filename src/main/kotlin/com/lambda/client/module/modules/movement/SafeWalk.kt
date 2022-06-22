@@ -1,6 +1,5 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.mixin.entity.MixinEntity
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.Scaffold
@@ -9,6 +8,7 @@ import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.VectorUtils.toVec3d
 import com.lambda.client.util.threads.runSafeR
+import com.lambda.mixin.entity.MixinEntity
 
 /**
  * @see MixinEntity.moveInvokeIsSneakingPre

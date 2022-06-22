@@ -1,5 +1,6 @@
 package com.lambda.client.gui.hudgui.elements.combat
 
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.gui.hudgui.HudElement
 import com.lambda.client.util.color.ColorGradient
 import com.lambda.client.util.color.ColorHolder
@@ -13,7 +14,6 @@ import com.lambda.client.util.items.countItem
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeAsyncListener
-import com.lambda.client.commons.utils.MathUtils
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.init.Items
 import net.minecraft.item.ItemStack

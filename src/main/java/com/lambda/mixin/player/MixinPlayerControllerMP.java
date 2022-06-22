@@ -2,12 +2,10 @@ package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.PlayerAttackEvent;
-import com.lambda.client.module.modules.player.AutoEat;
 import com.lambda.client.event.events.WindowClickEvent;
-import com.lambda.client.module.modules.player.NoGhostItems;
+import com.lambda.client.module.modules.player.AutoEat;
 import com.lambda.client.module.modules.player.TpsSync;
 import com.lambda.client.util.TpsCalculator;
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
 import net.minecraft.entity.Entity;
