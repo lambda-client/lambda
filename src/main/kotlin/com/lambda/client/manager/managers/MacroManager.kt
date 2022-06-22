@@ -4,11 +4,11 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.lambda.client.LambdaMod
 import com.lambda.client.command.CommandManager
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.ConfigUtils
-import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.event.listener.listener
 import com.lambda.client.util.FolderUtils
+import com.lambda.client.util.text.MessageSendHelper
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Keyboard
 import java.io.File

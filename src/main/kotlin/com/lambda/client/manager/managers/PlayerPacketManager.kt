@@ -4,13 +4,13 @@ import com.lambda.client.event.Phase
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderEntityEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent

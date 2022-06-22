@@ -5,25 +5,24 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.AbstractModule
-import com.lambda.client.util.TaskState
-import com.lambda.client.util.TickTimer
-import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import com.lambda.client.module.modules.player.LagNotifier
 import com.lambda.client.module.modules.player.NoGhostItems
 import com.lambda.client.module.modules.player.NoGhostItems.debugLog
 import com.lambda.client.process.PauseProcess.pauseBaritone
 import com.lambda.client.process.PauseProcess.unpauseBaritone
+import com.lambda.client.util.TaskState
+import com.lambda.client.util.TickTimer
 import com.lambda.client.util.threads.onMainThreadSafe
+import com.lambda.client.util.threads.safeListener
 import kotlinx.coroutines.runBlocking
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Container
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketClickWindow
 import net.minecraft.network.play.server.SPacketConfirmTransaction
-import java.util.*
 import java.util.concurrent.ConcurrentSkipListSet
 
 /**

@@ -22,7 +22,7 @@ vec4 iMouse = vec4(0.);
 mat2 mm2(in float a) {
     float c = cos(a);
     float s = sin(a);
-    return mat2(c,s,-s,c);
+    return mat2(c, s, -s, c);
 }
 
 // Returns the clamped version of the input
@@ -38,7 +38,7 @@ mat2 mm2(in float a) {
 
 float hash12(vec2 p) {
 
-	vec3 p3  = fract(vec3(p.xyx) * 0.1031);
+    vec3 p3  = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 19.19);
     return fract((p3.x + p3.y) * p3.z);
 
@@ -46,7 +46,7 @@ float hash12(vec2 p) {
 
 float hash13(vec3 p3) {
 
-	p3  = fract(p3 * 0.1031);
+    p3  = fract(p3 * 0.1031);
     p3 += dot(p3, p3.yzx + 19.19);
     return fract((p3.x + p3.y) * p3.z);
 
@@ -54,9 +54,9 @@ float hash13(vec3 p3) {
 
 vec3 hash31(float p) {
 
-   vec3 p3 = fract(vec3(p) * vec3(.1031, .1030, .0973));
-   p3 += dot(p3, p3.yzx+19.19);
-   return fract((p3.xxy+p3.yzz)*p3.zyx);
+    vec3 p3 = fract(vec3(p) * vec3(.1031, .1030, .0973));
+    p3 += dot(p3, p3.yzx+19.19);
+    return fract((p3.xxy+p3.yzz)*p3.zyx);
 
 }
 
@@ -67,46 +67,46 @@ vec3 hash31(float p) {
 
 float valueNoise(vec2 p) {
 
-	vec2 i = floor(p);
+    vec2 i = floor(p);
     vec2 f = fract(p);
 
     f = f*f*f*(f*(f*6.0-15.0)+10.0);
 
-    vec2 add = vec2(1.0,0.0);
+    vec2 add = vec2(1.0, 0.0);
     float res = mix(
-        mix(hash12(i + add.yy), hash12(i + add.xy), f.x),
-        mix(hash12(i + add.yx), hash12(i + add.xx), f.x),
-        f.y);
+    mix(hash12(i + add.yy), hash12(i + add.xy), f.x),
+    mix(hash12(i + add.yx), hash12(i + add.xx), f.x),
+    f.y);
     return res;
 
 }
 
 float valueNoise(vec3 p) {
 
-	vec3 i = floor(p);
+    vec3 i = floor(p);
     vec3 f = fract(p);
 
     f = f*f*f*(f*(f*6.0-15.0)+10.0);
 
-    vec2 add = vec2(1.0,0.0);
+    vec2 add = vec2(1.0, 0.0);
     float res = mix(
-        mix(
-        	mix(hash13(i + add.yyy), hash13(i + add.xyy), f.x),
-        	mix(hash13(i + add.yxy), hash13(i + add.xxy), f.x),
-        f.y),
-        mix(
-            mix(hash13(i + add.yyx), hash13(i + add.xyx), f.x),
-        	mix(hash13(i + add.yxx), hash13(i + add.xxx), f.x),
-        f.y),
-        f.z);
+    mix(
+    mix(hash13(i + add.yyy), hash13(i + add.xyy), f.x),
+    mix(hash13(i + add.yxy), hash13(i + add.xxy), f.x),
+    f.y),
+    mix(
+    mix(hash13(i + add.yyx), hash13(i + add.xyx), f.x),
+    mix(hash13(i + add.yxx), hash13(i + add.xxx), f.x),
+    f.y),
+    f.z);
     return res;
 
 }
 
-#define SPEED 1.0
+    #define SPEED 1.0
 
 float noise(vec2 p) {
-	return valueNoise(p);
+    return valueNoise(p);
 }
 
 float fbm4(vec2 p, mat2 m) {
@@ -139,9 +139,9 @@ float warpedNoise(vec2 q) {
     float p2 = 4.0;
 
     float angle = 0.0;
-	float scale = 3.24;
+    float scale = 3.24;
 
-	mat2 m = mat2(cos(angle), sin(angle), -sin(angle), cos(angle)) * scale;
+    mat2 m = mat2(cos(angle), sin(angle), -sin(angle), cos(angle)) * scale;
 
     vec2 o = vec2(0.0);
     o.x = o1 * fbm6(o2*q + vec2(19.2), m);
@@ -211,7 +211,7 @@ vec3 render(vec3 ro, vec3 rd) {
     for (int i = 0; i < noOfPlanes; i++) {
         vec4 col = planeCol(currentPos.xy, currentPos.z);
         if (col.a > 0.001) {
-        	return col.rgb;
+            return col.rgb;
         }
         currentPos += rayStep * planeGap;
     }
@@ -221,7 +221,7 @@ vec3 render(vec3 ro, vec3 rd) {
 
 }
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     // Normalises the fragCoord
     vec2 uv = fragCoord/iResolution.xy;
@@ -235,7 +235,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     // Rotates the ray depending on the mouse position. I lifted this from
     // https://www.shadertoy.com/view/XtGGRt, but it seems to be the common approach
     vec2 mo = iMouse.xy / iResolution.xy-.5;
-    mo = (mo==vec2(-.5))?mo=vec2(0.0, -0.0):mo; // Default position of camera
+    mo = (mo==vec2(-.5))?mo=vec2(0.0, -0.0):mo;// Default position of camera
     mo.x *= iResolution.x/iResolution.y;
     mo *= 0.5;
     rd.yz *= mm2(mo.y);
@@ -243,12 +243,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 
     // Render the ray
     if (rd.z > 0.0) {
-    	vec3 col = render(ro, rd);
-    	fragColor = vec4(col, 1.0);
+        vec3 col = render(ro, rd);
+        fragColor = vec4(col, 1.0);
     }
-    
+
     else {
-    	fragColor = vec4(1.0);
+        fragColor = vec4(1.0);
     }
 
 }

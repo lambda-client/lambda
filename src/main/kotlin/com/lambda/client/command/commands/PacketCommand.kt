@@ -62,7 +62,7 @@ object PacketCommand : ClientCommand(
 
         literal("ClientSettings") {
             string("lang") { lang ->
-                int ("renderDistanceIn") { renderDistanceIn ->
+                int("renderDistanceIn") { renderDistanceIn ->
                     enum<EntityPlayer.EnumChatVisibility>("chatVisibilityIn") { chatVisibilityIn ->
                         boolean("chatColorsIn") { chatColorsIn ->
                             int("modelPartsIn") { modelPartsIn ->

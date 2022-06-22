@@ -29,7 +29,7 @@ const vec3 c6 = vec3(0.9);
 // Original here: https://www.shadertoy.com/view/XsXXRN
 
 float rand(vec2 n) {
-    return fract(sin(cos(dot(n, vec2(12.9898,12.1414)))) * 83758.5453);
+    return fract(sin(cos(dot(n, vec2(12.9898, 12.1414)))) * 83758.5453);
 }
 
 float noise(vec2 n) {
@@ -48,7 +48,7 @@ float fbm(vec2 n) {
     return total;
 }
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     vec2 speed = vec2(0.1, 0.9);
     float shift = 1.327+sin(iTime*2.0)/2.4;
@@ -58,8 +58,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 
     vec2 uv = fragCoord.xy / iResolution.xy;
     vec2 p = fragCoord.xy * dist / iResolution.xx;
-    p += sin(p.yx*4.0+vec2(.2,-.3)*iTime)*0.04;
-    p += sin(p.yx*8.0+vec2(.6,+.1)*iTime)*0.01;
+    p += sin(p.yx*4.0+vec2(.2, -.3)*iTime)*0.04;
+    p += sin(p.yx*8.0+vec2(.6, +.1)*iTime)*0.01;
 
     p.x -= iTime/1.1;
     float q = fbm(p - iTime * 0.3+1.0*sin(iTime+0.5)/2.0);
@@ -70,12 +70,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     q = (q + qb - .4 * q2 -2.0*q3  + .6*q4)/3.8;
     vec2 r = vec2(fbm(p + q /2.0 + iTime * speed.x - p.x - p.y), fbm(p + q - iTime * speed.y));
     vec3 c = mix(c1, c2, fbm(p + r)) + mix(c3, c4, r.x) - mix(c5, c6, r.y);
-    vec3 color = vec3(1.0/(pow(c+1.61,vec3(4.0))) * cos(shift * fragCoord.y / iResolution.y));
+    vec3 color = vec3(1.0/(pow(c+1.61, vec3(4.0))) * cos(shift * fragCoord.y / iResolution.y));
 
-    color=vec3(1.0,.2,.05)/(pow((r.y+r.y)* max(.0,p.y)+0.1, 4.0));;
-    color += (texture(iChannel0,uv*0.6+vec2(.5,.1)).xyz*0.01*pow((r.y+r.y)*.65,5.0)+0.055)*mix( vec3(.9,.4,.3),vec3(.7,.5,.2), uv.y);
-    color = color/(1.0+max(vec3(0),color));
-    fragColor = vec4(color.x, color.y, color.z, alpha);
+    color=vec3(1.0, .2, .05)/(pow((r.y+r.y)* max(.0, p.y)+0.1, 4.0));;
+    color += (texture(iChannel0, uv*0.6+vec2(.5, .1)).xyz*0.01*pow((r.y+r.y)*.65, 5.0)+0.055)*mix(vec3(.9, .4, .3), vec3(.7, .5, .2), uv.y);
+color = color/(1.0+max(vec3(0), color));
+fragColor = vec4(color.x, color.y, color.z, alpha);
 }
 // --------[ Original ShaderToy ends here ]---------- //
 
