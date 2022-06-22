@@ -190,12 +190,6 @@ object PlayerInventoryManager : Manager {
         }
     }
 
-    fun addInventoryTask(vararg clickInfo: ClickInfo) =
-        InventoryTask(currentId++, null, clickInfo).let {
-            transactionQueue.add(it)
-            it.taskState
-        }
-
     private data class InventoryTask(
         private val id: Int,
         val owner: AbstractModule?,

@@ -74,13 +74,11 @@ abstract class AbstractModule(
     fun pause() {
         isPaused = true
         LambdaEventBus.unsubscribe(this)
-        MessageSendHelper.sendChatMessage("$chatName paused.")
     }
 
     fun unpause() {
         isPaused = false
         LambdaEventBus.subscribe(this)
-        MessageSendHelper.sendChatMessage("$chatName unpaused.")
     }
 
     open fun isActive(): Boolean {
