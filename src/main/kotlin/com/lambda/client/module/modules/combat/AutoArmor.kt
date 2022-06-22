@@ -34,7 +34,7 @@ object AutoArmor : Module(
 
             if (!player.inventory.itemStack.isEmpty) {
                 if (mc.currentScreen is GuiContainer) timer.reset(150L) // Wait for 3 extra ticks if player is moving item
-                else removeHoldingItem()
+                else removeHoldingItem(this@AutoArmor)
                 return@safeListener
             }
 

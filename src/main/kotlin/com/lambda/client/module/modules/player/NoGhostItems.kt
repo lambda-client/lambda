@@ -17,7 +17,7 @@ object NoGhostItems : Module(
     description = "Syncs inventory transactions for strict environments",
     category = Category.PLAYER
 ) {
-    val syncMode by setting("Scope", SyncMode.ALL)
+    val syncMode by setting("Scope", SyncMode.MODULES)
     val baritoneSync by setting("Baritone pause", true, description = "Pauses Baritone until transaction is complete.")
     val timeout by setting("Timeout in ms", 800, 1..2500, 25)
     val maxRetries by setting("Max retries", 8, 0..20, 1)

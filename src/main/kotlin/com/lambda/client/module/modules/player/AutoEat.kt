@@ -169,7 +169,7 @@ object AutoEat : Module(
     private fun SafeClientEvent.moveFoodToHotbar(preferredFood: PreferredFood): Boolean {
         val slotFrom = getFoodSlot(preferredFood, player.storageSlots) ?: return false
 
-        moveToHotbar(slotFrom) {
+        moveToHotbar(this@AutoEat, slotFrom) {
             val item = it.item
             item !is ItemTool && item !is ItemBlock
         }

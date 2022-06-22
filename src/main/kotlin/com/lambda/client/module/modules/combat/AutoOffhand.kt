@@ -141,7 +141,7 @@ object AutoOffhand : Module(
         getItemSlot(typeOriginal, attempts)?.let { (slot, typeAlt) ->
             if (slot == player.offhandSlot) return
 
-            moveToSlot(slot, player.offhandSlot)
+            moveToSlot(this@AutoOffhand, slot, player.offhandSlot)
 
             if (switchMessage) MessageSendHelper.sendChatMessage("$chatName Offhand now has a ${typeAlt.toString().lowercase()}")
         }

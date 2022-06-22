@@ -100,7 +100,7 @@ object BedAura : Module(
             inactiveTicks++
             if (canRefill() && refillTimer.tick(refillDelay.toLong())) {
                 player.storageSlots.firstItem<ItemBed, Slot>()?.let {
-                    quickMoveSlot(it)
+                    quickMoveSlot(this@BedAura, it)
                 }
             }
 

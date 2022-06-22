@@ -81,7 +81,7 @@ object InventoryManager : Module(
                 State.REFILLING_BUILDING -> refillBuilding()
                 State.REFILLING -> refill()
                 State.EJECTING -> eject()
-                State.IDLE -> removeHoldingItem()
+                State.IDLE -> removeHoldingItem(this@InventoryManager)
             }
 
             playerController.syncCurrentPlayItem()
@@ -143,10 +143,10 @@ object InventoryManager : Module(
 
         when {
             autoRefill && undamagedItem != null -> {
-                moveToHotbar(undamagedItem.slotNumber, currentSlot)
+                moveToHotbar(this@InventoryManager, undamagedItem.slotNumber, currentSlot)
             }
             emptySlot != null -> {
-                moveToHotbar(emptySlot.slotNumber, currentSlot)
+                moveToHotbar(this@InventoryManager, emptySlot.slotNumber, currentSlot)
             }
             else -> {
                 player.dropItem(false)
@@ -156,7 +156,7 @@ object InventoryManager : Module(
 
     private fun SafeClientEvent.refillBuilding() {
         player.storageSlots.firstID(buildingBlockID)?.let {
-            quickMoveSlot(it)
+            quickMoveSlot(this@InventoryManager, it)
         }
     }
 
@@ -164,12 +164,12 @@ object InventoryManager : Module(
         val slotTo = getRefillableSlot() ?: return
         val slotFrom = getCompatibleStack(slotTo.stack) ?: return
 
-        moveToSlot(slotFrom, slotTo)
+        moveToSlot(this@InventoryManager, slotFrom, slotTo)
     }
 
     private fun SafeClientEvent.eject() {
         getEjectSlot()?.let {
-            throwAllInSlot(it)
+            throwAllInSlot(this@InventoryManager, it)
         }
     }
     /* End of tasks */

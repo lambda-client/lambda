@@ -128,9 +128,9 @@ object ChestStealer : Module(
 
         if (timer.tick(delay.toLong())) {
             when (movingMode) {
-                MovingMode.QUICK_MOVE -> quickMoveSlot(windowID, slot)
-                MovingMode.PICKUP -> moveToSlot(windowID, slot, slotTo.slotNumber)
-                MovingMode.THROW -> throwAllInSlot(windowID, slot)
+                MovingMode.QUICK_MOVE -> quickMoveSlot(this@ChestStealer, windowID, slot)
+                MovingMode.PICKUP -> moveToSlot(this@ChestStealer, windowID, slot, slotTo.slotNumber)
+                MovingMode.THROW -> throwAllInSlot(this@ChestStealer, windowID, slot)
             }
         }
 
