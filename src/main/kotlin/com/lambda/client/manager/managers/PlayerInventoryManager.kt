@@ -15,9 +15,11 @@ import com.lambda.client.process.PauseProcess.pauseBaritone
 import com.lambda.client.process.PauseProcess.unpauseBaritone
 import com.lambda.client.util.TaskState
 import com.lambda.client.util.TickTimer
+import com.lambda.client.util.items.removeHoldingItem
 import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
 import kotlinx.coroutines.runBlocking
+import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Container
 import net.minecraft.item.ItemStack
@@ -29,7 +31,7 @@ import java.util.concurrent.ConcurrentSkipListSet
  * @see NoGhostItems
  */
 object PlayerInventoryManager : Manager {
-    val timer = TickTimer()
+    private val transactionTimer = TickTimer()
     private val transactionQueue = ConcurrentSkipListSet<InventoryTask>(Comparator.reverseOrder())
 
     private var currentId = 0
@@ -69,12 +71,6 @@ object PlayerInventoryManager : Manager {
         }
 
         safeListener<RenderOverlayEvent>(0) {
-//            if (!player.inventory.itemStack.isEmpty) { ToDo: Rewrite idea
-//                if (mc.currentScreen is GuiContainer) timer.reset(250L) // Wait for 5 extra ticks if player is moving item
-//                else removeHoldingItem()
-//                return@safeListener
-//            }
-
             if (LagNotifier.isBaritonePaused) return@safeListener
 
             if (transactionQueue.isEmpty()) {
@@ -83,16 +79,22 @@ object PlayerInventoryManager : Manager {
                 return@safeListener
             }
 
+            if (currentId == 0 && !player.inventory.itemStack.isEmpty) {
+                if (mc.currentScreen is GuiContainer) transactionTimer.reset(250L) // Wait for 5 extra ticks if player is moving item
+                else removeHoldingItem(NoGhostItems)
+                return@safeListener
+            }
+
             transactionQueue.firstOrNull()?.let { currentTask ->
                 currentTask.currentInfo()?.let { currentInfo ->
-                    if (currentInfo.transactionId < 0 || timer.tick(NoGhostItems.timeout, false)) {
+                    if (currentInfo.transactionId < 0 || transactionTimer.tick(NoGhostItems.timeout, false)) {
                         if (currentInfo.tries > NoGhostItems.maxRetries) {
                             LambdaMod.LOG.error("Max inventory transaction tries exceeded. Skipping task.")
                             next()
                         }
 
                         deployWindowClick(currentInfo)
-                        timer.reset()
+                        transactionTimer.reset()
                     }
                 }
             }
@@ -163,7 +165,7 @@ object PlayerInventoryManager : Manager {
 
     fun next() {
         transactionQueue.pollFirst()
-        timer.skipTime(NoGhostItems.timeout)
+        transactionTimer.skipTime(NoGhostItems.timeout)
     }
 
     fun reset() {
