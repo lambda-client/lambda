@@ -4,6 +4,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.GuiMerchant
 import net.minecraft.client.gui.GuiRepair
 import net.minecraft.client.gui.inventory.*
 import net.minecraft.init.Items
+import net.minecraft.inventory.ContainerShulkerBox
 import net.minecraft.item.ItemShulkerBox
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
@@ -24,7 +26,7 @@ object ChestStealer : Module(
     val mode by setting("Mode", Mode.TOGGLE)
     private val movingMode by setting("Moving Mode", MovingMode.QUICK_MOVE)
     private val ignoreEjectItem by setting("Ignores Eject Item", false, description = "Ignore AutoEject items in InventoryManager")
-    private val delay by setting("Delay", 250, 0..1000, 25, description = "Move stack delay in ms")
+    private val delay by setting("Delay", 5, 0..20, 1, description = "Move stack delay", unit = " ticks")
     private val onlyShulkers by setting("Only Shulkers", false, description = "Only move shulker boxes")
 
     enum class Mode {
@@ -41,7 +43,7 @@ object ChestStealer : Module(
 
     var stealing = false
     var storing = false
-    val timer = TickTimer()
+    val timer = TickTimer(TimeUnit.TICKS)
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
@@ -126,11 +128,11 @@ object ChestStealer : Module(
             ?: return false
         val windowID = player.openContainer.windowId
 
-        if (timer.tick(delay.toLong())) {
+        if (timer.tick(delay) || (NoGhostItems.syncMode != NoGhostItems.SyncMode.PLAYER && NoGhostItems.isEnabled)) {
             when (movingMode) {
-                MovingMode.QUICK_MOVE -> quickMoveSlot(windowID, slot)
-                MovingMode.PICKUP -> moveToSlot(windowID, slot, slotTo.slotNumber)
-                MovingMode.THROW -> throwAllInSlot(windowID, slot)
+                MovingMode.QUICK_MOVE -> quickMoveSlot(this@ChestStealer, windowID, slot)
+                MovingMode.PICKUP -> moveToSlot(this@ChestStealer, windowID, slot, slotTo.slotNumber)
+                MovingMode.THROW -> throwAllInSlot(this@ChestStealer, windowID, slot)
             }
         }
 
@@ -159,6 +161,7 @@ object ChestStealer : Module(
         for (slot in size until size + 36) {
             val item = container[slot].item
             if (item == Items.AIR) continue
+            if (player.openContainer is ContainerShulkerBox && item is ItemShulkerBox) continue
             if (!onlyShulkers || item is ItemShulkerBox) {
                 return slot
             }

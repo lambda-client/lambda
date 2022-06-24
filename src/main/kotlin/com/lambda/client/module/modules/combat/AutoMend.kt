@@ -45,7 +45,7 @@ object AutoMend : Module(
 
     private var initHotbarSlot = -1
     private var isGuiOpened = false
-    private var paused = false
+    private var pausedPending = false
 
     private val throwDelayTimer = TickTimer(TimeUnit.TICKS)
 
@@ -56,7 +56,7 @@ object AutoMend : Module(
 
     init {
         onEnable {
-            paused = false
+            pausedPending = false
             if (autoSwitch) {
                 runSafe {
                     initHotbarSlot = player.inventory.currentItem
@@ -71,7 +71,6 @@ object AutoMend : Module(
             }
         }
 
-        // TODO: Add proper module pausing system
         pauseAutoArmor.listeners.add {
             if (!pauseAutoArmor.value) {
                 AutoArmor.isPaused = false
@@ -94,15 +93,15 @@ object AutoMend : Module(
                     if (cancelNearby == NearbyMode.DISABLE) {
                         disable()
                     } else {
-                        if (!paused)
+                        if (!pausedPending)
                             switchback()
-                        paused = true
+                        pausedPending = true
                     }
 
                     return@safeListener
                 }
 
-                paused = false
+                pausedPending = false
 
                 // don't call twice in same tick so store in a var
                 val shouldMend = shouldMend(0) || shouldMend(1) || shouldMend(2) || shouldMend(3)
@@ -152,8 +151,8 @@ object AutoMend : Module(
                         minSlot = emptySlot + 1
 
                         if (emptySlot == -1) break
-                        clickSlot(player.inventoryContainer.windowId, 8 - i, 0, ClickType.PICKUP)
-                        clickSlot(player.inventoryContainer.windowId, emptySlot, 0, ClickType.PICKUP)
+                        clickSlot(this@AutoMend, player.inventoryContainer.windowId, 8 - i, 0, ClickType.PICKUP)
+                        clickSlot(this@AutoMend, player.inventoryContainer.windowId, emptySlot, 0, ClickType.PICKUP)
                     }
                 }
             }

@@ -1,6 +1,8 @@
 package com.lambda.client.module.modules.render
 
+import com.lambda.client.commons.utils.MathUtils.convertRange
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -11,8 +13,6 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.color.HueCycler
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.utils.MathUtils.convertRange
-import com.lambda.client.event.listener.listener
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent

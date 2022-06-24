@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.mixin.entity.MixinEntity
-import com.lambda.mixin.world.MixinBlockLiquid
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.safeListener
+import com.lambda.mixin.entity.MixinEntity
+import com.lambda.mixin.world.MixinBlockLiquid
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.Entity
 import net.minecraft.network.play.server.SPacketEntityVelocity

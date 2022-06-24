@@ -7,9 +7,9 @@ import com.lambda.mixin.world.MixinItemBlock
 /**
  * @see MixinItemBlock.ignoreSetBlockState
  */
-object NoGlitchBlocks : Module(
-    name = "NoGlitchBlocks",
+object NoGhostBlocks : Module(
+    name = "NoGhostBlocks",
+    alias = arrayOf("NoGlitchBlocks"),
     description = "Syncs block interactions for strict environments",
     category = Category.PLAYER
-) {
-}
+)

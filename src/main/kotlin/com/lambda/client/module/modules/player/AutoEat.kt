@@ -1,17 +1,17 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.commons.extension.next
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.process.PauseProcess.pauseBaritone
 import com.lambda.client.process.PauseProcess.unpauseBaritone
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.next
-import com.lambda.client.util.TickTimer
-import com.lambda.client.util.TimeUnit
 import com.lambda.mixin.player.MixinPlayerControllerMP
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
@@ -169,7 +169,7 @@ object AutoEat : Module(
     private fun SafeClientEvent.moveFoodToHotbar(preferredFood: PreferredFood): Boolean {
         val slotFrom = getFoodSlot(preferredFood, player.storageSlots) ?: return false
 
-        moveToHotbar(slotFrom) {
+        moveToHotbar(this@AutoEat, slotFrom) {
             val item = it.item
             item !is ItemTool && item !is ItemBlock
         }

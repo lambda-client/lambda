@@ -1,6 +1,6 @@
 package com.lambda.mixin.world;
 
-import com.lambda.client.module.modules.player.NoGlitchBlocks;
+import com.lambda.client.module.modules.player.NoGhostBlocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.util.math.BlockPos;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class MixinItemBlock {
     @Redirect(method = "placeBlockAt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
     private boolean ignoreSetBlockState(World instance, BlockPos p_setBlockState_1_, IBlockState p_setBlockState_2_, int p_setBlockState_3_) {
-        if (NoGlitchBlocks.INSTANCE.isEnabled()) {
+        if (NoGhostBlocks.INSTANCE.isEnabled()) {
             return true;
         } else {
             return instance.setBlockState(p_setBlockState_1_, p_setBlockState_2_, p_setBlockState_3_);

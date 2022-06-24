@@ -1,10 +1,10 @@
 package com.lambda.client.plugin
-import java.util.jar.JarFile
-import java.lang.ClassNotFoundException
-import java.io.IOException
+
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.util.jar.JarEntry
+import java.util.jar.JarFile
 
 // A custom class loader that only opens the file while it is actually reading from it then closes the file so that it can be deleted / changed.
 class PluginClassLoader(jar: JarFile, parent: ClassLoader) : ClassLoader(parent) {

@@ -1,21 +1,17 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.extension.next
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Bind
-import com.lambda.client.util.TickTimer
-import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.combat.CombatUtils.calcDamageFromMob
 import com.lambda.client.util.combat.CombatUtils.calcDamageFromPlayer
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.*
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.next
-import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
@@ -25,7 +21,6 @@ import net.minecraft.item.ItemAppleGold
 import net.minecraft.item.ItemEndCrystal
 import net.minecraft.item.ItemPotion
 import net.minecraft.item.ItemStack
-import net.minecraft.network.play.server.SPacketConfirmTransaction
 import net.minecraft.potion.PotionUtils
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -35,6 +30,7 @@ import kotlin.math.ceil
 
 object AutoOffhand : Module(
     name = "AutoOffhand",
+    alias = arrayOf("AutoTotem"),
     description = "Manages item in your offhand",
     category = Category.COMBAT
 ) {
@@ -70,10 +66,6 @@ object AutoOffhand : Module(
     // General
     private val priority by setting("Priority", Priority.HOTBAR)
     private val switchMessage by setting("Switch Message", true)
-    private val delay by setting("Delay", 2, 1..20, 1,
-        description = "Ticks to wait between each move")
-    private val confirmTimeout by setting("Confirm Timeout", 5, 1..20, 1,
-        description = "Maximum ticks to wait for confirm packets from server")
 
     private enum class Type(val filter: (ItemStack) -> Boolean) {
         TOTEM({ it.item.id == 449 }),
@@ -87,9 +79,6 @@ object AutoOffhand : Module(
         HOTBAR, INVENTORY
     }
 
-    private val transactionLog = HashMap<Short, Boolean>()
-    private val confirmTimer = TickTimer(TimeUnit.TICKS)
-    private val movingTimer = TickTimer(TimeUnit.TICKS)
     private var maxDamage = 0f
 
     init {
@@ -103,31 +92,10 @@ object AutoOffhand : Module(
             }
         }
 
-        safeListener<PacketEvent.Receive> {
-            if (it.packet !is SPacketConfirmTransaction || it.packet.windowId != 0 || !transactionLog.containsKey(it.packet.actionNumber)) return@safeListener
-
-            transactionLog[it.packet.actionNumber] = true
-            if (!transactionLog.containsValue(false)) {
-                confirmTimer.reset(confirmTimeout * -50L) // If all the click packets were accepted then we reset the timer for next moving
-            }
-        }
-
         safeListener<TickEvent.ClientTickEvent>(1100) {
             if (player.isDead || player.health <= 0.0f) return@safeListener
 
-            if (!confirmTimer.tick(confirmTimeout.toLong(), false)) return@safeListener
-            if (!movingTimer.tick(delay.toLong(), false)) return@safeListener // Delays `delay` ticks
-
             updateDamage()
-
-            if (!player.inventory.itemStack.isEmpty) { // If player is holding an in inventory
-                if (mc.currentScreen is GuiContainer) { // If inventory is open (playing moving item)
-                    movingTimer.reset() // reset movingTimer as the user is currently interacting with the inventory.
-                } else { // If inventory is not open (ex. inventory desync)
-                    removeHoldingItem()
-                }
-                return@safeListener
-            }
 
             switchToType(getType(), true)
         }
@@ -168,15 +136,7 @@ object AutoOffhand : Module(
         getItemSlot(typeOriginal, attempts)?.let { (slot, typeAlt) ->
             if (slot == player.offhandSlot) return
 
-            transactionLog.clear()
-            moveToSlot(slot, player.offhandSlot).forEach {
-                transactionLog[it] = false
-            }
-
-            playerController.updateController()
-
-            confirmTimer.reset()
-            movingTimer.reset()
+            moveToSlot(this@AutoOffhand, slot, player.offhandSlot)
 
             if (switchMessage) MessageSendHelper.sendChatMessage("$chatName Offhand now has a ${typeAlt.toString().lowercase()}")
         }

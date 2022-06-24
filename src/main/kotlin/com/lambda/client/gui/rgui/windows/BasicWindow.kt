@@ -1,5 +1,6 @@
 package com.lambda.client.gui.rgui.windows
 
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.setting.GuiConfig
@@ -8,7 +9,6 @@ import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
-import com.lambda.client.commons.interfaces.Nameable
 
 /**
  * Window with rectangle rendering

@@ -1,10 +1,10 @@
 package com.lambda.client.gui.hudgui.elements.player
 
+import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.InfoCalculator.speed
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.commons.utils.MathUtils
 import java.util.*
 
 internal object PlayerSpeed : LabelHud(

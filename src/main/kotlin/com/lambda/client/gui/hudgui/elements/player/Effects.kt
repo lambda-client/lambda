@@ -4,8 +4,8 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.color.ColorConverter
 import com.lambda.client.util.text.RomanNumerals
-import net.minecraft.potion.*
 import net.minecraft.client.resources.I18n
+import net.minecraft.potion.Potion
 
 internal object Effects : LabelHud(
     name = "Effects",

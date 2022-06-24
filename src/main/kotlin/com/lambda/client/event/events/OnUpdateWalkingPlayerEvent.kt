@@ -1,12 +1,12 @@
 package com.lambda.client.event.events
 
+import com.lambda.client.commons.extension.next
 import com.lambda.client.event.Cancellable
 import com.lambda.client.event.Event
 import com.lambda.client.event.IMultiPhase
 import com.lambda.client.event.Phase
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.util.math.Vec2f
-import com.lambda.client.commons.extension.next
 import net.minecraft.util.math.Vec3d
 
 class OnUpdateWalkingPlayerEvent private constructor(

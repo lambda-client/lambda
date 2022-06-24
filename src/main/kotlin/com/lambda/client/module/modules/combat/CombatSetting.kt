@@ -1,7 +1,9 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -26,8 +28,6 @@ import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.isActiveOrFalse
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.minecraft.entity.Entity

@@ -1,14 +1,14 @@
 package com.lambda.client.manager.managers
 
+import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.event.events.RunGameLoopEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.mixin.extension.tickLength
 import com.lambda.client.mixin.extension.timer
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.event.listener.listener
 import java.util.*
 
 object TimerManager : Manager {

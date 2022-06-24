@@ -1,8 +1,10 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.NetworkManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -14,8 +16,6 @@ import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.utils.MathUtils
-import com.lambda.client.event.listener.listener
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.math.Vec3d
@@ -41,11 +41,11 @@ object LagNotifier : Module(
     private val lastRubberBandTimer = TickTimer()
     private var text = ""
 
-    var paused = false; private set
+    var isBaritonePaused = false; private set
 
     init {
         onDisable {
-            unpause()
+            requestUnpause()
         }
 
         listener<RenderOverlayEvent> {
@@ -62,7 +62,7 @@ object LagNotifier : Module(
 
         safeListener<TickEvent.ClientTickEvent> {
             if (mc.isIntegratedServerRunning) {
-                unpause()
+                requestUnpause()
                 text = ""
             } else {
                 val timeoutMillis = (timeout * 1000.0f).toLong()
@@ -72,14 +72,14 @@ object LagNotifier : Module(
                         else "Server Not Responding! "
 
                         text += timeDifference(lastPacketTimer.time)
-                        pause()
+                        requestPause()
                     }
                     detectRubberBand && !lastRubberBandTimer.tick(timeoutMillis, false) -> {
                         text = "RubberBand Detected! ${timeDifference(lastRubberBandTimer.time)}"
-                        pause()
+                        requestPause()
                     }
                     else -> {
-                        unpause()
+                        requestUnpause()
                     }
                 }
             }
@@ -102,22 +102,22 @@ object LagNotifier : Module(
         }
     }
 
-    private fun pause() {
-        if (!paused && pauseBaritone && feedback) {
+    private fun requestPause() {
+        if (!isBaritonePaused && pauseBaritone && feedback) {
             MessageSendHelper.sendBaritoneMessage("Paused due to lag!")
         }
 
         pauseBaritone()
-        paused = true
+        isBaritonePaused = true
     }
 
-    private fun unpause() {
-        if (paused && pauseBaritone && feedback) {
+    private fun requestUnpause() {
+        if (isBaritonePaused && pauseBaritone && feedback) {
             MessageSendHelper.sendBaritoneMessage("Unpaused!")
         }
 
         unpauseBaritone()
-        paused = false
+        isBaritonePaused = false
         text = ""
     }
 

@@ -9,7 +9,6 @@ import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.OpenGlHelper
 import net.minecraftforge.common.ForgeVersion
 import org.lwjgl.opengl.GL11
-import java.util.*
 
 object TroubleshootCommand : ClientCommand(
     name = "troubleshoot",

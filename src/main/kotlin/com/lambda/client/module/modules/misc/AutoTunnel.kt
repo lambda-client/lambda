@@ -2,15 +2,15 @@ package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.events.BaritoneCommandEvent
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.movement.AutoWalk
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.math.RotationUtils
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import com.lambda.client.util.text.capitalize
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.util.EnumFacing
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.round

@@ -4,7 +4,7 @@ import com.lambda.client.LambdaMod
 import kotlinx.coroutines.*
 
 @OptIn(DelicateCoroutinesApi::class)
-internal object BackgroundScope : CoroutineScope by CoroutineScope(newFixedThreadPoolContext(2, "Lambda Background")) {
+object BackgroundScope : CoroutineScope by CoroutineScope(newFixedThreadPoolContext(2, "Lambda Background")) {
 
     private val jobs = LinkedHashMap<BackgroundJob, Job?>()
     private var started = false

@@ -1,5 +1,7 @@
 package com.lambda.client.gui.hudgui.elements.client
 
+import com.lambda.client.commons.extension.sumByFloat
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.gui.hudgui.HudElement
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.ModuleManager
@@ -15,8 +17,6 @@ import com.lambda.client.util.graphics.font.HAlign
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.graphics.font.VAlign
 import com.lambda.client.util.threads.safeAsyncListener
-import com.lambda.client.commons.extension.sumByFloat
-import com.lambda.client.commons.interfaces.DisplayEnum
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.awt.Color
