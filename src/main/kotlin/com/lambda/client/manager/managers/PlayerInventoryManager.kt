@@ -48,6 +48,7 @@ object PlayerInventoryManager : Manager {
                 ) {
                     if (!packet.wasAccepted()) {
                         LambdaMod.LOG.error("Transaction ${clickInfo.transactionId} was denied. Skipping task. (id=${packet.actionNumber}, window=${packet.windowId})")
+                        unpauseModule(currentTask.owner)
                         next()
                         return@safeListener
                     }
@@ -59,11 +60,10 @@ object PlayerInventoryManager : Manager {
                         currentTask.nextInfo()
                         if (currentTask.isDone) transactionQueue.pollFirst()
 
-                        currentTask.owner?.let { owner ->
-                            if (transactionQueue.none { it.owner == owner }) owner.unpause()
-                        }
+                        unpauseModule(currentTask.owner)
                     } ?: run {
                         LambdaMod.LOG.error("Container outdated in window: ${player.openContainer}. Skipping task. (id=${packet.actionNumber}, window=${packet.windowId})")
+                        unpauseModule(currentTask.owner)
                         next()
                     }
                 }
@@ -90,10 +90,11 @@ object PlayerInventoryManager : Manager {
                     if (currentInfo.transactionId < 0 || transactionTimer.tick(NoGhostItems.timeout, false)) {
                         if (currentInfo.tries > NoGhostItems.maxRetries) {
                             LambdaMod.LOG.error("Max inventory transaction tries exceeded. Skipping task.")
+                            unpauseModule(currentTask.owner)
                             next()
                         }
 
-                        deployWindowClick(currentInfo)
+                        deployWindowClick(currentInfo, currentTask)
                         transactionTimer.reset()
                     }
                 }
@@ -105,14 +106,15 @@ object PlayerInventoryManager : Manager {
         }
     }
 
-    private fun SafeClientEvent.deployWindowClick(currentInfo: ClickInfo) {
-        val transactionId = clickSlotServerSide(currentInfo)
+    private fun SafeClientEvent.deployWindowClick(currentInfo: ClickInfo, currentTask: InventoryTask) {
+        val transactionId = clickSlotServerSide(currentInfo, currentTask)
         if (transactionId > -1) {
             currentInfo.transactionId = transactionId
             currentInfo.tries++
             if (debugLog) LambdaMod.LOG.info("Transaction successfully initiated. ${transactionQueue.size} left. $currentInfo")
         } else {
             LambdaMod.LOG.error("Container outdated. Skipping task. $currentInfo")
+            unpauseModule(currentTask.owner)
             next()
         }
     }
@@ -122,7 +124,7 @@ object PlayerInventoryManager : Manager {
      *
      * @return Transaction id
      */
-    private fun SafeClientEvent.clickSlotServerSide(currentInfo: ClickInfo): Short {
+    private fun SafeClientEvent.clickSlotServerSide(currentInfo: ClickInfo, currentTask: InventoryTask): Short {
         var transactionID: Short = -1
 
         getContainerOrNull(currentInfo.windowId)?.let { activeContainer ->
@@ -150,6 +152,7 @@ object PlayerInventoryManager : Manager {
             }
         } ?: run {
             LambdaMod.LOG.error("Container outdated. Skipping task. $currentInfo")
+            unpauseModule(currentTask.owner)
             next()
         }
 
@@ -162,6 +165,10 @@ object PlayerInventoryManager : Manager {
         } else {
             null
         }
+
+    private fun unpauseModule(owner: AbstractModule?) {
+        owner?.let { if (transactionQueue.none { it.owner == owner }) owner.unpause() }
+    }
 
     fun next() {
         transactionQueue.pollFirst()
