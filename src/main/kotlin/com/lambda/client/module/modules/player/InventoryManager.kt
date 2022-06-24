@@ -42,7 +42,7 @@ object InventoryManager : Module(
     private val autoEject by setting("Auto Eject", false)
     private val fullOnly by setting("Only At Full", false, { autoEject })
     private val pauseMovement by setting("Pause Movement", true)
-    private val delay by setting("Delay Ticks", 1, 0..20, 1)
+    private val delay by setting("Delay Ticks", 1, 0..20, 1, unit = " ticks")
     val ejectList = setting(CollectionSetting("Eject List", defaultEjectList))
 
     enum class State {
@@ -72,7 +72,7 @@ object InventoryManager : Module(
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START || player.isSpectator || mc.currentScreen is GuiContainer) return@safeListener
 
-            if (!timer.tick(delay.toLong())) return@safeListener
+            if (!timer.tick(delay) && !(NoGhostItems.syncMode != NoGhostItems.SyncMode.PLAYER && NoGhostItems.isEnabled)) return@safeListener
 
             setState()
 
