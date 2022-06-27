@@ -44,7 +44,7 @@ object DiscordRPC : Module(
     private lateinit var ipc: IPCClient
     private var initialised = false
     private val rpcBuilder = RichPresence.Builder()
-        .setLargeImage("default", "lambda-client.com")
+        .setLargeImage("default", "https://github.com/lambda-client/lambda/")
     private val timer = TickTimer(TimeUnit.SECONDS)
     private val job = BackgroundJob("Discord RPC", 5000L) { updateRPC() }
 
