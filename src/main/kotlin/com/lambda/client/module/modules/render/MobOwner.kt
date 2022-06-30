@@ -6,6 +6,8 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityLiving
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraft.entity.passive.EntityTameable
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -36,79 +38,66 @@ object MobOwner : Module(
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
-            for (entity in world.loadedEntityList) {
-                /* Non Horse types, such as wolves */
-                if (entity is EntityTameable) {
-                    val ownerUUID = entity.ownerId
-                    if (!entity.isTamed || ownerUUID == null) continue
-                    val owner = if (nullUUIDs.contains(ownerUUID)) null else UUIDManager.getByUUID(ownerUUID)
-                    val ownerName = if (owner == null) {
-                        nullUUIDs.add(ownerUUID)
-                        invalidText
-                    } else {
-                        owner.name
-                    }
-                    val entityData = originalCustomNameTags.getOrPut(entity.uniqueID) { EntityData(originalCustomNameTag = entity.customNameTag) }
-                    if (entityData.previous != null && entity.customNameTag != entityData.previous) {
-                        entityData.originalCustomNameTag = entity.customNameTag
-                    }
-                    entity.alwaysRenderNameTag = true
-                    entity.customNameTag = "${if (entityData.originalCustomNameTag != "") "${entityData.originalCustomNameTag} | " else ""}Owner: " + ownerName + getHealth(entity)
-                    entityData.previous = entity.customNameTag
+            /* Non Horse types, such as wolves */
+            world.loadedEntityList.filterIsInstance<EntityTameable>().filter {
+                it.isTamed
+            }.forEach { entity ->
+                entity.ownerId?.let {
+                    changeEntityData(it, entity)
                 }
+            }
 
-                if (entity is AbstractHorse) {
-                    val ownerUUID = entity.ownerUniqueId
-                    if (!entity.isTame || ownerUUID == null) continue
-                    val owner = if (nullUUIDs.contains(ownerUUID)) null else UUIDManager.getByUUID(ownerUUID)
-                    val ownerName = if (owner == null) {
-                        nullUUIDs.add(ownerUUID)
-                        invalidText
-                    } else {
-                        owner.name
-                    }
-                    val entityData = originalCustomNameTags.getOrPut(entity.uniqueID) { EntityData(entity.customNameTag) }
-                    if (entityData.previous != null && entity.customNameTag != entityData.previous) {
-                        entityData.originalCustomNameTag = entity.customNameTag
-                    }
-                    entity.alwaysRenderNameTag = true
-                    entity.customNameTag = "${if (entityData.originalCustomNameTag != "") "${entityData.originalCustomNameTag} | " else ""}Owner: " + ownerName + getSpeed(entity) + getJump(entity) + getHealth(entity)
-                    entityData.previous = entity.customNameTag
+            world.loadedEntityList.filterIsInstance<AbstractHorse>().filter {
+                it.isTame
+            }.forEach { entity ->
+                entity.ownerUniqueId?.let {
+                    changeEntityData(it, entity)
                 }
             }
         }
 
         onDisable {
             runSafe {
-                for (entity in world.loadedEntityList) {
-                    // Revert customNameTag back to original.
-                    val entityData = originalCustomNameTags[entity.uniqueID]
-                    entity.customNameTag = entityData?.originalCustomNameTag ?: entity.customNameTag
-                    try {
-                        entity.alwaysRenderNameTag = false
-                    } catch (_: Exception) {
-                        // Ignored
-                    }
+                // Revert customNameTag back to original.
+                world.loadedEntityList.filterNotNull().forEach {
+                    val entityData = originalCustomNameTags[it.uniqueID]
+                    it.customNameTag = entityData?.originalCustomNameTag ?: it.customNameTag
+
+                    it.alwaysRenderNameTag = false
                 }
+
                 originalCustomNameTags.clear()
                 nullUUIDs.clear()
             }
         }
     }
 
-    private fun getSpeed(horse: AbstractHorse): String {
-        return if (!speed) "" else " S: " + round(43.17 * horse.aiMoveSpeed, 2)
+    private fun changeEntityData(ownerUUID: UUID, entity: Entity) {
+        val owner = if (nullUUIDs.contains(ownerUUID)) null else UUIDManager.getByUUID(ownerUUID)
+        val ownerName = if (owner == null) {
+            nullUUIDs.add(ownerUUID)
+            invalidText
+        } else {
+            owner.name
+        }
+        val entityData = originalCustomNameTags.getOrPut(entity.uniqueID) { EntityData(originalCustomNameTag = entity.customNameTag) }
+        if (entityData.previous != null && entity.customNameTag != entityData.previous) {
+            entityData.originalCustomNameTag = entity.customNameTag
+        }
+        entity.alwaysRenderNameTag = true
+        entity.customNameTag = "${if (entityData.originalCustomNameTag != "") "${entityData.originalCustomNameTag} | " else ""}Owner: " + ownerName + getData(entity as EntityLiving)
+        entityData.previous = entity.customNameTag
     }
 
-    private fun getJump(horse: AbstractHorse): String {
-        return if (!jump) "" else " J: " + round(-0.1817584952 * horse.horseJumpStrength.pow(3.0) + 3.689713992 * horse.horseJumpStrength.pow(2.0) + 2.128599134 * horse.horseJumpStrength - 0.343930367, 2)
-    }
+    private fun getData(entity: EntityLiving): String {
+        var data = ""
+        if (entity is AbstractHorse) {
+            if (speed) data += " S: " + round(43.17 * entity.aiMoveSpeed, 2)
+            if (jump) data += " J: " + round(-0.1817584952 * entity.horseJumpStrength.pow(3.0) + 3.689713992 * entity.horseJumpStrength.pow(2.0) + 2.128599134 * entity.horseJumpStrength - 0.343930367, 2)
+        }
 
-    private fun getHealth(horse: AbstractHorse): String {
-        return if (!hp) "" else " HP: " + round(horse.health, 2)
-    }
+        if (hp) data += " HP: " + round(entity.health, 2)
 
-    private fun getHealth(tameable: EntityTameable): String {
-        return if (!hp) "" else " HP: " + round(tameable.health, 2)
+        return data
     }
 }
