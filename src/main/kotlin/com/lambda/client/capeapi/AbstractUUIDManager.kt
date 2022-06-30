@@ -74,7 +74,7 @@ abstract class AbstractUUIDManager(
         val response = if (isUUID) requestProfileFromUUID(nameOrUUID) else requestProfileFromName(nameOrUUID)
 
         return if (response.isNullOrBlank()) {
-            logger.error("Response is null or blank, internet might be down")
+            // If there is no player with the given username or UUID an HTTP status code 204 (No Content) is sent without any HTTP body.
             null
         } else {
             try {
