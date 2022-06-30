@@ -12,6 +12,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.pow
 
+private data class EntityData(var originalCustomNameTag: String, var previous: String? = null)
+
 object MobOwner : Module(
     name = "MobOwner",
     description = "Displays the owner of tamed mobs",
@@ -27,6 +29,11 @@ object MobOwner : Module(
     // HTTP requests and subsequent rate-limit.
     private val nullUUIDs = mutableSetOf<UUID>()
 
+    // originalCustomNameTags does two things. It stores an EntityData data class for every tamable entity.
+    // In EntityData the original customNameTag is stored that someone might have applied to the entity, a stateful
+    // previous variable holds the last customNameTag to keep track when a new customNameTag is applied by a player.
+    private val originalCustomNameTags = mutableMapOf<UUID, EntityData>()
+
     init {
         safeListener<TickEvent.ClientTickEvent> {
             for (entity in world.loadedEntityList) {
@@ -41,8 +48,13 @@ object MobOwner : Module(
                     } else {
                         owner.name
                     }
+                    val entityData = originalCustomNameTags.getOrPut(entity.uniqueID) { EntityData(originalCustomNameTag = entity.customNameTag) }
+                    if (entityData.previous != null && entity.customNameTag != entityData.previous) {
+                        entityData.originalCustomNameTag = entity.customNameTag
+                    }
                     entity.alwaysRenderNameTag = true
-                    entity.customNameTag = "Owner: " + ownerName + getHealth(entity)
+                    entity.customNameTag = "${if (entityData.originalCustomNameTag != "") "${entityData.originalCustomNameTag} | " else ""}Owner: " + ownerName + getHealth(entity)
+                    entityData.previous = entity.customNameTag
                 }
 
                 if (entity is AbstractHorse) {
@@ -55,8 +67,13 @@ object MobOwner : Module(
                     } else {
                         owner.name
                     }
+                    val entityData = originalCustomNameTags.getOrPut(entity.uniqueID) { EntityData(entity.customNameTag) }
+                    if (entityData.previous != null && entity.customNameTag != entityData.previous) {
+                        entityData.originalCustomNameTag = entity.customNameTag
+                    }
                     entity.alwaysRenderNameTag = true
-                    entity.customNameTag = "Owner: " + ownerName + getSpeed(entity) + getJump(entity) + getHealth(entity)
+                    entity.customNameTag = "${if (entityData.originalCustomNameTag != "") "${entityData.originalCustomNameTag} | " else ""}Owner: " + ownerName + getSpeed(entity) + getJump(entity) + getHealth(entity)
+                    entityData.previous = entity.customNameTag
                 }
             }
         }
@@ -64,12 +81,16 @@ object MobOwner : Module(
         onDisable {
             runSafe {
                 for (entity in world.loadedEntityList) {
+                    // Revert customNameTag back to original.
+                    val entityData = originalCustomNameTags[entity.uniqueID]
+                    entity.customNameTag = entityData?.originalCustomNameTag ?: entity.customNameTag
                     try {
                         entity.alwaysRenderNameTag = false
                     } catch (_: Exception) {
                         // Ignored
                     }
                 }
+                originalCustomNameTags.clear()
                 nullUUIDs.clear()
             }
         }
