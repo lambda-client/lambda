@@ -9,6 +9,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraft.entity.passive.EntityTameable
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.util.*
 import kotlin.math.pow
 
 object MobOwner : Module(
@@ -22,6 +23,10 @@ object MobOwner : Module(
 
     private const val invalidText = "Offline or invalid UUID!"
 
+    // nullUUIDs caches all UUID's that returned an empty response from the Mojang API, effectively removing the endless
+    // HTTP requests and subsequent rate-limit.
+    private val nullUUIDs = mutableSetOf<UUID>()
+
     init {
         safeListener<TickEvent.ClientTickEvent> {
             for (entity in world.loadedEntityList) {
@@ -29,8 +34,13 @@ object MobOwner : Module(
                 if (entity is EntityTameable) {
                     val ownerUUID = entity.ownerId
                     if (!entity.isTamed || ownerUUID == null) continue
-
-                    val ownerName = UUIDManager.getByUUID(ownerUUID)?.name ?: invalidText
+                    val owner = if (nullUUIDs.contains(ownerUUID)) null else UUIDManager.getByUUID(ownerUUID)
+                    val ownerName = if (owner == null) {
+                        nullUUIDs.add(ownerUUID)
+                        invalidText
+                    } else {
+                        owner.name
+                    }
                     entity.alwaysRenderNameTag = true
                     entity.customNameTag = "Owner: " + ownerName + getHealth(entity)
                 }
@@ -38,8 +48,13 @@ object MobOwner : Module(
                 if (entity is AbstractHorse) {
                     val ownerUUID = entity.ownerUniqueId
                     if (!entity.isTame || ownerUUID == null) continue
-
-                    val ownerName = UUIDManager.getByUUID(ownerUUID)?.name ?: invalidText
+                    val owner = if (nullUUIDs.contains(ownerUUID)) null else UUIDManager.getByUUID(ownerUUID)
+                    val ownerName = if (owner == null) {
+                        nullUUIDs.add(ownerUUID)
+                        invalidText
+                    } else {
+                        owner.name
+                    }
                     entity.alwaysRenderNameTag = true
                     entity.customNameTag = "Owner: " + ownerName + getSpeed(entity) + getJump(entity) + getHealth(entity)
                 }
@@ -49,14 +64,13 @@ object MobOwner : Module(
         onDisable {
             runSafe {
                 for (entity in world.loadedEntityList) {
-                    if (entity !is AbstractHorse) continue
-
                     try {
                         entity.alwaysRenderNameTag = false
                     } catch (_: Exception) {
                         // Ignored
                     }
                 }
+                nullUUIDs.clear()
             }
         }
     }
