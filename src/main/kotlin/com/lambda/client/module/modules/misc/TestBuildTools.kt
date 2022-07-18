@@ -17,25 +17,48 @@ object TestBuildTools : Module(
     description = "",
     category = Category.MISC
 ) {
+    private val placeThree = setting("Place Three", false)
+    private val breakThree = setting("Break Three", false)
+
     init {
-        onEnable {
-            runSafe {
-                buildStructure(StructureTask(generateBlueprint()))
+        placeThree.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    buildStructure(StructureTask(generateBlueprint1()))
+                }
             }
+            false
         }
 
-        onDisable {
-
+        breakThree.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    buildStructure(StructureTask(generateBlueprint2()))
+                }
+            }
+            false
         }
     }
 
-    private fun SafeClientEvent.generateBlueprint(): HashMap<BlockPos, TaskFactory.BlueprintTask> {
+    private fun SafeClientEvent.generateBlueprint1(): HashMap<BlockPos, TaskFactory.BlueprintTask> {
         val blueprint = hashMapOf<BlockPos, TaskFactory.BlueprintTask>()
 
         val origin = player.flooredPosition.add(Direction.fromEntity(player).directionVec)
 
         (0..2).forEach {
             blueprint[origin.up(it)] = TaskFactory.BlueprintTask(Blocks.OBSIDIAN)
+        }
+
+        return blueprint
+    }
+
+    private fun SafeClientEvent.generateBlueprint2(): HashMap<BlockPos, TaskFactory.BlueprintTask> {
+        val blueprint = hashMapOf<BlockPos, TaskFactory.BlueprintTask>()
+
+        val origin = player.flooredPosition.add(Direction.fromEntity(player).directionVec)
+
+        (0..2).forEach {
+            blueprint[origin.up(it)] = TaskFactory.BlueprintTask(Blocks.AIR)
         }
 
         return blueprint

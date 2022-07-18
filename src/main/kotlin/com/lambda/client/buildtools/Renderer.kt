@@ -65,23 +65,28 @@ object Renderer {
 
     private fun updateOverlay(buildTask: BuildTask) {
         val blockPos = buildTask.blockPos
+        val debugInfo = buildTask.gatherAllDebugInfo()
+        val screenPos = ProjectionUtils.toScreenPos(blockPos.toVec3dCenter())
 
         GL11.glPushMatrix()
-        val screenPos = ProjectionUtils.toScreenPos(blockPos.toVec3dCenter())
         GL11.glTranslated(screenPos.x, screenPos.y, 0.0)
         GL11.glScalef(textScale * 2.0f, textScale * 2.0f, 1.0f)
 
-        buildTask.gatherAllDebugInfo().forEachIndexed { index, pair ->
+        val lineHeight = FontRenderAdapter.getFontHeight() + 2.0f
+        val totalHeight = lineHeight * debugInfo.size
+
+        debugInfo.forEachIndexed { index, pair ->
             val text = if (pair.second == "") {
                 pair.first
             } else {
                 "${pair.first}: ${pair.second}"
             }
             val halfWidth = FontRenderAdapter.getStringWidth(text) / -2.0f
+
             FontRenderAdapter.drawString(
                 text,
                 halfWidth,
-                (FontRenderAdapter.getFontHeight() + 2.0f) * index,
+                (lineHeight * index) - (totalHeight / 2),
                 color = ColorHolder(255, 255, 255, 255)
             )
         }
@@ -107,14 +112,14 @@ object Renderer {
             is BreakTask -> {
                 buildTask.breakInfo?.let { breakInfo ->
                     GeometryMasks.FACEMAP[breakInfo.side]?.let { geoSide ->
-                        renderer.add(aabb, buildTask.color.multiply(1.1f), geoSide)
+                        renderer.add(aabb, buildTask.color.multiply(2f), geoSide)
                     }
                 }
             }
             is PlaceTask -> {
                 buildTask.placeInfo?.let { placeInfo ->
                     GeometryMasks.FACEMAP[placeInfo.side]?.let { geoSide ->
-                        renderer.add(aabb, buildTask.color.multiply(1.1f), geoSide)
+                        renderer.add(aabb, buildTask.color.multiply(2f), geoSide)
                     }
                 }
             }

@@ -23,6 +23,7 @@ import com.lambda.client.module.modules.client.BuildTools.taskTimeout
 import com.lambda.client.module.modules.player.InventoryManager.ejectList
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.*
+import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.world.*
 import kotlinx.coroutines.delay
@@ -255,6 +256,15 @@ class PlaceTask(
         val data: MutableList<Pair<String, String>> = mutableListOf()
 
         data.add(Pair("state", state.name))
+
+        placeInfo?.let {
+            data.add(Pair("pos", it.pos.asString()))
+            data.add(Pair("side", it.side.name))
+            data.add(Pair("distance", "%.2f".format(it.dist)))
+            data.add(Pair("hitVecOffset", it.hitVecOffset.toString()))
+            data.add(Pair("hitVec", it.hitVec.toString()))
+            data.add(Pair("placedPos", it.placedPos.asString()))
+        }
 
         return data
     }

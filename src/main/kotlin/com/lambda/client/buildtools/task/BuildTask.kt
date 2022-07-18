@@ -14,6 +14,8 @@ import net.minecraft.item.Item
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import java.sql.Timestamp
+import java.util.*
 
 abstract class BuildTask(
     val blockPos: BlockPos,
@@ -75,14 +77,15 @@ abstract class BuildTask(
 
         if (!anonymizeLog) info.add(Pair("blockPos", blockPos.asString()))
         info.add(Pair("targetBlock", targetBlock.localizedName))
-        info.add(Pair("isFillerTask", isFillerTask.toString()))
-        info.add(Pair("isContainerTask", isContainerTask.toString()))
-        info.add(Pair("isSupportTask", isSupportTask.toString()))
+        if (isFillerTask) info.add(Pair("isFillerTask", ""))
+        if (isContainerTask) info.add(Pair("isContainerTask", ""))
+        if (isSupportTask) info.add(Pair("isSupportTask", ""))
         info.add(Pair("priority", priority.toString()))
         info.add(Pair("timeout", timeout.toString()))
         info.add(Pair("threshold", threshold.toString()))
         info.add(Pair("color", color.toString()))
-        info.add(Pair("timeStamp", timeStamp.toString()))
+        info.add(Pair("hitVec3d", hitVec3d.toString()))
+        info.add(Pair("timeStamp", Date(Timestamp(timeStamp).time).toString()))
         info.add(Pair("timeTicking", timeTicking.toString()))
 
         info.addAll(gatherDebugInfo())
@@ -90,7 +93,7 @@ abstract class BuildTask(
         return info
     }
 
-    override fun toString() = "${javaClass.name} blockPos=(${blockPos.asString()}) targetBlock=${targetBlock.localizedName}${if (isFillerTask) " isFillerTask" else ""}${if (isContainerTask) " isContainerTask" else ""}${if (isSupportTask) " isSupportTask" else ""} ${gatherInfoToString()}"
+    override fun toString() = "${javaClass.simpleName} blockPos=(${blockPos.asString()}) targetBlock=${targetBlock.localizedName}${if (isFillerTask) " isFillerTask" else ""}${if (isContainerTask) " isContainerTask" else ""}${if (isSupportTask) " isSupportTask" else ""} ${gatherInfoToString()}"
 
     /* helper functions */
     val SafeClientEvent.currentBlockState: IBlockState get() = world.getBlockState(blockPos)

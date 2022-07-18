@@ -2,6 +2,7 @@ package com.lambda.client.buildtools.task
 
 import com.lambda.client.buildtools.blueprint.StructureTask
 import com.lambda.client.buildtools.blueprint.strategies.MoveXStrategy
+import com.lambda.client.buildtools.pathfinding.BaritoneHelper
 import com.lambda.client.buildtools.pathfinding.BaritonePathfindingProcess
 import com.lambda.client.buildtools.task.build.BreakTask
 import com.lambda.client.buildtools.task.build.DoneTask
@@ -84,6 +85,8 @@ object TaskProcessor {
                 if (currentTask is PlaceTask && waitPlace > 0) waitPlace--
 
                 if (isValid() && !runUpdate()) {
+                    BaritoneHelper.setupBaritone()
+
                     BaritoneUtils.primary?.pathingControlManager?.registerProcess(BaritonePathfindingProcess)
                     runExecute()
 

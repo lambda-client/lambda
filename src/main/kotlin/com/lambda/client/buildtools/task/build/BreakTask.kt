@@ -26,6 +26,7 @@ import com.lambda.client.module.modules.client.BuildTools.taskTimeout
 import com.lambda.client.util.EntityUtils.getDroppedItems
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.*
+import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.isInSight
 import com.lambda.client.util.threads.defaultScope
@@ -60,7 +61,6 @@ class BreakTask(
     private var ticksMined = 0
     private var alreadyCheckedMultiBreak = false
     var breakInfo: BreakInfo? = null
-    private var toolToUse = ItemStack.EMPTY
     var collectPos: BlockPos? = null
 
     override var priority = 1 + state.prioOffset
@@ -89,7 +89,7 @@ class BreakTask(
         var wasUpdated = true
 
         if (isValid() && state == State.INVALID) state = State.VALID
-//        priority = 1 + state.prioOffset
+        priority = 1 + state.prioOffset
         threshold = 1 + ticksNeeded
         hitVec3d = breakInfo?.hitVec3d
 
@@ -314,8 +314,6 @@ class BreakTask(
 
         with(breakTask) {
             getSlotWithBestTool(currentBlockState)?.let { slotFrom ->
-                toolToUse = slotFrom.stack
-
                 slotFrom.toHotbarSlotOrNull()?.let {
                     swapToSlot(it)
                 } ?: run {
@@ -390,16 +388,23 @@ class BreakTask(
 
     private fun SafeClientEvent.isIllegal() = currentBlockState.getBlockHardness(world, blockPos) == -1.0f
 
-    override fun gatherInfoToString() = "state=${state.name} ticksMined=$ticksMined${if (alreadyCheckedMultiBreak) " alreadyCheckedMultiBreak" else ""}${if (!toolToUse.isEmpty) toolToUse.displayName else ""}"
+    override fun gatherInfoToString() = "state=${state.name} ticksMined=$ticksMined${if (alreadyCheckedMultiBreak) " alreadyCheckedMultiBreak" else ""}}"
 
     override fun gatherDebugInfo(): MutableList<Pair<String, String>> {
         val data: MutableList<Pair<String, String>> = mutableListOf()
 
         data.add(Pair("state", state.name))
         data.add(Pair("ticksMined", ticksMined.toString()))
-        data.add(Pair("checkedMB", alreadyCheckedMultiBreak.toString()))
-        breakInfo?.let { data.add(Pair("breakInfo", it.toString())) }
-        if (!toolToUse.isEmpty) data.add(Pair("toolToUse", toolToUse.displayName))
+        if (alreadyCheckedMultiBreak) data.add(Pair("checkedMB", ""))
+        breakInfo?.let {
+            data.add(Pair("pos", it.pos.asString()))
+            data.add(Pair("side", it.side.toString()))
+            data.add(Pair("hitVec3d", it.hitVec3d.toString()))
+            if (it.start) data.add(Pair("start", ""))
+            if (it.stop) data.add(Pair("stop", ""))
+            if (it.abort) data.add(Pair("abort", ""))
+            if (it.isInstant) data.add(Pair("isInstant", ""))
+        }
 
         return data
     }

@@ -4,6 +4,7 @@ import com.lambda.client.buildtools.Statistics.totalBlocksBroken
 import com.lambda.client.buildtools.Statistics.totalBlocksPlaced
 import com.lambda.client.buildtools.Statistics.updateStatistics
 import com.lambda.client.buildtools.blueprint.StructureTask
+import com.lambda.client.buildtools.pathfinding.BaritoneHelper
 import com.lambda.client.buildtools.task.RestockHandler.handleRestock
 import com.lambda.client.buildtools.task.TaskFactory.populateTasks
 import com.lambda.client.buildtools.task.TaskProcessor
@@ -67,6 +68,7 @@ object BuildToolsManager {
                 if (TaskProcessor.isDone()) {
                     if (structureTask.blueprintStrategy.isDone()) {
                         task.remove(structureTask)
+                        BaritoneHelper.resetBaritone()
                         Statistics.printFinishStats(structureTask.blueprintStrategy.getFinishMessage())
                         return
                     } else {
