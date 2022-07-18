@@ -12,4 +12,5 @@ data class StructureTask(
     val taskSequenceStrategy: TaskSequenceStrategy = OriginStrategy
 ) {
     var inProgress = false
+    var cancel = false
 }

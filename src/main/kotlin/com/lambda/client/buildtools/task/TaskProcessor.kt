@@ -7,6 +7,7 @@ import com.lambda.client.buildtools.pathfinding.BaritonePathfindingProcess
 import com.lambda.client.buildtools.task.build.BreakTask
 import com.lambda.client.buildtools.task.build.DoneTask
 import com.lambda.client.buildtools.task.build.PlaceTask
+import com.lambda.client.buildtools.task.build.RestockTask
 import com.lambda.client.buildtools.task.sequence.TaskSequenceStrategy
 import com.lambda.client.buildtools.task.sequence.strategies.LeftToRightStrategy
 import com.lambda.client.buildtools.task.sequence.strategies.OriginStrategy
@@ -18,6 +19,7 @@ import com.lambda.client.module.modules.client.BuildTools.interactionLimit
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils.distanceTo
+import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -102,16 +104,16 @@ object TaskProcessor {
 
     /* allows tasks to convert into different types */
     inline fun <reified T : BuildTask> BuildTask.convertTo(
-        isSupportTask: Boolean = this.isSupportTask,
         isFillerTask: Boolean = this.isFillerTask,
-        isContainerTask: Boolean = this.isContainerTask
+        isContainerTask: Boolean = this.isContainerTask,
+        isSupportTask: Boolean = this.isSupportTask
     ) {
-        val newTask = T::class.java.getDeclaredConstructor().newInstance(blockPos, targetBlock)
-        newTask.isSupportTask = isSupportTask
-        newTask.isFillerTask = isFillerTask
-        newTask.isContainerTask = isContainerTask
+        val task = T::class.java.getConstructor(BlockPos::class.java, Block::class.java).newInstance(blockPos, targetBlock)
+        task.isFillerTask = isFillerTask
+        task.isContainerTask = isContainerTask
+        task.isSupportTask = isSupportTask
 
-        tasks[blockPos] = newTask
+        tasks[blockPos] = task
     }
 
     fun addTask(buildTask: BuildTask) {

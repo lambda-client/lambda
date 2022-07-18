@@ -37,7 +37,6 @@ import kotlinx.coroutines.launch
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.init.SoundEvents
 import net.minecraft.item.ItemFood
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.text.TextComponentString
 import net.minecraft.util.text.TextFormatting
 import net.minecraft.world.EnumDifficulty
@@ -63,6 +62,14 @@ object BuildToolsManager {
                     TaskProcessor.reset()
                     structureTask.inProgress = true
                     populateTasks(structureTask)
+                }
+
+                if (structureTask.cancel) {
+                    task.remove(structureTask)
+                    BaritoneHelper.resetBaritone()
+                    TaskProcessor.reset()
+                    Statistics.printFinishStats(structureTask.blueprintStrategy.getFinishMessage())
+                    return
                 }
 
                 if (TaskProcessor.isDone()) {

@@ -11,6 +11,8 @@ import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.render.Nametags
+import com.lambda.client.module.modules.render.Nametags.setting
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.items.shulkerList
@@ -72,9 +74,11 @@ object BuildTools : Module(
     val filled by setting("Filled", true, { page == Page.RENDER }, description = "Renders colored task surfaces")
     val outline by setting("Outline", true, { page == Page.RENDER }, description = "Renders colored task outlines")
     val popUp by setting("Pop up", true, { page == Page.RENDER }, description = "Funny render effect")
-    val popUpSpeed by setting("Pop up speed", 150, 0..500, 1, { popUp && page == Page.RENDER }, description = "Sets speed of the pop up effect", unit = "ms")
+    val popUpSpeed by setting("Pop up speed", 150, 0..500, 1, { page == Page.RENDER && popUp }, description = "Sets speed of the pop up effect", unit = "ms")
     val showDebugRender by setting("Debug Render", false, { page == Page.RENDER }, description = "Render debug info on tasks")
-    val textScale by setting("Text Scale", 1.0f, 0.0f..4.0f, 0.25f, { showDebugRender && page == Page.RENDER }, description = "Scale of debug text")
+    val textScale by setting("Text Scale", 1.0f, 0.0f..4.0f, 0.25f, { page == Page.RENDER && showDebugRender }, description = "Scale of debug text")
+    val distScaleFactor by setting("Distance Scale Factor", 0.05f, 0.0f..1.0f, 0.05f, { page == Page.RENDER && showDebugRender })
+    val minDistScale by setting("Min Distance Scale", 0.35f, 0.0f..1.0f, 0.05f, { page == Page.RENDER && showDebugRender })
     val aFilled by setting("Filled Alpha", 26, 0..255, 1, { filled && page == Page.RENDER }, description = "Sets the opacity")
     val aOutline by setting("Outline Alpha", 91, 0..255, 1, { outline && page == Page.RENDER }, description = "Sets the opacity")
     val thickness by setting("Thickness", 2.0f, 0.25f..4.0f, 0.25f, { outline && page == Page.RENDER }, description = "Sets thickness of outline")

@@ -19,12 +19,17 @@ object TestBuildTools : Module(
 ) {
     private val placeThree = setting("Place Three", false)
     private val breakThree = setting("Break Three", false)
+    private val cancel = setting("Cancel", false)
+
+    lateinit var st: StructureTask
 
     init {
         placeThree.consumers.add { _, it ->
             if (it) {
                 runSafe {
-                    buildStructure(StructureTask(generateBlueprint1()))
+                    st = StructureTask(generateBlueprint1())
+
+                    buildStructure(st)
                 }
             }
             false
@@ -33,7 +38,18 @@ object TestBuildTools : Module(
         breakThree.consumers.add { _, it ->
             if (it) {
                 runSafe {
-                    buildStructure(StructureTask(generateBlueprint2()))
+                    st = StructureTask(generateBlueprint2())
+
+                    buildStructure(st)
+                }
+            }
+            false
+        }
+
+        cancel.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    st.cancel = true
                 }
             }
             false
