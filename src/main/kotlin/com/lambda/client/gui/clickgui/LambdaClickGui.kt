@@ -153,10 +153,9 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                 LambdaMod.LOG.info("Requesting all public plugin repos from: $repoUrl")
                 val pluginRepos = JsonParser().parse(rawJson).asJsonArray
 
-                val unofficialPluginJson = ConnectionUtils.requestRawJsonFrom(LambdaMod.UNOFFICIAL_PLUGIN_API)
+                val unofficialPluginJson = ConnectionUtils.requestRawJsonFrom(LambdaMod.UNOFFICIAL_PLUGIN_API + "/plugins")
                 val unofficialPluginData = JsonParser().parse(unofficialPluginJson).asJsonArray
                 LambdaMod.LOG.info("Requesting all unofficial plugins from: ${LambdaMod.UNOFFICIAL_PLUGIN_API}")
-                LambdaMod.LOG.info("Debug: ${unofficialPluginData.toString()}")
 
 
                 pluginRepos.forEach { pluginRepo ->
@@ -191,7 +190,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
                 unofficialPluginData.forEach { plugin ->
                     val pluginObject = plugin.asJsonObject
-                    val downloadURL = "https://lambda-plugin-api.herokuapp.com/plugins/download/${pluginObject.get("plugin").asString}";
+                    val downloadURL = LambdaMod.UNOFFICIAL_PLUGIN_API + "/download/" + pluginObject.get("plugin").asString
                     LambdaMod.LOG.info("Requesting details about: $downloadURL")
                     val downloadLink = ConnectionUtils.requestRawJsonFrom(downloadURL) { e ->
                         LambdaMod.LOG.error("Failed to get plugin download link", e)
