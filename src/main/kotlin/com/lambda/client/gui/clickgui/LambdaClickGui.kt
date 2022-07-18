@@ -150,10 +150,14 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                     LambdaMod.LOG.error("Failed to load organisation for plugins from GitHub", it)
                     throw it
                 }
-
                 LambdaMod.LOG.info("Requesting all public plugin repos from: $repoUrl")
-
                 val pluginRepos = JsonParser().parse(rawJson).asJsonArray
+
+                val unofficialPluginJson = ConnectionUtils.requestRawJsonFrom(LambdaMod.UNOFFICIAL_PLUGIN_API)
+                val unofficialPluginData = JsonParser().parse(unofficialPluginJson).asJsonArray
+                LambdaMod.LOG.info("Requesting all unofficial plugins from: ${LambdaMod.UNOFFICIAL_PLUGIN_API}")
+                LambdaMod.LOG.info("Debug: ${unofficialPluginData.toString()}")
+
 
                 pluginRepos.forEach { pluginRepo ->
                     val releaseUrl = pluginRepo.asJsonObject.get("releases_url").asString.replace("{/id}", "")
@@ -185,7 +189,27 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
                     }
                 }
 
-                LambdaMod.LOG.info("Found remote plugins: ${pluginRepos.size()}")
+                unofficialPluginData.forEach { plugin ->
+                    val pluginObject = plugin.asJsonObject
+                    val downloadURL = "https://lambda-plugin-api.herokuapp.com/plugins/download/${pluginObject.get("plugin").asString}";
+                    LambdaMod.LOG.info("Requesting details about: $downloadURL")
+                    val downloadLink = ConnectionUtils.requestRawJsonFrom(downloadURL) { e ->
+                        LambdaMod.LOG.error("Failed to get plugin download link", e)
+                        throw e
+                    }
+                    val remotePluginButton = RemotePluginButton(
+                        "${pluginObject.get("plugin").asString} [UNOFFICIAL]",
+                        pluginObject.get("source").asString,
+                        pluginObject.get("version").asString,
+                        downloadLink ?: "https://google.com",
+                        "${pluginObject.get("plugin").asString}-${pluginObject.get("version").asString}.jar"
+                    )
+                    remotePluginWindow.add(remotePluginButton)
+                    updateRemoteStates()
+                    LambdaMod.LOG.info("Added unofficial plugin ${pluginObject.get("plugin").asString} to the window.")
+                }
+                LambdaMod.LOG.info("Found remote plugins: ${pluginRepos.size() + unofficialPluginData.size()}")
+
             } catch (e: Exception) {
                 LambdaMod.LOG.error("Failed to parse plugin json", e)
             }
