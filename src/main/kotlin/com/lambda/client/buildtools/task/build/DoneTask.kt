@@ -12,7 +12,7 @@ class DoneTask(
     blockPos: BlockPos,
     targetBlock: Block
 ) : BuildTask(blockPos, targetBlock, false, false, false) {
-    override var priority = 0
+    override var priority = 1000
     override var timeout = 0
     override var threshold = 0
     override var color = ColorHolder(50, 50, 50)
@@ -23,7 +23,7 @@ class DoneTask(
     override fun SafeClientEvent.update() = false
 
     override fun SafeClientEvent.execute() {
-        TaskProcessor.tasks.remove(blockPos)
+//        TaskProcessor.tasks.remove(blockPos)
     }
 
     override fun gatherInfoToString() = ""

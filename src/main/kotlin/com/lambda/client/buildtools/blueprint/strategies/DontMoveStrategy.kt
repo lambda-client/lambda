@@ -4,7 +4,7 @@ import com.lambda.client.buildtools.blueprint.BlueprintStrategy
 import com.lambda.client.buildtools.task.TaskFactory
 import net.minecraft.util.math.BlockPos
 
-class DontMoveStrategy : BlueprintStrategy {
+object DontMoveStrategy : BlueprintStrategy {
     override fun getNext(blueprint: HashMap<BlockPos, TaskFactory.BlueprintTask>) = blueprint
     override fun getFinishMessage() = ""
 

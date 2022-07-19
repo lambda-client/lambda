@@ -1,6 +1,8 @@
 package com.lambda.client.buildtools.task.build
 
 import com.lambda.client.buildtools.Statistics
+import com.lambda.client.buildtools.pathfinding.Navigator.changeStrategy
+import com.lambda.client.buildtools.pathfinding.strategies.PickupStrategy
 import com.lambda.client.buildtools.task.BuildTask
 import com.lambda.client.buildtools.task.RestockHandler.restockItem
 import com.lambda.client.buildtools.task.TaskFactory
@@ -42,6 +44,7 @@ import net.minecraft.block.BlockLiquid
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Enchantments
+import net.minecraft.item.ItemAir
 import net.minecraft.item.ItemPickaxe
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketPlayerDigging
@@ -63,7 +66,6 @@ class BreakTask(
     private var ticksMined = 0
     private var alreadyCheckedMultiBreak = false
     var breakInfo: BreakInfo? = null
-    var collectPos: BlockPos? = null
 
     override var priority = 1 + state.prioOffset
     override var timeout = 20
@@ -100,11 +102,12 @@ class BreakTask(
             shouldBeIgnored() || isIllegal() -> {
                 convertTo<DoneTask>()
             }
-            currentBlock is BlockAir -> {
-                convertTo<PlaceTask>()
-            }
+//            currentBlock is BlockAir -> {
+//                convertTo<PlaceTask>()
+//            }
             currentBlock == targetBlock -> {
-                convertTo<DoneTask>()
+                state = State.ACCEPTED
+                return false
             }
             isLiquidBlock -> {
                 convertTo<PlaceTask>()
@@ -195,7 +198,7 @@ class BreakTask(
                 }
 
                 if (currentBlock is BlockAir) {
-                    if (isContainerTask && pickupAfterBreak) {
+                    if (isContainerTask && pickupItem !is ItemAir) {
                         state = State.PICKUP
                         execute()
                         return
@@ -207,20 +210,7 @@ class BreakTask(
                 }
             }
             State.PICKUP -> {
-                getCollectingPosition()?.let { goal ->
-                    collectPos = goal
-
-                    player.inventorySlots.firstByStack { itemIsFillerMaterial(it.item) }?.let {
-                        if (timeTicking > 20) {
-                            throwAllInSlot(BuildTools, it)
-                            timeTicking = 0
-                        }
-                    }
-                    return
-                }
-
-                collectPos = null
-                convertTo<DoneTask>()
+                changeStrategy<PickupStrategy>()
             }
         }
     }
@@ -356,28 +346,6 @@ class BreakTask(
                 speed
             }
         }
-
-    private fun SafeClientEvent.getCollectingPosition(): BlockPos? {
-        getDroppedItems(itemIdToPickup, range = pickupRadius.toFloat())
-            .minByOrNull { player.getDistance(it) }
-            ?.positionVector
-            ?.let { itemVec ->
-                return VectorUtils.getBlockPosInSphere(itemVec, pickupRadius.toFloat()).asSequence()
-                    .filter { pos ->
-                        world.isAirBlock(pos.up())
-                            && world.isPlaceable(pos)
-                            && !world.getBlockState(pos.down()).isReplaceable
-                    }
-                    .sortedWith(
-                        compareBy<BlockPos> {
-                            it.distanceSqToCenter(itemVec.x, itemVec.y, itemVec.z)
-                        }.thenBy {
-                            it.y
-                        }
-                    ).firstOrNull()
-            }
-        return null
-    }
 
     fun acceptPacketState(packetBlockState: IBlockState) {
         if ((state == State.PENDING || state == State.BREAKING)

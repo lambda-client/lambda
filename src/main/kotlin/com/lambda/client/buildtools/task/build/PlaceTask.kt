@@ -1,9 +1,11 @@
 package com.lambda.client.buildtools.task.build
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.buildtools.Statistics
 import com.lambda.client.buildtools.pathfinding.Navigator
 import com.lambda.client.buildtools.pathfinding.strategies.ScaffoldStrategy
 import com.lambda.client.buildtools.task.BuildTask
+import com.lambda.client.buildtools.task.RestockHandler.getShulkerWith
 import com.lambda.client.buildtools.task.RestockHandler.restockItem
 import com.lambda.client.buildtools.task.TaskProcessor
 import com.lambda.client.buildtools.task.TaskProcessor.addTask
@@ -90,7 +92,8 @@ class PlaceTask(
 
         when {
             currentBlock == targetBlock -> {
-                convertTo<DoneTask>()
+                state = State.ACCEPTED
+                return false
             }
             isSupportTask && alreadyIsSupported() -> {
                 convertTo<DoneTask>()
@@ -112,16 +115,16 @@ class PlaceTask(
     override fun SafeClientEvent.execute() {
         when (state) {
             State.INVALID -> {
-                if (placeInfoSequence.isNotEmpty()) {
-                    placeInfoSequence.filter {
-                        !TaskProcessor.tasks.containsKey(it.placedPos)
-                    }.forEach {
-                        addTask(PlaceTask(it.placedPos, defaultFillerMat, isFillerTask = true))
-                    }
-                    return
-                }
-
-                Navigator.changeStrategy<ScaffoldStrategy>()
+//                if (placeInfoSequence.isNotEmpty()) {
+//                    placeInfoSequence.filter {
+//                        !TaskProcessor.tasks.containsKey(it.placedPos)
+//                    }.forEach {
+//                        addTask(PlaceTask(it.placedPos, defaultFillerMat, isFillerTask = true))
+//                    }
+//                    return
+//                }
+//
+//                Navigator.changeStrategy<ScaffoldStrategy>()
             }
             State.VALID -> {
                 state = State.GET_BLOCK
@@ -187,9 +190,11 @@ class PlaceTask(
     }
 
     private fun SafeClientEvent.equipBlockToPlace(): Boolean {
-        slotToUseForPlace?.let {
-            swapToSlotOrMove(it)
-            return true
+        if (isContainerTask) {
+            getShulkerWith(player.inventorySlots, desiredItem)?.let {
+                swapToSlotOrMove(it)
+                return true
+            }
         }
 
         if (swapToItemOrMove(BuildTools, targetBlock.item)) {

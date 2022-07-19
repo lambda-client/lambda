@@ -13,10 +13,7 @@ import com.lambda.client.module.modules.client.BuildTools.debugLevel
 import com.lambda.client.module.modules.client.BuildTools.keepFreeSlots
 import com.lambda.client.module.modules.client.BuildTools.leaveEmptyShulkers
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.items.countByStack
-import com.lambda.client.util.items.firstItem
-import com.lambda.client.util.items.getSlots
-import com.lambda.client.util.items.inventorySlots
+import com.lambda.client.util.items.*
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.text.MessageSendHelper
@@ -26,6 +23,7 @@ import net.minecraft.block.Block
 import net.minecraft.block.BlockContainer
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.client.gui.inventory.GuiContainer
+import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Container
@@ -45,7 +43,7 @@ class RestockTask(
     private var stopPull = false
     private var movedStuff = false
 
-    override var priority = 3 + state.prioOffset
+    override var priority = 0 + state.prioOffset
     override var timeout = 20
     override var threshold = 200
     override var color = state.colorHolder
@@ -68,8 +66,8 @@ class RestockTask(
         color = state.colorHolder
         hitVec3d = getHitVec(blockPos, getSideToOpen())
 
-        when {
-            currentBlock !is BlockContainer -> {
+        when (currentBlock) {
+            !is BlockContainer -> {
                 convertTo<PlaceTask>()
             }
             else -> {
@@ -115,24 +113,6 @@ class RestockTask(
 
                 val openContainer = player.openContainer
 
-                if (leaveEmptyShulkers
-                    && currentBlock is BlockShulkerBox
-                    && !itemIsFillerMaterial(desiredItem)
-                    && openContainer.getSlots(0..26).onlyContainsEjectables()
-                ) {
-                    if (debugLevel != BuildTools.DebugLevel.OFF) {
-                        if (!anonymizeLog) {
-                            MessageSendHelper.sendChatMessage("${BuildTools.chatName} Left empty ${targetBlock.localizedName}@(${blockPos.asString()})")
-                        } else {
-                            MessageSendHelper.sendChatMessage("${BuildTools.chatName} Left empty ${targetBlock.localizedName}")
-                        }
-                    }
-
-                    state = State.CLOSE
-                    execute()
-                    return
-                }
-
                 val freeSlots = openContainer.getSlots(27..62).count {
                     it.stack.isEmpty || itemIsFillerMaterial(it.stack.item)
                 } - 1 - keepFreeSlots
@@ -171,8 +151,27 @@ class RestockTask(
                 disableError("No ${desiredItem.registryName} left in any container.")
             }
             State.CLOSE -> {
-                player.closeScreen()
+                if (leaveEmptyShulkers
+                    && currentBlock is BlockShulkerBox
+                    && !itemIsFillerMaterial(desiredItem)
+                    && player.openContainer.getSlots(0..26).onlyContainsEjectables()
+                ) {
+                    if (debugLevel != BuildTools.DebugLevel.OFF) {
+                        if (!anonymizeLog) {
+                            MessageSendHelper.sendChatMessage("${BuildTools.chatName} Left empty ${targetBlock.localizedName}@(${blockPos.asString()})")
+                        } else {
+                            MessageSendHelper.sendChatMessage("${BuildTools.chatName} Left empty ${targetBlock.localizedName}")
+                        }
+                    }
 
+                    player.closeScreen()
+                    convertTo<DoneTask>()
+                    return
+                }
+
+                player.closeScreen()
+                pickupItem = targetBlock.item
+                targetBlock = Blocks.AIR
                 convertTo<BreakTask>()
             }
         }

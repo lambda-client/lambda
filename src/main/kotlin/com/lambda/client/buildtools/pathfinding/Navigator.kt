@@ -32,7 +32,7 @@ object Navigator {
     fun SafeClientEvent.updatePathingCommand() {
         with(movementStrategy) {
             TaskProcessor.currentBuildTask?.let {
-                currentPathingCommand = generatePathingCommand(it.blockPos)
+                currentPathingCommand = generatePathingCommand(it)
                 return
             }
             currentPathingCommand = PathingCommand(null, PathingCommandType.REQUEST_PAUSE)

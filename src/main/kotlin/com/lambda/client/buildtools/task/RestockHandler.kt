@@ -1,11 +1,14 @@
 package com.lambda.client.buildtools.task
 
+import com.lambda.client.buildtools.BuildToolsManager.buildStructure
 import com.lambda.client.buildtools.BuildToolsManager.disableError
+import com.lambda.client.buildtools.blueprint.StructureTask
 import com.lambda.client.buildtools.task.TaskFactory.isInsideBlueprintBuilding
 import com.lambda.client.buildtools.task.TaskProcessor.addTask
 import com.lambda.client.buildtools.task.build.PlaceTask
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.modules.client.BuildTools.maxReach
 import com.lambda.client.module.modules.client.BuildTools.preferEnderChests
 import com.lambda.client.module.modules.client.BuildTools.storageManagement
@@ -13,6 +16,7 @@ import com.lambda.client.util.items.block
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
+import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.world.isPlaceable
 import com.lambda.client.util.world.isReplaceable
 import net.minecraft.init.Blocks
@@ -26,6 +30,13 @@ import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 
 object RestockHandler {
+    fun AbstractModule.createRestockStructure(item: Item) {
+        runSafe {
+            buildStructure(StructureTask(hashMapOf()))
+            restockItem(item)
+        }
+    }
+
     fun SafeClientEvent.restockItem(item: Item) {
         if (!storageManagement) {
             disableError("Storage management is disabled. Can't restock ${item.registryName.toString()}")
@@ -40,6 +51,7 @@ object RestockHandler {
         getShulkerWith(player.inventorySlots, item)?.let { slot ->
             getBestContainerPosition()?.let {
                 val containerTask = PlaceTask(it, slot.stack.item.block, isContainerTask = true)
+                containerTask.desiredItem = item
                 containerTask.slotToUseForPlace = slot
 
                 addTask(containerTask)

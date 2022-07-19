@@ -62,7 +62,7 @@ object PlayerInventoryManager : Manager {
 
                         unpauseModule(currentTask.owner)
                     } ?: run {
-                        LambdaMod.LOG.error("Container outdated in window: ${player.openContainer}. Skipping task. (id=${packet.actionNumber}, window=${packet.windowId})")
+                        LambdaMod.LOG.error("Container outdated in window: ${player.openContainer.windowId}. Skipping task. (id=${packet.actionNumber}, window=${packet.windowId})")
                         unpauseModule(currentTask.owner)
                         next()
                     }

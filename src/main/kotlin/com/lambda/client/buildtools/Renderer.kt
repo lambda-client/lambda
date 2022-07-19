@@ -34,7 +34,6 @@ object Renderer {
     private val renderer = ESPRenderer()
 
     fun renderWorld() {
-        renderer.clear()
         renderer.aFilled = if (filled) aFilled else 0
         renderer.aOutline = if (outline) aOutline else 0
         renderer.thickness = thickness
@@ -43,14 +42,15 @@ object Renderer {
         if (showCurrentPos) renderer.add(Navigator.origin, ColorHolder(255, 255, 255))
 
         TaskProcessor.tasks.values.forEach {
-            if (it.targetBlock == Blocks.AIR && it is DoneTask) return@forEach
+//            if (it.targetBlock == Blocks.AIR && it is DoneTask) return@forEach
             if (it.toRemove) {
                 addToRenderer(it, currentTime, true)
             } else {
                 addToRenderer(it, currentTime)
             }
         }
-        renderer.render(false)
+
+        renderer.render(true)
     }
 
     fun renderOverlay() {
@@ -112,7 +112,7 @@ object Renderer {
             aabb = buildTask.aabb.shrink((0.5 - sizeFactor * 0.5))
         }
 
-        renderer.add(aabb, buildTask.color)
+//        renderer.add(aabb, buildTask.color)
 
         when (buildTask) {
             is BreakTask -> {
@@ -124,7 +124,7 @@ object Renderer {
             }
             is PlaceTask -> {
                 buildTask.placeInfo?.let { placeInfo ->
-                    GeometryMasks.FACEMAP[placeInfo.side]?.let { geoSide ->
+                    GeometryMasks.FACEMAP[placeInfo.side.opposite]?.let { geoSide ->
                         renderer.add(aabb, buildTask.color.multiply(2f), geoSide)
                     }
                 }

@@ -58,6 +58,7 @@ object BuildToolsManager {
             /* all structures are finished */
             if (task.isEmpty()) {
                 structureTasks.remove(module)
+                TaskProcessor.reset()
                 return
             }
 

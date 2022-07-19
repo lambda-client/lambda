@@ -8,7 +8,7 @@ import net.minecraft.util.math.BlockPos
 
 data class StructureTask(
     var blueprint: HashMap<BlockPos, TaskFactory.BlueprintTask>,
-    val blueprintStrategy: BlueprintStrategy = DontMoveStrategy(),
+    val blueprintStrategy: BlueprintStrategy = DontMoveStrategy,
     val taskSequenceStrategy: TaskSequenceStrategy = OriginStrategy
 ) {
     var inProgress = false

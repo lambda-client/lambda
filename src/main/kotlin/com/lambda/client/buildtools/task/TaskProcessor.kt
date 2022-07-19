@@ -1,5 +1,6 @@
 package com.lambda.client.buildtools.task
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.buildtools.blueprint.StructureTask
 import com.lambda.client.buildtools.blueprint.strategies.MoveXStrategy
 import com.lambda.client.buildtools.pathfinding.BaritoneHelper
@@ -21,6 +22,9 @@ import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.block.Block
+import net.minecraft.init.Items
+import net.minecraft.inventory.Slot
+import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -87,8 +91,10 @@ object TaskProcessor {
                 if (currentTask is BreakTask && waitBreak > 0) waitBreak--
                 if (currentTask is PlaceTask && waitPlace > 0) waitPlace--
 
+                timeTicking++
+
                 if (isValid() && !runUpdate()) {
-                    runExecute()
+                    execute()
 
                     hitVec3d?.let {
                         BuildTools.sendPlayerPacket {
@@ -106,7 +112,7 @@ object TaskProcessor {
         isContainerTask: Boolean = this.isContainerTask,
         isSupportTask: Boolean = this.isSupportTask
     ) {
-        tasks[blockPos] = when (T::class) {
+        val task = when (T::class) {
             BreakTask::class -> {
                 BreakTask(blockPos, targetBlock, isFillerTask, isContainerTask, isSupportTask)
             }
@@ -120,6 +126,15 @@ object TaskProcessor {
                 DoneTask(blockPos, targetBlock)
             }
         }
+
+        if (isContainerTask) {
+            task.slotToUseForPlace = slotToUseForPlace
+            task.desiredItem = desiredItem
+            task.destroyAfterPlace = destroyAfterPlace
+            task.pickupItem = pickupItem
+        }
+
+        tasks[blockPos] = task
     }
 
     fun addTask(buildTask: BuildTask) {
@@ -131,7 +146,8 @@ object TaskProcessor {
     fun isDone() = tasks.values.all { it is DoneTask }
 
     fun reset() {
-        tasks.clear()
+//        tasks.clear()
+        tasks.values.removeIf { it !is DoneTask }
         currentBuildTask = null
         waitBreak = 0
         waitPlace = 0
