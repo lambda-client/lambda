@@ -20,6 +20,15 @@ object BuildToolsCommand : ClientCommand(
             }
         }
 
+        literal("food", "fd") {
+            item("item") { itemArg ->
+                execute("Sets a type of food") {
+                    BuildTools.defaultTool = itemArg.value
+                    sendChatMessage("Set your food item to &7${itemArg.value.registryName}&r.")
+                }
+            }
+        }
+
         literal("add", "new", "+") {
             block("block") { blockArg ->
                 execute("Adds a block to ignore list") {

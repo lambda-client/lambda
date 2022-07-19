@@ -5,7 +5,9 @@ import com.lambda.client.buildtools.Statistics.totalBlocksPlaced
 import com.lambda.client.buildtools.Statistics.updateStatistics
 import com.lambda.client.buildtools.blueprint.StructureTask
 import com.lambda.client.buildtools.pathfinding.BaritoneHelper
-import com.lambda.client.buildtools.task.RestockHandler.handleRestock
+import com.lambda.client.buildtools.pathfinding.BaritonePathfindingProcess
+import com.lambda.client.buildtools.pathfinding.Navigator.updatePathingCommand
+import com.lambda.client.buildtools.task.RestockHandler.restockItem
 import com.lambda.client.buildtools.task.TaskFactory.populateTasks
 import com.lambda.client.buildtools.task.TaskProcessor
 import com.lambda.client.buildtools.task.TaskProcessor.doTickOnTasks
@@ -13,6 +15,7 @@ import com.lambda.client.commons.extension.firstEntryOrNull
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.modules.client.BuildTools
+import com.lambda.client.module.modules.client.BuildTools.defaultFood
 import com.lambda.client.module.modules.client.BuildTools.disableMode
 import com.lambda.client.module.modules.client.BuildTools.leastFood
 import com.lambda.client.module.modules.client.BuildTools.manageFood
@@ -27,6 +30,7 @@ import com.lambda.client.module.modules.player.AutoEat
 import com.lambda.client.module.modules.player.LagNotifier
 import com.lambda.client.module.modules.player.NoGhostItems
 import com.lambda.client.process.PauseProcess
+import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.items.countItem
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.text.MessageSendHelper
@@ -61,13 +65,13 @@ object BuildToolsManager {
                 if (!structureTask.inProgress) {
                     TaskProcessor.reset()
                     structureTask.inProgress = true
+                    BaritoneHelper.setupBaritone()
                     populateTasks(structureTask)
                 }
 
                 if (structureTask.cancel) {
                     task.remove(structureTask)
-                    BaritoneHelper.resetBaritone()
-                    TaskProcessor.reset()
+                    reset()
                     Statistics.printFinishStats(structureTask.blueprintStrategy.getFinishMessage())
                     return
                 }
@@ -75,7 +79,7 @@ object BuildToolsManager {
                 if (TaskProcessor.isDone()) {
                     if (structureTask.blueprintStrategy.isDone()) {
                         task.remove(structureTask)
-                        BaritoneHelper.resetBaritone()
+                        reset()
                         Statistics.printFinishStats(structureTask.blueprintStrategy.getFinishMessage())
                         return
                     } else {
@@ -87,13 +91,15 @@ object BuildToolsManager {
 
                 if (!shouldPause()) {
                     updateStatistics()
+                    BaritoneUtils.primary?.pathingControlManager?.registerProcess(BaritonePathfindingProcess)
+                    updatePathingCommand()
 
                     /* Fulfill basic needs */
                     if (storageManagement
                         && manageFood
                         && player.inventorySlots.countItem<ItemFood>() <= leastFood
                     ) {
-                        handleRestock<ItemFood>()
+                        restockItem(defaultFood)
                         return
                     }
 
@@ -161,10 +167,15 @@ object BuildToolsManager {
         }
     }
 
+    fun reset() {
+        BaritoneHelper.resetBaritone()
+        TaskProcessor.reset()
+    }
+
     fun SafeClientEvent.disableError(error: String) {
         MessageSendHelper.sendErrorMessage("${BuildTools.chatName} §c[!] $error")
         mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-        // ToDo: cancel structure
+        reset()
         when (disableMode) {
             BuildTools.DisableMode.ANTI_AFK -> {
                 MessageSendHelper.sendWarningMessage("${BuildTools.chatName} §c[!] ${TextFormatting.AQUA}Going into AFK mode.")

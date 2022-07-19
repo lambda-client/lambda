@@ -13,9 +13,9 @@ class DoneTask(
     targetBlock: Block
 ) : BuildTask(blockPos, targetBlock, false, false, false) {
     override var priority = 0
-    override val timeout = 0
+    override var timeout = 0
     override var threshold = 0
-    override val color = ColorHolder(50, 50, 50)
+    override var color = ColorHolder(50, 50, 50)
     override var hitVec3d: Vec3d? = null
 
     override fun SafeClientEvent.isValid() = true

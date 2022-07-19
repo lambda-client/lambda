@@ -4,6 +4,7 @@ import com.lambda.client.buildtools.blueprint.StructureTask
 import com.lambda.client.buildtools.blueprint.strategies.MoveXStrategy
 import com.lambda.client.buildtools.pathfinding.BaritoneHelper
 import com.lambda.client.buildtools.pathfinding.BaritonePathfindingProcess
+import com.lambda.client.buildtools.pathfinding.Navigator.updatePathingCommand
 import com.lambda.client.buildtools.task.build.BreakTask
 import com.lambda.client.buildtools.task.build.DoneTask
 import com.lambda.client.buildtools.task.build.PlaceTask
@@ -87,9 +88,6 @@ object TaskProcessor {
                 if (currentTask is PlaceTask && waitPlace > 0) waitPlace--
 
                 if (isValid() && !runUpdate()) {
-                    BaritoneHelper.setupBaritone()
-
-                    BaritoneUtils.primary?.pathingControlManager?.registerProcess(BaritonePathfindingProcess)
                     runExecute()
 
                     hitVec3d?.let {
@@ -108,12 +106,20 @@ object TaskProcessor {
         isContainerTask: Boolean = this.isContainerTask,
         isSupportTask: Boolean = this.isSupportTask
     ) {
-        val task = T::class.java.getConstructor(BlockPos::class.java, Block::class.java).newInstance(blockPos, targetBlock)
-        task.isFillerTask = isFillerTask
-        task.isContainerTask = isContainerTask
-        task.isSupportTask = isSupportTask
-
-        tasks[blockPos] = task
+        tasks[blockPos] = when (T::class) {
+            BreakTask::class -> {
+                BreakTask(blockPos, targetBlock, isFillerTask, isContainerTask, isSupportTask)
+            }
+            PlaceTask::class -> {
+                PlaceTask(blockPos, targetBlock, isFillerTask, isContainerTask, isSupportTask)
+            }
+            RestockTask::class -> {
+                RestockTask(blockPos, targetBlock)
+            }
+            else -> {
+                DoneTask(blockPos, targetBlock)
+            }
+        }
     }
 
     fun addTask(buildTask: BuildTask) {

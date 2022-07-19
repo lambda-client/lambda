@@ -24,8 +24,8 @@ class MoveXStrategy(
 
         val new = hashMapOf<BlockPos, TaskFactory.BlueprintTask>()
 
-        blueprint.keys.forEach {
-            it.add(direction.directionVec.multiply(offset * distanceMoved))
+        blueprint.forEach {
+            new[it.key.add(direction.directionVec.multiply(offset))] = it.value
         }
 
         return new

@@ -25,9 +25,9 @@ abstract class BuildTask(
     var isSupportTask: Boolean = false
 ) {
     abstract var priority: Int // low value is high priority
-    abstract val timeout: Int
+    abstract var timeout: Int
     abstract var threshold: Int
-    abstract val color: ColorHolder
+    abstract var color: ColorHolder
     abstract var hitVec3d: Vec3d?
 
     var timeStamp = System.currentTimeMillis()
@@ -37,7 +37,7 @@ abstract class BuildTask(
     var aabb = AxisAlignedBB(blockPos)
     private var debugInfo: MutableList<Pair<String, String>> = mutableListOf()
 
-    val slotToUseForPlace: Slot? = null
+    var slotToUseForPlace: Slot? = null
     val desiredItem: Item = Items.AIR
     var destroyAfterPlace = false
     var pickupAfterBreak = false
@@ -93,8 +93,6 @@ abstract class BuildTask(
         return info
     }
 
-    override fun toString() = "${javaClass.simpleName} blockPos=(${blockPos.asString()}) targetBlock=${targetBlock.localizedName}${if (isFillerTask) " isFillerTask" else ""}${if (isContainerTask) " isContainerTask" else ""}${if (isSupportTask) " isSupportTask" else ""} ${gatherInfoToString()}"
-
     /* helper functions */
     val SafeClientEvent.currentBlockState: IBlockState get() = world.getBlockState(blockPos)
     val SafeClientEvent.currentBlock: Block get() = currentBlockState.block
@@ -105,4 +103,6 @@ abstract class BuildTask(
     abstract fun gatherInfoToString(): String
 
     abstract fun gatherDebugInfo(): MutableList<Pair<String, String>>
+
+    override fun toString() = "${javaClass.simpleName} blockPos=(${blockPos.asString()}) targetBlock=${targetBlock.localizedName}${if (isFillerTask) " isFillerTask" else ""}${if (isContainerTask) " isContainerTask" else ""}${if (isSupportTask) " isSupportTask" else ""} ${gatherInfoToString()}"
 }

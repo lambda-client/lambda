@@ -46,9 +46,9 @@ class RestockTask(
     private var movedStuff = false
 
     override var priority = 3 + state.prioOffset
-    override val timeout = 20
+    override var timeout = 20
     override var threshold = 200
-    override val color = state.colorHolder
+    override var color = state.colorHolder
     override var hitVec3d: Vec3d? = null
 
     enum class State(val colorHolder: ColorHolder, val prioOffset: Int) {
@@ -65,6 +65,7 @@ class RestockTask(
     override fun SafeClientEvent.update(): Boolean {
         var wasUpdated = true
 
+        color = state.colorHolder
         hitVec3d = getHitVec(blockPos, getSideToOpen())
 
         when {

@@ -84,7 +84,11 @@ object TaskFactory {
         ignoreBlocks.contains(currentState.block.registryName.toString())
             && !isInsideBlueprintBuilding(blockPos)
 
-    fun isInsideBlueprintBuilding(blockPos: BlockPos) = currentBlueprint[blockPos]?.targetBlock != Blocks.AIR
+    fun isInsideBlueprintBuilding(blockPos: BlockPos): Boolean {
+        return currentBlueprint[blockPos]?.let {
+            it.targetBlock != Blocks.AIR
+        } ?: false
+    }
 
     data class BlueprintTask(val targetBlock: Block, val isFiller: Boolean = false, val isSupport: Boolean = false)
 }

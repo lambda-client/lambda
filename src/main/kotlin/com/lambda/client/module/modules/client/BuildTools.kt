@@ -11,14 +11,14 @@ import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.render.Nametags
-import com.lambda.client.module.modules.render.Nametags.setting
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.items.shulkerList
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.Block
 import net.minecraft.init.Blocks
+import net.minecraft.init.Items
+import net.minecraft.item.Item
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object BuildTools : Module(
@@ -45,7 +45,6 @@ object BuildTools : Module(
 
     /* placing */
     val placeDelay by setting("Place Delay", 3, 1..20, 1, { page == Page.PLACING }, description = "Sets the delay ticks between placement tasks", unit = " ticks")
-    val dynamicDelay by setting("Dynamic Place Delay", true, { page == Page.PLACING }, description = "Slows down on failed placement attempts")
     val illegalPlacements by setting("Illegal Placements", false, { page == Page.PLACING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     val scaffold by setting("Scaffold", true, { page == Page.PLACING }, description = "Tries to bridge / scaffold when stuck placing")
     val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.PLACING }, description = "EXPERIMENTAL: Attempts to find a support block for placing against", unit = " blocks")
@@ -64,7 +63,6 @@ object BuildTools : Module(
     val leastTools by setting("Least Tools", 1, 0..36, 1, { page == Page.STORAGE_MANAGEMENT && manageTools && storageManagement }, description = "How many tools are saved")
     val leastEnder by setting("Least Ender Chests", 1, 0..64, 1, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "How many ender chests are saved")
     val leastFood by setting("Least Food", 1, 0..64, 1, { page == Page.STORAGE_MANAGEMENT && manageFood && storageManagement }, description = "How many food items are saved")
-    val minDistance by setting("Min Container Distance", 1.5, 0.0..3.0, 0.1, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Avoid player movement collision with placement.", unit = " blocks")
     val preferEnderChests by setting("Prefer Ender Chests", false, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Prevent using raw material shulkers")
 
     /* render */
@@ -110,11 +108,19 @@ object BuildTools : Module(
             fillerMatSaved.value = value.registryName.toString()
         }
 
-    init {
-//        shulkerList.forEach {
-//            ignoreBlocks.add(it.registryName.toString())
-//        }
+    var defaultTool: Item
+        get() = Item.getByNameOrId(tool.value) ?: Items.GOLDEN_APPLE
+        set(value) {
+            tool.value = value.registryName.toString()
+        }
 
+    var defaultFood: Item
+        get() = Item.getByNameOrId(food.value) ?: Items.GOLDEN_APPLE
+        set(value) {
+            food.value = value.registryName.toString()
+        }
+
+    init {
         safeListener<PacketEvent.Receive> {
             handlePacket(it.packet)
         }
@@ -145,7 +151,7 @@ object BuildTools : Module(
         "minecraft:portal",
         "minecraft:piston_extension",
         "minecraft:barrier"
-    )
+    ).also { defaultIgnoreBlocks -> defaultIgnoreBlocks.addAll(shulkerList.map { it.localizedName }) }
 
     private val defaultEjectList = linkedSetOf(
         "minecraft:grass",
@@ -158,6 +164,8 @@ object BuildTools : Module(
     val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, { false }))
     val fillerMaterials = setting(CollectionSetting("Eject List", defaultEjectList))
     private val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
+    private val food = setting("FoodItem", "minecraft:golden_apple", { false })
+    private val tool = setting("ToolItem", "minecraft:diamond_pickaxe", { false })
 
     override fun isActive() = BuildToolsManager.isActive()
 }

@@ -2,31 +2,40 @@ package com.lambda.client.buildtools.pathfinding
 
 import baritone.api.process.PathingCommand
 import baritone.api.process.PathingCommandType
+import com.lambda.client.LambdaMod
 import com.lambda.client.buildtools.pathfinding.strategies.CenterStrategy
+import com.lambda.client.buildtools.pathfinding.strategies.GetInReachStrategy
+import com.lambda.client.buildtools.pathfinding.strategies.PickupStrategy
+import com.lambda.client.buildtools.pathfinding.strategies.ScaffoldStrategy
 import com.lambda.client.buildtools.task.TaskProcessor
 import com.lambda.client.event.SafeClientEvent
 import net.minecraft.util.math.BlockPos
 
 object Navigator {
     var origin: BlockPos = BlockPos.ORIGIN
-    var movementStrategy: MovementStrategy = CenterStrategy
+    var movementStrategy: MovementStrategy = GetInReachStrategy
     var currentPathingCommand = PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
 
     inline fun <reified T : MovementStrategy> changeStrategy() {
-        movementStrategy = T::class.java.newInstance()
+        movementStrategy = when (T::class) {
+            CenterStrategy::class -> CenterStrategy
+            GetInReachStrategy::class -> GetInReachStrategy
+            PickupStrategy::class -> PickupStrategy
+            else -> ScaffoldStrategy
+        }
     }
 
     fun reset() {
-        movementStrategy = CenterStrategy
+        movementStrategy = GetInReachStrategy
     }
 
-    private fun SafeClientEvent.getPathingCommand(): PathingCommand {
+    fun SafeClientEvent.updatePathingCommand() {
         with(movementStrategy) {
             TaskProcessor.currentBuildTask?.let {
-                return generatePathingCommand(it.blockPos)
+                currentPathingCommand = generatePathingCommand(it.blockPos)
+                return
             }
-
-            return PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
+            currentPathingCommand = PathingCommand(null, PathingCommandType.REQUEST_PAUSE)
         }
     }
 

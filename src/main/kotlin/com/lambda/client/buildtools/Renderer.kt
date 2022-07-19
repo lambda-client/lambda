@@ -8,7 +8,9 @@ import com.lambda.client.buildtools.task.build.DoneTask
 import com.lambda.client.buildtools.task.build.PlaceTask
 import com.lambda.client.module.modules.client.BuildTools.aFilled
 import com.lambda.client.module.modules.client.BuildTools.aOutline
+import com.lambda.client.module.modules.client.BuildTools.distScaleFactor
 import com.lambda.client.module.modules.client.BuildTools.filled
+import com.lambda.client.module.modules.client.BuildTools.minDistScale
 import com.lambda.client.module.modules.client.BuildTools.outline
 import com.lambda.client.module.modules.client.BuildTools.popUp
 import com.lambda.client.module.modules.client.BuildTools.popUpSpeed
@@ -16,17 +18,16 @@ import com.lambda.client.module.modules.client.BuildTools.showCurrentPos
 import com.lambda.client.module.modules.client.BuildTools.showDebugRender
 import com.lambda.client.module.modules.client.BuildTools.textScale
 import com.lambda.client.module.modules.client.BuildTools.thickness
+import com.lambda.client.module.modules.render.Nametags
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.graphics.ESPRenderer
-import com.lambda.client.util.graphics.GeometryMasks
-import com.lambda.client.util.graphics.GlStateUtils
-import com.lambda.client.util.graphics.ProjectionUtils
+import com.lambda.client.util.graphics.*
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import net.minecraft.init.Blocks
 import org.lwjgl.opengl.GL11
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.sin
 
 object Renderer {
@@ -61,16 +62,21 @@ object Renderer {
         }.forEach { buildTask ->
             updateOverlay(buildTask)
         }
+
+        GlStateUtils.rescaleMc()
     }
 
     private fun updateOverlay(buildTask: BuildTask) {
         val blockPos = buildTask.blockPos
         val debugInfo = buildTask.gatherAllDebugInfo()
         val screenPos = ProjectionUtils.toScreenPos(blockPos.toVec3dCenter())
+        val distanceScale = 1 / LambdaTessellator.camPos.distanceTo(blockPos.toVec3dCenter()).toFloat()
+        val scale = 2f * textScale
+        val distFactor = if (distScaleFactor == 0f) 1f else max(distanceScale * (distScaleFactor + 1f) * scale, minDistScale * scale)
 
         GL11.glPushMatrix()
         GL11.glTranslated(screenPos.x, screenPos.y, 0.0)
-        GL11.glScalef(textScale * 2.0f, textScale * 2.0f, 1.0f)
+        GL11.glScalef(distFactor, distFactor, 1.0f)
 
         val lineHeight = FontRenderAdapter.getFontHeight() + 2.0f
         val totalHeight = lineHeight * debugInfo.size

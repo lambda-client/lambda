@@ -2,7 +2,7 @@ package com.lambda.client.buildtools.task.build
 
 import com.lambda.client.buildtools.Statistics
 import com.lambda.client.buildtools.task.BuildTask
-import com.lambda.client.buildtools.task.RestockHandler.handleRestock
+import com.lambda.client.buildtools.task.RestockHandler.restockItem
 import com.lambda.client.buildtools.task.TaskFactory
 import com.lambda.client.buildtools.task.TaskProcessor
 import com.lambda.client.buildtools.task.TaskProcessor.addTask
@@ -12,8 +12,10 @@ import com.lambda.client.buildtools.task.TaskProcessor.packetLimiter
 import com.lambda.client.buildtools.task.TaskProcessor.waitBreak
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
+import com.lambda.client.module.modules.client.BuildTools.anonymizeLog
 import com.lambda.client.module.modules.client.BuildTools.breakDelay
 import com.lambda.client.module.modules.client.BuildTools.defaultFillerMat
+import com.lambda.client.module.modules.client.BuildTools.defaultTool
 import com.lambda.client.module.modules.client.BuildTools.ignoreBlocks
 import com.lambda.client.module.modules.client.BuildTools.illegalPlacements
 import com.lambda.client.module.modules.client.BuildTools.leastTools
@@ -64,9 +66,9 @@ class BreakTask(
     var collectPos: BlockPos? = null
 
     override var priority = 1 + state.prioOffset
-    override val timeout = 20
+    override var timeout = 20
     override var threshold = 1
-    override val color = state.colorHolder
+    override var color = state.colorHolder
     override var hitVec3d: Vec3d? = null
 
     private enum class State(val colorHolder: ColorHolder, val prioOffset: Int) {
@@ -91,6 +93,7 @@ class BreakTask(
         if (isValid() && state == State.INVALID) state = State.VALID
         priority = 1 + state.prioOffset
         threshold = 1 + ticksNeeded
+        color = state.colorHolder
         hitVec3d = breakInfo?.hitVec3d
 
         when {
@@ -138,7 +141,7 @@ class BreakTask(
             State.BREAK -> {
                 breakInfo?.let {
                     waitBreak = breakDelay
-                    if (it.isInstant) {
+                    if (it.ticksNeeded == 1) {
                         state = State.PENDING
 
                         sendMiningPackets(it)
@@ -166,6 +169,14 @@ class BreakTask(
             }
             State.BREAKING -> {
                 breakInfo?.let {
+                    if (ticksMined >= it.ticksNeeded) {
+                        it.stop = true
+
+                        sendMiningPackets(it)
+                        state = State.PENDING
+                        return
+                    }
+
                     sendMiningPackets(it)
                     ticksMined++
                 } ?: run {
@@ -237,7 +248,7 @@ class BreakTask(
     private fun SafeClientEvent.gatherBreakInformation(): Boolean {
         if (currentBlock is BlockFire) {
             getNeighbour(blockPos, 1, maxReach, !illegalPlacements)?.let {
-                breakInfo = BreakInfo(it.pos, it.side, getHitVec(it.pos, it.side), start = true)
+                breakInfo = BreakInfo(it.pos, it.side, getHitVec(it.pos, it.side), start = true, ticksNeeded = 1)
                 return false
             } ?: run {
                 convertTo<PlaceTask>(isFillerTask = true)
@@ -254,9 +265,9 @@ class BreakTask(
             }
 
             breakInfo = when {
-                ticksNeeded == 1 || ticksMined == 0 || player.capabilities.isCreativeMode -> BreakInfo(blockPos, side, hitVec, start = true, isInstant = true)
-                ticksMined < ticksNeeded -> BreakInfo(blockPos, side, hitVec)
-                else -> BreakInfo(blockPos, side, hitVec, stop = true)
+                ticksNeeded == 1 || ticksMined == 0 || player.capabilities.isCreativeMode -> BreakInfo(blockPos, side, hitVec, start = true, ticksNeeded = 1)
+                ticksMined < ticksNeeded -> BreakInfo(blockPos, side, hitVec, ticksNeeded = ticksNeeded)
+                else -> BreakInfo(blockPos, side, hitVec, stop = true, ticksNeeded = ticksNeeded)
             }
         }
         return false
@@ -277,7 +288,7 @@ class BreakTask(
                     val rayTraceResult = AxisAlignedBB(blockPos).isInSight(eyePos, viewVec, range = maxReach.toDouble(), tolerance = 0.0)
                         ?: return@forEach
 
-                    foundInstantTask.breakInfo = BreakInfo(foundInstantTask.blockPos, rayTraceResult.sideHit, breakInfo.hitVec3d, start = true, isInstant = true)
+                    foundInstantTask.breakInfo = BreakInfo(foundInstantTask.blockPos, rayTraceResult.sideHit, breakInfo.hitVec3d, start = true, ticksNeeded = 1)
                     foundInstantTask.state = State.BREAK
                     foundInstantTask.alreadyCheckedMultiBreak = true
 
@@ -308,7 +319,7 @@ class BreakTask(
 
     private fun SafeClientEvent.equipBestTool(breakTask: BreakTask): Boolean {
         if (player.inventorySlots.countItem<ItemPickaxe>() <= leastTools) {
-            handleRestock<ItemPickaxe>()
+            restockItem(defaultTool)
             return false
         }
 
@@ -397,13 +408,13 @@ class BreakTask(
         data.add(Pair("ticksMined", ticksMined.toString()))
         if (alreadyCheckedMultiBreak) data.add(Pair("checkedMB", ""))
         breakInfo?.let {
-            data.add(Pair("pos", it.pos.asString()))
+            if (!anonymizeLog) data.add(Pair("pos", it.pos.asString()))
             data.add(Pair("side", it.side.toString()))
-            data.add(Pair("hitVec3d", it.hitVec3d.toString()))
+            if (!anonymizeLog) data.add(Pair("hitVec3d", it.hitVec3d.toString()))
             if (it.start) data.add(Pair("start", ""))
             if (it.stop) data.add(Pair("stop", ""))
             if (it.abort) data.add(Pair("abort", ""))
-            if (it.isInstant) data.add(Pair("isInstant", ""))
+            data.add(Pair("ticksNeeded", it.ticksNeeded.toString()))
         }
 
         return data
@@ -416,6 +427,6 @@ class BreakTask(
         var start: Boolean = false,
         var stop: Boolean = false,
         val abort: Boolean = false,
-        val isInstant: Boolean = false,
+        val ticksNeeded: Int
     )
 }

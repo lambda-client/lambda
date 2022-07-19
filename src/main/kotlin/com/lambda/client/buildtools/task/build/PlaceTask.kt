@@ -4,7 +4,7 @@ import com.lambda.client.buildtools.Statistics
 import com.lambda.client.buildtools.pathfinding.Navigator
 import com.lambda.client.buildtools.pathfinding.strategies.ScaffoldStrategy
 import com.lambda.client.buildtools.task.BuildTask
-import com.lambda.client.buildtools.task.RestockHandler.handleRestock
+import com.lambda.client.buildtools.task.RestockHandler.restockItem
 import com.lambda.client.buildtools.task.TaskProcessor
 import com.lambda.client.buildtools.task.TaskProcessor.addTask
 import com.lambda.client.buildtools.task.TaskProcessor.convertTo
@@ -12,6 +12,7 @@ import com.lambda.client.buildtools.task.TaskProcessor.interactionLimitNotReache
 import com.lambda.client.buildtools.task.TaskProcessor.waitPlace
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
+import com.lambda.client.module.modules.client.BuildTools.anonymizeLog
 import com.lambda.client.module.modules.client.BuildTools.defaultFillerMat
 import com.lambda.client.module.modules.client.BuildTools.fakeSounds
 import com.lambda.client.module.modules.client.BuildTools.illegalPlacements
@@ -56,9 +57,9 @@ class PlaceTask(
     private val SafeClientEvent.placeInfoSequence get() = getNeighbourSequence(blockPos, placementSearch, maxReach, !illegalPlacements)
 
     override var priority = 2
-    override val timeout = 20
+    override var timeout = 20
     override var threshold = 20
-    override val color = state.colorHolder
+    override var color = state.colorHolder
     override var hitVec3d: Vec3d? = null
 
     enum class State(val colorHolder: ColorHolder, val prioOffset: Int) {
@@ -79,6 +80,7 @@ class PlaceTask(
         var wasUpdated = true
 
         priority = 2 + state.prioOffset + if (isLiquidSource) 10 else 0
+        color = state.colorHolder
         if (placeInfoSequence.size == 1) placeInfo = placeInfoSequence.firstOrNull()
         hitVec3d = placeInfo?.hitVec
 
@@ -127,9 +129,9 @@ class PlaceTask(
             }
             State.GET_BLOCK -> {
                 if (targetBlock is BlockEnderChest
-                    && player.inventorySlots.countItem(Blocks.ENDER_CHEST.item) <= leastEnder
+                    && player.inventorySlots.countBlock<BlockEnderChest>() <= leastEnder
                 ) {
-                    handleRestock(Blocks.ENDER_CHEST.item)
+                    restockItem(Blocks.ENDER_CHEST.item)
                     return
                 }
 
@@ -144,7 +146,7 @@ class PlaceTask(
 
                     state = State.PENDING
 
-                    sendPlacingPackets(it.placedPos, it.side, getHitVecOffset(it.side))
+                    sendPlacingPackets(it.pos, it.side, getHitVecOffset(it.side))
                 }
             }
             State.PENDING -> {
@@ -185,8 +187,9 @@ class PlaceTask(
     }
 
     private fun SafeClientEvent.equipBlockToPlace(): Boolean {
-        if (isContainerTask && slotToUseForPlace != null) {
-            swapToSlotOrMove(slotToUseForPlace)
+        slotToUseForPlace?.let {
+            swapToSlotOrMove(it)
+            return true
         }
 
         if (swapToItemOrMove(BuildTools, targetBlock.item)) {
@@ -201,7 +204,7 @@ class PlaceTask(
             }
         }
 
-        handleRestock(targetBlock.item)
+        restockItem(targetBlock.item)
         return false
     }
 
@@ -258,12 +261,12 @@ class PlaceTask(
         data.add(Pair("state", state.name))
 
         placeInfo?.let {
-            data.add(Pair("pos", it.pos.asString()))
+            if (!anonymizeLog) data.add(Pair("pos", it.pos.asString()))
             data.add(Pair("side", it.side.name))
             data.add(Pair("distance", "%.2f".format(it.dist)))
             data.add(Pair("hitVecOffset", it.hitVecOffset.toString()))
-            data.add(Pair("hitVec", it.hitVec.toString()))
-            data.add(Pair("placedPos", it.placedPos.asString()))
+            if (!anonymizeLog) data.add(Pair("hitVec", it.hitVec.toString()))
+            if (!anonymizeLog) data.add(Pair("placedPos", it.placedPos.asString()))
         }
 
         return data

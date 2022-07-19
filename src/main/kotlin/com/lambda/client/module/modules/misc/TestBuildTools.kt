@@ -2,7 +2,9 @@ package com.lambda.client.module.modules.misc
 
 import com.lambda.client.buildtools.BuildToolsManager.buildStructure
 import com.lambda.client.buildtools.blueprint.StructureTask
+import com.lambda.client.buildtools.blueprint.strategies.MoveXStrategy
 import com.lambda.client.buildtools.task.TaskFactory
+import com.lambda.client.buildtools.task.sequence.strategies.OriginStrategy
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -19,6 +21,7 @@ object TestBuildTools : Module(
 ) {
     private val placeThree = setting("Place Three", false)
     private val breakThree = setting("Break Three", false)
+    private val line = setting("line", false)
     private val cancel = setting("Cancel", false)
 
     lateinit var st: StructureTask
@@ -39,6 +42,20 @@ object TestBuildTools : Module(
             if (it) {
                 runSafe {
                     st = StructureTask(generateBlueprint2())
+
+                    buildStructure(st)
+                }
+            }
+            false
+        }
+
+        line.consumers.add { _, it ->
+            if (it) {
+                runSafe {
+                    st = StructureTask(generateBlueprint3(),
+                        blueprintStrategy = MoveXStrategy(player.flooredPosition, Direction.fromEntity(player), 1, 0, hasStartPadding = true),
+                        taskSequenceStrategy = OriginStrategy
+                    )
 
                     buildStructure(st)
                 }
@@ -76,6 +93,14 @@ object TestBuildTools : Module(
         (0..2).forEach {
             blueprint[origin.up(it)] = TaskFactory.BlueprintTask(Blocks.AIR)
         }
+
+        return blueprint
+    }
+
+    private fun SafeClientEvent.generateBlueprint3(): HashMap<BlockPos, TaskFactory.BlueprintTask> {
+        val blueprint = hashMapOf<BlockPos, TaskFactory.BlueprintTask>()
+
+        blueprint[player.flooredPosition.add(Direction.fromEntity(player).directionVec)] = TaskFactory.BlueprintTask(Blocks.NETHERRACK)
 
         return blueprint
     }
