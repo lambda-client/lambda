@@ -134,7 +134,7 @@ processResources {
     }
 }
 
-task sourceJar(type: Jar) { // Generate sources
+task buildApiSource(type: Jar) { // Generate sources
     group 'build'
     description 'Assemble API library source archive'
 
@@ -142,10 +142,21 @@ task sourceJar(type: Jar) { // Generate sources
     from sourceSets.main.allSource
 }
 
-jar {
+task buildApi(type: Jar) {
+    group 'build'
     description 'Assemble API library archive'
 
     archiveClassifier.set 'api'
+    from sourceSets.main.output
+}
+
+task buildAll {
+    group 'build'
+    description 'Assemble all jars'
+
+    dependsOn 'buildApi'
+    dependsOn 'buildApiSource'
+    dependsOn 'build'
 }
 
 shadowJar {
@@ -178,10 +189,12 @@ shadowJar {
 
 reobf {
     shadowJar {}
+    jar {
+        enabled = false
+    }
 }
 
 artifacts {
     shadowJar
 }
 
-build.dependsOn(sourceJar)

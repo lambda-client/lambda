@@ -39,7 +39,7 @@ jobs:
         run: ./gradlew --no-daemon classes
 
       - name: Build forge mod
-        run: ./gradlew --build-cache shadowJar
+        run: ./gradlew --build-cache build
 
       - name: Rename built forge mod
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
@@ -64,7 +64,7 @@ jobs:
           path: lambda-${{ github.run_number }}-SHA256.txt
 
       - name: Build plugin API
-        run: ./gradlew --no-build-cache jar
+        run: ./gradlew --no-build-cache buildApi
 
       - name: Rename built plugin API
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
