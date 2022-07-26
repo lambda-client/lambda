@@ -44,20 +44,17 @@ jobs:
       - name: Build all Lambda utility mod binaries
         run: ./gradlew --build-cache buildAll
 
-      - name : Test2
-        run : cd build/libs/
-
       - name : Test3
-        run : ls -a
+        run : ls build/libs/ -a
 
       - name: Rename built main jar
-        run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
+        run: mv build/libs/lambda-*.jar /lambda-${{ github.run_number }}.jar
 
       - name : Rename built plugin api jar
-        run : mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
+        run : mv build/libs/lambda-*-api.jar /lambda-${{ github.run_number }}-api.jar
 
       - name : Rename source lib jar
-        run : mv build/libs/lambda-*-api-source.jar lambda-${{ github.run_number }}-api-source.jar
+        run : mv build/libs/lambda-*-api-source.jar /lambda-${{ github.run_number }}-api-source.jar
 
       - name: Calculate main jar checksum
         uses: ToxicAven/generate-checksum-file@v1
