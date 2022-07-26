@@ -22,10 +22,10 @@ jobs:
         with:
           java-version: 1.8
 
-      - name: Fix wrapper permissions
+      - name: Elevate wrapper permissions
         run: chmod +x ./gradlew
 
-      - name: Gradle cache
+      - name: Loading gradle cache
         uses: actions/cache@v2
         with:
           path: |
@@ -38,55 +38,74 @@ jobs:
       - name: Prepare workspace
         run: ./gradlew --no-daemon classes
 
-      - name: Build forge mod
-        run: ./gradlew --build-cache build
+      - name: Build all Lambda utility mod binaries
+        run: ./gradlew --build-cache buildAll
 
-      - name: Rename built forge mod
+      - name: Rename built main jar
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
 
-      - name: Generate forge mod checksum
+      - name : Rename built plugin api jar
+        run : mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
+
+      - name : Rename source lib jar
+        run : mv build/libs/lambda-*-api-source.jar lambda-${{ github.run_number }}-api-source.jar
+
+      - name: Calculate main jar checksum
         uses: ToxicAven/generate-checksum-file@v1
         with:
           filePath: lambda-${{ github.run_number }}.jar
           saveFile: lambda-${{ github.run_number }}-SHA256.txt
           algorithm: SHA256
 
-      - name: Archive forge mod
+      - name : Calculate plugin api jar checksum
+        uses : ToxicAven/generate-checksum-file@v1
+        with :
+          filePath : lambda-${{ github.run_number }}-api.jar
+          saveFile : lambda-${{ github.run_number }}-api-SHA256.txt
+          algorithm : SHA256
+
+      - name : Calculate source lib jar checksum
+        uses : ToxicAven/generate-checksum-file@v1
+        with :
+          filePath : lambda-${{ github.run_number }}-api-source.jar
+          saveFile : lambda-${{ github.run_number }}-api-source-SHA256.txt
+          algorithm : SHA256
+
+      - name: Upload main jar artifact
         uses: actions/upload-artifact@v2
         with:
           name: lambda-${{ github.run_number }}
           path: lambda-${{ github.run_number }}.jar
 
-      - name: Archive forge mod checksum
+      - name : Upload plugin api jar artifact
+        uses : actions/upload-artifact@v2
+        with :
+          name : lambda-${{ github.run_number }}-api
+          path : lambda-${{ github.run_number }}-api.jar
+
+      - name : Upload source lib jar artifact
+        uses : actions/upload-artifact@v2
+        with :
+          name : lambda-${{ github.run_number }}-api-source
+          path : lambda-${{ github.run_number }}-api-source.jar
+
+      - name: Upload main jar checksum artifact
         uses: actions/upload-artifact@v2
         with:
           name: lambda-${{ github.run_number }}-SHA256.txt
           path: lambda-${{ github.run_number }}-SHA256.txt
 
-      - name: Build plugin API
-        run: ./gradlew --no-build-cache buildApi
-
-      - name: Rename built plugin API
-        run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
-
-      - name: Generate API mod checksum
-        uses: ToxicAven/generate-checksum-file@v1
-        with:
-          filePath: lambda-${{ github.run_number }}-api.jar
-          saveFile: lambda-${{ github.run_number }}-api-SHA256.txt
-          algorithm: SHA256
-
-      - name: Archive plugin API
-        uses: actions/upload-artifact@v2
-        with:
-          name: lambda-${{ github.run_number }}-api
-          path: lambda-${{ github.run_number }}-api.jar
-
-      - name: Upload API checksum
+      - name: Upload plugin api jar checksum artifact
         uses: actions/upload-artifact@v2
         with:
           name: lambda-${{ github.run_number }}-api-SHA256.txt
           path: lambda-${{ github.run_number }}-api-SHA256.txt
+
+      - name : Upload plugin api jar checksum artifact
+        uses : actions/upload-artifact@v2
+        with :
+          name : lambda-${{ github.run_number }}-api-source-SHA256.txt
+          path : lambda-${{ github.run_number }}-api-source-SHA256.txt
 
       - name: Get branch name
         uses: nelonoel/branch-name@v1.0.1
