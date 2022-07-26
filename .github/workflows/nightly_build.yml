@@ -38,8 +38,17 @@ jobs:
       - name: Prepare workspace
         run: ./gradlew --no-daemon classes
 
+      - name: Test1
+        run: ls -a
+
       - name: Build all Lambda utility mod binaries
         run: ./gradlew --build-cache buildAll
+
+      - name : Test2
+        run : cd build/libs/
+
+      - name : Test3
+        run : ls -a
 
       - name: Rename built main jar
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
