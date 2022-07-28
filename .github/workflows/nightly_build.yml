@@ -22,10 +22,10 @@ jobs:
         with:
           java-version: 1.8
 
-      - name: Fix wrapper permissions
+      - name: Elevate wrapper permissions
         run: chmod +x ./gradlew
 
-      - name: Gradle cache
+      - name: Loading gradle cache
         uses: actions/cache@v2
         with:
           path: |
@@ -38,7 +38,7 @@ jobs:
       - name: Prepare workspace
         run: ./gradlew --no-daemon classes
 
-      - name: Build forge mod
+      - name: Build lambda utility mod
         run: ./gradlew --build-cache build
 
       - name: Rename built forge mod
@@ -64,7 +64,7 @@ jobs:
           path: lambda-${{ github.run_number }}-SHA256.txt
 
       - name: Build plugin API
-        run: ./gradlew apiJar --no-build-cache
+        run: ./gradlew --no-build-cache buildApi
 
       - name: Rename built plugin API
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
