@@ -1,10 +1,13 @@
 package com.lambda.client.module.modules.misc
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
@@ -25,52 +28,62 @@ import java.security.MessageDigest
 import javax.imageio.ImageIO
 
 internal object MapDownloader : Module(
-    name = "Map Downloader",
+    name = "MapDownloader",
     category = Category.MISC,
     description = "Downloads maps in item frames in your render distance to file."
 ) {
 
-    private var scale by setting("Scale", 1, 1..20, 1)
-    private var saveDelay by setting("Save delay", 0.2, 0.1..2.0, 0.1)
+    private val scale by setting("Scale", 1, 1..20, 1, description = "Higher scale results in higher storage use!")
+    private val saveMapsFromEntity by setting("Save maps from entity", true)
+    private val saveMapsFromInventory by setting("Save maps from inventory", true, description = "When rendering a new map it will save one image for every map update!")
+    private val saveDelay by setting("Save delay", 0.2, 0.1..2.0, 0.1, unit = " s")
+    private val openImageFolder = setting("Open Image Folder...", false)
     private val pendingHashes = mutableSetOf<String>()
     private var existingHashes = mutableSetOf<String>()
-    private var pendingTasks = mutableSetOf<Triple<MapData, String, Int>>()
-    private val mapPath = "mapImages${File.separator}"
+    private var pendingTasks = mutableSetOf<MapInfo>()
     private val secTimer = TickTimer(TimeUnit.SECONDS)
     private val milliSecTimer = TickTimer(TimeUnit.MILLISECONDS)
 
     init {
-        val directory = File(mapPath)
-        if (!directory.exists()) {
-            directory.mkdir()
-        }
-
         existingHashes = getExistingHashes()
 
         safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase == TickEvent.Phase.START) {
-                if (secTimer.tick(10)) existingHashes = getExistingHashes()
-                if (pendingTasks.isNotEmpty()
-                    && milliSecTimer.tick((saveDelay * 1000).toInt())) {
-                    pendingTasks.firstOrNull()?.let { triple ->
-                        defaultScope.launch {
-                            runSafe {
-                                renderAndSaveMapImage(triple.first, triple.second, triple.third)
-                            }
-                        }
-                        pendingTasks.remove(triple)
-                    }
+            if (it.phase != TickEvent.Phase.START) return@safeListener
+
+            if (secTimer.tick(10)) existingHashes = getExistingHashes()
+
+            if (pendingTasks.isNotEmpty()
+                && milliSecTimer.tick((saveDelay * 1000).toInt())
+            ) {
+                val directory = File(FolderUtils.mapImagesFolder)
+                if (!directory.exists()) {
+                    directory.mkdir()
                 }
 
-                getMaps()
+                pendingTasks.firstOrNull()?.let { mapInfo ->
+                    defaultScope.launch {
+                        runSafe {
+                            renderAndSaveMapImage(mapInfo)
+                            LambdaMod.LOG.info("Saved map - name: ${mapInfo.name} id: ${mapInfo.id}")
+                        }
+                    }
+                    pendingTasks.remove(mapInfo)
+                }
             }
+
+            getMaps()
+        }
+
+        openImageFolder.consumers.add { _, it ->
+            if (it) FolderUtils.openFolder(FolderUtils.mapImagesFolder)
+            false
         }
     }
 
     private fun getExistingHashes(): MutableSet<String> {
         val alreadyConverted = mutableSetOf<String>()
 
-        File(mapPath).walk().filter {
+        File(FolderUtils.mapImagesFolder).walk().filter {
             it.name.endsWith(".png")
         }.forEach { file ->
             val nameArr = file.name.split("_")
@@ -78,6 +91,10 @@ internal object MapDownloader : Module(
                 alreadyConverted.add(nameArr[0])
             }
         }
+
+        // to exclude the empty map
+        alreadyConverted.add("ce338fe6899778aacfc28414f2d9498b")
+
         return alreadyConverted
     }
 
@@ -91,27 +108,39 @@ internal object MapDownloader : Module(
     }
 
     private fun SafeClientEvent.getMaps() {
-        world.loadedEntityList
+        if (saveMapsFromEntity) world.loadedEntityList
             .filterIsInstance<EntityItemFrame>()
             .filter { it.displayedItem.item == Items.FILLED_MAP }
             .forEach {
                 (it.displayedItem.item as ItemMap).getMapData(it.displayedItem, world)?.let { mapData ->
-                    MessageDigest.getInstance("MD5")?.let { md ->
-                        val hash = md.digest(mapData.colors).toHex()
-
-                        if (!existingHashes.contains(hash) && !pendingHashes.contains(hash)) {
-                            pendingHashes.add(hash)
-                            pendingTasks.add(Triple(mapData, hash, it.displayedItem.itemDamage))
-                        }
-                    } ?: run {
-                        MessageSendHelper.sendChatMessage("$chatName Can't find MD5 instance.")
-                        disable()
-                    }
+                    handleMap(mapData, it.displayedItem.displayName, it.displayedItem.itemDamage)
                 }
             }
+
+        if (saveMapsFromInventory) player.inventorySlots.forEach {
+            if (it.stack.item is ItemMap) {
+                (it.stack.item as ItemMap).getMapData(it.stack, world)?.let { mapData ->
+                    handleMap(mapData, it.stack.displayName, it.stack.itemDamage)
+                }
+            }
+        }
     }
 
-    private fun SafeClientEvent.renderAndSaveMapImage(mapData: MapData, hash: String, mapID: Int) {
+    private fun handleMap(data: MapData, name: String, id: Int) {
+        MessageDigest.getInstance("MD5")?.let { md ->
+            val hash = md.digest(data.colors).toHex()
+
+            if (!existingHashes.contains(hash) && !pendingHashes.contains(hash)) {
+                pendingHashes.add(hash)
+                pendingTasks.add(MapInfo(data, name, id, hash))
+            }
+        } ?: run {
+            MessageSendHelper.sendChatMessage("$chatName Can't find MD5 instance.")
+            disable()
+        }
+    }
+
+    private fun SafeClientEvent.renderAndSaveMapImage(mapInfo: MapInfo) {
         val finalSize = 128 * scale
 
         var countPos = 0
@@ -122,7 +151,9 @@ internal object MapDownloader : Module(
 
         repeat(128) { i ->
             repeat(128) { j ->
-                mapData.colors[countPos].toUByte().let { mapColor(it).let { it1 -> img.setRGB(j, i, it1.rgb) } }
+                mapInfo.data.colors[countPos].toUByte().let {
+                    mapColor(it).let { color -> img.setRGB(j, i, color.rgb) }
+                }
                 countPos++
             }
         }
@@ -130,7 +161,7 @@ internal object MapDownloader : Module(
         try {
             val resized = BufferedImage(finalSize, finalSize, img.type)
             val g = resized.createGraphics()
-            val loc = "${mapPath}${hash}_id_${mapID}_server_${player.connection.networkManager.remoteAddress.toString().split('/')[0]?:"local"}.png"
+            val loc = "${FolderUtils.mapImagesFolder}${mapInfo.hash}_name_${mapInfo.name.replace(File.separator, "")}_id_${mapInfo.id}_${if (mc.isIntegratedServerRunning) "local" else "server_${player.connection.networkManager.remoteAddress.toString().replace("/", "_").replace(":", "_")}"}.png"
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
                 RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
             g.drawImage(img, 0, 0, finalSize, finalSize, 0, 0, img.width,
@@ -141,9 +172,11 @@ internal object MapDownloader : Module(
             ex.printStackTrace()
         }
 
-        pendingHashes.remove(hash)
-        existingHashes.add(hash)
+        pendingHashes.remove(mapInfo.hash)
+        existingHashes.add(mapInfo.hash)
     }
 
     private fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
+
+    data class MapInfo(val data: MapData, val name: String, val id: Int, val hash: String)
 }
