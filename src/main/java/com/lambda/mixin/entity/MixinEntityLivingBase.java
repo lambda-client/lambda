@@ -126,13 +126,12 @@ public abstract class MixinEntityLivingBase extends Entity {
     private boolean shouldModify() {
         return shouldWork() && world.loadedEntityList.stream().anyMatch(entity -> {
                 if (entity instanceof EntityFireworkRocket) {
-                    EntityLivingBase boosted;
                     try {
-                        boosted = (EntityLivingBase) boostedEntity.get(entity);
+                        EntityLivingBase boosted = (EntityLivingBase) boostedEntity.get(entity);
+                        return boosted != null && boosted.equals(this);
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e); // This should absolutely never happen
                     }
-                    return boosted != null && boosted.equals(this);
                 }
                 return false;
             }
