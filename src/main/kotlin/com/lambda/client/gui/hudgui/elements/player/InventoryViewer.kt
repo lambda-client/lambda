@@ -1,7 +1,10 @@
 package com.lambda.client.gui.hudgui.elements.player
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.HudElement
+import com.lambda.client.mixin.extension.windowID
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.graphics.GlStateUtils
@@ -10,6 +13,7 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.items.storageSlots
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.runSafe
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.gui.inventory.GuiContainer
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
@@ -18,7 +22,10 @@ import net.minecraft.init.Blocks
 import net.minecraft.inventory.ContainerChest
 import net.minecraft.inventory.InventoryBasic
 import net.minecraft.item.ItemStack
+import net.minecraft.network.play.client.CPacketCloseWindow
+import net.minecraft.network.play.server.SPacketOpenWindow
 import net.minecraft.util.ResourceLocation
+import net.minecraft.util.text.TextComponentTranslation
 import org.lwjgl.opengl.GL11.*
 
 internal object InventoryViewer : HudElement(
@@ -39,6 +46,7 @@ internal object InventoryViewer : HudElement(
     override val hudWidth: Float = 162.0f
     override val hudHeight: Float = 54.0f
 
+    private var openedEnderChest : Int = -1
     override fun renderHud(vertexHelper: VertexHelper) {
         super.renderHud(vertexHelper)
         runSafe {
@@ -93,12 +101,41 @@ internal object InventoryViewer : HudElement(
     }
 
 
+    init {
+        safeListener<ConnectionEvent.Disconnect> {
+            openedEnderChest = -1
+        }
+        safeListener<PacketEvent.Receive> {
+            if (it.packet !is SPacketOpenWindow) return@safeListener
+            if (it.packet.guiId != "minecraft:container") return@safeListener
+            try {
+                if ((it.packet.windowTitle as TextComponentTranslation).key != "container.enderchest") return@safeListener
+                openedEnderChest = it.packet.windowId
+            } catch (_: Exception) {
+            }
+        }
+
+        safeListener<PacketEvent.PostSend> {
+            if (it.packet !is CPacketCloseWindow) return@safeListener
+            if (it.packet.windowID == openedEnderChest) {
+                if (mc.currentScreen is GuiContainer) {
+                    val container = (mc.currentScreen as GuiContainer).inventorySlots
+                    if (container is ContainerChest && container.lowerChestInventory is InventoryBasic) {
+                        if (container.windowId == openedEnderChest) {
+                            for (i in 0..26) enderChestContents[i] = container.inventory[i]
+                        }
+                    }
+                }
+                openedEnderChest = -1
+            }
+        }
+    }
+
     private fun checkEnderChest() {
         if (mc.currentScreen is GuiContainer) {
             val container = (mc.currentScreen as GuiContainer).inventorySlots
             if (container is ContainerChest && container.lowerChestInventory is InventoryBasic) {
-                val inv = (container.lowerChestInventory as InventoryBasic)
-                if (inv.name.equals("Ender Chest", true)) {
+                if (container.windowId == openedEnderChest) {
                     for (i in 0..26) enderChestContents[i] = container.inventory[i]
                 }
             }
