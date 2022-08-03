@@ -93,16 +93,7 @@ object Tracers : Module(
 
             val cacheMap = HashMap<Entity, Pair<ColorHolder, Float>>()
             for (entity in entityList) {
-                cacheMap[entity] = Pair(getColor(entity), 0f)
-            }
-
-            for ((entity, pair) in renderList) {
-                cacheMap.computeIfPresent(entity) { _, cachePair -> Pair(cachePair.first, min(pair.second + 0.075f, 1f)) }
-                cacheMap.computeIfAbsent(entity) { Pair(getColor(entity), pair.second - 0.05f) }
-
-                if (pair.second < 0f) {
-                    cacheMap.remove(entity)
-                }
+                cacheMap[entity] = Pair(getColor(entity), 1f)
             }
 
             renderList.clear()
