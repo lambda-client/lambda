@@ -13,9 +13,9 @@ internal object Username : LabelHud(
     private val suffix = setting("Suffix", "")
 
     override fun SafeClientEvent.updateText() {
-        displayText.add(prefix.value, primaryColor)
+        if (prefix.value != "") displayText.add(prefix.value, primaryColor)
         displayText.add(mc.session.username, secondaryColor)
-        displayText.add(suffix.value, primaryColor)
+        if (suffix.value != "") displayText.add(suffix.value, primaryColor)
     }
 
 }
