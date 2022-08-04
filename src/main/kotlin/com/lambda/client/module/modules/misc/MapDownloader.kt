@@ -30,7 +30,7 @@ import javax.imageio.ImageIO
 internal object MapDownloader : Module(
     name = "MapDownloader",
     category = Category.MISC,
-    description = "Downloads maps in item frames in your render distance to file."
+    description = "Downloads maps in item frames within your render distance to file"
 ) {
 
     private val scale by setting("Scale", 1, 1..20, 1, description = "Higher scale results in higher storage use!")
