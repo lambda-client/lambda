@@ -9,7 +9,7 @@ import net.minecraft.network.play.client.CPacketUseEntity
 
 object MountBypass : Module(
     name = "MountBypass",
-    description = "Might allow you to mount chested animals on servers that block it",
+    description = "Attempts to allow you to mount chested animals on servers that block it",
     category = Category.MISC
 ) {
     init {
