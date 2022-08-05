@@ -10,7 +10,7 @@ import net.minecraft.network.play.client.CPacketUseEntity
 
 object AntiFriendHit : Module(
     name = "AntiFriendHit",
-    description = "Don't hit your friends",
+    description = "Prevents hitting friends",
     category = Category.COMBAT
 ) {
     init {
