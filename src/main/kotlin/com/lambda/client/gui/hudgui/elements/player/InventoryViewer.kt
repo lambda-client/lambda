@@ -110,6 +110,7 @@ internal object InventoryViewer : HudElement(
         safeListener<PacketEvent.Receive> {
             if (it.packet !is SPacketOpenWindow) return@safeListener
             if (it.packet.guiId != "minecraft:container") return@safeListener
+            if (it.packet.windowTitle !is TextComponentTranslation) return@safeListener
             if ((it.packet.windowTitle as TextComponentTranslation).key != "container.enderchest") return@safeListener
 
             openedEnderChest = it.packet.windowId
