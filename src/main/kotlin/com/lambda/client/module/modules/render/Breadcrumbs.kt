@@ -26,7 +26,7 @@ import kotlin.math.sin
 
 object Breadcrumbs : Module(
     name = "Breadcrumbs",
-    description = "Draws a tail behind as you move",
+    description = "Draws a trail behind as you move",
     category = Category.RENDER,
     alwaysListening = true
 ) {
@@ -69,7 +69,7 @@ object Breadcrumbs : Module(
             }
             if (!shouldRecord(true)) return@safeListener
 
-            /* Adding server and dimension to the map if they are not exist */
+            /* Adding server and dimension to the map if they don't exist */
             val serverIP = getServerIP()
             val dimension = player.dimension
 
