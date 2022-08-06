@@ -110,8 +110,9 @@ internal object InventoryViewer : HudElement(
         safeListener<PacketEvent.Receive> {
             if (it.packet !is SPacketOpenWindow) return@safeListener
             if (it.packet.guiId != "minecraft:container") return@safeListener
-            if (it.packet.windowTitle !is TextComponentTranslation) return@safeListener
-            if ((it.packet.windowTitle as TextComponentTranslation).key != "container.enderchest") return@safeListener
+            val title = it.packet.windowTitle
+            if (title !is TextComponentTranslation) return@safeListener
+            if (title.key != "container.enderchest") return@safeListener
 
             openedEnderChest = it.packet.windowId
         }
@@ -126,9 +127,11 @@ internal object InventoryViewer : HudElement(
     }
 
     private fun checkEnderChest() {
-        if (mc.currentScreen !is GuiContainer) return
+        val guiScreen = mc.currentScreen
 
-        val container = (mc.currentScreen as GuiContainer).inventorySlots
+        if (guiScreen !is GuiContainer) return
+
+        val container = guiScreen.inventorySlots
 
         if (container is ContainerChest && container.lowerChestInventory is InventoryBasic) {
             if (container.windowId == openedEnderChest) {
