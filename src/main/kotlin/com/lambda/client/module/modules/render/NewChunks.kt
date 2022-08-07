@@ -50,7 +50,8 @@ object NewChunks : Module(
     private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
     private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
     private val alsoSaveNormalCoords by setting("Save Normal Coords", false, { saveNewChunks })
-    private val closeFile = setting("CloseFile", false, { saveNewChunks })
+    private val closeFile = setting("Close file", false, { saveNewChunks })
+    private val openNewChunksFolder = setting("Open NewChunks Folder...", false, { saveNewChunks })
     private val yOffset by setting("Y Offset", 0, -256..256, 4, fineStep = 1, description = "Render offset in Y axis")
     private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "Highlighting color")
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
@@ -249,7 +250,8 @@ object NewChunks : Module(
             if (saveInRegionFolder) {
                 file = File(file, "region")
             }
-            file = File(file, "newChunkLogs")
+
+            file = File(file, "logs")
             val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date())
             file = File(file, mc.session.username + "_" + date + ".csv") // maybe don't safe the name, actually. But I also don't want to make another option...
             val filePath = file.toPath()
@@ -284,43 +286,8 @@ object NewChunks : Module(
                 rV = File(rV, "saves")
                 rV = File(rV, folderName)
             }
-            SaveOption.NHACK_WDL -> {
-                folderName = nHackInetName
-                rV = File(rV, "config")
-                rV = File(rV, "wdl-saves")
-                rV = File(rV, folderName)
-
-                // extra because name might be different
-                if (!rV.exists()) {
-                    MessageSendHelper.sendWarningMessage("$chatName nhack wdl directory doesnt exist: $folderName")
-                    MessageSendHelper.sendWarningMessage("$chatName creating the directory now. It is recommended to update the ip")
-                }
-            }
         }
         return rV.toPath()
-    }
-
-    // if there is no port then we have to manually include the standard port..
-    private val nHackInetName: String
-        get() {
-            var folderName = mc.currentServerData?.serverIP ?: "Offline"
-            if (SystemUtils.IS_OS_WINDOWS) {
-                folderName = folderName.replace(":", "_")
-            }
-            if (hasNoPort(folderName)) {
-                folderName += "_25565" // if there is no port then we have to manually include the standard port..
-            }
-            return folderName
-        }
-
-    private fun hasNoPort(ip: String): Boolean {
-        if (!ip.contains("_")) {
-            return true
-        }
-        val sp = ip.split("_").toTypedArray()
-        val ending = sp[sp.size - 1]
-        // if it is numeric it means it might be a port...
-        return ending.toIntOrNull() != null
     }
 
     // p2.x > p1.x and p2.y > p1.y is assumed
@@ -334,28 +301,12 @@ object NewChunks : Module(
         return Vec2d((x shl 4).toDouble(), (z shl 4).toDouble()).minus(playerOffset).div(scale.toDouble())
     }
 
-    fun getChunks(): ConcurrentHashMap<ChunkPos, Long> {
-        return chunks
-    }
-
-    fun addChunk(chunk: ChunkPos) {
-        chunks[chunk] = System.currentTimeMillis()
-    }
-
-    fun addChunk(chunk: ChunkPos, time: Long) {
-        chunks[chunk] = time
-    }
-
-    fun removeChunk(chunk: ChunkPos) {
-        chunks.remove(chunk)
-    }
-
     private fun saveNewChunk(log: PrintWriter?, data: String) {
         log!!.println(data)
     }
 
     private enum class SaveOption {
-        EXTRA_FOLDER, LITE_LOADER_WDL, NHACK_WDL
+        EXTRA_FOLDER, LITE_LOADER_WDL
     }
 
     @Suppress("unused")
@@ -375,7 +326,7 @@ object NewChunks : Module(
         var ip: String? = null
         fun testChangeAndUpdate(event: SafeClientEvent): Boolean {
             if (testChange(event)) {
-                // so we dont have to do this process again next time
+                // so we don't have to do this process again next time
                 update(event)
                 return true
             }
@@ -408,6 +359,11 @@ object NewChunks : Module(
                 MessageSendHelper.sendChatMessage("$path")
                 closeFile.value = false
             }
+        }
+
+        openNewChunksFolder.consumers.add { _, it ->
+            if (it) FolderUtils.openFolder(FolderUtils.newChunksFolder)
+            false
         }
     }
 }

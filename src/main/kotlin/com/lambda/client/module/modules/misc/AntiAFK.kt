@@ -28,7 +28,7 @@ import kotlin.random.Random
  */
 object AntiAFK : Module(
     name = "AntiAFK",
-    description = "Prevents being kicked for AFK",
+    description = "Prevents being kicked while AFK",
     category = Category.MISC
 ) {
     private val delay by setting("Action Delay", 50, 5..100, 5, unit = " ticks")
@@ -40,7 +40,7 @@ object AntiAFK : Module(
     private val turn = setting("Turn", true)
     private val walk = setting("Walk", true)
     private val radius by setting("Radius", 64, 8..128, 8, fineStep = 1)
-    private val inputTimeout by setting("Idle Timeout", 0, 0..15, 1, description = "Starts AntiAFK after being idle for longer than specific minutes, 0 to disable", unit = "m")
+    private val inputTimeout by setting("Idle Timeout", 0, 0..15, 1, description = "Starts AntiAFK after being idle longer than the selected time in minutes, 0 to disable", unit = "m")
     private val allowBreak by setting("Allow Breaking Blocks", false, { walk.value })
 
     private var startPos: BlockPos? = null

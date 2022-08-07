@@ -44,7 +44,11 @@ object FolderUtils {
 
     @JvmStatic
     val newChunksFolder
-        get() = "${lambdaFolder}newChunks${File.separator}"
+        get() = "${lambdaFolder}new-chunks${File.separator}"
+
+    @JvmStatic
+    val mapImagesFolder
+        get() = "${lambdaFolder}map-images${File.separator}"
 
     /**
      * Opens the given path using the right library based on OS

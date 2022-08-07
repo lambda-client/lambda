@@ -14,6 +14,7 @@ import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.projectile.EntityEgg
 import net.minecraft.entity.projectile.EntitySnowball
 import net.minecraft.entity.projectile.EntityWitherSkull
+import net.minecraft.tileentity.TileEntityLockable
 import java.util.*
 
 internal object EntityList : LabelHud(
@@ -26,10 +27,15 @@ internal object EntityList : LabelHud(
     private val passive by setting("Passive Mobs", true)
     private val neutral by setting("Neutral Mobs", true)
     private val hostile by setting("Hostile Mobs", true)
+    private val tileEntities by setting("Tile Entities", true)
+    private val onlyContainer by setting("Only Containers", true, { tileEntities })
     private val maxEntries by setting("Max Entries", 8, 4..32, 1)
     private val range by setting("Range", 64, 16..256, 16, fineStep = 1)
 
-    private val cacheMap by AsyncCachedValue(50L) {
+    private var remainingEntriesEntity = 0
+    private var remainingEntriesTileEntity = 0
+
+    private val entityCacheMap by AsyncCachedValue(50L) {
         val map = TreeMap<String, Int>()
 
         runSafe {
@@ -54,18 +60,46 @@ internal object EntityList : LabelHud(
             }
         }
 
-        remainingEntries = map.size - maxEntries
+        remainingEntriesEntity = map.size - maxEntries
         map.entries.take(maxEntries)
     }
-    private var remainingEntries = 0
+
+    private val tileEntityCacheMap by AsyncCachedValue(50L) {
+        val map = TreeMap<String, Int>()
+
+        runSafe {
+            if (tileEntities) world.loadedTileEntityList.filter {
+                if (onlyContainer) it is TileEntityLockable else true
+            }.mapNotNull {
+                map[it.blockType.localizedName] = map.getOrDefault(it.blockType.localizedName, 0) + 1
+            }
+        }
+
+        remainingEntriesTileEntity = map.size - maxEntries
+        map.entries.take(maxEntries)
+    }
 
     override fun SafeClientEvent.updateText() {
-        for ((name, count) in cacheMap) {
-            displayText.add(name, primaryColor)
-            displayText.addLine("x$count", secondaryColor)
+        if (entityCacheMap.isNotEmpty()) {
+            if (tileEntities) displayText.addLine("Entities", secondaryColor)
+            for ((name, count) in entityCacheMap) {
+                displayText.add(name, primaryColor)
+                displayText.addLine("x$count", secondaryColor)
+            }
+            if (remainingEntriesEntity > 0) {
+                displayText.addLine("...and $remainingEntriesEntity more")
+            }
         }
-        if (remainingEntries > 0) {
-            displayText.addLine("...and $remainingEntries more")
+
+        if (tileEntityCacheMap.isNotEmpty()) {
+            displayText.addLine("TileEntities", secondaryColor)
+            for ((name, count) in tileEntityCacheMap) {
+                displayText.add(name, primaryColor)
+                displayText.addLine("x$count", secondaryColor)
+            }
+            if (remainingEntriesTileEntity > 0) {
+                displayText.addLine("...and $remainingEntriesTileEntity more")
+            }
         }
     }
 
