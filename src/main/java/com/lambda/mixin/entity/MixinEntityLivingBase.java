@@ -1,7 +1,6 @@
 package com.lambda.mixin.entity;
 
 import com.lambda.client.module.modules.movement.ElytraFlight;
-import com.lambda.mixin.accessor.AccessorEntityFireworkRocket;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -9,6 +8,7 @@ import net.minecraft.entity.item.EntityFireworkRocket;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -19,10 +19,19 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+import java.lang.reflect.Field;
+
 @Mixin(EntityLivingBase.class)
 public abstract class MixinEntityLivingBase extends Entity {
     @Unique
     private Vec3d modifiedVec = null;
+    // This is a bit silly and bad for performance but fixes compatibility with old mixin versions like the one used by impact
+    @Unique
+    private static final Field boostedEntity;
+
+    static {
+        boostedEntity = ObfuscationReflectionHelper.findField(EntityFireworkRocket.class, "field_191513_e");
+    }
 
     public MixinEntityLivingBase(World worldIn) {
         super(worldIn);
@@ -117,8 +126,12 @@ public abstract class MixinEntityLivingBase extends Entity {
     private boolean shouldModify() {
         return shouldWork() && world.loadedEntityList.stream().anyMatch(entity -> {
                 if (entity instanceof EntityFireworkRocket) {
-                    EntityLivingBase boosted = ((AccessorEntityFireworkRocket) entity).getBoostedEntity();
-                    return boosted != null && boosted.equals(this);
+                    try {
+                        EntityLivingBase boosted = (EntityLivingBase) boostedEntity.get(entity);
+                        return boosted != null && boosted.equals(this);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e); // This should absolutely never happen
+                    }
                 }
                 return false;
             }
