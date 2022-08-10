@@ -73,6 +73,7 @@ object AutoObsidian : Module(
     private val delayTicks by setting("Delay", 4, 1..10, 1, unit = " ticks")
     private val rotationMode by setting("Rotation Mode", RotationMode.SPOOF)
     private val maxReach by setting("Max Reach", 4.9f, 2.0f..6.0f, 0.1f)
+    private val disableOnDisconnect by setting("Disable on Disconnect", true)
 
     private enum class FillMode(override val displayName: String, val message: String) : DisplayEnum {
         TARGET_STACKS("Target Stacks", "Target stacks reached"),
@@ -265,7 +266,7 @@ object AutoObsidian : Module(
         } else {
             MessageSendHelper.sendChatMessage("$chatName No valid position for placing shulker box / ender chest nearby, disabling.")
             mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-            disable()
+            if(disableOnDisconnect) disable()
         }
     }
 
