@@ -13,7 +13,7 @@ import kotlin.math.min
 
 object PacketLimiter : Module(
     name = "PacketLimiter",
-    description = "Automatically adjust timer to prevent sending excess movement packets",
+    description = "Automatically adjusts timer to prevent sending excess movement packets",
     category = Category.PLAYER,
     modulePriority = 1000
 ) {
