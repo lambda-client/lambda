@@ -14,7 +14,7 @@ object Timer : Module(
     category = Category.PLAYER,
     modulePriority = 500
 ) {
-    private val onlyWhenInputting by setting("Only when inputting", false)
+    private val onlyWhenInputting by setting("Only When Inputting", false)
     private val slow by setting("Slow Mode", false)
     private val tickNormal by setting("Tick N", 2.0f, 1f..10f, 0.1f, { !slow })
     private val tickSlow by setting("Tick S", 8f, 1f..10f, 0.1f, { slow })
