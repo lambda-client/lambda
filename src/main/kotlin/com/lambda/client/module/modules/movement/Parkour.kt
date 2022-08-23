@@ -33,9 +33,6 @@ object Parkour: Module(
 
     init {
         safeListener<InputUpdateEvent> {
-            renderer.aFilled = espFilledAlpha
-            renderer.aOutline = espOutlineAlpha
-
             currentCheckAABB = player.entityBoundingBox
                 .offset(0.0, -distanceToFloor, 0.0)
                 .grow(-distanceToEdge, 0.0, -distanceToEdge)
@@ -50,6 +47,9 @@ object Parkour: Module(
 
         listener<RenderWorldEvent> {
             if (!esp) return@listener
+
+            renderer.aFilled = espFilledAlpha
+            renderer.aOutline = espOutlineAlpha
 
             renderer.clear()
             Wrapper.player?.let {
