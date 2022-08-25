@@ -40,7 +40,7 @@ object BackgroundScope : CoroutineScope by CoroutineScope(newFixedThreadPoolCont
                 } catch (e: Exception) {
                     LambdaMod.LOG.warn("Error occurred while running background job ${job.name}", e)
                 }
-                delay(job.delay)
+                delay(job.delay())
             }
         }
     }
