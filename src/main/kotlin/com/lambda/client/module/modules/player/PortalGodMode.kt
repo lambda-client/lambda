@@ -9,7 +9,7 @@ import net.minecraft.network.play.client.CPacketConfirmTeleport
 
 object PortalGodMode : Module(
     name = "PortalGodMode",
-    description = "Don't take damage in portals",
+    description = "Prevents taking damage in portals",
     category = Category.PLAYER
 ) {
     private val instantTeleport by setting("Instant Teleport", true)
