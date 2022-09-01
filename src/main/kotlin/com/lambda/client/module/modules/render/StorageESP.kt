@@ -40,7 +40,7 @@ object StorageESP : Module(
     private val hopper by setting("Hopper", false, { page == Page.TYPE })
     private val cart by setting("Minecart", false, { page == Page.TYPE })
     private val infinite by setting("Infinite Range", true) // To avoid a hard to control range slider
-    private val range by setting("Range", 64.0f, 8.0f..512.0f, 1.0f, { page == Page.TYPE && !infinite }, unit = " blocks")
+    private val range by setting("Range", 64, 8..512, 1, { page == Page.TYPE && !infinite }, unit = " blocks")
 
     /* Color settings */
     private val colorChest by setting("Chest Color", DyeColors.ORANGE, { page == Page.COLOR })
