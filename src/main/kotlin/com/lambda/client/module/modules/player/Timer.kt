@@ -5,6 +5,7 @@ import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.util.MovementUtils
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
@@ -26,6 +27,11 @@ object Timer : Module(
 
         listener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.END) return@listener
+
+            if (ClickGUI.isEnabled) {
+                resetTimer()
+                return@listener
+            }
 
             val multiplier = if (!slow) tickNormal else tickSlow / 10.0f
             if (onlyWhenInputting) {
