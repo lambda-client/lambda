@@ -14,7 +14,7 @@ class BindSetting(
     description: String = ""
 ) : ImmutableSetting<Bind>(name, value, visibility, { _, input -> input }, description, unit = "") {
 
-    override val defaultValue: Bind = Bind(TreeSet(value.modifierKeys), value.key)
+    override val defaultValue: Bind = Bind(TreeSet(value.modifierKeys), value.key, null)
 
     override fun resetValue() {
         value.setBind(defaultValue.modifierKeys, defaultValue.key)
@@ -23,6 +23,10 @@ class BindSetting(
     override fun setValue(valueIn: String) {
         if (valueIn.equals("None", ignoreCase = true)) {
             value.clear()
+            return
+        }
+        if (valueIn.startsWith("MOUSE", ignoreCase = true)) {
+            value.setMouseBind(valueIn.split("MOUSE")[1].toInt())
             return
         }
 

@@ -69,5 +69,11 @@ object ModuleManager : AsyncLoader<List<Class<out AbstractModule>>> {
         }
     }
 
+    internal fun onMouseBind(eventMouse: Int) {
+        for (module in modules) {
+            if (module.bind.value.isMouseDown(eventMouse)) module.toggle()
+        }
+    }
+
     fun getModuleOrNull(moduleName: String?) = moduleName?.let { moduleSet[it] }
 }

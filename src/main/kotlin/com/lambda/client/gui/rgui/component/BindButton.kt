@@ -20,6 +20,11 @@ class BindButton(
 
     override fun onRelease(mousePos: Vec2f, buttonId: Int) {
         super.onRelease(mousePos, buttonId)
+        if (listening && buttonId > 2) {
+            setting.value.apply {
+                setMouseBind(buttonId)
+            }
+        }
         listening = !listening
     }
 

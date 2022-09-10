@@ -22,6 +22,7 @@ import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.lwjgl.input.Keyboard
+import org.lwjgl.input.Mouse
 
 internal object ForgeEventProcessor {
     private val mc = Wrapper.minecraft
@@ -82,6 +83,13 @@ internal object ForgeEventProcessor {
         ModuleManager.onBind(Keyboard.getEventKey())
     }
 
+    @SubscribeEvent
+    fun onEventMouse(event: InputEvent.MouseInputEvent) {
+        LambdaEventBus.post(event)
+        if (!Mouse.getEventButtonState()) return
+        ModuleManager.onMouseBind(Mouse.getEventButton())
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     fun onChatSent(event: ClientChatEvent) {
         MessageDetection.Command.BARITONE.removedOrNull(event.message)?.let {
@@ -92,11 +100,6 @@ internal object ForgeEventProcessor {
             CommandManager.runCommand(event.message.removePrefix(CommandManager.prefix))
             event.isCanceled = true
         }
-    }
-
-    @SubscribeEvent
-    fun onEventMouse(event: InputEvent.MouseInputEvent) {
-        LambdaEventBus.post(event)
     }
 
     /**

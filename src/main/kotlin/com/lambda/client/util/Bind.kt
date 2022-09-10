@@ -5,26 +5,35 @@ import java.util.*
 
 class Bind(
     modifierKeysIn: TreeSet<Int>,
-    keyIn: Int
+    keyIn: Int,
+    mouseIn: Int?
 ) {
 
     constructor() : this(0)
 
-    constructor(key: Int) : this(TreeSet(keyComparator), key)
+    constructor(key: Int) : this(TreeSet(keyComparator), key, null)
 
-    constructor(vararg modifierKeys: Int, key: Int) : this(TreeSet(keyComparator).apply { modifierKeys.forEach { add(it) } }, key)
+    constructor(vararg modifierKeys: Int, key: Int) : this(TreeSet(keyComparator).apply { modifierKeys.forEach { add(it) } }, key, null)
 
     val modifierKeys = modifierKeysIn
     var key = keyIn; private set
+    var mouseKey = mouseIn; private set
+
     private var cachedName = getName()
 
-    val isEmpty get() = key !in 1..255
+    val isEmpty get() = key !in 1..255 && mouseKey == null
 
     fun isDown(eventKey: Int): Boolean {
         return eventKey != 0
             && !isEmpty
             && key == eventKey
             && synchronized(this) { modifierKeys.all { isModifierKeyDown(eventKey, it) } }
+    }
+
+    fun isMouseDown(eventKey: Int): Boolean {
+        return eventKey > 2
+            && !isEmpty
+            && mouseKey == eventKey
     }
 
     private fun isModifierKeyDown(eventKey: Int, modifierKey: Int) =
@@ -62,11 +71,21 @@ class Bind(
         setBind(cache, keyIn)
     }
 
+    fun setMouseBind(mouseIn: Int) {
+        synchronized(this) {
+            modifierKeys.clear()
+            key = 0
+            mouseKey = mouseIn
+            cachedName = getName()
+        }
+    }
+
     fun setBind(modifierKeysIn: Collection<Int>, keyIn: Int) {
         synchronized(this) {
             modifierKeys.clear()
             modifierKeys.addAll(modifierKeysIn)
             key = keyIn
+            mouseKey = 0
             cachedName = getName()
         }
     }
@@ -75,6 +94,7 @@ class Bind(
         synchronized(this) {
             modifierKeys.clear()
             key = 0
+            mouseKey = 0
             cachedName = getName()
         }
     }
@@ -88,12 +108,17 @@ class Bind(
             "None"
         } else {
             StringBuilder().run {
-                for (key in modifierKeys) {
-                    val name = modifierName[key] ?: KeyboardUtils.getDisplayName(key) ?: continue
-                    append(name)
-                    append('+')
+                if (mouseKey != null && mouseKey!! > 2) {
+                    append("MOUSE$mouseKey")
+                } else {
+                    for (key in modifierKeys) {
+                        val name = modifierName[key] ?: KeyboardUtils.getDisplayName(key) ?: continue
+                        append(name)
+                        append('+')
+                    }
+                    append(KeyboardUtils.getDisplayName(key))
                 }
-                append(KeyboardUtils.getDisplayName(key))
+
                 toString()
             }
         }
