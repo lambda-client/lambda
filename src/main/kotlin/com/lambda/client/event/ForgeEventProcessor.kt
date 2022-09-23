@@ -87,7 +87,7 @@ internal object ForgeEventProcessor {
     fun onEventMouse(event: InputEvent.MouseInputEvent) {
         LambdaEventBus.post(event)
         if (!Mouse.getEventButtonState()) return
-        ModuleManager.onMouseBind(Mouse.getEventButton())
+        ModuleManager.onMouseBind(Mouse.getEventButton() + 1)
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)

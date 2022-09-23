@@ -4,6 +4,7 @@ import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.setting.settings.impl.other.BindSetting
+import com.lambda.client.util.Bind.Companion.minMouseButton
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
@@ -20,9 +21,9 @@ class BindButton(
 
     override fun onRelease(mousePos: Vec2f, buttonId: Int) {
         super.onRelease(mousePos, buttonId)
-        if (listening && buttonId > 2) {
+        if (listening && buttonId >= minMouseButton) {
             setting.value.apply {
-                setMouseBind(buttonId)
+                setMouseBind(buttonId + 1)
             }
         }
         listening = !listening

@@ -21,7 +21,7 @@ class Bind(
 
     private var cachedName = getName()
 
-    val isEmpty get() = key !in 1..255 && mouseKey == null
+    val isEmpty get() = key !in 1..255 && compareValues(mouseKey, minMouseButton) <= 0
 
     fun isDown(eventKey: Int): Boolean {
         return eventKey != 0
@@ -31,9 +31,9 @@ class Bind(
     }
 
     fun isMouseDown(eventKey: Int): Boolean {
-        return eventKey > 2
+        return eventKey >= minMouseButton
             && !isEmpty
-            && mouseKey == eventKey
+            && mouseKey == (eventKey)
     }
 
     private fun isModifierKeyDown(eventKey: Int, modifierKey: Int) =
@@ -85,7 +85,7 @@ class Bind(
             modifierKeys.clear()
             modifierKeys.addAll(modifierKeysIn)
             key = keyIn
-            mouseKey = 0
+            mouseKey = null
             cachedName = getName()
         }
     }
@@ -94,7 +94,7 @@ class Bind(
         synchronized(this) {
             modifierKeys.clear()
             key = 0
-            mouseKey = 0
+            mouseKey = null
             cachedName = getName()
         }
     }
@@ -108,7 +108,7 @@ class Bind(
             "None"
         } else {
             StringBuilder().run {
-                if (mouseKey != null && mouseKey!! > 2) {
+                if (mouseKey != null && mouseKey!! >= minMouseButton) {
                     append("MOUSE$mouseKey")
                 } else {
                     for (key in modifierKeys) {
@@ -125,6 +125,7 @@ class Bind(
     }
 
     companion object {
+        const val minMouseButton: Int = 2 // middle click button
         private val modifierName: Map<Int, String> = hashMapOf(
             Keyboard.KEY_LCONTROL to "Ctrl",
             Keyboard.KEY_RCONTROL to "Ctrl",
