@@ -22,16 +22,23 @@ internal object Bindings : HudElement(
     name = "Bindings",
     category = Category.CLIENT,
     description = "Display current module keybindings",
-    enabledByDefault = false
+    enabledByDefault = true
 ) {
     private val sortingMode by setting("Sorting Mode", SortingMode.LENGTH)
     private val disabledColor by setting("Disabled Color", ColorHolder(255, 255, 255), false)
     private val enabledColor by setting("Enabled Color", ColorHolder(0, 255, 0), false)
+    private val textShadow by setting("Text Shadow", true)
+    private val textVSpacing by setting("Line Vert. Spacing", 2.0f, 0.0f..5.0f, 0.01f,
+        consumer = { prev, value ->
+            lineHeight = FontRenderAdapter.getFontHeight() + value
+            return@setting value
+        })
 
-    private var cacheWidth = 20.0f
-    private var cacheHeight = 20.0f
-    override val hudWidth: Float get() = cacheWidth
-    override val hudHeight: Float get() = cacheHeight
+    private const val defaultSize = 20.0f // width or height
+    private var hudElementWidth = defaultSize
+    private var hudElementHeight = defaultSize
+    override val hudWidth: Float get() = hudElementWidth
+    override val hudHeight: Float get() = hudElementHeight
 
     @Suppress("UNUSED")
     private enum class SortingMode(
@@ -44,22 +51,19 @@ internal object Bindings : HudElement(
     }
 
     private var modulesWithBindings: List<AbstractModule> = emptyList()
-    private val lineHeight = FontRenderAdapter.getFontHeight() + 2.0f
+    private var lineHeight: Float = FontRenderAdapter.getFontHeight() + 2.0f
 
     init {
-        relativePosX = -2.0f
-        relativePosY = 2.0f
         dockingH = HAlign.RIGHT
-
         safeAsyncListener<TickEvent.ClientTickEvent> {event ->
             if (event.phase != TickEvent.Phase.END) return@safeAsyncListener
             // this isn't terribly efficient, consider creating events for editing bindings and module toggle state
             modulesWithBindings = sortedModuleList
-                .filter { it.bind.value.isEmpty.not() }
-            cacheWidth = modulesWithBindings.maxOfOrNull {
+                .filterNot { it.bind.value.isEmpty }
+            hudElementWidth = modulesWithBindings.maxOfOrNull {
                 it.textLine.getWidth() + 4.0f
-            } ?: 20.0f
-            cacheHeight = max(modulesWithBindings.sumByFloat { lineHeight }, 20.0f)
+            } ?: defaultSize
+            hudElementHeight = max(modulesWithBindings.sumByFloat { lineHeight }, defaultSize)
         }
     }
 
@@ -68,7 +72,7 @@ internal object Bindings : HudElement(
         GlStateManager.pushMatrix()
         GlStateManager.translate(width / scale * dockingH.multiplier, 0.0f, 0.0f)
         if (dockingV == VAlign.BOTTOM) {
-            GlStateManager.translate(0.0f, height / scale - (FontRenderAdapter.getFontHeight() + 2.0f), 0.0f)
+            GlStateManager.translate(0.0f, height / scale - lineHeight, 0.0f)
         }
 
         drawModuleList()
@@ -81,10 +85,10 @@ internal object Bindings : HudElement(
             GlStateManager.pushMatrix()
             val textLine = module.textLine
             val textWidth = textLine.getWidth()
-            val stringPosX = textWidth * dockingH.multiplier
+            val stringPosX = textWidth * -dockingH.multiplier
             val margin = 2.0f * dockingH.offset
-            GlStateManager.translate(-stringPosX - margin, 0.0f, 0.0f)
-            textLine.drawLine(1.0f, true, HAlign.LEFT, FontRenderAdapter.useCustomFont)
+            GlStateManager.translate(stringPosX - margin, 0.0f, 0.0f)
+            textLine.drawLine(1.0f, textShadow, HAlign.LEFT, FontRenderAdapter.useCustomFont)
             GlStateManager.popMatrix()
             var yOffset = lineHeight
             if (dockingV == VAlign.BOTTOM) yOffset *= -1.0f
