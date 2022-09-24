@@ -22,17 +22,19 @@ internal object Bindings : HudElement(
     name = "Bindings",
     category = Category.CLIENT,
     description = "Display current module keybindings",
-    enabledByDefault = true
+    enabledByDefault = false
 ) {
     private val sortingMode by setting("Sorting Mode", SortingMode.LENGTH)
     private val disabledColor by setting("Disabled Color", ColorHolder(255, 255, 255), false)
     private val enabledColor by setting("Enabled Color", ColorHolder(0, 255, 0), false)
     private val textShadow by setting("Text Shadow", true)
-    private val textVSpacing by setting("Line Vert. Spacing", 2.0f, 0.0f..5.0f, 0.01f,
-        consumer = { prev, value ->
-            lineHeight = FontRenderAdapter.getFontHeight() + value
+    private val textVSpacing by setting("Line V Spacing", 2.0f, 0.0f..5.0f, 0.01f,
+        consumer = { _, value ->
+            this.lineHeight = FontRenderAdapter.getFontHeight() + value
             return@setting value
         })
+    private val ignoreClientBindings by setting("Ignore Client Category", true,
+        description = "Ignore bindings for client specific bindings like the ClickGUI")
 
     private const val defaultSize = 20.0f // width or height
     private var hudElementWidth = defaultSize
@@ -58,7 +60,9 @@ internal object Bindings : HudElement(
         safeAsyncListener<TickEvent.ClientTickEvent> {event ->
             if (event.phase != TickEvent.Phase.END) return@safeAsyncListener
             // this isn't terribly efficient, consider creating events for editing bindings and module toggle state
-            modulesWithBindings = sortedModuleList
+            modulesWithBindings = ModuleManager.modules
+                .sortedWith(sortingMode.comparator)
+                .filter { if (ignoreClientBindings) it.category != com.lambda.client.module.Category.CLIENT else true}
                 .filterNot { it.bind.value.isEmpty }
             hudElementWidth = modulesWithBindings.maxOfOrNull {
                 it.textLine.getWidth() + 4.0f
@@ -97,12 +101,6 @@ internal object Bindings : HudElement(
     }
 
     private val AbstractModule.textLine get() = this.newTextLine()
-
-    private val sortedModuleList: List<AbstractModule> by AsyncCachedValue(1L, TimeUnit.SECONDS) {
-        ModuleManager.modules
-            .filter { it.category != com.lambda.client.module.Category.CLIENT}
-            .sortedWith(this.sortingMode.comparator)
-    }
 
     private fun AbstractModule.newTextLine() =
         TextComponent.TextLine(" ").apply {
