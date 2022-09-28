@@ -3,7 +3,7 @@ package com.lambda.client.commons.extension
 import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.util.text.capitalize
 
-fun <E : Enum<E>> E.next(): E = declaringClass.enumConstants.run {
+fun <E : Enum<E>> E.next(): E = declaringJavaClass.enumConstants.run {
     get((ordinal + 1) % size)
 }
 

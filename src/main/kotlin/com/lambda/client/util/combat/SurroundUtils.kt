@@ -2,7 +2,6 @@ package com.lambda.client.util.combat
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.Wrapper
 import net.minecraft.block.Block
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks

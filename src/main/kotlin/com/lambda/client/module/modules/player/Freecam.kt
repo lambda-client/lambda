@@ -164,11 +164,12 @@ object Freecam : Module(
 
         listener<InputEvent.MouseInputEvent> {
             if (leftClickCome && Mouse.getEventButton() == 0 && clickTimer.tick(1L)) {
-                val result = mc.objectMouseOver ?: return@listener
+                val result: BlockPos = mc.objectMouseOver.blockPos ?: return@listener
 
-                if (result.typeOfHit == RayTraceResult.Type.BLOCK) {
+                if (mc.objectMouseOver.typeOfHit == RayTraceResult.Type.BLOCK) {
+                    val pos = result.offset(mc.objectMouseOver.sideHit)
                     BaritoneUtils.cancelEverything()
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalTwoBlocks(result.blockPos))
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalTwoBlocks(pos))
                 }
             }
         }

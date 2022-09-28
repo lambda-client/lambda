@@ -1,5 +1,7 @@
 package com.lambda.client.module
 
+import com.lambda.client.commons.interfaces.Alias
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ModuleToggleEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui
@@ -12,8 +14,6 @@ import com.lambda.client.setting.settings.impl.other.BindSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.commons.interfaces.Alias
-import com.lambda.client.commons.interfaces.Nameable
 import net.minecraft.client.Minecraft
 
 @Suppress("UNCHECKED_CAST")
@@ -42,6 +42,7 @@ abstract class AbstractModule(
 
     val isEnabled: Boolean get() = enabled.value || alwaysEnabled
     val isDisabled: Boolean get() = !isEnabled
+    var isPaused = false
     val chatName: String get() = "[${name}]"
     val isVisible: Boolean get() = visible.value
 
@@ -56,6 +57,7 @@ abstract class AbstractModule(
 
     fun toggle() {
         enabled.value = !enabled.value
+        isPaused = false
         if (enabled.value) clicks.value++
     }
 
@@ -66,6 +68,16 @@ abstract class AbstractModule(
 
     fun disable() {
         enabled.value = false
+    }
+
+    fun pause() {
+        isPaused = true
+        LambdaEventBus.unsubscribe(this)
+    }
+
+    fun unpause() {
+        isPaused = false
+        LambdaEventBus.subscribe(this)
     }
 
     open fun isActive(): Boolean {

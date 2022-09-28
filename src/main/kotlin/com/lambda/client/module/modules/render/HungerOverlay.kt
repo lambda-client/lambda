@@ -27,6 +27,7 @@ object HungerOverlay : Module(
     private val saturationOverlay by setting("Saturation Overlay", true)
     private val foodHungerOverlay by setting("Food Hunger Overlay", true)
     private val foodSaturationOverlay by setting("Food Saturation Overlay", true)
+    val renderFoodOnRideable by setting("Render Food On Rideables", true)
 
     private val icons = ResourceLocation("lambda/textures/hungeroverlay.png")
 

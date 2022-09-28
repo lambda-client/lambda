@@ -1,5 +1,7 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.mixin.extension.playerMoving
@@ -9,8 +11,6 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
 import net.minecraft.block.Block
 import net.minecraft.block.BlockLiquid
 import net.minecraft.entity.Entity

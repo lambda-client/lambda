@@ -42,7 +42,7 @@ object InventoryManager : Module(
     private val autoEject by setting("Auto Eject", false)
     private val fullOnly by setting("Only At Full", false, { autoEject })
     private val pauseMovement by setting("Pause Movement", true)
-    private val delay by setting("Delay Ticks", 1, 0..20, 1)
+    private val delay by setting("Delay Ticks", 1, 0..20, 1, unit = " ticks")
     val ejectList = setting(CollectionSetting("Eject List", defaultEjectList))
 
     enum class State {
@@ -50,7 +50,7 @@ object InventoryManager : Module(
     }
 
     private var currentState = State.IDLE
-    private var paused = false
+    private var isBaritonePaused = false
     private val timer = TickTimer(TimeUnit.TICKS)
 
     override fun isActive(): Boolean {
@@ -59,20 +59,20 @@ object InventoryManager : Module(
 
     init {
         onDisable {
-            paused = false
+            isBaritonePaused = false
             unpauseBaritone()
         }
 
         safeListener<PlayerTravelEvent> {
-            if (player.isSpectator || !pauseMovement || !paused) return@safeListener
-            player.setVelocity(0.0, mc.player.motionY, 0.0)
+            if (player.isSpectator || !pauseMovement || !isBaritonePaused) return@safeListener
+            player.setVelocity(0.0, player.motionY, 0.0)
             it.cancel()
         }
 
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START || player.isSpectator || mc.currentScreen is GuiContainer) return@safeListener
 
-            if (!timer.tick(delay.toLong())) return@safeListener
+            if (!timer.tick(delay) && !(NoGhostItems.syncMode != NoGhostItems.SyncMode.PLAYER && NoGhostItems.isEnabled)) return@safeListener
 
             setState()
 
@@ -81,7 +81,7 @@ object InventoryManager : Module(
                 State.REFILLING_BUILDING -> refillBuilding()
                 State.REFILLING -> refill()
                 State.EJECTING -> eject()
-                State.IDLE -> removeHoldingItem()
+                State.IDLE -> removeHoldingItem(this@InventoryManager)
             }
 
             playerController.syncCurrentPlayItem()
@@ -97,7 +97,7 @@ object InventoryManager : Module(
             else -> State.IDLE
         }
 
-        paused = if (currentState != State.IDLE && pauseMovement) {
+        isBaritonePaused = if (currentState != State.IDLE && pauseMovement) {
             pauseBaritone()
             true
         } else {
@@ -143,10 +143,10 @@ object InventoryManager : Module(
 
         when {
             autoRefill && undamagedItem != null -> {
-                moveToHotbar(undamagedItem.slotNumber, currentSlot)
+                moveToHotbar(this@InventoryManager, undamagedItem.slotNumber, currentSlot)
             }
             emptySlot != null -> {
-                moveToHotbar(emptySlot.slotNumber, currentSlot)
+                moveToHotbar(this@InventoryManager, emptySlot.slotNumber, currentSlot)
             }
             else -> {
                 player.dropItem(false)
@@ -156,7 +156,7 @@ object InventoryManager : Module(
 
     private fun SafeClientEvent.refillBuilding() {
         player.storageSlots.firstID(buildingBlockID)?.let {
-            quickMoveSlot(it)
+            quickMoveSlot(this@InventoryManager, it)
         }
     }
 
@@ -164,12 +164,12 @@ object InventoryManager : Module(
         val slotTo = getRefillableSlot() ?: return
         val slotFrom = getCompatibleStack(slotTo.stack) ?: return
 
-        moveToSlot(slotFrom, slotTo)
+        moveToSlot(this@InventoryManager, slotFrom, slotTo)
     }
 
     private fun SafeClientEvent.eject() {
         getEjectSlot()?.let {
-            throwAllInSlot(it)
+            throwAllInSlot(this@InventoryManager, it)
         }
     }
     /* End of tasks */

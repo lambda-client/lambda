@@ -2,6 +2,7 @@ package com.lambda.client.gui.clickgui
 
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.utils.ConnectionUtils
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.clickgui.component.*
 import com.lambda.client.gui.clickgui.window.ModuleSettingWindow
@@ -16,7 +17,6 @@ import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
-import com.lambda.client.commons.utils.ConnectionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.util.text.TextFormatting
@@ -139,7 +139,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
             .filter { it !in disabledRemotes }
             .forEach {
                 it.visible = function(it)
-        }
+            }
     }
 
     fun populateRemotePlugins() {

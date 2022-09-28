@@ -1,13 +1,17 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.LambdaMod
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Hud
+import com.lambda.client.module.modules.misc.LogoutLogger
 import com.lambda.client.util.EnchantmentUtils
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.color.ColorGradient
@@ -17,11 +21,6 @@ import com.lambda.client.util.graphics.font.*
 import com.lambda.client.util.items.originalName
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
-import com.lambda.client.commons.utils.MathUtils
-import com.lambda.client.event.listener.listener
-import com.lambda.client.module.modules.misc.LogoutLogger
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.renderer.RenderHelper
 import net.minecraft.entity.Entity

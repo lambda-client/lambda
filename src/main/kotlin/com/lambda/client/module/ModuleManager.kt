@@ -2,13 +2,13 @@ package com.lambda.client.module
 
 import com.lambda.client.AsyncLoader
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.collections.AliasSet
+import com.lambda.client.commons.utils.ClassUtils
+import com.lambda.client.commons.utils.ClassUtils.instance
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.AsyncCachedValue
 import com.lambda.client.util.StopTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.commons.collections.AliasSet
-import com.lambda.client.commons.utils.ClassUtils
-import com.lambda.client.commons.utils.ClassUtils.instance
 import kotlinx.coroutines.Deferred
 import org.lwjgl.input.Keyboard
 import java.lang.reflect.Modifier

@@ -70,7 +70,7 @@ object AutoObsidian : Module(
     private val autoRefill by setting("Auto Refill", false, { fillMode != FillMode.INFINITE })
     private val threshold by setting("Refill Threshold", 32, 1..64, 1, { autoRefill && fillMode != FillMode.INFINITE })
     private val targetStacks by setting("Target Stacks", 1, 1..20, 1, { fillMode == FillMode.TARGET_STACKS })
-    private val delayTicks by setting("Delay Ticks", 4, 1..10, 1)
+    private val delayTicks by setting("Delay", 4, 1..10, 1, unit = " ticks")
     private val rotationMode by setting("Rotation Mode", RotationMode.SPOOF)
     private val maxReach by setting("Max Reach", 4.9f, 2.0f..6.0f, 0.1f)
 
@@ -437,6 +437,7 @@ object AutoObsidian : Module(
             swapToSlot(hotbarSlot)
         } else {
             val moved = swapToItemOrMove<ItemShulkerBox>(
+                this@AutoObsidian,
                 predicateSlot = {
                     val item = it.item
                     val block = item.block
@@ -462,6 +463,7 @@ object AutoObsidian : Module(
     private fun SafeClientEvent.placeEnderChest(pos: BlockPos) {
         if (!swapToBlock(Blocks.ENDER_CHEST)) {
             val moved = swapToBlockOrMove(
+                this@AutoObsidian,
                 Blocks.ENDER_CHEST,
                 predicateSlot = {
                     val item = it.item
@@ -488,7 +490,7 @@ object AutoObsidian : Module(
             val slot = container.getSlots(0..27).firstBlock(Blocks.ENDER_CHEST)
 
             if (slot != null) {
-                clickSlot(container.windowId, slot, 0, ClickType.QUICK_MOVE)
+                clickSlot(this@AutoObsidian, container.windowId, slot, 0, ClickType.QUICK_MOVE)
                 player.closeScreen()
             } else if (shulkerOpenTimer.tick(100, false)) { // Wait for maximum of 5 seconds
                 if (leaveEmptyShulkers && container.inventory.subList(0, 27).all { it.isEmpty }) {
@@ -593,6 +595,7 @@ object AutoObsidian : Module(
 
         if (!swapped) {
             val moved = swapToItemOrMove(
+                this@AutoObsidian,
                 Items.DIAMOND_PICKAXE,
                 predicateItem = {
                     EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0

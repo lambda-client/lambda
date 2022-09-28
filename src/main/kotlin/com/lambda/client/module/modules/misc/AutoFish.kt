@@ -21,10 +21,10 @@ object AutoFish : Module(
 ) {
     private val mode by setting("Mode", Mode.BOUNCE)
     private val autoCast by setting("Auto Cast", true)
-    private val castDelay by setting("Auto Cast Delay", 5, 1..20, 1, { autoCast }, description = "Delay before starting fishing when holding a fishing rod, in seconds")
-    private val catchDelay by setting("Catch Delay", 300, 50..2000, 50, description = "Delay before catching the fish, in milliseconds")
-    private val recastDelay by setting("Recast Delay", 450, 50..2000, 50, description = "Delay before recasting the fishing rod, in milliseconds")
-    private val variation by setting("Variation", 100, 0..1000, 50, description = "Randomize the delays in specific range, in milliseconds")
+    private val castDelay by setting("Auto Cast Delay", 5, 1..20, 1, { autoCast }, description = "Delay before starting fishing when holding a fishing rod", unit = "s")
+    private val catchDelay by setting("Catch Delay", 300, 50..2000, 50, description = "Delay before catching the fish", unit = "ms")
+    private val recastDelay by setting("Recast Delay", 450, 50..2000, 50, description = "Delay before recasting the fishing rod", unit = "ms")
+    private val variation by setting("Variation", 100, 0..1000, 50, description = "Randomize the delays in specific range", unit = "ms")
 
     @Suppress("UNUSED")
     private enum class Mode {

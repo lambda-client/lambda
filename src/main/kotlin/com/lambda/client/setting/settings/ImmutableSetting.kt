@@ -14,7 +14,8 @@ abstract class ImmutableSetting<T : Any>(
     valueIn: T,
     override val visibility: () -> Boolean,
     val consumer: (prev: T, input: T) -> T,
-    override val description: String
+    override val description: String,
+    override val unit: String
 ) : AbstractSetting<T>() {
     override val value: T = valueIn
     override val valueClass: Class<T> = valueIn.javaClass

@@ -17,9 +17,9 @@ import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.network.play.server.SPacketChunkData
@@ -29,15 +29,11 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.apache.commons.lang3.SystemUtils
 import org.lwjgl.opengl.GL11.GL_LINE_LOOP
 import org.lwjgl.opengl.GL11.glLineWidth
-import java.io.BufferedWriter
-import java.io.FileWriter
-import java.io.IOException
-import java.io.PrintWriter
+import java.io.*
 import java.nio.file.Files
-import java.io.File
 import java.nio.file.Path
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 object NewChunks : Module(
@@ -54,13 +50,14 @@ object NewChunks : Module(
     private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
     private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
     private val alsoSaveNormalCoords by setting("Save Normal Coords", false, { saveNewChunks })
-    private val closeFile = setting("CloseFile", false, { saveNewChunks })
+    private val closeFile = setting("Close file", false, { saveNewChunks })
+    private val openNewChunksFolder = setting("Open NewChunks Folder...", false, { saveNewChunks })
     private val yOffset by setting("Y Offset", 0, -256..256, 4, fineStep = 1, description = "Render offset in Y axis")
     private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "Highlighting color")
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
     private val range by setting("Render Range", 512, 64..2048, 32, description = "Maximum range for chunks to be highlighted")
     private val removeMode by setting("Remove Mode", RemoveMode.AGE, description = "Mode to use for removing chunks")
-    private val maxAge by setting("Max age in minutes", 10, 1..600, 1, { removeMode == RemoveMode.AGE }, description = "Maximum age of chunks since recording")
+    private val maxAge by setting("Max age", 10, 1..600, 1, { removeMode == RemoveMode.AGE }, description = "Maximum age of chunks since recording", unit = "m")
 
     private var lastSetting = LastSetting()
     private var logWriter: PrintWriter? = null
@@ -253,7 +250,8 @@ object NewChunks : Module(
             if (saveInRegionFolder) {
                 file = File(file, "region")
             }
-            file = File(file, "newChunkLogs")
+
+            file = File(file, "logs")
             val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date())
             file = File(file, mc.session.username + "_" + date + ".csv") // maybe don't safe the name, actually. But I also don't want to make another option...
             val filePath = file.toPath()
@@ -288,43 +286,8 @@ object NewChunks : Module(
                 rV = File(rV, "saves")
                 rV = File(rV, folderName)
             }
-            SaveOption.NHACK_WDL -> {
-                folderName = nHackInetName
-                rV = File(rV, "config")
-                rV = File(rV, "wdl-saves")
-                rV = File(rV, folderName)
-
-                // extra because name might be different
-                if (!rV.exists()) {
-                    MessageSendHelper.sendWarningMessage("$chatName nhack wdl directory doesnt exist: $folderName")
-                    MessageSendHelper.sendWarningMessage("$chatName creating the directory now. It is recommended to update the ip")
-                }
-            }
         }
         return rV.toPath()
-    }
-
-    // if there is no port then we have to manually include the standard port..
-    private val nHackInetName: String
-        get() {
-            var folderName = mc.currentServerData?.serverIP ?: "Offline"
-            if (SystemUtils.IS_OS_WINDOWS) {
-                folderName = folderName.replace(":", "_")
-            }
-            if (hasNoPort(folderName)) {
-                folderName += "_25565" // if there is no port then we have to manually include the standard port..
-            }
-            return folderName
-        }
-
-    private fun hasNoPort(ip: String): Boolean {
-        if (!ip.contains("_")) {
-            return true
-        }
-        val sp = ip.split("_").toTypedArray()
-        val ending = sp[sp.size - 1]
-        // if it is numeric it means it might be a port...
-        return ending.toIntOrNull() != null
     }
 
     // p2.x > p1.x and p2.y > p1.y is assumed
@@ -343,7 +306,7 @@ object NewChunks : Module(
     }
 
     private enum class SaveOption {
-        EXTRA_FOLDER, LITE_LOADER_WDL, NHACK_WDL
+        EXTRA_FOLDER, LITE_LOADER_WDL
     }
 
     @Suppress("unused")
@@ -363,7 +326,7 @@ object NewChunks : Module(
         var ip: String? = null
         fun testChangeAndUpdate(event: SafeClientEvent): Boolean {
             if (testChange(event)) {
-                // so we dont have to do this process again next time
+                // so we don't have to do this process again next time
                 update(event)
                 return true
             }
@@ -396,6 +359,11 @@ object NewChunks : Module(
                 MessageSendHelper.sendChatMessage("$path")
                 closeFile.value = false
             }
+        }
+
+        openNewChunksFolder.consumers.add { _, it ->
+            if (it) FolderUtils.openFolder(FolderUtils.newChunksFolder)
+            false
         }
     }
 }

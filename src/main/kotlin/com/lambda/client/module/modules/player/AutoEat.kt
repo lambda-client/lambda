@@ -1,15 +1,18 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.commons.extension.next
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.process.PauseProcess.pauseBaritone
 import com.lambda.client.process.PauseProcess.unpauseBaritone
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.next
+import com.lambda.mixin.player.MixinPlayerControllerMP
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
 import net.minecraft.inventory.Slot
@@ -22,6 +25,9 @@ import net.minecraft.util.EnumHand
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.function.BiPredicate
 
+/**
+ * @see MixinPlayerControllerMP.onStoppedUsingItemMixin
+ */
 object AutoEat : Module(
     name = "AutoEat",
     description = "Automatically eat when hungry",
@@ -31,9 +37,11 @@ object AutoEat : Module(
     private val belowHealth by setting("Below Health", 10, 1..20, 1, description = "When to eat a golden apple")
     private val eGapOnFire by setting("Fire Prot", false, description = "Eats an enchanted golden apple whilst on fire")
     private val eatBadFood by setting("Eat Bad Food", false)
+    private val packetDelay by setting("Packet Delay", 20, 1..100, 1, description = "How many ticks delay between packets")
     private val pauseBaritone by setting("Pause Baritone", true)
 
     private var lastSlot = -1
+    private val eatTimer = TickTimer(TimeUnit.TICKS)
     var eating = false
 
     enum class PreferredFood : BiPredicate<ItemStack, ItemFood> {
@@ -110,7 +118,7 @@ object AutoEat : Module(
             || preferredFood != PreferredFood.NORMAL
 
     private fun SafeClientEvent.eat(hand: EnumHand) {
-        if (!eating || !player.isHandActive || player.activeHand != hand) {
+        if (eatTimer.tick(packetDelay)) {
             connection.sendPacket(CPacketPlayerTryUseItem(hand))
         }
         startEating()
@@ -161,7 +169,7 @@ object AutoEat : Module(
     private fun SafeClientEvent.moveFoodToHotbar(preferredFood: PreferredFood): Boolean {
         val slotFrom = getFoodSlot(preferredFood, player.storageSlots) ?: return false
 
-        moveToHotbar(slotFrom) {
+        moveToHotbar(this@AutoEat, slotFrom) {
             val item = it.item
             item !is ItemTool && item !is ItemBlock
         }

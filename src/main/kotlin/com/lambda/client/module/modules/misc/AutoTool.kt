@@ -5,10 +5,11 @@ import com.lambda.client.event.events.PlayerAttackEvent
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.combat.CombatUtils
 import com.lambda.client.util.combat.CombatUtils.equipBestWeapon
-import com.lambda.client.util.items.hotbarSlots
-import com.lambda.client.util.items.swapToSlot
+import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
@@ -24,13 +25,13 @@ object AutoTool : Module(
     category = Category.MISC
 ) {
     private val switchBack = setting("Switch Back", true)
-    private val timeout by setting("Timeout", 20, 1..100, 5, { switchBack.value })
+    private val timeout by setting("Timeout", 1, 1..20, 1, { switchBack.value }, unit = " ticks")
     private val swapWeapon by setting("Switch Weapon", false)
     private val preferWeapon by setting("Prefer", CombatUtils.PreferWeapon.SWORD)
 
     private var shouldMoveBack = false
-    private var lastSlot = 0
-    private var lastChange = 0L
+    private var startSlot = 0
+    private var switchTimer = TickTimer(TimeUnit.TICKS)
 
     init {
         safeListener<LeftClickBlock> {
@@ -46,13 +47,13 @@ object AutoTool : Module(
 
             val mouse = Mouse.isButtonDown(0)
             if (mouse && !shouldMoveBack) {
-                lastChange = System.currentTimeMillis()
+                switchTimer.reset()
                 shouldMoveBack = true
-                lastSlot = player.inventory.currentItem
+                startSlot = player.inventory.currentItem
                 playerController.syncCurrentPlayItem()
-            } else if (!mouse && shouldMoveBack && (lastChange + timeout * 10 < System.currentTimeMillis())) {
+            } else if (!mouse && shouldMoveBack && switchTimer.tick(timeout, false)) {
                 shouldMoveBack = false
-                player.inventory.currentItem = lastSlot
+                player.inventory.currentItem = startSlot
                 playerController.syncCurrentPlayItem()
             }
         }

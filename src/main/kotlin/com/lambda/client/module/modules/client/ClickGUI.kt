@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.event.events.ShutdownEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.StopTimer
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import kotlin.math.round
@@ -19,15 +19,15 @@ object ClickGUI : Module(
     alwaysListening = true
 ) {
     private val scaleSetting = setting("Scale", 100, 50..400, 5)
-    val radius by setting("Corner Radius", 2.0, 0.0..10.0, 0.2)
+    val radius by setting("Corner Radius", 2.0, 0.0..10.0, 0.2, unit = "px")
     val blur by setting("Blur", 0.0f, 0.0f..1.0f, 0.05f)
     val windowOutline by setting("Window Outline", false)
     val buttonOutline by setting("Button Outline", false)
     val outlineWidth by setting("Outline Width", 2.5f, 0.5f..3.5f, 0.5f, { windowOutline || buttonOutline })
-    val entryMargin by setting("Margin", 0.0f, 0.0f..10.0f, 0.5f)
+    val entryMargin by setting("Margin", 0.0f, 0.0f..10.0f, 0.5f, unit = "px")
     val darkness by setting("Darkness", 0.25f, 0.0f..1.0f, 0.05f)
-    val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f)
-    val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f)
+    val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f, unit = "s")
+    val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f, unit = "s")
     val showModifiedInBold by setting("Show Modified In Bold", false, description = "Display modified settings in a bold font")
     private val resetComponents = setting("Reset Positions", false)
     private val resetScale = setting("Reset Scale", false)

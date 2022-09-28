@@ -1,7 +1,9 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -26,8 +28,6 @@ import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.isActiveOrFalse
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.event.listener.listener
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.minecraft.entity.Entity
@@ -75,7 +75,7 @@ object CombatSetting : Module(
     private val pauseForEating by setting("Pause For Eating", true, { page == Page.IN_COMBAT })
     private val ignoreOffhandEating by setting("Ignore Offhand Eating", true, { page == Page.IN_COMBAT && pauseForEating })
     private val pauseBaritone by setting("Pause Baritone", true, { page == Page.IN_COMBAT })
-    private val resumeDelay by setting("Resume Delay", 3, 1..10, 1, { page == Page.IN_COMBAT && pauseBaritone })
+    private val resumeDelay by setting("Resume Delay", 3, 1..10, 1, { page == Page.IN_COMBAT && pauseBaritone }, unit = "s")
     private val motionPrediction by setting("Motion Prediction", true, { page == Page.IN_COMBAT })
     private val pingSync by setting("Ping Sync", true, { page == Page.IN_COMBAT && motionPrediction })
     private val ticksAhead by setting("Ticks Ahead", 5, 0..20, 1, { page == Page.IN_COMBAT && motionPrediction && !pingSync })

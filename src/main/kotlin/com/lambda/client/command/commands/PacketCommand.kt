@@ -3,7 +3,7 @@ package com.lambda.client.command.commands
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.mixin.extension.useEntityId
-import com.lambda.client.util.items.clickSlot
+import com.lambda.client.util.items.clickSlotUnsynced
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.entity.passive.EntityDonkey
 import net.minecraft.entity.player.EntityPlayer
@@ -51,7 +51,7 @@ object PacketCommand : ClientCommand(
                     int("buttonId") { buttonId ->
                         enum<ClickType>("clickType") { clickType ->
                             executeSafe {
-                                clickSlot(windowId.value, slotId.value, buttonId.value, clickType.value)
+                                clickSlotUnsynced(windowId.value, slotId.value, buttonId.value, clickType.value)
                                 MessageSendHelper.sendChatMessage("Sent ${TextFormatting.GRAY}CPacketClickWindow${TextFormatting.DARK_RED} > ${TextFormatting.GRAY}windowId: ${windowId.value}, slotId: ${slotId.value}, buttonId: ${buttonId.value}, clickType: ${clickType.value}")
                             }
                         }
@@ -62,7 +62,7 @@ object PacketCommand : ClientCommand(
 
         literal("ClientSettings") {
             string("lang") { lang ->
-                int ("renderDistanceIn") { renderDistanceIn ->
+                int("renderDistanceIn") { renderDistanceIn ->
                     enum<EntityPlayer.EnumChatVisibility>("chatVisibilityIn") { chatVisibilityIn ->
                         boolean("chatColorsIn") { chatColorsIn ->
                             int("modelPartsIn") { modelPartsIn ->

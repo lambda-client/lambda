@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.events.*
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.manager.managers.WaypointManager.Waypoint
 import com.lambda.client.module.Category
@@ -16,7 +17,6 @@ import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -44,7 +44,7 @@ object WaypointRender : Module(
 
     /* Page two */
     private val espRangeLimit by setting("Render Range", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })
-    private val espRange by setting("Range", 4096, 1024..16384, 1024, { page == Page.RENDER && espRangeLimit && renderMode != RenderMode.RADAR })
+    private val espRange by setting("Range", 4096, 1024..16384, 1024, { page == Page.RENDER && espRangeLimit && renderMode != RenderMode.RADAR }, unit = " blocks")
     private val filled by setting("Filled", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })
     private val outline by setting("Outline", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })
     private val tracer by setting("Tracer", true, { page == Page.RENDER && renderMode != RenderMode.RADAR })

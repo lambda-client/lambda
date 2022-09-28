@@ -51,7 +51,7 @@ object ESP : Module(
     private val neutral by setting("Neutral Mobs", true, { page == Page.ENTITY_TYPE && !all && mobs })
     private val hostile by setting("Hostile Mobs", true, { page == Page.ENTITY_TYPE && !all && mobs })
     private val invisible by setting("Invisible", true, { page == Page.ENTITY_TYPE && !all })
-    private val range by setting("Range", 32.0f, 8.0f..64.0f, 0.5f, { page == Page.ENTITY_TYPE })
+    private val range by setting("Range", 32.0f, 8.0f..64.0f, 0.5f, { page == Page.ENTITY_TYPE }, unit = " blocks")
 
     /* Rendering settings */
     private val mode = setting("Mode", ESPMode.SHADER, { page == Page.RENDERING })

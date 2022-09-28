@@ -1,12 +1,12 @@
 package com.lambda.client.gui.hudgui
 
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.setting.configs.AbstractConfig
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.safeAsyncListener
-import com.lambda.client.commons.interfaces.Nameable
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 abstract class AbstractLabelHud(

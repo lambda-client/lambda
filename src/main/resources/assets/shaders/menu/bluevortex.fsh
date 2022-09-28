@@ -20,7 +20,7 @@ uniform vec2 resolution;
 vec2 Rot(vec2 v, float angle)
 {
     return vec2(v.x * cos(angle) + v.y * sin(angle),
-        v.y * cos(angle) - v.x * sin(angle));
+    v.y * cos(angle) - v.x * sin(angle));
 }
 
 vec3 DrawStar(float len, float angle)
@@ -66,7 +66,7 @@ vec3 DrawCloud(float dis, float angle, vec2 coord)
         fre *= -2.0;
         ap *= 0.5;
     }
-    float len2=dot(coord,coord);
+    float len2=dot(coord, coord);
     d+=len2*4.0;
     return baseColor + cloudColor * d;
 }

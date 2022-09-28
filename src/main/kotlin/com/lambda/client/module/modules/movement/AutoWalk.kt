@@ -70,7 +70,7 @@ object AutoWalk : Module(
         }
 
         listener<InputUpdateEvent>(6969) {
-            if (LagNotifier.paused && LagNotifier.pauseAutoWalk) return@listener
+            if (LagNotifier.isBaritonePaused && LagNotifier.pauseAutoWalk) return@listener
 
             if (it.movementInput !is MovementInputFromOptions) return@listener
 

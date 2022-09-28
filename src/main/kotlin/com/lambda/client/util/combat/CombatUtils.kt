@@ -3,12 +3,12 @@ package com.lambda.client.util.combat
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.util.items.attackDamage
 import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.items.swapToSlot
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.EntityLivingBase

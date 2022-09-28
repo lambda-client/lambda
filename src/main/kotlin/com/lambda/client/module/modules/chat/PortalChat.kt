@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.chat
 
-import com.lambda.mixin.player.MixinEntityPlayerSP
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.mixin.player.MixinEntityPlayerSP
 
 /**
  * @see MixinEntityPlayerSP

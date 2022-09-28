@@ -1,9 +1,9 @@
 package com.lambda.client.event
 
 import com.lambda.client.command.CommandManager
-import com.lambda.client.util.Wrapper
 import com.lambda.client.command.execute.ExecuteEvent
 import com.lambda.client.command.execute.IExecuteEvent
+import com.lambda.client.util.Wrapper
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.PlayerControllerMP
 import net.minecraft.client.multiplayer.WorldClient

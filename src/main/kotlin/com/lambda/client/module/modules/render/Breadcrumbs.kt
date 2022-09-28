@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.getInterpolatedPos
@@ -11,7 +12,6 @@ import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -26,7 +26,7 @@ import kotlin.math.sin
 
 object Breadcrumbs : Module(
     name = "Breadcrumbs",
-    description = "Draws a tail behind as you move",
+    description = "Draws a trail behind as you move",
     category = Category.RENDER,
     alwaysListening = true
 ) {
@@ -69,7 +69,7 @@ object Breadcrumbs : Module(
             }
             if (!shouldRecord(true)) return@safeListener
 
-            /* Adding server and dimension to the map if they are not exist */
+            /* Adding server and dimension to the map if they don't exist */
             val serverIP = getServerIP()
             val dimension = player.dimension
 

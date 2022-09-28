@@ -11,7 +11,7 @@ import net.minecraft.entity.passive.EntityPig
 
 object EntitySpeed : Module(
     name = "EntitySpeed",
-    description = "Abuse client-sided movement to shape sound barrier breaking rideables",
+    description = "Abuses client-sided movement to change the speed of rideable entities",
     category = Category.MOVEMENT
 ) {
     private val boatSpeed by setting("Boat Speed", 1.4f, 0.1f..10.0f, 0.05f)

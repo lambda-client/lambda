@@ -9,7 +9,8 @@ class CollectionSetting<E : Any, T : MutableCollection<E>>(
     override val value: T,
     visibility: () -> Boolean = { true },
     description: String = "",
-) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description), MutableCollection<E> by value {
+    unit: String = ""
+) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description, unit), MutableCollection<E> by value {
 
     override val defaultValue: T = valueClass.newInstance()
     private val lockObject = Any()

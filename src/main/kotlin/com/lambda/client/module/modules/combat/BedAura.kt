@@ -6,6 +6,7 @@ import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.player.NoGhostItems
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.combat.CrystalUtils.calcCrystalDamage
@@ -43,8 +44,8 @@ object BedAura : Module(
 ) {
     private val ignoreSecondBaseBlock by setting("Ignore Second Base Block", false)
     private val suicideMode by setting("Suicide Mode", false)
-    private val hitDelay by setting("Hit Delay", 5, 1..10, 1)
-    private val refillDelay by setting("Refill Delay", 2, 1..5, 1)
+    private val hitDelay by setting("Hit Delay", 5, 1..10, 1, unit = " ticks")
+    private val refillDelay by setting("Refill Delay", 2, 1..5, 1, unit = " ticks")
     private val minDamage by setting("Min Damage", 10f, 1f..20f, 0.25f)
     private val maxSelfDamage by setting("Max Self Damage", 4f, 1f..10f, 0.25f, { !suicideMode })
     private val range by setting("Range", 5f, 1f..5f, 0.25f)
@@ -98,9 +99,9 @@ object BedAura : Module(
             }
 
             inactiveTicks++
-            if (canRefill() && refillTimer.tick(refillDelay.toLong())) {
+            if (canRefill() && (refillTimer.tick(refillDelay) || (NoGhostItems.syncMode != NoGhostItems.SyncMode.PLAYER && NoGhostItems.isEnabled))) {
                 player.storageSlots.firstItem<ItemBed, Slot>()?.let {
-                    quickMoveSlot(it)
+                    quickMoveSlot(this@BedAura, it)
                 }
             }
 

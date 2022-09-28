@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.render
 
+import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.mapBossInfos
 import com.lambda.client.mixin.extension.render
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.graphics.GlStateUtils
-import com.lambda.client.event.listener.listener
 import net.minecraft.client.gui.BossInfoClient
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager

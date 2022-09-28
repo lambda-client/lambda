@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.chat
 
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
-import com.lambda.client.event.listener.listener
 import net.minecraft.network.play.server.SPacketChat
 
 object AutoTPA : Module(

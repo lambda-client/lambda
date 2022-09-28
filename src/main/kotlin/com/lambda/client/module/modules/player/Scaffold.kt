@@ -5,11 +5,11 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.mixin.entity.MixinEntity
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -26,7 +26,7 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.placeBlock
-import com.lambda.client.event.listener.listener
+import com.lambda.mixin.entity.MixinEntity
 import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketPlayerPosLook
@@ -52,7 +52,7 @@ object Scaffold : Module(
     val safeWalk by setting("Safe Walk", true)
     private val sneak by setting("Sneak", true)
     private val strictDirection by setting("Strict Direction", false)
-    private val delay by setting("Delay", 2, 1..10, 1)
+    private val delay by setting("Delay", 2, 1..10, 1, unit = " ticks")
     private val maxRange by setting("Max Range", 1, 0..3, 1)
 
     private var lastHitVec: Vec3d? = null

@@ -1,7 +1,10 @@
 package com.lambda.client.mixin.extension
 
 import com.lambda.mixin.accessor.network.*
-import net.minecraft.network.play.client.*
+import net.minecraft.network.play.client.CPacketChatMessage
+import net.minecraft.network.play.client.CPacketCloseWindow
+import net.minecraft.network.play.client.CPacketPlayer
+import net.minecraft.network.play.client.CPacketUseEntity
 import net.minecraft.network.play.server.SPacketChat
 import net.minecraft.network.play.server.SPacketEntityVelocity
 import net.minecraft.network.play.server.SPacketExplosion

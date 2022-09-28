@@ -1,5 +1,6 @@
 package com.lambda.client.gui.hudgui.elements.world
 
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.manager.managers.FriendManager
@@ -8,7 +9,6 @@ import com.lambda.client.util.color.ColorGradient
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.color.DyeColors
 import com.lambda.client.util.threads.runSafeR
-import com.lambda.client.commons.utils.MathUtils
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
 

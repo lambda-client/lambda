@@ -16,13 +16,13 @@ Customize your experience, and improve your efficiency!
 Find our plugins [here](https://github.com/lambda-plugins).
 
 <p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/3.1/lambda-3.1.jar"><img alt="lambda-3.1.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.1.png" width="70%" height="70%"></a>
+    <a href="https://github.com/lambda-client/lambda/releases/download/3.2.1/lambda-3.2.1.jar"><img alt="lambda-3.2.1.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.2.1.png" width="70%" height="70%"></a>
 </p>
 
 ## Installation
 1. Install Minecraft 1.12.2
 2. Install the latest Forge for 1.12.2 [(download)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
-3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/3.1/lambda-3.1.jar)
+3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/3.2.1/lambda-3.2.1.jar)
 4. Put the file in your `.minecraft/mods` folder
 
 ## FAQ
@@ -83,6 +83,12 @@ We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVaria
 
 </details>
 
+<details>
+  <summary>... crashing with liteloader?</summary>
+
+> Use liteloader as a forge mod, it is available [here](https://jenkins.liteloader.com/view/1.12.2/job/LiteLoader%201.12.2/lastSuccessfulBuild/artifact/build/libs/liteloader-1.12.2-SNAPSHOT-release.jar)
+</details>
+
 <p align="center">
     <img alt="" src="https://raw.githubusercontent.com/lambda-client/assets/main/footer.png">
 </p>
@@ -132,4 +138,4 @@ Our [contributors](https://github.com/lambda-client/lambda/graphs/contributors) 
 [![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
 
 > ### Disclaimer
-> This software does not contain any copyrighted Minecraft code. This is a Forge utility mod, Only meant for use in anarchy environments. Do not use without permission of server administration.
+> This software does not contain any copyrighted Minecraft code. This is a Forge utility mod, only meant for use in anarchy environments. Do not use without permission of server administration.

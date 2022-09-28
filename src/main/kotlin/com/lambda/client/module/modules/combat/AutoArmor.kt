@@ -23,28 +23,8 @@ object AutoArmor : Module(
     category = Category.COMBAT,
     modulePriority = 500
 ) {
-    private val delay by setting("Delay", 5, 1..10, 1)
-
-    private val timer = TickTimer(TimeUnit.TICKS)
-    private var lastTask = TaskState(true)
-
-    var isPaused = false
-
     init {
-        onToggle {
-            isPaused = false
-        }
-
         safeListener<TickEvent.ClientTickEvent> {
-            if (isPaused) return@safeListener
-            if (!timer.tick(delay.toLong()) || !lastTask.done) return@safeListener
-
-            if (!player.inventory.itemStack.isEmpty) {
-                if (mc.currentScreen is GuiContainer) timer.reset(150L) // Wait for 3 extra ticks if player is moving item
-                else removeHoldingItem()
-                return@safeListener
-            }
-
             // store slots and values of best armor pieces, initialize with currently equipped armor
             // Pair<Slot, Value>
             val bestArmors = Array(4) { -1 to getArmorValue(player.inventory.armorInventory[it]) }
@@ -91,7 +71,7 @@ object AutoArmor : Module(
     private fun SafeClientEvent.equipArmor(bestArmors: Array<Pair<Int, Float>>) {
         for ((index, pair) in bestArmors.withIndex()) {
             if (pair.first == -1) continue // Skip if we didn't find a better armor
-            lastTask = if (player.inventoryContainer.inventory[8 - index].isEmpty) {
+            if (player.inventoryContainer.inventory[8 - index].isEmpty) {
                 addInventoryTask(
                     PlayerInventoryManager.ClickInfo(0, pair.first, type = ClickType.QUICK_MOVE) // Move the new one into armor slot
                 )

@@ -2,7 +2,10 @@ package com.lambda.client.plugin.api
 
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
+import com.lambda.client.commons.collections.CloseableList
+import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
+import com.lambda.client.event.ListenerManager
 import com.lambda.client.gui.GuiManager
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.ModuleManager
@@ -11,9 +14,6 @@ import com.lambda.client.setting.ConfigManager
 import com.lambda.client.setting.configs.PluginConfig
 import com.lambda.client.util.threads.BackgroundJob
 import com.lambda.client.util.threads.BackgroundScope
-import com.lambda.client.commons.collections.CloseableList
-import com.lambda.client.commons.interfaces.Nameable
-import com.lambda.client.event.ListenerManager
 
 /**
  * A plugin. All plugin main classes must extend this class.

@@ -1,6 +1,11 @@
 package com.lambda.client.manager.managers
 
+import com.lambda.client.commons.extension.firstEntryOrNull
+import com.lambda.client.commons.extension.firstKeyOrNull
+import com.lambda.client.commons.extension.firstValue
+import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.mixin.extension.currentPlayerItem
 import com.lambda.client.module.AbstractModule
@@ -8,11 +13,6 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeoutFlag
 import com.lambda.client.util.items.HotbarSlot
 import com.lambda.client.util.threads.runSafe
-import com.lambda.client.commons.extension.firstEntryOrNull
-import com.lambda.client.commons.extension.firstKeyOrNull
-import com.lambda.client.commons.extension.firstValue
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.event.listener.listener
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketHeldItemChange

@@ -7,6 +7,7 @@ buildscript {
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:4.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
     }
 }
 
@@ -16,6 +17,7 @@ plugins {
 
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 version project.modVersion
 group project.modGroup
@@ -97,11 +99,7 @@ dependencies {
         exclude module: 'kotlin-stdlib-common'
     }
 
-    jarLibs('com.github.cbyrneee:DiscordIPC:e18542f600') {
-        exclude module: 'junixsocket-common'
-        exclude module: 'junixsocket-native-common'
-        exclude module: 'json'
-    }
+    jarLibs 'com.github.cbyrneee:DiscordIPC:e18542f600'
 
     // Add them back to compileOnly (provided)
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion"
@@ -136,7 +134,7 @@ processResources {
     }
 }
 
-task sourceJar(type: Jar) { // Generate sources
+task buildApiSource(type: Jar) { // Generate sources
     group 'build'
     description 'Assemble API library source archive'
 
@@ -144,7 +142,7 @@ task sourceJar(type: Jar) { // Generate sources
     from sourceSets.main.allSource
 }
 
-task apiJar(type: Jar) {
+task buildApi(type: Jar) {
     group 'build'
     description 'Assemble API library archive'
 
@@ -152,8 +150,17 @@ task apiJar(type: Jar) {
     from sourceSets.main.output
 }
 
-// Don't put baritone mixin here please c:
-jar {
+task buildAll {
+    group 'build'
+    description 'Assemble all jars'
+
+    dependsOn 'buildApi'
+    dependsOn 'buildApiSource'
+    dependsOn 'build'
+}
+
+shadowJar {
+    // Don't put baritone mixin here please c:
     manifest.attributes(
             'Manifest-Version': 1.0,
             'MixinConfigs': 'mixins.lambda.json',
@@ -163,28 +170,31 @@ jar {
             'ForceLoadAsMod': 'true'
     )
 
-    // Copy needed libs to jar
-    from {
-        exclude '**/module-info.class',
-                'DebugProbesKt.bin',
-                'META-INF/maven/**',
-                'META-INF/proguard/**',
-                'META-INF/versions/**',
-                'META-INF/**.RSA',
-                'META-INF/com.android.tools/**',
-                'META-INF/*.kotlin_module',
-                'kotlin/**/*.kotlin_metadata',
-                'kotlin/**/*.kotlin_builtins',
-                'META-INF/*.version'
-        configurations.jarLibs.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
+    archiveClassifier.set('')
+    exclude '**/module-info.class',
+            'DebugProbesKt.bin',
+            'META-INF/proguard/**',
+            'META-INF/versions/**',
+            'META-INF/**.RSA',
+            'META-INF/com.android.tools/**',
+            'META-INF/*.kotlin_module',
+            'kotlin/**/*.kotlin_metadata',
+            'kotlin/**/*.kotlin_builtins',
+            'META-INF/*.version'
+    configurations = [project.configurations.jarLibs]
+    relocate 'kotlin', 'com.lambda.shadow.kotlin'
+    relocate 'kotlinx', 'com.lambda.shadow.kotlinx'
+    finalizedBy 'reobfShadowJar'
+}
+
+reobf {
+    shadowJar {}
+    jar {
+        enabled = false
     }
 }
 
-task buildApi {
-    group 'build'
-    dependsOn sourceJar
-    dependsOn apiJar
-    description 'Assemble API library archives'
+artifacts {
+    shadowJar
 }
+

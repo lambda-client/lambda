@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.combat
 
+import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.mc.LambdaGuiDisconnected
 import com.lambda.client.manager.managers.CombatManager
@@ -12,7 +13,6 @@ import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countItem
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.commons.utils.MathUtils
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.client.gui.GuiMainMenu
 import net.minecraft.client.gui.GuiMultiplayer

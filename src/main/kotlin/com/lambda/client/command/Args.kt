@@ -1,6 +1,10 @@
 package com.lambda.client.command
 
 import com.lambda.client.capeapi.PlayerProfile
+import com.lambda.client.command.args.AbstractArg
+import com.lambda.client.command.args.AutoComplete
+import com.lambda.client.command.args.DynamicPrefixMatch
+import com.lambda.client.command.args.StaticPrefixMatch
 import com.lambda.client.gui.GuiManager
 import com.lambda.client.gui.hudgui.AbstractHudElement
 import com.lambda.client.manager.managers.UUIDManager
@@ -8,10 +12,6 @@ import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.util.*
 import com.lambda.client.util.threads.runSafeR
-import com.lambda.client.command.args.AbstractArg
-import com.lambda.client.command.args.AutoComplete
-import com.lambda.client.command.args.DynamicPrefixMatch
-import com.lambda.client.command.args.StaticPrefixMatch
 import kotlinx.coroutines.Dispatchers
 import net.minecraft.block.Block
 import net.minecraft.item.Item

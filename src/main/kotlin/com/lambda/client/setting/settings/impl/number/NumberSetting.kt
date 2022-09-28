@@ -11,8 +11,9 @@ abstract class NumberSetting<T>(
     visibility: () -> Boolean,
     consumer: (prev: T, input: T) -> T,
     description: String = "",
+    unit: String = "",
     val fineStep: T
-) : MutableSetting<T>(name, value, visibility, consumer, description)
+) : MutableSetting<T>(name, value, visibility, consumer, description, unit)
     where T : Number, T : Comparable<T> {
 
     override fun write() = JsonPrimitive(value)

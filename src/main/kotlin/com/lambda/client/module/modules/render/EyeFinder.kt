@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.getInterpolatedAmount
@@ -9,7 +10,6 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.event.listener.listener
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.entity.Entity
@@ -35,7 +35,7 @@ object EyeFinder : Module(
     private val neutral by setting("Neutral Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val hostile by setting("Hostile Mobs", true, { page == Page.ENTITY_TYPE && mobs })
     private val invisible by setting("Invisible", true, { page == Page.ENTITY_TYPE })
-    private val range by setting("Range", 64, 8..128, 8, { page == Page.ENTITY_TYPE })
+    private val range by setting("Range", 64, 8..128, 8, { page == Page.ENTITY_TYPE }, unit = " blocks")
 
     /* Rendering settings */
     private val color by setting("Color", ColorHolder(155, 144, 255, 200), visibility = { page == Page.RENDERING })

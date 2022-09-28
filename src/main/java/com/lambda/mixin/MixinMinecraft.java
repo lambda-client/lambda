@@ -5,11 +5,11 @@ import com.lambda.client.event.events.GuiEvent;
 import com.lambda.client.event.events.RunGameLoopEvent;
 import com.lambda.client.gui.hudgui.elements.misc.FPS;
 import com.lambda.client.manager.managers.HotbarManager;
-import com.lambda.mixin.accessor.player.AccessorEntityPlayerSP;
-import com.lambda.mixin.accessor.player.AccessorPlayerControllerMP;
 import com.lambda.client.module.modules.combat.CrystalAura;
 import com.lambda.client.module.modules.player.BlockInteraction;
 import com.lambda.client.util.Wrapper;
+import com.lambda.mixin.accessor.player.AccessorEntityPlayerSP;
+import com.lambda.mixin.accessor.player.AccessorPlayerControllerMP;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -43,7 +43,7 @@ public abstract class MixinMinecraft {
     private boolean handActive = false;
     private boolean isHittingBlock = false;
 
-    @Shadow
+    @Shadow(aliases = "func_147116_af") // Fixes weird prod meme in some cases??
     protected abstract void clickMouse();
 
     @ModifyVariable(method = "displayGuiScreen", at = @At("HEAD"), argsOnly = true)
@@ -130,14 +130,14 @@ public abstract class MixinMinecraft {
     public void rightClickMousePre(CallbackInfo ci) {
         if (BlockInteraction.isMultiTaskEnabled()) {
             isHittingBlock = playerController.getIsHittingBlock();
-            ((AccessorPlayerControllerMP) playerController).kbSetIsHittingBlock(false);
+            ((AccessorPlayerControllerMP) playerController).setIsHittingBlockFun(false);
         }
     }
 
     @Inject(method = "rightClickMouse", at = @At("RETURN"))
     public void rightClickMousePost(CallbackInfo ci) {
         if (BlockInteraction.isMultiTaskEnabled() && !playerController.getIsHittingBlock()) {
-            ((AccessorPlayerControllerMP) playerController).kbSetIsHittingBlock(isHittingBlock);
+            ((AccessorPlayerControllerMP) playerController).setIsHittingBlockFun(isHittingBlock);
         }
     }
 
