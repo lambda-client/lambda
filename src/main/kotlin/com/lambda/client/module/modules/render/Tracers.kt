@@ -48,7 +48,7 @@ object Tracers : Module(
     private val alpha by setting("Alpha", 255, 0..255, 1, { page == Page.RENDERING })
     private val yOffset by setting("Y Offset Percentage", 0, 0..100, 5, { page == Page.RENDERING })
     private val thickness by setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f, { page == Page.RENDERING })
-    private val fadeSpeed by setting("Fade Speed", 150, 50..500, 25, { page == Page.RENDERING }, unit = "ms")
+    private val fadeSpeed by setting("Fade Speed", 150, 0..500, 25, { page == Page.RENDERING }, unit = "ms")
 
     /* Range color settings */
     private val rangedColor by setting("Ranged Color", true, { page == Page.RANGE_COLOR })
@@ -72,12 +72,15 @@ object Tracers : Module(
 
             for ((entity, tracerData) in renderList) {
                 val rgba = tracerData.color.clone()
-                val animationCoefficient = tracerData.age * tracerData.color.a / fadeSpeed
 
-                rgba.a = if (tracerData.isEntityPresent) {
-                    animationCoefficient.toInt().coerceAtMost(tracerData.color.a)
-                } else {
-                    (-animationCoefficient + tracerData.color.a).toInt().coerceAtLeast(0)
+                if (fadeSpeed > 0) {
+                    val animationCoefficient = tracerData.age * tracerData.color.a / fadeSpeed
+
+                    rgba.a = if (tracerData.isEntityPresent) {
+                        animationCoefficient.toInt().coerceAtMost(tracerData.color.a)
+                    } else {
+                        (-animationCoefficient + tracerData.color.a).toInt().coerceAtLeast(0)
+                    }
                 }
 
                 renderer.add(entity, rgba)
@@ -116,7 +119,7 @@ object Tracers : Module(
                     return@forEach
                 }
 
-                if (tracerData.age > fadeSpeed) renderList.remove(entity)
+                if (tracerData.age > fadeSpeed || fadeSpeed == 0) renderList.remove(entity)
             }
         }
     }
