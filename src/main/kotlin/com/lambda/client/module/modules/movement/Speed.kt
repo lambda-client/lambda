@@ -75,10 +75,15 @@ object Speed : Module(
     private var lastDistance = 0.0
 
     private enum class YPortPhase {
+        // to help with bypassing right after setback
         WAITING,
+        // to get some speed initially
         WALKING,
+        // to jump and accelerate
         ACCELERATING,
+        // to fall to the ground
         SLOWDOWN,
+        // to slowly fall to the ground
         FALLING
     }
 
@@ -244,7 +249,7 @@ object Speed : Module(
 
         modifyTimer(TIMER_SPEED)
 
-        prevPhase = YPortPhase.ACCELERATING
+        prevPhase = phase
 
         when (phase) {
 
@@ -288,8 +293,6 @@ object Speed : Module(
             }
 
             else -> {
-                prevPhase = YPortPhase.WALKING
-
                 currentSpeed = max(currentSpeed, .2873)
                 phase = YPortPhase.values()[phase.ordinal + 1 % YPortPhase.values().size]
                 goUp = false
