@@ -12,7 +12,6 @@ import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
-import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.MovementUtils
 import com.lambda.client.util.MovementUtils.applySpeedPotionEffects
@@ -32,6 +31,7 @@ import java.lang.Double.min
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
+
 
 object Speed : Module(
     name = "Speed",
@@ -58,6 +58,7 @@ object Speed : Module(
     private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode == SpeedMode.YPORT && yPortCustomValues })
     private val yPortDecay by setting("Decay Amount", 0.66, 0.0..1.0, 0.001, { mode == SpeedMode.YPORT && yPortCustomValues })
 
+    private const val TIMER_SPEED = 45.955883f
 
     // Strafe Mode
     private var jumpTicks = 0
@@ -68,10 +69,18 @@ object Speed : Module(
     // yport stuff
     private var currentSpeed = .2873
     private var currentY = 0.0
-    private var phase = 1
-    private var prevPhase = 1
+    private var phase : YPortPhase = YPortPhase.WALKING
+    private var prevPhase : YPortPhase = YPortPhase.WALKING
     private var goUp = false
     private var lastDistance = 0.0
+
+    private enum class YPortPhase {
+        WAITING,
+        WALKING,
+        ACCELERATING,
+        SLOWDOWN,
+        FALLING
+    }
 
     enum class SpeedMode(override val displayName: String) : DisplayEnum {
         STRAFE("Strafe"),
@@ -81,8 +90,8 @@ object Speed : Module(
     init {
         onEnable {
             currentSpeed = .2873
-            phase = 1
-            prevPhase = 1
+            phase = YPortPhase.WALKING
+            prevPhase = YPortPhase.WALKING
             goUp = false
             currentY = 0.0
         }
@@ -103,14 +112,17 @@ object Speed : Module(
         }
 
         safeListener<PlayerTravelEvent> {
-            if (mode == SpeedMode.STRAFE && shouldStrafe()) strafe()
+            if (mode == SpeedMode.STRAFE
+                && shouldStrafe()
+            ) strafe()
         }
 
         safeListener<PlayerMoveEvent> {
             when (mode) {
                 SpeedMode.STRAFE -> {
-                    if (shouldStrafe()) setSpeed(max(player.speed, applySpeedPotionEffects(0.2873)))
-                    else {
+                    if (shouldStrafe()) {
+                        setSpeed(max(player.speed, applySpeedPotionEffects(0.2873)))
+                    } else {
                         reset()
                         if (strafeCancelInertia && !strafeTimer.tick(2L, false)) {
                             player.motionX = 0.0
@@ -119,74 +131,65 @@ object Speed : Module(
                     }
                 }
                 SpeedMode.YPORT -> {
-
                     handleBoost(it)
-
                 }
             }
         }
 
         safeListener<PacketEvent.Send> {
+            if (mode != SpeedMode.YPORT
+                || it.packet !is CPacketPlayer
+                || !goUp
+            ) return@safeListener
 
-            if (mode == SpeedMode.YPORT
-                && it.packet is CPacketPlayer
-                // phase is set to 3 in phase 2, so we are detecting when our speed is increased
-                && goUp) {
+            var offset = .42
 
+            //.015625 is the largest number that block heights are always divisible
+            while (world.collidesWithAnyBlock(player.entityBoundingBox.offset(.0, offset, .0))) {
 
-                var offset = (
-                    if (world.getBlockState(player.flooredPosition.add(.0, 2.0, .0)).isFullBlock)
-                        .2
-                    else
-                        .42
-                    )
+                if (offset <= 0)
+                    break
 
-                val unModOffset = offset
-
-                if (currentY + unModOffset > 0)
-                    offset += currentY
-                else if (yPortAirStrict && phase == 4 && prevPhase == 4) {
-
-                    var predictedY = currentY
-                    predictedY -= 0.08
-                    predictedY *= 0.9800000190734863 // 0.333200006 vs 0.341599999
-
-                    if (predictedY + player.posY <= player.posY) {
-                        phase = 0
-                    }
-
-                }
-
-                it.packet.playerY = (offset + player.posY)
-
-                currentY = offset - unModOffset
+                offset -= .015625
 
             }
 
+            val unModOffset = offset
+
+            if (currentY + unModOffset > 0)
+                offset += currentY
+            else if (yPortAirStrict && phase == YPortPhase.FALLING && prevPhase == YPortPhase.FALLING) {
+
+                var predictedY = currentY
+                predictedY -= 0.08
+                predictedY *= 0.9800000190734863 // 0.333200006 vs 0.341599999
+
+                if (predictedY + player.posY <= player.posY) {
+                    phase = YPortPhase.WAITING
+                }
+
+            }
+
+            it.packet.playerY = (offset + player.posY)
+
+            currentY = offset - unModOffset
         }
 
         safeListener<PacketEvent.Receive> {
+            if (mode != SpeedMode.YPORT || it.packet !is SPacketPlayerPosLook) return@safeListener
 
-            if (mode == SpeedMode.YPORT)
-                if (it.packet is SPacketPlayerPosLook) {
-
-                    currentSpeed = 0.0
-                    currentY = 0.0
-                    goUp = false
-                    // 3 extra ticks at base speed
-                    phase = -3
-
-                }
-
-
+            currentSpeed = 0.0
+            currentY = 0.0
+            goUp = false
+            // 3 extra ticks at base speed
+            phase = YPortPhase.WAITING
         }
-
     }
 
     private fun SafeClientEvent.strafe() {
         player.jumpMovementFactor = strafeAirSpeedBoost
         // slightly slower timer speed bypasses better (1.088)
-        if (strafeTimerBoost) modifyTimer(45.955883f)
+        if (strafeTimerBoost) modifyTimer(TIMER_SPEED)
         if ((Step.isDisabled || !player.collidedHorizontally) && strafeAutoJump) jump()
 
         strafeTimer.reset()
@@ -226,29 +229,35 @@ object Speed : Module(
 
     private fun SafeClientEvent.handleBoost(event: PlayerMoveEvent) {
 
-        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f || player.isInOrAboveLiquid || mc.gameSettings.keyBindJump.isKeyDown
-            || !player.onGround || !world.collidesWithAnyBlock(player.entityBoundingBox.offset(0.0, 0.42, 0.0)) && yPortStrict) {
+        if (
+            player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f
+            || player.isInOrAboveLiquid
+            || mc.gameSettings.keyBindJump.isKeyDown
+            || !player.onGround
+            || !world.collidesWithAnyBlock(player.entityBoundingBox.offset(0.0, 0.42, 0.0)) && yPortStrict
+        )
+        {
             resetTimer()
             currentSpeed = .2873
             return
         }
 
-        modifyTimer(45.955883f)
+        modifyTimer(TIMER_SPEED)
+
+        prevPhase = YPortPhase.ACCELERATING
 
         when (phase) {
 
-            2 -> {
-                prevPhase = 2
+            YPortPhase.ACCELERATING -> {
 
                 // NCP says hDistance < 2.15 * hDistanceBaseRef
                 currentSpeed *= if (yPortCustomValues) yPortAcceleration else 2.149
-                phase = if (yPortAirStrict) 4 else 3
+                phase = if (yPortAirStrict) YPortPhase.FALLING else YPortPhase.SLOWDOWN
                 goUp = true
                 currentY = 0.0
             }
 
-            3 -> {
-                prevPhase = 3
+            YPortPhase.SLOWDOWN -> {
 
                 // NCP says hDistDiff >= 0.66 * (lastMove.hDistance - hDistanceBaseRef)
                 currentSpeed = if (yPortAccelerate) {
@@ -256,20 +265,18 @@ object Speed : Module(
                 } else {
                     .2873
                 }
-                phase = 2
+                phase = YPortPhase.ACCELERATING
                 goUp = false
             }
 
-            4 -> {
+            YPortPhase.FALLING -> {
 
-                if (prevPhase == 2)
+                if (prevPhase == YPortPhase.WALKING)
                     currentSpeed = if (yPortAccelerate) {
                         lastDistance - (if (yPortCustomValues) yPortDecay else .66) * (lastDistance - .2873)
                     } else {
                         .2873
                     }
-
-                prevPhase = 4
 
                 goUp = true
 
@@ -281,10 +288,10 @@ object Speed : Module(
             }
 
             else -> {
-                prevPhase = 1
+                prevPhase = YPortPhase.WALKING
 
                 currentSpeed = max(currentSpeed, .2873)
-                phase++
+                phase = YPortPhase.values()[phase.ordinal + 1 % YPortPhase.values().size]
                 goUp = false
             }
         }
