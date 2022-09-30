@@ -14,7 +14,7 @@ import com.lambda.mixin.player.MixinPlayerControllerMP
  */
 object NoGhostItems : Module(
     name = "NoGhostItems",
-    description = "Syncs inventory transactions for strict environments",
+    description = "Syncs inventory interactions for strict environments",
     category = Category.PLAYER
 ) {
     val syncMode by setting("Scope", SyncMode.MODULES)

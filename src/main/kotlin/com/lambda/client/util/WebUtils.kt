@@ -57,7 +57,14 @@ object WebUtils {
 
     fun openWebLink(url: String) {
         try {
-            Desktop.getDesktop().browse(URI(url))
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(URI(url))
+            } else {
+                val exitCode = Runtime.getRuntime().exec(arrayOf("xdg-open", url)).waitFor()
+                if (exitCode != 0) {
+                    LambdaMod.LOG.error("Couldn't open link, xdg-open returned: $exitCode")
+                }
+            }
         } catch (e: IOException) {
             LambdaMod.LOG.error("Couldn't open link: $url")
         }

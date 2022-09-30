@@ -35,6 +35,7 @@ object DiscordRPC : Module(
     private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION) // state left
     private val line2Right by setting("Line 2 Right", LineInfo.HEALTH) // state right
     private val coordsConfirm by setting("Coords Confirm", false, { showCoordsConfirm() })
+    private val delay by setting("Update Delay", 5, 1..60, 1, unit = " s")
 
     private enum class LineInfo {
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
@@ -46,7 +47,7 @@ object DiscordRPC : Module(
     private val rpcBuilder = RichPresence.Builder()
         .setLargeImage("default", "https://github.com/lambda-client/lambda/")
     private val timer = TickTimer(TimeUnit.SECONDS)
-    private val job = BackgroundJob("Discord RPC", 5000L) { updateRPC() }
+    private val job = BackgroundJob("Discord RPC", { delay * 1000L }) { updateRPC() }
 
     init {
         onEnable {
@@ -136,7 +137,7 @@ object DiscordRPC : Module(
         try {
             ipc.connect()
         } catch (e: NoDiscordClientException) {
-            // Add something here if you want to spam the log i guess
+            // Add something here if you want to spam the log I guess
         }
     }
 

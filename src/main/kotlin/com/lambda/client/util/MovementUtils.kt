@@ -11,6 +11,7 @@ import net.minecraft.util.MovementInput
 import net.minecraft.util.math.BlockPos
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sign
 import kotlin.math.sin
 
 object MovementUtils {
@@ -36,14 +37,8 @@ object MovementUtils {
         return Math.toRadians(yaw.toDouble())
     }
 
-    private val roundedForward get() = getRoundedMovementInput(mc.player.movementInput.moveForward)
-    private val roundedStrafing get() = getRoundedMovementInput(mc.player.movementInput.moveStrafe)
-
-    private fun getRoundedMovementInput(input: Float) = when {
-        input > 0f -> 1f
-        input < 0f -> -1f
-        else -> 0f
-    }
+    private val roundedForward get() = sign(mc.player.movementInput.moveForward)
+    private val roundedStrafing get() = sign(mc.player.movementInput.moveStrafe)
 
     fun SafeClientEvent.setSpeed(speed: Double) {
         val yaw = calcMoveYaw()

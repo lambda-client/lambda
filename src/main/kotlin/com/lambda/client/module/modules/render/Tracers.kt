@@ -17,7 +17,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.min
 
 object Tracers : Module(
     name = "Tracers",
@@ -49,6 +48,7 @@ object Tracers : Module(
     private val alpha by setting("Alpha", 255, 0..255, 1, { page == Page.RENDERING })
     private val yOffset by setting("Y Offset Percentage", 0, 0..100, 5, { page == Page.RENDERING })
     private val thickness by setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f, { page == Page.RENDERING })
+    private val fadeSpeed by setting("Fade Speed", 150, 0..500, 25, { page == Page.RENDERING }, unit = "ms")
 
     /* Range color settings */
     private val rangedColor by setting("Ranged Color", true, { page == Page.RANGE_COLOR })
@@ -60,7 +60,7 @@ object Tracers : Module(
         ENTITY_TYPE, COLOR, RENDERING, RANGE_COLOR
     }
 
-    private var renderList = ConcurrentHashMap<Entity, Pair<ColorHolder, Float>>() /* <Entity, <RGBAColor, AlphaMultiplier>> */
+    private var renderList = ConcurrentHashMap<Entity, TracerData>()
     private var cycler = HueCycler(600)
     private val renderer = ESPRenderer()
 
@@ -70,9 +70,19 @@ object Tracers : Module(
             renderer.thickness = thickness
             renderer.tracerOffset = yOffset
 
-            for ((entity, pair) in renderList) {
-                val rgba = pair.first.clone()
-                rgba.a = (rgba.a * pair.second).toInt()
+            for ((entity, tracerData) in renderList) {
+                val rgba = tracerData.color.clone()
+
+                if (fadeSpeed > 0) {
+                    val animationCoefficient = tracerData.age * tracerData.color.a / fadeSpeed
+
+                    rgba.a = if (tracerData.isEntityPresent) {
+                        animationCoefficient.toInt().coerceAtMost(tracerData.color.a)
+                    } else {
+                        (-animationCoefficient + tracerData.color.a).toInt().coerceAtLeast(0)
+                    }
+                }
+
                 renderer.add(entity, rgba)
             }
 
@@ -91,22 +101,26 @@ object Tracers : Module(
                 ArrayList()
             }
 
-            val cacheMap = HashMap<Entity, Pair<ColorHolder, Float>>()
-            for (entity in entityList) {
-                cacheMap[entity] = Pair(getColor(entity), 0f)
-            }
-
-            for ((entity, pair) in renderList) {
-                cacheMap.computeIfPresent(entity) { _, cachePair -> Pair(cachePair.first, min(pair.second + 0.075f, 1f)) }
-                cacheMap.computeIfAbsent(entity) { Pair(getColor(entity), pair.second - 0.05f) }
-
-                if (pair.second < 0f) {
-                    cacheMap.remove(entity)
+            entityList.forEach { entity ->
+                renderList.computeIfAbsent(entity) {
+                    TracerData(getColor(entity), System.currentTimeMillis(), true)
                 }
             }
 
-            renderList.clear()
-            renderList.putAll(cacheMap)
+            renderList.forEach { (entity, tracerData) ->
+                if (entityList.contains(entity)) {
+                    tracerData.color = getColor(entity)
+                    return@forEach
+                }
+
+                if (tracerData.isEntityPresent) {
+                    tracerData.isEntityPresent = false
+                    tracerData.timeStamp = System.currentTimeMillis()
+                    return@forEach
+                }
+
+                if (tracerData.age > fadeSpeed || fadeSpeed == 0) renderList.remove(entity)
+            }
         }
     }
 
@@ -131,5 +145,9 @@ object Tracers : Module(
         val b = convertRange(distance, 0f, colorChangeRange.toFloat(), c.b.toFloat(), colorFar.b.toFloat()).toInt()
         val a = convertRange(distance, 0f, colorChangeRange.toFloat(), alpha.toFloat(), alphaFar.toFloat()).toInt()
         return ColorHolder(r, g, b, a)
+    }
+
+    private data class TracerData(var color: ColorHolder, var timeStamp: Long, var isEntityPresent: Boolean) {
+        val age get() = System.currentTimeMillis() - timeStamp
     }
 }
