@@ -108,9 +108,9 @@ class Bind(
             "None"
         } else {
             StringBuilder().run {
-                if (mouseKey != null && mouseKey!! > minMouseIndex) {
-                    append("Mouse$mouseKey")
-                } else {
+                mouseKey?.let {
+                    if (it > minMouseIndex) append("Mouse$mouseKey")
+                } ?: run {
                     for (key in modifierKeys) {
                         val name = modifierName[key] ?: KeyboardUtils.getDisplayName(key) ?: continue
                         append(name)
