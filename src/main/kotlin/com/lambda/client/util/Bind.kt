@@ -109,7 +109,7 @@ class Bind(
         } else {
             StringBuilder().run {
                 if (mouseKey != null && mouseKey!! > minMouseIndex) {
-                    append("MOUSE$mouseKey")
+                    append("Mouse$mouseKey")
                 } else {
                     for (key in modifierKeys) {
                         val name = modifierName[key] ?: KeyboardUtils.getDisplayName(key) ?: continue
@@ -126,6 +126,7 @@ class Bind(
 
     companion object {
         const val minMouseIndex: Int = 2 // middle click button index. Button number = index + 1.
+
         private val modifierName: Map<Int, String> = hashMapOf(
             Keyboard.KEY_LCONTROL to "Ctrl",
             Keyboard.KEY_RCONTROL to "Ctrl",

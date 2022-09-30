@@ -25,8 +25,10 @@ class BindSetting(
             value.clear()
             return
         }
-        if (valueIn.startsWith("MOUSE", ignoreCase = true)) {
-            value.setMouseBind(valueIn.split("MOUSE")[1].toInt())
+        if (valueIn.startsWith("Mouse", ignoreCase = true)) {
+            valueIn.split("Mouse").lastOrNull()?.toIntOrNull()?.let {
+                value.setMouseBind(it)
+            }
             return
         }
 
