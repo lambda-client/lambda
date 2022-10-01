@@ -80,7 +80,7 @@ abstract class AbstractUUIDManager(
             try {
                 val jsonElement = parser.parse(response)
                 if (isUUID) {
-                    val name = jsonElement.asJsonArray.last().asJsonObject["name"].asString
+                    val name = jsonElement.asJsonObject["name"].asString
                     PlayerProfile(UUID.fromString(nameOrUUID), name)
                 } else {
                     val id = jsonElement.asJsonObject["id"].asString
@@ -95,7 +95,7 @@ abstract class AbstractUUIDManager(
     }
 
     private fun requestProfileFromUUID(uuid: String): String? {
-        return request("https://api.mojang.com/user/profiles/${UUIDUtils.removeDashes(uuid)}/names")
+        return request("https://sessionserver.mojang.com/session/profile/${UUIDUtils.removeDashes(uuid)}")
     }
 
     private fun requestProfileFromName(name: String): String? {
