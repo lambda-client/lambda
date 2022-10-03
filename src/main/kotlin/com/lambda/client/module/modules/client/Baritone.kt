@@ -26,6 +26,8 @@ object Baritone : Module(
     private val allowPlace by setting("Allow Place", true)
     private val allowInventory by setting("Allow Inventory", false)
     private val freeLook by setting("Free Look", true)
+    private val allowWaterBucketFall by setting("Water bucket clutch", true, description = "Uses a water bucket to get down quickly.")
+    private val maxFallHeightBucket by setting("Max bucket height", 20, 5..255, 5, { allowWaterBucketFall }, description = "Max height that baritone can use a water bucket.")
     private val allowDownwardTunneling by setting("Downward Tunneling", true)
     private val allowParkour by setting("Allow Parkour", true)
     private val allowParkourPlace by setting("Allow Parkour Place", true)
@@ -75,6 +77,8 @@ object Baritone : Module(
             it.allowPlace.value = allowPlace
             it.allowInventory.value = allowInventory
             it.freeLook.value = freeLook
+            it.allowWaterBucketFall.value = allowWaterBucketFall
+            it.maxFallHeightBucket.value = maxFallHeightBucket
             it.allowDownward.value = allowDownwardTunneling
             it.allowParkour.value = allowParkour
             it.allowParkourPlace.value = allowParkourPlace
