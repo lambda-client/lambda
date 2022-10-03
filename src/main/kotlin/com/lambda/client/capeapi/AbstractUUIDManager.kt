@@ -95,7 +95,7 @@ abstract class AbstractUUIDManager(
     }
 
     private fun requestProfileFromUUID(uuid: String): String? {
-        return request("https://sessionserver.mojang.com/session/profile/${UUIDUtils.removeDashes(uuid)}")
+        return request("https://sessionserver.mojang.com/session/minecraft/profile/${UUIDUtils.removeDashes(uuid)}")
     }
 
     private fun requestProfileFromName(name: String): String? {
