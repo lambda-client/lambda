@@ -21,16 +21,34 @@ object CivBreak : Module(
     description = "Break blocks just left-clicking on them",
     alias = arrayOf("CivBreak", "ClickBreak", "FastBreak", "PacketBreak")
 ) {
-    //private val color by setting("Color", ColorHolder(200, 80, 80))
-
+    private val color by setting("Color", ColorHolder(200, 80, 80))
+    private val filled by setting("Filled", true)
+    private val outline by setting("Outline", true)
+    private val aFilled by setting("Filled Alpha", 63, 0..255, 1, { filled })
+    private val aOutline by setting("Outline Alpha", 200, 0..255, 1, { outline })
+    private val thickness by setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f)
 
     private var target = BlockPos(0, -1, 0)
-    //private val renderer = ESPRenderer()
+    private val renderer = ESPRenderer()
 
     var isCivBreaking = false
 
     init{
         safeListener<RenderWorldEvent> {
+            if(isCivBreaking) {
+                val blockState = world.getBlockState(target)
+                val box = blockState.getSelectedBoundingBox(world, target)
+                val side = (GeometryMasks.Quad.ALL)
+                renderer.add(box.grow(0.004), color, side)
+                renderer.render(true)
+
+
+                renderer.aFilled = if (filled) aFilled else 0
+                renderer.aOutline = if (outline) aOutline else 0
+                renderer.thickness = thickness
+                renderer.add(target, color)
+                renderer.render(clear = true, cull = false)
+            }
         }
         safeListener<TickEvent.ClientTickEvent> {
             val viewEntity = mc.renderViewEntity ?: player
@@ -42,7 +60,7 @@ object CivBreak : Module(
                 setTartget(hitObject.blockPos)
             }
             if(isBreaked(target)){
-                //renderer.clear()
+                renderer.clear()
                 resetBreak()
             }
 
@@ -61,17 +79,13 @@ object CivBreak : Module(
             mc.world.getBlockState(blockPos).block != Blocks.BEDROCK &&
             mc.world.getBlockState(blockPos).block != Blocks.BARRIER
         ){
+
             target = blockPos
             doBreak()
         }
     }
     private fun doBreak(){
         resetBreak()
-        //renderer.add(target, color)
-        //renderer.aFilled = 100
-        //renderer.aOutline = 200
-        //renderer.render(false)
-
 
         isCivBreaking = true
         val packetStart = CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, target, mc.player.horizontalFacing)
@@ -90,6 +104,4 @@ object CivBreak : Module(
             false
         }
     }
-
-
 }
