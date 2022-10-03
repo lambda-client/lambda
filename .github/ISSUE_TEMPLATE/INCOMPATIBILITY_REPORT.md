@@ -4,11 +4,14 @@ about: Module incompatibility or incompatible with another Forge mod
 labels: -incompatible
 ---
 
-**What mod?**
-<!-- A clear and concise description of what module it is. -->
+**What mod/module causes an issue?**
+<!-- Mention the problematic mod/module here. -->
 
-**Logs**
-<!-- Please add logs or your issue will be closed. -->
+**What issue is caused?**
+<!-- Provide a clear and concise description of the issue -->
+
+**Please attach your Minecraft logs**
+<!-- Please add logs or your issue will be closed, as we need to see the logs to accurately troubleshoot. -->
 
 **Additional context**
-<!-- Add any other context about the problem here. -->
+<!-- Add any other context about the problem here, such as a more detailed description, or attach related media. -->
