@@ -19,22 +19,46 @@ object Baritone : Module(
     showOnArray = false,
     alwaysEnabled = true
 ) {
-    private val showOnRadar by setting("Show Path on Radar", true, description = "Show the current path on radar.")
-    private val color by setting("Path Color", ColorHolder(32, 250, 32), visibility = { showOnRadar })
-    private val allowBreak by setting("Allow Break", true)
-    private val allowSprint by setting("Allow Sprint", true)
-    private val allowPlace by setting("Allow Place", true)
-    private val allowInventory by setting("Allow Inventory", false)
-    private val freeLook by setting("Free Look", true)
-    private val allowWaterBucketFall by setting("Water bucket clutch", true, description = "Uses a water bucket to get down quickly.")
-    private val maxFallHeightBucket by setting("Max bucket height", 20, 5..255, 5, { allowWaterBucketFall }, description = "Max height that baritone can use a water bucket.")
-    private val allowDownwardTunneling by setting("Downward Tunneling", true)
-    private val allowParkour by setting("Allow Parkour", true)
-    private val allowParkourPlace by setting("Allow Parkour Place", true)
-    private val avoidPortals by setting("Avoid Portals", false)
-    private val renderGoal by setting("Render Goals", true)
-    private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1, unit = "s")
-    private val blockReachDistance by setting("Reach Distance", 4.5f, 1.0f..10.0f, 0.5f)
+/*
+ * Baritone varibles can be found here.
+ * https://github.com/cabaletta/baritone/blob/master/src/api/java/baritone/api/Settings.java
+ */
+    private val page by setting("Page", Page.ONE)
+
+    /* Basic */
+    private val allowBreak by setting("Allow Break", true, { page == Page.one }, description = "Allow Baritone to break blocks.")
+    private val allowSprint by setting("Allow Sprint", true, { page == Page.ONE }, description = "Allow Baritone to sprint.")
+    private val allowPlace by setting("Allow Place", true, { page == Page.ONE }, description = "Allow Baritone to place blocks.")
+    private val allowInventory by setting("Allow Inventory", false, { page == Page.ONE }, description = "Allow Baritone to move items in your inventory to your hotbar.")
+    private val freeLook by setting("Free Look", true, { page == Page.ONE }, description = "Move without having to force the client-sided rotations.")
+    private val allowDownwardTunneling by setting("Downward Tunneling", true, { page == Page.ONE }, description = "Allow mining blocks directly beneath you.")
+    private val allowParkour by setting("Allow Parkour", true, { page == Page.ONE })
+    private val allowParkourPlace by setting("Allow Parkour Place", true, { allowParkour && page == Page.ONE })
+
+    /* Visual */
+    private val showOnRadar by setting("Show Path on Radar", true, { page == Page.TWO }, description = "Show the current path on radar.")
+    private val color by setting("Path Color", ColorHolder(32, 250, 32), visibility = { showOnRadar && page == Page.TWO }, description = "Path color for the radar.")
+    private val renderGoal by setting("Render Goals", true, { page == Page.TWO }, description = "Render the goal.")
+    private val renderGoalAnimated by setting("Render Goal Animated", true, { page == Page.TWO }, description = "Animate the rendered goal.")
+
+    /* Fall */
+    private val maxFallHeightNoWater by setting("Max Fall Height", 3, 3..5, 1, { page == Page.THREE }, description = "Distance baritone can fall without water.")
+    private val allowWaterBucketFall by setting("Water Bucket Clutch", true, { page == Page.THREE }, description = "Uses a water bucket to get down quickly.")
+    private val maxFallHeightBucket by setting("Max Bucket Height", 20, 10..250, 10, { allowWaterBucketFall && page == Page.THREE }, description = "Max height that baritone can use a water bucket.")
+
+    /* AI */
+    private val blockReachDistance by setting("Reach Distance", 4.5f, 1.0f..10.0f, 0.5f, { page == Page.FOUR }, description = "Max distance baritone can place blocks.")
+    private val enterPortals by setting("Enter Portals", true, { page == Page.FOUR }, description = "Baritone will walk all the way into the portal, instead of stopping one block before.")
+    /*private val avoidance by setting("Avoidance", false, { page == Page.B_AI }, description = "Enables the 4 avoidance settings. It's disabled by default because of the noticeable performance impact.")
+    private val mobAvoidanceRadius by setting("Mob Avoidance Radius", 15, 0..65, 5, visibility = { avoidance && page == Page.B_AI }, description = "Distance to avoid mobs.")
+    private val mobAvoidanceCoefficient by setting("Mob Avoidance Coefficient", 1.5, 0..5, 0.5, visibility = { avoidance && page == Page.B_AI }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mobs.")
+    private val mobSpawnerAvoidanceRadius by setting("Mob Spawner Avoidance Radius", 10, 0..60, 10, visibility = { avoidance && page == Page.B_AI }, description = "Distance to avoid mob spawners.")
+    private val mobSpawnerAvoidanceCoefficient by setting("Mob Spawner Avoidance Coefficient", 1.5, 0..5, 0.5, visibility = { avoidance && page == Page.B_AI }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mob spawners.")
+    private val blockPlacementPenalty by setting("Block Placement Penalty", 20.0D, 0.0D..40.0D, 5.0D, { page == Page.B_AI }, description = "Decrease to make Baritone more often consider paths that would require placing blocks.")
+    private val blockBreakAdditionalPenalty by setting("Block Break Additional Penalty", 2.0D, 0.0D..10.0D, 1.0D, { page == Page.B_AI }, description = "Lower chance to break blocks. This is a tiebreaker.")
+    private val jumpPenalty by setting("Jump Penalty", 2.0D, 0.0D..10.0D, 1.0D, { page == Page.B_AI }, description = "Additional penalty for hitting the space bar (ascend, pillar, or parkour) because it uses hunger.")*/
+    private val assumeWalkOnWater by setting("Assume Walk On Water", false, { page == Page.FOUR }, description = "Allow Baritone to assume it can walk on still water just like any other block. Requires jesus to be enabled.")
+    private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1, unit = "s", { page == Page.FOUR })
 
     init {
         settingList.forEach {
@@ -76,14 +100,24 @@ object Baritone : Module(
             it.allowSprint.value = allowSprint
             it.allowPlace.value = allowPlace
             it.allowInventory.value = allowInventory
+            /*it.blockPlacementPenalty.value = blockPlacementPenalty
+            it.blockBreakAdditionalPenalty.value = blockBreakAdditionalPenalty
+            it.jumpPenalty.value = jumpPenalty*/
+            it.assumeWalkOnWater.value = assumeWalkOnWater
+            /*it.avoidance.value = avoidance
+            it.mobAvoidanceRadius.value = mobAvoidanceRadius
+            it.mobAvoidanceCoefficient.value = mobAvoidanceCoefficient
+            it.mobSpawnerAvoidanceRadius.value = mobSpawnerAvoidanceRadius
+            it.mobSpawnerAvoidanceCoefficient.value = mobSpawnerAvoidanceCoefficient*/
             it.freeLook.value = freeLook
             it.allowWaterBucketFall.value = allowWaterBucketFall
             it.maxFallHeightBucket.value = maxFallHeightBucket
             it.allowDownward.value = allowDownwardTunneling
             it.allowParkour.value = allowParkour
             it.allowParkourPlace.value = allowParkourPlace
-            it.enterPortal.value = !avoidPortals
+            it.enterPortal.value = enterPortals
             it.renderGoal.value = renderGoal
+            
             it.failureTimeoutMS.value = failureTimeout * 1000L
             it.blockReachDistance.value = blockReachDistance
         }
