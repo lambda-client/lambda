@@ -43,7 +43,10 @@ object PacketLogger : Module(
     private val ignoreUnknown by setting("Ignore Unknown Packets", false, description = "Ignore packets that aren't explicitly handled.")
     private val ignoreChat by setting("Ignore Chat", true, description = "Ignore chat packets.")
     private val ignoreCancelled by setting("Ignore Cancelled", true, description = "Ignore cancelled packets.")
-    private val openLogFolder = setting("Open Log Folder...", false)
+    private val openLogFolder by setting("Open Packet Log Folder...", false, consumer = { _, it ->
+        if (it) FolderUtils.openFolder(FolderUtils.packetLogFolder)
+        false
+    })
 
     private val fileTimeFormatter = DateTimeFormatter.ofPattern("HH-mm-ss_SSS")
 
@@ -134,11 +137,6 @@ object PacketLogger : Module(
             }
 
             sendPacket(it.packet)
-        }
-
-        openLogFolder.consumers.add { _, it ->
-            if (it) FolderUtils.openFolder(FolderUtils.logFolder)
-            false
         }
     }
 
