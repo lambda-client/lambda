@@ -7,7 +7,6 @@ import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.event.events.RenderWorldEvent
-import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
@@ -21,8 +20,6 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.items.*
 import com.lambda.client.util.math.RotationUtils.getRotationTo
-import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
@@ -52,21 +49,28 @@ object Scaffold : Module(
     category = Category.PLAYER,
     modulePriority = 500
 ) {
-    private val tower by setting("Tower", true)
-    private val spoofHotbar by setting("Spoof Hotbar", true)
-    val safeWalk by setting("Safe Walk", true)
-    private val sneak by setting("Sneak", true)
-    private val strictDirection by setting("Strict Direction", false)
-    private val delay by setting("Delay", 0, 0..10, 1, unit = " ticks")
-    private val timeout by setting("Timeout", 20, 1..40, 1, unit = " ticks")
-    private val maxRange by setting("Max Range", 0, 0..3, 1)
-    private val maxPending by setting("Max Pending", 1, 0..10, 1)
-    private val below by setting("Max Tower Distance", 0.3, 0.0..5.0, 0.1)
-    private val filled by setting("Filled", true, description = "Renders surfaces")
-    private val outline by setting("Outline", true, description = "Renders outline")
-    private val alphaFilled by setting("Alpha Filled", 26, 0..255, 1, { filled }, description = "Alpha for surfaces")
-    private val alphaOutline by setting("Alpha Outline", 26, 0..255, 1, { outline }, description = "Alpha for outline")
-    private val thickness by setting("Outline Thickness", 2f, .25f..4f, .25f, { outline }, description = "Changes thickness of the outline")
+    private val page by setting("Page", Page.GENERAL)
+
+    private val tower by setting("Tower", true, { page == Page.GENERAL })
+    private val spoofHotbar by setting("Spoof Hotbar", true, { page == Page.GENERAL })
+    val safeWalk by setting("Safe Walk", true, { page == Page.GENERAL })
+    private val sneak by setting("Sneak", true, { page == Page.GENERAL })
+    private val strictDirection by setting("Strict Direction", false, { page == Page.GENERAL })
+    private val delay by setting("Delay", 0, 0..10, 1, { page == Page.GENERAL }, unit = " ticks")
+    private val timeout by setting("Timeout", 50, 1..40, 1, { page == Page.GENERAL }, unit = " ticks")
+    private val maxRange by setting("Max Range", 0, 0..3, 1, { page == Page.GENERAL })
+    private val maxPending by setting("Max Pending", 1, 0..2, 1, { page == Page.GENERAL })
+    private val below by setting("Max Tower Distance", 0.3, 0.0..2.0, 0.01, { page == Page.GENERAL })
+    private val filled by setting("Filled", true, { page == Page.RENDER }, description = "Renders surfaces")
+    private val outline by setting("Outline", true, { page == Page.RENDER }, description = "Renders outline")
+    private val alphaFilled by setting("Alpha Filled", 26, 0..255, 1, { filled && page == Page.RENDER }, description = "Alpha for surfaces")
+    private val alphaOutline by setting("Alpha Outline", 26, 0..255, 1, { outline && page == Page.RENDER }, description = "Alpha for outline")
+    private val thickness by setting("Outline Thickness", 2f, .25f..4f, .25f, { outline && page == Page.RENDER }, description = "Changes thickness of the outline")
+    private val pendingBlockColor by setting("Pending Color", ColorHolder(0, 0, 255))
+
+    private enum class Page {
+        GENERAL, RENDER
+    }
 
     private var placeInfo: PlaceInfo? = null
     private val renderer = ESPRenderer()
@@ -77,32 +81,27 @@ object Scaffold : Module(
 
     private val pendingBlocks = ConcurrentHashMap<BlockPos, PendingBlock>()
 
-    override fun isActive(): Boolean {
-        return isEnabled
-    }
-
     init {
         onDisable {
             placeInfo = null
             pendingBlocks.clear()
         }
 
-        listener<PacketEvent.Receive> { event ->
+        safeListener<PacketEvent.Receive> { event ->
             when (val packet = event.packet) {
                 is SPacketPlayerPosLook -> {
                     rubberBandTimer.reset()
-                    runSafe {
-                        pendingBlocks.values.forEach {
-                            world.setBlockState(it.blockPos, Blocks.AIR.defaultState)
-                        }
+                    pendingBlocks.keys.forEach {
+                        world.setBlockState(it, Blocks.AIR.defaultState)
                     }
+                    pendingBlocks.clear()
                 }
 
                 is SPacketBlockChange -> {
                     pendingBlocks[packet.blockPosition]?.let { pendingBlock ->
                         if (pendingBlock.block == packet.blockState.block) {
                             pendingBlocks.remove(packet.blockPosition)
-                            LambdaMod.LOG.error("Confirmed: $pendingBlock")
+//                            LambdaMod.LOG.error("Confirmed: $pendingBlock")
                         } else {
                             LambdaMod.LOG.error("Other confirm: ${packet.blockPosition} ${packet.blockState.block}")
                         }
@@ -134,7 +133,7 @@ object Scaffold : Module(
             renderer.thickness = thickness
 
             pendingBlocks.keys.forEach {
-                renderer.add(it, ColorHolder(0, 0, 255))
+                renderer.add(it, pendingBlockColor)
             }
 
             renderer.render(clear = true)
@@ -146,7 +145,6 @@ object Scaffold : Module(
 
     private val SafeClientEvent.shouldTower: Boolean
         get() = !player.onGround
-//            && pendingBlocks.isEmpty()
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
 
     init {
@@ -158,6 +156,7 @@ object Scaffold : Module(
                 .forEach { pendingBlock ->
                     LambdaMod.LOG.error("Timeout: ${pendingBlock.blockPos}")
                     pendingBlocks.remove(pendingBlock.blockPos)
+                    world.setBlockState(pendingBlock.blockPos, Blocks.AIR.defaultState)
                 }
 
             placeInfo?.let { placeInfo ->
@@ -168,9 +167,11 @@ object Scaffold : Module(
                     }
                 }
 
-                swapAndPlace(placeInfo)
-                sendPlayerPacket {
-                    rotate(getRotationTo(placeInfo.hitVec))
+                if (rubberBandTimer.tick(10, false)) {
+                    swapAndPlace(placeInfo)
+                    sendPlayerPacket {
+                        rotate(getRotationTo(placeInfo.hitVec))
+                    }
                 }
             }
         }
@@ -196,7 +197,7 @@ object Scaffold : Module(
                 placeBlock(placeInfo)
                 world.setBlockState(placeInfo.placedPos, Blocks.BARRIER.defaultState)
                 pendingBlocks[placeInfo.placedPos] = PendingBlock(placeInfo.placedPos, slot.stack.item.block)
-                LambdaMod.LOG.error("Placed: ${placeInfo.placedPos} ${slot.stack.item.block.localizedName}")
+//                LambdaMod.LOG.error("Placed: ${placeInfo.placedPos} ${slot.stack.item.block.localizedName}")
 
                 if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
