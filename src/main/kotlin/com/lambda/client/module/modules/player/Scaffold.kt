@@ -57,11 +57,11 @@ object Scaffold : Module(
     val safeWalk by setting("Safe Walk", true)
     private val sneak by setting("Sneak", true)
     private val strictDirection by setting("Strict Direction", false)
-    private val delay by setting("Delay", 2, 0..10, 1, unit = " ticks")
+    private val delay by setting("Delay", 0, 0..10, 1, unit = " ticks")
     private val timeout by setting("Timeout", 20, 1..40, 1, unit = " ticks")
-    private val maxRange by setting("Max Range", 1, 0..3, 1)
+    private val maxRange by setting("Max Range", 0, 0..3, 1)
     private val maxPending by setting("Max Pending", 1, 0..10, 1)
-    private val below by setting("below", 1.0, 0.0..5.0, 0.1)
+    private val below by setting("Max Tower Distance", 0.3, 0.0..5.0, 0.1)
     private val filled by setting("Filled", true, description = "Renders surfaces")
     private val outline by setting("Outline", true, description = "Renders outline")
     private val alphaFilled by setting("Alpha Filled", 26, 0..255, 1, { filled }, description = "Alpha for surfaces")
@@ -91,7 +91,6 @@ object Scaffold : Module(
             when (val packet = event.packet) {
                 is SPacketPlayerPosLook -> {
                     rubberBandTimer.reset()
-                    MessageSendHelper.sendChatMessage("RUBBER")
                     runSafe {
                         pendingBlocks.values.forEach {
                             world.setBlockState(it.blockPos, Blocks.AIR.defaultState)
