@@ -49,14 +49,14 @@ object Baritone : Module(
     /* Advanced */
     private val blockReachDistance by setting("Reach Distance", 4.5f, 1.0f..10.0f, 0.5f, { page == Page.ADVACED }, description = "Max distance baritone can place blocks.")
     private val enterPortals by setting("Enter Portals", true, { page == Page.ADVACED }, description = "Baritone will walk all the way into the portal, instead of stopping one block before.")
-    /*private val avoidance by setting("Avoidance", false, { page == Page.ADVACED }, description = "Enables the 4 avoidance settings. It's disabled by default because of the noticeable performance impact.")
+    private val avoidance by setting("Avoidance", false, { page == Page.ADVACED }, description = "Enables the 4 avoidance settings. It's disabled by default because of the noticeable performance impact.")
     private val mobAvoidanceRadius by setting("Mob Avoidance Radius", 15, 0..65, 5, visibility = { avoidance && page == Page.ADVACED }, description = "Distance to avoid mobs.")
-    private val mobAvoidanceCoefficient by setting("Mob Avoidance Coefficient", 1.5, 0..5, 0.5, visibility = { avoidance && page == Page.ADVACED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mobs.")
+    private val mobAvoidanceCoefficient by setting("Mob Avoidance Coefficient", 1.5f, 0f..5f, 0.5f, visibility = { avoidance && page == Page.ADVACED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mobs.")
     private val mobSpawnerAvoidanceRadius by setting("Mob Spawner Avoidance Radius", 10, 0..60, 10, visibility = { avoidance && page == Page.ADVACED }, description = "Distance to avoid mob spawners.")
-    private val mobSpawnerAvoidanceCoefficient by setting("Mob Spawner Avoidance Coefficient", 1.5, 0..5, 0.5, visibility = { avoidance && page == Page.ADVACED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mob spawners.")
-    private val blockPlacementPenalty by setting("Block Placement Penalty", 20.0D, 0.0D..40.0D, 5.0D, { page == Page.ADVACED }, description = "Decrease to make Baritone more often consider paths that would require placing blocks.")
-    private val blockBreakAdditionalPenalty by setting("Block Break Additional Penalty", 2.0D, 0.0D..10.0D, 1.0D, { page == Page.ADVACED }, description = "Lower chance to break blocks. This is a tiebreaker.")
-    private val jumpPenalty by setting("Jump Penalty", 2.0D, 0.0D..10.0D, 1.0D, { page == Page.ADVACED }, description = "Additional penalty for hitting the space bar (ascend, pillar, or parkour) because it uses hunger.")*/
+    private val mobSpawnerAvoidanceCoefficient by setting("Mob Spawner Avoidance Coefficient", 1.5f, 0f..5f, 0.5f, visibility = { avoidance && page == Page.ADVACED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mob spawners.")
+    private val blockPlacementPenalty by setting("Block Placement Penalty", 20, 0..40, 5, { page == Page.ADVACED }, description = "Decrease to make Baritone more often consider paths that would require placing blocks.")
+    private val blockBreakAdditionalPenalty by setting("Block Break Additional Penalty", 2, 0..10, 1, { page == Page.ADVACED }, description = "Lower chance to break blocks. This is a tiebreaker.")
+    private val jumpPenalty by setting("Jump Penalty", 2, 0..10, 1, { page == Page.ADVACED }, description = "Additional penalty for hitting the space bar (ascend, pillar, or parkour) because it uses hunger.")
     private val assumeWalkOnWater by setting("Assume Walk On Water", false, { page == Page.ADVACED }, description = "Allow Baritone to assume it can walk on still water just like any other block. Requires jesus to be enabled.")
     private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1, { page == Page.ADVACED }, unit = "s")
 
@@ -104,14 +104,16 @@ object Baritone : Module(
             it.allowSprint.value = allowSprint
             it.allowPlace.value = allowPlace
             it.allowInventory.value = allowInventory
-            /*it.blockPlacementPenalty.value = blockPlacementPenalty
-            it.blockBreakAdditionalPenalty.value = blockBreakAdditionalPenalty
-            it.jumpPenalty.value = jumpPenalty*/
-            /*it.avoidance.value = avoidance
+
+            it.blockPlacementPenalty.value = blockPlacementPenalty.toDouble()
+            it.blockBreakAdditionalPenalty.value = blockBreakAdditionalPenalty.toDouble()
+            it.avoidance.value = avoidance
             it.mobAvoidanceRadius.value = mobAvoidanceRadius
-            it.mobAvoidanceCoefficient.value = mobAvoidanceCoefficient
+            it.mobAvoidanceCoefficient.value = mobAvoidanceCoefficient.toDouble()
             it.mobSpawnerAvoidanceRadius.value = mobSpawnerAvoidanceRadius
-            it.mobSpawnerAvoidanceCoefficient.value = mobSpawnerAvoidanceCoefficient*/
+            it.mobSpawnerAvoidanceCoefficient.value = mobSpawnerAvoidanceCoefficient.toDouble()
+            it.jumpPenalty.value = jumpPenalty.toDouble()
+
             it.assumeWalkOnWater.value = assumeWalkOnWater
             it.freeLook.value = freeLook
             it.maxFallHeightNoWater.value = maxFallHeightNoWater
