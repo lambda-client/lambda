@@ -19,6 +19,10 @@ Find our plugins [here](https://github.com/lambda-plugins).
     <a href="https://github.com/lambda-client/lambda/releases/download/3.2.1/lambda-3.2.1.jar"><img alt="lambda-3.2.1.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.2.1.png" width="70%" height="70%"></a>
 </p>
 
+<div align="center">
+  <a href="https://discord.gg/QjfBxJzE5x"><img src="https://invidget.switchblade.xyz/QjfBxJzE5x" alt="Link to the lambda discord server https://discord.gg/QjfBxJzE5x"></a>
+</div>
+
 ## Installation
 1. Install Minecraft 1.12.2
 2. Install the latest Forge for 1.12.2 [(download)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
