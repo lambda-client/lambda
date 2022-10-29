@@ -45,7 +45,8 @@ object Speed : Module(
     // Strafe settings
     private val strafeAirSpeedBoost by setting("Air Speed Boost", 0.028f, 0.01f..0.04f, 0.001f, { mode.value == SpeedMode.STRAFE })
     private val strafeTimerBoost by setting("Timer Boost", true, { mode.value == SpeedMode.STRAFE })
-    private val strafeAutoJump by setting("Auto Jump", true, { mode.value == SpeedMode.STRAFE })
+    private val strafeAutoJump by setting("Auto Jump", true, { mode.value == SpeedMode.STRAFE }, description = "WARNING: Food intensive!")
+    private val strafeOnlyOverhead by setting("Only strafe on overhead", false, { mode.value == SpeedMode.STRAFE && strafeAutoJump })
     private val strafeOnHoldingSprint by setting("On Holding Sprint", false, { mode.value == SpeedMode.STRAFE })
     private val strafeCancelInertia by setting("Cancel Inertia", false, { mode.value == SpeedMode.STRAFE })
 
@@ -54,9 +55,8 @@ object Speed : Module(
     private val yPortStrict by setting("Head Strict", false, { mode.value == SpeedMode.YPORT }, description = "Only allow YPort when you are under a block")
     private val yPortAirStrict by setting("Air Strict", false, { mode.value == SpeedMode.YPORT }, description = "Force YPort to handle Y movement differently, slows this down A LOT")
     private val yPortMaxSpeed by setting("Maximum Speed", 0.0, 0.0..2.0, 0.001, { mode.value == SpeedMode.YPORT })
-    private val yPortCustomValues by setting("Custom Values", false, { mode.value == SpeedMode.YPORT })
-    private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode.value == SpeedMode.YPORT && yPortCustomValues })
-    private val yPortDecay by setting("Decay Amount", 0.66, 0.0..1.0, 0.001, { mode.value == SpeedMode.YPORT && yPortCustomValues })
+    private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode.value == SpeedMode.YPORT })
+    private val yPortDecay by setting("Decay Amount", 0.66, 0.0..1.0, 0.001, { mode.value == SpeedMode.YPORT })
 
     private const val TIMER_SPEED = 45.955883f
 
@@ -107,9 +107,6 @@ object Speed : Module(
 
         safeListener<TickEvent.ClientTickEvent> {
             lastDistance = hypot(player.posX - player.prevPosX, player.posZ - player.prevPosZ)
-        }
-
-        safeListener<PlayerTravelEvent> {
             if (mode.value == SpeedMode.STRAFE
                 && shouldStrafe()
             ) strafe()
@@ -164,7 +161,6 @@ object Speed : Module(
                 if (predictedY + player.posY <= player.posY) {
                     phase = YPortPhase.WAITING
                 }
-
             }
 
             it.packet.playerY = (offset + player.posY)
@@ -191,19 +187,21 @@ object Speed : Module(
         player.jumpMovementFactor = strafeAirSpeedBoost
         // slightly slower timer speed bypasses better (1.088)
         if (strafeTimerBoost) modifyTimer(TIMER_SPEED)
-        if ((Step.isDisabled || !player.collidedHorizontally) && strafeAutoJump) jump()
+
+        if ((Step.isDisabled || player.onGround) && strafeAutoJump) jump()
 
         strafeTimer.reset()
     }
 
     private fun SafeClientEvent.shouldStrafe(): Boolean =
-        (!player.capabilities.isFlying
+        !player.capabilities.isFlying
             && !player.isElytraFlying
             && !mc.gameSettings.keyBindSneak.isKeyDown
             && (!strafeOnHoldingSprint || mc.gameSettings.keyBindSprint.isKeyDown)
             && !BaritoneUtils.isPathing
             && MovementUtils.isInputting
-            && !(player.isInOrAboveLiquid || player.isInWeb))
+            && !(player.isInOrAboveLiquid || player.isInWeb)
+            && (!strafeOnlyOverhead || world.collidesWithAnyBlock(player.entityBoundingBox.offset(.0,.42,.0)))
 
     private fun SafeClientEvent.reset() {
         player.jumpMovementFactor = 0.02f
@@ -247,7 +245,7 @@ object Speed : Module(
         when (phase) {
             YPortPhase.ACCELERATING -> {
                 // NCP says hDistance < 2.15 * hDistanceBaseRef
-                currentSpeed *= if (yPortCustomValues) yPortAcceleration else 2.149
+                currentSpeed *= yPortAcceleration
                 phase = if (yPortAirStrict) YPortPhase.FALLING else YPortPhase.SLOWDOWN
                 goUp = true
                 currentY = 0.0
@@ -256,7 +254,7 @@ object Speed : Module(
             YPortPhase.SLOWDOWN -> {
                 // NCP says hDistDiff >= 0.66 * (lastMove.hDistance - hDistanceBaseRef)
                 currentSpeed = if (yPortAccelerate) {
-                    lastDistance - (if (yPortCustomValues) yPortDecay else .66) * (lastDistance - .2873)
+                    lastDistance - yPortDecay * (lastDistance - .2873)
                 } else {
                     .2873
                 }
@@ -265,12 +263,13 @@ object Speed : Module(
             }
 
             YPortPhase.FALLING -> {
-                if (prevPhase == YPortPhase.WALKING)
+                if (prevPhase == YPortPhase.WALKING) {
                     currentSpeed = if (yPortAccelerate) {
-                        lastDistance - (if (yPortCustomValues) yPortDecay else .66) * (lastDistance - .2873)
+                        lastDistance - yPortDecay * (lastDistance - .2873)
                     } else {
                         .2873
                     }
+                }
 
                 goUp = true
 
@@ -289,8 +288,9 @@ object Speed : Module(
 
         val yaw = calcMoveYaw()
 
-        if (yPortMaxSpeed != 0.0)
+        if (yPortMaxSpeed != 0.0) {
             currentSpeed = currentSpeed.coerceAtMost(yPortMaxSpeed)
+        }
 
         event.x = -sin(yaw) * currentSpeed
         event.y = min(0.0, event.y)
