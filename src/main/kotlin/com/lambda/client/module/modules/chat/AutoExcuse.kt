@@ -25,14 +25,14 @@ object AutoExcuse : Module(
     modulePriority = 500
 ) {
     private val file = File(FolderUtils.lambdaFolder + "excuses.txt")
-    private val spammer = ArrayList<String>().synchronized()
+    private val loadedExcuses = ArrayList<String>().synchronized()
     private var currentLine = 0
 
     private val timer = TickTimer(TimeUnit.SECONDS)
 
     init {
         safeListener<PacketEvent.Receive> {
-            if (spammer.isEmpty() || it.packet !is SPacketUpdateHealth) return@safeListener
+            if (loadedExcuses.isEmpty() || it.packet !is SPacketUpdateHealth) return@safeListener
             if (it.packet.health <= 0.0f && !isHoldingTotem && timer.tick(3L)) {
                 sendServerMessage(getExcuse())
             }
@@ -41,7 +41,7 @@ object AutoExcuse : Module(
         onEnable {
             if (file.exists()) {
                 try {
-                    file.forEachLine { if (it.isNotBlank()) spammer.add(it.trim()) }
+                    file.forEachLine { if (it.isNotBlank()) loadedExcuses.add(it.trim()) }
                     MessageSendHelper.sendChatMessage("$chatName Loaded spammer messages!")
                 } catch (e: Exception) {
                     LambdaMod.LOG.error("Failed loading excuses", e)
@@ -60,9 +60,9 @@ object AutoExcuse : Module(
     private fun getExcuse(): String {
         val prevLine = currentLine
         // Avoids sending the same message
-        while (spammer.size != 1 && currentLine == prevLine) {
-            currentLine = Random.nextInt(spammer.size)
+        while (loadedExcuses.size != 1 && currentLine == prevLine) {
+            currentLine = Random.nextInt(loadedExcuses.size)
         }
-        return spammer[currentLine]
+        return loadedExcuses[currentLine]
     }
 }
