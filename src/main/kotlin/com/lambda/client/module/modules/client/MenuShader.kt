@@ -1,6 +1,8 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.extension.next
+import com.lambda.client.commons.extension.previous
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Wrapper
@@ -20,7 +22,7 @@ object MenuShader : Module(
     enabledByDefault = true
 ) {
     private val mode by setting("Mode", Mode.SET)
-    private val shader by setting("Shader", ShaderEnum.CLOUDS, { mode == Mode.SET })
+    private val shader = setting("Shader", ShaderEnum.CLOUDS, { mode == Mode.SET })
 
     private enum class Mode {
         RANDOM, SET
@@ -28,9 +30,9 @@ object MenuShader : Module(
 
     @Suppress("UNUSED")
     private enum class ShaderEnum(val path: String) {
-        BLUEGRID("/assets/shaders/menu/bluegrid.fsh"),
-        BLUENEBULA("/assets/shaders/menu/bluenebula.fsh"),
-        BLUEVORTEX("/assets/shaders/menu/bluevortex.fsh"),
+        BLUE_GRID("/assets/shaders/menu/bluegrid.fsh"),
+        BLUE_NEBULA("/assets/shaders/menu/bluenebula.fsh"),
+        BLUE_VORTEX("/assets/shaders/menu/bluevortex.fsh"),
         CAVE("/assets/shaders/menu/cave.fsh"),
         CLOUDS("/assets/shaders/menu/clouds.fsh"),
         DOUGHNUTS("/assets/shaders/menu/doughnuts.fsh"),
@@ -38,9 +40,9 @@ object MenuShader : Module(
         JUPITER("/assets/shaders/menu/jupiter.fsh"),
         MATRIX("/assets/shaders/menu/matrix.fsh"),
         MINECRAFT("/assets/shaders/menu/minecraft.fsh"),
-        PURPLEGRID("/assets/shaders/menu/purplegrid.fsh"),
-        PURPLEMIST("/assets/shaders/menu/purplemist.fsh"),
-        REDGLOW("/assets/shaders/menu/redglow.fsh"),
+        PURPLE_GRID("/assets/shaders/menu/purplegrid.fsh"),
+        PURPLE_MIST("/assets/shaders/menu/purplemist.fsh"),
+        RED_GLOW("/assets/shaders/menu/redglow.fsh"),
         SKY("/assets/shaders/menu/sky.fsh"),
         SNAKE("/assets/shaders/menu/snake.fsh"),
         SPACE("/assets/shaders/menu/space.fsh"),
@@ -66,11 +68,21 @@ object MenuShader : Module(
         currentShader = getShader()
     }
 
+    @JvmStatic
+    fun setNextShader() {
+        shader.value = shader.value.next()
+    }
+
+    @JvmStatic
+    fun setPreviousShader() {
+        shader.value = shader.value.previous()
+    }
+
     private fun getShader(): ShaderProgram {
         val shader = if (mode == Mode.RANDOM) {
             ShaderEnum.values().random()
         } else {
-            shader
+            shader.value
         }
 
         return shaderCache.getOrPut(shader) {
