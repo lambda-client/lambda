@@ -92,6 +92,7 @@ object ClickGUI : Module(
             if (mc.currentScreen !is LambdaClickGui) {
                 HudEditor.disable()
                 mc.displayGuiScreen(LambdaClickGui)
+                LambdaClickGui.isFocused = true
                 LambdaClickGui.onDisplayed()
             }
         }
