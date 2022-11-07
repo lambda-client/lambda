@@ -9,6 +9,7 @@ import com.lambda.client.gui.clickgui.window.ModuleSettingWindow
 import com.lambda.client.gui.rgui.Component
 import com.lambda.client.gui.rgui.windows.ListWindow
 import com.lambda.client.module.AbstractModule
+import com.lambda.client.module.Category
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.plugin.PluginManager
@@ -37,26 +38,14 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     private var moduleCount = ModuleManager.modules.size
 
     init {
-        val allButtons = ModuleManager.modules
-            .groupBy { it.category.displayName }
-            .mapValues { (_, modules) -> modules.map { ModuleButton(it) } }
-
         var posX = 0.0f
-        var posY = 0.0f
-        val screenWidth = mc.displayWidth / ClickGUI.getScaleFactorFloat()
+        val posY = 0.0f
 
-        /* Modules */
-        for ((category, buttons) in allButtons) {
-            val window = ListWindow(category, posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
-
-            window.addAll(buttons.customSort())
+        Category.values().forEach {
+            val window = ListWindow(it.displayName, posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
             windows.add(window)
-            posX += 90.0f
 
-            if (posX > screenWidth) {
-                posX = 0.0f
-                posY += 100.0f
-            }
+            posX += 90.0f
         }
 
         /* Plugins */
@@ -283,6 +272,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     fun reorderModules() {
         moduleCount = ModuleManager.modules.size
         val allButtons = ModuleManager.modules
+            .filter { !it.hidden }
             .groupBy { it.category.displayName }
             .mapValues { (_, modules) -> modules.map { ModuleButton(it) } }
 

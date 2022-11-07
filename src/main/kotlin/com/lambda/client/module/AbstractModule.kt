@@ -27,6 +27,7 @@ abstract class AbstractModule(
     val showOnArray: Boolean = true,
     val alwaysEnabled: Boolean = false,
     val enabledByDefault: Boolean = false,
+    val hidden: Boolean = false,
     private val config: NameableConfig<out Nameable>
 ) : Nameable, Alias, SettingRegister<Nameable> by config as NameableConfig<Nameable> {
 
