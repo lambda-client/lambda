@@ -26,6 +26,7 @@ object ClickGUI : Module(
     val outlineWidth by setting("Outline Width", 2.5f, 0.5f..3.5f, 0.5f, { windowOutline || buttonOutline })
     val entryMargin by setting("Margin", 0.0f, 0.0f..10.0f, 0.5f, unit = "px")
     val darkness by setting("Darkness", 0.25f, 0.0f..1.0f, 0.05f)
+    val gridSize by setting("Snap Grid Size", 10.0f, 0.0f..50.0f, 1.0f)
     val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f, unit = "s")
     val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f, unit = "s")
     val showModifiedInBold by setting("Show Modified In Bold", false, description = "Display modified settings in a bold font")
