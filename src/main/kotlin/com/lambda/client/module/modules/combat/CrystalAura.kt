@@ -13,8 +13,8 @@ import com.lambda.client.manager.managers.HotbarManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
+import com.lambda.client.manager.managers.PacketManager
 import com.lambda.client.manager.managers.PlayerPacketManager
-import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.mixin.extension.useEntityAction
 import com.lambda.client.mixin.extension.useEntityId
 import com.lambda.client.module.Category
@@ -31,7 +31,6 @@ import com.lambda.client.util.combat.CrystalUtils.getCrystalList
 import com.lambda.client.util.items.*
 import com.lambda.client.util.math.RotationUtils
 import com.lambda.client.util.math.RotationUtils.getRotationTo
-import com.lambda.client.util.math.RotationUtils.getRotationToEntity
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.math.VectorUtils.toVec3d
@@ -43,6 +42,7 @@ import com.lambda.client.util.world.getClosestVisibleSide
 import it.unimi.dsi.fastutil.ints.Int2LongMaps
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap
 import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
@@ -239,12 +239,6 @@ object CrystalAura : Module(
         safeListener<OnUpdateWalkingPlayerEvent> {
             if (!CombatManager.isOnTopPriority(CrystalAura) || CombatSetting.pause) return@safeListener
 
-            if (it.phase == Phase.PRE && inactiveTicks <= 20 && lastLookAt != Vec3d.ZERO) {
-                sendPlayerPacket {
-                    rotate(getLastRotation())
-                }
-            }
-
             if (it.phase == Phase.POST) {
                 synchronized(packetList) {
                     for (packet in packetList) sendPacketDirect(packet)
@@ -263,8 +257,8 @@ object CrystalAura : Module(
 
             if (CombatManager.isOnTopPriority(CrystalAura) && !CombatSetting.pause && packetList.size == 0) {
                 updateMap()
-                if (canExplode()) explode()
                 if (canPlace()) place()
+                if (canExplode()) explode()
             }
 
             if (it.phase == TickEvent.Phase.END) {
@@ -314,16 +308,15 @@ object CrystalAura : Module(
         getPlacingPos()?.let { pos ->
             swapToCrystal()
 
-            val hand = getHand()
+            val hand = getHand() ?: return
             inactiveTicks = 0
             lastLookAt = pos.toVec3d(0.5, placeOffset.toDouble(), 0.5)
 
-            if (hand == null) return
             placeTimerMs.reset()
             placeTimerTicks = 0
 
             sendOrQueuePacket(getPlacePacket(pos, hand))
-            if (extraPlacePacket) sendOrQueuePacket(getPlacePacket(pos, hand))
+            if (extraPlacePacket) sendOrQueuePacket(getPlacePacket(pos, hand)) // Remove ? I don't see why someone would need this
             if (placeSwing) sendOrQueuePacket(CPacketAnimation(hand))
 
             val crystalPos = pos.up()
@@ -428,17 +421,17 @@ object CrystalAura : Module(
     private fun SafeClientEvent.sendOrQueuePacket(packet: Packet<*>) {
         val yawDiff = abs(RotationUtils.normalizeAngle(PlayerPacketManager.serverSideRotation.x - getLastRotation().x))
         if (yawDiff < rotationTolerance) {
-            sendPacketDirect(packet)
+            PacketManager.postPacket(packet)
         } else {
             synchronized(packetList) {
-                packetList.add(packet)
+                PacketManager.postPacket(packet)
             }
         }
     }
 
     private fun SafeClientEvent.sendPacketDirect(packet: Packet<*>) {
         if (packet is CPacketAnimation && swingMode == SwingMode.CLIENT) player.swingArm(packet.hand)
-        else connection.sendPacket(packet)
+        else PacketManager.postPacket(packet)
     }
     /* End of main functions */
 
@@ -457,41 +450,48 @@ object CrystalAura : Module(
     private fun SafeClientEvent.getPlacingPos(): BlockPos? {
         if (placeMap.isEmpty()) return null
 
-        val eyePos = player.getPositionEyes(1f)
+        val sortedList = placeMap.map { it.key to it.value }
+            .sortedWith(compareBy({ -it.second.targetDamage }, { it.second.selfDamage }))
+            .toMutableList()
 
-        for ((pos, crystalDamage) in placeMap) {
-            // Damage check
-            if (!noSuicideCheck(crystalDamage.selfDamage)) continue
-            if (!checkDamagePlace(crystalDamage)) continue
-
-            // Distance check
-            if (crystalDamage.distance > placeRange) continue
-
-            // Wall distance check
-            val rayTraceResult = world.rayTraceBlocks(eyePos, pos.toVec3dCenter())
-            val hitBlockPos = rayTraceResult?.blockPos ?: pos
-            if (hitBlockPos.distanceTo(pos) > 1.0 && crystalDamage.distance > wallPlaceRange) continue
-
-            // Collide check
-            if (!canPlaceCollide(pos)) continue
-
-            // Place sync
-            if (placeSync) {
-                val bb = getCrystalBB(pos.up())
-                val intercepted = synchronized(placedBBMap) {
-                    placedBBMap.values.any { it.first.intersects(bb) }
-                }
-
-                if (intercepted) continue
-            }
-
-            // Yaw speed check
-            val hitVec = pos.toVec3d(0.5, placeOffset.toDouble(), 0.5)
-            if (!checkYawSpeed(getRotationTo(hitVec).x)) continue
-
-            return pos
+        for ((pos, crystalDamage) in sortedList) {
+            if (isCrystalSafe(pos, crystalDamage)) return pos
         }
         return null
+    }
+
+    private fun SafeClientEvent.isCrystalSafe(pos: BlockPos, crystalDamage: CombatManager.CrystalDamage): Boolean {
+        val eyePos = player.getPositionEyes(1f)
+        // Damage check
+        if (!noSuicideCheck(crystalDamage.selfDamage)) return false
+        if (!checkDamagePlace(crystalDamage)) return false
+
+        // Distance check
+        if (crystalDamage.distance > placeRange) return false
+
+        // Wall distance check
+        val rayTraceResult = world.rayTraceBlocks(eyePos, pos.toVec3dCenter())
+        val hitBlockPos = rayTraceResult?.blockPos ?: pos
+        if (hitBlockPos.distanceTo(pos) > 1.0 && crystalDamage.distance > wallPlaceRange) return false
+
+        // Collide check
+        if (!canPlaceCollide(pos)) return false
+
+        // Place sync
+        if (placeSync) {
+            val bb = getCrystalBB(pos.up())
+            val intercepted = synchronized(placedBBMap) {
+                placedBBMap.values.any { it.first.intersects(bb) }
+            }
+
+            if (intercepted) return false
+        }
+
+        // Yaw speed check
+        val hitVec = pos.toVec3d(0.5, placeOffset.toDouble(), 0.5)
+        if (!checkYawSpeed(getRotationTo(hitVec).x)) return false
+
+        return true
     }
 
     private fun SafeClientEvent.canPlaceCollide(pos: BlockPos): Boolean {
@@ -586,14 +586,12 @@ object CrystalAura : Module(
                 }
             }
 
-            for ((crystal, crystalDamage) in crystalMap) {
-                if (crystalDamage.distance > placeRange) continue
-                if (ignoredCrystalMap.containsKey(crystal.entityId)) continue
-                if (!checkDamagePlace(crystalDamage)) continue
-                if (!checkYawSpeed(getRotationToEntity(crystal).x)) continue
-
-                count++
-            }
+            crystalMap.filter { (_, triple) ->
+                triple.distance <= placeRange
+                    && !ignoredCrystalMap.containsKey(it.entityId)
+                    && checkDamagePlace(triple)
+                    && checkYawSpeed(getRotationToEntity(it).x)
+            }.forEach { _ -> count++ }
         }
         return count
     }
@@ -607,6 +605,9 @@ object CrystalAura : Module(
 
     private fun SafeClientEvent.getLastRotation() =
         getRotationTo(lastLookAt)
+
+    private fun SafeClientEvent.getRotationToEntity(entity: Entity) =
+        getRotationTo(entity.positionVector.add(0.0, entity.height / 2.0, 0.0))
 
     private fun resetRotation() {
         lastLookAt = CombatManager.target?.positionVector ?: Vec3d.ZERO
