@@ -29,7 +29,6 @@ open class ListWindow(
     vararg childrenIn: Component
 ) : TitledWindow(name, posX, posY, width, height, saveToConfig) {
     val children = ArrayList<Component>()
-    private val contentMutex = Mutex()
 
     override val minWidth = 80.0f
     override val minHeight = 200.0f
@@ -65,65 +64,57 @@ open class ListWindow(
     }
 
     fun addAll(all: Collection<Component>) {
-        runBlocking {
-            contentMutex.withLock {
-                children.addAll(all)
-            }
+        synchronized(this) {
+            children.addAll(all)
         }
     }
 
     fun add(c: Component) {
-        runBlocking {
-            contentMutex.withLock {
-                children.add(c)
-            }
+        synchronized(this) {
+            children.add(c)
         }
     }
 
     fun remove(c: Component) {
-        runBlocking {
-            contentMutex.withLock {
-                children.remove(c)
-            }
+        synchronized(this) {
+            children.remove(c)
         }
     }
 
     fun clear() {
-        runBlocking {
-            contentMutex.withLock {
-                children.clear()
-            }
+        synchronized(this) {
+            children.clear()
         }
     }
 
     private fun updateChild() {
-        runBlocking {
-            contentMutex.withLock {
-                var y = (if (draggableHeight != height) draggableHeight else 0.0f) + ClickGUI.entryMargin
-                for (child in children) {
-                    if (!child.visible) continue
-                    child.posX = ClickGUI.entryMargin * 1.618f
-                    child.posY = y
-                    child.width = width - ClickGUI.entryMargin * 3.236f
-                    y += child.height + ClickGUI.entryMargin
+        synchronized(this) {
+            var y = (if (draggableHeight != height) draggableHeight else 0.0f) + ClickGUI.entryMargin
+
+            children
+                .filter { it.visible }
+                .forEach {
+                    it.posX = ClickGUI.entryMargin * 1.618f
+                    it.posY = y
+                    it.width = width - ClickGUI.entryMargin * 3.236f
+                    y += it.height + ClickGUI.entryMargin
                 }
-            }
         }
     }
 
     override fun onDisplayed() {
         super.onDisplayed()
-        for (child in children) child.onDisplayed()
+        children.forEach { it.onDisplayed() }
     }
 
     override fun onClosed() {
         super.onClosed()
-        for (child in children) child.onClosed()
+        children.forEach { it.onClosed() }
     }
 
     override fun onGuiInit() {
         super.onGuiInit()
-        for (child in children) child.onGuiInit()
+        children.forEach { it.onGuiInit() }
         updateChild()
     }
 
@@ -135,12 +126,14 @@ open class ListWindow(
     override fun onTick() {
         super.onTick()
         if (children.isEmpty()) return
+
         val lastVisible = children.lastOrNull { it.visible }
         val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + ClickGUI.entryMargin - height, 0.01f) }
             ?: draggableHeight
 
         scrollProgress = (scrollProgress + scrollSpeed)
         scrollSpeed *= 0.5f
+
         if (scrollTimer.tick(100L, false)) {
             if (scrollProgress < 0.0) {
                 scrollSpeed = scrollProgress * -0.25f
@@ -150,17 +143,15 @@ open class ListWindow(
         }
 
         updateChild()
-        for (child in children) child.onTick()
+        children.forEach { it.onTick() }
     }
 
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
 
-        runBlocking {
-            contentMutex.withLock {
-                renderChildren {
-                    it.onRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
-                }
+        synchronized(this) {
+            renderChildren {
+                it.onRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
             }
         }
     }
@@ -168,19 +159,14 @@ open class ListWindow(
     override fun onPostRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onPostRender(vertexHelper, absolutePos)
 
-        runBlocking {
-            contentMutex.withLock {
-                renderChildren {
-                    it.onPostRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
-                }
+        synchronized(this) {
+            renderChildren {
+                it.onPostRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
             }
         }
     }
 
-    fun containsName(name: String): Boolean =
-        children.any {
-            it.name == name
-        }
+    fun containsName(name: String): Boolean = children.any { it.name == name }
 
     private fun renderChildren(renderBlock: (Component) -> Unit) {
         GlStateUtils.scissor(
@@ -192,13 +178,13 @@ open class ListWindow(
         glEnable(GL_SCISSOR_TEST)
         glTranslatef(0.0f, -renderScrollProgress, 0.0f)
 
-        for (child in children) {
-            if (!child.visible) continue
-            if (child.renderPosY + child.renderHeight - renderScrollProgress < draggableHeight) continue
-            if (child.renderPosY - renderScrollProgress > renderHeight) continue
+        children.filter { it.visible
+            && it.renderPosY + it.renderHeight - renderScrollProgress > draggableHeight
+            && it.renderPosY - renderScrollProgress < renderHeight
+        }.forEach {
             glPushMatrix()
-            glTranslatef(child.renderPosX, child.renderPosY, 0.0f)
-            renderBlock(child)
+            glTranslatef(it.renderPosX, it.renderPosY, 0.0f)
+            renderBlock(it)
             glPopMatrix()
         }
 
@@ -222,7 +208,10 @@ open class ListWindow(
     }
 
     private fun updateHovered(relativeMousePos: Vec2f) {
-        hoveredChild = if (relativeMousePos.y < draggableHeight || relativeMousePos.x < ClickGUI.entryMargin || relativeMousePos.x > renderWidth - ClickGUI.entryMargin) null
+        hoveredChild = if (relativeMousePos.y < draggableHeight
+            || relativeMousePos.x < ClickGUI.entryMargin
+            || relativeMousePos.x > renderWidth - ClickGUI.entryMargin
+        ) null
         else children.firstOrNull { it.visible && relativeMousePos.y in it.posY..it.posY + it.height }
     }
 
