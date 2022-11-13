@@ -2,7 +2,6 @@ package com.lambda.client.util.combat
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.Wrapper
-import com.lambda.client.util.combat.CombatUtils.getDifficultyFactor
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.block.material.Material
@@ -16,6 +15,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.Explosion
+import java.lang.Float.max
 
 object CrystalUtils {
     private val mc = Wrapper.minecraft
@@ -32,11 +32,7 @@ object CrystalUtils {
             .filterIsInstance<EntityEnderCrystal>()
             .filter { entity -> entity.isEntityAlive && entity.distanceTo(center) <= range }
 
-    /**
-     * @param pos The position to check
-     * @param entity The entity to check for
-     * @return Whether the crystal can be placed at the position or not
-     */
+    /** Checks colliding with blocks and given entity */
     fun SafeClientEvent.canPlace(pos: BlockPos, entity: EntityLivingBase? = null): Boolean {
         val posUp1 = pos.up()
         val posUp2 = posUp1.up()
@@ -49,10 +45,7 @@ object CrystalUtils {
         } ?: false
     }
 
-    /**
-     * @param pos The position to check
-     * @return Whether the block can be placed on the position or not
-     */
+    /** Checks if the block is valid for placing crystal */
     fun SafeClientEvent.canPlaceOn(pos: BlockPos): Boolean {
         val block = mc.world?.getBlockState(pos)?.block
         return block == Blocks.BEDROCK || block == Blocks.OBSIDIAN
@@ -73,10 +66,7 @@ object CrystalUtils {
             pos.x + 1.5, pos.y + 2.0, pos.z + 1.5
         )
 
-    /**
-     * @param pos The position to check
-     * @return Whether the placement collision box intersects with entities or not
-     */
+    /** Checks colliding with All Entities */
     fun SafeClientEvent.canPlaceCollide(pos: BlockPos): Boolean {
         val placingBB = getCrystalPlacingBB(pos.up())
         return mc.world?.let { world ->
@@ -105,19 +95,12 @@ object CrystalUtils {
         damage = CombatUtils.calcDamage(entity, damage, getDamageSource(pos))
 
         // Multiply the damage based on difficulty if the entity is player
-        if (entity is EntityPlayer) damage *= getDifficultyFactor()
+        if (entity is EntityPlayer) damage *= world.difficulty.id * 0.5f
 
-        // Return the damage
-        return damage.coerceAtLeast(0.0f)
+        // The damage cannot be less than 0 lol
+        return max(damage, 0.0f)
     }
 
-    /**
-     * Calculate the damage source of the crystal
-     * @param pos The position of the crystal
-     * @param entityPos The position of the entity
-     * @param entityBB The bounding box of the entity
-     * @return The damage
-     */
     private fun SafeClientEvent.calcRawDamage(pos: Vec3d, entityPos: Vec3d, entityBB: AxisAlignedBB): Float {
         val distance = pos.distanceTo(entityPos)
         val v = (1.0 - (distance / 12.0)) * world.getBlockDensity(pos, entityBB)
