@@ -17,15 +17,12 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.combat.CombatUtils
-import com.lambda.client.util.combat.CrystalUtils
 import com.lambda.client.util.combat.CrystalUtils.calcCrystalDamage
 import com.lambda.client.util.combat.CrystalUtils.getPlacePos
 import com.lambda.client.util.graphics.*
-import com.lambda.client.util.items.blockBlacklist
 import com.lambda.client.util.math.RotationUtils.getRelativeRotation
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.VectorUtils.distanceTo
-import com.lambda.client.util.math.VectorUtils.toVec3d
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.isActiveOrFalse
@@ -41,7 +38,6 @@ import net.minecraft.entity.passive.EntityTameable
 import net.minecraft.item.ItemFood
 import net.minecraft.item.ItemPickaxe
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -190,7 +186,7 @@ object CombatSetting : Module(
 
         CombatManager.placeMap = LinkedHashMap<BlockPos, CombatManager.CrystalDamage>(cacheList.size).apply {
             putAll(cacheList.sortedByDescending { it.second.targetDamage })
-        }.filter { !blockBlacklist.contains(world.getBlockState(it.key).block) }
+        }
     }
 
     /* Crystal damage calculation */
@@ -202,13 +198,12 @@ object CombatSetting : Module(
         val target = CombatManager.target
         val prediction = target?.let { getPrediction(it) }
 
-        for (entity in world.loadedEntityList.filterIsInstance<EntityEnderCrystal>()) {
+        for (entity in world.loadedEntityList.toList()) {
             if (entity.isDead) continue
+            if (entity !is EntityEnderCrystal) continue
             val dist = entity.distanceTo(eyePos)
             if (dist > 16.0f) continue
-            val damage = if (target != null && prediction != null) {
-                calcCrystalDamage(entity, target, prediction.first, prediction.second)
-            } else 0.0f
+            val damage = if (target != null && prediction != null) calcCrystalDamage(entity, target, prediction.first, prediction.second) else 0.0f
             val selfDamage = calcCrystalDamage(entity, player)
             cacheList.add(entity to CombatManager.CrystalDamage(damage, selfDamage, dist))
         }
