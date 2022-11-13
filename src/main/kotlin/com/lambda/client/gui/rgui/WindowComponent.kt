@@ -116,51 +116,44 @@ open class WindowComponent(
             else -> null
         }
 
+        if (horizontalSide == null || verticalSide == null) return
         val draggedDist = mousePos.minus(clickPos)
 
-        if (horizontalSide != null && verticalSide != null) {
-            if (resizable && !minimized && (horizontalSide != HAlign.CENTER || verticalSide != VAlign.CENTER)) {
-                handleResizeX(horizontalSide, draggedDist)
-                handleResizeY(verticalSide, draggedDist)
+        if (resizable && !minimized && (horizontalSide != HAlign.CENTER || verticalSide != VAlign.CENTER)) {
+            handleResizeX(horizontalSide, draggedDist)
+            handleResizeY(verticalSide, draggedDist)
 
-                onResize()
-            } else if (draggableHeight == height || relativeClickPos.y <= draggableHeight) {
-                posX = roundOnGrid(preDragPos.x + draggedDist.x).coerceIn(.0f, mc.displayWidth - width)
-                posY = roundOnGrid(preDragPos.y + draggedDist.y).coerceIn(.0f, mc.displayHeight - height)
+            onResize()
+        } else if (draggableHeight == height || relativeClickPos.y <= draggableHeight) {
+            posX = roundOnGrid(preDragPos.x + draggedDist.x).coerceIn(.0f, mc.displayWidth - width)
+            posY = roundOnGrid(preDragPos.y + draggedDist.y).coerceIn(.0f, mc.displayHeight - height)
 
-                onReposition()
-            } else {
-                // TODO
-            }
+            onReposition()
         }
     }
 
     private fun handleResizeX(horizontalSide: HAlign, draggedDist: Vec2f) {
         when (horizontalSide) {
             HAlign.LEFT -> {
-                val draggedX = max(roundOnGrid(draggedDist.x), 1.0f - preDragPos.x)
-                var newWidth = max(roundOnGrid(preDragSize.x - draggedX), minWidth)
-
-                if (maxWidth != -1.0f) newWidth = min(newWidth, maxWidth)
-                newWidth = min(newWidth, scaledDisplayWidth - 2.0f)
-
-                val prevWidth = width
-                width = newWidth
-                posX += prevWidth - newWidth
+                resizeHandle(draggedDist,1.0f - preDragPos.x)
             }
             HAlign.RIGHT -> {
-                val draggedX = min(roundOnGrid(draggedDist.x), preDragPos.x + preDragSize.x - 1.0f)
-                var newWidth = max(roundOnGrid(preDragSize.x + draggedX), minWidth)
-
-                if (maxWidth != -1.0f) newWidth = min(newWidth, maxWidth)
-                newWidth = min(newWidth, scaledDisplayWidth - posX - 2.0f)
-
-                width = newWidth
+                resizeHandle(draggedDist,preDragPos.x + preDragSize.x - 1.0f)
             }
-            else -> {
-                // Nothing lol
+            HAlign.CENTER -> {
+                // Nothing
             }
         }
+    }
+
+    private fun resizeHandle(draggedDist: Vec2f, maxDrag: Float) {
+        val draggedX = min(roundOnGrid(draggedDist.x), maxDrag)
+        var newWidth = max(roundOnGrid(preDragSize.x + draggedX), minWidth)
+
+        if (maxWidth != -1.0f) newWidth = min(newWidth, maxWidth)
+        newWidth = min(newWidth, scaledDisplayWidth - posX - 2.0f)
+
+        width = newWidth
     }
 
     private fun handleResizeY(verticalSide: VAlign, draggedDist: Vec2f) {
@@ -185,8 +178,8 @@ open class WindowComponent(
 
                 height = newHeight
             }
-            else -> {
-                // Nothing lol
+            VAlign.CENTER -> {
+                // Nothing
             }
         }
     }
