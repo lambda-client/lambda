@@ -11,6 +11,7 @@ internal object Packets : LabelHud(
 ) {
     private val perSecond by setting("Per second", true)
     private val total by setting("Total", true)
+    private val queue by setting("Packet queue", true)
     private val lastSent by setting("Last sent packet info", true)
     private val lastReceived by setting("Last received packet info", true)
 
@@ -27,6 +28,11 @@ internal object Packets : LabelHud(
             displayText.add(PacketManager.totalSent.toString(), primaryColor)
             displayText.add("Total received", secondaryColor)
             displayText.addLine(PacketManager.totalReceived.toString(), primaryColor)
+        }
+
+        if (queue) {
+            displayText.add("Packet queue", secondaryColor)
+            displayText.addLine(PacketManager.packetQueue.size.toString(), primaryColor)
         }
 
         if (lastSent) {

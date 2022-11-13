@@ -20,7 +20,7 @@ object PacketManager : Manager {
 
     var lastTeleportId = -1
 
-    private val packetQueue = ConcurrentLinkedDeque<Packet<*>>()
+    val packetQueue = ConcurrentLinkedDeque<Packet<*>>()
 
     init {
         listener<PacketEvent.Receive> {
