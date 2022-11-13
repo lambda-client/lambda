@@ -23,6 +23,8 @@ object ClickGUI : Module(
     val blur by setting("Blur", 0.0f, 0.0f..1.0f, 0.05f)
     val windowOutline by setting("Window Outline", false)
     val buttonOutline by setting("Button Outline", false)
+    val resizeCorner by setting("Resize Corner", true)
+    val resizeCornerSize by setting("Corner Size", 10, 5..30, 1, { resizeCorner }, unit = "px")
     val outlineWidth by setting("Outline Width", 2.5f, 0.5f..3.5f, 0.5f, { windowOutline || buttonOutline })
     val entryMargin by setting("Margin", 0.0f, 0.0f..10.0f, 0.5f, unit = "px")
     val darkness by setting("Darkness", 0.25f, 0.0f..1.0f, 0.05f)

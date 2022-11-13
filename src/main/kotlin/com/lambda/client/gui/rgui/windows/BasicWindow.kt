@@ -32,6 +32,7 @@ open class BasicWindow(
             ClickGUI.radius,
             color = GuiColors.backGround
         )
+
         if (ClickGUI.windowOutline) {
             RenderUtils2D.drawRoundedRectOutline(
                 vertexHelper,
@@ -40,6 +41,16 @@ open class BasicWindow(
                 ClickGUI.radius,
                 lineWidth = ClickGUI.outlineWidth,
                 color = GuiColors.outline
+            )
+        }
+
+        if (ClickGUI.resizeCorner) {
+            RenderUtils2D.drawTriangleFilled(
+                vertexHelper,
+                Vec2f(renderWidth, renderHeight - ClickGUI.resizeCornerSize).toVec2d(),
+                Vec2f(renderWidth, renderHeight).toVec2d(),
+                Vec2f(renderWidth - ClickGUI.resizeCornerSize, renderHeight).toVec2d(),
+                GuiColors.hover
             )
         }
     }
