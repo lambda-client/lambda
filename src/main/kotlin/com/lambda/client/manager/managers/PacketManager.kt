@@ -6,7 +6,6 @@ import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.network.Packet
-import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -21,32 +20,49 @@ object PacketManager : Manager {
 
     var lastTeleportId = -1
 
+    private val packetQueue = ConcurrentLinkedDeque<Packet<*>>()
+
     init {
-        listener<PacketEvent.PostSend> {
-            recentSent.add(Pair(it.packet, System.currentTimeMillis()))
+        listener<PacketEvent.Receive> {
+            recentReceived.add(it.packet to System.currentTimeMillis())
+            totalReceived++
+        }
+
+        listener<PacketEvent.Send> {
+            recentSent.add(it.packet to System.currentTimeMillis())
             totalSent++
         }
 
-        listener<PacketEvent.PostReceive> {
-            recentReceived.add(Pair(it.packet, System.currentTimeMillis()))
-            totalReceived++
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.START) return@safeListener
 
-            when (it.packet) {
-                is SPacketPlayerPosLook -> {
-                    lastTeleportId = it.packet.teleportId
+            /** We can do something to handle the packets priority here */
+            while (packetQueue.isNotEmpty()) {
+                packetQueue.poll()?.let { packet ->
+                    mc.player.connection.sendPacket(packet)
                 }
+            }
+
+            val time = System.currentTimeMillis()
+            while (recentReceived.isNotEmpty() && time - recentReceived.peek().second > maxAge) {
+                recentReceived.poll()
+            }
+
+            while (recentSent.isNotEmpty() && time - recentSent.peek().second > maxAge) {
+                recentSent.poll()
             }
         }
 
-        safeListener<ConnectionEvent> {
+        listener<ConnectionEvent.Disconnect> {
             lastTeleportId = -1
         }
+    }
 
-        safeListener<TickEvent.ClientTickEvent> {
-            val currentTime = System.currentTimeMillis()
+    fun postPacket(packet: Packet<*>) {
+        packetQueue.add(packet)
+    }
 
-            recentReceived.removeIf { currentTime - it.second > maxAge }
-            recentSent.removeIf { currentTime - it.second > maxAge }
-        }
+    fun isTeleporting(): Boolean {
+        return lastTeleportId != -1
     }
 }

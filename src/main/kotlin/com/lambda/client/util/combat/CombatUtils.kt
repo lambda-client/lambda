@@ -29,6 +29,13 @@ import kotlin.math.round
 object CombatUtils {
     private val cachedArmorValues = WeakHashMap<EntityLivingBase, Pair<Float, Float>>()
 
+    /**
+     * @return The world's difficulty factor
+     */
+    fun SafeClientEvent.getDifficultyFactor(): Float {
+        return world.difficulty.id * 0.5f
+    }
+
     fun SafeClientEvent.calcDamageFromPlayer(entity: EntityPlayer, assumeCritical: Boolean = false): Float {
         val itemStack = entity.heldItemMainhand
         var damage = itemStack.attackDamage
