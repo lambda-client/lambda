@@ -12,7 +12,7 @@ abstract class Module(
     showOnArray: Boolean = true,
     alwaysEnabled: Boolean = false,
     enabledByDefault: Boolean = false,
-    hidden: Boolean = false
+//    hidden: Boolean = false
 ) : AbstractModule(
     name,
     alias,
@@ -23,6 +23,6 @@ abstract class Module(
     showOnArray,
     alwaysEnabled,
     enabledByDefault,
-    hidden,
+//    hidden,
     ModuleConfig,
 )
