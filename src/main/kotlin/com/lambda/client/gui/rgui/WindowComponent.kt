@@ -8,6 +8,7 @@ import com.lambda.client.util.graphics.AnimationUtils
 import com.lambda.client.util.graphics.font.HAlign
 import com.lambda.client.util.graphics.font.VAlign
 import com.lambda.client.util.math.Vec2f
+import org.lwjgl.input.Keyboard
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -184,7 +185,11 @@ open class WindowComponent(
         }
     }
 
-    private fun roundOnGrid(delta: Float) = if (gridSize > 0) (delta / gridSize).roundToInt() * gridSize else delta
+    private fun roundOnGrid(delta: Float) =
+        if (gridSize == .0f
+            || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
+            || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)
+        ) delta else (delta / gridSize).roundToInt() * gridSize
 
     fun isInWindow(mousePos: Vec2f): Boolean {
         return visible && mousePos.x in preDragPos.x - 2.0f..preDragPos.x + preDragSize.x + 2.0f
