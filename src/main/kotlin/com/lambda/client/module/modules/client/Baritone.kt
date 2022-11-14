@@ -19,10 +19,11 @@ object Baritone : Module(
     showOnArray = false,
     alwaysEnabled = true
 ) {
-/*
- * Baritone varibles can be found here.
- * https://github.com/cabaletta/baritone/blob/master/src/api/java/baritone/api/Settings.java
- */
+    /*
+     * Baritone variables can be found here.
+     * https://github.com/cabaletta/baritone/blob/master/src/api/java/baritone/api/Settings.java
+     */
+
     private val page by setting("Page", Page.BASIC)
 
     /* Basic */
@@ -50,21 +51,21 @@ object Baritone : Module(
     private val maxFallHeightBucket by setting("Max Bucket Height", 20, 10..250, 10, { allowWaterBucketFall && page == Page.FALL }, description = "Max height that baritone can use a water bucket.")
 
     /* Advanced */
-    private val blockReachDistance by setting("Reach Distance", 4.5f, 1.0f..10.0f, 0.5f, { page == Page.ADVACED }, description = "Max distance baritone can place blocks.")
-    private val enterPortals by setting("Enter Portals", true, { page == Page.ADVACED }, description = "Baritone will walk all the way into the portal, instead of stopping one block before.")
-    private val blockPlacementPenalty by setting("Block Placement Penalty", 20, 0..40, 5, { page == Page.ADVACED }, description = "Decrease to make Baritone more often consider paths that would require placing blocks.")
-    private val blockBreakAdditionalPenalty by setting("Block Break Additional Penalty", 2, 0..10, 1, { page == Page.ADVACED }, description = "Lower chance to break blocks. This is a tiebreaker.")
-    private val jumpPenalty by setting("Jump Penalty", 2, 0..10, 1, { page == Page.ADVACED }, description = "Additional penalty for hitting the space bar (ascend, pillar, or parkour) because it uses hunger.")
-    private val assumeWalkOnWater by setting("Assume Walk On Water", false, { page == Page.ADVACED }, description = "Allow Baritone to assume it can walk on still water just like any other block. Requires jesus to be enabled.")
-    private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1, { page == Page.ADVACED }, unit = "s")
-    private val avoidance by setting("Avoidance", false, { page == Page.ADVACED }, description = "Enables the 4 avoidance settings. It's disabled by default because of the noticeable performance impact.")
-    private val mobAvoidanceRadius by setting("Mob Avoidance Radius", 15, 0..65, 5, visibility = { avoidance && page == Page.ADVACED }, description = "Distance to avoid mobs.")
-    private val mobAvoidanceCoefficient by setting("Mob Avoidance Coefficient", 1.5f, 0f..5f, 0.5f, visibility = { avoidance && page == Page.ADVACED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mobs.")
-    private val mobSpawnerAvoidanceRadius by setting("Mob Spawner Avoidance Radius", 10, 0..60, 10, visibility = { avoidance && page == Page.ADVACED }, description = "Distance to avoid mob spawners.")
-    private val mobSpawnerAvoidanceCoefficient by setting("Mob Spawner Avoidance Coefficient", 1.5f, 0f..5f, 0.5f, visibility = { avoidance && page == Page.ADVACED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mob spawners.")
+    private val blockReachDistance by setting("Reach Distance", 4.5f, 1.0f..10.0f, 0.5f, { page == Page.ADVANCED }, description = "Max distance baritone can place blocks.")
+    private val enterPortals by setting("Enter Portals", true, { page == Page.ADVANCED }, description = "Baritone will walk all the way into the portal, instead of stopping one block before.")
+    private val blockPlacementPenalty by setting("Block Placement Penalty", 20, 0..40, 5, { page == Page.ADVANCED }, description = "Decrease to make Baritone more often consider paths that would require placing blocks.")
+    private val blockBreakAdditionalPenalty by setting("Block Break Additional Penalty", 2, 0..10, 1, { page == Page.ADVANCED }, description = "Lower chance to break blocks. This is a tiebreaker.")
+    private val jumpPenalty by setting("Jump Penalty", 2, 0..10, 1, { page == Page.ADVANCED }, description = "Additional penalty for hitting the space bar (ascend, pillar, or parkour) because it uses hunger.")
+    private val assumeWalkOnWater by setting("Assume Walk On Water", false, { page == Page.ADVANCED }, description = "Allow Baritone to assume it can walk on still water just like any other block. Requires jesus to be enabled.")
+    private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1, { page == Page.ADVANCED }, unit = "s")
+    private val avoidance by setting("Avoidance", false, { page == Page.ADVANCED }, description = "Enables the 4 avoidance settings. It's disabled by default because of the noticeable performance impact.")
+    private val mobAvoidanceRadius by setting("Mob Avoidance Radius", 15, 0..65, 5, visibility = { avoidance && page == Page.ADVANCED }, description = "Distance to avoid mobs.")
+    private val mobAvoidanceCoefficient by setting("Mob Avoidance Coefficient", 1.5f, 0f..5f, 0.5f, visibility = { avoidance && page == Page.ADVANCED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mobs.")
+    private val mobSpawnerAvoidanceRadius by setting("Mob Spawner Avoidance Radius", 10, 0..60, 10, visibility = { avoidance && page == Page.ADVANCED }, description = "Distance to avoid mob spawners.")
+    private val mobSpawnerAvoidanceCoefficient by setting("Mob Spawner Avoidance Coefficient", 1.5f, 0f..5f, 0.5f, visibility = { avoidance && page == Page.ADVANCED }, description = "Set to 1.0 to effectively disable this feature. Set below 1.0 to go out of your way to walk near mob spawners.")
 
     private enum class Page {
-        BASIC, VISUAL, FALL, ADVACED
+        BASIC, VISUAL, FALL, ADVANCED
     }
 
     init {
