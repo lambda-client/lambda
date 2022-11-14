@@ -1,6 +1,6 @@
-package com.lambda.client.commons.collections
+package com.lambda.client.util.collections
 
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Nameable
 import java.util.concurrent.ConcurrentHashMap
 
 open class NameableSet<T : Nameable>(

@@ -1,6 +1,6 @@
 package com.lambda.client.event.listener
 
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Nameable
 import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KProperty

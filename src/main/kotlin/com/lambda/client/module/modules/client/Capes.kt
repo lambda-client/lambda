@@ -6,8 +6,8 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.capeapi.Cape
 import com.lambda.client.capeapi.CapeType
 import com.lambda.client.capeapi.CapeUser
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.commons.utils.ConnectionUtils
+import com.lambda.client.util.extension.synchronized
+import com.lambda.client.util.ConnectionUtils
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module

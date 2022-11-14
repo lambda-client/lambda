@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.combat
 
-import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.util.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.listener.listener

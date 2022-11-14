@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.client
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.extension.next
-import com.lambda.client.commons.extension.previous
+import com.lambda.client.util.extension.next
+import com.lambda.client.util.extension.previous
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Wrapper

@@ -1,9 +1,9 @@
 package com.lambda.client.manager.managers
 
-import com.lambda.client.commons.extension.firstEntryOrNull
-import com.lambda.client.commons.extension.firstKeyOrNull
-import com.lambda.client.commons.extension.firstValue
-import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.util.extension.firstEntryOrNull
+import com.lambda.client.util.extension.firstKeyOrNull
+import com.lambda.client.util.extension.firstValue
+import com.lambda.client.util.extension.synchronized
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager

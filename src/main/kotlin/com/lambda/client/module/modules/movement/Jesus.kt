@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.util.extension.ceilToInt
+import com.lambda.client.util.extension.floorToInt
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.mixin.extension.playerMoving

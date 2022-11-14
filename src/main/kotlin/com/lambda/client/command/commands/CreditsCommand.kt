@@ -4,7 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.lambda.client.LambdaMod
 import com.lambda.client.command.ClientCommand
-import com.lambda.client.commons.utils.ConnectionUtils
+import com.lambda.client.util.ConnectionUtils
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
 

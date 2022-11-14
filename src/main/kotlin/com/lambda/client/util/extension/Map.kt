@@ -1,4 +1,4 @@
-package com.lambda.client.commons.extension
+package com.lambda.client.util.extension
 
 import java.util.*
 

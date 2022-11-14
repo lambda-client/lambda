@@ -1,7 +1,7 @@
 package com.lambda.client.command.args
 
-import com.lambda.client.commons.interfaces.Alias
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.interfaces.Alias
+import com.lambda.client.util.interfaces.DisplayEnum
 
 /**
  * Argument that takes a [Boolean] as input

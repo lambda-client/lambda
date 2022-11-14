@@ -1,9 +1,9 @@
 package com.lambda.client.module.modules.player
 
 import baritone.api.pathing.goals.GoalTwoBlocks
-import com.lambda.client.commons.extension.floorToInt
-import com.lambda.client.commons.extension.toRadian
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.extension.floorToInt
+import com.lambda.client.util.extension.toRadian
+import com.lambda.client.util.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent

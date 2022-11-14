@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.chat
 
-import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.util.extension.ceilToInt
 import com.lambda.client.manager.managers.LambdaMojiManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module

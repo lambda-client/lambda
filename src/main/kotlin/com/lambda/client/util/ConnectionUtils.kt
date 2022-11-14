@@ -1,4 +1,4 @@
-package com.lambda.client.commons.utils
+package com.lambda.client.util
 
 import com.lambda.client.module.modules.client.Plugins
 import java.net.URL

@@ -2,7 +2,7 @@ package com.lambda.client.plugin
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Nameable
 import com.lambda.client.plugin.api.Plugin
 import java.io.InputStream
 

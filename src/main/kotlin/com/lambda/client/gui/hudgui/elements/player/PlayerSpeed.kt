@@ -1,7 +1,7 @@
 package com.lambda.client.gui.hudgui.elements.player
 
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.interfaces.DisplayEnum
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.InfoCalculator.speed

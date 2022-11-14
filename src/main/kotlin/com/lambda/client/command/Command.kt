@@ -4,8 +4,8 @@ import com.lambda.client.command.args.FinalArg
 import com.lambda.client.command.execute.IExecuteEvent
 import com.lambda.client.command.utils.Invokable
 import com.lambda.client.command.utils.SubCommandNotFoundException
-import com.lambda.client.commons.interfaces.Alias
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Alias
+import com.lambda.client.util.interfaces.Nameable
 
 /**
  * Command built from [CommandBuilder], this shouldn't be used

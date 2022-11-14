@@ -1,6 +1,6 @@
 package com.lambda.client.event.events
 
-import com.lambda.client.commons.extension.next
+import com.lambda.client.util.extension.next
 import com.lambda.client.event.Cancellable
 import com.lambda.client.event.Event
 import com.lambda.client.event.IMultiPhase

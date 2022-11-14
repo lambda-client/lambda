@@ -2,7 +2,7 @@ package com.lambda.client.setting.settings.impl.primitive
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
-import com.lambda.client.commons.extension.next
+import com.lambda.client.util.extension.next
 import com.lambda.client.setting.settings.MutableSetting
 
 class EnumSetting<T : Enum<T>>(

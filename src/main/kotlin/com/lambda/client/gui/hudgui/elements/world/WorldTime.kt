@@ -1,6 +1,6 @@
 package com.lambda.client.gui.hudgui.elements.world
 
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import org.apache.commons.lang3.time.DurationFormatUtils

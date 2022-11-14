@@ -1,8 +1,8 @@
 package com.lambda.client.manager
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.utils.ClassUtils
-import com.lambda.client.commons.utils.ClassUtils.instance
+import com.lambda.client.util.ClassUtils
+import com.lambda.client.util.ClassUtils.instance
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.StopTimer
 import kotlinx.coroutines.Deferred

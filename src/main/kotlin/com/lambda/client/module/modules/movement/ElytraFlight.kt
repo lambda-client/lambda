@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.commons.extension.toRadian
+import com.lambda.client.util.extension.toRadian
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent

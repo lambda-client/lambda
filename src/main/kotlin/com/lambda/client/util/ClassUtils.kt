@@ -1,4 +1,4 @@
-package com.lambda.client.commons.utils
+package com.lambda.client.util
 
 import org.reflections.Reflections
 

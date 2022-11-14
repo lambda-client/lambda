@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.player
 
-import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.util.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.mixin.extension.syncCurrentPlayItem

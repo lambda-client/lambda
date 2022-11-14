@@ -1,8 +1,8 @@
 package com.lambda.client.gui.rgui.windows
 
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
-import com.lambda.client.commons.extension.sumByFloat
+import com.lambda.client.util.extension.ceilToInt
+import com.lambda.client.util.extension.floorToInt
+import com.lambda.client.util.extension.sumByFloat
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.rgui.Component
 import com.lambda.client.gui.rgui.InteractiveComponent

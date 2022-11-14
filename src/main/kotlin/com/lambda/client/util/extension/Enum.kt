@@ -1,6 +1,6 @@
-package com.lambda.client.commons.extension
+package com.lambda.client.util.extension
 
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.interfaces.DisplayEnum
 import com.lambda.client.util.text.capitalize
 
 fun <E : Enum<E>> E.next(): E = declaringJavaClass.enumConstants.run {

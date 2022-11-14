@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.combat
 
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerAttackEvent

@@ -2,7 +2,7 @@ package com.lambda.client.plugin
 
 import com.lambda.client.AsyncLoader
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.collections.NameableSet
+import com.lambda.client.util.collections.NameableSet
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.clickgui.component.PluginButton
 import com.lambda.client.plugin.api.Plugin

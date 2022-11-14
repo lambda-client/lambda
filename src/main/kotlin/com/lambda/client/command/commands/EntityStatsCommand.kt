@@ -1,7 +1,7 @@
 package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.manager.managers.UUIDManager
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.entity.EntityLivingBase

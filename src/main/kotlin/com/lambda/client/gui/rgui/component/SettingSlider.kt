@@ -1,6 +1,6 @@
 package com.lambda.client.gui.rgui.component
 
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors

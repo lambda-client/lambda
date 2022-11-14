@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.commons.utils.MathUtils.round
+import com.lambda.client.util.math.MathUtils.round
 import com.lambda.client.manager.managers.UUIDManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module

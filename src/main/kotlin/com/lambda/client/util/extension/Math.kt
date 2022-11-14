@@ -1,10 +1,10 @@
-package com.lambda.client.commons.extension
+package com.lambda.client.util.extension
 
 import kotlin.math.PI
 import kotlin.math.ceil
 import kotlin.math.floor
 
-const val PI_FLOAT = 3.14159265358979323846f
+const val PI_FLOAT = 3.1415927f
 
 fun Double.floorToInt() = floor(this).toInt()
 

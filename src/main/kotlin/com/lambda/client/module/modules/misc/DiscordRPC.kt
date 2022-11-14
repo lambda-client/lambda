@@ -6,7 +6,7 @@ import com.jagrosh.discordipc.entities.pipe.PipeStatus
 import com.jagrosh.discordipc.exceptions.NoDiscordClientException
 import com.lambda.client.LambdaMod
 import com.lambda.client.capeapi.CapeType
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.InfoCalculator

@@ -1,6 +1,6 @@
 package com.lambda.client.command.args
 
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Nameable
 
 /**
  * The ID for an argument

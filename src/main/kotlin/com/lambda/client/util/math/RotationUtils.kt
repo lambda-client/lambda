@@ -1,6 +1,6 @@
 package com.lambda.client.util.math
 
-import com.lambda.client.commons.extension.toDegree
+import com.lambda.client.util.extension.toDegree
 import com.lambda.client.event.SafeClientEvent
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d

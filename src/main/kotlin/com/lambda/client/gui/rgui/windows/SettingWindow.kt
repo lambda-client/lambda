@@ -1,6 +1,6 @@
 package com.lambda.client.gui.rgui.windows
 
-import com.lambda.client.commons.extension.sumByFloat
+import com.lambda.client.util.extension.sumByFloat
 import com.lambda.client.gui.rgui.component.*
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.settings.AbstractSetting

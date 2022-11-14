@@ -1,6 +1,6 @@
 package com.lambda.client.gui.rgui
 
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Nameable
 import com.lambda.client.setting.GuiConfig.setting
 import com.lambda.client.setting.configs.AbstractConfig
 import com.lambda.client.util.graphics.AnimationUtils

@@ -1,7 +1,7 @@
 package com.lambda.client.module
 
-import com.lambda.client.commons.interfaces.Alias
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Alias
+import com.lambda.client.util.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ModuleToggleEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui

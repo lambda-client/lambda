@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.combat
 
-import com.lambda.client.commons.utils.MathUtils.reverseNumber
+import com.lambda.client.util.math.MathUtils.reverseNumber
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.listener.listener

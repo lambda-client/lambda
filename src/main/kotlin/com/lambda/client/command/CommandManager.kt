@@ -3,8 +3,8 @@ package com.lambda.client.command
 import com.lambda.client.LambdaMod
 import com.lambda.client.command.utils.CommandNotFoundException
 import com.lambda.client.command.utils.SubCommandNotFoundException
-import com.lambda.client.commons.utils.ClassUtils
-import com.lambda.client.commons.utils.ClassUtils.instance
+import com.lambda.client.util.ClassUtils
+import com.lambda.client.util.ClassUtils.instance
 import com.lambda.client.event.ClientExecuteEvent
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.module.modules.client.CommandConfig

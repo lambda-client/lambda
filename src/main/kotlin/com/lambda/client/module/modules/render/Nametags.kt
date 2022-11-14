@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.extension.ceilToInt
+import com.lambda.client.util.extension.floorToInt
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category

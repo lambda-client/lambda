@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.misc
 
 import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalNear
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.BlockBreakEvent
 import com.lambda.client.event.events.RenderWorldEvent

@@ -1,6 +1,6 @@
 package com.lambda.client.util.math
 
-import com.lambda.client.commons.extension.toRadian
+import com.lambda.client.util.extension.toRadian
 import net.minecraft.entity.Entity
 import kotlin.math.hypot
 import kotlin.math.pow

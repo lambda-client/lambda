@@ -1,6 +1,6 @@
-package com.lambda.client.commons.collections
+package com.lambda.client.util.collections
 
-import com.lambda.client.commons.interfaces.Alias
+import com.lambda.client.util.interfaces.Alias
 import java.util.concurrent.ConcurrentHashMap
 
 class AliasSet<T : Alias>(

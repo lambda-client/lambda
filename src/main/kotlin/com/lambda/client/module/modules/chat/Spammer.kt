@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.chat
 
-import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.util.extension.synchronized
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.FolderUtils

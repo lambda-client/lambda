@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.combat
 
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.mc.LambdaGuiDisconnected
 import com.lambda.client.manager.managers.CombatManager

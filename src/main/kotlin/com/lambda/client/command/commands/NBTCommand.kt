@@ -1,7 +1,7 @@
 package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
-import com.lambda.client.commons.utils.SystemUtils
+import com.lambda.client.util.SystemUtils
 import com.lambda.client.event.SafeExecuteEvent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue

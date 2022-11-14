@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module

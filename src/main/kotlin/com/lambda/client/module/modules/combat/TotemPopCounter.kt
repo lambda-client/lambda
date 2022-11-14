@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.combat
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.util.extension.synchronized
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.listener.listener

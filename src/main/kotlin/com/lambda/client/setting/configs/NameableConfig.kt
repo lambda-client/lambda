@@ -1,6 +1,6 @@
 package com.lambda.client.setting.configs
 
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Nameable
 import com.lambda.client.setting.settings.AbstractSetting
 
 open class NameableConfig<T : Nameable>(

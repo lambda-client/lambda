@@ -1,4 +1,4 @@
-package com.lambda.client.commons.interfaces
+package com.lambda.client.util.interfaces
 
 interface DisplayEnum {
     val displayName: String

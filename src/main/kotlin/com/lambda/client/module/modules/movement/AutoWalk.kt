@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.movement
 
 import baritone.api.pathing.goals.GoalXZ
-import com.lambda.client.commons.extension.floorToInt
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.extension.floorToInt
+import com.lambda.client.util.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.BaritoneCommandEvent
 import com.lambda.client.event.events.ConnectionEvent

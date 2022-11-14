@@ -1,7 +1,7 @@
 package com.lambda.client.gui.rgui
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Nameable
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.GuiConfig
 import com.lambda.client.setting.GuiConfig.setting

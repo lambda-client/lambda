@@ -1,4 +1,4 @@
-package com.lambda.client.commons.utils
+package com.lambda.client.util
 
 import java.awt.Toolkit
 import java.awt.datatransfer.Clipboard

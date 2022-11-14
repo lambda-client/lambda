@@ -1,7 +1,7 @@
 package com.lambda.client.gui.hudgui.elements.client
 
-import com.lambda.client.commons.extension.sumByFloat
-import com.lambda.client.commons.interfaces.DisplayEnum
+import com.lambda.client.util.extension.sumByFloat
+import com.lambda.client.util.interfaces.DisplayEnum
 import com.lambda.client.gui.hudgui.HudElement
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.ModuleManager

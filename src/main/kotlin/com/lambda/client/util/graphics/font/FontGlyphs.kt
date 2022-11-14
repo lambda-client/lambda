@@ -1,7 +1,7 @@
 package com.lambda.client.util.graphics.font
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.util.math.MathUtils
 import com.lambda.client.util.graphics.texture.MipmapTexture
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE

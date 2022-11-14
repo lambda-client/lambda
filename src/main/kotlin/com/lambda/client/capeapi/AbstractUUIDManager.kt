@@ -3,8 +3,8 @@ package com.lambda.client.capeapi
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
-import com.lambda.client.commons.extension.synchronized
-import com.lambda.client.commons.utils.ConnectionUtils
+import com.lambda.client.util.extension.synchronized
+import com.lambda.client.util.ConnectionUtils
 import org.apache.logging.log4j.Logger
 import java.io.File
 import java.io.FileWriter

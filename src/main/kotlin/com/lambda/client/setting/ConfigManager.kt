@@ -1,7 +1,7 @@
 package com.lambda.client.setting
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.collections.NameableSet
+import com.lambda.client.util.collections.NameableSet
 import com.lambda.client.setting.configs.IConfig
 
 internal object ConfigManager {

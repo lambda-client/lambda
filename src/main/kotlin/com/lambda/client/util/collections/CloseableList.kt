@@ -1,4 +1,4 @@
-package com.lambda.client.commons.collections
+package com.lambda.client.util.collections
 
 class CloseableList<E>(
     val list: MutableList<E> = ArrayList()

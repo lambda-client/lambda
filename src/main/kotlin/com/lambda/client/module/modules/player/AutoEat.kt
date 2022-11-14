@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.player
 
-import com.lambda.client.commons.extension.next
+import com.lambda.client.util.extension.next
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module

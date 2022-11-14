@@ -2,8 +2,8 @@ package com.lambda.client.plugin.api
 
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
-import com.lambda.client.commons.collections.CloseableList
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.collections.CloseableList
+import com.lambda.client.util.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.gui.GuiManager

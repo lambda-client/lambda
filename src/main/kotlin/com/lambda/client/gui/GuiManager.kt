@@ -1,9 +1,9 @@
 package com.lambda.client.gui
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.collections.AliasSet
-import com.lambda.client.commons.utils.ClassUtils
-import com.lambda.client.commons.utils.ClassUtils.instance
+import com.lambda.client.util.collections.AliasSet
+import com.lambda.client.util.ClassUtils
+import com.lambda.client.util.ClassUtils.instance
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.hudgui.AbstractHudElement

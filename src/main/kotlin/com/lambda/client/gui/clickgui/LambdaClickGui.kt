@@ -2,7 +2,7 @@ package com.lambda.client.gui.clickgui
 
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.utils.ConnectionUtils
+import com.lambda.client.util.ConnectionUtils
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.clickgui.component.*
 import com.lambda.client.gui.clickgui.window.ModuleSettingWindow

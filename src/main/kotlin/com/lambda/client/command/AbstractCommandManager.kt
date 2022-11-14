@@ -2,7 +2,7 @@ package com.lambda.client.command
 
 import com.lambda.client.command.execute.IExecuteEvent
 import com.lambda.client.command.utils.CommandNotFoundException
-import com.lambda.client.commons.collections.AliasSet
+import com.lambda.client.util.collections.AliasSet
 
 /**
  * Manager for [Command] registration and execution

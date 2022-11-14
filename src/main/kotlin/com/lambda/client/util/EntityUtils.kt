@@ -1,7 +1,7 @@
 package com.lambda.client.util
 
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.util.extension.ceilToInt
+import com.lambda.client.util.extension.floorToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.util.MovementUtils.calcMoveYaw

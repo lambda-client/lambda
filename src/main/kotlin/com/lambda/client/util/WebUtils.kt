@@ -2,7 +2,6 @@ package com.lambda.client.util
 
 import com.google.gson.JsonParser
 import com.lambda.client.LambdaMod
-import com.lambda.client.commons.utils.ConnectionUtils
 import com.lambda.client.util.threads.mainScope
 import kotlinx.coroutines.launch
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion

@@ -1,8 +1,8 @@
 package com.lambda.client.gui.hudgui
 
-import com.lambda.client.commons.interfaces.Alias
-import com.lambda.client.commons.interfaces.DisplayEnum
-import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.util.interfaces.Alias
+import com.lambda.client.util.interfaces.DisplayEnum
+import com.lambda.client.util.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.gui.rgui.windows.BasicWindow
 import com.lambda.client.module.modules.client.GuiColors

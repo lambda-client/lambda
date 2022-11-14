@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.commons.utils.MathUtils.convertRange
+import com.lambda.client.util.math.MathUtils.convertRange
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.FriendManager
