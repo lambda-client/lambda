@@ -39,24 +39,23 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
 
     init {
         var posX = 0.0f
-        val posY = 0.0f
 
-        Category.values().forEach {
-            val window = ListWindow(it.displayName, posX, posY, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
+        Category.values().forEach { category ->
+            val window = ListWindow(category.displayName, posX, 0.0f, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
             windows.add(window)
 
             posX += 90.0f
         }
 
         /* Plugins */
-        pluginWindow = PluginWindow("Plugins", posX, posY)
+        pluginWindow = PluginWindow("Plugins", posX, 0.0f)
         pluginWindow.add(ImportPluginButton)
         pluginWindow.add(DownloadPluginButton)
         windows.add(pluginWindow)
 
         posX += 120.0f
 
-        remotePluginWindow = PluginWindow("Remote plugins", posX, posY)
+        remotePluginWindow = PluginWindow("Remote plugins", posX, 0.0f)
         remotePluginWindow.visible = false
         windows.add(remotePluginWindow)
 
