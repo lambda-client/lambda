@@ -13,8 +13,7 @@ abstract class PluginModule(
     alwaysListening: Boolean = false,
     showOnArray: Boolean = true,
     alwaysEnabled: Boolean = false,
-    enabledByDefault: Boolean = false,
-//    hidden: Boolean = false
+    enabledByDefault: Boolean = false
 ) : IPluginClass, AbstractModule(
     name,
     alias,
@@ -25,6 +24,5 @@ abstract class PluginModule(
     showOnArray,
     alwaysEnabled,
     enabledByDefault,
-//    hidden,
     pluginMain.config
 )

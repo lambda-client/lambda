@@ -271,7 +271,6 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
     fun reorderModules() {
         moduleCount = ModuleManager.modules.size
         val allButtons = ModuleManager.modules
-//            .filter { !it.hidden }
             .groupBy { it.category.displayName }
             .mapValues { (_, modules) -> modules.map { ModuleButton(it) } }
 
