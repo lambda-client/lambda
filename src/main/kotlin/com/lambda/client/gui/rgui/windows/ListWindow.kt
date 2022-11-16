@@ -167,10 +167,10 @@ open class ListWindow(
 
     private fun renderChildren(renderBlock: (Component) -> Unit) {
         GlStateUtils.scissor(
-            ((renderPosX + ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).floorToInt(),
-            mc.displayHeight - ((renderPosY + renderHeight - ClickGUI.resizeBar) * ClickGUI.getScaleFactor()).floorToInt(),
-            ((renderWidth - ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).ceilToInt(),
-            ((renderHeight - draggableHeight - ClickGUI.resizeBar) * ClickGUI.getScaleFactor()).ceilToInt()
+            ((renderPosX + ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).toInt(),
+            mc.displayHeight - ((renderPosY + renderHeight - ClickGUI.resizeBar) * ClickGUI.getScaleFactor()).toInt(),
+            ((renderWidth - ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).toInt(),
+            ((renderHeight - draggableHeight - ClickGUI.resizeBar)* ClickGUI.getScaleFactor()).toInt().coerceAtLeast(0)
         )
         glEnable(GL_SCISSOR_TEST)
         glTranslatef(0.0f, -renderScrollProgress, 0.0f)
