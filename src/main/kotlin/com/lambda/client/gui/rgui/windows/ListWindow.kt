@@ -125,7 +125,7 @@ open class ListWindow(
         if (children.isEmpty()) return
 
         val lastVisible = children.lastOrNull { it.visible }
-        val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + ClickGUI.horizontalMargin - height, 0.01f) }
+        val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + ClickGUI.verticalMargin + ClickGUI.resizeBar - height, 0.01f) }
             ?: draggableHeight
 
         scrollProgress = (scrollProgress + scrollSpeed)
@@ -133,9 +133,9 @@ open class ListWindow(
 
         if (scrollTimer.tick(100L, false)) {
             if (scrollProgress < 0.0) {
-                scrollSpeed = scrollProgress * -0.25f
+                scrollSpeed = scrollProgress * -ClickGUI.scrollRubberbandSpeed
             } else if (scrollProgress > maxScrollProgress) {
-                scrollSpeed = (scrollProgress - maxScrollProgress) * -0.25f
+                scrollSpeed = (scrollProgress - maxScrollProgress) * -ClickGUI.scrollRubberbandSpeed
             }
         }
 
