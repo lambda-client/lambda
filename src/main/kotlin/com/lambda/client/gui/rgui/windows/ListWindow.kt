@@ -11,9 +11,6 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.math.Vec2f
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.max
@@ -89,15 +86,15 @@ open class ListWindow(
 
     private fun updateChild() {
         synchronized(this) {
-            var y = (if (draggableHeight != height) draggableHeight else 0.0f) + ClickGUI.entryMargin
+            var y = (if (draggableHeight != height) draggableHeight else 0.0f) + ClickGUI.verticalMargin
 
             children
                 .filter { it.visible }
                 .forEach {
-                    it.posX = ClickGUI.entryMargin * 1.618f
+                    it.posX = ClickGUI.horizontalMargin
                     it.posY = y
-                    it.width = width - ClickGUI.entryMargin * 3.236f
-                    y += it.height + ClickGUI.entryMargin
+                    it.width = width - ClickGUI.horizontalMargin * 2
+                    y += it.height + ClickGUI.verticalMargin
                 }
         }
     }
@@ -128,7 +125,7 @@ open class ListWindow(
         if (children.isEmpty()) return
 
         val lastVisible = children.lastOrNull { it.visible }
-        val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + ClickGUI.entryMargin - height, 0.01f) }
+        val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + ClickGUI.horizontalMargin - height, 0.01f) }
             ?: draggableHeight
 
         scrollProgress = (scrollProgress + scrollSpeed)
@@ -170,10 +167,10 @@ open class ListWindow(
 
     private fun renderChildren(renderBlock: (Component) -> Unit) {
         GlStateUtils.scissor(
-            ((renderPosX + ClickGUI.entryMargin * 1.618) * ClickGUI.getScaleFactor() - 0.5f).floorToInt(),
-            mc.displayHeight - ((renderPosY + renderHeight) * ClickGUI.getScaleFactor() - 0.5f).floorToInt(),
-            ((renderWidth - ClickGUI.entryMargin * 3.236) * ClickGUI.getScaleFactor() + 1.0f).ceilToInt(),
-            ((renderHeight - draggableHeight) * ClickGUI.getScaleFactor() + 1.0f).ceilToInt()
+            ((renderPosX + ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).floorToInt(),
+            mc.displayHeight - ((renderPosY + renderHeight - ClickGUI.resizeBar) * ClickGUI.getScaleFactor()).floorToInt(),
+            ((renderWidth - ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).ceilToInt(),
+            ((renderHeight - draggableHeight - ClickGUI.resizeBar) * ClickGUI.getScaleFactor()).ceilToInt()
         )
         glEnable(GL_SCISSOR_TEST)
         glTranslatef(0.0f, -renderScrollProgress, 0.0f)
@@ -208,10 +205,12 @@ open class ListWindow(
     }
 
     private fun updateHovered(relativeMousePos: Vec2f) {
-        hoveredChild = if (relativeMousePos.y < draggableHeight
-            || relativeMousePos.x < ClickGUI.entryMargin
-            || relativeMousePos.x > renderWidth - ClickGUI.entryMargin
+        hoveredChild = if (relativeMousePos.y < draggableHeight + scrollProgress
+            || relativeMousePos.y > renderHeight + scrollProgress - ClickGUI.resizeBar
+            || relativeMousePos.x < ClickGUI.horizontalMargin
+            || relativeMousePos.x > renderWidth - ClickGUI.horizontalMargin
         ) null
+
         else children.firstOrNull { it.visible && relativeMousePos.y in it.posY..it.posY + it.height }
     }
 
@@ -260,8 +259,8 @@ open class ListWindow(
         doubleClickTime = if (currentTime - doubleClickTime > 500L) {
             currentTime
         } else {
-            val sum = children.filter(Component::visible).sumByFloat { it.height + ClickGUI.entryMargin }
-            val targetHeight = max(height, sum + draggableHeight + ClickGUI.entryMargin)
+            val sum = children.filter(Component::visible).sumByFloat { it.height + ClickGUI.verticalMargin }
+            val targetHeight = max(height, sum + draggableHeight + ClickGUI.verticalMargin)
             val maxHeight = scaledDisplayHeight - 2.0f
 
             height = min(targetHeight, scaledDisplayHeight - 2.0f)

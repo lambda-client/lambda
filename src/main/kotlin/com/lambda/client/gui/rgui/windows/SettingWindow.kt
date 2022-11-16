@@ -25,7 +25,7 @@ abstract class SettingWindow<T : Any>(
     override val minWidth: Float get() = 100.0f
     override val minHeight: Float get() = draggableHeight
     override var height: Float = 0.0f
-        get() = children.filter { it.visible }.sumByFloat { it.height + ClickGUI.entryMargin } + ClickGUI.entryMargin + 6.0f + FontRenderAdapter.getFontHeight()
+        get() = children.filter { it.visible }.sumByFloat { it.height + ClickGUI.verticalMargin } + ClickGUI.verticalMargin + draggableHeight
 
     override val minimizable get() = false
 

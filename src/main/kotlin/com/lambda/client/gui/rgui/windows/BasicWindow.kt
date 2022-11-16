@@ -43,16 +43,6 @@ open class BasicWindow(
                 color = GuiColors.outline
             )
         }
-
-        if (ClickGUI.resizeCorner) {
-            RenderUtils2D.drawTriangleFilled(
-                vertexHelper,
-                Vec2f(renderWidth, renderHeight - ClickGUI.resizeCornerSize).toVec2d(),
-                Vec2f(renderWidth, renderHeight).toVec2d(),
-                Vec2f(renderWidth - ClickGUI.resizeCornerSize, renderHeight).toVec2d(),
-                GuiColors.hover
-            )
-        }
     }
 
 }
