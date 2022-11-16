@@ -44,12 +44,12 @@ open class ListWindow(
     private val scrollTimer = TickTimer()
     private var scrollSpeed = 0.0f
 
-    private var scrollProgress = 0.0f
+    var scrollProgress = 0.0f
         set(value) {
             prevScrollProgress = field
             field = value
         }
-    private var prevScrollProgress = 0.0f
+    var prevScrollProgress = 0.0f
     private val renderScrollProgress
         get() = prevScrollProgress + (scrollProgress - prevScrollProgress) * mc.renderPartialTicks
 
