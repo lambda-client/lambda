@@ -261,7 +261,7 @@ open class ListWindow(
             currentTime
         } else {
             val sum = children.filter(Component::visible).sumByFloat { it.height + ClickGUI.verticalMargin }
-            val targetHeight = max(height, sum + draggableHeight + ClickGUI.verticalMargin + ClickGUI.resizeBar)
+            val targetHeight = sum + draggableHeight + ClickGUI.verticalMargin + ClickGUI.resizeBar
             val maxHeight = scaledDisplayHeight - 2.0f
 
             height = min(targetHeight, scaledDisplayHeight - 2.0f)
