@@ -131,8 +131,11 @@ open class ListWindow(
         scrollProgress = (scrollProgress + scrollSpeed)
         scrollSpeed *= 0.5f
 
-        if (scrollTimer.tick(100L, false)) {
-            if (scrollProgress < 0.0) {
+        if (!ClickGUI.scrollRubberband) {
+            scrollProgress = scrollProgress.coerceIn(.0f, maxScrollProgress)
+            prevScrollProgress = prevScrollProgress.coerceIn(.0f, maxScrollProgress)
+        } else if (scrollTimer.tick(100L, false)) {
+            if (scrollProgress < 0) {
                 scrollSpeed = scrollProgress * -ClickGUI.scrollRubberbandSpeed
             } else if (scrollProgress > maxScrollProgress) {
                 scrollSpeed = (scrollProgress - maxScrollProgress) * -ClickGUI.scrollRubberbandSpeed
