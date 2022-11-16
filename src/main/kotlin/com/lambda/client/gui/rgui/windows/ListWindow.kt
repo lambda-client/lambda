@@ -1,7 +1,5 @@
 package com.lambda.client.gui.rgui.windows
 
-import com.lambda.client.commons.extension.ceilToInt
-import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.commons.extension.sumByFloat
 import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.rgui.Component
@@ -263,7 +261,7 @@ open class ListWindow(
             currentTime
         } else {
             val sum = children.filter(Component::visible).sumByFloat { it.height + ClickGUI.verticalMargin }
-            val targetHeight = max(height, sum + draggableHeight + ClickGUI.verticalMargin)
+            val targetHeight = max(height, sum + draggableHeight + ClickGUI.verticalMargin + ClickGUI.resizeBar)
             val maxHeight = scaledDisplayHeight - 2.0f
 
             height = min(targetHeight, scaledDisplayHeight - 2.0f)
