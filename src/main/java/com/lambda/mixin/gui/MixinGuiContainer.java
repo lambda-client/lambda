@@ -12,43 +12,43 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.io.IOException;
-
 @Mixin(GuiContainer.class)
 public class MixinGuiContainer extends GuiScreen {
 
     @Shadow protected int guiLeft;
     @Shadow protected int guiTop;
     @Shadow protected int xSize;
-
     private final GuiButton stealButton = new LambdaGuiStealButton(this.guiLeft + this.xSize + 2, this.guiTop + 2);
     private final GuiButton storeButton = new LambdaGuiStoreButton(this.guiLeft + this.xSize + 2, this.guiTop + 4 + stealButton.height);
 
-    @Inject(method = "initGui", at = @At("HEAD"))
-    public void initGui(CallbackInfo ci) {
-        if (ChestStealer.INSTANCE.isValidGui()) {
-            this.buttonList.add(stealButton);
-            this.buttonList.add(storeButton);
-            ChestStealer.updateButton(stealButton, this.guiLeft, this.xSize, this.guiTop);
-            ChestStealer.updateButton(storeButton, this.guiLeft, this.xSize, this.guiTop);
+    @Inject(method = "mouseClicked", at = @At("TAIL"))
+    public void mouseClicked(int x, int y, int button, CallbackInfo ci) {
+        if (button == 0) {
+            if (storeButton.mousePressed(mc, x, y)) {
+                ChestStealer.INSTANCE.setStoring(!ChestStealer.INSTANCE.getStoring());
+            } else if (stealButton.mousePressed(mc, x, y)) {
+                ChestStealer.INSTANCE.setStealing(!ChestStealer.INSTANCE.getStealing());
+            }
         }
     }
 
-    @Override
-    protected void actionPerformed(GuiButton button) throws IOException {
-        if (button.id == 696969) {
-            ChestStealer.INSTANCE.setStealing(!ChestStealer.INSTANCE.getStealing());
-        } else if (button.id == 420420) {
-            ChestStealer.INSTANCE.setStoring(!ChestStealer.INSTANCE.getStoring());
-        } else {
-            super.actionPerformed(button);
-        }
-    }
-
-    @Inject(method = "updateScreen", at = @At("HEAD"))
+    @Inject(method = "updateScreen", at = @At("TAIL"))
     public void updateScreen(CallbackInfo ci) {
-        ChestStealer.updateButton(stealButton, this.guiLeft, this.xSize, this.guiTop);
-        ChestStealer.updateButton(storeButton, this.guiLeft, this.xSize, this.guiTop);
+        if (ChestStealer.INSTANCE.isValidGui()) {
+            if (ChestStealer.INSTANCE.isEnabled()) {
+                if (!this.buttonList.contains(stealButton)) {
+                    this.buttonList.add(stealButton);
+                }
+                if (!this.buttonList.contains(storeButton)) {
+                    this.buttonList.add(storeButton);
+                }
+                ChestStealer.updateButton(stealButton, this.guiLeft, this.xSize, this.guiTop);
+                ChestStealer.updateButton(storeButton, this.guiLeft, this.xSize, this.guiTop);
+            } else {
+                this.buttonList.remove(storeButton);
+                this.buttonList.remove(storeButton);
+            }
+        }
     }
 
 }
