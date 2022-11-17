@@ -102,7 +102,7 @@ object CombatUtils {
 
         val blockDensity = entity.world.getBlockDensity(pos, entity.entityBoundingBox)
         val v = (1.0 - distance) * blockDensity
-        val damage = (v * v + v) / 2.0 * 7.0 * (radius + 1.0)
+        val damage = (v * v + v) * 8 * explosionType.value + 1
 
         val explosion = Explosion(player.world, entity, pos.x, pos.y, pos.z, explosionType.value, false, true)
         return getBlastReduction(entity, explosion, damage.toFloat() * getDifficultyFactor())
@@ -118,34 +118,10 @@ object CombatUtils {
         val clamp = MathHelper.clamp(damageReduction.toFloat(), 0.0f, 20.0f)
 
         damage *= 1.0f - clamp / 25.0f
-        if (entity.isPotionActive(MobEffects.RESISTANCE)) damage -= damage / 4.0f
+        if (entity.isPotionActive(MobEffects.RESISTANCE)) damage -= damage / 4.0f // TODO: Properly calculate resistance
 
-        // Calculate blast protection reduction
-        /*val blastLevel = getProtectionModifier(entity, damageSource)
-        damage -= damage * blastLevel*/ // TODO: Fix this
         return damage.coerceAtLeast(0.0f).toDouble()
     }
-
-    /*private fun getProtectionModifier(entity: EntityLivingBase): Float {
-        var damageAttenuation = 0.0f
-        var stackedEnchantments = 0
-        for (armor in entity.armorInventoryList.toList()) {
-            if (!armor.isItemEnchanted) continue
-            val enchantments = EnchantmentHelper.getEnchantments(armor)
-            enchantments.forEach { (enchantment, level) ->
-                if (enchantment !is EnchantmentProtection) return@forEach
-                stackedEnchantments += level
-                when (enchantment.protectionType) {
-                    EnchantmentProtection.Type.EXPLOSION -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
-                    EnchantmentProtection.Type.FIRE -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
-                    EnchantmentProtection.Type.FALL -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
-                    EnchantmentProtection.Type.PROJECTILE -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
-                    else -> {}
-                }
-            }
-        }
-        return damageAttenuation
-    }*/
 
     private fun getProtectionModifier(entity: EntityLivingBase, damageSource: DamageSource): Float {
         var modifier = 0
