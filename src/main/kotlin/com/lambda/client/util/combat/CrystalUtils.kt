@@ -2,7 +2,7 @@ package com.lambda.client.util.combat
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.Wrapper
-import com.lambda.client.util.combat.CombatUtils.getDifficultyFactor
+import com.lambda.client.util.combat.CombatUtils.calculateExplosion
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.block.material.Material
@@ -88,27 +88,21 @@ object CrystalUtils {
     /* End of position finding */
 
     /* Damage calculation */
-    fun SafeClientEvent.calcCrystalDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase, entityPos: Vec3d? = entity.positionVector, entityBB: AxisAlignedBB? = entity.entityBoundingBox) =
-        calcCrystalDamage(crystal.positionVector, entity, entityPos, entityBB)
+    fun SafeClientEvent.calcCrystalDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox, fakeBlocks: List<BlockPos>? = null) =
+        calcCrystalDamage(crystal.positionVector, entity, entityPos, entityBB, fakeBlocks)
 
-    fun SafeClientEvent.calcCrystalDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d? = entity.positionVector, entityBB: AxisAlignedBB? = entity.entityBoundingBox) =
-        calcCrystalDamage(Vec3d(pos).add(0.5, 1.0, 0.5), entity, entityPos, entityBB)
+    fun SafeClientEvent.calcCrystalDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox, fakeBlocks: List<BlockPos>? = null) =
+        calcCrystalDamage(Vec3d(pos).add(0.5, 1.0, 0.5), entity, entityPos, entityBB, fakeBlocks)
 
-    fun SafeClientEvent.calcCrystalDamage(pos: Vec3d, entity: EntityLivingBase, entityPos: Vec3d? = entity.positionVector, entityBB: AxisAlignedBB? = entity.entityBoundingBox): Float {
+    fun SafeClientEvent.calcCrystalDamage(pos: Vec3d, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox, fakeBlocks: List<BlockPos>? = null): Float {
         // Return 0 directly if entity is a player and in creative mode
         if (entity is EntityPlayer && entity.isCreative) return 0.0f
 
         // Calculate raw damage (based on blocks and distance)
-        var damage = calcRawDamage(pos, entityPos ?: entity.positionVector, entityBB ?: entity.entityBoundingBox)
-
-        // Calculate damage after armor, enchantment, resistance effect absorption
-        damage = CombatUtils.calcDamage(entity, damage, getDamageSource(pos))
-
-        // Multiply the damage based on difficulty if the entity is player
-        if (entity is EntityPlayer) damage *= getDifficultyFactor()
+        val damage = calculateExplosion(pos, entity, CombatUtils.ExplosionStrength.EndCrystal)
 
         // Return the damage
-        return damage.coerceAtLeast(0.0f)
+        return damage.coerceAtLeast(0.0).toFloat()
     }
 
     /**
@@ -121,6 +115,23 @@ object CrystalUtils {
     private fun SafeClientEvent.calcRawDamage(pos: Vec3d, entityPos: Vec3d, entityBB: AxisAlignedBB): Float {
         val distance = pos.distanceTo(entityPos)
         val v = (1.0 - (distance / 12.0)) * world.getBlockDensity(pos, entityBB)
+        return ((v * v + v) / 2.0 * 84.0 + 1.0).toFloat()
+    }
+
+    /**
+     * Calculate the damage source of the crystal based on a fake world state
+     * @param pos The position of the crystal
+     * @param entityPos The position of the entity
+     * @param entityBB The bounding box of the entity
+     * @param fakeBlocks The fake blocks to use
+     * @return The damage
+     */
+    fun SafeClientEvent.calcFakeRawDamage(pos: Vec3d, entityPos: Vec3d, entityBB: AxisAlignedBB, fakeBlocks: List<BlockPos>): Float {
+        val oldBlocks = fakeBlocks.map { it to mc.world?.getBlockState(it) }
+        val distance = pos.distanceTo(entityPos)
+        for ((pos, _) in oldBlocks) mc.world.setBlockToAir(pos)
+        val v = (1.0 - (distance / 12.0)) * world.getBlockDensity(pos, entityBB)
+        for ((pos, state) in oldBlocks) mc.world.setBlockState(pos, state)
         return ((v * v + v) / 2.0 * 84.0 + 1.0).toFloat()
     }
 

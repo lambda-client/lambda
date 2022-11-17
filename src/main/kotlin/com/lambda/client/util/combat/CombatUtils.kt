@@ -11,8 +11,12 @@ import com.lambda.client.util.items.swapToSlot
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.enchantment.EnchantmentProtection
+import net.minecraft.enchantment.EnchantmentWaterWalker
+import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.SharedMonsterAttributes
+import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
@@ -21,10 +25,16 @@ import net.minecraft.item.ItemSword
 import net.minecraft.item.ItemTool
 import net.minecraft.util.CombatRules
 import net.minecraft.util.DamageSource
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.Vec3d
+import net.minecraft.world.Explosion
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
+import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.round
+
 
 object CombatUtils {
     private val cachedArmorValues = WeakHashMap<EntityLivingBase, Pair<Float, Float>>()
@@ -34,6 +44,23 @@ object CombatUtils {
      */
     fun SafeClientEvent.getDifficultyFactor(): Float {
         return world.difficulty.id * 0.5f
+    }
+
+    enum class ExplosionStrength(val value: Float) {
+        EndCrystal(6.0f),
+        ChargedCreeper(6.0f),
+        Bed(5.0f),
+        TNT(4.0f),
+        Creeper(3.0f),
+        WitherSkull(1.0f),
+        Fireball(1.0f),
+    }
+
+    /**
+     * @return The radius of the explosion of a given strength
+     */
+    private fun getExplosionRadius(type: ExplosionStrength): Double {
+        return 1.3 * (type.value/0.225) * 0.3
     }
 
     fun SafeClientEvent.calcDamageFromPlayer(entity: EntityPlayer, assumeCritical: Boolean = false): Float {
@@ -59,14 +86,66 @@ object CombatUtils {
 
         if (source != DamageSource.OUT_OF_WORLD) {
             entity.getActivePotionEffect(MobEffects.RESISTANCE)?.let {
-                damage *= max(1.0f - (it.amplifier + 1) * 0.2f, 0.0f)
+                damage *= max(1.0f - (it.amplifier + 1) * 0.2f, 0.0f) // Use this in the future
             }
         }
 
-        damage *= getProtectionModifier(entity, source)
+        damage -= damage * getProtectionModifier(entity, source)
 
         return if (roundDamage) round(damage) else damage
     }
+
+    fun SafeClientEvent.calculateExplosion(pos: Vec3d, entity: EntityLivingBase, explosionType: ExplosionStrength): Double {
+        if (entity is EntityPlayer && entity.isCreative) return 0.0 // Return 0 directly if entity is a player and in creative mode
+        val radius = getExplosionRadius(explosionType)
+        val distance = entity.positionVector.distanceTo(pos) / radius
+
+        val blockDensity = entity.world.getBlockDensity(pos, entity.entityBoundingBox)
+        val v = (1.0 - distance) * blockDensity
+        val damage = (v * v + v) / 2.0 * 7.0 * (radius + 1.0)
+
+        val explosion = Explosion(player.world, entity, pos.x, pos.y, pos.z, explosionType.value, false, true)
+        return getBlastReduction(entity, explosion, damage.toFloat() * getDifficultyFactor())
+    }
+
+
+    private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion?, damageL: Float): Double {
+        val armorValue = entity.totalArmorValue
+        val entityAttributes = entity.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS)
+        var damage = CombatRules.getDamageAfterAbsorb(damageL, armorValue.toFloat(), entityAttributes.attributeValue.toFloat())
+        val damageSource = if (explosion == null) DamageSource.GENERIC else DamageSource.causeExplosionDamage(explosion)
+        val damageReduction = EnchantmentHelper.getEnchantmentModifierDamage(entity.armorInventoryList, damageSource)
+        val clamp = MathHelper.clamp(damageReduction.toFloat(), 0.0f, 20.0f)
+
+        damage *= 1.0f - clamp / 25.0f
+        if (entity.isPotionActive(MobEffects.RESISTANCE)) damage -= damage / 4.0f
+
+        // Calculate blast protection reduction
+        /*val blastLevel = getProtectionModifier(entity, damageSource)
+        damage -= damage * blastLevel*/ // TODO: Fix this
+        return damage.coerceAtLeast(0.0f).toDouble()
+    }
+
+    /*private fun getProtectionModifier(entity: EntityLivingBase): Float {
+        var damageAttenuation = 0.0f
+        var stackedEnchantments = 0
+        for (armor in entity.armorInventoryList.toList()) {
+            if (!armor.isItemEnchanted) continue
+            val enchantments = EnchantmentHelper.getEnchantments(armor)
+            enchantments.forEach { (enchantment, level) ->
+                if (enchantment !is EnchantmentProtection) return@forEach
+                stackedEnchantments += level
+                when (enchantment.protectionType) {
+                    EnchantmentProtection.Type.EXPLOSION -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
+                    EnchantmentProtection.Type.FIRE -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
+                    EnchantmentProtection.Type.FALL -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
+                    EnchantmentProtection.Type.PROJECTILE -> damageAttenuation += (8 * level.coerceAtMost(4)).toFloat()
+                    else -> {}
+                }
+            }
+        }
+        return damageAttenuation
+    }*/
 
     private fun getProtectionModifier(entity: EntityLivingBase, damageSource: DamageSource): Float {
         var modifier = 0
@@ -80,7 +159,7 @@ object CombatUtils {
                 val id = compoundTag.getInteger("id")
                 val level = compoundTag.getInteger("lvl")
 
-                Enchantment.getEnchantmentByID(id)?.let {
+                EnchantmentProtection.getEnchantmentByID(id)?.let {
                     modifier += it.calcModifierDamage(level, damageSource)
                 }
             }

@@ -175,15 +175,15 @@ object CombatSetting : Module(
 
     private fun SafeClientEvent.updatePlacingList() {
         if (CrystalAura.isDisabled && CrystalBasePlace.isDisabled && CrystalESP.isDisabled && player.ticksExisted % 4 != 0) return
+        val target = CombatManager.target ?: return
 
         val eyePos = player.getPositionEyes(1f) ?: Vec3d.ZERO
         val cacheList = ArrayList<Pair<BlockPos, CombatManager.CrystalDamage>>()
-        val target = CombatManager.target
-        val prediction = target?.let { getPrediction(it) }
+        val prediction = getPrediction(target)
 
         for (pos in getPlacePos(target, player, 8f)) {
             val dist = eyePos.distanceTo(pos.toVec3dCenter(0.0, 0.5, 0.0))
-            val damage = target?.let { calcCrystalDamage(pos, it, prediction?.first, prediction?.second) } ?: 0.0f
+            val damage = calcCrystalDamage(pos, target, prediction.first, prediction.second)
             val selfDamage = calcCrystalDamage(pos, player)
             cacheList.add(Pair(pos, CombatManager.CrystalDamage(damage, selfDamage, dist)))
         }
