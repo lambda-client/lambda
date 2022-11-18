@@ -100,7 +100,6 @@ object CombatSetting : Module(
     }
 
     private var overrideRange = range
-    private var paused = false
     private val resumeTimer = TickTimer(TimeUnit.SECONDS)
     private val jobMap = hashMapOf<(SafeClientEvent) -> Unit, Job?>(
         { it: SafeClientEvent -> it.updateTarget() } to null,
@@ -155,10 +154,10 @@ object CombatSetting : Module(
             if (isActive() && pauseBaritone) {
                 pauseBaritone()
                 resumeTimer.reset()
-                paused = true
+                isPaused = true
             } else if (resumeTimer.tick(resumeDelay.toLong(), false)) {
                 unpauseBaritone()
-                paused = false
+                isPaused = false
             }
         }
     }
@@ -202,16 +201,14 @@ object CombatSetting : Module(
         val target = CombatManager.target
         val prediction = target?.let { getPrediction(it) }
 
-        for (entity in world.loadedEntityList.filterIsInstance<EntityEnderCrystal>()) {
-            if (entity.isDead) continue
-            val dist = entity.distanceTo(eyePos)
-            if (dist > 16.0f) continue
-            val damage = if (target != null && prediction != null) {
-                calcCrystalDamage(entity, target, prediction.first, prediction.second)
-            } else 0.0f
-            val selfDamage = calcCrystalDamage(entity, player)
-            cacheList.add(entity to CombatManager.CrystalDamage(damage, selfDamage, dist))
-        }
+        world.loadedEntityList
+            .filterIsInstance<EntityEnderCrystal>()
+            .filter { !it.isDead && it.distanceTo(eyePos) < 16.0f }
+            .forEach {
+                val damage = if (target != null && prediction != null) calcCrystalDamage(it, target, prediction.first, prediction.second) else 0.0f
+                val selfDamage = calcCrystalDamage(it, player)
+                cacheList.add(it to CombatManager.CrystalDamage(damage, selfDamage, it.distanceTo(eyePos)))
+            }
 
         CombatManager.crystalMap = LinkedHashMap<EntityEnderCrystal, CombatManager.CrystalDamage>(cacheList.size).apply {
             putAll(cacheList.sortedByDescending { it.second.targetDamage })
