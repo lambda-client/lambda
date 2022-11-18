@@ -16,6 +16,7 @@ import net.minecraft.entity.SharedMonsterAttributes
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
+import net.minecraft.item.ItemArmor
 import net.minecraft.item.ItemAxe
 import net.minecraft.item.ItemSword
 import net.minecraft.item.ItemTool
@@ -117,10 +118,9 @@ object CombatUtils {
      */
     private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion, damageIn: Float): Double {
         val armorValue = entity.totalArmorValue
-        val entityAttributes = entity.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS)
         val damageSource = DamageSource.causeExplosionDamage(explosion)
         val damage =
-            CombatRules.getDamageAfterAbsorb(damageIn, armorValue.toFloat(), entityAttributes.attributeValue.toFloat()) *
+            CombatRules.getDamageAfterAbsorb(damageIn, armorValue.toFloat(), getArmorToughness(entity)) *
             getProtectionModifier(entity, damageSource) * // Apply protection modifier
             getResistanceReduction(entity) // Apply resistance reduction
 
@@ -158,6 +158,18 @@ object CombatUtils {
         modifier = modifier.coerceIn(0, 20)
 
         return 1.0f - modifier / 25.0f
+    }
+
+    /**
+     * @param entity The entity to calculate the armor thoughness from
+     * @return The armor thoughness of the entity
+     */
+    private fun getArmorToughness(entity: EntityLivingBase): Float {
+        // If the entity has no diamond armor, return 0. See https://minecraft.fandom.com/wiki/Armor#Armor_toughness
+        val armorPieces = entity.armorInventoryList.filter { !it.isEmpty && it.item is ItemArmor && (it.item as ItemArmor).armorMaterial == ItemArmor.ArmorMaterial.DIAMOND }
+        if (armorPieces.isEmpty()) return 0.0f
+
+        return armorPieces.size * 2.0f
     }
 
     fun SafeClientEvent.equipBestWeapon(preferWeapon: PreferWeapon = PreferWeapon.NONE, allowTool: Boolean = false) {
