@@ -82,10 +82,9 @@ object CombatUtils {
         var damage = CombatRules.getDamageAfterAbsorb(damageIn, pair.first, pair.second)
 
         if (!source.canHarmInCreative()) {
+            damage *= getProtectionModifier(entity, source)
             damage *= getResistanceReduction(entity)
         }
-
-        damage *= getProtectionModifier(entity, source)
 
         return if (roundDamage) round(damage) else damage
     }
