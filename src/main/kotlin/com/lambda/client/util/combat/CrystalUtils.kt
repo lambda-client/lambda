@@ -88,13 +88,13 @@ object CrystalUtils {
     /* End of position finding */
 
     /* Damage calculation */
-    fun SafeClientEvent.calcCrystalDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox, fakeBlocks: List<BlockPos>? = null) =
-        calcCrystalDamage(crystal.positionVector, entity, entityPos, entityBB, fakeBlocks)
+    fun SafeClientEvent.calcCrystalDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox) =
+        calcCrystalDamage(crystal.positionVector, entity, entityPos, entityBB)
 
-    fun SafeClientEvent.calcCrystalDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox, fakeBlocks: List<BlockPos>? = null) =
-        calcCrystalDamage(Vec3d(pos).add(0.5, 1.0, 0.5), entity, entityPos, entityBB, fakeBlocks)
+    fun SafeClientEvent.calcCrystalDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox) =
+        calcCrystalDamage(Vec3d(pos).add(0.5, 1.0, 0.5), entity, entityPos, entityBB)
 
-    fun SafeClientEvent.calcCrystalDamage(pos: Vec3d, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox, fakeBlocks: List<BlockPos>? = null): Float {
+    fun SafeClientEvent.calcCrystalDamage(pos: Vec3d, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox): Float {
         // Return 0 directly if entity is a player and in creative mode
         if (entity is EntityPlayer && entity.isCreative) return 0.0f
 
@@ -118,24 +118,5 @@ object CrystalUtils {
         return ((v * v + v) / 2.0 * 84.0 + 1.0).toFloat()
     }
 
-    /**
-     * Calculate the damage source of the crystal based on a fake world state
-     * @param pos The position of the crystal
-     * @param entityPos The position of the entity
-     * @param entityBB The bounding box of the entity
-     * @param fakeBlocks The fake blocks to use
-     * @return The damage
-     */
-    fun SafeClientEvent.calcFakeRawDamage(pos: Vec3d, entityPos: Vec3d, entityBB: AxisAlignedBB, fakeBlocks: List<BlockPos>): Float {
-        val oldBlocks = fakeBlocks.map { it to mc.world?.getBlockState(it) }
-        val distance = pos.distanceTo(entityPos)
-        for ((pos, _) in oldBlocks) mc.world.setBlockToAir(pos)
-        val v = (1.0 - (distance / 12.0)) * world.getBlockDensity(pos, entityBB)
-        for ((pos, state) in oldBlocks) mc.world.setBlockState(pos, state)
-        return ((v * v + v) / 2.0 * 84.0 + 1.0).toFloat()
-    }
-
-    private fun SafeClientEvent.getDamageSource(damagePos: Vec3d) =
-        DamageSource.causeExplosionDamage(Explosion(world, player, damagePos.x, damagePos.y, damagePos.z, 6F, false, true))
     /* End of damage calculation */
 }

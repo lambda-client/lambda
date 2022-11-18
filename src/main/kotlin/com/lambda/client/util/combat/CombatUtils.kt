@@ -12,11 +12,9 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.EnchantmentProtection
-import net.minecraft.enchantment.EnchantmentWaterWalker
-import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.SharedMonsterAttributes
-import net.minecraft.entity.item.EntityEnderCrystal
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
@@ -25,13 +23,11 @@ import net.minecraft.item.ItemSword
 import net.minecraft.item.ItemTool
 import net.minecraft.util.CombatRules
 import net.minecraft.util.DamageSource
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.Explosion
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
-import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.round
 
@@ -109,16 +105,21 @@ object CombatUtils {
     }
 
 
-    private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion?, damageL: Float): Double {
+    private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion, damageL: Float): Double {
         val armorValue = entity.totalArmorValue
         val entityAttributes = entity.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS)
         var damage = CombatRules.getDamageAfterAbsorb(damageL, armorValue.toFloat(), entityAttributes.attributeValue.toFloat())
-        val damageSource = if (explosion == null) DamageSource.GENERIC else DamageSource.causeExplosionDamage(explosion)
+        val damageSource = DamageSource.causeExplosionDamage(explosion) // This is where the nullptr error is coming from
         val damageReduction = EnchantmentHelper.getEnchantmentModifierDamage(entity.armorInventoryList, damageSource)
         val clamp = MathHelper.clamp(damageReduction.toFloat(), 0.0f, 20.0f)
 
         damage *= 1.0f - clamp / 25.0f
-        if (entity.isPotionActive(MobEffects.RESISTANCE)) damage -= damage / 4.0f // TODO: Properly calculate resistance
+        if (entity.isPotionActive(MobEffects.RESISTANCE) && damageSource != DamageSource.OUT_OF_WORLD) {
+            val i = entity.getActivePotionEffect(MobEffects.RESISTANCE)?.amplifier?.plus(1) ?: 0
+            val j = 25 - i
+            val k = damage.toInt() * j + 40
+            damage = k.toFloat() / 25.0f
+        }
 
         return damage.coerceAtLeast(0.0f).toDouble()
     }
