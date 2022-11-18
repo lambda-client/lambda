@@ -118,7 +118,7 @@ object CombatUtils {
      */
     private fun getResistanceReduction(entity: EntityLivingBase): Float {
         val amplifier = entity.getActivePotionEffect(MobEffects.RESISTANCE)?.amplifier ?: return 1.0f
-        return (8 * (amplifier + 1)) / 100.0f // See https://minecraft.fandom.com/wiki/Blast_Protection#Usage
+        return 1.0f - (8 * (amplifier + 1)) / 100.0f // See https://minecraft.fandom.com/wiki/Blast_Protection#Usage
     }
 
     private fun getProtectionModifier(entity: EntityLivingBase, damageSource: DamageSource): Float {
