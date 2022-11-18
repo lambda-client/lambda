@@ -9,12 +9,10 @@ import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.items.swapToSlot
 import com.lambda.client.util.threads.safeListener
-import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.EnchantmentProtection
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.SharedMonsterAttributes
-import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
@@ -23,7 +21,6 @@ import net.minecraft.item.ItemSword
 import net.minecraft.item.ItemTool
 import net.minecraft.util.CombatRules
 import net.minecraft.util.DamageSource
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.Explosion
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -86,7 +83,7 @@ object CombatUtils {
             }
         }
 
-        damage -= damage * getProtectionModifier(entity, source)
+        damage *= getProtectionModifier(entity, source)
 
         return if (roundDamage) round(damage) else damage
     }
@@ -109,38 +106,39 @@ object CombatUtils {
         val armorValue = entity.totalArmorValue
         val entityAttributes = entity.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS)
         var damage = CombatRules.getDamageAfterAbsorb(damageL, armorValue.toFloat(), entityAttributes.attributeValue.toFloat())
-        val damageSource = DamageSource.causeExplosionDamage(explosion) // This is where the nullptr error is coming from
-        val damageReduction = EnchantmentHelper.getEnchantmentModifierDamage(entity.armorInventoryList, damageSource)
-        val clamp = MathHelper.clamp(damageReduction.toFloat(), 0.0f, 20.0f)
-
-        damage *= 1.0f - clamp / 25.0f
-        if (entity.isPotionActive(MobEffects.RESISTANCE) && damageSource != DamageSource.OUT_OF_WORLD) {
-            val i = entity.getActivePotionEffect(MobEffects.RESISTANCE)?.amplifier?.plus(1) ?: 0
-            val j = 25 - i
-            val k = damage.toInt() * j + 40
-            damage = k.toFloat() / 25.0f
-        }
+        val damageSource = DamageSource.causeExplosionDamage(explosion)
+        damage *= getProtectionModifier(entity, damageSource)
+        if (entity.isPotionActive(MobEffects.RESISTANCE)) damage *= getResistanceReduction(entity)
 
         return damage.coerceAtLeast(0.0f).toDouble()
+    }
+
+    /**
+     * @return The resistance absorption modifier. From 0 to 1
+     */
+    private fun getResistanceReduction(entity: EntityLivingBase): Float {
+        val amplifier = entity.getActivePotionEffect(MobEffects.RESISTANCE)?.amplifier ?: return 1.0f
+        return (8 * (amplifier + 1)) / 100.0f // See https://minecraft.fandom.com/wiki/Blast_Protection#Usage
     }
 
     private fun getProtectionModifier(entity: EntityLivingBase, damageSource: DamageSource): Float {
         var modifier = 0
 
-        for (armor in entity.armorInventoryList.toList()) {
-            if (armor.isEmpty) continue // Skip if item stack is empty
-            val nbtTagList = armor.enchantmentTagList
-            for (i in 0 until nbtTagList.tagCount()) {
-                val compoundTag = nbtTagList.getCompoundTagAt(i)
+        entity.armorInventoryList.filter { !it.isEmpty }
+            .forEach { armor ->
+                val nbtTagList = armor.enchantmentTagList
 
-                val id = compoundTag.getInteger("id")
-                val level = compoundTag.getInteger("lvl")
+                nbtTagList.forEachIndexed { index, _ ->
+                    val compoundTag = nbtTagList.getCompoundTagAt(index)
 
-                EnchantmentProtection.getEnchantmentByID(id)?.let {
-                    modifier += it.calcModifierDamage(level, damageSource)
+                    val id = compoundTag.getInteger("id")
+                    val level = compoundTag.getInteger("lvl")
+
+                    EnchantmentProtection.getEnchantmentByID(id)?.let {
+                        modifier += it.calcModifierDamage(level, damageSource)
+                    }
                 }
             }
-        }
 
         modifier = modifier.coerceIn(0, 20)
 
