@@ -35,10 +35,13 @@ object CombatUtils {
     /**
      * @return The world's difficulty factor
      */
-    fun SafeClientEvent.getDifficultyFactor(): Float {
+    private fun SafeClientEvent.getDifficultyFactor(): Float {
         return world.difficulty.id * 0.5f
     }
 
+    /**
+     * @param value Returns the strength of the explosion
+     */
     enum class ExplosionStrength(val value: Float) {
         EndCrystal(6.0f),
         ChargedCreeper(6.0f),
@@ -50,6 +53,7 @@ object CombatUtils {
     }
 
     /**
+     * @param type The type of explosion
      * @return The radius of the explosion of a given strength
      */
     private fun getExplosionRadius(type: ExplosionStrength): Double {
@@ -77,10 +81,8 @@ object CombatUtils {
         val pair = cachedArmorValues[entity] ?: return 0.0f
         var damage = CombatRules.getDamageAfterAbsorb(damageIn, pair.first, pair.second)
 
-        if (source != DamageSource.OUT_OF_WORLD) {
-            entity.getActivePotionEffect(MobEffects.RESISTANCE)?.let {
-                damage *= max(1.0f - (it.amplifier + 1) * 0.2f, 0.0f) // Use this in the future
-            }
+        if (!source.canHarmInCreative()) {
+            damage *= getResistanceReduction(entity)
         }
 
         damage *= getProtectionModifier(entity, source)
@@ -88,6 +90,12 @@ object CombatUtils {
         return if (roundDamage) round(damage) else damage
     }
 
+    /**
+     * @param pos The position of the explosion
+     * @param entity The entity to calculate the damage for
+     * @param explosionType The strength of the explosion
+     * @return The damage dealt by the explosion
+     */
     fun SafeClientEvent.calculateExplosion(pos: Vec3d, entity: EntityLivingBase, explosionType: ExplosionStrength): Double {
         if (entity is EntityPlayer && entity.isCreative) return 0.0 // Return 0 directly if entity is a player and in creative mode
         val radius = getExplosionRadius(explosionType)
@@ -102,18 +110,26 @@ object CombatUtils {
     }
 
 
-    private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion, damageL: Float): Double {
+    /**
+     * @param entity The entity to get the blast reduction from
+     * @param explosion The explosion to get the blast from
+     * @param damageIn The damage to reduce
+     * @return The damage after blast reduction
+     */
+    private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion, damageIn: Float): Double {
         val armorValue = entity.totalArmorValue
         val entityAttributes = entity.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS)
-        var damage = CombatRules.getDamageAfterAbsorb(damageL, armorValue.toFloat(), entityAttributes.attributeValue.toFloat())
         val damageSource = DamageSource.causeExplosionDamage(explosion)
-        damage *= getProtectionModifier(entity, damageSource)
-        if (entity.isPotionActive(MobEffects.RESISTANCE)) damage *= getResistanceReduction(entity)
+        val damage =
+            CombatRules.getDamageAfterAbsorb(damageIn, armorValue.toFloat(), entityAttributes.attributeValue.toFloat()) *
+            getProtectionModifier(entity, damageSource) * // Apply protection modifier
+            getResistanceReduction(entity) // Apply resistance reduction
 
         return damage.coerceAtLeast(0.0f).toDouble()
     }
 
     /**
+     * @param entity The entity to get the protection modifier from
      * @return The resistance absorption modifier. From 0 to 1
      */
     private fun getResistanceReduction(entity: EntityLivingBase): Float {
