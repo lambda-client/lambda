@@ -181,6 +181,7 @@ object CombatSetting : Module(
         val prediction = getPrediction(target)
 
         for (pos in getPlacePos(target, player, 8f)) {
+            if (blockBlacklist.contains(world.getBlockState(pos).block)) continue
             val dist = eyePos.distanceTo(pos.toVec3dCenter(0.0, 0.5, 0.0))
             val damage = calcCrystalDamage(pos, target, prediction.first, prediction.second)
             val selfDamage = calcCrystalDamage(pos, player)
@@ -188,8 +189,8 @@ object CombatSetting : Module(
         }
 
         CombatManager.placeMap = LinkedHashMap<BlockPos, CombatManager.CrystalDamage>(cacheList.size).apply {
-            putAll(cacheList.sortedByDescending { it.second.targetDamage })
-        }.filter { !blockBlacklist.contains(world.getBlockState(it.key).block) }
+            putAll(cacheList.sortedWith(compareBy({ it.second.selfDamage }, { -it.second.targetDamage })).toMap())
+        }
     }
 
     /* Crystal damage calculation */
@@ -211,7 +212,7 @@ object CombatSetting : Module(
             }
 
         CombatManager.crystalMap = LinkedHashMap<EntityEnderCrystal, CombatManager.CrystalDamage>(cacheList.size).apply {
-            putAll(cacheList.sortedByDescending { it.second.targetDamage })
+            putAll(cacheList.sortedWith(compareBy({ it.second.selfDamage }, { -it.second.targetDamage })).toMap())
         }
     }
 

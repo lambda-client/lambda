@@ -44,6 +44,7 @@ import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityEnderCrystal
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Items
 import net.minecraft.init.MobEffects
 import net.minecraft.init.SoundEvents
@@ -53,6 +54,7 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.client.CPacketAnimation
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.network.play.client.CPacketUseEntity
+import net.minecraft.network.play.server.SPacketDestroyEntities
 import net.minecraft.network.play.server.SPacketSoundEffect
 import net.minecraft.network.play.server.SPacketSpawnObject
 import net.minecraft.util.EnumFacing
@@ -61,6 +63,7 @@ import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraftforge.event.entity.living.LivingDeathEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
@@ -211,7 +214,6 @@ object CrystalAura : Module(
                     }
                 }
                 is SPacketSoundEffect -> {
-                    // Minecraft sends sounds packets a tick before removing the crystal lol
                     if (event.packet.category == SoundCategory.BLOCKS && event.packet.sound == SoundEvents.ENTITY_GENERIC_EXPLODE) {
                         val crystalList = getCrystalList(Vec3d(event.packet.x, event.packet.y, event.packet.z), 6.0f)
 
@@ -221,6 +223,13 @@ object CrystalAura : Module(
 
                         ignoredCrystalMap.clear()
                         hitCount = 0
+                    }
+                }
+                is LivingDeathEvent -> {
+                    if (event.packet.entity == CombatManager.target) {
+                        placeMap = emptyMap()
+
+                        resetHotbar()
                     }
                 }
             }
@@ -446,15 +455,10 @@ object CrystalAura : Module(
         if (placeDelayMode.value == PlaceDelayMode.TICKS) placeTimerTicks > placeDelayTick
         else placeTimerMs.tick(placeDelayMs, false)
 
-    @Suppress("UnconditionalJumpStatementInLoop") // The linter is wrong here, it will continue until it's supposed to return
     private fun SafeClientEvent.getPlacingPos(): BlockPos? {
         if (placeMap.isEmpty()) return null
 
-        val sortedList = placeMap.map { it.key to it.value }
-            .sortedWith(compareBy({ -it.second.targetDamage }, { it.second.selfDamage }))
-            .toMutableList()
-
-        for ((pos, crystalDamage) in sortedList) {
+        for ((pos, crystalDamage) in placeMap) {
             if (isCrystalSafe(pos, crystalDamage)) return pos
         }
         return null
@@ -462,6 +466,7 @@ object CrystalAura : Module(
 
     private fun SafeClientEvent.isCrystalSafe(pos: BlockPos, crystalDamage: CombatManager.CrystalDamage): Boolean {
         val eyePos = player.getPositionEyes(1f)
+
         // Damage check
         if (!noSuicideCheck(crystalDamage.selfDamage)) return false
         if (!checkDamagePlace(crystalDamage)) return false
