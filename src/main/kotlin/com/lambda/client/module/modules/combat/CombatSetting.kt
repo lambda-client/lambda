@@ -60,7 +60,7 @@ object CombatSetting : Module(
     /* Targeting */
     private val filter by setting("Filter", TargetFilter.ALL, { page == Page.TARGETING })
     private val fov by setting("FOV", 90.0f, 0.0f..180.0f, 5.0f, { page == Page.TARGETING && filter == TargetFilter.FOV })
-    private val priority by setting("Priority", TargetPriority.DISTANCE, { page == Page.TARGETING })
+    private val priority by setting("Priority", TargetPriority.DAMAGE, { page == Page.TARGETING })
     private val players by setting("Players", true, { page == Page.TARGETING })
     private val friends by setting("Friends", false, { page == Page.TARGETING && players })
     private val teammates by setting("Teammates", false, { page == Page.TARGETING && players })

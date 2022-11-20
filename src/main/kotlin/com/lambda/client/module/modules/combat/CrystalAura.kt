@@ -104,14 +104,14 @@ object CrystalAura : Module(
 
     /* Place page two */
     private val minDamageP by setting("Min Damage Place", 4.75f, 0.0f..10.0f, 0.25f, page.atValue(Page.PLACE_TWO))
-    private val maxSelfDamageP by setting("Max Self Damage Place", 3.5f, 0.0f..10.0f, 0.25f, page.atValue(Page.PLACE_TWO))
+    private val maxSelfDamageP by setting("Max Self Damage Place", 2.75f, 0.0f..10.0f, 0.25f, page.atValue(Page.PLACE_TWO))
     private val placeOffset by setting("Place Offset", 1.0f, 0f..1f, 0.05f, page.atValue(Page.PLACE_TWO))
     private val maxCrystal by setting("Max Crystal", 2, 1..5, 1, page.atValue(Page.PLACE_TWO))
     private val placeDelayMode = setting("Place Delay Mode", PlaceDelayMode.TICKS, page.atValue(Page.PLACE_TWO))
     private val placeDelayTick by setting("Place Delay Ticks", 1, 1..10, 1, page.atValue(Page.PLACE_TWO, placeDelayMode.atValue(PlaceDelayMode.TICKS)))
     private val placeDelayMs by setting("Place Delay ms", 30, 10..500, 1, page.atValue(Page.PLACE_TWO, placeDelayMode.atValue(PlaceDelayMode.MS)))
-    private val placeRange by setting("Place Range", 4.25f, 0.0f..5.0f, 0.25f, page.atValue(Page.PLACE_TWO))
-    private val wallPlaceRange by setting("Wall Place Range", 3.5f, 0.0f..5.0f, 0.25f, page.atValue(Page.PLACE_TWO))
+    private val placeRange by setting("Place Range", 4.75f, 0.0f..5.0f, 0.25f, page.atValue(Page.PLACE_TWO))
+    private val wallPlaceRange by setting("Wall Place Range", 4.75f, 0.0f..5.0f, 0.25f, page.atValue(Page.PLACE_TWO))
 
     /* Explode page one */
     private val doExplode by setting("Explode", true, page.atValue(Page.EXPLODE_ONE))
@@ -120,14 +120,14 @@ object CrystalAura : Module(
     private val packetExplode by setting("Packet Explode", true, page.atValue(Page.EXPLODE_ONE))
 
     /* Explode page two */
-    private val minDamageE by setting("Min Damage Explode", 5.0f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
-    private val maxSelfDamageE by setting("Max Self Damage Explode", 3.5f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
-    private val swapDelay by setting("Swap Delay", 10, 0..50, 1, page.atValue(Page.EXPLODE_TWO))
+    private val minDamageE by setting("Min Damage Explode", 4.75f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
+    private val maxSelfDamageE by setting("Max Self Damage Explode", 2.75f, 0.0f..10.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
+    private val swapDelay by setting("Swap Delay", 5, 0..50, 1, page.atValue(Page.EXPLODE_TWO))
     private val hitDelay by setting("Hit Delay", 1, 1..10, 1, page.atValue(Page.EXPLODE_TWO))
-    private val hitAttempts by setting("Hit Attempts", 4, 0..10, 1, page.atValue(Page.EXPLODE_TWO))
-    private val retryTimeout by setting("Retry Timeout", 1000, 0..5000, 50, page.atValue(Page.EXPLODE_TWO) { hitAttempts > 0 })
-    private val explodeRange by setting("Explode Range", 4.25f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
-    private val wallExplodeRange by setting("Wall Explode Range", 3.5f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
+    private val hitAttempts by setting("Hit Attempts", 1, 0..10, 1, page.atValue(Page.EXPLODE_TWO))
+    private val retryTimeout by setting("Retry Timeout", 100, 0..5000, 50, page.atValue(Page.EXPLODE_TWO) { hitAttempts > 0 })
+    private val explodeRange by setting("Explode Range", 4.0f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
+    private val wallExplodeRange by setting("Wall Explode Range", 3.75f, 0.0f..5.0f, 0.25f, page.atValue(Page.EXPLODE_TWO))
     /* End of settings */
 
     private enum class Page {
