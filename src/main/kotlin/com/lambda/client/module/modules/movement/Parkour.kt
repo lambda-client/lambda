@@ -5,6 +5,7 @@ import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.GuiColors
+import com.lambda.client.module.modules.render.Search.setting
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
@@ -26,6 +27,7 @@ object Parkour: Module(
     private val esp by setting("FeetESP", true)
     private val espFilledAlpha by setting("ESP Filled Alpha", 47, 0..255, 1, { esp })
     private val espOutlineAlpha by setting("ESP Outline Alpha", 0, 0..255, 1, { esp })
+    private val thickness by setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f, { esp })
     private val espColor by setting("ESP Color", GuiColors.primary, false, { esp })
 
     private val renderer = ESPRenderer()
@@ -50,6 +52,7 @@ object Parkour: Module(
 
             renderer.aFilled = espFilledAlpha
             renderer.aOutline = espOutlineAlpha
+            renderer.thickness = thickness
 
             renderer.clear()
             Wrapper.player?.let {
