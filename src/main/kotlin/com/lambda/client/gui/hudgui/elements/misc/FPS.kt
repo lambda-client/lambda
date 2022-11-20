@@ -4,8 +4,6 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.util.CircularArray
 import com.lambda.client.util.graphics.AnimationUtils
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal object FPS : LabelHud(
@@ -14,9 +12,9 @@ internal object FPS : LabelHud(
     description = "Frames per second in game"
 ) {
 
-    private val showAverage = setting("Show Average", true)
-    private val showMin = setting("Show Min", false)
-    private val showMax = setting("Show Max", false)
+    private val showAverage by setting("Show Average", true)
+    private val showMin by setting("Show Min", false)
+    private val showMax by setting("Show Max", false)
 
     private var updateTime = 0L
     private var prevFps = 0
@@ -44,29 +42,22 @@ internal object FPS : LabelHud(
         val fps = (prevFps + (currentFps - prevFps) * deltaTime).roundToInt()
         val avg = (prevAvgFps + (currentAvgFps - prevAvgFps) * deltaTime).roundToInt()
 
-        var min = 6969
-        var max = 0
-        for (value in longFps) {
-            if (value != 0) min = min(value, min)
-            max = max(value, max)
-        }
-
         displayText.add("FPS", secondaryColor)
         displayText.add(fps.toString(), primaryColor)
 
-        if (showAverage.value) {
+        if (showAverage) {
             displayText.add("AVG", secondaryColor)
             displayText.add(avg.toString(), primaryColor)
         }
 
-        if (showMin.value) {
+        if (showMin) {
             displayText.add("MIN", secondaryColor)
-            displayText.add(min.toString(), primaryColor)
+            displayText.add(longFps.min().toString(), primaryColor)
         }
 
-        if (showMax.value) {
+        if (showMax) {
             displayText.add("MAX", secondaryColor)
-            displayText.add(max.toString(), primaryColor)
+            displayText.add(longFps.max().toString(), primaryColor)
         }
     }
 

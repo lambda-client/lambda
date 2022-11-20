@@ -1,6 +1,7 @@
 package com.lambda.client.gui.rgui.windows
 
 import com.lambda.client.commons.extension.sumByFloat
+import com.lambda.client.gui.rgui.InteractiveComponent
 import com.lambda.client.gui.rgui.component.*
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.settings.AbstractSetting
@@ -13,6 +14,7 @@ import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Keyboard
+import org.lwjgl.input.Mouse
 
 abstract class SettingWindow<T : Any>(
     name: String,
@@ -25,7 +27,7 @@ abstract class SettingWindow<T : Any>(
     override val minWidth: Float get() = 100.0f
     override val minHeight: Float get() = draggableHeight
     override var height: Float = 0.0f
-        get() = children.filter { it.visible }.sumByFloat { it.height + ClickGUI.entryMargin } + ClickGUI.entryMargin + 6.0f + FontRenderAdapter.getFontHeight()
+        get() = children.filter { it.visible }.sumByFloat { it.height + ClickGUI.verticalMargin } + ClickGUI.verticalMargin + draggableHeight + ClickGUI.resizeBar
 
     override val minimizable get() = false
 
@@ -79,6 +81,8 @@ abstract class SettingWindow<T : Any>(
         super.onTick()
         if (listeningChild?.listening == false) listeningChild = null
         Keyboard.enableRepeatEvents(listeningChild != null)
+        scrollProgress = .0f
+        prevScrollProgress = .0f
     }
 
     override fun onClosed() {

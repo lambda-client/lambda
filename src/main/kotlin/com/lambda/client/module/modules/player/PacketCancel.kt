@@ -18,7 +18,7 @@ import net.minecraft.network.status.server.SPacketServerInfo
 
 object PacketCancel : Module(
     name = "PacketCancel",
-    description = "Cancels specific packets used for various actions",
+    description = "Cancels specific packets for various interactions",
     category = Category.PLAYER
 ) {
     enum class Side {

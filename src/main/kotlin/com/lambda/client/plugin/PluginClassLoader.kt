@@ -39,7 +39,6 @@ class PluginClassLoader(jar: JarFile, parent: ClassLoader) : ClassLoader(parent)
 
     private fun getClasses(jar: JarFile) {
         for (entry in jar.entries()) {
-
             if (entry.name.endsWith(".class")) {
                 classes[entry.name.removeSuffix(".class").replace("/", ".")] = getDataFromEntry(jar, entry)
             } else if (!entry.name.endsWith("/")) {
