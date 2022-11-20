@@ -24,10 +24,15 @@ object ClickGUI : Module(
     val windowOutline by setting("Window Outline", false)
     val buttonOutline by setting("Button Outline", false)
     val outlineWidth by setting("Outline Width", 2.5f, 0.5f..3.5f, 0.5f, { windowOutline || buttonOutline })
-    val entryMargin by setting("Margin", 0.0f, 0.0f..10.0f, 0.5f, unit = "px")
+    val resizeBar by setting("Resize Bar", 5, 0..20, 1, unit = "px")
+    val horizontalMargin by setting("Horizontal Margin", 0.0f, 0.0f..10.0f, 0.5f, unit = "px")
+    val verticalMargin by setting("Vertical Margin", 0.0f, 0.0f..10.0f, 0.5f, unit = "px")
     val darkness by setting("Darkness", 0.25f, 0.0f..1.0f, 0.05f)
+    val gridSize by setting("Snap Grid", 10.0f, 0.0f..50.0f, 1.0f, unit = "px")
     val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f, unit = "s")
     val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f, unit = "s")
+    val scrollRubberband by setting("Scroll Rubberband", false)
+    val scrollRubberbandSpeed by setting("Scroll Rubberband Speed", 0.5f, 0.01f..1.0f, 0.05f, { scrollRubberband })
     val showModifiedInBold by setting("Show Modified In Bold", false, description = "Display modified settings in a bold font")
     private val resetComponents = setting("Reset Positions", false)
     private val resetScale = setting("Reset Scale", false)
@@ -92,6 +97,7 @@ object ClickGUI : Module(
             if (mc.currentScreen !is LambdaClickGui) {
                 HudEditor.disable()
                 mc.displayGuiScreen(LambdaClickGui)
+                LambdaClickGui.isFocused = true
                 LambdaClickGui.onDisplayed()
             }
         }
