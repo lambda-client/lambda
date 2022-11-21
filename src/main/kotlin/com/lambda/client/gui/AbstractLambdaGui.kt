@@ -196,7 +196,6 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
             }
         }
 
-        hoveredWindow?.onMouseInput(mousePos)
         super.handleMouseInput()
         updateSettingWindow()
     }
@@ -283,6 +282,8 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         drawTypedString()
 
         GlStateUtils.depth(false)
+
+        hoveredWindow?.onMouseInput(getRealMousePos())
     }
 
     private fun drawBackground(vertexHelper: VertexHelper, partialTicks: Float) {
