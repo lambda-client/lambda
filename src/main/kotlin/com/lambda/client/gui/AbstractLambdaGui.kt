@@ -15,6 +15,7 @@ import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
+import com.lambda.mixin.accessor.gui.AccessorGuiScreen
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
@@ -140,6 +141,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
     open fun onDisplayed() {
         lastClickedWindow = null
         lastEventButton = -1
+        (this as AccessorGuiScreen).setEventButton(-1)
 
         displayed.value = true
 
