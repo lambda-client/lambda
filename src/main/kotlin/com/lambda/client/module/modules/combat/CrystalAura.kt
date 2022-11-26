@@ -52,6 +52,7 @@ import net.minecraft.item.ItemSword
 import net.minecraft.item.ItemTool
 import net.minecraft.network.Packet
 import net.minecraft.network.play.client.CPacketAnimation
+import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.network.play.client.CPacketUseEntity
 import net.minecraft.network.play.server.SPacketDestroyEntities
@@ -225,13 +226,6 @@ object CrystalAura : Module(
                         hitCount = 0
                     }
                 }
-                is LivingDeathEvent -> {
-                    if (event.packet.entity == CombatManager.target) {
-                        placeMap = emptyMap()
-
-                        resetHotbar()
-                    }
-                }
             }
         }
 
@@ -240,13 +234,20 @@ object CrystalAura : Module(
                 && CombatManager.isOnTopPriority(CrystalAura)
                 && !CombatSetting.pause
                 && packetList.size == 0
-                && canPlace()) {
+                && canPlace()
+                && CombatManager.target != null
+            ) {
                 place()
             }
         }
 
         safeListener<OnUpdateWalkingPlayerEvent> {
             if (!CombatManager.isOnTopPriority(CrystalAura) || CombatSetting.pause) return@safeListener
+
+            if (it.phase == Phase.PRE && inactiveTicks <= 20 && lastLookAt != Vec3d.ZERO) {
+                val rotation = RotationUtils.getRotationFromVec(lastLookAt)
+                sendPacketDirect(CPacketPlayer.Rotation(rotation.x, rotation.y, true))
+            }
 
             if (it.phase == Phase.POST) {
                 synchronized(packetList) {
@@ -264,7 +265,13 @@ object CrystalAura : Module(
                 updateYawSpeed()
             }
 
-            if (CombatManager.isOnTopPriority(CrystalAura) && !CombatSetting.pause && packetList.size == 0) {
+            if (
+                CombatManager.isOnTopPriority(CrystalAura)
+                && !CombatSetting.pause
+                && packetList.size == 0
+                && CombatManager.target != null
+            )
+            {
                 updateMap()
                 if (canPlace()) place()
                 if (canExplode()) explode()
@@ -317,10 +324,11 @@ object CrystalAura : Module(
         getPlacingPos()?.let { pos ->
             swapToCrystal()
 
-            val hand = getHand() ?: return
+            val hand = getHand()
             inactiveTicks = 0
             lastLookAt = pos.toVec3d(0.5, placeOffset.toDouble(), 0.5)
 
+            if (hand == null) return
             placeTimerMs.reset()
             placeTimerTicks = 0
 
