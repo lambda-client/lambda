@@ -1,7 +1,6 @@
 package com.lambda.client.util.combat
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.util.Wrapper
 import com.lambda.client.util.combat.CombatUtils.calculateExplosion
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.distanceTo
@@ -11,15 +10,11 @@ import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
-import net.minecraft.util.DamageSource
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraft.world.Explosion
 
 object CrystalUtils {
-    private val mc = Wrapper.minecraft
-
     /* Position Finding */
     fun SafeClientEvent.getPlacePos(target: EntityLivingBase?, center: Entity?, radius: Float): List<BlockPos> {
         if (center == null) return emptyList()
@@ -88,13 +83,13 @@ object CrystalUtils {
     /* End of position finding */
 
     /* Damage calculation */
-    fun SafeClientEvent.calcCrystalDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox) =
-        calcCrystalDamage(crystal.positionVector, entity, entityPos, entityBB)
+    fun SafeClientEvent.calcCrystalDamage(crystal: EntityEnderCrystal, entity: EntityLivingBase) =
+        calcCrystalDamage(crystal.positionVector, entity)
 
-    fun SafeClientEvent.calcCrystalDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox) =
-        calcCrystalDamage(Vec3d(pos).add(0.5, 1.0, 0.5), entity, entityPos, entityBB)
+    fun SafeClientEvent.calcCrystalDamage(pos: BlockPos, entity: EntityLivingBase) =
+        calcCrystalDamage(Vec3d(pos).add(0.5, 1.0, 0.5), entity)
 
-    fun SafeClientEvent.calcCrystalDamage(pos: Vec3d, entity: EntityLivingBase, entityPos: Vec3d = entity.positionVector, entityBB: AxisAlignedBB = entity.entityBoundingBox): Float {
+    fun SafeClientEvent.calcCrystalDamage(pos: Vec3d, entity: EntityLivingBase): Float {
         // Return 0 directly if entity is a player and in creative mode
         if (entity is EntityPlayer && entity.isCreative) return 0.0f
 
@@ -104,19 +99,5 @@ object CrystalUtils {
         // Return the damage
         return damage.coerceAtLeast(0.0).toFloat()
     }
-
-    /**
-     * Calculate the damage source of the crystal
-     * @param pos The position of the crystal
-     * @param entityPos The position of the entity
-     * @param entityBB The bounding box of the entity
-     * @return The damage
-     */
-    private fun SafeClientEvent.calcRawDamage(pos: Vec3d, entityPos: Vec3d, entityBB: AxisAlignedBB): Float {
-        val distance = pos.distanceTo(entityPos)
-        val v = (1.0 - (distance / 12.0)) * world.getBlockDensity(pos, entityBB)
-        return ((v * v + v) / 2.0 * 84.0 + 1.0).toFloat()
-    }
-
     /* End of damage calculation */
 }

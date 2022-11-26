@@ -178,12 +178,11 @@ object CombatSetting : Module(
 
         val eyePos = player.getPositionEyes(1f) ?: Vec3d.ZERO
         val cacheList = ArrayList<Pair<BlockPos, CombatManager.CrystalDamage>>()
-        val prediction = getPrediction(target)
 
         for (pos in getPlacePos(target, player, 8f)) {
             if (blockBlacklist.contains(world.getBlockState(pos).block)) continue
             val dist = eyePos.distanceTo(pos.toVec3dCenter(0.0, 0.5, 0.0))
-            val damage = calcCrystalDamage(pos, target, prediction.first, prediction.second)
+            val damage = calcCrystalDamage(pos, target)
             val selfDamage = calcCrystalDamage(pos, player)
             cacheList.add(Pair(pos, CombatManager.CrystalDamage(damage, selfDamage, dist)))
         }
@@ -200,13 +199,12 @@ object CombatSetting : Module(
         val cacheList = ArrayList<Pair<EntityEnderCrystal, CombatManager.CrystalDamage>>()
         val eyePos = player.getPositionEyes(1f)
         val target = CombatManager.target
-        val prediction = target?.let { getPrediction(it) }
 
         world.loadedEntityList
             .filterIsInstance<EntityEnderCrystal>()
             .filter { !it.isDead && it.distanceTo(eyePos) < 16.0f }
             .forEach {
-                val damage = if (target != null && prediction != null) calcCrystalDamage(it, target, prediction.first, prediction.second) else 0.0f
+                val damage = if (target != null) calcCrystalDamage(it, target) else 0.0f
                 val selfDamage = calcCrystalDamage(it, player)
                 cacheList.add(it to CombatManager.CrystalDamage(damage, selfDamage, it.distanceTo(eyePos)))
             }

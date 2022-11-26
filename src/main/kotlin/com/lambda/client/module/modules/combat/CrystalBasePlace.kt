@@ -155,7 +155,7 @@ object CrystalBasePlace : Module(
             if (!hasNeighbour(pos)) continue
 
             // Damage check
-            val damage = calcPlaceDamage(pos, entity, prediction.first, prediction.second)
+            val damage = calcPlaceDamage(pos, entity)
             if (!checkDamage(damage.first, damage.second, maxCurrentDamage)) continue
 
             cacheMap[damage.first] = pos
@@ -167,13 +167,13 @@ object CrystalBasePlace : Module(
         return null
     }
 
-    private fun SafeClientEvent.calcPlaceDamage(pos: BlockPos, entity: EntityLivingBase, entityPos: Vec3d, entityBB: AxisAlignedBB): Pair<Float, Float> {
+    private fun SafeClientEvent.calcPlaceDamage(pos: BlockPos, entity: EntityLivingBase): Pair<Float, Float> {
         // Set up a fake obsidian here for proper damage calculation
         val prevState = world.getBlockState(pos)
         world.setBlockState(pos, Blocks.OBSIDIAN.defaultState)
 
         // Checks damage
-        val damage = calcCrystalDamage(pos, entity, entityPos, entityBB)
+        val damage = calcCrystalDamage(pos, entity)
         val selfDamage = calcCrystalDamage(pos, player)
 
         // Revert the block state before return
