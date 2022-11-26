@@ -24,6 +24,13 @@ object CombatManager : Manager {
     var crystalMap = emptyMap<EntityEnderCrystal, CrystalDamage>()
     val motionTracker = MotionTracker(null)
 
+    fun clear() {
+        target = null
+        placeMap = emptyMap()
+        crystalMap = emptyMap()
+        motionTracker.reset()
+    }
+
     fun isActiveAndTopPriority(module: AbstractModule) = module.isActive() && isOnTopPriority(module)
 
     fun isOnTopPriority(module: AbstractModule): Boolean {
@@ -61,9 +68,7 @@ object CombatManager : Manager {
 
         /* Reset on disconnect */
         safeListener<ConnectionEvent.Disconnect> {
-            target = null
-            placeMap = emptyMap()
-            crystalMap = emptyMap()
+            clear()
         }
     }
 
