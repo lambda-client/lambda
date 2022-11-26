@@ -1,10 +1,13 @@
 package com.lambda.client.manager.managers
 
+import com.lambda.client.event.LambdaEventBus
+import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.Category
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.util.MotionTracker
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.util.math.BlockPos
@@ -55,5 +58,16 @@ object CombatManager : Manager {
             cacheList.add(module)
         }
         combatModules = cacheList
+
+        /* Reset on disconnect */
+        safeListener<ConnectionEvent.Disconnect> {
+            target = null
+            placeMap = emptyMap()
+            crystalMap = emptyMap()
+        }
+    }
+
+    init {
+        LambdaEventBus.subscribe(this)
     }
 }
