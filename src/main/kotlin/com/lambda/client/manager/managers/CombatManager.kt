@@ -71,8 +71,4 @@ object CombatManager : Manager {
             clear()
         }
     }
-
-    init {
-        LambdaEventBus.subscribe(this)
-    }
 }
