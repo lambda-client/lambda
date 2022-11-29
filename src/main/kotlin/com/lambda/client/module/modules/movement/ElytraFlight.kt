@@ -95,7 +95,7 @@ object ElytraFlight : Module(
 
 
     /* Vanilla */
-    private val upPitch by setting("Up Pitch", 20f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+    private val upPitch by setting("Up Pitch", 30f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
     private val downPitch by setting("Down Pitch", 0f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
     private val rocketPitch by setting("Rocket Pitch", 50f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
 
