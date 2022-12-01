@@ -13,6 +13,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.MovementUtils
 import com.lambda.client.util.MovementUtils.calcMoveYaw
 import com.lambda.client.util.threads.runSafe
+import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.network.play.client.CPacketConfirmTeleport
 import net.minecraft.network.play.client.CPacketPlayer
@@ -40,7 +41,7 @@ object Flight : Module(
     private val packetMode by setting("Packet Mode", PacketMode.FAST, { mode == FlightMode.PACKET })
     private val bounds by setting("Packet Type", PacketType.NEGATIVE, { mode == FlightMode.PACKET })
     private val factor by setting("Bypass Factor", 1f, 0f..10f, .1f, { mode == FlightMode.PACKET })
-    private val concealFactor by setting("Conceal Factor", 2f,0f..10f, .1f, { mode == FlightMode.PACKET })
+    private val concealFactor by setting("Conceal Factor", 2f, 0f..10f, .1f, { mode == FlightMode.PACKET })
     private val conceal by setting("Conceal", false, { mode == FlightMode.PACKET })
     private val antiKick by setting("Anti Kick", true, { mode == FlightMode.PACKET })
 
@@ -69,7 +70,6 @@ object Flight : Module(
     init {
         onDisable {
             runSafe {
-
                 tpID = -1
                 ticksEnabled = 0
                 player.noClip = false
@@ -78,32 +78,27 @@ object Flight : Module(
                     isFlying = false
                     flySpeed = 0.05f
                 }
-
             }
         }
 
         onEnable {
-            runSafe {
+            runSafeR {
                 val position = CPacketPlayer.Position(.0, .0, .0, true)
                 filter.add(position)
                 connection.sendPacket(position)
-            }
+            } ?: disable()
         }
 
         safeListener<PlayerMoveEvent> {
             when (mode) {
-
                 // uses the same concepts as https://gist.github.com/Doogie13/aa04c6a8eb496c1afdb9c675e2ebd91c
                 // completely written from scratch, however
                 FlightMode.PACKET -> {
-
                     player.noClip = true
 
                     // region Motion
                     val concealing = world.collidesWithAnyBlock(player.entityBoundingBox) || conceal
-
                     var motionY: Double
-
                     var up = 0
 
                     // we must use else if to allow phasing
@@ -112,11 +107,10 @@ object Flight : Module(
                     else if (mc.gameSettings.keyBindSneak.isKeyDown)
                         up--
 
-                    motionY =
-                        if (up == 0)
-                            .0
-                        else
-                            CONCEAL_SPEED * up.toDouble()
+                    motionY = if (up == 0)
+                        .0
+                    else
+                        CONCEAL_SPEED * up.toDouble()
 
                     var motionXZ: Double = if (!MovementUtils.isInputting)
                         .0
@@ -167,8 +161,7 @@ object Flight : Module(
                     var currentY = if (antiKick && ticksEnabled % 10 == 0) -ANTIKICK_AMOUNT else baseY
                     var currentZ = baseZ
 
-                    for (i in 1..(factorInt)) {
-
+                    for (i in 1..factorInt) {
                         // should never happen
                         if (i > 10)
                             break
@@ -179,30 +172,20 @@ object Flight : Module(
 
                         //region bounds
                         when (bounds) {
-
                             PacketType.STRICT -> {
-
                                 var random = (Math.random() * 256) + 256
 
                                 (random + player.posY > (if (player.dimension == -1) 127 else 255))
                                 random *= -1
 
                                 yOffset = random
-
                             }
-
                             PacketType.POSITIVE -> {
-
                                 yOffset = 1337.0
-
                             }
-
                             PacketType.NEGATIVE -> {
-
                                 yOffset = -1337.0
-
                             }
-
                         }
                         //endregion
 
@@ -236,16 +219,12 @@ object Flight : Module(
                         player.setVelocity(.0, .0, .0)
 
                 }
-
                 FlightMode.STATIC -> {
-
                     var up = 0
 
-                    if (mc.gameSettings.keyBindJump.isKeyDown)
-                        up++
+                    if (mc.gameSettings.keyBindJump.isKeyDown) up++
 
-                    if (mc.gameSettings.keyBindSneak.isKeyDown)
-                        up--
+                    if (mc.gameSettings.keyBindSneak.isKeyDown) up--
 
                     player.motionY = if (up == 0) -glideSpeed else speed * up.toDouble()
 
@@ -257,7 +236,6 @@ object Flight : Module(
                     player.motionZ += cos(yaw) * speed
 
                 }
-
                 FlightMode.VANILLA -> {
                     player.capabilities.isFlying = true
                     player.capabilities.flySpeed = speed / 11.11f
@@ -266,9 +244,7 @@ object Flight : Module(
                         && !mc.gameSettings.keyBindJump.isKeyDown
                         && !mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = -glideSpeed
                 }
-
             }
-
         }
 
         listener<OnUpdateWalkingPlayerEvent> {
@@ -279,57 +255,39 @@ object Flight : Module(
         }
 
         safeListener<PacketEvent.Receive> {
+            if (mode != FlightMode.PACKET) return@safeListener
 
-            if (mode != FlightMode.PACKET)
-                return@safeListener
-
-            when (it.packet) {
-
+            when (val packet = it.packet) {
                 is SPacketPlayerPosLook -> {
-
-                    val packet = it.packet
                     val id = packet.teleportId
 
-                    if (history.containsKey(id) && tpID != -1) {
-
-                        val vec = history[id]
-
-                        if (vec != null) {
-
+                    if (history.containsKey(packet.teleportId) && tpID != -1) {
+                        history[id]?.let { vec ->
                             if (vec.x == packet.x && vec.y == packet.y && vec.z == packet.z) {
-
                                 if (packetMode != PacketMode.SETBACK)
                                     it.cancel()
 
                                 history.remove(id)
-
                                 player.connection.sendPacket(CPacketConfirmTeleport(id))
-
                                 return@safeListener
-
                             }
-
                         }
                     }
 
-                    it.packet.playerPosLookYaw = player.rotationYaw
-                    it.packet.playerPosLookPitch = player.rotationPitch
+                    packet.playerPosLookYaw = player.rotationYaw
+                    packet.playerPosLookPitch = player.rotationPitch
 
                     player.connection.sendPacket(CPacketConfirmTeleport(id))
 
                     tpID = id
-
                 }
-
                 is SPacketCloseWindow -> {
                     it.cancel()
                 }
-
             }
         }
 
         safeListener<PacketEvent.Send> {
-
             if (mode != FlightMode.PACKET || it.packet !is CPacketPlayer) return@safeListener
 
             if (!filter.contains(it.packet))
@@ -338,6 +296,5 @@ object Flight : Module(
                 filter.remove(it.packet)
 
         }
-
     }
 }
