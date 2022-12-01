@@ -37,7 +37,10 @@ internal object MapDownloader : Module(
     private val saveMapsFromEntity by setting("Save maps from entity", true)
     private val saveMapsFromInventory by setting("Save maps from inventory", true, description = "When rendering a new map it will save one image for every map update!")
     private val saveDelay by setting("Save delay", 0.2, 0.1..2.0, 0.1, unit = " s")
-    private val openImageFolder = setting("Open Image Folder...", false)
+    private val openImageFolder = setting("Open Image Folder...", false, consumer = { _, _ ->
+        FolderUtils.openFolder(FolderUtils.mapImagesFolder)
+        true
+    })
     private val pendingHashes = mutableSetOf<String>()
     private var existingHashes = mutableSetOf<String>()
     private var pendingTasks = mutableSetOf<MapInfo>()
@@ -72,11 +75,6 @@ internal object MapDownloader : Module(
             }
 
             getMaps()
-        }
-
-        openImageFolder.consumers.add { _, it ->
-            if (it) FolderUtils.openFolder(FolderUtils.mapImagesFolder)
-            false
         }
     }
 
