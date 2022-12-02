@@ -32,6 +32,8 @@ object AntiSpam : Module(
     private val specialCharBegin = setting("Special Begin", true, { page == Page.TYPE })
     private val greenText = setting("Green Text", false, { page == Page.TYPE })
     private val fancyChat by setting("Fancy Chat", false, { page == Page.TYPE })
+    private val lagMessage by setting("Lag Message", true, { page == Page.TYPE })
+    private val thresholdLagMessage by setting("Threshold Lag", 256, 256..1024, 1, { page == Page.TYPE && lagMessage }) // Is 1024 the max?
 
     /* Page Two */
     private val aggressiveFiltering by setting("Aggressive Filtering", true, { page == Page.SETTINGS })
@@ -85,6 +87,11 @@ object AntiSpam : Module(
         listener<ClientChatReceivedEvent> { event ->
             if (mc.player == null) return@listener
 
+
+            if (isLagMessage(event.message.unformattedText)) {
+                event.isCanceled = true
+            }
+
             messageHistory.values.removeIf { System.currentTimeMillis() - it > 600000 }
 
             if (duplicates && checkDupes(event.message.unformattedText)) {
@@ -131,6 +138,16 @@ object AntiSpam : Module(
         }
     }
 
+    private fun isLagMessage(message: String): Boolean {
+        return if (!filterOwn && isOwn(message)
+            || !filterDMs && MessageDetection.Direct.ANY detect message
+            || !filterServer && MessageDetection.Server.ANY detect message) {
+            false
+        } else {
+            message.getBytes() > thresholdLagMessage
+        }
+    }
+
     private fun detectSpam(message: String): String? {
         for ((key, value) in settingMap) {
             findPatterns(value, message)?.let {
@@ -169,6 +186,9 @@ object AntiSpam : Module(
         return isDuplicate
     }
 
+    private fun String.getBytes(): Int {
+        return this.toByteArray().size
+    }
 
     private fun isOwn(message: String): Boolean {
         /* mc.player is null when the module is being registered, so this matcher isn't added alongside the other FilterPatterns */
