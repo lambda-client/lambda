@@ -21,7 +21,7 @@ import java.util.*
 
 object TotemPopCounter : Module(
     name = "TotemPopCounter",
-    description = "Counts how many times players pop",
+    description = "Displays the number of times a player has popped",
     category = Category.COMBAT
 ) {
     private val countFriends by setting("Count Friends", true)
