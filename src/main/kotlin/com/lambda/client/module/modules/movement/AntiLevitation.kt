@@ -16,7 +16,11 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.cos
 import kotlin.math.sin
 
-object AntiLevitation : Module(name = "AntiLevitation", description = "Abuses poor anticheat levitation checks", category = Category.MOVEMENT) {
+object AntiLevitation : Module(
+    name = "AntiLevitation",
+    description = "Abuses poor anticheat levitation checks",
+    category = Category.MOVEMENT
+) {
     private val mode by setting("Mode", Mode.LEGIT, description = "The AntiLevitation mode")
 
     /* Flight mode */
