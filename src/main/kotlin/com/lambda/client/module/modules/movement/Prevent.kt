@@ -16,7 +16,7 @@ object Prevent : Module(
     val fire by setting("Fire", true, description = "Prevents you from touching fire by making the hitbox solid")
     val cactus by setting("Cactus", true, description = "Prevents you from taking cactus damage by slightly expanding its hitbox")
     val unloaded by setting("Unloaded Chunks", true, description = "Prevents you from entering unloaded chunks")
-    val void by setting("Void", true, description = "Prevents you from Y levels below zero")
+    val void by setting("Void", true, description = "Prevents you from entering Y levels below zero")
     val dragonEgg by setting("Dragon Egg", true, description = "Prevents you from teleporting dragon eggs")
 
     init {
