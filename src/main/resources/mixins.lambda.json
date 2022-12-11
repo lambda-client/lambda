@@ -75,6 +75,7 @@
     "render.MixinViewFrustum",
     "render.MixinVisGraph",
     "world.MixinBlock",
+    "world.MixinBlockDragonEgg",
     "world.MixinBlockFluidRenderer",
     "world.MixinBlockLiquid",
     "world.MixinBlockModelRenderer",
