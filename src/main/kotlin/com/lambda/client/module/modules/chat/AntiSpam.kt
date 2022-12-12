@@ -1,12 +1,12 @@
 package com.lambda.client.module.modules.chat
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.SpamFilters
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.client.event.ClientChatReceivedEvent
 import java.util.concurrent.ConcurrentHashMap
@@ -84,11 +84,8 @@ object AntiSpam : Module(
             messageHistory.clear()
         }
 
-        listener<ClientChatReceivedEvent> { event ->
-            if (mc.player == null) return@listener
-
-
-            if (isLagMessage(event.message.unformattedText)) {
+        safeListener<ClientChatReceivedEvent> { event ->
+            if (lagMessage && isLagMessage(event.message.unformattedText)) {
                 event.isCanceled = true
             }
 
