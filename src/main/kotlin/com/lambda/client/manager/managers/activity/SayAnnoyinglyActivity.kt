@@ -1,17 +1,12 @@
-package com.lambda.client.manager.managers.activities
+package com.lambda.client.manager.managers.activity
 
 import com.lambda.client.event.SafeClientEvent
 
 class SayAnnoyinglyActivity(private val sayWhat: String): Activity() {
-    override fun SafeClientEvent.initialize(): ActivityStatus {
+    override fun SafeClientEvent.initialize() {
         sayWhat.split(" ").forEach {
             subActivities.add(WaitAndSayActivity(it, System.currentTimeMillis() + 1000))
         }
-        return ActivityStatus.RUNNING
+        activityStatus = ActivityStatus.RUNNING
     }
-
-    override fun SafeClientEvent.doTick(): ActivityStatus {
-        return ActivityStatus.SUCCESS
-    }
-
 }
