@@ -1,5 +1,6 @@
 package com.lambda.client.manager.managers.activity
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -24,14 +25,11 @@ abstract class Activity {
                 subActivities.peek()?.let {
                     with(it) {
                         if (it.activityStatus == ActivityStatus.SUCCESS) {
-                            subActivities.pop()
-//                            LambdaEventBus.unsubscribe(it)
+                            finalize(this@Activity)
                         } else {
                             updateActivities()
                         }
                     }
-                } ?: run {
-//                    LambdaEventBus.subscribe(this)
                 }
             }
             ActivityStatus.SUCCESS -> {
@@ -44,7 +42,23 @@ abstract class Activity {
         }
     }
 
-    abstract fun SafeClientEvent.initialize()
+    private fun SafeClientEvent.initialize() {
+        onInitialize()
+        activityStatus = ActivityStatus.RUNNING
+        LambdaEventBus.subscribe(this@Activity)
+        LambdaMod.LOG.info("Initialized activity: ${this@Activity}")
+    }
+
+    open fun SafeClientEvent.onInitialize() {}
+
+    private fun SafeClientEvent.finalize(owner: Activity) {
+        onFinalize()
+        owner.subActivities.pop()
+        LambdaEventBus.unsubscribe(this@Activity)
+        LambdaMod.LOG.info("Finalized activity: ${this@Activity}")
+    }
+
+    open fun SafeClientEvent.onFinalize() {}
 
     fun currentActivity(): Activity {
         return subActivities.peek() ?: this

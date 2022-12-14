@@ -13,13 +13,7 @@ object ActivityManager : Manager, Activity() {
             if (subActivities.isEmpty() || it.phase != TickEvent.Phase.START) return@safeListener
 
             updateActivities()
-
-            LambdaMod.LOG.error(currentActivity().toString())
         }
-    }
-
-    override fun SafeClientEvent.initialize() {
-        activityStatus = ActivityStatus.RUNNING
     }
 
     fun addActivity(activity: Activity) {
