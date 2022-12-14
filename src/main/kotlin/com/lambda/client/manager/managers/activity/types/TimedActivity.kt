@@ -1,4 +1,4 @@
-package com.lambda.client.manager.managers.activity.activities
+package com.lambda.client.manager.managers.activity.types
 
 import com.lambda.client.manager.managers.activity.Activity
 

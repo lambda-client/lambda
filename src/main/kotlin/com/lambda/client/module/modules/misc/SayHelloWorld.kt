@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.manager.managers.ActivityManager
-import com.lambda.client.manager.managers.activity.SayAnnoyinglyActivity
+import com.lambda.client.manager.managers.activity.activities.SayAnnoyinglyActivity
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 
