@@ -5,8 +5,8 @@ import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-abstract class DelayedActivity(private val delay: Long) : Activity() {
-    private var creationTime = 0L
+abstract class DelayedActivity(val delay: Long) : Activity() {
+    var creationTime = 0L
 
     override fun SafeClientEvent.onInitialize() {
         creationTime = System.currentTimeMillis()

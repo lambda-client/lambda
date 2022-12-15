@@ -1,7 +1,5 @@
 package com.lambda.client.manager.managers
 
-import com.lambda.client.LambdaMod
-import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.Manager
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.util.threads.safeListener
