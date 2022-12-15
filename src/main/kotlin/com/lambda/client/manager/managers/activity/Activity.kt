@@ -4,6 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
+import com.lambda.client.manager.managers.activity.types.TimeoutActivity
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.capitalize
@@ -34,6 +35,13 @@ abstract class Activity {
                             updateActivities()
                         }
                     }
+                } ?: run {
+                    if (this@Activity is TimeoutActivity) {
+                        if (System.currentTimeMillis() > creationTime + timeout) {
+                            activityStatus = ActivityStatus.FAILURE
+                            LambdaMod.LOG.error("TimedActivity timed out!")
+                        }
+                    }
                 }
             }
             ActivityStatus.SUCCESS -> {
@@ -47,6 +55,9 @@ abstract class Activity {
     }
 
     private fun SafeClientEvent.initialize() {
+        if (this@Activity is TimeoutActivity) {
+            creationTime = System.currentTimeMillis()
+        }
         onInitialize()
         activityStatus = ActivityStatus.RUNNING
         LambdaEventBus.subscribe(this@Activity)
