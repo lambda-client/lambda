@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.misc
 
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.activity.activities.example.SayAnnoyinglyActivity
+import com.lambda.client.manager.managers.activity.activities.interaction.PlaceBlockAHeadActivity
 import com.lambda.client.manager.managers.activity.activities.inventory.DumpInventoryActivity
 import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItemActivity
 import com.lambda.client.module.Category
@@ -45,6 +46,11 @@ object TestActivityManager : Module(
 
     private val onlyOne by setting("Dump only one Inventory", false, consumer = { _, _->
         ActivityManager.addActivity(DumpInventoryActivity(1))
+        false
+    })
+
+    private val place by setting("PlaceAhed", false, consumer = { _, _->
+        ActivityManager.addActivity(PlaceBlockAHeadActivity())
         false
     })
 

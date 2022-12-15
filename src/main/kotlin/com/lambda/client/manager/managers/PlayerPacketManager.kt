@@ -19,7 +19,7 @@ import java.util.*
 object PlayerPacketManager : Manager {
 
     /** TreeMap for all packets to be sent, sorted by their callers' priority */
-    private val packetMap = TreeMap<AbstractModule, Packet>(compareByDescending { it.modulePriority })
+    private val packetMap = TreeMap<Any, Packet>()
 
     var serverSidePosition: Vec3d = Vec3d.ZERO; private set
     var prevServerSidePosition: Vec3d = Vec3d.ZERO; private set
@@ -80,13 +80,13 @@ object PlayerPacketManager : Manager {
         }
     }
 
-    inline fun AbstractModule.sendPlayerPacket(block: Packet.Builder.() -> Unit) {
+    inline fun Any.sendPlayerPacket(block: Packet.Builder.() -> Unit) {
         Packet.Builder().apply(block).build()?.let {
             sendPlayerPacket(it)
         }
     }
 
-    fun AbstractModule.sendPlayerPacket(packet: Packet) {
+    fun Any.sendPlayerPacket(packet: Packet) {
         packetMap[this] = packet
     }
 
