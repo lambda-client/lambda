@@ -4,9 +4,6 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.activity.Activity
-import com.lambda.client.manager.managers.activity.types.TimedActivity
-import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Container
@@ -86,15 +83,4 @@ class InventoryTransactionActivity(
         } else {
             null
         }
-
-    override fun addExtraInfo(textComponent: TextComponent, primaryColor: ColorHolder, secondaryColor: ColorHolder) {
-        textComponent.add("WindowID", primaryColor)
-        textComponent.add(windowId.toString(), secondaryColor)
-        textComponent.add("Slot", primaryColor)
-        textComponent.add(slot.toString(), secondaryColor)
-        textComponent.add("MouseButton", primaryColor)
-        textComponent.add(mouseButton.toString(), secondaryColor)
-        textComponent.add("ClickType", primaryColor)
-        textComponent.add(type.name, secondaryColor)
-    }
 }

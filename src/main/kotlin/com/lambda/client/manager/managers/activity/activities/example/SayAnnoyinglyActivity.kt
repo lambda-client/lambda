@@ -11,9 +11,4 @@ class SayAnnoyinglyActivity(private val message: String): InstantActivity() {
             subActivities.add(SayVeryAnnoyinglyActivity(it))
         }
     }
-
-    override fun addExtraInfo(textComponent: TextComponent, primaryColor: ColorHolder, secondaryColor: ColorHolder) {
-        textComponent.add("Message", primaryColor)
-        textComponent.add(message, secondaryColor)
-    }
 }
