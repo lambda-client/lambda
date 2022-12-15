@@ -19,6 +19,10 @@ class SwapOrMoveToAnyBlockActivity(
                 val hotbarSlot = player.hotbarSlots.firstEmpty() ?: return@run
                 subActivities.add(SwapWithSlotActivity(it, hotbarSlot))
                 subActivities.add(SwitchToHotbarSlotActivity(hotbarSlot.hotbarSlot))
+//                addSubActivity {
+//                    SwapWithSlotActivity(it, hotbarSlot)
+//                    SwitchToHotbarSlotActivity(hotbarSlot.hotbarSlot)
+//                }
             }
         }
     }

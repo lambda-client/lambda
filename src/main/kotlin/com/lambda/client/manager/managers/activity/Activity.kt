@@ -3,10 +3,10 @@ package com.lambda.client.manager.managers.activity
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.gui.hudgui.AbstractHudElement
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
+import com.lambda.client.util.text.capitalize
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {
@@ -73,6 +73,10 @@ abstract class Activity {
         subActivities.clear()
     }
 
+    inline fun addSubActivity(block: () -> Activity) {
+        subActivities.add(block())
+    }
+
     override fun toString(): String {
         return "Name: ${javaClass.simpleName} State: $activityStatus SubActivities: $subActivities"
     }
@@ -85,7 +89,13 @@ abstract class Activity {
             textComponent.add("${javaClass.simpleName} ", secondaryColor)
             textComponent.add("State", primaryColor)
             textComponent.add(activityStatus.name, secondaryColor)
-            addExtraInfo(textComponent, primaryColor, secondaryColor)
+            this::class.java.declaredFields.forEach {
+                it.isAccessible = true
+                val name = it.name
+                val value = it.get(this)
+                textComponent.add(name.capitalize(), primaryColor)
+                textComponent.add(value.toString(), secondaryColor)
+            }
             textComponent.addLine("")
         }
         subActivities.forEach {
