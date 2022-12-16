@@ -17,23 +17,25 @@ import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumHand
+import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 
 class PlaceBlockActivity(
     private val blockPos: BlockPos,
     private val block: Block,
-    override val timeout: Long = 10000L,
+    private val playSound: Boolean = true,
+    override val timeout: Long = 500L,
     override var creationTime: Long = 0L,
-    override val maxAttempts: Int = 5,
+    override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override var renderBlockPos: BlockPos = blockPos,
-    override var color: ColorHolder = ColorHolder(35, 188, 254)
+    override var color: ColorHolder = ColorHolder(0, 0, 0)
 ) : TimeoutActivity, AttemptActivity, RenderBlockActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getNeighbour(blockPos, attempts = 1, visibleSideCheck = true)?.let {
-            val currentBlock = world.getBlockState(it.pos).block
+            val currentState = world.getBlockState(it.pos)
 
-            if (currentBlock in blockBlacklist) {
+            if (currentState.block in blockBlacklist) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
             }
 
@@ -43,11 +45,29 @@ class PlaceBlockActivity(
             connection.sendPacket(it.toPlacePacket(EnumHand.MAIN_HAND))
             player.swingArm(EnumHand.MAIN_HAND)
 
-            if (currentBlock in blockBlacklist) {
+            if (currentState.block in blockBlacklist) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
+            }
+
+            if (playSound) {
+                val soundType = currentState.block.getSoundType(
+                    currentState,
+                    world,
+                    blockPos,
+                    player
+                )
+                world.playSound(
+                    player,
+                    blockPos,
+                    soundType.placeSound,
+                    SoundCategory.BLOCKS,
+                    (soundType.getVolume() + 1.0f) / 2.0f,
+                    soundType.getPitch() * 0.8f
+                )
             }
         } ?: run {
             activityStatus = ActivityStatus.FAILURE
+            color = ColorHolder(16, 74, 94)
         }
     }
 
@@ -58,6 +78,7 @@ class PlaceBlockActivity(
                 && it.packet.blockState.block == block
             ) {
                 activityStatus = ActivityStatus.SUCCESS
+                color = ColorHolder(35, 188, 254)
             }
         }
     }

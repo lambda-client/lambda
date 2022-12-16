@@ -34,4 +34,8 @@ object ActivityManager : Manager, Activity() {
     fun addActivity(activity: Activity) {
         subActivities.add(activity)
     }
+
+    fun addAllActivities(activity: List<Activity>) {
+        subActivities.addAll(activity)
+    }
 }

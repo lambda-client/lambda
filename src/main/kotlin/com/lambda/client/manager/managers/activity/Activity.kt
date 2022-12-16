@@ -5,6 +5,7 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.activity.activities.*
+import com.lambda.client.manager.managers.activity.activities.AttemptActivity.Companion.doCheck
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.capitalize
@@ -29,10 +30,17 @@ abstract class Activity {
             ActivityStatus.RUNNING -> {
                 subActivities.peek()?.let {
                     with(it) {
-                        if (it.activityStatus == ActivityStatus.SUCCESS) {
-                            finalize(this@Activity)
-                        } else {
-                            updateActivities()
+                        when (it.activityStatus) {
+                            ActivityStatus.SUCCESS -> {
+                                finalize(this@Activity)
+                            }
+                            ActivityStatus.FAILURE -> {
+                                subActivities.remove(it)
+                                LambdaMod.LOG.error("Activity failed: $it")
+                            }
+                            else -> {
+                                updateActivities()
+                            }
                         }
                     }
                 } ?: run {
@@ -62,20 +70,14 @@ abstract class Activity {
                             activityStatus = ActivityStatus.SUCCESS
                         }
                     }
-                    if (this@Activity is AttemptActivity) {
-                        if (usedAttempts >= maxAttempts) {
-                            activityStatus = ActivityStatus.FAILURE
-                            LambdaMod.LOG.error("AttemptActivity failed after $maxAttempts attempts!")
-                        }
-                    }
+                    (this@Activity as? AttemptActivity)?.doCheck()
                 }
             }
             ActivityStatus.SUCCESS -> {
                 // do nothing
             }
             ActivityStatus.FAILURE -> {
-//                activityStatus = ActivityStatus.UNINITIALIZED
-//                subActivities.clear()
+                finalize(this@Activity)
             }
         }
     }
