@@ -3,7 +3,8 @@ package com.lambda.client.manager.managers.activity.activities.interaction
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.activity.Activity
-import com.lambda.client.manager.managers.activity.types.TimeoutActivity
+import com.lambda.client.manager.managers.activity.activities.AttemptActivity
+import com.lambda.client.manager.managers.activity.activities.TimeoutActivity
 import com.lambda.client.util.items.blockBlacklist
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.threads.safeListener
@@ -19,9 +20,11 @@ import net.minecraft.util.math.BlockPos
 class PlaceBlockActivity(
     private val blockPos: BlockPos,
     private val block: Block,
-    override val timeout: Long = 1000L,
-    override var creationTime: Long = 0L
-) : TimeoutActivity, Activity() {
+    override val timeout: Long = 10000L,
+    override var creationTime: Long = 0L,
+    override val maxAttempts: Int = 5,
+    override var usedAttempts: Int = 0
+) : TimeoutActivity, AttemptActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getNeighbour(blockPos)?.let {
             val currentBlock = world.getBlockState(it.pos).block

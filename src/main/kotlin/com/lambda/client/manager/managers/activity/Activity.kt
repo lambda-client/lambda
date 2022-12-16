@@ -4,7 +4,10 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
-import com.lambda.client.manager.managers.activity.types.TimeoutActivity
+import com.lambda.client.manager.managers.activity.activities.AttemptActivity
+import com.lambda.client.manager.managers.activity.activities.DelayedActivity
+import com.lambda.client.manager.managers.activity.activities.InstantActivity
+import com.lambda.client.manager.managers.activity.activities.TimeoutActivity
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.capitalize
@@ -38,8 +41,34 @@ abstract class Activity {
                 } ?: run {
                     if (this@Activity is TimeoutActivity) {
                         if (System.currentTimeMillis() > creationTime + timeout) {
+                            if (this@Activity is AttemptActivity) {
+                                if (usedAttempts >= maxAttempts) {
+                                    activityStatus = ActivityStatus.FAILURE
+                                    LambdaMod.LOG.error("TimedActivity fully timed out!")
+                                } else {
+                                    usedAttempts++
+                                    initialize()
+                                    LambdaMod.LOG.error("TimedActivity timed out!")
+                                }
+                            } else {
+                                activityStatus = ActivityStatus.FAILURE
+                                LambdaMod.LOG.error("TimedActivity fully timed out!")
+                            }
+                        }
+                    }
+                    if (this@Activity is InstantActivity) {
+                        activityStatus = ActivityStatus.SUCCESS
+                    }
+                    if (this@Activity is DelayedActivity) {
+                        if (System.currentTimeMillis() > creationTime + delay) {
+                            onDelayedActivity()
+                            activityStatus = ActivityStatus.SUCCESS
+                        }
+                    }
+                    if (this@Activity is AttemptActivity) {
+                        if (usedAttempts >= maxAttempts) {
                             activityStatus = ActivityStatus.FAILURE
-                            LambdaMod.LOG.error("TimedActivity timed out!")
+                            LambdaMod.LOG.error("AttemptActivity failed after $maxAttempts attempts!")
                         }
                     }
                 }
@@ -56,6 +85,9 @@ abstract class Activity {
 
     private fun SafeClientEvent.initialize() {
         if (this@Activity is TimeoutActivity) {
+            creationTime = System.currentTimeMillis()
+        }
+        if (this@Activity is DelayedActivity) {
             creationTime = System.currentTimeMillis()
         }
         onInitialize()

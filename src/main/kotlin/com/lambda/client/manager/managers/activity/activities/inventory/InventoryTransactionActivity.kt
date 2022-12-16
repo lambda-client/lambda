@@ -4,6 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.activity.Activity
+import com.lambda.client.manager.managers.activity.activities.TimeoutActivity
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Container
@@ -15,8 +16,10 @@ class InventoryTransactionActivity(
     val windowId: Int = 0,
     val slot: Int,
     private val mouseButton: Int = 0,
-    val type: ClickType
-) : Activity() {
+    val type: ClickType,
+    override val timeout: Long = 1000L,
+    override var creationTime: Long = 0L
+) : TimeoutActivity, Activity() {
     private var transactionId: Short = -1
 
     override fun SafeClientEvent.onInitialize() {
