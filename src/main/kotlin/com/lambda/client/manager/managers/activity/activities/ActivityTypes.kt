@@ -1,6 +1,8 @@
 package com.lambda.client.manager.managers.activity.activities
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.color.ColorHolder
+import net.minecraft.util.math.BlockPos
 
 interface TimeoutActivity {
     val timeout: Long
@@ -19,4 +21,9 @@ interface DelayedActivity {
 interface AttemptActivity {
     val maxAttempts: Int
     var usedAttempts: Int
+}
+
+interface RenderBlockActivity {
+    var renderBlockPos: BlockPos
+    var color: ColorHolder
 }

@@ -4,10 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
-import com.lambda.client.manager.managers.activity.activities.AttemptActivity
-import com.lambda.client.manager.managers.activity.activities.DelayedActivity
-import com.lambda.client.manager.managers.activity.activities.InstantActivity
-import com.lambda.client.manager.managers.activity.activities.TimeoutActivity
+import com.lambda.client.manager.managers.activity.activities.*
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.capitalize
@@ -107,7 +104,7 @@ abstract class Activity {
 
     open fun SafeClientEvent.onFinalize() {}
 
-    private fun currentActivity(): Activity {
+    fun currentActivity(): Activity {
         return subActivities.peek()?.currentActivity() ?: this
     }
 
