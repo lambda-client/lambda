@@ -1,10 +1,11 @@
 package com.lambda.client.manager.managers.activity.activities.inventory
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.manager.managers.activity.types.InstantActivity
+import com.lambda.client.manager.managers.activity.Activity
+import com.lambda.client.manager.managers.activity.activities.InstantActivity
 import com.lambda.client.util.items.allSlots
 
-class DumpInventoryActivity(private val amount: Int = 0) : InstantActivity() {
+class DumpInventoryActivity(private val amount: Int = 0) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.allSlots
             .filter { it.hasStack }

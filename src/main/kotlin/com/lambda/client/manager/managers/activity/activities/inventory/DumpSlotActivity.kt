@@ -1,11 +1,12 @@
 package com.lambda.client.manager.managers.activity.activities.inventory
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.manager.managers.activity.types.InstantActivity
+import com.lambda.client.manager.managers.activity.Activity
+import com.lambda.client.manager.managers.activity.activities.InstantActivity
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Slot
 
-class DumpSlotActivity(private val slot: Slot, private val amount: Int) : InstantActivity() {
+class DumpSlotActivity(private val slot: Slot, private val amount: Int) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         if (slot.stack.count > amount || amount == 0) {
             subActivities.add(InventoryTransactionActivity(0, slot.slotIndex, 1, ClickType.THROW))
