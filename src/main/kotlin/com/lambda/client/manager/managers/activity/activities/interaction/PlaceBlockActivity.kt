@@ -33,9 +33,9 @@ class PlaceBlockActivity(
 ) : TimeoutActivity, AttemptActivity, RenderBlockActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getNeighbour(blockPos, attempts = 1, visibleSideCheck = true)?.let {
-            val currentState = world.getBlockState(it.pos)
+            val placedAtState = world.getBlockState(it.pos)
 
-            if (currentState.block in blockBlacklist) {
+            if (placedAtState.block in blockBlacklist) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
             }
 
@@ -45,13 +45,13 @@ class PlaceBlockActivity(
             connection.sendPacket(it.toPlacePacket(EnumHand.MAIN_HAND))
             player.swingArm(EnumHand.MAIN_HAND)
 
-            if (currentState.block in blockBlacklist) {
+            if (placedAtState.block in blockBlacklist) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
 
             if (playSound) {
-                val soundType = currentState.block.getSoundType(
-                    currentState,
+                val soundType = placedAtState.block.getSoundType(
+                    placedAtState,
                     world,
                     blockPos,
                     player
