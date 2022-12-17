@@ -5,7 +5,6 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.activity.activities.*
-import com.lambda.client.manager.managers.activity.activities.AttemptActivity.Companion.doCheck
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.capitalize
@@ -67,10 +66,14 @@ abstract class Activity {
                     if (this@Activity is DelayedActivity) {
                         if (System.currentTimeMillis() > creationTime + delay) {
                             onDelayedActivity()
-                            activityStatus = ActivityStatus.SUCCESS
                         }
                     }
-                    (this@Activity as? AttemptActivity)?.doCheck()
+                    if (this@Activity is AttemptActivity) {
+                        if (usedAttempts >= maxAttempts) {
+                            activityStatus = ActivityStatus.FAILURE
+                            LambdaMod.LOG.error("AttemptActivity failed after $maxAttempts attempts!")
+                        }
+                    }
                 }
             }
             ActivityStatus.SUCCESS -> {
