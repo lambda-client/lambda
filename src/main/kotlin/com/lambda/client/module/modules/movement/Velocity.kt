@@ -32,7 +32,7 @@ object Velocity : Module(
     private val noPush by setting("No Push", true)
     private val entity by setting("Entity", true, { noPush })
     private val liquid by setting("Liquid", true, { noPush })
-    private val block by setting("Block", true, { noPush })
+    private val block by setting("Block", false, { noPush })
 
     init {
         safeListener<PacketEvent.Receive> {
@@ -60,7 +60,7 @@ object Velocity : Module(
             }
         }
 
-        safeListener<PushOutOfBlocksEvent>{
+        safeListener<PushOutOfBlocksEvent> {
             if (block) it.cancel()
         }
     }
