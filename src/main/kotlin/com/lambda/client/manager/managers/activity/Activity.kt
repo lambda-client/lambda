@@ -5,9 +5,11 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.activity.activities.*
+import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.capitalize
+import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {
@@ -115,6 +117,7 @@ abstract class Activity {
 
     fun reset() {
         LambdaEventBus.unsubscribe(currentActivity())
+        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
         subActivities.clear()
     }
 
@@ -134,10 +137,10 @@ abstract class Activity {
             textComponent.add("${javaClass.simpleName} ", secondaryColor)
             textComponent.add("State", primaryColor)
             textComponent.add(activityStatus.name, secondaryColor)
-            this::class.java.declaredFields.forEach {
-                it.isAccessible = true
-                val name = it.name
-                val value = it.get(this)
+            this::class.java.declaredFields.forEach { field ->
+                field.isAccessible = true
+                val name = field.name
+                val value = field.get(this)
                 textComponent.add(name.capitalize(), primaryColor)
                 textComponent.add(value.toString(), secondaryColor)
             }

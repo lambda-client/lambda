@@ -1,12 +1,15 @@
 package com.lambda.client.module.modules.misc
 
+import baritone.api.pathing.goals.GoalBlock
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.activity.Activity
+import com.lambda.client.manager.managers.activity.activities.example.FailingActivity
 import com.lambda.client.manager.managers.activity.activities.example.SayAnnoyinglyActivity
 import com.lambda.client.manager.managers.activity.activities.interaction.PlaceAndBreakBlockActivity
 import com.lambda.client.manager.managers.activity.activities.inventory.DumpInventoryActivity
 import com.lambda.client.manager.managers.activity.activities.inventory.SwapHotbarSlotsActivity
 import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItemActivity
+import com.lambda.client.manager.managers.activity.activities.travel.CustomGoalActivity
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.items.block
@@ -15,6 +18,7 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
+import net.minecraft.util.math.BlockPos
 
 object TestActivityManager : Module(
     name = "TestActivityManager",
@@ -70,6 +74,16 @@ object TestActivityManager : Module(
 
     private val sayHelloWorld by setting("Hello World", false, consumer = { _, _->
         ActivityManager.addActivity(SayAnnoyinglyActivity("Hello World"))
+        false
+    })
+
+    private val fail by setting("maybe fail", false, consumer = { _, _->
+        ActivityManager.addActivity(FailingActivity())
+        false
+    })
+
+    private val bur by setting("baritone", false, consumer = { _, _->
+        ActivityManager.addActivity(CustomGoalActivity(GoalBlock(BlockPos(0, 0, 0))))
         false
     })
 

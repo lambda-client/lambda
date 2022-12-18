@@ -50,8 +50,10 @@ class PlaceBlockActivity(
             }
 
             if (playSound) {
-                val soundType = placedAtState.block.getSoundType(
-                    placedAtState,
+                val thisState = world.getBlockState(blockPos)
+
+                val soundType = thisState.block.getSoundType(
+                    thisState,
                     world,
                     blockPos,
                     player
