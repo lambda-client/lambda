@@ -32,7 +32,7 @@ object ClickGUI : Module(
     val fadeInTime by setting("Fade In Time", 0.25f, 0.0f..1.0f, 0.05f, unit = "s")
     val fadeOutTime by setting("Fade Out Time", 0.1f, 0.0f..1.0f, 0.05f, unit = "s")
     val scrollRubberband by setting("Scroll Rubberband", false)
-    val scrollRubberbandSpeed by setting("Scroll Rubberband Speed", 0.5f, 0.01f..1.0f, 0.05f, { scrollRubberband })
+    val scrollRubberbandSpeed by setting("Scroll Rubberband Speed", 0.25f, 0.01f..1.0f, 0.05f, { scrollRubberband })
     val showModifiedInBold by setting("Show Modified In Bold", false, description = "Display modified settings in a bold font")
     private val resetComponents = setting("Reset Positions", false)
     private val resetScale = setting("Reset Scale", false)
