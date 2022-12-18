@@ -19,10 +19,6 @@ class CustomGoalActivity(
 
             BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goal)
 
-            if (BaritoneUtils.primary?.customGoalProcess?.goal == null) {
-                activityStatus = ActivityStatus.FAILURE
-            }
-
             if (goal.isInGoal(player.flooredPosition)) activityStatus = ActivityStatus.SUCCESS
         }
     }
