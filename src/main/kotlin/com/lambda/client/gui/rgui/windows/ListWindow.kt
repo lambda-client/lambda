@@ -5,9 +5,13 @@ import com.lambda.client.gui.AbstractLambdaGui
 import com.lambda.client.gui.rgui.Component
 import com.lambda.client.gui.rgui.InteractiveComponent
 import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.client.CustomFont
+import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.TickTimer
+import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.VertexHelper
+import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
@@ -21,7 +25,8 @@ open class ListWindow(
     width: Float,
     height: Float,
     saveToConfig: SettingGroup,
-    vararg childrenIn: Component
+    vararg childrenIn: Component,
+    val drawHandle: Boolean = false
 ) : TitledWindow(name, posX, posY, width, height, saveToConfig) {
     val children = ArrayList<Component>()
 
@@ -147,6 +152,17 @@ open class ListWindow(
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
 
+        if (drawHandle) {
+            val handleText = "....."
+            val scale = 0.75f
+            val posX = renderWidth / 2 - FontRenderAdapter.getStringWidth(handleText, scale) / 2
+            val posY = renderHeight - 5 - FontRenderAdapter.getFontHeight(scale) / 2
+            val color = with(GuiColors.text) {
+                ColorHolder(r, g, b, (a * 0.6f).toInt())
+            }
+            FontRenderAdapter.drawString(handleText, posX, posY, CustomFont.shadow, color, scale)
+        }
+
         synchronized(this) {
             renderChildren {
                 it.onRender(vertexHelper, absolutePos.plus(it.renderPosX, it.renderPosY - renderScrollProgress))
@@ -171,14 +187,15 @@ open class ListWindow(
             ((renderPosX + ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).toInt(),
             mc.displayHeight - ((renderPosY + renderHeight - ClickGUI.resizeBar) * ClickGUI.getScaleFactor()).toInt(),
             ((renderWidth - ClickGUI.horizontalMargin) * ClickGUI.getScaleFactor()).toInt(),
-            ((renderHeight - draggableHeight - ClickGUI.resizeBar)* ClickGUI.getScaleFactor()).toInt().coerceAtLeast(0)
+            ((renderHeight - draggableHeight - ClickGUI.resizeBar) * ClickGUI.getScaleFactor()).toInt().coerceAtLeast(0)
         )
         glEnable(GL_SCISSOR_TEST)
         glTranslatef(0.0f, -renderScrollProgress, 0.0f)
 
-        children.filter { it.visible
-            && it.renderPosY + it.renderHeight - renderScrollProgress > draggableHeight
-            && it.renderPosY - renderScrollProgress < renderHeight
+        children.filter {
+            it.visible
+                && it.renderPosY + it.renderHeight - renderScrollProgress > draggableHeight
+                && it.renderPosY - renderScrollProgress < renderHeight
         }.forEach {
             glPushMatrix()
             glTranslatef(it.renderPosX, it.renderPosY, 0.0f)
@@ -211,7 +228,6 @@ open class ListWindow(
             || relativeMousePos.x < ClickGUI.horizontalMargin
             || relativeMousePos.x > renderWidth - ClickGUI.horizontalMargin
         ) null
-
         else children.firstOrNull { it.visible && relativeMousePos.y in it.posY..it.posY + it.height }
     }
 
