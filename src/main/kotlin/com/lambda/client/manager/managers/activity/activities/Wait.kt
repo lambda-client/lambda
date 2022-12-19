@@ -3,9 +3,11 @@ package com.lambda.client.manager.managers.activity.activities
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.activity.Activity
 
-class SetStateActivity(private val activity: Activity, private val state: ActivityStatus) : Activity() {
-    override fun SafeClientEvent.onInitialize() {
-        activity.activityStatus = state
+class Wait(
+    override val delay: Long,
+    override var creationTime: Long = 0L
+) : DelayedActivity, Activity() {
+    override fun SafeClientEvent.onDelayedActivity() {
         activityStatus = ActivityStatus.SUCCESS
     }
 }

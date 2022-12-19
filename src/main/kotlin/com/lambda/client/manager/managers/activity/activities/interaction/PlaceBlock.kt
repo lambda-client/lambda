@@ -20,7 +20,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 
-class PlaceBlockActivity(
+class PlaceBlock(
     private val blockPos: BlockPos,
     private val block: Block,
     private val playSound: Boolean = true,

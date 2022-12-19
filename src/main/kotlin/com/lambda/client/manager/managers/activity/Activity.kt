@@ -9,7 +9,6 @@ import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.capitalize
-import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {

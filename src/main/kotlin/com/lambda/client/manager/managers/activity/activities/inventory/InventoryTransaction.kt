@@ -13,7 +13,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketClickWindow
 import net.minecraft.network.play.server.SPacketConfirmTransaction
 
-class InventoryTransactionActivity(
+class InventoryTransaction(
     val windowId: Int = 0,
     val slot: Int,
     private val mouseButton: Int = 0,
