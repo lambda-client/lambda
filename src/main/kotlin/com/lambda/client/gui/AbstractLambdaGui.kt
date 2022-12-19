@@ -198,6 +198,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
             }
         }
 
+        hoveredWindow?.onMouseInput(mousePos)
         super.handleMouseInput()
         updateSettingWindow()
     }
