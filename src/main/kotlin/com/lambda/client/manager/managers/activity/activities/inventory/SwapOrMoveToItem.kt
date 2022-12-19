@@ -1,6 +1,7 @@
 package com.lambda.client.manager.managers.activity.activities.inventory
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.InstantActivity
 import com.lambda.client.manager.managers.activity.activities.storage.ExtractItemFromShulkerBox
@@ -19,9 +20,9 @@ class SwapOrMoveToItem(
         player.allSlots.firstOrNull { slot ->
             slot.stack.item == item && predicateItem(slot.stack)
         }?.let { slotFrom ->
-            subActivities.add(SwapOrSwitchToSlot(slotFrom, predicateSlot))
+            addSubActivities(SwapOrSwitchToSlot(slotFrom, predicateSlot))
         } ?: run {
-            subActivities.add(ExtractItemFromShulkerBox(item, 0, predicateItem, predicateSlot))
+            addSubActivities(ExtractItemFromShulkerBox(item, 0, predicateItem, predicateSlot))
         }
     }
 }

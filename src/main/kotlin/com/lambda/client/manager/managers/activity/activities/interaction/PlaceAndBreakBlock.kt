@@ -13,14 +13,16 @@ import net.minecraft.util.math.BlockPos
 
 class PlaceAndBreakBlock(private val block: Block) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        subActivities.add(SwapOrMoveToItem(block.item))
-        subActivities.add(PlaceBlock(
-            BlockPos(player.flooredPosition.add(Direction.fromEntity(player).directionVec)),
-            block
-        ))
-        subActivities.add(SwapOrMoveToItem(Items.DIAMOND_PICKAXE))
-        subActivities.add(BreakBlock(
-            BlockPos(player.flooredPosition.add(Direction.fromEntity(player).directionVec))
-        ))
+        addSubActivities(
+            SwapOrMoveToItem(block.item),
+            PlaceBlock(
+                BlockPos(player.flooredPosition.add(Direction.fromEntity(player).directionVec)),
+                block
+            ),
+            SwapOrMoveToItem(Items.DIAMOND_PICKAXE),
+            BreakBlock(
+                BlockPos(player.flooredPosition.add(Direction.fromEntity(player).directionVec))
+            )
+        )
     }
 }

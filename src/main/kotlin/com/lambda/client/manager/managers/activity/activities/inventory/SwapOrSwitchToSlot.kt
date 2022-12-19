@@ -15,14 +15,16 @@ class SwapOrSwitchToSlot(
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         slot.toHotbarSlotOrNull()?.let { hotbarSlot ->
-            subActivities.add(SwitchToHotbarSlot(hotbarSlot))
+            addSubActivities(SwitchToHotbarSlot(hotbarSlot))
         } ?: run {
             val hotbarSlots = player.hotbarSlots
             val slotTo = hotbarSlots.firstEmpty()
                 ?: hotbarSlots.firstOrNull { predicateSlot(it.stack) } ?: return
 
-            subActivities.add(SwapWithSlot(slot, slotTo))
-            subActivities.add(SwitchToHotbarSlot(slotTo))
+            addSubActivities(
+                SwapWithSlot(slot, slotTo),
+                SwitchToHotbarSlot(slotTo)
+            )
         }
     }
 }

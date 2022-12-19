@@ -1,6 +1,7 @@
 package com.lambda.client.manager.managers.activity.activities.travel
 
 import baritone.api.pathing.goals.GoalBlock
+import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.TimeoutActivity
 import com.lambda.client.manager.managers.activity.activities.inventory.DumpSlot
@@ -29,7 +30,7 @@ class PickUpEntityItem(
                     player.inventorySlots.firstOrNull { slot ->
                         InventoryManager.ejectList.contains(slot.stack.item.registryName.toString())
                     }?.let { slot ->
-                        subActivities.add(DumpSlot(slot))
+                        addSubActivities(DumpSlot(slot))
                     }
                 }
             } else {

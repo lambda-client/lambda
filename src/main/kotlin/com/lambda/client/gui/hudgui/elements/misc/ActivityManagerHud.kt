@@ -10,9 +10,8 @@ internal object ActivityManagerHud: LabelHud(
     description = "Display current activities."
 ) {
     override fun SafeClientEvent.updateText() {
-        if (ActivityManager.subActivities.isEmpty()) return
+        if (ActivityManager.noSubActivities()) return
 
         ActivityManager.appendInfo(displayText, primaryColor, secondaryColor, 0)
     }
-
 }

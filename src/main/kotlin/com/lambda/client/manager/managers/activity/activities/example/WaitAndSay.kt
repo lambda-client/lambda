@@ -5,7 +5,7 @@ import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.DelayedActivity
 import com.lambda.client.util.text.MessageSendHelper
 
-class WaitAndSayActivity(
+class WaitAndSay(
     private val message: String,
     override val delay: Long = 1000L,
     override var creationTime: Long = 0L

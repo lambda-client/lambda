@@ -1,6 +1,7 @@
 package com.lambda.client.manager.managers.activity.activities.storage
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.InstantActivity
 import com.lambda.client.manager.managers.activity.activities.inventory.InventoryTransaction
@@ -23,7 +24,7 @@ class PullItemsFromContainer(
         player.openContainer.inventorySlots.filter { slot ->
             slot.stack.item == item && predicateItem(slot.stack)
         }.take(take).forEach {
-            subActivities.add(InventoryTransaction(
+            addSubActivities(InventoryTransaction(
                 player.openContainer.windowId,
                 it.slotNumber,
                 0,
