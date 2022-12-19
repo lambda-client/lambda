@@ -139,8 +139,10 @@ class BreakBlock(
         if (pickUpDrop) {
             color = ColorHolder(252, 3, 207)
             timeout = 10000L
-            subActivities.add(PickUpDrops(initState.block.item))
-            subActivities.add(SetState(this@BreakBlock, ActivityStatus.SUCCESS))
+            addSubActivities(
+                PickUpDrops(initState.block.item),
+                SetState(ActivityStatus.SUCCESS)
+            )
         } else {
             activityStatus = ActivityStatus.SUCCESS
         }

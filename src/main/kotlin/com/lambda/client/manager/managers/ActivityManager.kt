@@ -13,7 +13,7 @@ object ActivityManager : Manager, Activity() {
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
-            if (subActivities.isEmpty() || it.phase != TickEvent.Phase.START) return@safeListener
+            if (noSubActivities() || it.phase != TickEvent.Phase.START) return@safeListener
 
             updateActivities()
         }
@@ -29,13 +29,5 @@ object ActivityManager : Manager, Activity() {
             renderer.add(currentActivity.renderBlockPos, currentActivity.color)
             renderer.render(true)
         }
-    }
-
-    fun addActivity(activity: Activity) {
-        subActivities.add(activity)
-    }
-
-    fun addAllActivities(activity: List<Activity>) {
-        subActivities.addAll(activity)
     }
 }

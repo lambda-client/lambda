@@ -2,8 +2,9 @@ package com.lambda.client.module.modules.misc
 
 import com.lambda.client.LambdaMod
 import com.lambda.client.manager.managers.ActivityManager
-import com.lambda.client.manager.managers.activity.activities.example.FailingActivity
-import com.lambda.client.manager.managers.activity.activities.example.SayAnnoyinglyActivity
+import com.lambda.client.manager.managers.ActivityManager.addSubActivities
+import com.lambda.client.manager.managers.activity.activities.example.Failing
+import com.lambda.client.manager.managers.activity.activities.example.SayAnnoyingly
 import com.lambda.client.manager.managers.activity.activities.inventory.DumpInventory
 import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.manager.managers.activity.activities.travel.PickUpDrops
@@ -26,12 +27,14 @@ object TestActivityManager : Module(
     category = Category.MISC
 ) {
     private val a by setting("Get Dia Pickaxe", false, consumer = { _, _->
-        ActivityManager.addActivity(SwapOrMoveToItem(Items.DIAMOND_PICKAXE))
+        ActivityManager.addSubActivities(
+            SwapOrMoveToItem(Items.DIAMOND_PICKAXE)
+        )
         false
     })
 
     private val b by setting("Get Dia Pickaxe with silktouch", false, consumer = { _, _->
-        ActivityManager.addActivity(
+        ActivityManager.addSubActivities(
             SwapOrMoveToItem(
                 Items.DIAMOND_PICKAXE,
                 predicateItem = {
@@ -47,12 +50,12 @@ object TestActivityManager : Module(
     })
 
     private val dumpInventoryActivity by setting("Dump Inventory", false, consumer = { _, _->
-        ActivityManager.addActivity(DumpInventory())
+        ActivityManager.addSubActivities(DumpInventory())
         false
     })
 
     private val po by setting("Pickup Obby", false, consumer = { _, _->
-        ActivityManager.addActivity(PickUpDrops(Blocks.OBSIDIAN.item))
+        ActivityManager.addSubActivities(PickUpDrops(Blocks.OBSIDIAN.item))
         false
     })
 
@@ -65,12 +68,12 @@ object TestActivityManager : Module(
     })
 
     private val sayHelloWorld by setting("Hello World", false, consumer = { _, _->
-        ActivityManager.addActivity(SayAnnoyinglyActivity("Hello World"))
+        ActivityManager.addSubActivities(SayAnnoyingly("Hello World"))
         false
     })
 
     private val fail by setting("maybe fail", false, consumer = { _, _->
-        ActivityManager.addActivity(FailingActivity())
+        ActivityManager.addSubActivities(Failing())
         false
     })
 

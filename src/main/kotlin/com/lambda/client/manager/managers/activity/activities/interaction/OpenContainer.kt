@@ -38,7 +38,7 @@ class OpenContainer(private val containerPos: BlockPos) : InstantActivity, Activ
         safeListener<PacketEvent.PostReceive> {
             when (it.packet) {
                 is SPacketOpenWindow -> {
-                    subActivities.add(SetState(this@OpenContainer, ActivityStatus.SUCCESS))
+                    addSubActivities(SetState(ActivityStatus.SUCCESS))
                 }
             }
         }

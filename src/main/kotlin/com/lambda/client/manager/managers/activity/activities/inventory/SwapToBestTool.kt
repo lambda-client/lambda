@@ -1,6 +1,7 @@
 package com.lambda.client.manager.managers.activity.activities.inventory
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.InstantActivity
 import com.lambda.client.util.items.inventorySlots
@@ -27,7 +28,7 @@ class SwapToBestTool(private val blockPos: BlockPos) : InstantActivity, Activity
                 speed
             }
         }?.let { bestSlot ->
-            subActivities.add(SwapOrSwitchToSlot(bestSlot))
+            addSubActivities(SwapOrSwitchToSlot(bestSlot))
         }
     }
 }

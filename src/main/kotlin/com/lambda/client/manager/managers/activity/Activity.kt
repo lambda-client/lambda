@@ -12,8 +12,9 @@ import com.lambda.client.util.text.capitalize
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {
-    val subActivities = ConcurrentLinkedDeque<Activity>()
+    private val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
+    var owner: Activity = ActivityManager
 
     enum class ActivityStatus {
         UNINITIALIZED,
@@ -120,9 +121,12 @@ abstract class Activity {
         subActivities.clear()
     }
 
-    inline fun addSubActivity(block: () -> Activity) {
-        subActivities.add(block())
+    fun Activity.addSubActivities(vararg activities: Activity) {
+        activities.forEach { it.owner = this }
+        subActivities.addAll(activities)
     }
+
+    fun noSubActivities() = subActivities.isEmpty()
 
     override fun toString(): String {
         return "Name: ${javaClass.simpleName} State: $activityStatus SubActivities: $subActivities"

@@ -48,7 +48,7 @@ class ExtractItemFromShulkerBox(
 
         candidates.minBy { it.value }.key.let { slot ->
             getContainerPos()?.let { remotePos ->
-                subActivities.addAll(listOf(
+                addSubActivities(
                     SwapOrSwitchToSlot(slot, predicateSlot),
                     PlaceBlock(remotePos, slot.stack.item.block),
                     OpenContainer(remotePos),
@@ -62,7 +62,7 @@ class ExtractItemFromShulkerBox(
                         mode = BreakBlock.Mode.PLAYER_CONTROLLER
                     ),
                     SwapOrMoveToItem(item, predicateItem, predicateSlot)
-                ))
+                )
             }
         }
     }

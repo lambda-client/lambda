@@ -17,7 +17,7 @@ class PickUpDrops(
         world.loadedEntityList.filterIsInstance<EntityItem>().filter {
             it.item.item == item && player.distanceTo(it.positionVector) < maxRange && predicate(it.item)
         }.sortedBy { drop -> player.distanceTo(drop.positionVector) }.forEach { drop ->
-            subActivities.add(PickUpEntityItem(drop))
+            addSubActivities(PickUpEntityItem(drop))
         }
     }
 }
