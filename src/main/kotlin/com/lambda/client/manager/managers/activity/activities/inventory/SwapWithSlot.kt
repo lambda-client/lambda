@@ -7,11 +7,11 @@ import com.lambda.client.util.items.HotbarSlot
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Slot
 
-class SwapWithSlotActivity(
+class SwapWithSlot(
     private val slotFrom: Slot,
     private val slotTo: HotbarSlot
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        subActivities.add(InventoryTransactionActivity(0, slotFrom.slotIndex, slotTo.hotbarSlot, ClickType.SWAP))
+        subActivities.add(InventoryTransaction(0, slotFrom.slotIndex, slotTo.hotbarSlot, ClickType.SWAP))
     }
 }

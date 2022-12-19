@@ -4,12 +4,11 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.InstantActivity
 import com.lambda.client.util.items.inventorySlots
-import com.lambda.client.util.items.toHotbarSlotOrNull
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Enchantments
 import net.minecraft.util.math.BlockPos
 
-class SwapToBestToolActivity(private val blockPos: BlockPos) : InstantActivity, Activity() {
+class SwapToBestTool(private val blockPos: BlockPos) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.inventorySlots.asReversed().maxByOrNull {
             val stack = it.stack
@@ -28,16 +27,7 @@ class SwapToBestToolActivity(private val blockPos: BlockPos) : InstantActivity, 
                 speed
             }
         }?.let { bestSlot ->
-            bestSlot.toHotbarSlotOrNull()?.let { hotbarSlot ->
-                subActivities.add(SwapOrSwitchToSlotActivity(hotbarSlot))
-            } ?: run {
-
-            }
+            subActivities.add(SwapOrSwitchToSlot(bestSlot))
         }
-
-
-
-
-
     }
 }

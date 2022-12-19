@@ -3,13 +3,14 @@ package com.lambda.client.manager.managers.activity.activities.storage
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.InstantActivity
-import com.lambda.client.manager.managers.activity.activities.interaction.BreakBlockActivity
-import com.lambda.client.manager.managers.activity.activities.interaction.CloseContainerActivity
-import com.lambda.client.manager.managers.activity.activities.interaction.OpenContainerActivity
-import com.lambda.client.manager.managers.activity.activities.interaction.PlaceBlockActivity
-import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItemActivity
-import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrSwitchToSlotActivity
-import com.lambda.client.manager.managers.activity.activities.inventory.SwapToBestToolActivity
+import com.lambda.client.manager.managers.activity.activities.Wait
+import com.lambda.client.manager.managers.activity.activities.interaction.BreakBlock
+import com.lambda.client.manager.managers.activity.activities.interaction.CloseContainer
+import com.lambda.client.manager.managers.activity.activities.interaction.OpenContainer
+import com.lambda.client.manager.managers.activity.activities.interaction.PlaceBlock
+import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItem
+import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrSwitchToSlot
+import com.lambda.client.manager.managers.activity.activities.inventory.SwapToBestTool
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.block
 import com.lambda.client.util.math.VectorUtils
@@ -26,8 +27,9 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.NonNullList
 import net.minecraft.util.math.BlockPos
 
-class ExtractItemFromShulkerBoxActivity(
+class ExtractItemFromShulkerBox(
     private val item: Item,
+    private val amount: Int, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true }
 ) : InstantActivity, Activity() {
@@ -47,18 +49,19 @@ class ExtractItemFromShulkerBoxActivity(
         candidates.minBy { it.value }.key.let { slot ->
             getContainerPos()?.let { remotePos ->
                 subActivities.addAll(listOf(
-                    SwapOrSwitchToSlotActivity(slot, predicateSlot),
-                    PlaceBlockActivity(remotePos, slot.stack.item.block),
-                    OpenContainerActivity(remotePos),
-                    PullItemFromContainerActivity(item, predicateItem),
-                    CloseContainerActivity(),
-                    SwapToBestToolActivity(remotePos),
-                    BreakBlockActivity(
+                    SwapOrSwitchToSlot(slot, predicateSlot),
+                    PlaceBlock(remotePos, slot.stack.item.block),
+                    OpenContainer(remotePos),
+                    Wait(50L),
+                    PullItemsFromContainer(item, amount, predicateItem),
+                    CloseContainer(),
+                    SwapToBestTool(remotePos),
+                    BreakBlock(
                         remotePos,
                         pickUpDrop = true,
-                        mode = BreakBlockActivity.Mode.PLAYER_CONTROLLER
+                        mode = BreakBlock.Mode.PLAYER_CONTROLLER
                     ),
-                    SwapOrMoveToItemActivity(item, predicateItem, predicateSlot)
+                    SwapOrMoveToItem(item, predicateItem, predicateSlot)
                 ))
             }
         }

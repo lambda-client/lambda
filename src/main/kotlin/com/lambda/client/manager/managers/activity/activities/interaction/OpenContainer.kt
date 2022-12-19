@@ -4,6 +4,8 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.InstantActivity
+import com.lambda.client.manager.managers.activity.activities.SetState
+import com.lambda.client.manager.managers.activity.activities.Wait
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
@@ -17,9 +19,7 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 
-class OpenContainerActivity(private val containerPos: BlockPos) : InstantActivity, Activity() {
-    private var isOpen = false
-
+class OpenContainer(private val containerPos: BlockPos) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         val diff = player.getPositionEyes(1f).subtract(containerPos.toVec3dCenter())
         val normalizedVec = diff.normalize()
@@ -38,12 +38,7 @@ class OpenContainerActivity(private val containerPos: BlockPos) : InstantActivit
         safeListener<PacketEvent.PostReceive> {
             when (it.packet) {
                 is SPacketOpenWindow -> {
-                    isOpen = true
-                }
-                is SPacketWindowItems -> {
-                    if (isOpen) {
-                        activityStatus = ActivityStatus.SUCCESS
-                    }
+                    subActivities.add(SetState(this@OpenContainer, ActivityStatus.SUCCESS))
                 }
             }
         }

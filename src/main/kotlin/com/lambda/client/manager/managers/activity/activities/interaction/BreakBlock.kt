@@ -5,9 +5,9 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.AttemptActivity
 import com.lambda.client.manager.managers.activity.activities.RenderBlockActivity
-import com.lambda.client.manager.managers.activity.activities.SetStateActivity
+import com.lambda.client.manager.managers.activity.activities.SetState
 import com.lambda.client.manager.managers.activity.activities.TimeoutActivity
-import com.lambda.client.manager.managers.activity.activities.travel.PickUpDropActivity
+import com.lambda.client.manager.managers.activity.activities.travel.PickUpDrops
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.item
 import com.lambda.client.util.math.RotationUtils.getRotationTo
@@ -24,7 +24,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.math.ceil
 
-class BreakBlockActivity(
+class BreakBlock(
     private val blockPos: BlockPos,
     private val playSound: Boolean = true,
     private val miningSpeedFactor: Float = 1.0f,
@@ -139,8 +139,8 @@ class BreakBlockActivity(
         if (pickUpDrop) {
             color = ColorHolder(252, 3, 207)
             timeout = 10000L
-            subActivities.add(PickUpDropActivity(initState.block.item))
-            subActivities.add(SetStateActivity(this@BreakBlockActivity, ActivityStatus.SUCCESS))
+            subActivities.add(PickUpDrops(initState.block.item))
+            subActivities.add(SetState(this@BreakBlock, ActivityStatus.SUCCESS))
         } else {
             activityStatus = ActivityStatus.SUCCESS
         }

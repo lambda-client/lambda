@@ -1,24 +1,24 @@
 package com.lambda.client.module.modules.misc
 
-import baritone.api.pathing.goals.GoalBlock
+import com.lambda.client.LambdaMod
 import com.lambda.client.manager.managers.ActivityManager
-import com.lambda.client.manager.managers.activity.Activity
 import com.lambda.client.manager.managers.activity.activities.example.FailingActivity
 import com.lambda.client.manager.managers.activity.activities.example.SayAnnoyinglyActivity
-import com.lambda.client.manager.managers.activity.activities.interaction.PlaceAndBreakBlockActivity
-import com.lambda.client.manager.managers.activity.activities.inventory.DumpInventoryActivity
-import com.lambda.client.manager.managers.activity.activities.inventory.SwapHotbarSlotsActivity
-import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItemActivity
-import com.lambda.client.manager.managers.activity.activities.travel.CustomGoalActivity
+import com.lambda.client.manager.managers.activity.activities.inventory.DumpInventory
+import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItem
+import com.lambda.client.manager.managers.activity.activities.travel.PickUpDrops
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.items.block
+import com.lambda.client.util.items.countEmpty
+import com.lambda.client.util.items.inventorySlots
+import com.lambda.client.util.items.item
+import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
-import net.minecraft.util.math.BlockPos
 
 object TestActivityManager : Module(
     name = "TestActivityManager",
@@ -26,13 +26,13 @@ object TestActivityManager : Module(
     category = Category.MISC
 ) {
     private val a by setting("Get Dia Pickaxe", false, consumer = { _, _->
-        ActivityManager.addActivity(SwapOrMoveToItemActivity(Items.DIAMOND_PICKAXE))
+        ActivityManager.addActivity(SwapOrMoveToItem(Items.DIAMOND_PICKAXE))
         false
     })
 
     private val b by setting("Get Dia Pickaxe with silktouch", false, consumer = { _, _->
         ActivityManager.addActivity(
-            SwapOrMoveToItemActivity(
+            SwapOrMoveToItem(
                 Items.DIAMOND_PICKAXE,
                 predicateItem = {
                     EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 1
@@ -47,28 +47,20 @@ object TestActivityManager : Module(
     })
 
     private val dumpInventoryActivity by setting("Dump Inventory", false, consumer = { _, _->
-        ActivityManager.addActivity(DumpInventoryActivity())
+        ActivityManager.addActivity(DumpInventory())
         false
     })
 
-    private val place by setting("PlaceAhed", false, consumer = { _, _->
-        ActivityManager.addActivity(PlaceAndBreakBlockActivity(Blocks.SLIME_BLOCK))
+    private val po by setting("Pickup Obby", false, consumer = { _, _->
+        ActivityManager.addActivity(PickUpDrops(Blocks.OBSIDIAN.item))
         false
     })
 
-    private val moin by setting("Ja Moin", false, consumer = { _, _->
-        val activities = mutableListOf<Activity>()
-
-        activities.add(SwapOrMoveToItemActivity(Items.DIAMOND_PICKAXE))
-        repeat(9) {
-            activities.add(SwapHotbarSlotsActivity(36 + it, it + 1))
+    private val ti by setting("count", false, consumer = { _, _->
+        runSafe {
+            LambdaMod.LOG.info(player.inventorySlots.countEmpty())
         }
-        repeat(4) {
-            activities.add(PlaceAndBreakBlockActivity(Blocks.SLIME_BLOCK))
-        }
-        activities.add(DumpInventoryActivity())
 
-        ActivityManager.addAllActivities(activities)
         false
     })
 
@@ -79,11 +71,6 @@ object TestActivityManager : Module(
 
     private val fail by setting("maybe fail", false, consumer = { _, _->
         ActivityManager.addActivity(FailingActivity())
-        false
-    })
-
-    private val bur by setting("baritone", false, consumer = { _, _->
-        ActivityManager.addActivity(CustomGoalActivity(GoalBlock(BlockPos(0, 0, 0))))
         false
     })
 

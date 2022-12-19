@@ -2,6 +2,8 @@ package com.lambda.client.manager.managers.activity.activities.example
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.activity.Activity
+import com.lambda.client.manager.managers.activity.activities.ThrowableActivity
+import java.lang.Exception
 import kotlin.random.Random
 
 class FailingActivity : Activity() {
