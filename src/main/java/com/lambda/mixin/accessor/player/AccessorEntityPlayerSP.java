@@ -10,4 +10,7 @@ public interface AccessorEntityPlayerSP {
     @Accessor("handActive")
     void kbSetHandActive(boolean value);
 
+    @Accessor("lastReportedPosY")
+    void lcSetLastReportedPosY(double value);
+
 }

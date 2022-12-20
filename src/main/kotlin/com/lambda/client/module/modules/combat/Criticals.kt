@@ -2,14 +2,18 @@ package com.lambda.client.module.modules.combat
 
 import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.CriticalsUpdateWalkingEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerAttackEvent
-import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.isInWeb
+import com.lambda.client.mixin.extension.playerIsOnGround
+import com.lambda.client.mixin.extension.playerMoving
+import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.threads.safeListener
+import com.lambda.mixin.accessor.player.AccessorEntityPlayerSP
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.MobEffects
@@ -25,18 +29,20 @@ object Criticals : Module(
     description = "Always do critical attacks",
     category = Category.COMBAT
 ) {
-    private val mode by setting("Mode", Mode.PACKET)
+    private val mode by setting("Mode", Mode.EDIT)
     private val jumpMotion by setting("Jump Motion", 0.25, 0.1..0.5, 0.01, { mode == Mode.MINI_JUMP }, fineStep = 0.001)
-    private val attackFallDistance by setting("Attack Fall Distance", 0.1, 0.05..1.0, 0.05, { mode != Mode.PACKET })
+    private val attackFallDistance by setting("Attack Fall Distance", 0.1, 0.05..1.0, 0.05, { mode == Mode.MINI_JUMP || mode == Mode.JUMP })
 
     private enum class Mode(override val displayName: String) : DisplayEnum {
         PACKET("Packet"),
+        EDIT("Edit"),
         JUMP("Jump"),
         MINI_JUMP("Mini Jump")
     }
 
     private var delayTick = -1
     private var target: Entity? = null
+    private var spoofedY = -1337.0
     private var attacking = false
 
     override fun isActive(): Boolean {
@@ -52,10 +58,41 @@ object Criticals : Module(
             reset()
         }
 
-        listener<PacketEvent.Send> {
+        safeListener<CriticalsUpdateWalkingEvent> {
+
+            // we need to ensure we are always sending packets as not to flag NCP for fight.critical
+            if (mode == Mode.EDIT)
+                (player as AccessorEntityPlayerSP).lcSetLastReportedPosY(-1337.0)
+
+        }
+
+        safeListener<PacketEvent.Send> {
+
             if (it.packet is CPacketAnimation && mode != Mode.PACKET && delayTick > -1) {
+
                 it.cancel()
+
+            } else if (it.packet is CPacketPlayer && mode == Mode.EDIT) {
+
+                // the advantage of this is that it doesn't delay anything and doesn't send extra packets
+                if (player.onGround) {
+
+                    if (spoofedY <= 0)
+                        spoofedY = .01
+                    else
+                        spoofedY -= .00001
+
+                } else
+                    spoofedY = -1337.0
+
+                it.packet.playerMoving = true
+                it.packet.playerIsOnGround = false
+
+                if (spoofedY >= 0)
+                    it.packet.playerY += spoofedY
+
             }
+
         }
 
         safeListener<PlayerAttackEvent>(0) {
@@ -64,18 +101,25 @@ object Criticals : Module(
             val cooldownReady = player.onGround && player.getCooledAttackStrength(0.5f) > 0.9f
 
             when (mode) {
+
                 Mode.PACKET -> {
                     if (cooldownReady) {
                         connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1, player.posZ, false))
                         connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY, player.posZ, false))
                     }
                 }
+
                 Mode.JUMP -> {
                     jumpAndCancel(it, cooldownReady, null)
                 }
+
                 Mode.MINI_JUMP -> {
                     jumpAndCancel(it, cooldownReady, jumpMotion)
                 }
+
+                else -> {
+                }
+
             }
         }
 

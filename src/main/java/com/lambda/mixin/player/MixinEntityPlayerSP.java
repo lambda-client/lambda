@@ -1,6 +1,7 @@
 package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
+import com.lambda.client.event.events.CriticalsUpdateWalkingEvent;
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent;
 import com.lambda.client.event.events.PlayerMoveEvent;
 import com.lambda.client.gui.mc.LambdaGuiBeacon;
@@ -140,6 +141,10 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
     private void onUpdateWalkingPlayerHead(CallbackInfo ci) {
+
+        CriticalsUpdateWalkingEvent criticalsEditEvent = new CriticalsUpdateWalkingEvent();
+        LambdaEventBus.INSTANCE.post(criticalsEditEvent);
+
         // Setup flags
         Vec3d position = new Vec3d(this.posX, this.getEntityBoundingBox().minY, this.posZ);
         Vec2f rotation = new Vec2f(this.rotationYaw, this.rotationPitch);
