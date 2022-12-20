@@ -54,7 +54,6 @@ object Baritone : Module(
     private val blockReachDistance by setting("Reach Distance", 4.5f, 1.0f..10.0f, 0.5f, { page == Page.ADVANCED }, description = "Max distance baritone can place blocks.")
     private val enterPortals by setting("Enter Portals", true, { page == Page.ADVANCED }, description = "Baritone will walk all the way into the portal, instead of stopping one block before.")
     private val blockPlacementPenalty by setting("Block Placement Penalty", 20, 0..40, 5, { page == Page.ADVANCED }, description = "Decrease to make Baritone more often consider paths that would require placing blocks.")
-    private val blockBreakAdditionalPenalty by setting("Block Break Additional Penalty", 2, 0..10, 1, { page == Page.ADVANCED }, description = "Lower chance to break blocks. This is a tiebreaker.")
     private val jumpPenalty by setting("Jump Penalty", 2, 0..10, 1, { page == Page.ADVANCED }, description = "Additional penalty for hitting the space bar (ascend, pillar, or parkour) because it uses hunger.")
     private val assumeWalkOnWater by setting("Assume Walk On Water", false, { page == Page.ADVANCED }, description = "Allow Baritone to assume it can walk on still water just like any other block. Requires jesus to be enabled.")
     private val failureTimeout by setting("Fail Timeout", 2, 1..20, 1, { page == Page.ADVANCED }, unit = "s")
@@ -127,7 +126,6 @@ object Baritone : Module(
             it.blockReachDistance.value = blockReachDistance
             it.enterPortal.value = enterPortals
             it.blockPlacementPenalty.value = blockPlacementPenalty.toDouble()
-            it.blockBreakAdditionalPenalty.value = blockBreakAdditionalPenalty.toDouble()
             it.jumpPenalty.value = jumpPenalty.toDouble()
             it.assumeWalkOnWater.value = assumeWalkOnWater
             it.failureTimeoutMS.value = failureTimeout * 1000L

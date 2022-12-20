@@ -106,7 +106,7 @@ Clone the repository to your local machine. Use the link of either your fork or 
 git clone https://github.com/lambda-client/lambda
 ```
 
-Run `setupWorkspace.sh` to initialize the environment. 
+Run `setupWorkspace.sh` to initialize the environment.
 Use your terminal on Linux or [Git Bash](https://gitforwindows.org/) for Windows.
 ```
 ./setupWorkspace.sh
@@ -126,7 +126,12 @@ Test if the environment is set up correctly by building the client and running i
 1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client.
 2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`.
 
-## Thanks to
+### Stargazers
+[![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
+
+## Thanks to...
+
+[![GitHub contributors](https://contrib.rocks/image?repo=lambda-client/lambda)](https://github.com/lambda-client/lambda/graphs/contributors)
 
 [zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
 
@@ -135,11 +140,6 @@ Test if the environment is set up correctly by building the client and running i
 [ronmamo](https://github.com/ronmamo) for [Reflections](https://github.com/ronmamo/reflections)
 
 [MinecraftForge](https://github.com/MinecraftForge) for [Forge](https://github.com/MinecraftForge/MinecraftForge)
-
-Our [contributors](https://github.com/lambda-client/lambda/graphs/contributors) ❤️
-
-### Stargazers
-[![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
 
 > ### Disclaimer
 > This software does not contain any copyrighted Minecraft code. This is a Forge utility mod, only meant for use in anarchy environments. Do not use without permission of server administration.

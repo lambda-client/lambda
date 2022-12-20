@@ -48,7 +48,7 @@ object ElytraFlight : Module(
     private val easyTakeOff by setting("Easy Takeoff", true, { page == Page.GENERIC_SETTINGS })
     private val timerControl by setting("Takeoff Timer", true, { easyTakeOff && page == Page.GENERIC_SETTINGS })
     private val highPingOptimize by setting("High Ping Optimize", false, { easyTakeOff && page == Page.GENERIC_SETTINGS })
-    private val minTakeoffHeight by setting("Min Takeoff Height", 0.5f, 0.0f..1.5f, 0.1f, { easyTakeOff && !highPingOptimize && page == Page.GENERIC_SETTINGS })
+    private val minTakeoffHeight by setting("Min Takeoff Height", 1.2f, 0.0f..1.5f, 0.1f, { easyTakeOff && !highPingOptimize && page == Page.GENERIC_SETTINGS })
 
     /* Acceleration */
     private val accelerateStartSpeed by setting("Start Speed", 100, 0..100, 5, { mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && page == Page.GENERIC_SETTINGS })
@@ -68,8 +68,8 @@ object ElytraFlight : Module(
     /* Mode Settings */
     /* Boost */
     private val speedBoost by setting("Speed B", 1.0f, 0.0f..10.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
-    private val upSpeedBoost by setting("Up Speed B", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
-    private val downSpeedBoost by setting("Down Speed B", 1.0f, 1.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
+    private val upSpeedBoost by setting("Up Speed B", 1.0f, 0.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
+    private val downSpeedBoost by setting("Down Speed B", 1.0f, 0.0f..5.0f, 0.1f, { mode.value == ElytraFlightMode.BOOST && page == Page.MODE_SETTINGS })
 
     /* Control */
     private val boostPitchControl by setting("Base Boost Pitch", 20, 0..90, 5, { mode.value == ElytraFlightMode.CONTROL && page == Page.MODE_SETTINGS })
@@ -95,8 +95,8 @@ object ElytraFlight : Module(
 
 
     /* Vanilla */
-    private val upPitch by setting("Up Pitch", 50f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
-    private val downPitch by setting("Down Pitch", 30f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+    private val upPitch by setting("Up Pitch", 30f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+    private val downPitch by setting("Down Pitch", 0f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
     private val rocketPitch by setting("Rocket Pitch", 50f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
 
     /* End of Mode Settings */

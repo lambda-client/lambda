@@ -50,8 +50,15 @@ object NewChunks : Module(
     private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
     private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
     private val alsoSaveNormalCoords by setting("Save Normal Coords", false, { saveNewChunks })
-    private val closeFile = setting("Close file", false, { saveNewChunks })
-    private val openNewChunksFolder = setting("Open NewChunks Folder...", false, { saveNewChunks })
+    private val closeFile by setting("Close file", false, { saveNewChunks }, consumer = { _, _ ->
+        logWriterClose()
+        MessageSendHelper.sendChatMessage("$chatName Saved file to $path!")
+        false
+    })
+    private val openNewChunksFolder by setting("Open NewChunks Folder...", false, { saveNewChunks }, consumer = { _, _ ->
+        FolderUtils.openFolder(FolderUtils.newChunksFolder)
+        false
+    })
     private val yOffset by setting("Y Offset", 0, -256..256, 4, fineStep = 1, description = "Render offset in Y axis")
     private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "Highlighting color")
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
@@ -348,22 +355,6 @@ object NewChunks : Module(
             lastSaveNormal = alsoSaveNormalCoords
             dimension = event.player.dimension
             ip = mc.currentServerData?.serverIP
-        }
-    }
-
-    init {
-        closeFile.valueListeners.add { _, _ ->
-            if (closeFile.value) {
-                logWriterClose()
-                MessageSendHelper.sendChatMessage("$chatName Saved file!")
-                MessageSendHelper.sendChatMessage("$path")
-                closeFile.value = false
-            }
-        }
-
-        openNewChunksFolder.consumers.add { _, it ->
-            if (it) FolderUtils.openFolder(FolderUtils.newChunksFolder)
-            false
         }
     }
 }

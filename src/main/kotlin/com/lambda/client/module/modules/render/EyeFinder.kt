@@ -21,7 +21,7 @@ import kotlin.math.min
 
 object EyeFinder : Module(
     name = "EyeFinder",
-    description = "Draw lines from entity's heads to where they are looking",
+    description = "Draws lines from entity's heads to where they are looking",
     category = Category.RENDER
 ) {
     private val page by setting("Page", Page.ENTITY_TYPE)

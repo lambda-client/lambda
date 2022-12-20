@@ -4,6 +4,7 @@ import com.lambda.client.event.LambdaEventBus;
 import com.lambda.client.event.events.CriticalsUpdateWalkingEvent;
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent;
 import com.lambda.client.event.events.PlayerMoveEvent;
+import com.lambda.client.event.events.PushOutOfBlocksEvent;
 import com.lambda.client.gui.mc.LambdaGuiBeacon;
 import com.lambda.client.manager.managers.MessageManager;
 import com.lambda.client.manager.managers.PlayerPacketManager;
@@ -69,6 +70,15 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;displayGuiScreen(Lnet/minecraft/client/gui/GuiScreen;)V"))
     public void closeScreen(Minecraft minecraft, GuiScreen screen) {
         if (PortalChat.INSTANCE.isDisabled()) Wrapper.getMinecraft().displayGuiScreen(screen);
+    }
+
+    @Inject(method = "pushOutOfBlocks", at = @At("HEAD"), cancellable = true)
+    private void onPushOutOfBlocks(CallbackInfoReturnable<Boolean> callbackInfoReturnable) {
+        PushOutOfBlocksEvent event = new PushOutOfBlocksEvent();
+        LambdaEventBus.INSTANCE.post(event);
+        if (event.getCancelled()) {
+            callbackInfoReturnable.setReturnValue(false);
+        }
     }
 
     /**
