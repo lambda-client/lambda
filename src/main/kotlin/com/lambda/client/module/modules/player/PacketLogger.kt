@@ -589,6 +589,17 @@ object PacketLogger : Module(
                         "data" to packet.data
                     }
                 }
+                is SPacketSpawnPlayer -> {
+                    logServer(packet) {
+                        "entityID" to packet.entityID
+                        "uniqueID" to packet.uniqueId
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
+                    }
+                }
                 is SPacketTeams -> {
                     logServer(packet) {
                         "action" to packet.action
