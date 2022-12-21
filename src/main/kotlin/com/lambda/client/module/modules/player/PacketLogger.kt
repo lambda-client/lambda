@@ -8,7 +8,6 @@ import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.misc.MapDownloader.setting
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
@@ -43,6 +42,7 @@ object PacketLogger : Module(
     private val ignoreUnknown by setting("Ignore Unknown Packets", false, description = "Ignore packets that aren't explicitly handled.")
     private val ignoreChat by setting("Ignore Chat", true, description = "Ignore chat packets.")
     private val ignoreCancelled by setting("Ignore Cancelled", true, description = "Ignore cancelled packets.")
+    private val ignorePlayerPosition by setting("Ignore Player Position", false, description = "Ignore sent position & rotation packets.")
     private val openLogFolder by setting("Open Log Folder...", false, consumer = { _, _ ->
         FolderUtils.openFolder(FolderUtils.packetLogFolder)
         true
@@ -652,33 +652,41 @@ object PacketLogger : Module(
                     }
                 }
                 is CPacketPlayer.Rotation -> {
-                    logClient(packet) {
-                        "yaw" to packet.playerYaw
-                        "pitch" to packet.playerPitch
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "yaw" to packet.playerYaw
+                            "pitch" to packet.playerPitch
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayer.Position -> {
-                    logClient(packet) {
-                        "x" to packet.playerX
-                        "y" to packet.playerY
-                        "z" to packet.playerZ
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "x" to packet.playerX
+                            "y" to packet.playerY
+                            "z" to packet.playerZ
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayer.PositionRotation -> {
-                    logClient(packet) {
-                        "x" to packet.playerX
-                        "y" to packet.playerY
-                        "z" to packet.playerZ
-                        "yaw" to packet.playerYaw
-                        "pitch" to packet.playerPitch
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "x" to packet.playerX
+                            "y" to packet.playerY
+                            "z" to packet.playerZ
+                            "yaw" to packet.playerYaw
+                            "pitch" to packet.playerPitch
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayer -> {
-                    logClient(packet) {
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayerDigging -> {
