@@ -550,6 +550,28 @@ object PacketLogger : Module(
                         }
                     }
                 }
+                is SPacketPlayerListItem -> {
+                    logServer(packet) {
+                        "action" to packet.action.name
+                        "entries" to buildString {
+                            for (entry in packet.entries) {
+                                append("> displayName: ")
+                                append(entry.displayName)
+                                append(" gameMode: ")
+                                append(entry.gameMode?.name)
+                                append(" ping: ")
+                                append(entry.ping)
+                                append(" profile.id: ")
+                                append(entry.profile?.id)
+                                append(" profile.name: ")
+                                append(entry.profile?.name)
+                                append(" profile.properties: ")
+                                append(entry.profile?.properties)
+                                append(' ')
+                            }
+                        }
+                    }
+                }
                 is SPacketSoundEffect -> {
                     logServer(packet) {
                         "sound" to packet.sound.soundName
