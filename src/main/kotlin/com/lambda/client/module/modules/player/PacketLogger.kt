@@ -43,6 +43,7 @@ object PacketLogger : Module(
     private val ignoreChat by setting("Ignore Chat", true, description = "Ignore chat packets.")
     private val ignoreCancelled by setting("Ignore Cancelled", true, description = "Ignore cancelled packets.")
     private val ignorePlayerPosition by setting("Ignore Player Position", false, description = "Ignore sent position & rotation packets.")
+    private val ignoreTimeUpdates by setting("Ignore Time Updates", false, description = "Ignore time update packets.")
     private val openLogFolder by setting("Open Log Folder...", false, consumer = { _, _ ->
         FolderUtils.openFolder(FolderUtils.packetLogFolder)
         true
@@ -308,8 +309,39 @@ object PacketLogger : Module(
                         "isSoundServerwide" to packet.isSoundServerwide
                     }
                 }
+                is SPacketEntity.S15PacketEntityRelMove -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "onGround" to packet.onGround
+                    }
+                }
+                is SPacketEntity.S16PacketEntityLook -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
+                        "isRotating" to packet.isRotating
+                        "onGround" to packet.onGround
+                    }
+                }
+                is SPacketEntity.S17PacketEntityLookMove -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
+                        "isRotating" to packet.isRotating
+                        "onGround" to packet.onGround
+                    }
+                }
                 is SPacketEntity -> {
                     logServer(packet) {
+                        "entityId" to packet.entityId
                         "x" to packet.x
                         "y" to packet.y
                         "z" to packet.z
@@ -344,6 +376,7 @@ object PacketLogger : Module(
                 }
                 is SPacketEntityHeadLook -> {
                     logServer(packet) {
+                        "entityId" to packet.entityHeadLookEntityId
                         "yaw" to packet.yaw
                     }
                 }
@@ -378,12 +411,12 @@ object PacketLogger : Module(
                 }
                 is SPacketEntityTeleport -> {
                     logServer(packet) {
+                        "entityID" to packet.entityId
                         "x" to packet.x
                         "y" to packet.y
                         "z" to packet.z
                         "yaw" to packet.yaw
                         "pitch" to packet.pitch
-                        "entityID" to packet.entityId
                     }
                 }
                 is SPacketEntityVelocity -> {
@@ -542,9 +575,11 @@ object PacketLogger : Module(
                     }
                 }
                 is SPacketTimeUpdate -> {
-                    logServer(packet) {
-                        "totalWorldTime" to packet.totalWorldTime
-                        "worldTime" to packet.worldTime
+                    if (!ignoreTimeUpdates) {
+                        logServer(packet) {
+                            "totalWorldTime" to packet.totalWorldTime
+                            "worldTime" to packet.worldTime
+                        }
                     }
                 }
                 is SPacketUnloadChunk -> {
@@ -579,17 +614,6 @@ object PacketLogger : Module(
                         "slot" to packet.slot
                         "stack" to packet.stack.displayName
                         "windowId" to packet.windowId
-                    }
-                }
-                is SPacketEntity.S15PacketEntityRelMove -> {
-                    logServer(packet) {
-                        "x" to packet.x
-                        "y" to packet.y
-                        "z" to packet.z
-                        "yaw" to packet.yaw
-                        "pitch" to packet.pitch
-                        "isRotating" to packet.isRotating
-                        "onGround" to packet.onGround
                     }
                 }
                 else -> {
