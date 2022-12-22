@@ -1,8 +1,8 @@
 package com.lambda.client.manager.managers
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.RenderBlockActivity
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.manager.Manager
@@ -13,6 +13,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
     const val MAX_DEPTH = 25
+    private var lastActivity: Activity = this
 
     init {
         safeListener<TickEvent.ClientTickEvent> { event ->
@@ -20,12 +21,15 @@ object ActivityManager : Manager, Activity() {
 
             val currentActivity = currentActivity()
 
-//            ListenerManager.listenerMap.keys.filterIsInstance<Activity>().filter { it !is ActivityManager && it != currentActivity }.forEach {
-//                ListenerManager.unregister(it)
-//                LambdaMod.LOG.info("Unsubscribed ${it::class.simpleName}")
-//            }
-
             with(currentActivity) {
+                if (currentActivity != lastActivity) {
+                    if (lastActivity !is ActivityManager) {
+                        LambdaEventBus.unsubscribe(lastActivity)
+                        ListenerManager.unregister(lastActivity)
+                    }
+                    LambdaEventBus.subscribe(currentActivity)
+                    lastActivity = currentActivity
+                }
                 updateActivity()
             }
         }
