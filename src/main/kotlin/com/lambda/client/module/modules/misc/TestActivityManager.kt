@@ -29,7 +29,7 @@ object TestActivityManager : Module(
     description = "",
     category = Category.MISC
 ) {
-    private val a by setting("Get Dia Pickaxe", false, consumer = { _, _->
+    private val a by setting("Get any Dia Pickaxe", false, consumer = { _, _->
         ActivityManager.addSubActivities(
             SwapOrMoveToItem(Items.DIAMOND_PICKAXE)
         )

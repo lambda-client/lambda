@@ -9,7 +9,6 @@ import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.items.item
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
@@ -22,6 +21,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.util.*
 import kotlin.math.ceil
 
 class BreakBlock(
@@ -52,6 +52,7 @@ class BreakBlock(
             color = ColorHolder(16, 74, 94)
         } else {
             ticksNeeded = ceil((1 / initState.getPlayerRelativeBlockHardness(player, world, blockPos)) * miningSpeedFactor).toInt()
+            timeout = ticksNeeded * 50L + 100L
         }
     }
 
@@ -84,8 +85,6 @@ class BreakBlock(
                         finish()
                     }
                 } else {
-                    timeout = ticksNeeded * 50L + 100L
-
                     playerController.onPlayerDamageBlock(blockPos, side)
                     player.swingArm(EnumHand.MAIN_HAND)
                     // cancel onPlayerDestroy NoGhostBlocks
@@ -140,7 +139,7 @@ class BreakBlock(
             color = ColorHolder(252, 3, 207)
             timeout = 10000L
             addSubActivities(
-                PickUpDrops(initState.block.item),
+                PickUpDrops(initState.block.getItemDropped(initState, Random(), 0)),
                 SetState(ActivityStatus.SUCCESS)
             )
         } else {

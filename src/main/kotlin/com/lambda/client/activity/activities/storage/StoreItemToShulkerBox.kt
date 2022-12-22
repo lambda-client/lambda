@@ -1,12 +1,14 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.*
+import com.lambda.client.activity.activities.InstantActivity
+import com.lambda.client.activity.activities.Wait
+import com.lambda.client.activity.activities.getContainerPos
+import com.lambda.client.activity.activities.getShulkerInventory
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
 import com.lambda.client.activity.activities.interaction.PlaceBlock
-import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.inventory.SwapToBestTool
 import com.lambda.client.event.SafeClientEvent
@@ -27,7 +29,7 @@ class StoreItemToShulkerBox(
 
         player.allSlots.forEach { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
-                if (inventory.all { it.item == item || it.isEmpty }) {
+                if (inventory.all { (it.item == item && predicateItem(it)) || it.isEmpty }) {
                     candidates[slot] = inventory.count { it.item == item && predicateItem(it) }
                 }
             }
@@ -49,8 +51,7 @@ class StoreItemToShulkerBox(
                         remotePos,
                         pickUpDrop = true,
                         mode = BreakBlock.Mode.PLAYER_CONTROLLER
-                    ),
-                    SwapOrMoveToItem(item, predicateItem, predicateSlot)
+                    )
                 )
             }
         }

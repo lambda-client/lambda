@@ -2,6 +2,7 @@ package com.lambda.client.activity.activities.travel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
+import com.lambda.client.activity.activities.SetState
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.entity.item.EntityItem
@@ -14,10 +15,19 @@ class PickUpDrops(
     private val maxRange: Float = 10.0f
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        world.loadedEntityList.filterIsInstance<EntityItem>().filter {
+        val drops = world.loadedEntityList.filterIsInstance<EntityItem>().filter {
             it.item.item == item && player.distanceTo(it.positionVector) < maxRange && predicate(it.item)
-        }.sortedBy { drop -> player.distanceTo(drop.positionVector) }.forEach { drop ->
-            addSubActivities(PickUpEntityItem(drop))
+        }
+
+        if (drops.isEmpty()) {
+            activityStatus = ActivityStatus.SUCCESS
+        } else {
+            drops.minByOrNull { drop -> player.distanceTo(drop.positionVector) }?.let { drop ->
+                addSubActivities(
+                    PickUpEntityItem(drop),
+                    SetState(ActivityStatus.UNINITIALIZED)
+                )
+            }
         }
     }
 }

@@ -9,7 +9,7 @@ class WaitAndSay(
     private val message: String,
     override val delay: Long = 1000L,
     override var creationTime: Long = 0L
-): DelayedActivity, Activity() {
+) : DelayedActivity, Activity() {
     override fun SafeClientEvent.onDelayedActivity() {
         MessageSendHelper.sendChatMessage(message)
         activityStatus = ActivityStatus.SUCCESS
