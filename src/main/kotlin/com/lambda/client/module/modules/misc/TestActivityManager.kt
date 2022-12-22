@@ -3,8 +3,11 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.Failing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
+import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
+import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
+import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
@@ -29,6 +32,27 @@ object TestActivityManager : Module(
     private val a by setting("Get Dia Pickaxe", false, consumer = { _, _->
         ActivityManager.addSubActivities(
             SwapOrMoveToItem(Items.DIAMOND_PICKAXE)
+        )
+        false
+    })
+
+    private val tie by setting("Store Obby", false, consumer = { _, _->
+        ActivityManager.addSubActivities(
+            StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
+        )
+        false
+    })
+
+    private val ctiectie by setting("Auto Obby", false, consumer = { _, _->
+        ActivityManager.addSubActivities(
+            BreakDownEnderChests()
+        )
+        false
+    })
+
+    private val etit by setting("Extract Obby", false, consumer = { _, _->
+        ActivityManager.addSubActivities(
+            ExtractItemFromShulkerBox(Blocks.OBSIDIAN.item)
         )
         false
     })

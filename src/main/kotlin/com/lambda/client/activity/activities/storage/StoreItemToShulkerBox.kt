@@ -1,10 +1,7 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.Wait
-import com.lambda.client.activity.activities.getContainerPos
-import com.lambda.client.activity.activities.getShulkerInventory
+import com.lambda.client.activity.activities.*
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
@@ -15,50 +12,37 @@ import com.lambda.client.activity.activities.inventory.SwapToBestTool
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.block
-import com.lambda.client.util.items.inventorySlots
-import com.lambda.client.util.math.VectorUtils
-import com.lambda.client.util.math.VectorUtils.toVec3dCenter
-import com.lambda.client.util.world.getVisibleSides
-import com.lambda.client.util.world.isPlaceable
-import com.lambda.client.util.world.isReplaceable
-import net.minecraft.inventory.ItemStackHelper
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
-import net.minecraft.item.ItemShulkerBox
 import net.minecraft.item.ItemStack
-import net.minecraft.util.EnumFacing
-import net.minecraft.util.NonNullList
-import net.minecraft.util.math.BlockPos
 
-class ExtractItemFromShulkerBox(
+class StoreItemToShulkerBox(
     private val item: Item,
     private val amount: Int = 0, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true }
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-//        if (player.inventorySlots.item)
-
         val candidates = mutableMapOf<Slot, Int>()
 
         player.allSlots.forEach { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
-                val count = inventory.count { it.item == item && predicateItem(it) }
-
-                if (count > 0) candidates[slot] = count
+                if (inventory.all { it.item == item || it.isEmpty }) {
+                    candidates[slot] = inventory.count { it.item == item && predicateItem(it) }
+                }
             }
         }
 
         if (candidates.isEmpty()) return
 
-        candidates.minBy { it.value }.key.let { slot ->
+        candidates.maxBy { it.value }.key.let { slot ->
             getContainerPos()?.let { remotePos ->
                 addSubActivities(
                     SwapOrSwitchToSlot(slot, predicateSlot),
                     PlaceBlock(remotePos, slot.stack.item.block),
                     OpenContainer(remotePos),
                     Wait(50L),
-                    PullItemsFromContainer(item, amount, predicateItem),
+                    PushItemsToContainer(item, amount, predicateItem),
                     CloseContainer(),
                     SwapToBestTool(remotePos),
                     BreakBlock(

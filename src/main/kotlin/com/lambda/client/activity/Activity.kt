@@ -5,6 +5,7 @@ import com.lambda.client.activity.activities.AttemptActivity
 import com.lambda.client.activity.activities.DelayedActivity
 import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.TimeoutActivity
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
@@ -107,6 +108,7 @@ abstract class Activity {
 //        LambdaEventBus.unsubscribe(currentActivity())
         ListenerManager.listenerMap.keys.filterIsInstance<Activity>().filter { it !is ActivityManager }.forEach {
             ListenerManager.unregister(it)
+            LambdaEventBus.unsubscribe(it)
             LambdaMod.LOG.info("Unsubscribed ${it::class.simpleName}")
         }
         BaritoneUtils.primary?.pathingBehavior?.cancelEverything()

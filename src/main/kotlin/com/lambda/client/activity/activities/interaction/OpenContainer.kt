@@ -1,6 +1,5 @@
 package com.lambda.client.activity.activities.interaction
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.SetState
