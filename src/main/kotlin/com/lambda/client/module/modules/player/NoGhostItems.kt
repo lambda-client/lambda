@@ -5,6 +5,7 @@ import com.lambda.client.manager.managers.PlayerInventoryManager
 import com.lambda.client.manager.managers.PlayerInventoryManager.addInventoryTask
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import com.lambda.mixin.player.MixinPlayerControllerMP
 
@@ -30,6 +31,7 @@ object NoGhostItems : Module(
 
     init {
         safeListener<WindowClickEvent> {
+            MessageSendHelper.sendChatMessage("${it.windowId} ${it.slotId} ${it.mouseButton} ${it.type}")
             if (syncMode == SyncMode.MODULES) return@safeListener
 
             addInventoryTask(PlayerInventoryManager.ClickInfo(it.windowId, it.slotId, it.mouseButton, it.type))
