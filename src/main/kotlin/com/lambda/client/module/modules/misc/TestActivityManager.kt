@@ -1,13 +1,13 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.LambdaMod
+import com.lambda.client.activity.activities.example.Failing
+import com.lambda.client.activity.activities.example.SayAnnoyingly
+import com.lambda.client.activity.activities.inventory.DumpInventory
+import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
+import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
-import com.lambda.client.manager.managers.activity.activities.example.Failing
-import com.lambda.client.manager.managers.activity.activities.example.SayAnnoyingly
-import com.lambda.client.manager.managers.activity.activities.inventory.DumpInventory
-import com.lambda.client.manager.managers.activity.activities.inventory.SwapOrMoveToItem
-import com.lambda.client.manager.managers.activity.activities.travel.PickUpDrops
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.items.block

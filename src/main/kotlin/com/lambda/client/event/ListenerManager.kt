@@ -10,9 +10,9 @@ import java.util.concurrent.CopyOnWriteArrayList
  */
 object ListenerManager {
 
-    private val listenerMap = ConcurrentHashMap<Any, CopyOnWriteArrayList<Listener<*>>>()
+    val listenerMap = ConcurrentHashMap<Any, CopyOnWriteArrayList<Listener<*>>>()
 
-    private val asyncListenerMap = ConcurrentHashMap<Any, CopyOnWriteArrayList<AsyncListener<*>>>()
+    val asyncListenerMap = ConcurrentHashMap<Any, CopyOnWriteArrayList<AsyncListener<*>>>()
 
     /**
      * Register the [listener] to the [ListenerManager]
