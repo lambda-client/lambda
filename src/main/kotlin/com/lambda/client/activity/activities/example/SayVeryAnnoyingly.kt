@@ -7,7 +7,7 @@ import com.lambda.client.event.SafeClientEvent
 class SayVeryAnnoyingly(private val message: String): InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         message.forEach {
-            addSubActivities(WaitAndSay(it.toString(), 1000))
+            addSubActivities(ListenAndWait(it.toString(), 250))
         }
     }
 }
