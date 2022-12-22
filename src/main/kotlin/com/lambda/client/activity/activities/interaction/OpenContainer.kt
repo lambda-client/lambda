@@ -16,7 +16,6 @@ import net.minecraft.network.play.server.SPacketOpenWindow
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
-import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class OpenContainer(private val containerPos: BlockPos) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {

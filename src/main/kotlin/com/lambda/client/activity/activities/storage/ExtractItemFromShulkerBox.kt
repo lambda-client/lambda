@@ -15,20 +15,9 @@ import com.lambda.client.activity.activities.inventory.SwapToBestTool
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.block
-import com.lambda.client.util.items.inventorySlots
-import com.lambda.client.util.math.VectorUtils
-import com.lambda.client.util.math.VectorUtils.toVec3dCenter
-import com.lambda.client.util.world.getVisibleSides
-import com.lambda.client.util.world.isPlaceable
-import com.lambda.client.util.world.isReplaceable
-import net.minecraft.inventory.ItemStackHelper
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
-import net.minecraft.item.ItemShulkerBox
 import net.minecraft.item.ItemStack
-import net.minecraft.util.EnumFacing
-import net.minecraft.util.NonNullList
-import net.minecraft.util.math.BlockPos
 
 class ExtractItemFromShulkerBox(
     private val item: Item,
