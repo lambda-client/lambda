@@ -1,5 +1,7 @@
 package com.lambda.client.gui.hudgui.elements.misc
 
+import com.lambda.client.activity.Activity
+import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.manager.managers.ActivityManager
@@ -12,6 +14,15 @@ internal object ActivityManagerHud: LabelHud(
     override fun SafeClientEvent.updateText() {
         if (ActivityManager.noSubActivities()) return
 
-        ActivityManager.appendInfo(displayText, primaryColor, secondaryColor, 0)
+        ActivityManager.appendInfo(displayText, primaryColor, secondaryColor)
+
+        displayText.addLine("")
+        displayText.addLine("Subscribers:")
+        ListenerManager.listenerMap.keys.filterIsInstance<Activity>().forEach {
+            displayText.addLine("${it::class.simpleName}")
+        }
+        ListenerManager.asyncListenerMap.keys.filterIsInstance<Activity>().forEach {
+            displayText.addLine("${it::class.simpleName}")
+        }
     }
 }
