@@ -30,7 +30,9 @@ class StoreItemToShulkerBox(
         player.allSlots.forEach { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
                 if (inventory.all { (it.item == item && predicateItem(it)) || it.isEmpty }) {
-                    candidates[slot] = inventory.count { it.item == item && predicateItem(it) }
+                    val count = inventory.count { it.item == item && predicateItem(it) }
+
+                    if (count < 27) candidates[slot] = count
                 }
             }
         }

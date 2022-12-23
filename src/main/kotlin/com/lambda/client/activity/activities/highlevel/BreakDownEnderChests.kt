@@ -20,22 +20,20 @@ import net.minecraft.init.Items
 class BreakDownEnderChests : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getContainerPos()?.let { remotePos ->
-            if (player.inventorySlots.countEmpty() == 0) {
+            if (player.inventorySlots.countEmpty() < 2) {
                 addSubActivities(
                     StoreItemToShulkerBox(Blocks.OBSIDIAN.item),
                     SetState(ActivityStatus.UNINITIALIZED)
                 )
             } else {
                 addSubActivities(
-                    SwapOrMoveToItem(Blocks.ENDER_CHEST.item),
-                    PlaceBlock(remotePos, Blocks.ENDER_CHEST),
+                    PlaceBlockSafely(remotePos, Blocks.ENDER_CHEST),
                     SwapOrMoveToItem(
                         Items.DIAMOND_PICKAXE,
                         predicateItem = {
                             EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
                         }
                     ),
-//                    SwapToBestTool(remotePos),
                     BreakBlock(
                         remotePos,
                         pickUpDrop = true,
