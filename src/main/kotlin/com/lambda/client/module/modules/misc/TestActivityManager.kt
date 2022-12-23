@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.activity.activities.example.Failing
+import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.inventory.DumpInventory
@@ -97,7 +97,7 @@ object TestActivityManager : Module(
     })
 
     private val fail by setting("maybe fail", false, consumer = { _, _->
-        ActivityManager.addSubActivities(Failing())
+        ActivityManager.addSubActivities(ProbablyFailing())
         false
     })
 
