@@ -1,10 +1,12 @@
 package com.lambda.client.activity.activities.storage
 
+import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.Wait
 import com.lambda.client.activity.activities.getContainerPos
 import com.lambda.client.activity.activities.getShulkerInventory
+import com.lambda.client.activity.activities.highlevel.PlaceBlockSafely
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
@@ -12,6 +14,7 @@ import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.inventory.SwapToBestTool
+import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.block
@@ -43,6 +46,7 @@ class ExtractItemFromShulkerBox(
         candidates.minBy { it.value }.key.let { slot ->
             getContainerPos()?.let { remotePos ->
                 addSubActivities(
+                    CustomGoal(GoalNear(remotePos, 3)),
                     SwapOrSwitchToSlot(slot, predicateSlot),
                     PlaceBlock(remotePos, slot.stack.item.block),
                     OpenContainer(remotePos),

@@ -24,7 +24,7 @@ class PlaceBlock(
     private val blockPos: BlockPos,
     private val block: Block,
     private val playSound: Boolean = true,
-    override val timeout: Long = 500L,
+    override val timeout: Long = 1000L,
     override var creationTime: Long = 0L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,

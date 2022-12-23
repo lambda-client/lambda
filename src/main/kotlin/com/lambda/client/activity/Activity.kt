@@ -1,15 +1,13 @@
 package com.lambda.client.activity
 
 import com.lambda.client.LambdaMod
-import com.lambda.client.activity.activities.AttemptActivity
-import com.lambda.client.activity.activities.DelayedActivity
-import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.TimeoutActivity
+import com.lambda.client.activity.activities.*
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.MAX_DEPTH
+import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
@@ -42,15 +40,15 @@ abstract class Activity {
                         if (this@Activity is AttemptActivity) {
                             if (usedAttempts >= maxAttempts) {
                                 activityStatus = ActivityStatus.FAILURE
-                                LambdaMod.LOG.error("TimedActivity fully timed out!")
+                                LambdaMod.LOG.error("${this@Activity::class.simpleName} fully timed out!")
                             } else {
                                 usedAttempts++
                                 initialize()
-                                LambdaMod.LOG.error("TimedActivity timed out!")
+                                LambdaMod.LOG.error("${this@Activity::class.simpleName} timed out!")
                             }
                         } else {
                             activityStatus = ActivityStatus.FAILURE
-                            LambdaMod.LOG.error("TimedActivity fully timed out!")
+                            LambdaMod.LOG.error("${this@Activity::class.simpleName} fully timed out!")
                         }
                     }
                 }
@@ -65,17 +63,22 @@ abstract class Activity {
                 if (this@Activity is AttemptActivity) {
                     if (usedAttempts >= maxAttempts) {
                         activityStatus = ActivityStatus.FAILURE
-                        LambdaMod.LOG.error("AttemptActivity failed after $maxAttempts attempts!")
+                        LambdaMod.LOG.error("${this@Activity::class.simpleName} failed after $maxAttempts attempts!")
+                    }
+                }
+                if (this@Activity is RotatingActivity) {
+                    sendPlayerPacket {
+                        rotate(rotation)
                     }
                 }
             }
             ActivityStatus.SUCCESS -> {
                 finalize()
-                LambdaMod.LOG.info("${this@Activity} activity finished successfully!")
+//                LambdaMod.LOG.info("${this@Activity} activity finished successfully!")
             }
             ActivityStatus.FAILURE -> {
                 finalize()
-                LambdaMod.LOG.error("Activity ${this@Activity} failed!")
+                LambdaMod.LOG.error("Activity ${this@Activity::class.simpleName} failed!")
             }
         }
     }
@@ -89,7 +92,12 @@ abstract class Activity {
             creationTime = System.currentTimeMillis()
         }
         onInitialize()
-        LambdaMod.LOG.info("Initialized activity: ${this@Activity}")
+        if (this@Activity is RotatingActivity) {
+            sendPlayerPacket {
+                rotate(rotation)
+            }
+        }
+//        LambdaMod.LOG.info("Initialized activity: ${this@Activity}")
     }
 
     open fun SafeClientEvent.onInitialize() {}
@@ -97,7 +105,13 @@ abstract class Activity {
     private fun SafeClientEvent.finalize() {
         onFinalize()
         owner.subActivities.remove(this@Activity)
-        LambdaMod.LOG.info("Finalized activity: ${this@Activity}")
+//        LambdaMod.LOG.info("Finalized activity: ${this@Activity}")
+
+        if (this@Activity is InstantActivity) {
+            with(ActivityManager) {
+                runActivity()
+            }
+        }
     }
 
     open fun SafeClientEvent.onFinalize() {}
@@ -105,7 +119,6 @@ abstract class Activity {
 
     fun reset() {
         LambdaMod.LOG.info("Resetting activity: ${this@Activity::class.simpleName}" )
-//        LambdaEventBus.unsubscribe(currentActivity())
         ListenerManager.listenerMap.keys.filterIsInstance<Activity>().filter { it !is ActivityManager }.forEach {
             ListenerManager.unregister(it)
             LambdaEventBus.unsubscribe(it)
@@ -130,7 +143,7 @@ abstract class Activity {
         }
         subActivities.addAll(activities)
 
-        LambdaMod.LOG.info("Added ${activities.size} sub activities to ${this::class.simpleName}")
+//        LambdaMod.LOG.info("Added ${activities.size} sub activities to ${this::class.simpleName}")
     }
 
     fun Activity.addSubActivities(vararg activities: Activity) {

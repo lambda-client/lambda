@@ -2,10 +2,12 @@ package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
+import com.lambda.client.activity.activities.RotatingActivity
 import com.lambda.client.activity.activities.SetState
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.math.RotationUtils.getRotationTo
+import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
@@ -17,7 +19,10 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 
-class OpenContainer(private val containerPos: BlockPos) : InstantActivity, Activity() {
+class OpenContainer(
+    private val containerPos: BlockPos,
+    override var rotation: Vec2f = Vec2f.ZERO,
+) : InstantActivity, RotatingActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         val diff = player.getPositionEyes(1f).subtract(containerPos.toVec3dCenter())
         val normalizedVec = diff.normalize()
@@ -25,9 +30,8 @@ class OpenContainer(private val containerPos: BlockPos) : InstantActivity, Activ
         val side = EnumFacing.getFacingFromVector(normalizedVec.x.toFloat(), normalizedVec.y.toFloat(), normalizedVec.z.toFloat())
         val hitVecOffset = getHitVecOffset(side)
 
-        val rotation = getRotationTo(getHitVec(containerPos, side))
+        rotation = getRotationTo(getHitVec(containerPos, side))
 
-        connection.sendPacket(CPacketPlayer.Rotation(rotation.x, rotation.y, player.onGround))
         connection.sendPacket(CPacketPlayerTryUseItemOnBlock(containerPos, side, EnumHand.MAIN_HAND, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat()))
         player.swingArm(EnumHand.MAIN_HAND)
     }
@@ -36,7 +40,7 @@ class OpenContainer(private val containerPos: BlockPos) : InstantActivity, Activ
         safeListener<PacketEvent.PostReceive> {
             when (it.packet) {
                 is SPacketOpenWindow -> {
-                    addSubActivities(SetState(ActivityStatus.SUCCESS))
+                    activityStatus = ActivityStatus.SUCCESS
                 }
             }
         }

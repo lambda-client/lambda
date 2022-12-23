@@ -5,6 +5,7 @@ import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.inventory.InventoryTransaction
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.getSlots
+import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -15,7 +16,11 @@ class PushItemsToContainer(
     private val predicateItem: (ItemStack) -> Boolean = { true }
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        player.openContainer.getSlots(27..62).filter { slot ->
+        val openContainer = player.openContainer
+
+        if (openContainer.inventorySlots.size != 63) return
+
+        openContainer.getSlots(27..62).filter { slot ->
             slot.stack.item == item && predicateItem(slot.stack)
         }.forEach {
             addSubActivities(InventoryTransaction(

@@ -1,15 +1,13 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.AttemptActivity
-import com.lambda.client.activity.activities.RenderBlockActivity
-import com.lambda.client.activity.activities.SetState
-import com.lambda.client.activity.activities.TimeoutActivity
+import com.lambda.client.activity.activities.*
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.math.RotationUtils.getRotationTo
+import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
@@ -17,9 +15,12 @@ import net.minecraft.init.Blocks
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.server.SPacketBlockChange
+import net.minecraft.network.play.server.SPacketSpawnGlobalEntity
+import net.minecraft.network.play.server.SPacketSpawnObject
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3i
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.ceil
@@ -35,10 +36,14 @@ class BreakBlock(
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override var renderBlockPos: BlockPos = blockPos,
-    override var color: ColorHolder = ColorHolder(0, 0, 0)
-) : TimeoutActivity, AttemptActivity, RenderBlockActivity, Activity() {
+    override var color: ColorHolder = ColorHolder(0, 0, 0),
+    override var rotation: Vec2f = Vec2f.ZERO
+) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderBlockActivity, Activity() {
     private var ticksNeeded = 0
     private var initState = Blocks.AIR.defaultState
+
+//    private var blockChanged = false
+//    private var dropped = false
 
     enum class Mode {
         PLAYER_CONTROLLER, PACKET
@@ -52,7 +57,7 @@ class BreakBlock(
             color = ColorHolder(16, 74, 94)
         } else {
             ticksNeeded = ceil((1 / initState.getPlayerRelativeBlockHardness(player, world, blockPos)) * miningSpeedFactor).toInt()
-            timeout = ticksNeeded * 50L + 100L
+            timeout = ticksNeeded * 50L + 1000L
         }
     }
 
@@ -61,9 +66,7 @@ class BreakBlock(
             if (it.phase != TickEvent.Phase.START) return@safeListener
 
             getMiningSide(blockPos)?.let { side ->
-                val rotation = getRotationTo(getHitVec(blockPos, side))
-
-                connection.sendPacket(CPacketPlayer.Rotation(rotation.x, rotation.y, player.onGround))
+                rotation = getRotationTo(getHitVec(blockPos, side))
 
                 if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
                     if (mode == Mode.PACKET) {
@@ -131,6 +134,20 @@ class BreakBlock(
             ) {
                 finish()
             }
+
+//            if (it.packet is SPacketSpawnObject
+//                && it.packet.type == 2
+//                && blockPos.distanceSq(Vec3i(it.packet.x, it.packet.y, it.packet.z)) < 1.0
+//            ) {
+//                dropped = true
+//                if (pickUpDrop) {
+//                    if (blockChanged) {
+//                        finish()
+//                    }
+//                } else {
+//                    finish()
+//                }
+//            }
         }
     }
 
@@ -139,6 +156,7 @@ class BreakBlock(
             color = ColorHolder(252, 3, 207)
             timeout = 10000L
             addSubActivities(
+                Wait(50L),
                 PickUpDrops(initState.block.getItemDropped(initState, Random(), 0)),
                 SetState(ActivityStatus.SUCCESS)
             )
