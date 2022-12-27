@@ -112,7 +112,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         }
     }
 
-    // We have to return true here so it would still update movement inputs from Baritone and send packets
+    // We have to return true here, so it would still update movement inputs from Baritone and send packets
     @Inject(method = "isCurrentViewEntity", at = @At("RETURN"), cancellable = true)
     protected void mixinIsCurrentViewEntity(CallbackInfoReturnable<Boolean> cir) {
         if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null) {

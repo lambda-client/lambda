@@ -2,10 +2,9 @@ package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.SetState
-import com.lambda.client.activity.activities.getContainerPos
+import com.lambda.client.activity.activities.utils.SetState
+import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.event.SafeClientEvent

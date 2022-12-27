@@ -1,6 +1,7 @@
-package com.lambda.client.activity.activities
+package com.lambda.client.activity.activities.utils
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.DelayedActivity
 import com.lambda.client.event.SafeClientEvent
 
 class Wait(

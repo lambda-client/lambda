@@ -1,4 +1,4 @@
-package com.lambda.client.activity.activities
+package com.lambda.client.activity.activities.utils
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.VectorUtils

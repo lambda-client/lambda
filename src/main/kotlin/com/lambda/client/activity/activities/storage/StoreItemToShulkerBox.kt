@@ -2,9 +2,9 @@ package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.Wait
-import com.lambda.client.activity.activities.getContainerPos
-import com.lambda.client.activity.activities.getShulkerInventory
+import com.lambda.client.activity.activities.utils.Wait
+import com.lambda.client.activity.activities.utils.getContainerPos
+import com.lambda.client.activity.activities.utils.getShulkerInventory
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer

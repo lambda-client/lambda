@@ -7,6 +7,7 @@ import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.manager.Manager
+import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -37,18 +38,36 @@ object ActivityManager : Manager, Activity() {
     }
 
     fun SafeClientEvent.runActivity() {
-        val currentActivity = currentActivity()
-
-        with(currentActivity) {
-            if (currentActivity != lastActivity) {
-                if (lastActivity !is ActivityManager) {
-                    LambdaEventBus.unsubscribe(lastActivity)
-                    ListenerManager.unregister(lastActivity)
-                }
-                LambdaEventBus.subscribe(currentActivity)
-                lastActivity = currentActivity
-            }
+        with(currentActivity()) {
+            updateListener()
             updateActivity()
         }
+    }
+
+    fun reset() {
+        if (lastActivity !is ActivityManager) {
+            LambdaEventBus.unsubscribe(lastActivity)
+            ListenerManager.unregister(lastActivity)
+        }
+        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
+        subActivities.clear()
+
+        lastActivity = ActivityManager
+    }
+
+    private fun updateListener() {
+        val currentActivity = currentActivity()
+
+        if (currentActivity == lastActivity) return
+
+        if (lastActivity !is ActivityManager) {
+            LambdaEventBus.unsubscribe(lastActivity)
+            ListenerManager.unregister(lastActivity)
+        }
+
+        LambdaEventBus.subscribe(currentActivity)
+        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
+
+        lastActivity = currentActivity
     }
 }

@@ -58,8 +58,9 @@ object NoRender : Module(
     private val items = setting("Items", false, { page == Page.ENTITIES })
     private val crystal = setting("Crystals", false, { page == Page.ENTITIES })
     private val firework = setting("Firework", false, { page == Page.ENTITIES })
+    private val tileEntity = setting("TileEntities", false, { page == Page.ENTITIES })
 
-    //Armor
+    // Armor
     private val armorPlayer by setting("Players", false, { page == Page.ARMOR })
     private val armorStands by setting("Armour Stands", false, { page == Page.ARMOR })
     private val armorMobs by setting("Mobs", false, { page == Page.ARMOR })
@@ -68,7 +69,7 @@ object NoRender : Module(
     private val leggings by setting("Leggings", true, { page == Page.ARMOR })
     private val boots by setting("Boots", true, { page == Page.ARMOR })
 
-    //Overlay
+    // Overlay
     val hurtCamera by setting("Hurt Camera", false, { page == Page.OVERLAY })
     private val fire by setting("Fire", false, { page == Page.OVERLAY })
     private val water by setting("Water", false, { page == Page.OVERLAY })
