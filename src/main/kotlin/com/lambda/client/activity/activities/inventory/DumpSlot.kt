@@ -8,6 +8,6 @@ import net.minecraft.inventory.Slot
 
 class DumpSlot(private val slot: Slot) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        addSubActivities(InventoryTransaction(0, slot.slotNumber, 1, ClickType.THROW))
+        addSubActivities(InventoryTransaction(player.openContainer.windowId, slot.slotNumber, 1, ClickType.THROW))
     }
 }

@@ -2,7 +2,7 @@ package com.lambda.client.activity.activities.travel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.SetState
+import com.lambda.client.activity.activities.utils.SetState
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.entity.item.EntityItem

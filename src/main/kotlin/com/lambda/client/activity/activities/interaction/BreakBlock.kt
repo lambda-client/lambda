@@ -3,6 +3,8 @@ package com.lambda.client.activity.activities.interaction
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.*
 import com.lambda.client.activity.activities.travel.PickUpDrops
+import com.lambda.client.activity.activities.utils.SetState
+import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
@@ -12,15 +14,11 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
 import net.minecraft.init.Blocks
-import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.server.SPacketBlockChange
-import net.minecraft.network.play.server.SPacketSpawnGlobalEntity
-import net.minecraft.network.play.server.SPacketSpawnObject
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3i
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.ceil

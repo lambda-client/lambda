@@ -16,7 +16,7 @@ import com.lambda.client.util.text.capitalize
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {
-    private val subActivities = ConcurrentLinkedDeque<Activity>()
+    val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
     var owner: Activity = ActivityManager
     var depth = 0
@@ -116,17 +116,6 @@ abstract class Activity {
 
     open fun SafeClientEvent.onFinalize() {}
     fun currentActivity(): Activity = subActivities.peek()?.currentActivity() ?: this
-
-    fun reset() {
-        LambdaMod.LOG.info("Resetting activity: ${this@Activity::class.simpleName}" )
-        ListenerManager.listenerMap.keys.filterIsInstance<Activity>().filter { it !is ActivityManager }.forEach {
-            ListenerManager.unregister(it)
-            LambdaEventBus.unsubscribe(it)
-            LambdaMod.LOG.info("Unsubscribed ${it::class.simpleName}")
-        }
-        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
-        subActivities.clear()
-    }
 
     fun Activity.addSubActivities(activities: List<Activity>) {
         if (activities.isEmpty()) return

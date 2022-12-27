@@ -11,6 +11,6 @@ class SwapHotbarSlots(
     private val slotTo: HotbarSlot
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        addSubActivities(InventoryTransaction(0, slotFrom.slotNumber, slotTo.hotbarSlot, ClickType.SWAP))
+        addSubActivities(InventoryTransaction(player.openContainer.windowId, slotFrom.slotNumber, slotTo.hotbarSlot, ClickType.SWAP))
     }
 }
