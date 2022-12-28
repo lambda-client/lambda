@@ -2,18 +2,11 @@ package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.utils.Wait
+import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.activity.activities.utils.getShulkerInventory
-import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.interaction.CloseContainer
-import com.lambda.client.activity.activities.interaction.OpenContainer
-import com.lambda.client.activity.activities.interaction.PlaceBlock
-import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
-import com.lambda.client.activity.activities.inventory.SwapToBestTool
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
-import com.lambda.client.util.items.block
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -21,8 +14,7 @@ import net.minecraft.item.ItemStack
 class StoreItemToShulkerBox(
     private val item: Item,
     private val amount: Int = 0, // 0 = all
-    private val predicateItem: (ItemStack) -> Boolean = { true },
-    private val predicateSlot: (ItemStack) -> Boolean = { true }
+    private val predicateItem: (ItemStack) -> Boolean = { true }
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         val candidates = mutableMapOf<Slot, Int>()
@@ -40,20 +32,12 @@ class StoreItemToShulkerBox(
         if (candidates.isEmpty()) return
 
         candidates.maxBy { it.value }.key.let { slot ->
-            getContainerPos()?.let { remotePos ->
+            getContainerPos()?.let { containerPos ->
                 addSubActivities(
-                    SwapOrSwitchToSlot(slot, predicateSlot),
-                    PlaceBlock(remotePos, slot.stack.item.block),
-                    OpenContainer(remotePos),
-                    Wait(50L),
+                    OpenContainerInSlot(slot),
                     PushItemsToContainer(item, amount, predicateItem),
                     CloseContainer(),
-                    SwapToBestTool(remotePos),
-                    BreakBlock(
-                        remotePos,
-                        pickUpDrop = true,
-                        mode = BreakBlock.Mode.PLAYER_CONTROLLER
-                    )
+                    BreakAndCollectShulker(containerPos)
                 )
             }
         }

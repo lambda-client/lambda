@@ -1,20 +1,14 @@
 package com.lambda.client.module.modules.player
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.activity.activities.utils.getContainerPos
-import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.interaction.OpenContainer
-import com.lambda.client.activity.activities.interaction.PlaceBlock
-import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
-import com.lambda.client.activity.activities.inventory.SwapToBestTool
-import com.lambda.client.activity.activities.travel.CustomGoal
+import com.lambda.client.activity.activities.storage.BreakAndCollectShulker
+import com.lambda.client.activity.activities.storage.OpenContainerInSlot
 import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.events.WindowClickEvent
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.util.items.block
 import com.lambda.client.util.items.item
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.gui.inventory.GuiChest
@@ -41,10 +35,7 @@ object InventoryManagerTwo : Module(
                 getContainerPos()?.let { containerPos ->
                     placedShulkerBoxes.add(containerPos)
                     ActivityManager.addSubActivities(
-                        CustomGoal(GoalNear(containerPos, 3)),
-                        SwapOrSwitchToSlot(slot),
-                        PlaceBlock(containerPos, slot.stack.item.block),
-                        OpenContainer(containerPos)
+                        OpenContainerInSlot(slot)
                     )
                 }
 
@@ -57,12 +48,7 @@ object InventoryManagerTwo : Module(
 
             placedShulkerBoxes.firstOrNull()?.let { containerPos ->
                 ActivityManager.addSubActivities(
-                    CustomGoal(GoalNear(containerPos, 3)),
-                    SwapToBestTool(containerPos),
-                    BreakBlock(
-                        containerPos,
-                        pickUpDrop = true
-                    )
+                    BreakAndCollectShulker(containerPos)
                 )
                 placedShulkerBoxes.remove(containerPos)
             }

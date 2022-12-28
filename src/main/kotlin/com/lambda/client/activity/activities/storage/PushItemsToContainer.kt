@@ -2,11 +2,9 @@ package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.inventory.InventoryTransaction
+import com.lambda.client.activity.activities.inventory.QuickMoveSlot
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.getSlots
-import com.lambda.client.util.text.MessageSendHelper
-import net.minecraft.inventory.ClickType
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
@@ -23,12 +21,7 @@ class PushItemsToContainer(
         openContainer.getSlots(27..62).filter { slot ->
             slot.stack.item == item && predicateItem(slot.stack)
         }.forEach {
-            addSubActivities(InventoryTransaction(
-                player.openContainer.windowId,
-                it.slotNumber,
-                0,
-                ClickType.QUICK_MOVE
-            ))
+            addSubActivities(QuickMoveSlot(it))
         }
     }
 }
