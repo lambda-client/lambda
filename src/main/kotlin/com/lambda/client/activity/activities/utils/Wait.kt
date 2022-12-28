@@ -5,8 +5,7 @@ import com.lambda.client.activity.activities.DelayedActivity
 import com.lambda.client.event.SafeClientEvent
 
 class Wait(
-    override val delay: Long,
-    override var creationTime: Long = 0L
+    override val delay: Long
 ) : DelayedActivity, Activity() {
     override fun SafeClientEvent.onDelayedActivity() {
         activityStatus = ActivityStatus.SUCCESS

@@ -19,7 +19,6 @@ class InventoryTransaction(
     private val mouseButton: Int = 0,
     val type: ClickType,
     override val timeout: Long = 500L,
-    override var creationTime: Long = 0L,
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0
 ) : TimeoutActivity, AttemptActivity, Activity() {

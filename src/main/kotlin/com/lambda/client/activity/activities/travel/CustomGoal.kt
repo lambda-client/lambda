@@ -10,8 +10,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class CustomGoal(
     private val goal: Goal,
-    override val timeout: Long = 100000L,
-    override var creationTime: Long = 0L
+    override val timeout: Long = 100000L
 ) : TimeoutActivity, Activity() {
     init {
         safeListener<TickEvent.ClientTickEvent> { event ->

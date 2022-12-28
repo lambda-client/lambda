@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 abstract class Activity {
     val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
+    private var creationTime = 0L
     var owner: Activity = ActivityManager
     var depth = 0
 
@@ -83,12 +84,7 @@ abstract class Activity {
 
     private fun SafeClientEvent.initialize() {
         activityStatus = ActivityStatus.RUNNING
-        if (this@Activity is TimeoutActivity) {
-            creationTime = System.currentTimeMillis()
-        }
-        if (this@Activity is DelayedActivity) {
-            creationTime = System.currentTimeMillis()
-        }
+        creationTime = System.currentTimeMillis()
         onInitialize()
         if (this@Activity is RotatingActivity) {
             sendPlayerPacket {
@@ -103,7 +99,7 @@ abstract class Activity {
     private fun SafeClientEvent.finalize() {
         onFinalize()
         owner.subActivities.remove(this@Activity)
-//        LambdaMod.LOG.info("Finalized activity: ${this@Activity}")
+        LambdaMod.LOG.info("Finalized activity: ${this@Activity} after ${System.currentTimeMillis() - creationTime}ms")
 
         if (this@Activity is InstantActivity) {
             with(ActivityManager) {
@@ -137,7 +133,27 @@ abstract class Activity {
         addSubActivities(activities.toList())
     }
 
+    fun getAllSubActivities(): MutableList<Activity> {
+        val activities = mutableListOf<Activity>()
+
+        if (this !is ActivityManager) {
+            activities.add(this)
+        }
+
+        activities.addAll(subActivities.flatMap { it.getAllSubActivities() })
+
+        return activities
+    }
+
     fun noSubActivities() = subActivities.isEmpty()
+
+    fun setSuccess() {
+        activityStatus = ActivityStatus.SUCCESS
+    }
+
+    fun setFailure() {
+        activityStatus = ActivityStatus.FAILURE
+    }
 
     override fun toString(): String {
         return "Name: ${javaClass.simpleName} State: $activityStatus SubActivities: $subActivities"

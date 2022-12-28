@@ -4,6 +4,8 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
+import com.lambda.client.activity.activities.highlevel.BuildBlock
+import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
@@ -88,6 +90,13 @@ object TestActivityManager : Module(
             LambdaMod.LOG.info(player.inventorySlots.countEmpty())
         }
 
+        false
+    })
+
+    private val tiectie by setting("Surround me", false, consumer = { _, _->
+        ActivityManager.addSubActivities(
+            SurroundWithObsidian()
+        )
         false
     })
 

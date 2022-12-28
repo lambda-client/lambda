@@ -14,6 +14,8 @@ internal object ActivityManagerHud: LabelHud(
     override fun SafeClientEvent.updateText() {
         if (ActivityManager.noSubActivities()) return
 
+        displayText.addLine("Current Activities ${ActivityManager.getAllSubActivities().size}")
+
         ActivityManager.appendInfo(displayText, primaryColor, secondaryColor)
 
         displayText.addLine("")
