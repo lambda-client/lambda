@@ -33,7 +33,6 @@ class BreakBlock(
     private val pickUpDrop: Boolean = false,
     private val mode: Mode = Mode.PACKET,
     override var timeout: Long = 200L,
-    override var creationTime: Long = 0L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override var renderBlockPos: BlockPos = blockPos,

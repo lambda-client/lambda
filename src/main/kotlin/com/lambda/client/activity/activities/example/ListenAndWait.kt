@@ -8,8 +8,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class ListenAndWait(
     private val message: String,
-    override val timeout: Long,
-    override var creationTime: Long = 0L
+    override val timeout: Long
 ) : TimeoutActivity, Activity() {
     init {
         safeListener<TickEvent.ClientTickEvent> {

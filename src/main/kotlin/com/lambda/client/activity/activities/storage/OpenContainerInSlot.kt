@@ -21,7 +21,7 @@ class OpenContainerInSlot(
             addSubActivities(
                 CustomGoal(GoalNear(containerPos, 3)),
                 SwapOrSwitchToSlot(slot),
-                PlaceBlock(containerPos, slot.stack.item.block),
+                PlaceBlock(containerPos, slot.stack.item.block.defaultState),
                 OpenContainer(containerPos),
                 Wait(50L)
             )

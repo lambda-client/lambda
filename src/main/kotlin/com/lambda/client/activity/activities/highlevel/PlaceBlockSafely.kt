@@ -9,17 +9,18 @@ import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.item
 import net.minecraft.block.Block
+import net.minecraft.block.state.IBlockState
 import net.minecraft.util.math.BlockPos
 
 class PlaceBlockSafely(
     private val blockPos: BlockPos,
-    private val block: Block,
+    private val blockState: IBlockState,
 ) : InstantActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         addSubActivities(
-            SwapOrMoveToItem(block.item),
+            SwapOrMoveToItem(blockState.block.item),
             CustomGoal(GoalNear(blockPos, 3)),
-            PlaceBlock(blockPos, block)
+            PlaceBlock(blockPos, blockState)
         )
     }
 }

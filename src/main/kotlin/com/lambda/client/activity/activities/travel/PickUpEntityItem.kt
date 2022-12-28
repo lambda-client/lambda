@@ -14,8 +14,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class PickUpEntityItem(
     private val entityItem: EntityItem,
-    override val timeout: Long = 10000L,
-    override var creationTime: Long = 0L
+    override val timeout: Long = 10000L
 ) : TimeoutActivity, Activity() {
     init {
         safeListener<TickEvent.ClientTickEvent> { event ->

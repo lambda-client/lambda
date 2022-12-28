@@ -8,7 +8,6 @@ import net.minecraft.util.math.BlockPos
 
 interface TimeoutActivity {
     val timeout: Long
-    var creationTime: Long
 }
 
 interface InstantActivity
@@ -27,7 +26,6 @@ interface RotatingActivity {
 
 interface DelayedActivity {
     val delay: Long
-    var creationTime: Long
 
     fun SafeClientEvent.onDelayedActivity()
 }

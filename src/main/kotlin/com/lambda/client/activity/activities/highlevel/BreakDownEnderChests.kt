@@ -26,7 +26,7 @@ class BreakDownEnderChests : InstantActivity, Activity() {
                 )
             } else {
                 addSubActivities(
-                    PlaceBlockSafely(remotePos, Blocks.ENDER_CHEST),
+                    PlaceBlockSafely(remotePos, Blocks.ENDER_CHEST.defaultState),
                     SwapOrMoveToItem(
                         Items.DIAMOND_PICKAXE,
                         predicateItem = {
