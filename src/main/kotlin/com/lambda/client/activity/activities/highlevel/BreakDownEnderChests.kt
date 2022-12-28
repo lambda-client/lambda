@@ -2,11 +2,11 @@ package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.utils.SetState
-import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
+import com.lambda.client.activity.activities.utils.SetState
+import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
