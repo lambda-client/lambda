@@ -5,6 +5,7 @@ import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.highlevel.BuildBlock
+import com.lambda.client.activity.activities.highlevel.RaiseXPLevel
 import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
@@ -25,6 +26,7 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
+import net.minecraft.util.math.BlockPos
 
 object TestActivityManager : Module(
     name = "TestActivityManager",
@@ -112,6 +114,11 @@ object TestActivityManager : Module(
 
     private val reset by setting("Reset", false, consumer = { _, _->
         ActivityManager.reset()
+        false
+    })
+
+    val raiseXPLevel by setting("RaiseXPLevel", false, consumer = { _, _->
+        ActivityManager.addSubActivities(RaiseXPLevel(3, BlockPos.ORIGIN))
         false
     })
 }
