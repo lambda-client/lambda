@@ -45,7 +45,7 @@ object PacketLogger : Module(
     private val ignoreCancelled by setting("Ignore Cancelled", true, description = "Ignore cancelled packets.")
     private val openLogFolder by setting("Open Log Folder...", false, consumer = { _, _ ->
         FolderUtils.openFolder(FolderUtils.packetLogFolder)
-        true
+        false
     })
 
     private val fileTimeFormatter = DateTimeFormatter.ofPattern("HH-mm-ss_SSS")
