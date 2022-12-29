@@ -8,7 +8,6 @@ import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.misc.MapDownloader.setting
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
@@ -43,6 +42,8 @@ object PacketLogger : Module(
     private val ignoreUnknown by setting("Ignore Unknown Packets", false, description = "Ignore packets that aren't explicitly handled.")
     private val ignoreChat by setting("Ignore Chat", true, description = "Ignore chat packets.")
     private val ignoreCancelled by setting("Ignore Cancelled", true, description = "Ignore cancelled packets.")
+    private val ignorePlayerPosition by setting("Ignore Player Position", false, description = "Ignore sent position & rotation packets.")
+    private val ignoreTimeUpdates by setting("Ignore Time Updates", false, description = "Ignore time update packets.")
     private val openLogFolder by setting("Open Log Folder...", false, consumer = { _, _ ->
         FolderUtils.openFolder(FolderUtils.packetLogFolder)
         true
@@ -308,8 +309,39 @@ object PacketLogger : Module(
                         "isSoundServerwide" to packet.isSoundServerwide
                     }
                 }
+                is SPacketEntity.S15PacketEntityRelMove -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "onGround" to packet.onGround
+                    }
+                }
+                is SPacketEntity.S16PacketEntityLook -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
+                        "isRotating" to packet.isRotating
+                        "onGround" to packet.onGround
+                    }
+                }
+                is SPacketEntity.S17PacketEntityLookMove -> {
+                    logServer(packet) {
+                        "entityId" to packet.entityId
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
+                        "isRotating" to packet.isRotating
+                        "onGround" to packet.onGround
+                    }
+                }
                 is SPacketEntity -> {
                     logServer(packet) {
+                        "entityId" to packet.entityId
                         "x" to packet.x
                         "y" to packet.y
                         "z" to packet.z
@@ -344,6 +376,7 @@ object PacketLogger : Module(
                 }
                 is SPacketEntityHeadLook -> {
                     logServer(packet) {
+                        "entityId" to packet.entityHeadLookEntityId
                         "yaw" to packet.yaw
                     }
                 }
@@ -378,12 +411,12 @@ object PacketLogger : Module(
                 }
                 is SPacketEntityTeleport -> {
                     logServer(packet) {
+                        "entityID" to packet.entityId
                         "x" to packet.x
                         "y" to packet.y
                         "z" to packet.z
                         "yaw" to packet.yaw
                         "pitch" to packet.pitch
-                        "entityID" to packet.entityId
                     }
                 }
                 is SPacketEntityVelocity -> {
@@ -517,6 +550,28 @@ object PacketLogger : Module(
                         }
                     }
                 }
+                is SPacketPlayerListItem -> {
+                    logServer(packet) {
+                        "action" to packet.action.name
+                        "entries" to buildString {
+                            for (entry in packet.entries) {
+                                append("> displayName: ")
+                                append(entry.displayName)
+                                append(" gameMode: ")
+                                append(entry.gameMode?.name)
+                                append(" ping: ")
+                                append(entry.ping)
+                                append(" profile.id: ")
+                                append(entry.profile?.id)
+                                append(" profile.name: ")
+                                append(entry.profile?.name)
+                                append(" profile.properties: ")
+                                append(entry.profile?.properties)
+                                append(' ')
+                            }
+                        }
+                    }
+                }
                 is SPacketSoundEffect -> {
                     logServer(packet) {
                         "sound" to packet.sound.soundName
@@ -534,6 +589,17 @@ object PacketLogger : Module(
                         "data" to packet.data
                     }
                 }
+                is SPacketSpawnPlayer -> {
+                    logServer(packet) {
+                        "entityID" to packet.entityID
+                        "uniqueID" to packet.uniqueId
+                        "x" to packet.x
+                        "y" to packet.y
+                        "z" to packet.z
+                        "yaw" to packet.yaw
+                        "pitch" to packet.pitch
+                    }
+                }
                 is SPacketTeams -> {
                     logServer(packet) {
                         "action" to packet.action
@@ -542,9 +608,11 @@ object PacketLogger : Module(
                     }
                 }
                 is SPacketTimeUpdate -> {
-                    logServer(packet) {
-                        "totalWorldTime" to packet.totalWorldTime
-                        "worldTime" to packet.worldTime
+                    if (!ignoreTimeUpdates) {
+                        logServer(packet) {
+                            "totalWorldTime" to packet.totalWorldTime
+                            "worldTime" to packet.worldTime
+                        }
                     }
                 }
                 is SPacketUnloadChunk -> {
@@ -579,17 +647,6 @@ object PacketLogger : Module(
                         "slot" to packet.slot
                         "stack" to packet.stack.displayName
                         "windowId" to packet.windowId
-                    }
-                }
-                is SPacketEntity.S15PacketEntityRelMove -> {
-                    logServer(packet) {
-                        "x" to packet.x
-                        "y" to packet.y
-                        "z" to packet.z
-                        "yaw" to packet.yaw
-                        "pitch" to packet.pitch
-                        "isRotating" to packet.isRotating
-                        "onGround" to packet.onGround
                     }
                 }
                 else -> {
@@ -652,33 +709,41 @@ object PacketLogger : Module(
                     }
                 }
                 is CPacketPlayer.Rotation -> {
-                    logClient(packet) {
-                        "yaw" to packet.playerYaw
-                        "pitch" to packet.playerPitch
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "yaw" to packet.playerYaw
+                            "pitch" to packet.playerPitch
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayer.Position -> {
-                    logClient(packet) {
-                        "x" to packet.playerX
-                        "y" to packet.playerY
-                        "z" to packet.playerZ
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "x" to packet.playerX
+                            "y" to packet.playerY
+                            "z" to packet.playerZ
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayer.PositionRotation -> {
-                    logClient(packet) {
-                        "x" to packet.playerX
-                        "y" to packet.playerY
-                        "z" to packet.playerZ
-                        "yaw" to packet.playerYaw
-                        "pitch" to packet.playerPitch
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "x" to packet.playerX
+                            "y" to packet.playerY
+                            "z" to packet.playerZ
+                            "yaw" to packet.playerYaw
+                            "pitch" to packet.playerPitch
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayer -> {
-                    logClient(packet) {
-                        "onGround" to packet.isOnGround
+                    if (!ignorePlayerPosition) {
+                        logClient(packet) {
+                            "onGround" to packet.isOnGround
+                        }
                     }
                 }
                 is CPacketPlayerDigging -> {

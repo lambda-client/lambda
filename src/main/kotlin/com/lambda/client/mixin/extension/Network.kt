@@ -5,10 +5,7 @@ import net.minecraft.network.play.client.CPacketChatMessage
 import net.minecraft.network.play.client.CPacketCloseWindow
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.client.CPacketUseEntity
-import net.minecraft.network.play.server.SPacketChat
-import net.minecraft.network.play.server.SPacketEntityVelocity
-import net.minecraft.network.play.server.SPacketExplosion
-import net.minecraft.network.play.server.SPacketPlayerPosLook
+import net.minecraft.network.play.server.*
 import net.minecraft.util.text.ITextComponent
 
 var CPacketChatMessage.chatMessage: String
@@ -113,4 +110,16 @@ var SPacketPlayerPosLook.playerPosLookPitch: Float
     get() = this.pitch
     set(value) {
         (this as AccessorSPacketPosLook).setPitch(value)
+    }
+
+var SPacketEntity.entityId: Int
+    get() = (this as AccessorSPacketEntity).entityId
+    set(value) {
+        (this as AccessorSPacketEntity).entityId = value
+    }
+
+var SPacketEntityHeadLook.entityHeadLookEntityId: Int
+    get() = (this as AccessorSPacketEntityHeadLook).entityId
+    set(value) {
+        (this as AccessorSPacketEntityHeadLook).entityId = value
     }
