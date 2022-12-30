@@ -137,7 +137,7 @@ object TestActivityManager : Module(
     })
 
     val raiseXPLevel by setting("Reach level 30", false, consumer = { _, _->
-        ActivityManager.addSubActivities(ReachXPLevel(30, BlockPos.ORIGIN))
+        ActivityManager.addSubActivities(ReachXPLevel(30))
         false
     })
 

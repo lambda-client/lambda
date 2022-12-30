@@ -14,6 +14,9 @@ import com.lambda.client.util.text.capitalize
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {
+    var executeOnSuccess: (() -> Unit)? = null
+    var executeOnFailure: ((Exception) -> Unit)? = null
+    var executeOnFinalize: (() -> Unit)? = null
     val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
     private var creationTime = 0L
@@ -108,6 +111,7 @@ abstract class Activity {
 
     private fun SafeClientEvent.finalize() {
         onFinalize()
+        executeOnFinalize?.invoke()
         owner.subActivities.remove(this@Activity)
 
         if (this@Activity is LoopingAmountActivity) {
