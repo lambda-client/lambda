@@ -17,6 +17,7 @@ import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
+import java.lang.Exception
 
 class PlaceBlock(
     private val blockPos: BlockPos,
@@ -67,7 +68,7 @@ class PlaceBlock(
 
 //            activityStatus = ActivityStatus.PENDING
         } ?: run {
-            onFailure()
+            onFailure(Exception("No neighbour found"))
             color = ColorHolder(16, 74, 94)
         }
     }

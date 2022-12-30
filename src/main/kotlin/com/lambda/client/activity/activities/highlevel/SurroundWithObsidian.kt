@@ -1,19 +1,28 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.LoopingUntilActivity
+import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.MovementUtils.centerPlayer
 import net.minecraft.init.Blocks
+import net.minecraft.util.math.BlockPos
 
-class SurroundWithObsidian : Activity() {
+class SurroundWithObsidian(
+    private val originPos: BlockPos,
+    override val loopUntil: SafeClientEvent.() -> Boolean = {
+        originPos != player.flooredPosition
+    },
+    override var currentLoops: Int = 0
+) : LoopingUntilActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        player.flooredPosition.let {
-            addSubActivities(
-                BuildBlock(it.north(), Blocks.SLIME_BLOCK.defaultState),
-                BuildBlock(it.south(), Blocks.SLIME_BLOCK.defaultState),
-                BuildBlock(it.east(), Blocks.SLIME_BLOCK.defaultState),
-                BuildBlock(it.west(), Blocks.SLIME_BLOCK.defaultState)
-            )
-        }
+        addSubActivities(
+            BuildBlock(originPos.north(), Blocks.SLIME_BLOCK.defaultState),
+            BuildBlock(originPos.south(), Blocks.SLIME_BLOCK.defaultState),
+            BuildBlock(originPos.east(), Blocks.SLIME_BLOCK.defaultState),
+            BuildBlock(originPos.west(), Blocks.SLIME_BLOCK.defaultState),
+            Wait(10L)
+        )
     }
 }
