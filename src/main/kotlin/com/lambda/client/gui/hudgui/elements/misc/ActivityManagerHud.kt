@@ -11,6 +11,8 @@ internal object ActivityManagerHud: LabelHud(
     category = Category.MISC,
     description = "Display current activities."
 ) {
+    val anonymize by setting("Anonymize", false)
+
     override fun SafeClientEvent.updateText() {
         if (ActivityManager.noSubActivities()) return
 
