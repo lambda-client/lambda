@@ -11,6 +11,8 @@ import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
+import com.lambda.client.activity.activities.storage.OpenContainerInSlot
+import com.lambda.client.activity.activities.storage.PushItemsToContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.manager.managers.ActivityManager
@@ -122,13 +124,27 @@ object TestActivityManager : Module(
         false
     })
 
-    private val reset by setting("Reset", false, consumer = { _, _->
-        ActivityManager.reset()
+    private val pullll by setting("pull", false, consumer = { _, _->
+        ActivityManager.addSubActivities(
+            ExtractItemFromShulkerBox(Blocks.OBSIDIAN.item, amount = 1)
+        )
+        false
+    })
+
+    private val pusshhh by setting("push", false, consumer = { _, _->
+        ActivityManager.addSubActivities(
+            PushItemsToContainer(Blocks.OBSIDIAN.item, amount = 1)
+        )
         false
     })
 
     val raiseXPLevel by setting("RaiseXPLevel", false, consumer = { _, _->
         ActivityManager.addSubActivities(RaiseXPLevel(3, BlockPos.ORIGIN))
+        false
+    })
+
+    private val reset by setting("Reset", false, consumer = { _, _->
+        ActivityManager.reset()
         false
     })
 }

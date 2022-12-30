@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.utils.getContainerPos
@@ -17,7 +16,7 @@ class ExtractItemFromShulkerBox(
     private val amount: Int = 0, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true }
-) : InstantActivity, Activity() {
+) : Activity() {
     override fun SafeClientEvent.onInitialize() {
 //        if (player.inventorySlots.item)
 

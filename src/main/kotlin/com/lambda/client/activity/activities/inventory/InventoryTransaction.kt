@@ -69,7 +69,7 @@ class InventoryTransaction(
             if (packet.wasAccepted()) {
                 getContainerOrNull(packet.windowId)?.let { container ->
                     container.slotClick(slot, mouseButton, type, player)
-                    activityStatus = ActivityStatus.SUCCESS
+                    onSuccess()
                     LambdaMod.LOG.info("Accepted packet: ${it.packet.javaClass.simpleName} $transactionId")
                 } ?: run {
                     activityStatus = ActivityStatus.FAILURE

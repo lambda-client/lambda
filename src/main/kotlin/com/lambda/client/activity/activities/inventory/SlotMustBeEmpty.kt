@@ -9,10 +9,10 @@ class SlotMustBeEmpty(
 ) : Activity() {
 
     override fun SafeClientEvent.onInitialize() {
-        activityStatus = if (slot.stack.isEmpty) {
-            ActivityStatus.SUCCESS
+        if (slot.stack.isEmpty) {
+            onSuccess()
         } else {
-            ActivityStatus.FAILURE
+            onFailure()
         }
     }
 }

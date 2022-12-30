@@ -31,6 +31,7 @@ class BreakBlock(
     private val playSound: Boolean = true,
     private val miningSpeedFactor: Float = 1.0f,
     private val pickUpDrop: Boolean = false,
+    private val minPickUpAmount: Int = 1,
     private val mode: Mode = Mode.PACKET,
     override var timeout: Long = 200L,
     override val maxAttempts: Int = 8,
@@ -53,7 +54,7 @@ class BreakBlock(
         initState = world.getBlockState(blockPos)
 
         if (initState.block == Blocks.AIR) {
-            activityStatus = ActivityStatus.SUCCESS
+            onSuccess()
             color = ColorHolder(16, 74, 94)
         } else {
             ticksNeeded = ceil((1 / initState.getPlayerRelativeBlockHardness(player, world, blockPos)) * miningSpeedFactor).toInt()
@@ -151,17 +152,16 @@ class BreakBlock(
         }
     }
 
-    private fun finish() {
+    private fun SafeClientEvent.finish() {
         if (!pickUpDrop) {
-            activityStatus = ActivityStatus.SUCCESS
+            onSuccess()
             return
         }
 
         color = ColorHolder(252, 3, 207)
 
         addSubActivities(
-            Wait(50L),
-            PickUpDrops(initState.block.getItemDropped(initState, Random(), 0)),
+            PickUpDrops(initState.block.getItemDropped(initState, Random(), 0), minAmount = minPickUpAmount),
             SetState(ActivityStatus.SUCCESS)
         )
     }

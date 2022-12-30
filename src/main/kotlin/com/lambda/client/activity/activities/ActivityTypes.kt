@@ -10,10 +10,10 @@ interface TimeoutActivity {
     val timeout: Long
 }
 
-interface InstantActivity
+interface CompoundActivity
 
-interface ChainedActivity {
-    val nextActivity: Activity
+interface ConcurrentActivity {
+    val max: Int
 }
 
 interface LoopingActivity {
@@ -38,12 +38,4 @@ interface AttemptActivity {
 interface RenderBlockActivity {
     var renderBlockPos: BlockPos
     var color: ColorHolder
-}
-
-interface CallbackActivity {
-    val owner: Activity
-}
-
-interface ThrowableActivity {
-    val throwable: Throwable
 }

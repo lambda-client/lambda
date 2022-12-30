@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.inventory.QuickMoveSlot
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.getSlots
@@ -12,7 +11,7 @@ class PushItemsToContainer(
     private val item: Item,
     private val amount: Int = 0, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true }
-) : InstantActivity, Activity() {
+) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val openContainer = player.openContainer
 
