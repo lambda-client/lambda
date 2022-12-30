@@ -8,6 +8,7 @@ import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import java.lang.Exception
 
 class SwapOrMoveToItem(
     private val item: Item,
@@ -30,7 +31,7 @@ class SwapOrMoveToItem(
                 if (useShulkerBoxes) {
                     addSubActivities(ExtractItemFromShulkerBox(item, 1, predicateItem, predicateSlot))
                 } else {
-                    onFailure()
+                    onFailure(Exception("No $item found in inventory (shulkers are disabled)"))
                     MessageSendHelper.sendErrorMessage("No $item found in inventory (shulkers are disabled)")
                 }
             }

@@ -13,30 +13,18 @@ import net.minecraft.util.math.BlockPos
 
 class ReachXPLevel(
     private val desiredLevel: Int,
-//    private val xpSupply: BlockPos, should be replaced with using ecosystem for stashes
-    //override val loopUntil: SafeClientEvent.() -> Boolean = {
-    //    player.experienceLevel >= desiredLevel
-    //},
-    //override var currentLoops: Int = 0
-) : Activity() {
+    override val loopUntil: SafeClientEvent.() -> Boolean = {
+        player.experienceLevel >= desiredLevel
+    },
+    override var currentLoops: Int = 0
+) : LoopingUntilActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        val useThrowableOnEntity = UseThrowableOnEntity(player)
-        useThrowableOnEntity.executeOnSuccess = {
-            println("Successfully used throwable on entity")
-        }
-        useThrowableOnEntity.executeOnFailure = {
-            println("Error: ${it.message}")
-        }
-        useThrowableOnEntity.executeOnFinalize = {
-            println("Finalized throwable on entity")
-            addSubActivities(
-                DumpInventory()
-            )
-        }
+
+
         addSubActivities(
             TakeOffArmor(),
             SwapOrMoveToItem(Items.EXPERIENCE_BOTTLE),
-            useThrowableOnEntity
+            UseThrowableOnEntity(player)
         )
     }
 }

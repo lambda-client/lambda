@@ -11,6 +11,7 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.capitalize
+import java.util.ConcurrentModificationException
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {
@@ -29,7 +30,7 @@ abstract class Activity {
     enum class ActivityStatus {
         UNINITIALIZED,
         RUNNING,
-//        PENDING,
+        PENDING,
         SUCCESS,
         FAILURE
     }
@@ -38,7 +39,6 @@ abstract class Activity {
         when (activityStatus) {
             ActivityStatus.UNINITIALIZED -> {
                 initialize()
-                updateActivity()
             }
             ActivityStatus.RUNNING -> {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
@@ -46,14 +46,16 @@ abstract class Activity {
                     && this@Activity !is DelayedActivity
                 ) finalize()
             }
-//            ActivityStatus.PENDING -> {
-//                owner.subActivities.remove(this@Activity)
-//                owner.subActivities.add(this@Activity)
-//            }
+            ActivityStatus.PENDING -> {
+                owner.subActivities.remove(this@Activity)
+                owner.subActivities.add(this@Activity)
+            }
             ActivityStatus.SUCCESS -> {
+                executeOnSuccess?.invoke()
                 finalize()
             }
             ActivityStatus.FAILURE -> {
+                executeOnFailure?.invoke(Exception("Activity failed"))
                 finalize()
                 LambdaMod.LOG.error("$name failed!")
             }
@@ -105,7 +107,7 @@ abstract class Activity {
                 rotate(rotation)
             }
         }
-        LambdaMod.LOG.info("${System.currentTimeMillis()} Initialized $name ${System.currentTimeMillis() - ActivityManager.lastActivity.creationTime}ms after last activity creation")
+//        LambdaMod.LOG.info("${System.currentTimeMillis()} Initialized $name ${System.currentTimeMillis() - ActivityManager.lastActivity.creationTime}ms after last activity creation")
     }
 
     open fun SafeClientEvent.onInitialize() {}
@@ -132,12 +134,12 @@ abstract class Activity {
             }
         }
 
-        with(ActivityManager) {
-            updateCurrentActivity()
-        }
+//        with(ActivityManager) {
+//            updateCurrentActivity()
+//        }
 
         //        LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
-        MessageSendHelper.sendRawChatMessage("$name took ${System.currentTimeMillis() - creationTime}ms")
+//        MessageSendHelper.sendRawChatMessage("$name took ${System.currentTimeMillis() - creationTime}ms")
     }
 
     open fun SafeClientEvent.onFinalize() {}
@@ -179,13 +181,21 @@ abstract class Activity {
     fun noSubActivities() = subActivities.isEmpty()
 
     fun SafeClientEvent.onSuccess() {
+        executeOnSuccess?.invoke()
         finalize()
     }
 
-    fun SafeClientEvent.onFailure() {
+    fun SafeClientEvent.onFailure(exception: Exception) {
+        executeOnFailure?.invoke(exception)
         finalize()
 
         LambdaMod.LOG.warn("$name failed!")
+    }
+
+    fun refresh() {
+        activityStatus = ActivityStatus.UNINITIALIZED
+        owner.subActivities.remove(this)
+        owner.subActivities.add(this)
     }
 
     override fun toString(): String {

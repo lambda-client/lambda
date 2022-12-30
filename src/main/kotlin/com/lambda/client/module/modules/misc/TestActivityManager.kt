@@ -4,6 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
+import com.lambda.client.activity.activities.highlevel.BuildStructure
 import com.lambda.client.activity.activities.highlevel.ReachXPLevel
 import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
@@ -17,12 +18,16 @@ import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.MovementUtils.centerPlayer
 import com.lambda.client.util.items.block
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
+import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockShulkerBox
+import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
@@ -97,9 +102,27 @@ object TestActivityManager : Module(
     })
 
     private val tiectie by setting("Surround me", false, consumer = { _, _->
-        ActivityManager.addSubActivities(
-            SurroundWithObsidian()
-        )
+        runSafe {
+            player.centerPlayer()
+            ActivityManager.addSubActivities(
+                SurroundWithObsidian(player.flooredPosition)
+            )
+        }
+        false
+    })
+
+    private val citectie by setting("Clear out", false, consumer = { _, _->
+        runSafe {
+            val structure = mutableMapOf<BlockPos, IBlockState>()
+
+            VectorUtils.getBlockPosInSphere(player.positionVector, 3.0f).forEach {
+                if (it.up() != player.flooredPosition) structure[it] = Blocks.AIR.defaultState
+            }
+
+            ActivityManager.addSubActivities(
+                BuildStructure(structure)
+            )
+        }
         false
     })
 

@@ -2,6 +2,7 @@ package com.lambda.client.activity.activities.example
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.event.SafeClientEvent
+import java.lang.Exception
 import kotlin.random.Random
 
 class ProbablyFailing : Activity() {
@@ -9,7 +10,7 @@ class ProbablyFailing : Activity() {
         if (Random.nextBoolean()) {
             onSuccess()
         } else {
-            onFailure()
+            onFailure(Exception("Randomly failed"))
         }
     }
 }
