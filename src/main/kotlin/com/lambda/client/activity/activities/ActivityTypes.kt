@@ -1,6 +1,5 @@
 package com.lambda.client.activity.activities
 
-import com.lambda.client.activity.Activity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.math.Vec2f
@@ -16,8 +15,13 @@ interface ConcurrentActivity {
     val max: Int
 }
 
-interface LoopingActivity {
+interface LoopingAmountActivity {
     val loopingAmount: Int
+    var loops: Int
+}
+
+interface LoopingTimeActivity {
+    val loopUntilTimestamp: Long
 }
 
 interface RotatingActivity {
