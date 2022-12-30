@@ -48,6 +48,7 @@ object ActivityManager : Manager, Activity() {
 
         with(currentActivity) {
             if (currentActivity != lastActivity) {
+//                if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING) {
                 if (lastActivity !is ActivityManager) {
                     LambdaEventBus.unsubscribe(lastActivity)
                     ListenerManager.unregister(lastActivity)
@@ -64,7 +65,8 @@ object ActivityManager : Manager, Activity() {
     }
 
     fun reset() {
-        if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING) {
+//        if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING) {
+        if (lastActivity !is ActivityManager) {
             LambdaEventBus.unsubscribe(lastActivity)
             ListenerManager.unregister(lastActivity)
         }

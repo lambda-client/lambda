@@ -26,8 +26,13 @@ class PickUpDrops(
 
             drops.minByOrNull { drop -> player.distanceTo(drop.positionVector) }?.let { drop ->
                 addSubActivities(
-                    PickUpEntityItem(drop),
-                    SetState(ActivityStatus.UNINITIALIZED)
+                    PickUpEntityItem(drop).also {
+                        executeOnFinalize = {
+                            with(owner) {
+                                onSuccess()
+                            }
+                        }
+                    }
                 )
             }
         }
