@@ -9,9 +9,9 @@ import com.lambda.client.event.SafeClientEvent
 import net.minecraft.init.Items
 import net.minecraft.util.math.BlockPos
 
-class RaiseXPLevel(
+class ReachXPLevel(
     private val desiredLevel: Int,
-    private val xpSupply: BlockPos,
+//    private val xpSupply: BlockPos, should be replaced with using ecosystem for stashes
     override val loopUntil: SafeClientEvent.() -> Boolean = {
         player.experienceLevel >= desiredLevel
     },
