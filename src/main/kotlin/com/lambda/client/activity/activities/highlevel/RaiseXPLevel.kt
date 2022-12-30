@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.inventory.TakeOffArmor
@@ -12,8 +11,7 @@ import net.minecraft.util.math.BlockPos
 class RaiseXPLevel(
     private val desiredLevel: Int,
     private val xpSupply: BlockPos
-) : InstantActivity, Activity() {
-
+) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         addSubActivities(
             TakeOffArmor(),

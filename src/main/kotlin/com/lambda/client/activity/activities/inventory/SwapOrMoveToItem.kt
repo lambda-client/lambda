@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
+import com.lambda.client.activity.activities.CompoundActivity
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
@@ -16,7 +16,7 @@ class SwapOrMoveToItem(
     private val predicateSlot: (ItemStack) -> Boolean = { true },
     private val useShulkerBoxes: Boolean = true,
     private val useEnderChest: Boolean = false
-) : InstantActivity, Activity() {
+) : CompoundActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.hotbarSlots.firstOrNull { slot ->
             slot.stack.item == item && predicateItem(slot.stack)
@@ -31,7 +31,7 @@ class SwapOrMoveToItem(
                 if (useShulkerBoxes) {
                     addSubActivities(ExtractItemFromShulkerBox(item, 1, predicateItem, predicateSlot))
                 } else {
-                    activityStatus = ActivityStatus.FAILURE
+                    onFailure()
                     MessageSendHelper.sendErrorMessage("No $item found in inventory (shulkers are disabled)")
                 }
             }

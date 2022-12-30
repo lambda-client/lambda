@@ -1,10 +1,7 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.AttemptActivity
-import com.lambda.client.activity.activities.RenderBlockActivity
-import com.lambda.client.activity.activities.RotatingActivity
-import com.lambda.client.activity.activities.TimeoutActivity
+import com.lambda.client.activity.activities.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
@@ -34,9 +31,9 @@ class PlaceBlock(
 ) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderBlockActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getNeighbour(blockPos, attempts = 1, visibleSideCheck = true)?.let {
-            val placedAtState = world.getBlockState(it.pos)
+            val placedAtBlock = world.getBlockState(it.pos).block
 
-            if (placedAtState.block in blockBlacklist) {
+            if (placedAtBlock in blockBlacklist) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
             }
 
@@ -45,7 +42,7 @@ class PlaceBlock(
             connection.sendPacket(it.toPlacePacket(EnumHand.MAIN_HAND))
             player.swingArm(EnumHand.MAIN_HAND)
 
-            if (placedAtState.block in blockBlacklist) {
+            if (placedAtBlock in blockBlacklist) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
 
@@ -67,8 +64,10 @@ class PlaceBlock(
                     soundType.getPitch() * 0.8f
                 )
             }
+
+//            activityStatus = ActivityStatus.PENDING
         } ?: run {
-            activityStatus = ActivityStatus.FAILURE
+            onFailure()
             color = ColorHolder(16, 74, 94)
         }
     }
@@ -78,10 +77,7 @@ class PlaceBlock(
             if (it.packet is SPacketBlockChange
                 && it.packet.blockPosition == blockPos
                 && it.packet.blockState.block == targetState.block
-            ) {
-                activityStatus = ActivityStatus.SUCCESS
-                color = ColorHolder(35, 188, 254)
-            }
+            ) onSuccess()
         }
     }
 }

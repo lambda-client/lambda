@@ -15,17 +15,23 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
     const val MAX_DEPTH = 25
-    private var lastActivity: Activity = this
+    var lastActivity: Activity = this
 
     init {
         safeListener<TickEvent.ClientTickEvent> { event ->
             if (noSubActivities() || event.phase != TickEvent.Phase.START) return@safeListener
 
-            runActivity()
+            with(currentActivity) {
+                if (activityStatus == ActivityStatus.RUNNING) updateTypesOnTick()
+            }
+
+            repeat(10) {
+                updateCurrentActivity()
+            }
         }
 
         safeListener<RenderWorldEvent> {
-            val currentActivity = currentActivity()
+            val currentActivity = currentActivity
 
             if (currentActivity !is RenderBlockActivity) return@safeListener
 
@@ -37,15 +43,28 @@ object ActivityManager : Manager, Activity() {
         }
     }
 
-    fun SafeClientEvent.runActivity() {
-        with(currentActivity()) {
-            updateListener()
+    fun SafeClientEvent.updateCurrentActivity() {
+        val currentActivity = currentActivity
+
+        with(currentActivity) {
+            if (currentActivity != lastActivity) {
+                if (lastActivity !is ActivityManager) {
+                    LambdaEventBus.unsubscribe(lastActivity)
+                    ListenerManager.unregister(lastActivity)
+                }
+
+                LambdaEventBus.subscribe(currentActivity)
+                BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
+
+                lastActivity = currentActivity
+            }
+
             updateActivity()
         }
     }
 
     fun reset() {
-        if (lastActivity !is ActivityManager) {
+        if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING) {
             LambdaEventBus.unsubscribe(lastActivity)
             ListenerManager.unregister(lastActivity)
         }
@@ -53,21 +72,5 @@ object ActivityManager : Manager, Activity() {
         subActivities.clear()
 
         lastActivity = ActivityManager
-    }
-
-    private fun updateListener() {
-        val currentActivity = currentActivity()
-
-        if (currentActivity == lastActivity) return
-
-        if (lastActivity !is ActivityManager) {
-            LambdaEventBus.unsubscribe(lastActivity)
-            ListenerManager.unregister(lastActivity)
-        }
-
-        LambdaEventBus.subscribe(currentActivity)
-        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
-
-        lastActivity = currentActivity
     }
 }

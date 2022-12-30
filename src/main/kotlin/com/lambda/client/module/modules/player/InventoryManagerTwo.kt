@@ -11,12 +11,14 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.items.item
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.block.BlockShulkerBox
 import net.minecraft.client.gui.inventory.GuiChest
 import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemShulkerBox
 import net.minecraft.util.math.BlockPos
+import java.util.*
 
 object InventoryManagerTwo : Module(
     name = "InventoryManagerTwo",
@@ -27,7 +29,7 @@ object InventoryManagerTwo : Module(
 
     init {
         safeListener<WindowClickEvent> {
-            if (it.type != ClickType.PICKUP) return@safeListener
+            if (it.type != ClickType.PICKUP || it.mouseButton != 1) return@safeListener
 
             player.openContainer.inventorySlots.getOrNull(it.slotId)?.let { slot ->
                 if (!(slot.stack.item is ItemShulkerBox || slot.stack.item == Blocks.ENDER_CHEST.item)) return@safeListener
@@ -37,9 +39,8 @@ object InventoryManagerTwo : Module(
                     ActivityManager.addSubActivities(
                         OpenContainerInSlot(slot)
                     )
+                    it.cancel()
                 }
-
-                it.cancel()
             }
         }
 
@@ -47,10 +48,13 @@ object InventoryManagerTwo : Module(
             if (!(it.screen is GuiShulkerBox || it.screen is GuiChest)) return@safeListener
 
             placedShulkerBoxes.firstOrNull()?.let { containerPos ->
+                placedShulkerBoxes.remove(containerPos)
+
+                if (world.getBlockState(containerPos).block !is BlockShulkerBox) return@safeListener
+
                 ActivityManager.addSubActivities(
                     BreakAndCollectShulker(containerPos)
                 )
-                placedShulkerBoxes.remove(containerPos)
             }
         }
     }

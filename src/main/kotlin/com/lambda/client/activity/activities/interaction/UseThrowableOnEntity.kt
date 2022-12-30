@@ -31,7 +31,7 @@ class UseThrowableOnEntity(
             used++
 
             if (used == amount) {
-                activityStatus = ActivityStatus.SUCCESS
+                onSuccess()
             } else {
                 connection.sendPacket(CPacketPlayerTryUseItem(useHand))
             }

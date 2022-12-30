@@ -8,6 +8,6 @@ class Wait(
     override val delay: Long
 ) : DelayedActivity, Activity() {
     override fun SafeClientEvent.onDelayedActivity() {
-        activityStatus = ActivityStatus.SUCCESS
+        onSuccess()
     }
 }

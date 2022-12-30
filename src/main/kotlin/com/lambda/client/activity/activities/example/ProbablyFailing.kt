@@ -6,10 +6,10 @@ import kotlin.random.Random
 
 class ProbablyFailing : Activity() {
     override fun SafeClientEvent.onInitialize() {
-        activityStatus = if (Random.nextBoolean()) {
-            ActivityStatus.SUCCESS
+        if (Random.nextBoolean()) {
+            onSuccess()
         } else {
-            ActivityStatus.FAILURE
+            onFailure()
         }
     }
 }

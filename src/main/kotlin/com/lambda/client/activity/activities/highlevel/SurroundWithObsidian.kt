@@ -1,12 +1,11 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
 import net.minecraft.init.Blocks
 
-class SurroundWithObsidian : InstantActivity, Activity() {
+class SurroundWithObsidian : Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.flooredPosition.let {
             addSubActivities(

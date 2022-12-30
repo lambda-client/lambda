@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.inventory.QuickMoveSlot
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.countEmpty
@@ -13,7 +12,7 @@ class PullItemsFromContainer(
     private val item: Item,
     private val amount: Int, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true }
-) : InstantActivity, Activity() {
+) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val maxEmpty = player.inventorySlots.countEmpty() - 1
 

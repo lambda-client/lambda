@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
@@ -16,7 +15,7 @@ import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 
-class BreakDownEnderChests : InstantActivity, Activity() {
+class BreakDownEnderChests : Activity() {
     override fun SafeClientEvent.onInitialize() {
         getContainerPos()?.let { remotePos ->
             if (player.inventorySlots.countEmpty() < 2) {
@@ -36,6 +35,7 @@ class BreakDownEnderChests : InstantActivity, Activity() {
                     BreakBlock(
                         remotePos,
                         pickUpDrop = true,
+                        minPickUpAmount = 64,
                         mode = BreakBlock.Mode.PLAYER_CONTROLLER
                     ),
                     SetState(ActivityStatus.UNINITIALIZED)

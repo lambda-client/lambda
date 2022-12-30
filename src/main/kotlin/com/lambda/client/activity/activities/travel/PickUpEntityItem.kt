@@ -36,7 +36,7 @@ class PickUpEntityItem(
                     }
                 }
             } else {
-                activityStatus = ActivityStatus.SUCCESS
+                onSuccess()
                 BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(null)
             }
         }

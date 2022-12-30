@@ -19,10 +19,13 @@ abstract class Activity {
     private var creationTime = 0L
     var owner: Activity = ActivityManager
     var depth = 0
+    val name get() = this::class.simpleName
+    val currentActivity: Activity get() = subActivities.peek()?.currentActivity ?: this
 
     enum class ActivityStatus {
         UNINITIALIZED,
         RUNNING,
+        PENDING,
         SUCCESS,
         FAILURE
     }
@@ -34,50 +37,57 @@ abstract class Activity {
                 updateActivity()
             }
             ActivityStatus.RUNNING -> {
-                if (this@Activity is TimeoutActivity) {
-                    if (System.currentTimeMillis() > creationTime + timeout) {
-                        if (this@Activity is AttemptActivity) {
-                            if (usedAttempts >= maxAttempts) {
-                                activityStatus = ActivityStatus.FAILURE
-                                LambdaMod.LOG.error("${this@Activity::class.simpleName} fully timed out!")
-                            } else {
-                                usedAttempts++
-                                initialize()
-                                LambdaMod.LOG.error("${this@Activity::class.simpleName} timed out!")
-                            }
-                        } else {
-                            activityStatus = ActivityStatus.FAILURE
-                            LambdaMod.LOG.error("${this@Activity::class.simpleName} fully timed out!")
-                        }
-                    }
-                }
-                if (this@Activity is InstantActivity) {
-                    activityStatus = ActivityStatus.SUCCESS
-                }
-                if (this@Activity is DelayedActivity) {
-                    if (System.currentTimeMillis() > creationTime + delay) {
-                        onDelayedActivity()
-                    }
-                }
-                if (this@Activity is AttemptActivity) {
-                    if (usedAttempts >= maxAttempts) {
-                        activityStatus = ActivityStatus.FAILURE
-                        LambdaMod.LOG.error("${this@Activity::class.simpleName} failed after $maxAttempts attempts!")
-                    }
-                }
-                if (this@Activity is RotatingActivity) {
-                    sendPlayerPacket {
-                        rotate(rotation)
-                    }
-                }
+                if (!ListenerManager.listenerMap.containsKey(this@Activity)
+                    && noSubActivities()
+                    && this@Activity !is DelayedActivity
+                ) finalize()
+            }
+            ActivityStatus.PENDING -> {
+                owner.subActivities.remove(this@Activity)
+                owner.subActivities.add(this@Activity)
             }
             ActivityStatus.SUCCESS -> {
                 finalize()
-//                LambdaMod.LOG.info("${this@Activity} activity finished successfully!")
             }
             ActivityStatus.FAILURE -> {
                 finalize()
-                LambdaMod.LOG.error("Activity ${this@Activity::class.simpleName} failed!")
+                LambdaMod.LOG.error("$name failed!")
+            }
+        }
+    }
+
+    fun SafeClientEvent.updateTypesOnTick() {
+        if (this@Activity is TimeoutActivity) {
+            if (System.currentTimeMillis() > creationTime + timeout) {
+                if (this@Activity is AttemptActivity) {
+                    if (usedAttempts >= maxAttempts) {
+                        activityStatus = ActivityStatus.FAILURE
+                        LambdaMod.LOG.error("$name fully timed out!")
+                    } else {
+                        usedAttempts++
+                        initialize()
+                        LambdaMod.LOG.warn("$name timed out!")
+                    }
+                } else {
+                    activityStatus = ActivityStatus.FAILURE
+                    LambdaMod.LOG.error("$name fully timed out!")
+                }
+            }
+        }
+        if (this@Activity is DelayedActivity) {
+            if (System.currentTimeMillis() > creationTime + delay) {
+                onDelayedActivity()
+            }
+        }
+        if (this@Activity is AttemptActivity) {
+            if (usedAttempts >= maxAttempts) {
+                activityStatus = ActivityStatus.FAILURE
+                LambdaMod.LOG.error("$name failed after $maxAttempts attempts!")
+            }
+        }
+        if (this@Activity is RotatingActivity) {
+            sendPlayerPacket {
+                rotate(rotation)
             }
         }
     }
@@ -91,7 +101,7 @@ abstract class Activity {
                 rotate(rotation)
             }
         }
-//        LambdaMod.LOG.info("Initialized activity: ${this@Activity}")
+        LambdaMod.LOG.info("${System.currentTimeMillis()} Initialized $name ${System.currentTimeMillis() - ActivityManager.lastActivity.creationTime}ms after last activity creation")
     }
 
     open fun SafeClientEvent.onInitialize() {}
@@ -99,17 +109,15 @@ abstract class Activity {
     private fun SafeClientEvent.finalize() {
         onFinalize()
         owner.subActivities.remove(this@Activity)
-        LambdaMod.LOG.info("Finalized activity: ${this@Activity} after ${System.currentTimeMillis() - creationTime}ms")
+//        LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
+        MessageSendHelper.sendRawChatMessage("$name took ${System.currentTimeMillis() - creationTime}ms")
 
-        if (this@Activity is InstantActivity) {
-            with(ActivityManager) {
-                runActivity()
-            }
+        with(ActivityManager) {
+            updateCurrentActivity()
         }
     }
 
     open fun SafeClientEvent.onFinalize() {}
-    fun currentActivity(): Activity = subActivities.peek()?.currentActivity() ?: this
 
     fun Activity.addSubActivities(activities: List<Activity>) {
         if (activities.isEmpty()) return
@@ -126,7 +134,7 @@ abstract class Activity {
         }
         subActivities.addAll(activities)
 
-//        LambdaMod.LOG.info("Added ${activities.size} sub activities to ${this::class.simpleName}")
+//        LambdaMod.LOG.info("${System.currentTimeMillis()} Added ${activities.size} sub activities to $name")
     }
 
     fun Activity.addSubActivities(vararg activities: Activity) {
@@ -147,12 +155,14 @@ abstract class Activity {
 
     fun noSubActivities() = subActivities.isEmpty()
 
-    fun setSuccess() {
-        activityStatus = ActivityStatus.SUCCESS
+    fun SafeClientEvent.onSuccess() {
+        finalize()
     }
 
-    fun setFailure() {
-        activityStatus = ActivityStatus.FAILURE
+    fun SafeClientEvent.onFailure() {
+        finalize()
+
+        LambdaMod.LOG.warn("$name failed!")
     }
 
     override fun toString(): String {

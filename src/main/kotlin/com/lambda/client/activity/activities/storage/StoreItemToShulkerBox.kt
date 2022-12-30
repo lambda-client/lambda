@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.activity.activities.utils.getShulkerInventory
@@ -15,7 +14,7 @@ class StoreItemToShulkerBox(
     private val item: Item,
     private val amount: Int = 0, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true }
-) : InstantActivity, Activity() {
+) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val candidates = mutableMapOf<Slot, Int>()
 

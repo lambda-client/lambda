@@ -1,14 +1,13 @@
 package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.InstantActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.inventorySlots
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Enchantments
 import net.minecraft.util.math.BlockPos
 
-class SwapToBestTool(private val blockPos: BlockPos) : InstantActivity, Activity() {
+class SwapToBestTool(private val blockPos: BlockPos) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.inventorySlots.asReversed().maxByOrNull {
             val stack = it.stack

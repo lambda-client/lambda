@@ -11,6 +11,6 @@ class WaitAndSay(
 ) : DelayedActivity, Activity() {
     override fun SafeClientEvent.onDelayedActivity() {
         MessageSendHelper.sendChatMessage(message)
-        activityStatus = ActivityStatus.SUCCESS
+        onSuccess()
     }
 }
