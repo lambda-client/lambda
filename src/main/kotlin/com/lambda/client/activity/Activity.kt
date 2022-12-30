@@ -109,12 +109,21 @@ abstract class Activity {
     private fun SafeClientEvent.finalize() {
         onFinalize()
         owner.subActivities.remove(this@Activity)
-//        LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
-        MessageSendHelper.sendRawChatMessage("$name took ${System.currentTimeMillis() - creationTime}ms")
+
+        if (this@Activity is LoopingAmountActivity) {
+            if (loops++ < loopingAmount || loopingAmount == 0) {
+                activityStatus = ActivityStatus.UNINITIALIZED
+                owner.subActivities.add(this@Activity)
+                LambdaMod.LOG.info("Looping $name [$loops/${if (loopingAmount == 0) "∞" else loopingAmount}] ")
+            }
+        }
 
         with(ActivityManager) {
             updateCurrentActivity()
         }
+
+        //        LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
+        MessageSendHelper.sendRawChatMessage("$name took ${System.currentTimeMillis() - creationTime}ms")
     }
 
     open fun SafeClientEvent.onFinalize() {}

@@ -1,10 +1,10 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.LoopingAmountActivity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
-import com.lambda.client.activity.activities.utils.SetState
 import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.countEmpty
@@ -15,13 +15,15 @@ import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 
-class BreakDownEnderChests : Activity() {
+class BreakDownEnderChests(
+    override val loopingAmount: Int = 0,
+    override var loops: Int = 0
+) : LoopingAmountActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getContainerPos()?.let { remotePos ->
             if (player.inventorySlots.countEmpty() < 2) {
                 addSubActivities(
-                    StoreItemToShulkerBox(Blocks.OBSIDIAN.item),
-                    SetState(ActivityStatus.UNINITIALIZED)
+                    StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
                 )
             } else {
                 addSubActivities(
@@ -37,11 +39,9 @@ class BreakDownEnderChests : Activity() {
                         pickUpDrop = true,
                         minPickUpAmount = 64,
                         mode = BreakBlock.Mode.PLAYER_CONTROLLER
-                    ),
-                    SetState(ActivityStatus.UNINITIALIZED)
+                    )
                 )
             }
         }
-
     }
 }
