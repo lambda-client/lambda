@@ -20,8 +20,8 @@ class SwapOrMoveToItem(
     override fun SafeClientEvent.onInitialize() {
         player.hotbarSlots.firstOrNull { slot ->
             slot.stack.item == item && predicateItem(slot.stack)
-        }?.let {
-            addSubActivities(SwitchToHotbarSlot(it))
+        }?.let { hotbarSlot ->
+            addSubActivities(SwitchToHotbarSlot(hotbarSlot))
         } ?: run {
             player.allSlots.firstOrNull { slot ->
                 slot.stack.item == item && predicateItem(slot.stack)

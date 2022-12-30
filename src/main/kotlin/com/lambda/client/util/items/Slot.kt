@@ -131,7 +131,7 @@ fun Slot.toHotbarSlotOrNull() =
     if (this.slotNumber in 36..44 && this.inventory == Wrapper.player?.inventory) HotbarSlot(this)
     else null
 
-class HotbarSlot(slot: Slot) : Slot(slot.inventory, slot.slotIndex, slot.xPos, slot.yPos) {
+class HotbarSlot(val slot: Slot) : Slot(slot.inventory, slot.slotIndex, slot.xPos, slot.yPos) {
     init {
         slotNumber = slot.slotNumber
     }

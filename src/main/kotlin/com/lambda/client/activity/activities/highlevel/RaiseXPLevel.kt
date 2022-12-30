@@ -2,14 +2,11 @@ package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.InstantActivity
-import com.lambda.client.activity.activities.interaction.CloseContainer
-import com.lambda.client.activity.activities.interaction.UseThrowableItem
-import com.lambda.client.activity.activities.inventory.InventoryTransaction
+import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.inventory.TakeOffArmor
 import com.lambda.client.event.SafeClientEvent
 import net.minecraft.init.Items
-import net.minecraft.inventory.ClickType
 import net.minecraft.util.math.BlockPos
 
 class RaiseXPLevel(
@@ -20,9 +17,11 @@ class RaiseXPLevel(
     override fun SafeClientEvent.onInitialize() {
         addSubActivities(
             TakeOffArmor(),
-            SwapOrMoveToItem(Items.EXPERIENCE_BOTTLE, useShulkerBoxes = false),
-            UseThrowableItem()
+            SwapOrMoveToItem(
+                Items.EXPERIENCE_BOTTLE,
+                useShulkerBoxes = false
+            ),
+            UseThrowableOnEntity(player)
         )
     }
-
 }
