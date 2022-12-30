@@ -14,9 +14,6 @@ import com.lambda.client.util.text.capitalize
 import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity {
-    var executeOnSuccess: (() -> Unit)? = null
-    var executeOnFailure: ((Exception) -> Unit)? = null
-    var executeOnFinalize: (() -> Unit)? = null
     val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
     private var creationTime = 0L
@@ -25,10 +22,14 @@ abstract class Activity {
     val name get() = this::class.simpleName
     val currentActivity: Activity get() = subActivities.peek()?.currentActivity ?: this
 
+    var executeOnSuccess: (() -> Unit)? = null
+    var executeOnFailure: ((Exception) -> Unit)? = null
+    var executeOnFinalize: (() -> Unit)? = null
+
     enum class ActivityStatus {
         UNINITIALIZED,
         RUNNING,
-        PENDING,
+//        PENDING,
         SUCCESS,
         FAILURE
     }
@@ -45,10 +46,10 @@ abstract class Activity {
                     && this@Activity !is DelayedActivity
                 ) finalize()
             }
-            ActivityStatus.PENDING -> {
-                owner.subActivities.remove(this@Activity)
-                owner.subActivities.add(this@Activity)
-            }
+//            ActivityStatus.PENDING -> {
+//                owner.subActivities.remove(this@Activity)
+//                owner.subActivities.add(this@Activity)
+//            }
             ActivityStatus.SUCCESS -> {
                 finalize()
             }

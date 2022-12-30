@@ -161,8 +161,13 @@ class BreakBlock(
         color = ColorHolder(252, 3, 207)
 
         addSubActivities(
-            PickUpDrops(initState.block.getItemDropped(initState, Random(), 0), minAmount = minPickUpAmount),
-            SetState(ActivityStatus.SUCCESS)
+            PickUpDrops(initState.block.getItemDropped(initState, Random(), 0), minAmount = minPickUpAmount).also {
+                executeOnSuccess = {
+                    with(owner) {
+                        onSuccess()
+                    }
+                }
+            }
         )
     }
 }

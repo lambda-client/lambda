@@ -10,7 +10,7 @@ class SetState(private val state: ActivityStatus) : Activity() {
                 ActivityStatus.UNINITIALIZED -> activityStatus = state
                 ActivityStatus.SUCCESS -> onSuccess()
                 ActivityStatus.RUNNING -> activityStatus = state
-                ActivityStatus.PENDING -> activityStatus = state
+//                ActivityStatus.PENDING -> activityStatus = state
                 ActivityStatus.FAILURE -> onFailure()
             }
         }
