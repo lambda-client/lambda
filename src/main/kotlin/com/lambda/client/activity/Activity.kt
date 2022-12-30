@@ -4,6 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.*
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.elements.misc.ActivityManagerHud
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.MAX_DEPTH
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
@@ -11,6 +12,9 @@ import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.capitalize
+import net.minecraft.entity.Entity
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import java.util.ConcurrentModificationException
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -220,8 +224,13 @@ abstract class Activity {
                 field.isAccessible = true
                 val name = field.name
                 val value = field.get(this)
-                textComponent.add(name.capitalize(), primaryColor)
-                textComponent.add(value.toString(), secondaryColor)
+
+                if (!ActivityManagerHud.anonymize
+                    || !(value is BlockPos || value is Vec3d || value is Entity)
+                ) {
+                    textComponent.add(name.capitalize(), primaryColor)
+                    textComponent.add(value.toString(), secondaryColor)
+                }
             }
             textComponent.addLine("")
         }
