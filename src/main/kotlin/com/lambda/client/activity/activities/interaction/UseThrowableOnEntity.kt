@@ -28,13 +28,12 @@ class UseThrowableOnEntity(
             if (it.phase != TickEvent.Phase.START) return@safeListener
 
             rotation = getRotation()
+
+            connection.sendPacket(CPacketPlayerTryUseItem(useHand))
+
             used++
 
-            if (used == amount) {
-                onSuccess()
-            } else {
-                connection.sendPacket(CPacketPlayerTryUseItem(useHand))
-            }
+            if (used == amount) onSuccess()
         }
     }
 

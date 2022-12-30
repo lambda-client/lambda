@@ -7,7 +7,6 @@ import net.minecraft.inventory.Slot
 class TryClearSlotWithQuickMove(
     private val slot: Slot
 ) : Activity() {
-
     override fun SafeClientEvent.onInitialize() {
         if (slot.stack.isEmpty) {
             onSuccess()
@@ -18,5 +17,4 @@ class TryClearSlotWithQuickMove(
             )
         }
     }
-
 }

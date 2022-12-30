@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.CompoundActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.firstEmpty
 import com.lambda.client.util.items.hotbarSlots
@@ -12,7 +11,7 @@ import net.minecraft.item.ItemStack
 class SwapOrSwitchToSlot(
     private val slot: Slot,
     private val predicateSlot: (ItemStack) -> Boolean = { true }
-) : CompoundActivity, Activity() {
+) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         slot.toHotbarSlotOrNull()?.let { hotbarSlot ->
             addSubActivities(SwitchToHotbarSlot(hotbarSlot))

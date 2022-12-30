@@ -111,10 +111,19 @@ abstract class Activity {
         owner.subActivities.remove(this@Activity)
 
         if (this@Activity is LoopingAmountActivity) {
-            if (loops++ < loopingAmount || loopingAmount == 0) {
+            if (currentLoops++ < maxLoops || maxLoops == 0) {
                 activityStatus = ActivityStatus.UNINITIALIZED
                 owner.subActivities.add(this@Activity)
-                LambdaMod.LOG.info("Looping $name [$loops/${if (loopingAmount == 0) "∞" else loopingAmount}] ")
+                LambdaMod.LOG.info("Looping $name [$currentLoops/${if (maxLoops == 0) "∞" else maxLoops}] ")
+            }
+        }
+
+        if (this@Activity is LoopingUntilActivity) {
+            if (!loopUntil()) {
+                currentLoops++
+                activityStatus = ActivityStatus.UNINITIALIZED
+                owner.subActivities.add(this@Activity)
+                LambdaMod.LOG.info("Looping $name ($currentLoops) ")
             }
         }
 

@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.CompoundActivity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.inventory.SwapToBestTool
 import com.lambda.client.event.SafeClientEvent
@@ -13,7 +12,7 @@ import net.minecraft.util.math.BlockPos
 class BuildBlock(
     private val blockPos: BlockPos,
     private val targetState: IBlockState,
-) : CompoundActivity, Activity() {
+) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val currentState = world.getBlockState(blockPos)
 
