@@ -7,6 +7,7 @@ import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.highlevel.BuildBlock
 import com.lambda.client.activity.activities.highlevel.RaiseXPLevel
 import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
+import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
@@ -99,6 +100,15 @@ object TestActivityManager : Module(
         ActivityManager.addSubActivities(
             SurroundWithObsidian()
         )
+        false
+    })
+
+    private val ctirsgn by setting("Throw", false, consumer = { _, _->
+        runSafe {
+            ActivityManager.addSubActivities(
+                UseThrowableOnEntity(player, amount = 64)
+            )
+        }
         false
     })
 

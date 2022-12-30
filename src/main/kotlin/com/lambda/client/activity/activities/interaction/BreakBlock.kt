@@ -57,7 +57,7 @@ class BreakBlock(
             color = ColorHolder(16, 74, 94)
         } else {
             ticksNeeded = ceil((1 / initState.getPlayerRelativeBlockHardness(player, world, blockPos)) * miningSpeedFactor).toInt()
-            timeout = ticksNeeded * 50L + 1000L
+            timeout = ticksNeeded * 50L + 500L
         }
     }
 
@@ -85,8 +85,9 @@ class BreakBlock(
                         }
                     } else {
                         playerController.onPlayerDestroyBlock(blockPos)
-                        finish()
+                        player.swingArm(EnumHand.MAIN_HAND)
                     }
+                    finish()
                 } else {
                     playerController.onPlayerDamageBlock(blockPos, side)
                     player.swingArm(EnumHand.MAIN_HAND)
@@ -121,8 +122,6 @@ class BreakBlock(
 //                        }
 //                    }
                 }
-
-
 //                getHitVec(blockPos, side)
             }
         }
@@ -135,6 +134,7 @@ class BreakBlock(
                 finish()
             }
 
+            // Sync with drops
 //            if (it.packet is SPacketSpawnObject
 //                && it.packet.type == 2
 //                && blockPos.distanceSq(Vec3i(it.packet.x, it.packet.y, it.packet.z)) < 1.0
@@ -152,16 +152,17 @@ class BreakBlock(
     }
 
     private fun finish() {
-        if (pickUpDrop) {
-            color = ColorHolder(252, 3, 207)
-            timeout = 10000L
-            addSubActivities(
-                Wait(50L),
-                PickUpDrops(initState.block.getItemDropped(initState, Random(), 0)),
-                SetState(ActivityStatus.SUCCESS)
-            )
-        } else {
+        if (!pickUpDrop) {
             activityStatus = ActivityStatus.SUCCESS
+            return
         }
+
+        color = ColorHolder(252, 3, 207)
+
+        addSubActivities(
+            Wait(50L),
+            PickUpDrops(initState.block.getItemDropped(initState, Random(), 0)),
+            SetState(ActivityStatus.SUCCESS)
+        )
     }
 }
