@@ -4,14 +4,12 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
-import com.lambda.client.activity.activities.highlevel.BuildBlock
-import com.lambda.client.activity.activities.highlevel.RaiseXPLevel
+import com.lambda.client.activity.activities.highlevel.ReachXPLevel
 import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
-import com.lambda.client.activity.activities.storage.OpenContainerInSlot
 import com.lambda.client.activity.activities.storage.PushItemsToContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
@@ -138,8 +136,8 @@ object TestActivityManager : Module(
         false
     })
 
-    val raiseXPLevel by setting("RaiseXPLevel", false, consumer = { _, _->
-        ActivityManager.addSubActivities(RaiseXPLevel(57, BlockPos.ORIGIN))
+    val raiseXPLevel by setting("Reach level 30", false, consumer = { _, _->
+        ActivityManager.addSubActivities(ReachXPLevel(30, BlockPos.ORIGIN))
         false
     })
 
