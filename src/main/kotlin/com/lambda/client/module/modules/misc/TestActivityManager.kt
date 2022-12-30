@@ -139,7 +139,7 @@ object TestActivityManager : Module(
     })
 
     val raiseXPLevel by setting("RaiseXPLevel", false, consumer = { _, _->
-        ActivityManager.addSubActivities(RaiseXPLevel(3, BlockPos.ORIGIN))
+        ActivityManager.addSubActivities(RaiseXPLevel(57, BlockPos.ORIGIN))
         false
     })
 

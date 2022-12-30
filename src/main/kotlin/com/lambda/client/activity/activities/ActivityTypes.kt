@@ -9,15 +9,18 @@ interface TimeoutActivity {
     val timeout: Long
 }
 
-interface CompoundActivity
-
 interface ConcurrentActivity {
-    val max: Int
+    val maxActivities: Int
 }
 
 interface LoopingAmountActivity {
-    val loopingAmount: Int
-    var loops: Int
+    val maxLoops: Int
+    var currentLoops: Int
+}
+
+interface LoopingUntilActivity {
+    val loopUntil: SafeClientEvent.() -> Boolean
+    var currentLoops: Int
 }
 
 interface LoopingTimeActivity {

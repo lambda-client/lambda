@@ -16,8 +16,8 @@ import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 
 class BreakDownEnderChests(
-    override val loopingAmount: Int = 0,
-    override var loops: Int = 0
+    override val maxLoops: Int = 0,
+    override var currentLoops: Int = 0
 ) : LoopingAmountActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getContainerPos()?.let { remotePos ->

@@ -7,7 +7,6 @@ import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.item
-import net.minecraft.block.Block
 import net.minecraft.block.state.IBlockState
 import net.minecraft.util.math.BlockPos
 
