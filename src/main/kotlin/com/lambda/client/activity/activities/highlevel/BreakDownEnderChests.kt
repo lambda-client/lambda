@@ -3,6 +3,8 @@ package com.lambda.client.activity.activities.highlevel
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.LoopingAmountActivity
 import com.lambda.client.activity.activities.interaction.BreakBlock
+import com.lambda.client.activity.activities.interaction.BreakBlockRaw
+import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.utils.getContainerPos
@@ -27,7 +29,7 @@ class BreakDownEnderChests(
                 )
             } else {
                 addSubActivities(
-                    PlaceBlockSafely(remotePos, Blocks.ENDER_CHEST.defaultState),
+                    PlaceBlock(remotePos, Blocks.ENDER_CHEST.defaultState),
                     SwapOrMoveToItem(
                         Items.DIAMOND_PICKAXE,
                         predicateItem = {
@@ -36,9 +38,9 @@ class BreakDownEnderChests(
                     ),
                     BreakBlock(
                         remotePos,
-                        pickUpDrop = true,
-                        minPickUpAmount = 64,
-                        mode = BreakBlock.Mode.PLAYER_CONTROLLER
+                        useBestTool = false,
+                        collectDrops = true,
+                        minCollectAmount = 64
                     )
                 )
             }

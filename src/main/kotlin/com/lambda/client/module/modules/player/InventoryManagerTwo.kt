@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.utils.getContainerPos
-import com.lambda.client.activity.activities.storage.BreakAndCollectShulker
 import com.lambda.client.activity.activities.storage.OpenContainerInSlot
 import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.events.WindowClickEvent
@@ -18,7 +18,6 @@ import net.minecraft.init.Blocks
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemShulkerBox
 import net.minecraft.util.math.BlockPos
-import java.util.*
 
 object InventoryManagerTwo : Module(
     name = "InventoryManagerTwo",
@@ -53,7 +52,7 @@ object InventoryManagerTwo : Module(
                 if (world.getBlockState(containerPos).block !is BlockShulkerBox) return@safeListener
 
                 ActivityManager.addSubActivities(
-                    BreakAndCollectShulker(containerPos)
+                    BreakBlock(containerPos, collectDrops = true)
                 )
             }
         }

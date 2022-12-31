@@ -3,10 +3,9 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
-import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
-import com.lambda.client.activity.activities.highlevel.BuildStructure
-import com.lambda.client.activity.activities.highlevel.ReachXPLevel
-import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
+import com.lambda.client.activity.activities.highlevel.*
+import com.lambda.client.activity.activities.interaction.BreakBlock
+import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
@@ -24,6 +23,8 @@ import com.lambda.client.util.items.block
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
+import com.lambda.client.util.math.Direction
+import com.lambda.client.util.math.RotationUtils
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockShulkerBox
@@ -111,6 +112,18 @@ object TestActivityManager : Module(
         false
     })
 
+    private val ctiectiectie by setting("Place break obby", false, consumer = { _, _->
+        runSafe {
+            val origin = player.flooredPosition.add(Direction.fromEntity(player).directionVec)
+
+            ActivityManager.addSubActivities(
+                PlaceBlock(origin, Blocks.OBSIDIAN.defaultState),
+                BreakBlock(origin)
+            )
+        }
+        false
+    })
+
     private val citectie by setting("Clear out", false, consumer = { _, _->
         runSafe {
             val structure = mutableMapOf<BlockPos, IBlockState>()
@@ -145,17 +158,31 @@ object TestActivityManager : Module(
         false
     })
 
-    private val pullll by setting("pull", false, consumer = { _, _->
+    private val pullll by setting("Extract", false, consumer = { _, _->
         ActivityManager.addSubActivities(
             ExtractItemFromShulkerBox(Blocks.OBSIDIAN.item, amount = 1)
         )
         false
     })
 
-    private val pusshhh by setting("push", false, consumer = { _, _->
+    private val pusshhh by setting("Store", false, consumer = { _, _->
         ActivityManager.addSubActivities(
-            PushItemsToContainer(Blocks.OBSIDIAN.item, amount = 1)
+            StoreItemToShulkerBox(Blocks.OBSIDIAN.item, amount = 1)
         )
+        false
+    })
+
+    private val cnrsgt by setting("Build", false, consumer = { _, _->
+        runSafe {
+            ActivityManager.addSubActivities(
+                BuildHighway(
+                    player.flooredPosition,
+                    Direction.fromEntity(player),
+                    Blocks.OBSIDIAN
+                )
+            )
+        }
+
         false
     })
 

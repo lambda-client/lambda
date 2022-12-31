@@ -10,7 +10,9 @@ import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.item.EntityItem
+import net.minecraftforge.event.entity.player.EntityItemPickupEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.lang.Exception
 
 class PickUpEntityItem(
     private val entityItem: EntityItem,
@@ -20,24 +22,25 @@ class PickUpEntityItem(
         safeListener<TickEvent.ClientTickEvent> { event ->
             if (event.phase != TickEvent.Phase.START) return@safeListener
 
-            if (world.loadedEntityList.contains(entityItem)) {
-                val emptySlots = player.inventory.mainInventory.filter { it.isEmpty }
-
-                if (emptySlots.isNotEmpty()) {
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalBlock(entityItem.position))
-                } else {
-                    player.inventorySlots.firstOrNull { slot ->
-                        InventoryManager.ejectList.contains(slot.stack.item.registryName.toString())
-                    }?.let { slot ->
-                        addSubActivities(DumpSlot(slot))
-                    } ?: run {
-                        activityStatus = ActivityStatus.FAILURE
-                        MessageSendHelper.sendErrorMessage("No empty slots or items to dump!")
-                    }
-                }
-            } else {
-                onSuccess()
+            if (!world.loadedEntityList.contains(entityItem)) {
                 BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(null)
+                onSuccess()
+                return@safeListener
+            }
+
+            val emptySlots = player.inventory.mainInventory.filter { it.isEmpty }
+
+            if (emptySlots.isNotEmpty()) {
+                BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalBlock(entityItem.position))
+                return@safeListener
+            }
+
+            player.inventorySlots.firstOrNull { slot ->
+                InventoryManager.ejectList.contains(slot.stack.item.registryName.toString())
+            }?.let { slot ->
+                addSubActivities(DumpSlot(slot))
+            } ?: run {
+                onFailure(Exception("No empty slots or items to dump!"))
             }
         }
     }
