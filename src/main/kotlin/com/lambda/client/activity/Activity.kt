@@ -13,6 +13,7 @@ import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.capitalize
 import net.minecraft.entity.Entity
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.util.ConcurrentModificationException
@@ -21,7 +22,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 abstract class Activity {
     val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
-    private var creationTime = 0L
+    var creationTime = 0L
     var owner: Activity = ActivityManager
     var depth = 0
     val name get() = this::class.simpleName
@@ -51,8 +52,7 @@ abstract class Activity {
                 ) finalize()
             }
             ActivityStatus.PENDING -> {
-                owner.subActivities.remove(this@Activity)
-                owner.subActivities.add(this@Activity)
+                refresh()
             }
             ActivityStatus.SUCCESS -> {
                 executeOnSuccess?.invoke()
@@ -71,16 +71,14 @@ abstract class Activity {
             if (System.currentTimeMillis() > creationTime + timeout) {
                 if (this@Activity is AttemptActivity) {
                     if (usedAttempts >= maxAttempts) {
-                        activityStatus = ActivityStatus.FAILURE
-                        LambdaMod.LOG.error("$name fully timed out!")
+                        onFailure(Exception("failed after $usedAttempts attempts"))
                     } else {
                         usedAttempts++
                         initialize()
-                        LambdaMod.LOG.warn("$name timed out!")
+                        MessageSendHelper.sendErrorMessage("$name: attempt $usedAttempts/$maxAttempts timed out")
                     }
                 } else {
-                    activityStatus = ActivityStatus.FAILURE
-                    LambdaMod.LOG.error("$name fully timed out!")
+                    onFailure(Exception("fully timed out"))
                 }
             }
         }
@@ -92,7 +90,7 @@ abstract class Activity {
         if (this@Activity is AttemptActivity) {
             if (usedAttempts >= maxAttempts) {
                 activityStatus = ActivityStatus.FAILURE
-                LambdaMod.LOG.error("$name failed after $maxAttempts attempts!")
+                MessageSendHelper.sendErrorMessage("$name failed after $maxAttempts attempts!")
             }
         }
         if (this@Activity is RotatingActivity) {
@@ -121,28 +119,22 @@ abstract class Activity {
         executeOnFinalize?.invoke()
         owner.subActivities.remove(this@Activity)
 
-        if (this@Activity is LoopingAmountActivity) {
-            if (currentLoops++ < maxLoops || maxLoops == 0) {
-                activityStatus = ActivityStatus.UNINITIALIZED
-                owner.subActivities.add(this@Activity)
-                LambdaMod.LOG.info("Looping $name [$currentLoops/${if (maxLoops == 0) "∞" else maxLoops}] ")
-            }
+        if (this@Activity is LoopingAmountActivity
+            && (currentLoops++ < maxLoops || maxLoops == 0)
+        ) {
+            activityStatus = ActivityStatus.UNINITIALIZED
+            owner.subActivities.add(this@Activity)
+            LambdaMod.LOG.info("Looping $name [$currentLoops/${if (maxLoops == 0) "∞" else maxLoops}] ")
         }
 
-        if (this@Activity is LoopingUntilActivity) {
-            if (!loopUntil()) {
-                currentLoops++
-                activityStatus = ActivityStatus.UNINITIALIZED
-                owner.subActivities.add(this@Activity)
-                LambdaMod.LOG.info("Looping $name ($currentLoops) ")
-            }
+        if (this@Activity is LoopingUntilActivity && !loopUntil()) {
+            currentLoops++
+            activityStatus = ActivityStatus.UNINITIALIZED
+            owner.subActivities.add(this@Activity)
+            LambdaMod.LOG.info("Looping $name ($currentLoops) ")
         }
 
-//        with(ActivityManager) {
-//            updateCurrentActivity()
-//        }
-
-        //        LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
+//                LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
 //        MessageSendHelper.sendRawChatMessage("$name took ${System.currentTimeMillis() - creationTime}ms")
     }
 
@@ -185,15 +177,15 @@ abstract class Activity {
     fun noSubActivities() = subActivities.isEmpty()
 
     fun SafeClientEvent.onSuccess() {
-        executeOnSuccess?.invoke()
         finalize()
+        executeOnSuccess?.invoke()
     }
 
     fun SafeClientEvent.onFailure(exception: Exception) {
-        executeOnFailure?.invoke(exception)
         finalize()
+        executeOnFailure?.invoke(exception)
 
-        LambdaMod.LOG.warn("$name failed!")
+        MessageSendHelper.sendErrorMessage("$name ${exception.message}")
     }
 
     fun refresh() {
@@ -226,7 +218,7 @@ abstract class Activity {
                 val value = field.get(this)
 
                 if (!ActivityManagerHud.anonymize
-                    || !(value is BlockPos || value is Vec3d || value is Entity)
+                    || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
                 ) {
                     textComponent.add(name.capitalize(), primaryColor)
                     textComponent.add(value.toString(), secondaryColor)

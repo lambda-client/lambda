@@ -2,7 +2,7 @@ package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.inventory.SwapToBestTool
+import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.world.isReplaceable
 import net.minecraft.block.state.IBlockState
@@ -24,15 +24,14 @@ class BuildBlock(
             /* block needs to be placed */
             targetState.block != Blocks.AIR && currentState.isReplaceable -> {
                 addSubActivities(
-                    PlaceBlockSafely(blockPos, targetState)
+                    PlaceBlock(blockPos, targetState)
                 )
             }
             /* only option left is breaking the block */
             else -> {
                 addSubActivities(
-                    SwapToBestTool(blockPos),
                     BreakBlock(blockPos),
-                    PlaceBlockSafely(blockPos, targetState)
+                    PlaceBlock(blockPos, targetState)
                 )
             }
         }

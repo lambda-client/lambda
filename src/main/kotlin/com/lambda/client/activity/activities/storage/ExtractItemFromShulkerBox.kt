@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.utils.getContainerPos
@@ -38,7 +39,7 @@ class ExtractItemFromShulkerBox(
                     OpenContainerInSlot(slot),
                     PullItemsFromContainer(item, amount, predicateItem),
                     CloseContainer(),
-                    BreakAndCollectShulker(containerPos),
+                    BreakBlock(containerPos, collectDrops = true),
                     SwapOrMoveToItem(item, predicateItem, predicateSlot)
                 )
             }

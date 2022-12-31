@@ -19,22 +19,13 @@ class PickUpDrops(
             it.item.item == item && player.distanceTo(it.positionVector) < maxRange && predicate(it.item)
         }
 
-        if (drops.isEmpty()) {
+        if (drops.isEmpty() || drops.sumOf { it.item.count } < minAmount) {
             onSuccess()
-        } else {
-            if (drops.size < minAmount) return
+            return
+        }
 
-            drops.minByOrNull { drop -> player.distanceTo(drop.positionVector) }?.let { drop ->
-                addSubActivities(
-                    PickUpEntityItem(drop).also {
-                        executeOnFinalize = {
-                            with(owner) {
-                                onSuccess()
-                            }
-                        }
-                    }
-                )
-            }
+        drops.sortedBy { drop -> player.distanceTo(drop.positionVector) }.forEach { drop ->
+            addSubActivities(PickUpEntityItem(drop))
         }
     }
 }
