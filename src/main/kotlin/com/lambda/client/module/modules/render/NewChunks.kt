@@ -118,11 +118,12 @@ object NewChunks : Module(
         }
 
         safeListener<RenderRadarEvent> {
-            if (renderMode == RenderMode.WORLD) return@safeListener
-
             val playerOffset = Vec2d((player.posX - (player.chunkCoordX shl 4)), (player.posZ - (player.chunkCoordZ shl 4)))
             val chunkDist = (it.radius * it.scale).toInt() shr 4
-
+            // at high zooms (further zoomed out) there will be thousands of rects being rendered
+            // buffering rects here to reduce GL calls and improve FPS
+            val filledChunkRects: MutableList<Pair<Vec2d, Vec2d>> = ArrayList()
+            val outlineChunkRects: MutableList<Pair<Vec2d, Vec2d>> = ArrayList()
             for (chunkX in -chunkDist..chunkDist) {
                 for (chunkZ in -chunkDist..chunkDist) {
                     val pos0 = getChunkPos(chunkX, chunkZ, playerOffset, it.scale)
@@ -136,21 +137,25 @@ object NewChunks : Module(
                             ) ?: false
 
                         if (!chunk.isLoaded && !isCachedChunk) {
-                            RenderUtils2D.drawRectFilled(it.vertexHelper, pos0, pos1, distantChunkColor)
+                            filledChunkRects.add(Pair(pos0, pos1))
                         }
-                        RenderUtils2D.drawRectOutline(it.vertexHelper, pos0, pos1, 0.3f, chunkGridColor)
+                        outlineChunkRects.add(Pair(pos0, pos1))
                     }
                 }
             }
+            if (filledChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, filledChunkRects, ColorHolder(100, 100, 100, 100))
+            if (it.chunkLines && outlineChunkRects.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, outlineChunkRects, 0.3f, ColorHolder(255, 0, 0, 100))
+            filledChunkRects.clear()
 
             chunks.keys.forEach { chunk ->
                 val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
                 val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
 
                 if (isSquareInRadius(pos0, pos1, it.radius)) {
-                    RenderUtils2D.drawRectFilled(it.vertexHelper, pos0, pos1, newChunkColor)
+                    filledChunkRects.add(Pair(pos0, pos1))
                 }
             }
+            if (filledChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, filledChunkRects, newChunkColor)
         }
 
         safeListener<PacketEvent.PostReceive> { event ->
