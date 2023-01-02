@@ -5,7 +5,7 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.event.SafeClientEvent
 
 interface LoopingUntilActivity {
-    val loopUntil: SafeClientEvent.() -> Boolean
+    val loopWhile: SafeClientEvent.() -> Boolean
     var currentLoops: Int
 
     companion object {
@@ -13,7 +13,7 @@ interface LoopingUntilActivity {
             if (activity !is LoopingUntilActivity) return
 
             with(activity) {
-                if (!loopUntil()) return
+                if (!loopWhile()) return
 
                 currentLoops++
                 activityStatus = Activity.ActivityStatus.UNINITIALIZED

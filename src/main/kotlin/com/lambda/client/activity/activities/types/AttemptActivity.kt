@@ -9,20 +9,24 @@ interface AttemptActivity {
     var usedAttempts: Int
 
     companion object {
-        fun SafeClientEvent.checkAttempt(activity: Activity) {
-            if (activity !is AttemptActivity) return
+        fun SafeClientEvent.checkAttempt(activity: Activity, causeException: Exception): Boolean {
+            if (activity !is AttemptActivity) return false
+            if (causeException is MaxAttemptsExceededException
+                || causeException is TimeoutActivity.Companion.TimeoutException) return false
 
             with(activity) {
                 if (usedAttempts >= maxAttempts) {
-                    failedWith(MaxAttemptsExceededException(usedAttempts))
+                    failedWith(MaxAttemptsExceededException(usedAttempts, causeException))
+                    return false
                 } else {
                     usedAttempts++
+                    MessageSendHelper.sendErrorMessage("$name caused ${causeException::class.simpleName}: ${causeException.message}. Attempt $usedAttempts of $maxAttempts restarting...")
                     initialize()
-                    MessageSendHelper.sendErrorMessage("$name timed out at attempt $usedAttempts of $maxAttempts")
+                    return true
                 }
             }
         }
 
-        class MaxAttemptsExceededException(usedAttempts: Int) : Exception("exceeded $usedAttempts attempts")
+        class MaxAttemptsExceededException(usedAttempts: Int, causeException: Exception) : Exception("Exceeded $usedAttempts attempts caused by ${causeException::class.simpleName}: ${causeException.message}")
     }
 }

@@ -10,8 +10,8 @@ import net.minecraft.util.math.BlockPos
 
 class SurroundWithObsidian(
     private val originPos: BlockPos,
-    override val loopUntil: SafeClientEvent.() -> Boolean = {
-        originPos != player.flooredPosition
+    override val loopWhile: SafeClientEvent.() -> Boolean = {
+        originPos == player.flooredPosition
     },
     override var currentLoops: Int = 0
 ) : LoopingUntilActivity, Activity() {

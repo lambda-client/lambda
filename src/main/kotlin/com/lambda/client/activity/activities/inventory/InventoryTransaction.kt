@@ -26,32 +26,28 @@ class InventoryTransaction(
 
     override fun SafeClientEvent.onInitialize() {
         getContainerOrNull(windowId)?.let { activeContainer ->
-            player.inventory?.let { inventory ->
-                transactionId = activeContainer.getNextTransactionID(inventory)
+            transactionId = activeContainer.getNextTransactionID(player.inventory)
 
-                val itemStack = if (type == ClickType.PICKUP && slot != -999) {
-                    activeContainer.inventorySlots?.getOrNull(slot)?.stack ?: ItemStack.EMPTY
-                } else {
-                    ItemStack.EMPTY
-                }
-
-                val packet = CPacketClickWindow(
-                    windowId,
-                    slot,
-                    mouseButton,
-                    type,
-                    itemStack,
-                    transactionId
-                )
-
-                connection.sendPacket(packet)
-
-                playerController.updateController()
-
-                LambdaMod.LOG.info("Sent packet: ${packet.javaClass.simpleName}")
-            } ?: run {
-                // ToDo: find out if this is possible
+            val itemStack = if (type == ClickType.PICKUP && slot != -999) {
+                activeContainer.inventorySlots?.getOrNull(slot)?.stack ?: ItemStack.EMPTY
+            } else {
+                ItemStack.EMPTY
             }
+
+            val packet = CPacketClickWindow(
+                windowId,
+                slot,
+                mouseButton,
+                type,
+                itemStack,
+                transactionId
+            )
+
+            connection.sendPacket(packet)
+
+            playerController.updateController()
+
+            LambdaMod.LOG.info("Sent packet: ${packet.javaClass.simpleName}")
         } ?: run {
             failedWith(ContainerOutdatedException(windowId))
         }

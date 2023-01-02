@@ -10,8 +10,8 @@ import net.minecraft.init.Items
 
 class ReachXPLevel(
     private val desiredLevel: Int,
-    override val loopUntil: SafeClientEvent.() -> Boolean = {
-        player.experienceLevel >= desiredLevel
+    override val loopWhile: SafeClientEvent.() -> Boolean = {
+        player.experienceLevel < desiredLevel
     },
     override var currentLoops: Int = 0
 ) : LoopingUntilActivity, Activity() {

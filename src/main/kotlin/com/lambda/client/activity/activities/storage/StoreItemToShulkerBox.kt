@@ -3,6 +3,7 @@ package com.lambda.client.activity.activities.storage
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
+import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.activity.activities.utils.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
@@ -36,18 +37,21 @@ class StoreItemToShulkerBox(
         }
 
         candidates.maxBy { it.value }.key.let { slot ->
-            var containerPos: BlockPos = BlockPos.ORIGIN
+            val openContainerInSlot = OpenContainerInSlot(slot)
 
-            addSubActivities(
-                OpenContainerInSlot(slot).also {
-                    executeOnSuccess = {
-                        containerPos = it.containerPos
+            with(openContainerInSlot) {
+                executeOnSuccess = {
+                    with(owner) {
+                        addSubActivities(
+                            PushItemsToContainer(item, amount, predicateItem),
+                            CloseContainer(),
+                            BreakBlock(containerPos, collectDrops = true)
+                        )
                     }
-                },
-                PushItemsToContainer(item, amount, predicateItem),
-                CloseContainer(),
-                BreakBlock(containerPos, collectDrops = true)
-            )
+                }
+            }
+
+            addSubActivities(openContainerInSlot)
         }
     }
 
