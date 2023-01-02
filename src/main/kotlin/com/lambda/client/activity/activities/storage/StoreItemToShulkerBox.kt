@@ -10,6 +10,7 @@ import com.lambda.client.util.items.allSlots
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.util.math.BlockPos
 
 class StoreItemToShulkerBox(
     private val item: Item,
@@ -29,17 +30,26 @@ class StoreItemToShulkerBox(
             }
         }
 
-        if (candidates.isEmpty()) return
+        if (candidates.isEmpty()) {
+            failedWith(NoShulkerBoxFoundStoreException(item))
+            return
+        }
 
         candidates.maxBy { it.value }.key.let { slot ->
-            getContainerPos()?.let { containerPos ->
-                addSubActivities(
-                    OpenContainerInSlot(slot),
-                    PushItemsToContainer(item, amount, predicateItem),
-                    CloseContainer(),
-                    BreakBlock(containerPos, collectDrops = true)
-                )
-            }
+            var containerPos: BlockPos = BlockPos.ORIGIN
+
+            addSubActivities(
+                OpenContainerInSlot(slot).also {
+                    executeOnSuccess = {
+                        containerPos = it.containerPos
+                    }
+                },
+                PushItemsToContainer(item, amount, predicateItem),
+                CloseContainer(),
+                BreakBlock(containerPos, collectDrops = true)
+            )
         }
     }
+
+    class NoShulkerBoxFoundStoreException(item: Item) : Exception("No shulker box was found with space to store ${item.registryName}")
 }

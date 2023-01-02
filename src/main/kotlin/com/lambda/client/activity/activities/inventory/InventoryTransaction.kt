@@ -2,8 +2,8 @@ package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.AttemptActivity
-import com.lambda.client.activity.activities.TimeoutActivity
+import com.lambda.client.activity.activities.types.AttemptActivity
+import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.threads.safeListener
@@ -53,8 +53,7 @@ class InventoryTransaction(
                 // ToDo: find out if this is possible
             }
         } ?: run {
-            activityStatus = ActivityStatus.FAILURE
-            LambdaMod.LOG.error("Container outdated. Skipping task. $this")
+            failedWith(ContainerOutdatedException(windowId))
         }
     }
 
@@ -64,20 +63,20 @@ class InventoryTransaction(
 
             if (packet !is SPacketConfirmTransaction
                 || packet.windowId != windowId
-                || packet.actionNumber != transactionId) return@safeListener
+                || packet.actionNumber != transactionId
+            ) return@safeListener
 
-            if (packet.wasAccepted()) {
-                getContainerOrNull(packet.windowId)?.let { container ->
-                    container.slotClick(slot, mouseButton, type, player)
-                    onSuccess()
-                    LambdaMod.LOG.info("Accepted packet: ${it.packet.javaClass.simpleName} $transactionId")
-                } ?: run {
-                    activityStatus = ActivityStatus.FAILURE
-                    LambdaMod.LOG.error("Container is null")
-                }
-            } else {
-                activityStatus = ActivityStatus.FAILURE
-                LambdaMod.LOG.error("Denied packet: ${it.packet.javaClass.simpleName} $transactionId")
+            if (!packet.wasAccepted()) {
+                failedWith(DeniedException(packet.actionNumber))
+                return@safeListener
+            }
+
+            getContainerOrNull(packet.windowId)?.let { container ->
+                container.slotClick(slot, mouseButton, type, player)
+                success()
+                LambdaMod.LOG.info("Accepted packet: ${it.packet.javaClass.simpleName} $transactionId")
+            } ?: run {
+                failedWith(ContainerOutdatedException(packet.windowId))
             }
         }
     }
@@ -88,4 +87,7 @@ class InventoryTransaction(
         } else {
             null
         }
+
+    class ContainerOutdatedException(windowId: Int) : Exception("WindowID $windowId of container outdated")
+    class DeniedException(transactionId: Short) : Exception("InventoryTransaction $transactionId was denied")
 }

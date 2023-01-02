@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.example
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.DelayedActivity
+import com.lambda.client.activity.activities.types.DelayedActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.text.MessageSendHelper
 
@@ -11,6 +11,6 @@ class WaitAndSay(
 ) : DelayedActivity, Activity() {
     override fun SafeClientEvent.onDelayedActivity() {
         MessageSendHelper.sendChatMessage(message)
-        onSuccess()
+        success()
     }
 }

@@ -9,6 +9,6 @@ class SwitchToHotbarSlot(private val slot: HotbarSlot) : Activity() {
         if (slot.hotbarSlot !in 0..8) return
         player.inventory.currentItem = slot.hotbarSlot
         playerController.updateController()
-        onSuccess()
+        success()
     }
 }

@@ -1,9 +1,8 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.LoopingAmountActivity
+import com.lambda.client.activity.activities.types.LoopingAmountActivity
 import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.interaction.BreakBlockRaw
 import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox

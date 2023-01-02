@@ -1,7 +1,7 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.RenderBlockActivity
+import com.lambda.client.activity.activities.types.RenderBlockActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
@@ -15,14 +15,16 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
     const val MAX_DEPTH = 25
-    var lastActivity: Activity = this
+    private var lastActivity: Activity = this
 
     init {
         safeListener<TickEvent.ClientTickEvent> { event ->
             if (noSubActivities() || event.phase != TickEvent.Phase.START) return@safeListener
 
+            val currentActivity = currentActivity
+
             with(currentActivity) {
-                if (activityStatus == ActivityStatus.RUNNING) updateTypesOnTick()
+                if (activityStatus == ActivityStatus.RUNNING) updateTypesOnTick(currentActivity)
             }
 
             repeat(10) {
@@ -43,13 +45,12 @@ object ActivityManager : Manager, Activity() {
         }
     }
 
-    fun SafeClientEvent.updateCurrentActivity() {
+    private fun SafeClientEvent.updateCurrentActivity() {
         val currentActivity = currentActivity
 
         with(currentActivity) {
             if (currentActivity != lastActivity) {
                 if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING) {
-//                if (lastActivity !is ActivityManager) {
                     LambdaEventBus.unsubscribe(lastActivity)
                     ListenerManager.unregister(lastActivity)
                 }
@@ -66,7 +67,6 @@ object ActivityManager : Manager, Activity() {
 
     fun reset() {
         if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING) {
-//        if (lastActivity !is ActivityManager) {
             LambdaEventBus.unsubscribe(lastActivity)
             ListenerManager.unregister(lastActivity)
         }

@@ -18,9 +18,11 @@ class BuildBlock(
 
         when {
             /* is in desired state */
-            currentState == targetState -> onSuccess()
-//            /* is blocked by entity */
-//            world.checkNoEntityCollision(currentState.getSelectedBoundingBox(world, blockPos), null) -> setFailure()
+            currentState == targetState -> success()
+            /* is blocked by entity */
+            !world.checkNoEntityCollision(currentState.getSelectedBoundingBox(world, blockPos), null) -> {
+                failedWith(EntityCollisionException())
+            }
             /* block needs to be placed */
             targetState.block != Blocks.AIR && currentState.isReplaceable -> {
                 addSubActivities(
@@ -36,4 +38,6 @@ class BuildBlock(
             }
         }
     }
+
+    class EntityCollisionException : Exception("entity collision")
 }

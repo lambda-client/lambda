@@ -2,15 +2,13 @@ package com.lambda.client.activity.activities.travel
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.TimeoutActivity
+import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.activity.activities.inventory.DumpSlot
 import com.lambda.client.module.modules.player.InventoryManager
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.items.inventorySlots
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.item.EntityItem
-import net.minecraftforge.event.entity.player.EntityItemPickupEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Exception
 
@@ -24,7 +22,7 @@ class PickUpEntityItem(
 
             if (!world.loadedEntityList.contains(entityItem)) {
                 BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(null)
-                onSuccess()
+                success()
                 return@safeListener
             }
 
@@ -40,8 +38,10 @@ class PickUpEntityItem(
             }?.let { slot ->
                 addSubActivities(DumpSlot(slot))
             } ?: run {
-                onFailure(Exception("No empty slots or items to dump!"))
+                failedWith(InventoryFullException())
             }
         }
     }
+
+    class InventoryFullException : Exception("No empty slots or items to dump!")
 }
