@@ -11,6 +11,7 @@ import com.lambda.client.util.items.allSlots
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.util.math.BlockPos
 
 class ExtractItemFromShulkerBox(
     private val item: Item,
@@ -31,18 +32,27 @@ class ExtractItemFromShulkerBox(
             }
         }
 
-        if (candidates.isEmpty()) return
+        if (candidates.isEmpty()) {
+            failedWith(NoShulkerBoxFoundExtractException(item))
+            return
+        }
 
         candidates.minBy { it.value }.key.let { slot ->
-            getContainerPos()?.let { containerPos ->
-                addSubActivities(
-                    OpenContainerInSlot(slot),
-                    PullItemsFromContainer(item, amount, predicateItem),
-                    CloseContainer(),
-                    BreakBlock(containerPos, collectDrops = true),
-                    SwapOrMoveToItem(item, predicateItem, predicateSlot)
-                )
-            }
+            var containerPos: BlockPos = BlockPos.ORIGIN
+
+            addSubActivities(
+                OpenContainerInSlot(slot).also {
+                    executeOnSuccess = {
+                        containerPos = it.containerPos
+                    }
+                },
+                PullItemsFromContainer(item, amount, predicateItem),
+                CloseContainer(),
+                BreakBlock(containerPos, collectDrops = true),
+                SwapOrMoveToItem(item, predicateItem, predicateSlot)
+            )
         }
     }
+
+    class NoShulkerBoxFoundExtractException(item: Item) : Exception("No shulker box was found containing ${item.registryName}")
 }

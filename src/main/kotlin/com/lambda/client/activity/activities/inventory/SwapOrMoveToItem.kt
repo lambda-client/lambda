@@ -31,10 +31,11 @@ class SwapOrMoveToItem(
                 if (useShulkerBoxes) {
                     addSubActivities(ExtractItemFromShulkerBox(item, 1, predicateItem, predicateSlot))
                 } else {
-                    onFailure(Exception("No $item found in inventory (shulkers are disabled)"))
-                    MessageSendHelper.sendErrorMessage("No $item found in inventory (shulkers are disabled)")
+                    failedWith(NoItemFoundException(item))
                 }
             }
         }
     }
+
+    class NoItemFoundException(item: Item) : Exception("No ${item.registryName} found in inventory (shulkers are disabled)")
 }

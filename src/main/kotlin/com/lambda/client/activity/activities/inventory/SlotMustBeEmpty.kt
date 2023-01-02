@@ -11,9 +11,11 @@ class SlotMustBeEmpty(
 
     override fun SafeClientEvent.onInitialize() {
         if (slot.stack.isEmpty) {
-            onSuccess()
+            success()
         } else {
-            onFailure(Exception("Slot must be empty"))
+            failedWith(ExceptionSlotNotEmpty())
         }
     }
+
+    class ExceptionSlotNotEmpty : Exception("Slot must be empty")
 }

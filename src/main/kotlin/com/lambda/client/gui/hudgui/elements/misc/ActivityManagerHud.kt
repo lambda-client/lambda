@@ -20,13 +20,14 @@ internal object ActivityManagerHud: LabelHud(
 
         ActivityManager.appendInfo(displayText, primaryColor, secondaryColor)
 
-        displayText.addLine("")
-        displayText.addLine("Subscribers:")
-        ListenerManager.listenerMap.keys.filterIsInstance<Activity>().forEach {
-            displayText.addLine("${it::class.simpleName}")
-        }
-        ListenerManager.asyncListenerMap.keys.filterIsInstance<Activity>().forEach {
-            displayText.addLine("${it::class.simpleName}")
+        val sync = ListenerManager.listenerMap.keys.filterIsInstance<Activity>()
+        val async = ListenerManager.asyncListenerMap.keys.filterIsInstance<Activity>()
+
+        if (sync.isNotEmpty() || async.isNotEmpty()) {
+            displayText.addLine("")
+            displayText.addLine("Subscribers:")
+            if (sync.isNotEmpty()) displayText.addLine("SYNC ${sync.map { it::class.simpleName }}")
+            if (async.isNotEmpty()) displayText.addLine("ASYNC ${async.map { it::class.simpleName }}")
         }
     }
 }

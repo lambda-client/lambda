@@ -9,10 +9,18 @@ class TryClearSlotWithQuickMove(
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         if (slot.stack.isEmpty) {
-            onSuccess()
+            success()
         } else {
             addSubActivities(
-                QuickMoveSlot(slot),
+                QuickMoveSlot(slot).also {
+                    executeOnSuccess = {
+                        if (slot.stack.isEmpty) {
+                            success()
+                        } else {
+                            failedWith(SlotMustBeEmpty.ExceptionSlotNotEmpty())
+                        }
+                    }
+                },
                 SlotMustBeEmpty(slot)
             )
         }

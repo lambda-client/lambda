@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.RotatingActivity
+import com.lambda.client.activity.activities.types.RotatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.RotationUtils.getRotationToEntity
 import com.lambda.client.util.math.Vec2f
@@ -33,7 +33,7 @@ class UseThrowableOnEntity(
 
             used++
 
-            if (used == amount) onSuccess()
+            if (used == amount) success()
         }
     }
 

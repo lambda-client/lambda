@@ -1,37 +1,31 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.AttemptActivity
-import com.lambda.client.activity.activities.RenderBlockActivity
-import com.lambda.client.activity.activities.RotatingActivity
-import com.lambda.client.activity.activities.TimeoutActivity
-import com.lambda.client.activity.activities.inventory.SwapToBestTool
+import com.lambda.client.activity.activities.types.AttemptActivity
+import com.lambda.client.activity.activities.types.RotatingActivity
+import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.activity.activities.travel.PickUpDrops
+import com.lambda.client.activity.activities.types.RenderBlockActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
-import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
-import net.minecraft.entity.item.EntityItem
+import net.minecraft.block.material.Material
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
-import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.server.SPacketBlockChange
-import net.minecraft.network.play.server.SPacketEntityMetadata
-import net.minecraft.network.play.server.SPacketSpawnObject
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
 import net.minecraft.util.math.BlockPos
-import net.minecraftforge.event.entity.EntityJoinWorldEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.lang.Exception
 import java.util.*
+import kotlin.Exception
 import kotlin.math.ceil
 
 class BreakBlockRaw(
@@ -54,8 +48,8 @@ class BreakBlockRaw(
     override fun SafeClientEvent.onInitialize() {
         val currentState = world.getBlockState(blockPos)
 
-        if (currentState.block == Blocks.AIR) {
-            onSuccess()
+        if (currentState.material == Material.AIR) {
+            success()
             return
         }
 
@@ -72,23 +66,27 @@ class BreakBlockRaw(
             getMiningSide(blockPos)?.let { side ->
                 rotation = getRotationTo(getHitVec(blockPos, side))
 
-                if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
-                    playerController.onPlayerDestroyBlock(blockPos)
-                    player.swingArm(EnumHand.MAIN_HAND)
-                } else {
-                    playerController.onPlayerDamageBlock(blockPos, side)
-                    player.swingArm(EnumHand.MAIN_HAND)
-                    // cancel onPlayerDestroy NoGhostBlocks
+                playerController.onPlayerDamageBlock(blockPos, side)
+                mc.effectRenderer.addBlockHitEffects(blockPos, side)
+                player.swingArm(EnumHand.MAIN_HAND)
 
-//                    if (ticksNeeded * 50L < System.currentTimeMillis() - creationTime) {
-//                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockPos, side))
-//                        player.swingArm(EnumHand.MAIN_HAND)
-//                    } else {
-//                        player.swingArm(EnumHand.MAIN_HAND)
-//                    }
-                }
+//                if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
+//                    playerController.onPlayerDestroyBlock(blockPos)
+//                    player.swingArm(EnumHand.MAIN_HAND)
+//                } else {
+//                    playerController.onPlayerDamageBlock(blockPos, side)
+//                    player.swingArm(EnumHand.MAIN_HAND)
+//                    // cancel onPlayerDestroy NoGhostBlocks
+//
+////                    if (ticksNeeded * 50L < System.currentTimeMillis() - creationTime) {
+////                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockPos, side))
+////                        player.swingArm(EnumHand.MAIN_HAND)
+////                    } else {
+////                        player.swingArm(EnumHand.MAIN_HAND)
+////                    }
+//                }
             } ?: run {
-                onFailure(Exception("No block surface exposed to player"))
+                failedWith(ExceptionNoSurfaceExposed())
             }
         }
 
@@ -128,7 +126,7 @@ class BreakBlockRaw(
 
     private fun SafeClientEvent.finish() {
         if (!collectDrops) {
-            onSuccess()
+            success()
             return
         }
 
@@ -139,11 +137,16 @@ class BreakBlockRaw(
         addSubActivities(
             PickUpDrops(drop, minAmount = minCollectAmount).also {
                 executeOnSuccess = {
-                    with(owner) {
-                        onSuccess()
-                    }
+                    with(owner) { success() }
                 }
             }
         )
     }
+
+    override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
+        playerController.resetBlockRemoving()
+        return true
+    }
+
+    class ExceptionNoSurfaceExposed : Exception("No block surface exposed to player")
 }

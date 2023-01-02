@@ -8,9 +8,9 @@ import kotlin.random.Random
 class ProbablyFailing : Activity() {
     override fun SafeClientEvent.onInitialize() {
         if (Random.nextBoolean()) {
-            onSuccess()
+            success()
         } else {
-            onFailure(Exception("Randomly failed"))
+            failedWith(Exception("Randomly failed"))
         }
     }
 }

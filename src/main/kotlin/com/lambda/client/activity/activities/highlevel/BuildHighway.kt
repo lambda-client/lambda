@@ -2,7 +2,7 @@ package com.lambda.client.activity.activities.highlevel
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.LoopingAmountActivity
+import com.lambda.client.activity.activities.types.LoopingAmountActivity
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.Direction

@@ -2,7 +2,7 @@ package com.lambda.client.activity.activities.travel
 
 import baritone.api.pathing.goals.Goal
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.TimeoutActivity
+import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
@@ -16,7 +16,7 @@ class CustomGoal(
     override fun SafeClientEvent.onInitialize() {
         if (!goal.isInGoal(player.flooredPosition)) return
 
-        onSuccess()
+        success()
     }
 
     init {
@@ -25,7 +25,7 @@ class CustomGoal(
 
             BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goal)
 
-            if (goal.isInGoal(player.flooredPosition)) onSuccess()
+            if (goal.isInGoal(player.flooredPosition)) success()
         }
     }
 }

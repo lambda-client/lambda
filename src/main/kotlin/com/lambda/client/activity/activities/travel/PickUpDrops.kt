@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.travel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.utils.SetState
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.entity.item.EntityItem
@@ -20,7 +19,7 @@ class PickUpDrops(
         }
 
         if (drops.isEmpty() || drops.sumOf { it.item.count } < minAmount) {
-            onSuccess()
+            success()
             return
         }
 

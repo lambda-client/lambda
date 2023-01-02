@@ -1,11 +1,10 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.LoopingUntilActivity
+import com.lambda.client.activity.activities.types.LoopingUntilActivity
 import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.MovementUtils.centerPlayer
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 

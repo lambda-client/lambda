@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.interaction.BreakBlockRaw
 import com.lambda.client.event.SafeClientEvent
 import net.minecraft.block.state.IBlockState
 import net.minecraft.util.math.BlockPos
@@ -12,9 +13,7 @@ class BuildStructure(
         structure.forEach { (pos, state) ->
             addSubActivities(
                 BuildBlock(pos, state).also {
-                    executeOnFailure = {
-                        refresh()
-                    }
+                    executeOnFailure = { if (it is BreakBlockRaw.ExceptionNoSurfaceExposed) refresh() }
                 }
             )
         }

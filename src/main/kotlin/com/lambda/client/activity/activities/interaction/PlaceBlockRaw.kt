@@ -1,7 +1,10 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.*
+import com.lambda.client.activity.activities.types.AttemptActivity
+import com.lambda.client.activity.activities.types.RenderBlockActivity
+import com.lambda.client.activity.activities.types.RotatingActivity
+import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
@@ -68,7 +71,7 @@ class PlaceBlockRaw(
 
 //            activityStatus = ActivityStatus.PENDING
         } ?: run {
-            onFailure(Exception("No neighbour found"))
+            failedWith(NoNeighbourException())
             color = ColorHolder(16, 74, 94)
         }
     }
@@ -78,7 +81,9 @@ class PlaceBlockRaw(
             if (it.packet is SPacketBlockChange
                 && it.packet.blockPosition == blockPos
                 && it.packet.blockState.block == targetState.block
-            ) onSuccess()
+            ) success()
         }
     }
+
+    class NoNeighbourException : Exception("no neighbour found")
 }
