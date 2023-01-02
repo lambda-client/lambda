@@ -25,11 +25,8 @@ class ListenAndWait(
     override fun SafeClientEvent.onFailure(exception: Exception) =
         if (exception is TimeoutActivity.Companion.TimeoutException) {
             success()
-            false
-        } else {
-            MessageSendHelper.sendChatMessage("Failure!")
             true
-        }
+        } else false
 
     override fun addExtraInfo(textComponent: TextComponent, primaryColor: ColorHolder, secondaryColor: ColorHolder) {
         textComponent.add("Age", primaryColor)

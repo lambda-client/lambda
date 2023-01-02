@@ -94,7 +94,24 @@ class BreakBlockRaw(
             if (it.packet is SPacketBlockChange
                 && it.packet.blockPosition == blockPos
                 && it.packet.blockState.block == Blocks.AIR
-            ) finish()
+            ) {
+                if (!collectDrops) {
+                    success()
+                    return@safeListener
+                }
+
+                color = ColorHolder(252, 3, 207)
+
+                if (drop.block == Blocks.AIR) return@safeListener
+
+                addSubActivities(
+                    PickUpDrops(drop, minAmount = minCollectAmount).also {
+                        executeOnSuccess = {
+                            with(owner) { success() }
+                        }
+                    }
+                )
+            }
         }
     }
 
@@ -124,28 +141,9 @@ class BreakBlockRaw(
         }
     }
 
-    private fun SafeClientEvent.finish() {
-        if (!collectDrops) {
-            success()
-            return
-        }
-
-        color = ColorHolder(252, 3, 207)
-
-        if (drop.block == Blocks.AIR) return
-
-        addSubActivities(
-            PickUpDrops(drop, minAmount = minCollectAmount).also {
-                executeOnSuccess = {
-                    with(owner) { success() }
-                }
-            }
-        )
-    }
-
     override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
         playerController.resetBlockRemoving()
-        return true
+        return false
     }
 
     class ExceptionNoSurfaceExposed : Exception("No block surface exposed to player")

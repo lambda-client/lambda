@@ -39,5 +39,5 @@ class BuildBlock(
         }
     }
 
-    class EntityCollisionException : Exception("entity collision")
+    class EntityCollisionException : Exception("Entity collision while placing block")
 }

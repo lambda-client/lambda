@@ -25,26 +25,23 @@ import java.util.concurrent.ConcurrentLinkedDeque
 abstract class Activity {
     val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
-    var creationTime = 0L
+    private var creationTime = 0L
     var owner: Activity = ActivityManager
     var depth = 0
     val name get() = this::class.simpleName
     val age get() = if (creationTime != 0L) System.currentTimeMillis() - creationTime else 0L
     val currentActivity: Activity get() = subActivities.peek()?.currentActivity ?: this
 
-    var executeOnSuccess: (() -> Unit)? = null
-    var executeOnFailure: ((Exception) -> Unit)? = null
-    private var executeOnFinalize: (() -> Unit)? = null
+    var executeOnInitialize: (SafeClientEvent.() -> Unit)? = null
+    var executeOnSuccess: (SafeClientEvent.() -> Unit)? = null
+    var executeOnFailure: ((Exception) -> Boolean)? = null
 
     open fun SafeClientEvent.onInitialize() {}
 
     open fun SafeClientEvent.onSuccess() {}
 
-    /* Return true to stop the activity
-    * */
-    open fun SafeClientEvent.onFailure(exception: Exception): Boolean = true
-
-    open fun SafeClientEvent.onFinalize() {}
+    /* Return true to catch the exception */
+    open fun SafeClientEvent.onFailure(exception: Exception): Boolean = false
 
     open fun addExtraInfo(
         textComponent: TextComponent,
@@ -61,14 +58,10 @@ abstract class Activity {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
                     && noSubActivities()
                     && this@Activity !is DelayedActivity
-                ) finalize()
+                ) success()
             }
             ActivityStatus.PENDING -> {
-                refresh()
-            }
-            ActivityStatus.SUCCESS -> {
-                executeOnSuccess?.invoke()
-                finalize()
+//                refresh()
             }
             ActivityStatus.FAILURE -> {
                 //
@@ -79,7 +72,6 @@ abstract class Activity {
     fun SafeClientEvent.updateTypesOnTick(activity: Activity) {
         checkTimeout(activity)
         checkDelayed(activity)
-        checkAttempt(activity)
         checkRotating(activity)
     }
 
@@ -87,38 +79,34 @@ abstract class Activity {
         activityStatus = ActivityStatus.RUNNING
         creationTime = System.currentTimeMillis()
         onInitialize()
+        executeOnInitialize?.invoke(this)
 
         checkRotating(this@Activity)
 
 //        LambdaMod.LOG.info("${System.currentTimeMillis()} Initialized $name ${System.currentTimeMillis() - ActivityManager.lastActivity.creationTime}ms after last activity creation")
     }
 
-    private fun SafeClientEvent.finalize() {
+    fun SafeClientEvent.success() {
         val activity = this@Activity
 
-        onFinalize()
-        executeOnFinalize?.invoke()
+        onSuccess()
+        executeOnSuccess?.invoke(this)
         owner.subActivities.remove(activity)
 
         checkLoopingAmount(activity)
         checkLoopingUntil(activity)
 
 //                LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
-//        MessageSendHelper.sendRawChatMessage("$name took ${System.currentTimeMillis() - creationTime}ms")
-    }
-
-    fun SafeClientEvent.success() {
-        finalize()
-        executeOnSuccess?.invoke()
+//        MessageSendHelper.sendRawChatMessage("$name took ${age}ms")
     }
 
     fun SafeClientEvent.failedWith(exception: Exception) {
-        if (onFailure(exception)) {
-            executeOnFailure?.invoke(exception)
+        MessageSendHelper.sendErrorMessage("Exception in $name: ${exception.message}")
+        if (checkAttempt(this@Activity, exception)) return
+        if (executeOnFailure?.invoke(exception) == true) return
+        if (onFailure(exception)) return
 
-            MessageSendHelper.sendErrorMessage("Exception in ${this@Activity::class.simpleName}: ${exception.message}")
-            ActivityManager.reset()
-        }
+        ActivityManager.reset()
     }
 
     fun refresh() {
@@ -167,7 +155,6 @@ abstract class Activity {
         UNINITIALIZED,
         RUNNING,
         PENDING,
-        SUCCESS,
         FAILURE
     }
 

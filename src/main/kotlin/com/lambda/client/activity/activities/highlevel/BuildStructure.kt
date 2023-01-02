@@ -13,7 +13,12 @@ class BuildStructure(
         structure.forEach { (pos, state) ->
             addSubActivities(
                 BuildBlock(pos, state).also {
-                    executeOnFailure = { if (it is BreakBlockRaw.ExceptionNoSurfaceExposed) refresh() }
+                    executeOnFailure = {
+                        if (it is BreakBlockRaw.ExceptionNoSurfaceExposed) {
+                            refresh()
+                            true
+                        } else false
+                    }
                 }
             )
         }

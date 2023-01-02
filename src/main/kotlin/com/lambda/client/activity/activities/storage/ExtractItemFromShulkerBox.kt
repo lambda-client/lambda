@@ -38,19 +38,22 @@ class ExtractItemFromShulkerBox(
         }
 
         candidates.minBy { it.value }.key.let { slot ->
-            var containerPos: BlockPos = BlockPos.ORIGIN
+            val openContainerInSlot = OpenContainerInSlot(slot)
 
-            addSubActivities(
-                OpenContainerInSlot(slot).also {
-                    executeOnSuccess = {
-                        containerPos = it.containerPos
+            with(openContainerInSlot) {
+                executeOnSuccess = {
+                    with(owner) {
+                        addSubActivities(
+                            PullItemsFromContainer(item, amount, predicateItem),
+                            CloseContainer(),
+                            BreakBlock(containerPos, collectDrops = true),
+                            SwapOrMoveToItem(item, predicateItem, predicateSlot)
+                        )
                     }
-                },
-                PullItemsFromContainer(item, amount, predicateItem),
-                CloseContainer(),
-                BreakBlock(containerPos, collectDrops = true),
-                SwapOrMoveToItem(item, predicateItem, predicateSlot)
-            )
+                }
+            }
+
+            addSubActivities(openContainerInSlot)
         }
     }
 

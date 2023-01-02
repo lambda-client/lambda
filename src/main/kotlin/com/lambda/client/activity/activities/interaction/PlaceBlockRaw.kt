@@ -71,7 +71,7 @@ class PlaceBlockRaw(
 
 //            activityStatus = ActivityStatus.PENDING
         } ?: run {
-            failedWith(NoNeighbourException())
+            failedWith(NoNeighbourException(blockPos))
             color = ColorHolder(16, 74, 94)
         }
     }
@@ -85,5 +85,5 @@ class PlaceBlockRaw(
         }
     }
 
-    class NoNeighbourException : Exception("no neighbour found")
+    class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for $blockPos found")
 }

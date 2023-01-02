@@ -17,12 +17,13 @@ class TryClearSlotWithQuickMove(
                         if (slot.stack.isEmpty) {
                             success()
                         } else {
-                            failedWith(SlotMustBeEmpty.ExceptionSlotNotEmpty())
+                            failedWith(ExceptionSlotNotEmpty())
                         }
                     }
-                },
-                SlotMustBeEmpty(slot)
+                }
             )
         }
     }
+
+    class ExceptionSlotNotEmpty : Exception("Slot is still not empty")
 }

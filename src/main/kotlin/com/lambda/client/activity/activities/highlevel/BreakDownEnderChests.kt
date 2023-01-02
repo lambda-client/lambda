@@ -3,6 +3,7 @@ package com.lambda.client.activity.activities.highlevel
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.LoopingAmountActivity
 import com.lambda.client.activity.activities.interaction.BreakBlock
+import com.lambda.client.activity.activities.interaction.BreakBlockRaw
 import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
@@ -21,28 +22,32 @@ class BreakDownEnderChests(
     override var currentLoops: Int = 0
 ) : LoopingAmountActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
+        if (player.inventorySlots.countEmpty() < 2) {
+            addSubActivities(
+                StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
+            )
+            return
+        }
+
         getContainerPos()?.let { remotePos ->
-            if (player.inventorySlots.countEmpty() < 2) {
-                addSubActivities(
-                    StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
+            addSubActivities(
+                PlaceBlock(remotePos, Blocks.ENDER_CHEST.defaultState),
+                SwapOrMoveToItem(
+                    Items.DIAMOND_PICKAXE,
+                    predicateItem = {
+                        EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
+                    }
+                ),
+                BreakBlockRaw(
+                    remotePos,
+                    collectDrops = true,
+                    minCollectAmount = 64
                 )
-            } else {
-                addSubActivities(
-                    PlaceBlock(remotePos, Blocks.ENDER_CHEST.defaultState),
-                    SwapOrMoveToItem(
-                        Items.DIAMOND_PICKAXE,
-                        predicateItem = {
-                            EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
-                        }
-                    ),
-                    BreakBlock(
-                        remotePos,
-                        useBestTool = false,
-                        collectDrops = true,
-                        minCollectAmount = 64
-                    )
-                )
-            }
+            )
+        } ?: run {
+            failedWith(NoEnderChestPosFoundException())
         }
     }
+
+    class NoEnderChestPosFoundException : Exception("No free ender chest position was found")
 }

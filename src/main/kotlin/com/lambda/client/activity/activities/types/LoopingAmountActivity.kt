@@ -16,7 +16,7 @@ interface LoopingAmountActivity {
             if (activity !is LoopingAmountActivity) return
 
             with(activity) {
-                if (currentLoops++ >= maxLoops || maxLoops != 0) return
+                if (currentLoops++ >= maxLoops && maxLoops != 0) return
 
                 activityStatus = Activity.ActivityStatus.UNINITIALIZED
                 owner.subActivities.add(activity)
