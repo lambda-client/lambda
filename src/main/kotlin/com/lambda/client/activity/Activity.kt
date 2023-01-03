@@ -17,10 +17,14 @@ import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.capitalize
 import net.minecraft.entity.Entity
+import net.minecraft.item.ItemBlock
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import org.apache.commons.lang3.time.DurationFormatUtils
+import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
+import kotlin.collections.ArrayDeque
 
 abstract class Activity {
     val subActivities = ConcurrentLinkedDeque<Activity>()
@@ -28,20 +32,22 @@ abstract class Activity {
     private var creationTime = 0L
     var owner: Activity = ActivityManager
     var depth = 0
-    val name get() = this::class.simpleName
+    val name get() = this::class.simpleName ?: "Activity"
     val age get() = if (creationTime != 0L) System.currentTimeMillis() - creationTime else 0L
     val currentActivity: Activity get() = subActivities.peek()?.currentActivity ?: this
 
-    var executeOnInitialize: (SafeClientEvent.() -> Unit)? = null
-    var executeOnSuccess: (SafeClientEvent.() -> Unit)? = null
-    var executeOnFailure: ((Exception) -> Boolean)? = null
-
     open fun SafeClientEvent.onInitialize() {}
+
+    open fun SafeClientEvent.onChildInitialize(childActivity: Activity) {}
 
     open fun SafeClientEvent.onSuccess() {}
 
+    open fun SafeClientEvent.onChildSuccess(childActivity: Activity) {}
+
     /* Return true to catch the exception */
     open fun SafeClientEvent.onFailure(exception: Exception): Boolean = false
+
+    open fun SafeClientEvent.onChildFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean = false
 
     open fun addExtraInfo(
         textComponent: TextComponent,
@@ -76,12 +82,17 @@ abstract class Activity {
     }
 
     fun SafeClientEvent.initialize() {
+        val activity = this@Activity
+
         activityStatus = ActivityStatus.RUNNING
         creationTime = System.currentTimeMillis()
         onInitialize()
-        executeOnInitialize?.invoke(this)
 
-        checkRotating(this@Activity)
+//        with(owner) {
+//            onChildInitialize(activity)
+//        }
+
+        checkRotating(activity)
 
 //        LambdaMod.LOG.info("${System.currentTimeMillis()} Initialized $name ${System.currentTimeMillis() - ActivityManager.lastActivity.creationTime}ms after last activity creation")
     }
@@ -89,10 +100,12 @@ abstract class Activity {
     fun SafeClientEvent.success() {
         val activity = this@Activity
 
-        onSuccess()
-        executeOnSuccess?.invoke(this)
-        owner.subActivities.remove(activity)
+        with(owner) {
+            onChildSuccess(activity)
+            subActivities.remove(activity)
+        }
 
+        onSuccess()
         checkLoopingAmount(activity)
         checkLoopingUntil(activity)
 
@@ -101,12 +114,33 @@ abstract class Activity {
     }
 
     fun SafeClientEvent.failedWith(exception: Exception) {
-        MessageSendHelper.sendErrorMessage("Exception in $name: ${exception.message}")
-        if (checkAttempt(this@Activity, exception)) return
-        if (executeOnFailure?.invoke(exception) == true) return
+        val activity = this@Activity
+
+        with(owner) {
+            if (childFailure(ArrayDeque(listOf(activity)), exception)) return
+        }
+
+        if (checkAttempt(activity, exception)) return
         if (onFailure(exception)) return
 
+        MessageSendHelper.sendErrorMessage("Exception in $name: ${exception.message}")
+
         ActivityManager.reset()
+    }
+
+    private fun SafeClientEvent.childFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {
+        if (onChildFailure(childActivities, childException)) return true
+
+        if (onFailure(childException)) return true
+        MessageSendHelper.sendErrorMessage("${childActivities.joinToString { it.name }}: ${childException.message}")
+
+        if (owner == ActivityManager) return false
+
+        childActivities.add(this@Activity)
+        with(owner) {
+            childFailure(childActivities, childException)
+        }
+        return false
     }
 
     fun refresh() {
@@ -170,16 +204,37 @@ abstract class Activity {
             textComponent.add("${javaClass.simpleName} ", secondaryColor)
             textComponent.add("State", primaryColor)
             textComponent.add(activityStatus.name, secondaryColor)
-            this::class.java.declaredFields.forEach { field ->
+
+            if (activityStatus == ActivityStatus.RUNNING) {
+                textComponent.add("Runtime", primaryColor)
+                textComponent.add(DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS"), secondaryColor)
+            }
+            this::class.java.declaredFields.forEachIndexed { index, field ->
                 field.isAccessible = true
                 val name = field.name
                 val value = field.get(this)
 
-                if (!ActivityManagerHud.anonymize
-                    || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
-                ) {
-                    textComponent.add(name.capitalize(), primaryColor)
-                    textComponent.add(value.toString(), secondaryColor)
+                if (index.mod(6) == 0) {
+                    textComponent.addLine("", primaryColor)
+                    repeat(depth) {
+                        textComponent.add("   ")
+                    }
+                }
+
+                value?.let {
+                    if (!ActivityManagerHud.anonymize
+                        || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
+                    ) {
+                        textComponent.add(name.capitalize(), primaryColor)
+                        when (value) {
+                            is ItemBlock -> {
+                                textComponent.add(value.block.localizedName, secondaryColor)
+                            }
+                            else -> {
+                                textComponent.add(value.toString(), secondaryColor)
+                            }
+                        }
+                    }
                 }
             }
         }

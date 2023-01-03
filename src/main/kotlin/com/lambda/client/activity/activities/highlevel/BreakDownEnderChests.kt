@@ -2,12 +2,10 @@ package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.LoopingAmountActivity
-import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.BreakBlockRaw
-import com.lambda.client.activity.activities.interaction.PlaceBlock
-import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
+import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
-import com.lambda.client.activity.activities.utils.getContainerPos
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
@@ -29,25 +27,27 @@ class BreakDownEnderChests(
             return
         }
 
-        getContainerPos()?.let { remotePos ->
-            addSubActivities(
-                PlaceBlock(remotePos, Blocks.ENDER_CHEST.defaultState),
-                SwapOrMoveToItem(
-                    Items.DIAMOND_PICKAXE,
-                    predicateItem = {
-                        EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
-                    }
-                ),
-                BreakBlockRaw(
-                    remotePos,
-                    collectDrops = true,
-                    minCollectAmount = 64
-                )
-            )
-        } ?: run {
-            failedWith(NoEnderChestPosFoundException())
-        }
+        addSubActivities(
+            AcquireItemInActiveHand(Blocks.ENDER_CHEST.item),
+            PlaceContainer(Blocks.ENDER_CHEST.defaultState)
+        )
     }
 
-    class NoEnderChestPosFoundException : Exception("No free ender chest position was found")
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        if (childActivity !is PlaceContainer) return
+
+        addSubActivities(
+            AcquireItemInActiveHand(
+                Items.DIAMOND_PICKAXE,
+                predicateItem = {
+                    EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
+                }
+            ),
+            BreakBlockRaw(
+                childActivity.containerPos,
+                collectDrops = true,
+                minCollectAmount = 64
+            )
+        )
+    }
 }

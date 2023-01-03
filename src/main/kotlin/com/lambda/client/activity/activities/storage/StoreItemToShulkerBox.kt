@@ -3,17 +3,17 @@ package com.lambda.client.activity.activities.storage
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
-import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
-import com.lambda.client.activity.activities.utils.getContainerPos
+import com.lambda.client.activity.activities.interaction.OpenContainer
+import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.utils.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
+import com.lambda.client.util.items.block
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.util.math.BlockPos
 
-class StoreItemToShulkerBox(
+class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
     private val item: Item,
     private val amount: Int = 0, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true }
@@ -37,22 +37,22 @@ class StoreItemToShulkerBox(
         }
 
         candidates.maxBy { it.value }.key.let { slot ->
-            val openContainerInSlot = OpenContainerInSlot(slot)
-
-            with(openContainerInSlot) {
-                executeOnSuccess = {
-                    with(owner) {
-                        addSubActivities(
-                            PushItemsToContainer(item, amount, predicateItem),
-                            CloseContainer(),
-                            BreakBlock(containerPos, collectDrops = true)
-                        )
-                    }
-                }
-            }
-
-            addSubActivities(openContainerInSlot)
+            addSubActivities(
+                SwapOrSwitchToSlot(slot),
+                PlaceContainer(slot.stack.item.block.defaultState)
+            )
         }
+    }
+
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        if (childActivity !is PlaceContainer) return
+
+        addSubActivities(
+            OpenContainer(childActivity.containerPos),
+            PushItemsToContainer(item, amount, predicateItem),
+            CloseContainer(),
+            BreakBlock(childActivity.containerPos, collectDrops = true)
+        )
     }
 
     class NoShulkerBoxFoundStoreException(item: Item) : Exception("No shulker box was found with space to store ${item.registryName}")

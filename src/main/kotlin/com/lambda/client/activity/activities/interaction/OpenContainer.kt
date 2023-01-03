@@ -1,8 +1,11 @@
 package com.lambda.client.activity.activities.interaction
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.RotatingActivity
+import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
@@ -10,6 +13,7 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getHitVecOffset
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
+import net.minecraft.network.play.server.SPacketWindowItems
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
@@ -18,7 +22,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 class OpenContainer(
     private val containerPos: BlockPos,
     override var rotation: Vec2f = Vec2f.ZERO,
-) : RotatingActivity, Activity() {
+    override val timeout: Long = 3000L,
+) : RotatingActivity, TimeoutActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         val diff = player.getPositionEyes(1f).subtract(containerPos.toVec3dCenter())
         val normalizedVec = diff.normalize()
@@ -36,14 +41,22 @@ class OpenContainer(
 //        safeListener<PacketEvent.PostReceive> {
 //            when (it.packet) {
 //                is SPacketWindowItems -> {
-//                    onSuccess()
+//                    success()
+//                    LambdaMod.LOG.info(it.packet.itemStacks.size)
+//                    it.packet.itemStacks.forEach { stack ->
+//                        LambdaMod.LOG.info(stack.displayName)
+//                    }
+//                    LambdaMod.LOG.info(player.openContainer.inventorySlots.size)
+//                    player.openContainer.inventorySlots.forEach { slot ->
+//                        LambdaMod.LOG.info(slot.stack.displayName)
+//                    }
 //                }
 //            }
 //        }
 
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase == TickEvent.Phase.END) {
-                if (player.openContainer.windowId != 0) {
+                if (player.openContainer.inventorySlots.size == 63) {
                     success()
                 }
             }

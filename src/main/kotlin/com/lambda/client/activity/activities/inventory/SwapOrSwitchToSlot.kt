@@ -18,7 +18,8 @@ class SwapOrSwitchToSlot(
         } ?: run {
             val hotbarSlots = player.hotbarSlots
             val slotTo = hotbarSlots.firstEmpty()
-                ?: hotbarSlots.firstOrNull { predicateSlot(it.stack) } ?: return
+                ?: hotbarSlots.firstOrNull { predicateSlot(it.stack) }
+                ?: return
 
             addSubActivities(
                 SwapWithSlot(slot, slotTo),

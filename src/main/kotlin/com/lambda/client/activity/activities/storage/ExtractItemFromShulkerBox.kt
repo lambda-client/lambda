@@ -3,15 +3,16 @@ package com.lambda.client.activity.activities.storage
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
-import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
-import com.lambda.client.activity.activities.utils.getContainerPos
+import com.lambda.client.activity.activities.interaction.OpenContainer
+import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.utils.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
+import com.lambda.client.util.items.block
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.util.math.BlockPos
 
 class ExtractItemFromShulkerBox(
     private val item: Item,
@@ -38,23 +39,23 @@ class ExtractItemFromShulkerBox(
         }
 
         candidates.minBy { it.value }.key.let { slot ->
-            val openContainerInSlot = OpenContainerInSlot(slot)
-
-            with(openContainerInSlot) {
-                executeOnSuccess = {
-                    with(owner) {
-                        addSubActivities(
-                            PullItemsFromContainer(item, amount, predicateItem),
-                            CloseContainer(),
-                            BreakBlock(containerPos, collectDrops = true),
-                            SwapOrMoveToItem(item, predicateItem, predicateSlot)
-                        )
-                    }
-                }
-            }
-
-            addSubActivities(openContainerInSlot)
+            addSubActivities(
+                SwapOrSwitchToSlot(slot),
+                PlaceContainer(slot.stack.item.block.defaultState)
+            )
         }
+    }
+
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        if (childActivity !is PlaceContainer) return
+
+        addSubActivities(
+            OpenContainer(childActivity.containerPos),
+            PullItemsFromContainer(item, amount, predicateItem),
+            CloseContainer(),
+            BreakBlock(childActivity.containerPos, collectDrops = true),
+            AcquireItemInActiveHand(item, predicateItem, predicateSlot)
+        )
     }
 
     class NoShulkerBoxFoundExtractException(item: Item) : Exception("No shulker box was found containing ${item.registryName}")

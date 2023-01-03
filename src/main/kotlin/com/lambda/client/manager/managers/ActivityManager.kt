@@ -1,7 +1,7 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.RenderBlockActivity
+import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
@@ -35,12 +35,15 @@ object ActivityManager : Manager, Activity() {
         safeListener<RenderWorldEvent> {
             val currentActivity = currentActivity
 
-            if (currentActivity !is RenderBlockActivity) return@safeListener
+            if (currentActivity !is RenderAABBActivity) return@safeListener
 
             renderer.aFilled = 26
             renderer.aOutline = 91
             renderer.thickness = 2.0f
-            renderer.add(currentActivity.renderBlockPos, currentActivity.color)
+            renderer.add(
+                currentActivity.renderAABB,
+                currentActivity.color
+            )
             renderer.render(true)
         }
     }

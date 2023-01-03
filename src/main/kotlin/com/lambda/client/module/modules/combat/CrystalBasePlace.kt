@@ -27,6 +27,7 @@ import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.hasNeighbour
 import com.lambda.client.util.world.isPlaceable
 import net.minecraft.entity.EntityLivingBase
+import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
@@ -149,7 +150,7 @@ object CrystalBasePlace : Module(
 
         for (pos in posList) {
             // Placeable check
-            if (!world.isPlaceable(pos)) continue
+            if (!world.isPlaceable(pos, entity.entityBoundingBox)) continue
 
             // Neighbour blocks check
             if (!hasNeighbour(pos)) continue

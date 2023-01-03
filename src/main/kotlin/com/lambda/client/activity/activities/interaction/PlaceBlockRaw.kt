@@ -2,13 +2,14 @@ package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.AttemptActivity
-import com.lambda.client.activity.activities.types.RenderBlockActivity
+import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RotatingActivity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.blockBlacklist
+import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
@@ -19,23 +20,26 @@ import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import java.lang.Exception
 
 class PlaceBlockRaw(
     private val blockPos: BlockPos,
-    private val targetState: IBlockState,
+    private val targetState: IBlockState, // TODO: Calculate correct resulting state of placed block to enable rotation checks
     private val playSound: Boolean = true,
     override var rotation: Vec2f = Vec2f.ZERO,
     override val timeout: Long = 1000L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
-    override var renderBlockPos: BlockPos = blockPos,
-    override var color: ColorHolder = ColorHolder(0, 0, 0)
-) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderBlockActivity, Activity() {
+    override var renderAABB: AxisAlignedBB = AxisAlignedBB(blockPos),
+    override var color: ColorHolder = ColorHolder(35, 188, 254)
+) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         getNeighbour(blockPos, attempts = 1, visibleSideCheck = true)?.let {
             val placedAtBlock = world.getBlockState(it.pos).block
+
+            renderAABB = targetState.getSelectedBoundingBox(world, blockPos)
 
             if (placedAtBlock in blockBlacklist) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
@@ -72,7 +76,6 @@ class PlaceBlockRaw(
 //            activityStatus = ActivityStatus.PENDING
         } ?: run {
             failedWith(NoNeighbourException(blockPos))
-            color = ColorHolder(16, 74, 94)
         }
     }
 
@@ -80,10 +83,10 @@ class PlaceBlockRaw(
         safeListener<PacketEvent.PostReceive> {
             if (it.packet is SPacketBlockChange
                 && it.packet.blockPosition == blockPos
-                && it.packet.blockState.block == targetState.block
+                && it.packet.blockState.block == targetState.block // TODO: Calculate correct resulting state of placed block to enable rotation checks
             ) success()
         }
     }
 
-    class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for $blockPos found")
+    class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for (${blockPos.asString()}) found")
 }

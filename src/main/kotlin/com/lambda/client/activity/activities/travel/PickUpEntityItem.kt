@@ -4,13 +4,13 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.activity.activities.inventory.DumpSlot
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.player.InventoryManager
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.item.EntityItem
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.lang.Exception
 
 class PickUpEntityItem(
     private val entityItem: EntityItem,
@@ -37,10 +37,15 @@ class PickUpEntityItem(
                 InventoryManager.ejectList.contains(slot.stack.item.registryName.toString())
             }?.let { slot ->
                 addSubActivities(DumpSlot(slot))
-            } ?: run {
-                failedWith(InventoryFullException())
             }
         }
+    }
+
+    override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
+        if (exception !is TimeoutActivity.Companion.TimeoutException) return false
+
+        onFailure(InventoryFullException())
+        return true
     }
 
     class InventoryFullException : Exception("No empty slots or items to dump!")

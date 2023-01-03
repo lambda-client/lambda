@@ -5,12 +5,12 @@ import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.hotbarSlots
-import com.lambda.client.util.text.MessageSendHelper
+import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import java.lang.Exception
 
-class SwapOrMoveToItem(
+class AcquireItemInActiveHand(
     private val item: Item,
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true },
@@ -34,6 +34,14 @@ class SwapOrMoveToItem(
                     failedWith(NoItemFoundException(item))
                 }
             }
+        }
+    }
+
+    override fun SafeClientEvent.onSuccess() {
+        val currentItem = player.getItemStackFromSlot(EntityEquipmentSlot.MAINHAND).item
+
+        if (currentItem != item) {
+            failedWith(Exception("Failed to move item ${item.registryName} to hotbar (current item: ${currentItem.registryName})"))
         }
     }
 
