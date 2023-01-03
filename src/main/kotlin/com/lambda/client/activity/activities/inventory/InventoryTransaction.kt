@@ -47,7 +47,7 @@ class InventoryTransaction(
 
             playerController.updateController()
 
-            LambdaMod.LOG.info("Sent packet: ${packet.javaClass.simpleName}")
+//            LambdaMod.LOG.info("Sent packet: ${packet.javaClass.simpleName}")
         } ?: run {
             failedWith(ContainerOutdatedException(windowId))
         }
@@ -70,7 +70,7 @@ class InventoryTransaction(
             getContainerOrNull(packet.windowId)?.let { container ->
                 container.slotClick(slot, mouseButton, type, player)
                 success()
-                LambdaMod.LOG.info("Accepted packet: ${it.packet.javaClass.simpleName} $transactionId")
+//                LambdaMod.LOG.info("Accepted packet: ${it.packet.javaClass.simpleName} $transactionId")
             } ?: run {
                 failedWith(ContainerOutdatedException(packet.windowId))
             }

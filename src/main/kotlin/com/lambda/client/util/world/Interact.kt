@@ -13,6 +13,7 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.util.*
@@ -91,7 +92,10 @@ private fun SafeClientEvent.getNeighbour(
         }
     }
 
-    if (attempts < 2) return null
+    if (attempts > 1) {
+        for (side in sides) {
+            val newPos = pos.offset(side)
+            if (!world.isPlaceable(newPos, AxisAlignedBB(newPos))) continue
 
     sides.forEach { posSide ->
         val newPos = pos.offset(posSide)
@@ -126,7 +130,7 @@ private fun SafeClientEvent.checkNeighbour(
     if (dist > range) return null
     if (visibleSideCheck && !getVisibleSides(offsetPos, true).contains(oppositeSide)) return null
     if (checkReplaceable && world.getBlockState(offsetPos).isReplaceable) return null
-    if (!world.isPlaceable(pos)) return null
+    if (!world.isPlaceable(pos, AxisAlignedBB(pos))) return null
 
     val hitVecOffset = getHitVecOffset(oppositeSide)
     return PlaceInfo(offsetPos, oppositeSide, dist, hitVecOffset, hitVec, pos)
@@ -241,7 +245,7 @@ private fun SafeClientEvent.getStructurePlaceInfo(
     for (offset in structureOffset) {
         val pos = center.add(offset)
         if (toIgnore.contains(pos)) continue
-        if (!world.isPlaceable(pos)) continue
+        if (!world.isPlaceable(pos, AxisAlignedBB(pos))) continue
 
         return getNeighbour(pos, attempts, range, visibleSideCheck) ?: continue
     }
@@ -277,7 +281,7 @@ fun SafeClientEvent.placeBlock(
     placeInfo: PlaceInfo,
     hand: EnumHand = EnumHand.MAIN_HAND
 ) {
-    if (!world.isPlaceable(placeInfo.placedPos)) return
+    if (!world.isPlaceable(placeInfo.placedPos, AxisAlignedBB(placeInfo.placedPos))) return
 
     connection.sendPacket(placeInfo.toPlacePacket(hand))
     player.swingArm(hand)

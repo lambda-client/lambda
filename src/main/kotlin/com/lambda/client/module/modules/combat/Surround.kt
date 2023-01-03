@@ -162,7 +162,7 @@ object Surround : Module(
     private fun SafeClientEvent.canRun(): Boolean {
         val playerPos = player.positionVector.toBlockPos()
         return SurroundUtils.surroundOffset.any {
-            world.isPlaceable(playerPos.add(it), true)
+            world.isPlaceable(playerPos.add(it), Blocks.OBSIDIAN.defaultState.getSelectedBoundingBox(world, playerPos.add(it)), true)
         }
     }
 

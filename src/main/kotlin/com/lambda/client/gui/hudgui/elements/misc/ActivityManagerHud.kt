@@ -5,6 +5,7 @@ import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.LabelHud
 import com.lambda.client.manager.managers.ActivityManager
+import org.apache.commons.lang3.time.DurationFormatUtils
 
 internal object ActivityManagerHud: LabelHud(
     name = "ActivityManager",
@@ -12,11 +13,22 @@ internal object ActivityManagerHud: LabelHud(
     description = "Display current activities."
 ) {
     val anonymize by setting("Anonymize", false)
+    private var startTime = 0L
 
     override fun SafeClientEvent.updateText() {
-        if (ActivityManager.noSubActivities()) return
+        if (ActivityManager.noSubActivities()) {
+            startTime = 0L
+            return
+        }
 
-        displayText.addLine("Current Activities ${ActivityManager.getAllSubActivities().size}")
+        if (startTime == 0L) startTime = System.currentTimeMillis()
+
+        displayText.add("Runtime:", primaryColor)
+        displayText.addLine(DurationFormatUtils.formatDuration(System.currentTimeMillis() - startTime, "HH:mm:ss,SSS"), secondaryColor)
+        displayText.add("Amount:", primaryColor)
+        displayText.add(ActivityManager.getAllSubActivities().size.toString(), secondaryColor)
+        displayText.add("Current:", primaryColor)
+        displayText.addLine(ActivityManager.currentActivity.name, secondaryColor)
 
         ActivityManager.appendInfo(displayText, primaryColor, secondaryColor)
 

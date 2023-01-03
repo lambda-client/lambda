@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.types
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.text.MessageSendHelper
 
@@ -15,11 +16,12 @@ interface TimeoutActivity {
                 if (age <= timeout) return
 
                 if (activity is AttemptActivity) {
-                    with(activity) {
-                        usedAttempts++
-                        initialize()
-                        MessageSendHelper.sendErrorMessage("$name timed out at attempt $usedAttempts of $maxAttempts")
-                    }
+                    checkAttempt(activity, TimeoutException(age, timeout))
+//                    with(activity) {
+//                        usedAttempts++
+//                        initialize()
+//                        MessageSendHelper.sendErrorMessage("$name timed out at attempt $usedAttempts of $maxAttempts")
+//                    }
                 } else {
                     failedWith(TimeoutException(age, timeout))
                 }

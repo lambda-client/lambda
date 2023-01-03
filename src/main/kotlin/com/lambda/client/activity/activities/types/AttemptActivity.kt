@@ -17,14 +17,14 @@ interface AttemptActivity {
             with(activity) {
                 if (usedAttempts >= maxAttempts) {
                     failedWith(MaxAttemptsExceededException(usedAttempts, causeException))
-                    return false
                 } else {
                     usedAttempts++
                     MessageSendHelper.sendErrorMessage("$name caused ${causeException::class.simpleName}: ${causeException.message}. Attempt $usedAttempts of $maxAttempts restarting...")
+                    subActivities.clear()
                     initialize()
-                    return true
                 }
             }
+            return true
         }
 
         class MaxAttemptsExceededException(usedAttempts: Int, causeException: Exception) : Exception("Exceeded $usedAttempts attempts caused by ${causeException::class.simpleName}: ${causeException.message}")

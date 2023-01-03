@@ -8,9 +8,8 @@ import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.DumpInventory
-import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
+import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
-import com.lambda.client.activity.activities.storage.PushItemsToContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.manager.managers.ActivityManager
@@ -24,7 +23,6 @@ import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
 import com.lambda.client.util.math.Direction
-import com.lambda.client.util.math.RotationUtils
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockShulkerBox
@@ -42,7 +40,7 @@ object TestActivityManager : Module(
 ) {
     private val a by setting("Get any Dia Pickaxe", false, consumer = { _, _->
         ActivityManager.addSubActivities(
-            SwapOrMoveToItem(Items.DIAMOND_PICKAXE)
+            AcquireItemInActiveHand(Items.DIAMOND_PICKAXE)
         )
         false
     })
@@ -70,7 +68,7 @@ object TestActivityManager : Module(
 
     private val b by setting("Get Dia Pickaxe with silktouch", false, consumer = { _, _->
         ActivityManager.addSubActivities(
-            SwapOrMoveToItem(
+            AcquireItemInActiveHand(
                 Items.DIAMOND_PICKAXE,
                 predicateItem = {
                     EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 1
@@ -114,7 +112,9 @@ object TestActivityManager : Module(
 
     private val ctiectiectie by setting("Place break obby", false, consumer = { _, _->
         runSafe {
-            val origin = player.flooredPosition.add(Direction.fromEntity(player).directionVec)
+//            val origin = player.flooredPosition.add(Direction.fromEntity(player).directionVec)
+
+            val origin = player.flooredPosition
 
             ActivityManager.addSubActivities(
                 PlaceBlock(origin, Blocks.OBSIDIAN.defaultState),

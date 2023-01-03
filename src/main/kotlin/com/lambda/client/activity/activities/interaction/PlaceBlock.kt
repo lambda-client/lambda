@@ -1,9 +1,7 @@
 package com.lambda.client.activity.activities.interaction
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.inventory.SwapOrMoveToItem
-import com.lambda.client.activity.activities.travel.CustomGoal
+import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.item
 import net.minecraft.block.state.IBlockState
@@ -17,8 +15,8 @@ class PlaceBlock(
     private val getInReach: Boolean = true,
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
-        if (swapToItem) addSubActivities(SwapOrMoveToItem(targetState.block.item))
-        if (getInReach) addSubActivities(CustomGoal(GoalNear(blockPos, 4)))
+        if (swapToItem) addSubActivities(AcquireItemInActiveHand(targetState.block.item))
+//        if (getInReach) addSubActivities(CustomGoal(GoalNear(blockPos, 4)))
         addSubActivities(PlaceBlockRaw(blockPos, targetState, playSound))
     }
 }

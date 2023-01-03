@@ -1,16 +1,19 @@
 package com.lambda.client.activity.activities.utils
 
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.world.getVisibleSides
 import com.lambda.client.util.world.isPlaceable
 import com.lambda.client.util.world.isReplaceable
+import net.minecraft.block.state.IBlockState
 import net.minecraft.inventory.ItemStackHelper
 import net.minecraft.item.ItemShulkerBox
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.NonNullList
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
 fun getShulkerInventory(stack: ItemStack): NonNullList<ItemStack>? {
@@ -28,14 +31,15 @@ fun getShulkerInventory(stack: ItemStack): NonNullList<ItemStack>? {
     return shulkerInventory
 }
 
-fun SafeClientEvent.getContainerPos(): BlockPos? {
+fun SafeClientEvent.getContainerPos(targetState: IBlockState): BlockPos? {
     return VectorUtils.getBlockPosInSphere(player.positionVector, 4.25f).asSequence()
         .filter { pos ->
-            world.isPlaceable(pos)
+//            world.isPlaceable(pos, targetState.getSelectedBoundingBox(world, pos)) // TODO: Calculate correct resulting state of placed block to enable rotation checks
+            world.isPlaceable(pos, AxisAlignedBB(pos))
                 && !world.getBlockState(pos.down()).isReplaceable
                 && world.isAirBlock(pos.up())
                 && getVisibleSides(pos.down()).contains(EnumFacing.UP)
-                && pos.y >= player.positionVector.y
+                && pos.y >= player.flooredPosition.y
         }.sortedWith(
             compareByDescending<BlockPos> {
                 secureScore(it)

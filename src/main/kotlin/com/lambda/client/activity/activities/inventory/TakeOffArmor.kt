@@ -10,7 +10,7 @@ class TakeOffArmor : Activity() {
         (player.armorSlots + player.offhandSlot).forEach { slot ->
             if (slot.stack.isEmpty) return@forEach
 
-            addSubActivities(TryClearSlotWithQuickMove(slot))
+            addSubActivities(QuickMoveSlot(slot))
         }
     }
 }

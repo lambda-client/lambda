@@ -5,7 +5,7 @@ import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.RotatingActivity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.activity.activities.travel.PickUpDrops
-import com.lambda.client.activity.activities.types.RenderBlockActivity
+import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
@@ -22,6 +22,7 @@ import net.minecraft.item.Item
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
@@ -37,10 +38,10 @@ class BreakBlockRaw(
     override var timeout: Long = 200L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
-    override var renderBlockPos: BlockPos = blockPos,
-    override var color: ColorHolder = ColorHolder(0, 0, 0),
+    override var renderAABB: AxisAlignedBB = AxisAlignedBB(blockPos),
+    override var color: ColorHolder = ColorHolder(240, 222, 60),
     override var rotation: Vec2f = Vec2f.ZERO
-) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderBlockActivity, Activity() {
+) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderAABBActivity, Activity() {
     private var ticksNeeded = 0
     private var initState = Blocks.AIR.defaultState
     private var drop: Item = Items.AIR
@@ -55,6 +56,7 @@ class BreakBlockRaw(
 
         initState = currentState
         drop = currentState.block.getItemDropped(currentState, Random(), 0)
+        renderAABB = currentState.getSelectedBoundingBox(world, blockPos)
         ticksNeeded = ceil((1 / currentState.getPlayerRelativeBlockHardness(player, world, blockPos)) * miningSpeedFactor).toInt()
         timeout = ticksNeeded * 50L + 2000L
     }
@@ -65,6 +67,7 @@ class BreakBlockRaw(
 
             getMiningSide(blockPos)?.let { side ->
                 rotation = getRotationTo(getHitVec(blockPos, side))
+                renderAABB = world.getBlockState(blockPos).getSelectedBoundingBox(world, blockPos)
 
                 playerController.onPlayerDamageBlock(blockPos, side)
                 mc.effectRenderer.addBlockHitEffects(blockPos, side)
@@ -105,14 +108,16 @@ class BreakBlockRaw(
                 if (drop.block == Blocks.AIR) return@safeListener
 
                 addSubActivities(
-                    PickUpDrops(drop, minAmount = minCollectAmount).also {
-                        executeOnSuccess = {
-                            with(owner) { success() }
-                        }
-                    }
+                    PickUpDrops(drop, minAmount = minCollectAmount)
                 )
             }
         }
+    }
+
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        if (childActivity !is PickUpDrops) return
+
+        success()
     }
 
     private fun SafeClientEvent.playSound() {
