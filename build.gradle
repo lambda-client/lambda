@@ -124,6 +124,8 @@ mixin {
     }
 }
 
+compileJava.outputs.upToDateWhen { false }
+
 processResources {
     exclude '**/rawimagefiles'
 
