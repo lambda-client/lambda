@@ -18,6 +18,7 @@ object EntitySpeed : Module(
     private val abstractHorseSpeed by setting("Horse Types Speed", 0.7f, 0.1f..10.0f, 0.05f)
     private val pigSpeed by setting("Pig Speed", 1.0f, 0.1f..10.0f, 0.05f)
     private val antiStuck by setting("Anti Stuck", true)
+    private val maxJump by setting("Max Jump", true)
 
     init {
         safeListener<PlayerTravelEvent> {
@@ -32,6 +33,9 @@ object EntitySpeed : Module(
                 if (tamper) {
                     steerEntity(entity, speed, antiStuck)
                     entity.rotationYaw = player.rotationYaw
+
+                    if (maxJump && entity is AbstractHorse && mc.gameSettings.keyBindJump.isKeyDown)
+                        entity.setJumpPower(90)
                 }
             }
         }
