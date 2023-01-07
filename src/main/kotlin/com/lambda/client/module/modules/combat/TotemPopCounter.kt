@@ -35,7 +35,7 @@ object TotemPopCounter : Module(
         CLIENT, EVERYONE
     }
 
-    private val popCountMap = WeakHashMap<EntityPlayer, Int>().synchronized()
+    public val popCountMap = WeakHashMap<EntityPlayer, Int>().synchronized()
     private var wasSent = false
 
     init {

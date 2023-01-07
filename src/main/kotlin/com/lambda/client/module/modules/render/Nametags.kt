@@ -11,6 +11,7 @@ import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Hud
+import com.lambda.client.module.modules.combat.TotemPopCounter
 import com.lambda.client.module.modules.misc.LogoutLogger
 import com.lambda.client.util.EnchantmentUtils
 import com.lambda.client.util.EntityUtils
@@ -20,6 +21,7 @@ import com.lambda.client.util.graphics.*
 import com.lambda.client.util.graphics.font.*
 import com.lambda.client.util.items.originalName
 import com.lambda.client.util.math.Vec2d
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.renderer.RenderHelper
@@ -61,12 +63,19 @@ object Nametags : Module(
     private val range by setting("Range", 64, 0..256, 4, { page == Page.ENTITY_TYPE })
 
     /* Content */
-    private val line1left = setting("Line 1 Left", ContentType.NONE, { page == Page.CONTENT })
-    private val line1center = setting("Line 1 Center", ContentType.NONE, { page == Page.CONTENT })
-    private val line1right = setting("Line 1 Right", ContentType.NONE, { page == Page.CONTENT })
-    private val line2left = setting("Line 2 Left", ContentType.NAME, { page == Page.CONTENT })
-    private val line2center = setting("Line 2 Center", ContentType.PING, { page == Page.CONTENT })
-    private val line2right = setting("Line 2 Right", ContentType.TOTAL_HP, { page == Page.CONTENT })
+    private val consumer = { _ : ContentType, next : ContentType ->
+        if (next == ContentType.TOTEM_POP_COUNT && TotemPopCounter.isDisabled) {
+            MessageSendHelper.sendChatMessage("$chatName Skipping \"Totem Pop Count\" as the TotemPopCounter module is not activated.")
+            ContentType.NONE
+        } else next
+    }
+
+    private val line1left = setting("Line 1 Left", ContentType.NONE, { page == Page.CONTENT }, consumer = consumer)
+    private val line1center = setting("Line 1 Center", ContentType.NONE, { page == Page.CONTENT }, consumer = consumer)
+    private val line1right = setting("Line 1 Right", ContentType.NONE, { page == Page.CONTENT }, consumer = consumer)
+    private val line2left = setting("Line 2 Left", ContentType.NAME, { page == Page.CONTENT }, consumer = consumer)
+    private val line2center = setting("Line 2 Center", ContentType.PING, { page == Page.CONTENT }, consumer = consumer)
+    private val line2right = setting("Line 2 Right", ContentType.TOTAL_HP, { page == Page.CONTENT }, consumer = consumer)
     private val dropItemCount by setting("Drop Item Count", true, { page == Page.CONTENT && items })
     private val maxDropItems by setting("Max Drop Items", 5, 2..16, 1, { page == Page.CONTENT && items })
 
@@ -95,7 +104,7 @@ object Nametags : Module(
     }
 
     private enum class ContentType {
-        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE, ENTITY_ID
+        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE, ENTITY_ID, TOTEM_POP_COUNT
     }
 
     private val pingColorGradient = ColorGradient(
@@ -452,6 +461,18 @@ object Nametags : Module(
         }
         ContentType.ENTITY_ID -> {
             TextComponent.TextElement("ID: ${entity.entityId}", GuiColors.text)
+        }
+        ContentType.TOTEM_POP_COUNT -> {
+            // Note: The totem pop counting functionality is embedded in the TotemPopCounter module,
+            //       hence, it needs to be active in order for this to work.
+            if (TotemPopCounter.isDisabled)
+                TotemPopCounter.enable()
+            if (entity !is EntityPlayer) {
+                null
+            } else {
+                val count = TotemPopCounter.popCountMap.getOrDefault(entity, 0)
+                TextComponent.TextElement("PT: $count", GuiColors.text)
+            }
         }
     }
 
