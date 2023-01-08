@@ -67,6 +67,9 @@ object AutoOffhand : Module(
     private val priority by setting("Priority", Priority.HOTBAR)
     private val switchMessage by setting("Switch Message", true)
 
+    // Represents the remaining number of items of type AutoOffhandType in the inventory
+    private var hudInfo = ""
+
     private enum class Type(val filter: (ItemStack) -> Boolean) {
         TOTEM({ it.item.id == 449 }),
         GAPPLE({ it.item is ItemAppleGold }),
@@ -98,8 +101,12 @@ object AutoOffhand : Module(
             updateDamage()
 
             switchToType(getType(), true)
+
+            hudInfo = player.allSlots.countByStack { type.filter(it) }.toString()
         }
     }
+
+    override fun getHudInfo() = hudInfo
 
     private fun SafeClientEvent.getType() = when {
         checkTotem() -> Type.TOTEM
