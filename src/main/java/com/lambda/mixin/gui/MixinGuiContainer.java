@@ -36,7 +36,7 @@ public class MixinGuiContainer extends GuiScreen {
     public void updateScreen(CallbackInfo ci) {
         if (!ChestStealer.INSTANCE.isValidGui()) return;
 
-        if (!ChestStealer.INSTANCE.isEnabled()) {
+        if (ChestStealer.INSTANCE.isDisabled()) {
             buttonList.remove(storeButton);
             buttonList.remove(storeButton);
             return;
