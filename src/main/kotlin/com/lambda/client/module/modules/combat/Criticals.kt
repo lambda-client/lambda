@@ -43,7 +43,6 @@ object Criticals : Module(
     private var delayTick = -1
     private var target: Entity? = null
     private var spoofedY = -1337.0
-    private var attacking = false
 
     override fun isActive(): Boolean {
         return isEnabled && !delaying()
@@ -59,84 +58,80 @@ object Criticals : Module(
         }
 
         safeListener<CriticalsUpdateWalkingEvent> {
+            if (mode != Mode.EDIT) return@safeListener
 
             // we need to ensure we are always sending packets as not to flag NCP for fight.critical
-            if (mode == Mode.EDIT)
-                (player as AccessorEntityPlayerSP).lcSetLastReportedPosY(-1337.0)
-
+            (player as AccessorEntityPlayerSP).lcSetLastReportedPosY(-1337.0)
         }
 
         safeListener<PacketEvent.Send> {
-
-            if (it.packet is CPacketAnimation && mode != Mode.PACKET && delayTick > -1) {
-
+            if (it.packet is CPacketAnimation
+                && mode != Mode.PACKET
+                && delayTick > -1
+            ) {
                 it.cancel()
+                return@safeListener
+            }
 
-            } else if (it.packet is CPacketPlayer && mode == Mode.EDIT) {
-
+            if (it.packet is CPacketPlayer
+                && mode == Mode.EDIT
+            ) {
                 // the advantage of this is that it doesn't delay anything and doesn't send extra packets
                 if (player.onGround) {
-
-                    if (spoofedY <= 0)
+                    if (spoofedY <= 0) {
                         spoofedY = .01
-                    else
+                    } else {
                         spoofedY -= .00001
-
-                } else
-                    spoofedY = -1337.0
+                    }
+                } else spoofedY = -1337.0
 
                 it.packet.playerMoving = true
                 it.packet.playerIsOnGround = false
 
-                if (spoofedY >= 0)
+                if (spoofedY >= 0) {
                     it.packet.playerY += spoofedY
-
+                }
             }
-
         }
 
         safeListener<PlayerAttackEvent>(0) {
-            if (it.cancelled || attacking || it.entity !is EntityLivingBase || !canDoCriticals(true)) return@safeListener
+            if (it.cancelled|| it.entity !is EntityLivingBase || !canDoCriticals(true)) return@safeListener
 
             val cooldownReady = player.onGround && player.getCooledAttackStrength(0.5f) > 0.9f
 
             when (mode) {
-
                 Mode.PACKET -> {
-                    if (cooldownReady) {
-                        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1, player.posZ, false))
-                        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY, player.posZ, false))
-                    }
-                }
+                    if (!cooldownReady) return@safeListener
 
+                    connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1, player.posZ, false))
+                    connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY, player.posZ, false))
+                }
                 Mode.JUMP -> {
                     jumpAndCancel(it, cooldownReady, null)
                 }
-
                 Mode.MINI_JUMP -> {
                     jumpAndCancel(it, cooldownReady, jumpMotion)
                 }
-
-                else -> {
-                }
-
+                else -> { }
             }
         }
 
         safeListener<TickEvent.ClientTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.END || mode == Mode.PACKET || delayTick <= -1) return@safeListener
+            if (event.phase != TickEvent.Phase.END
+                || mode == Mode.PACKET
+                || delayTick <= -1
+            ) return@safeListener
 
             delayTick--
 
-            if (target != null && player.fallDistance >= attackFallDistance && canDoCriticals(!player.onGround)) {
-                val target = target
-                reset()
+            target?.let{ target ->
+                if (player.fallDistance >= attackFallDistance
+                    && canDoCriticals(!player.onGround)
+                ) {
+                    reset()
 
-                if (target != null) {
-                    attacking = true
                     connection.sendPacket(CPacketUseEntity(target))
                     connection.sendPacket(CPacketAnimation(EnumHand.MAIN_HAND))
-                    attacking = false
                 }
             }
         }
