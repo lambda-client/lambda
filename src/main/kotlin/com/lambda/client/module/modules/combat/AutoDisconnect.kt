@@ -7,7 +7,7 @@ import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.combat.AutoLog.Reasons.*
+import com.lambda.client.module.modules.combat.AutoDisconnect.Reasons.*
 import com.lambda.client.util.EntityUtils.isFakeOrSelf
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.allSlots
@@ -25,9 +25,9 @@ import net.minecraft.util.text.TextComponentString
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.time.LocalTime
 
-object AutoLog : Module(
-    name = "AutoLog",
-    description = "Automatically log when in danger or on low health",
+object AutoDisconnect : Module(
+    name = "AutoDisconnect",
+    description = "Automatically disconnects when in danger or on low health",
     category = Category.COMBAT,
     alwaysListening = true
 ) {
