@@ -24,19 +24,23 @@ object EntitySpeed : Module(
         safeListener<PlayerTravelEvent> {
             player.ridingEntity?.let { entity ->
                 var tamper = false
+
                 val speed = when {
                     entity is AbstractHorse && entity.controllingPassenger == player -> abstractHorseSpeed.also { tamper = true }
                     entity is EntityBoat && entity.controllingPassenger == player -> boatSpeed.also { tamper = true }
                     entity is EntityPig -> pigSpeed.also { tamper = true }
                     else -> .0f
                 }
-                if (tamper) {
-                    steerEntity(entity, speed, antiStuck)
-                    entity.rotationYaw = player.rotationYaw
 
-                    if (maxJump && entity is AbstractHorse && mc.gameSettings.keyBindJump.isKeyDown)
-                        entity.setJumpPower(90)
-                }
+                if (!tamper) return@safeListener
+
+                steerEntity(entity, speed, antiStuck)
+                entity.rotationYaw = player.rotationYaw
+
+                if (maxJump
+                    && entity is AbstractHorse
+                    && mc.gameSettings.keyBindJump.isKeyDown
+                ) entity.setJumpPower(90)
             }
         }
     }
