@@ -8,7 +8,12 @@ import net.minecraft.client.gui.GuiButton
 import net.minecraft.client.gui.GuiScreen
 import java.time.LocalTime
 
-class LambdaGuiDisconnected(private val reason: Array<String>, private val screen: GuiScreen, private val disable: Boolean, private val logoutTime: LocalTime) : GuiScreen() {
+class LambdaGuiDisconnected(
+    private val reason: Array<String>,
+    private val screen: GuiScreen,
+    private val disable: Boolean,
+    private val logoutTime: LocalTime
+) : GuiScreen() {
 
     override fun initGui() {
         super.initGui()
@@ -23,8 +28,9 @@ class LambdaGuiDisconnected(private val reason: Array<String>, private val scree
 
     override fun drawScreen(mouseX: Int, mouseY: Int, partialTicks: Float) {
         drawBackground(0)
-        drawCenteredString(fontRenderer, "[AutoDisconnect] Logged because:", width / 2, 80, 0x9B90FF)
-        for ((index, reason) in reason.withIndex()) {
+        drawCenteredString(fontRenderer, "[AutoDisconnect] Disconnected because:", width / 2, 80, 0x9B90FF)
+
+        reason.forEachIndexed { index, reason ->
             drawCenteredString(fontRenderer, reason, width / 2, 94 + (14 * index), 0xFFFFFF)
         }
 
@@ -37,10 +43,12 @@ class LambdaGuiDisconnected(private val reason: Array<String>, private val scree
     override fun keyTyped(typedChar: Char, keyCode: Int) {}
 
     override fun actionPerformed(button: GuiButton) {
-        if (button.id == 0) mc.displayGuiScreen(screen)
-        if (button.id == 1) {
-            disable()
-            buttonList.remove(button)
+        when (button.id) {
+            0 -> mc.displayGuiScreen(screen)
+            1 -> {
+                disable()
+                buttonList.remove(button)
+            }
         }
     }
 
