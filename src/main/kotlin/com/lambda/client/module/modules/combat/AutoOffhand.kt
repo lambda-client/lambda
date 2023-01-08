@@ -66,8 +66,6 @@ object AutoOffhand : Module(
     // General
     private val priority by setting("Priority", Priority.HOTBAR)
     private val switchMessage by setting("Switch Message", true)
-    private val showRemaining by setting("Show Remaining", true);
-
 
     // Represents the remaining number of items of type AutoOffhandType in the inventory
     private var hudInfo = ""
@@ -104,14 +102,11 @@ object AutoOffhand : Module(
 
             switchToType(getType(), true)
 
-
-            hudInfo = if (showRemaining) player.allSlots.asSequence().filter {it.hasStack}.map{it.stack}.filter(type.filter).map{it.count}.fold(0) { acc, i -> acc + i }.toString() else ""
+            hudInfo = player.allSlots.countByStack { type.filter(it) }.toString()
         }
     }
 
-    override fun getHudInfo(): String {
-        return hudInfo
-    }
+    override fun getHudInfo() = hudInfo
 
     private fun SafeClientEvent.getType() = when {
         checkTotem() -> Type.TOTEM
