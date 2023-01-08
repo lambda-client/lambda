@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.chat
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
@@ -70,7 +71,14 @@ object AutoExcuse : Module(
         "My optifine didn't work",
         "The CPU cheated!",
         "I am using a cracked client",
-        "My brother was playing."
+        "My brother was playing.",
+        "Phobos hacked my pc!!",
+        "I didn't have enough totems",
+        "I died for you <3",
+        "I was trying the popbob exploit!!",
+        "Sorry, let me relog with ${LambdaMod.NAME}",
+        "I was alt tabbing",
+        "I was trying out a new mod",
     )
 
     private val clients = arrayOf(
