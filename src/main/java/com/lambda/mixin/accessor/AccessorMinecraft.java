@@ -1,6 +1,7 @@
 package com.lambda.mixin.accessor;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.Session;
 import net.minecraft.util.Timer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -20,6 +21,9 @@ public interface AccessorMinecraft {
 
     @Accessor("rightClickDelayTimer")
     void setRightClickDelayTimer(int value);
+    
+    @Accessor("session") 
+    void setSession(Session session);
 
     @Invoker("rightClickMouse")
     void invokeRightClickMouse();
