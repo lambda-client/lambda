@@ -6,6 +6,7 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ModuleToggleEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.module.modules.client.ClickGUI
+import com.lambda.client.module.modules.misc.Notifications
 import com.lambda.client.setting.configs.NameableConfig
 import com.lambda.client.setting.settings.AbstractSetting
 import com.lambda.client.setting.settings.SettingRegister
@@ -15,6 +16,7 @@ import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.client.Minecraft
+import net.minecraft.util.text.TextFormatting
 
 @Suppress("UNCHECKED_CAST")
 abstract class AbstractModule(
@@ -59,6 +61,9 @@ abstract class AbstractModule(
         enabled.value = !enabled.value
         isPaused = false
         if (enabled.value) clicks.value++
+
+        if ((Notifications.isEnabled || this == Notifications) && category != Category.CLIENT)
+            MessageSendHelper.sendChatMessage("$chatName has been ${if (enabled.value) "${TextFormatting.GREEN}enabled" else "${TextFormatting.RED}disabled"}${TextFormatting.RESET}.")
     }
 
     fun enable() {
