@@ -4,9 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.*
-import com.lambda.client.activity.activities.interaction.BreakBlockWithTool
-import com.lambda.client.activity.activities.interaction.PlaceBlockWithItem
-import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
+import com.lambda.client.activity.activities.interaction.*
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
@@ -116,8 +114,8 @@ object TestActivityManager : Module(
             val origin = player.flooredPosition
 
             ActivityManager.addSubActivities(
-                PlaceBlockWithItem(origin, Blocks.OBSIDIAN.defaultState),
-                BreakBlockWithTool(origin)
+                PlaceBlock(origin, Blocks.OBSIDIAN.defaultState),
+                BreakBlock(origin)
             )
         }
         false
