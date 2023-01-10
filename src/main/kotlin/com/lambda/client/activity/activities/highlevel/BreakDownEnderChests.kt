@@ -1,8 +1,8 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.LoopingAmountActivity
-import com.lambda.client.activity.activities.interaction.BreakBlockRaw
+import com.lambda.client.activity.activities.types.RepeatingActivity
+import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
@@ -16,9 +16,9 @@ import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 
 class BreakDownEnderChests(
-    override val maxLoops: Int = 0,
-    override var currentLoops: Int = 0
-) : LoopingAmountActivity, Activity() {
+    override val maximumRepeats: Int = 0,
+    override var repeated: Int = 0
+) : RepeatingActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         if (player.inventorySlots.countEmpty() < 2) {
             addSubActivities(
@@ -28,7 +28,6 @@ class BreakDownEnderChests(
         }
 
         addSubActivities(
-            AcquireItemInActiveHand(Blocks.ENDER_CHEST.item),
             PlaceContainer(Blocks.ENDER_CHEST.defaultState)
         )
     }
@@ -43,7 +42,7 @@ class BreakDownEnderChests(
                     EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
                 }
             ),
-            BreakBlockRaw(
+            BreakBlock(
                 childActivity.containerPos,
                 collectDrops = true,
                 minCollectAmount = 64

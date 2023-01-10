@@ -2,13 +2,8 @@ package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.QuickMoveSlot
-import com.lambda.client.activity.activities.types.LoopingUntilActivity
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.util.items.allSlots
-import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.getSlots
-import com.lambda.client.util.text.MessageSendHelper
-import net.minecraft.inventory.ContainerShulkerBox
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 

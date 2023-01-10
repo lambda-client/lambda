@@ -1,7 +1,8 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.interaction.BreakBlock
+import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
+import com.lambda.client.activity.activities.interaction.BreakBlockWithTool
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
@@ -10,6 +11,8 @@ import com.lambda.client.activity.activities.utils.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.block
+import com.lambda.client.util.items.item
+import net.minecraft.init.Blocks
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -34,7 +37,17 @@ class ExtractItemFromShulkerBox(
         }
 
         if (candidates.isEmpty()) {
-            failedWith(NoShulkerBoxFoundExtractException(item))
+            if (item != Blocks.OBSIDIAN.item) {
+                failedWith(NoShulkerBoxFoundExtractException(item))
+                return
+            }
+
+            if (owner is BreakDownEnderChests) return
+
+            addSubActivities(
+                BreakDownEnderChests(maximumRepeats = 64),
+                AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
+            )
             return
         }
 
@@ -53,7 +66,7 @@ class ExtractItemFromShulkerBox(
             OpenContainer(childActivity.containerPos),
             PullItemsFromContainer(item, amount, predicateItem),
             CloseContainer(),
-            BreakBlock(childActivity.containerPos, collectDrops = true),
+            BreakBlockWithTool(childActivity.containerPos, collectDrops = true),
             AcquireItemInActiveHand(item, predicateItem, predicateSlot)
         )
     }

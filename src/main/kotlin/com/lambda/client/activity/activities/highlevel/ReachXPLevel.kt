@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.LoopingUntilActivity
+import com.lambda.client.activity.activities.types.LoopWhileActivity
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.TakeOffArmor
@@ -14,7 +14,7 @@ class ReachXPLevel(
         player.experienceLevel < desiredLevel
     },
     override var currentLoops: Int = 0
-) : LoopingUntilActivity, Activity() {
+) : LoopWhileActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         addSubActivities(
             TakeOffArmor(),

@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.LoopingUntilActivity
+import com.lambda.client.activity.activities.types.LoopWhileActivity
 import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
@@ -14,7 +14,7 @@ class SurroundWithObsidian(
         originPos == player.flooredPosition
     },
     override var currentLoops: Int = 0
-) : LoopingUntilActivity, Activity() {
+) : LoopWhileActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         addSubActivities(
             BuildBlock(originPos.north(), Blocks.SLIME_BLOCK.defaultState),

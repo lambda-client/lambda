@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.interaction.BreakBlock
+import com.lambda.client.activity.activities.interaction.BreakBlockWithTool
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
 import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
@@ -9,6 +9,7 @@ import com.lambda.client.activity.activities.utils.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.block
+import com.lambda.client.util.items.countItem
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -20,6 +21,11 @@ class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val candidates = mutableMapOf<Slot, Int>()
+
+        if (player.allSlots.countItem(item) == 0) {
+            success()
+            return
+        }
 
         player.allSlots.forEach { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
@@ -51,7 +57,7 @@ class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
             OpenContainer(childActivity.containerPos),
             PushItemsToContainer(item, amount, predicateItem),
             CloseContainer(),
-            BreakBlock(childActivity.containerPos, collectDrops = true)
+            BreakBlockWithTool(childActivity.containerPos, collectDrops = true)
         )
     }
 

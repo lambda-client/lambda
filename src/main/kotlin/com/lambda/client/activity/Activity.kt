@@ -3,15 +3,19 @@ package com.lambda.client.activity
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.activity.activities.types.DelayedActivity
 import com.lambda.client.activity.activities.types.DelayedActivity.Companion.checkDelayed
-import com.lambda.client.activity.activities.types.LoopingAmountActivity.Companion.checkLoopingAmount
-import com.lambda.client.activity.activities.types.LoopingUntilActivity.Companion.checkLoopingUntil
+import com.lambda.client.activity.activities.types.EndlessActivity
+import com.lambda.client.activity.activities.types.LoopWhileActivity.Companion.checkLoopingUntil
+import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
+import com.lambda.client.activity.activities.types.RepeatingActivity.Companion.checkRepeat
 import com.lambda.client.activity.activities.types.RotatingActivity.Companion.checkRotating
 import com.lambda.client.activity.activities.types.TimeoutActivity.Companion.checkTimeout
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.elements.misc.ActivityManagerHud
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.MAX_DEPTH
+import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
@@ -22,7 +26,6 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.time.DurationFormatUtils
-import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 import kotlin.collections.ArrayDeque
 
@@ -34,7 +37,8 @@ abstract class Activity {
     var depth = 0
     val name get() = this::class.simpleName ?: "Activity"
     val age get() = if (creationTime != 0L) System.currentTimeMillis() - creationTime else 0L
-    val currentActivity: Activity get() = subActivities.peek()?.currentActivity ?: this
+    val currentActivity: Activity get() = subActivities.firstOrNull { it.activityStatus != ActivityStatus.PENDING }
+        ?.currentActivity ?: subActivities.firstOrNull()?.currentActivity ?: this
 
     open fun SafeClientEvent.onInitialize() {}
 
@@ -60,14 +64,12 @@ abstract class Activity {
             ActivityStatus.UNINITIALIZED -> {
                 initialize()
             }
-            ActivityStatus.RUNNING -> {
+            ActivityStatus.PENDING, ActivityStatus.RUNNING -> {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
                     && noSubActivities()
+                    && this@Activity !is EndlessActivity
                     && this@Activity !is DelayedActivity
                 ) success()
-            }
-            ActivityStatus.PENDING -> {
-//                refresh()
             }
             ActivityStatus.FAILURE -> {
                 //
@@ -79,6 +81,7 @@ abstract class Activity {
         checkTimeout(activity)
         checkDelayed(activity)
         checkRotating(activity)
+        checkRender()
     }
 
     fun SafeClientEvent.initialize() {
@@ -87,6 +90,8 @@ abstract class Activity {
         activityStatus = ActivityStatus.RUNNING
         creationTime = System.currentTimeMillis()
         onInitialize()
+
+        LambdaEventBus.subscribe(activity)
 
 //        with(owner) {
 //            onChildInitialize(activity)
@@ -100,14 +105,19 @@ abstract class Activity {
     fun SafeClientEvent.success() {
         val activity = this@Activity
 
+        LambdaEventBus.unsubscribe(activity)
+        ListenerManager.unregister(activity)
+
         with(owner) {
             onChildSuccess(activity)
             subActivities.remove(activity)
         }
 
         onSuccess()
-        checkLoopingAmount(activity)
+        checkRepeat(activity)
         checkLoopingUntil(activity)
+
+        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
 
 //                LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
 //        MessageSendHelper.sendRawChatMessage("$name took ${age}ms")
@@ -141,12 +151,6 @@ abstract class Activity {
             childFailure(childActivities, childException)
         }
         return false
-    }
-
-    fun refresh() {
-        activityStatus = ActivityStatus.UNINITIALIZED
-        owner.subActivities.remove(this)
-        owner.subActivities.add(this)
     }
 
     fun Activity.addSubActivities(activities: List<Activity>) {
@@ -214,12 +218,12 @@ abstract class Activity {
                 val name = field.name
                 val value = field.get(this)
 
-                if (index.mod(6) == 0) {
-                    textComponent.addLine("", primaryColor)
-                    repeat(depth) {
-                        textComponent.add("   ")
-                    }
-                }
+//                if (index.mod(6) == 0) {
+//                    textComponent.addLine("", primaryColor)
+//                    repeat(depth) {
+//                        textComponent.add("   ")
+//                    }
+//                }
 
                 value?.let {
                     if (!ActivityManagerHud.anonymize
