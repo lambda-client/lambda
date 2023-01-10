@@ -31,7 +31,7 @@ class PlaceBlock(
     private val targetState: IBlockState, // TODO: Calculate correct resulting state of placed block to enable rotation checks
     private val doPending: Boolean = false,
     override var rotation: Vec2f = Vec2f.ZERO,
-    override val timeout: Long = 300L,
+    override val timeout: Long = 200L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
@@ -103,7 +103,7 @@ class PlaceBlock(
         when (childActivity) {
             is Wait -> if (doPending) owner.activityStatus = ActivityStatus.PENDING
             else -> {
-//                activityStatus = ActivityStatus.UNINITIALIZED
+                activityStatus = ActivityStatus.UNINITIALIZED
             }
         }
     }
