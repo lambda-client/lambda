@@ -8,6 +8,7 @@ import com.lambda.client.util.items.hotbarSlots
 import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.util.EnumHand
 import java.lang.Exception
 
 class AcquireItemInActiveHand(
@@ -38,7 +39,7 @@ class AcquireItemInActiveHand(
     }
 
     override fun SafeClientEvent.onSuccess() {
-        val currentItem = player.getItemStackFromSlot(EntityEquipmentSlot.MAINHAND).item
+        val currentItem = player.getHeldItem(EnumHand.MAIN_HAND).item
 
         if (currentItem != item) {
             failedWith(Exception("Failed to move item ${item.registryName} to hotbar (current item: ${currentItem.registryName})"))

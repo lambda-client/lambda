@@ -18,7 +18,7 @@ interface AttemptActivity {
                     failedWith(MaxAttemptsExceededException(usedAttempts, causeException))
                 } else {
                     usedAttempts++
-                    MessageSendHelper.sendErrorMessage("$name caused ${causeException::class.simpleName}: ${causeException.message}. Attempt $usedAttempts of $maxAttempts restarting...")
+                    MessageSendHelper.sendErrorMessage("$activityName caused ${causeException::class.simpleName}: ${causeException.message}. Attempt $usedAttempts of $maxAttempts restarting...")
                     subActivities.clear()
                     initialize()
                 }

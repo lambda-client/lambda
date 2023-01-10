@@ -16,7 +16,7 @@ internal object ActivityManagerHud: LabelHud(
     private var startTime = 0L
 
     override fun SafeClientEvent.updateText() {
-        if (ActivityManager.noSubActivities()) {
+        if (ActivityManager.hasNoSubActivities) {
             startTime = 0L
             return
         }
@@ -26,9 +26,9 @@ internal object ActivityManagerHud: LabelHud(
         displayText.add("Runtime:", primaryColor)
         displayText.addLine(DurationFormatUtils.formatDuration(System.currentTimeMillis() - startTime, "HH:mm:ss,SSS"), secondaryColor)
         displayText.add("Amount:", primaryColor)
-        displayText.add(ActivityManager.getAllSubActivities().size.toString(), secondaryColor)
+        displayText.add(ActivityManager.allSubActivities.size.toString(), secondaryColor)
         displayText.add("Current:", primaryColor)
-        displayText.addLine(ActivityManager.currentActivity.name, secondaryColor)
+        displayText.addLine(ActivityManager.currentActivity.activityName, secondaryColor)
 
         ActivityManager.appendInfo(displayText, primaryColor, secondaryColor)
 

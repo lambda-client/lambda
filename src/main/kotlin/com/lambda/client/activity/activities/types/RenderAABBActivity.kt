@@ -18,7 +18,8 @@ interface RenderAABBActivity {
         fun SafeClientEvent.checkRender() {
             normalizedRender.clear()
 
-            ActivityManager.getAllSubActivities()
+            ActivityManager
+                .allSubActivities
                 .filterIsInstance<RenderAABBActivity>()
                 .forEach { activity ->
                     activity.toRender.forEach { compound ->

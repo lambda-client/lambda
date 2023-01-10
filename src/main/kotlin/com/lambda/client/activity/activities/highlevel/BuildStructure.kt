@@ -1,6 +1,8 @@
 package com.lambda.client.activity.activities.highlevel
 
+import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
@@ -24,15 +26,11 @@ class BuildStructure(
     private var currentOffset = BlockPos.ORIGIN
 
     override fun SafeClientEvent.onInitialize() {
-        toRender.clear()
+//        addSubActivities(CustomGoal(GoalNear()))
         structure.asSequence().sortedBy { player.distanceTo(it.key) }.forEach { (pos, state) ->
             val offsetPos = pos.add(currentOffset)
 
             if (isInPadding(offsetPos)) return@forEach
-
-            if (state.block != Blocks.AIR) toRender.add(
-                RenderAABBActivity.Companion.RenderBlockPos(offsetPos, ColorHolder(255, 255, 255, 50))
-            )
 
             addSubActivities(
                 BuildBlock(offsetPos, state)
