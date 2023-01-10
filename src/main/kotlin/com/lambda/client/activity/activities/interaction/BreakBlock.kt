@@ -1,11 +1,11 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.activity.activities.types.AttemptActivity
+import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RotatingActivity
 import com.lambda.client.activity.activities.types.TimeoutActivity
-import com.lambda.client.activity.activities.travel.PickUpDrops
-import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.color.ColorHolder
@@ -24,7 +24,6 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
-import kotlin.Exception
 import kotlin.math.ceil
 
 class BreakBlock(

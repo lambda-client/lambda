@@ -1,6 +1,5 @@
 package com.lambda.client.activity.activities.inventory
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.TimeoutActivity

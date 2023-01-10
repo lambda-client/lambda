@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.interaction.BreakBlockWithTool
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
