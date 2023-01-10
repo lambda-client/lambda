@@ -15,6 +15,7 @@ class BuildStructure(
     private val structure: Map<BlockPos, IBlockState>,
     private val direction: Direction = Direction.NORTH,
     private val offsetMove: BlockPos = BlockPos.ORIGIN,
+    private val respectIgnore: Boolean = false,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
     override val maximumRepeats: Int = 1,
     override var repeated: Int = 0,
@@ -29,7 +30,7 @@ class BuildStructure(
             if (world.getBlockState(offsetPos).block == state.block) return@forEach
 
             addSubActivities(
-                BuildBlock(offsetPos, state)
+                BuildBlock(offsetPos, state, respectIgnore)
             )
         }
     }

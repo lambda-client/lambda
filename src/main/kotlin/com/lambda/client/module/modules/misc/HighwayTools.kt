@@ -68,7 +68,8 @@ object HighwayTools : Module(
                     generateHighway(),
                     direction = originDirection,
                     offsetMove = BlockPos(originDirection.directionVec),
-                    maximumRepeats = 0
+                    maximumRepeats = 0,
+                    respectIgnore = true
                 ).let {
                     ownedBuildStructure = it
                     ActivityManager.addSubActivities(it)
