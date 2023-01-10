@@ -4,8 +4,8 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.*
-import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.interaction.PlaceBlock
+import com.lambda.client.activity.activities.interaction.BreakBlockWithTool
+import com.lambda.client.activity.activities.interaction.PlaceBlockWithItem
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
@@ -22,7 +22,6 @@ import com.lambda.client.util.items.block
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
-import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockShulkerBox
@@ -117,8 +116,8 @@ object TestActivityManager : Module(
             val origin = player.flooredPosition
 
             ActivityManager.addSubActivities(
-                PlaceBlock(origin, Blocks.OBSIDIAN.defaultState),
-                BreakBlock(origin)
+                PlaceBlockWithItem(origin, Blocks.OBSIDIAN.defaultState),
+                BreakBlockWithTool(origin)
             )
         }
         false
@@ -169,20 +168,6 @@ object TestActivityManager : Module(
         ActivityManager.addSubActivities(
             StoreItemToShulkerBox(Blocks.OBSIDIAN.item, amount = 1)
         )
-        false
-    })
-
-    private val cnrsgt by setting("Build", false, consumer = { _, _->
-        runSafe {
-            ActivityManager.addSubActivities(
-                BuildHighway(
-                    player.flooredPosition,
-                    Direction.fromEntity(player),
-                    Blocks.OBSIDIAN
-                )
-            )
-        }
-
         false
     })
 

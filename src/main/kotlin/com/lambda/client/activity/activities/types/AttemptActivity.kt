@@ -11,8 +11,7 @@ interface AttemptActivity {
     companion object {
         fun SafeClientEvent.checkAttempt(activity: Activity, causeException: Exception): Boolean {
             if (activity !is AttemptActivity) return false
-            if (causeException is MaxAttemptsExceededException
-                || causeException is TimeoutActivity.Companion.TimeoutException) return false
+            if (causeException is MaxAttemptsExceededException) return false
 
             with(activity) {
                 if (usedAttempts >= maxAttempts) {

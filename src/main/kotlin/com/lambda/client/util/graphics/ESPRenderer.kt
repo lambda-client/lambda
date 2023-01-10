@@ -4,6 +4,8 @@ import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.EntityUtils.getInterpolatedAmount
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.color.ColorHolder
+import net.minecraft.block.state.IBlockState
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.culling.ICamera
@@ -48,6 +50,10 @@ class ESPRenderer {
 
     fun add(pos: BlockPos, color: ColorHolder, sides: Int) {
         add(AxisAlignedBB(pos), color, sides)
+    }
+
+    fun add(pos: BlockPos, state: IBlockState, world: WorldClient, color: ColorHolder, sides: Int) {
+        add(state.getSelectedBoundingBox(world, pos), color, sides)
     }
 
     fun add(box: AxisAlignedBB, color: ColorHolder) {

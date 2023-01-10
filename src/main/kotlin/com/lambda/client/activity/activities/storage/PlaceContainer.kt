@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.interaction.PlaceBlockRaw
+import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.activity.activities.utils.getContainerPos
@@ -23,13 +23,13 @@ class PlaceContainer(
         }
 
         addSubActivities(
-            PlaceBlockRaw(containerPos, targetState)
+            PlaceBlock(containerPos, targetState)
         )
     }
 
     override fun SafeClientEvent.onChildFailure(childActivity: ArrayDeque<Activity>, childException: Exception): Boolean {
-        if (childActivity.firstOrNull() !is PlaceBlockRaw) return false
-        if (childException !is PlaceBlockRaw.NoNeighbourException) return false
+        if (childActivity.firstOrNull() !is PlaceBlock) return false
+        if (childException !is PlaceBlock.NoNeighbourException) return false
 
         checkAttempt(this@PlaceContainer, NoContainerPlacePositionFoundException())
         return true
