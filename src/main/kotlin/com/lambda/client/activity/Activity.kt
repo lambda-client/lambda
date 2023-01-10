@@ -29,16 +29,12 @@ import org.apache.commons.lang3.time.DurationFormatUtils
 import java.util.concurrent.ConcurrentLinkedDeque
 import kotlin.collections.ArrayDeque
 
-abstract class Activity {
+abstract class Activity(private val isRoot: Boolean = false) {
     val subActivities = ConcurrentLinkedDeque<Activity>()
     var activityStatus = ActivityStatus.UNINITIALIZED
     private var creationTime = 0L
     var owner: Activity = ActivityManager
     var depth = 0
-    val name get() = this::class.simpleName ?: "Activity"
-    val age get() = if (creationTime != 0L) System.currentTimeMillis() - creationTime else 0L
-    val currentActivity: Activity get() = subActivities.firstOrNull { it.activityStatus != ActivityStatus.PENDING }
-        ?.currentActivity ?: subActivities.firstOrNull()?.currentActivity ?: this
 
     open fun SafeClientEvent.onInitialize() {}
 
@@ -59,6 +55,27 @@ abstract class Activity {
         secondaryColor: ColorHolder
     ) {}
 
+    val activityName get() = this::class.simpleName ?: "Activity"
+
+    val age get() = if (creationTime != 0L) System.currentTimeMillis() - creationTime else 0L
+
+    val currentActivity: Activity get() =
+        subActivities.firstOrNull { it.activityStatus != ActivityStatus.PENDING }?.currentActivity
+            ?: subActivities.firstOrNull()?.currentActivity
+            ?: this
+
+    val allSubActivities: List<Activity> get() = run {
+        val activities = mutableListOf<Activity>()
+
+        if (!isRoot) activities.add(this)
+
+        activities.addAll(subActivities.flatMap { it.allSubActivities })
+
+        activities
+    }
+
+    val hasNoSubActivities get() = subActivities.isEmpty()
+
     fun SafeClientEvent.updateActivity() {
         when (activityStatus) {
             ActivityStatus.UNINITIALIZED -> {
@@ -66,7 +83,7 @@ abstract class Activity {
             }
             ActivityStatus.PENDING, ActivityStatus.RUNNING -> {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
-                    && noSubActivities()
+                    && hasNoSubActivities
                     && this@Activity !is EndlessActivity
                     && this@Activity !is DelayedActivity
                 ) success()
@@ -133,7 +150,7 @@ abstract class Activity {
         if (checkAttempt(activity, exception)) return
         if (onFailure(exception)) return
 
-        MessageSendHelper.sendErrorMessage("Exception in $name: ${exception.message}")
+        MessageSendHelper.sendErrorMessage("Exception in $activityName: ${exception.message}")
 
         ActivityManager.reset()
     }
@@ -142,7 +159,7 @@ abstract class Activity {
         if (onChildFailure(childActivities, childException)) return true
 
         if (onFailure(childException)) return true
-        MessageSendHelper.sendErrorMessage("${childActivities.joinToString { it.name }}: ${childException.message}")
+        MessageSendHelper.sendErrorMessage("${childActivities.joinToString { it.activityName }}: ${childException.message}")
 
         if (owner == ActivityManager) return false
 
@@ -174,20 +191,6 @@ abstract class Activity {
     fun Activity.addSubActivities(vararg activities: Activity) {
         addSubActivities(activities.toList())
     }
-
-    fun getAllSubActivities(): MutableList<Activity> {
-        val activities = mutableListOf<Activity>()
-
-        if (this !is ActivityManager) {
-            activities.add(this)
-        }
-
-        activities.addAll(subActivities.flatMap { it.getAllSubActivities() })
-
-        return activities
-    }
-
-    fun noSubActivities() = subActivities.isEmpty()
 
     enum class ActivityStatus {
         UNINITIALIZED,

@@ -42,12 +42,12 @@ class ExtractItemFromShulkerBox(
                 return
             }
 
-            if (owner is BreakDownEnderChests) return
-
-            addSubActivities(
-                BreakDownEnderChests(maximumRepeats = 64),
-                AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
-            )
+//            if (owner is BreakDownEnderChests) return
+//
+//            addSubActivities(
+//                BreakDownEnderChests(maximumRepeats = 64),
+//                AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
+//            )
             return
         }
 

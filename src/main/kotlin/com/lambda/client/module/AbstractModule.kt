@@ -29,7 +29,7 @@ abstract class AbstractModule(
     val alwaysEnabled: Boolean = false,
     val enabledByDefault: Boolean = false,
     private val config: NameableConfig<out Nameable>
-) : Nameable, Alias, SettingRegister<Nameable> by config as NameableConfig<Nameable> {
+) : Nameable, Alias, SettingRegister<Nameable> by config as NameableConfig<Nameable>, Activity() {
 
     val bind = BindSetting("Bind", Bind(), { !alwaysEnabled }).also(::addSetting)
     private val enabled = BooleanSetting("Enabled", false, { false }).also(::addSetting)
