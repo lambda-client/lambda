@@ -22,11 +22,11 @@ class BuildStructure(
     private var currentOffset = BlockPos.ORIGIN
 
     override fun SafeClientEvent.onInitialize() {
-//        addSubActivities(CustomGoal(GoalNear()))
         structure.asSequence().sortedBy { player.distanceTo(it.key) }.forEach { (pos, state) ->
             val offsetPos = pos.add(currentOffset)
 
             if (isInPadding(offsetPos)) return@forEach
+            if (world.getBlockState(offsetPos).block == state.block) return@forEach
 
             addSubActivities(
                 BuildBlock(offsetPos, state)
@@ -36,6 +36,16 @@ class BuildStructure(
 
     override fun SafeClientEvent.onSuccess() {
         currentOffset = currentOffset.add(offsetMove)
+//        structure.keys.asSequence().sortedBy { player.distanceTo(it.add(currentOffset)) }.firstOrNull()?.let {
+//            addSubActivities(CustomGoal(GoalNear(it.add(currentOffset), 2)))
+//        }
+    }
+
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        val sorted = subActivities.filterIsInstance<BuildBlock>().sortedBy { player.distanceTo(it.blockPos) }
+
+        subActivities.clear()
+        subActivities.addAll(sorted)
     }
 
     private fun SafeClientEvent.isInPadding(blockPos: BlockPos) = isBehindPos(player.flooredPosition, blockPos)

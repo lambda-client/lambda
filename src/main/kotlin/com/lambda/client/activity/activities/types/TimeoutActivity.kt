@@ -27,6 +27,6 @@ interface TimeoutActivity {
             }
         }
 
-        class TimeoutException(age: Long, timeout: Long) : Exception("Exceeded maximum age ($age) of $timeout ms")
+        class TimeoutException(age: Long, timeout: Long) : Exception("Exceeded maximum age ($age/$timeout)ms")
     }
 }

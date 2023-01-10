@@ -1,9 +1,11 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.interaction.BreakBlockWithTool
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
+import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.utils.getShulkerInventory
@@ -36,12 +38,13 @@ class ExtractItemFromShulkerBox(
         }
 
         if (candidates.isEmpty()) {
-            if (item != Blocks.OBSIDIAN.item) {
-                failedWith(NoShulkerBoxFoundExtractException(item))
-                return
-            }
+            failedWith(NoShulkerBoxFoundExtractException(item))
+//            if (item != Blocks.OBSIDIAN.item) {
+//                failedWith(NoShulkerBoxFoundExtractException(item))
+//                return
+//            }
 
-//            if (owner is BreakDownEnderChests) return
+//            if (owner?.owner !is PlaceBlock) return
 //
 //            addSubActivities(
 //                BreakDownEnderChests(maximumRepeats = 64),

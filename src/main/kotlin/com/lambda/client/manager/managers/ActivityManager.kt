@@ -26,12 +26,11 @@ object ActivityManager : Manager, Activity(true) {
 
             val currentActivity = currentActivity
 
-//            allActivities.filter { it.activityStatus == ActivityStatus.RUNNING
-//                || it.activityStatus == ActivityStatus.PENDING }.forEach {
-//                with(it) {
-//                    updateTypesOnTick(it)
-//                }
-//            }
+            allActivities.filter { it.activityStatus == ActivityStatus.PENDING }.forEach {
+                with(it) {
+                    updateTypesOnTick(it)
+                }
+            }
 
             with(currentActivity) {
                 if (activityStatus == ActivityStatus.RUNNING
