@@ -96,6 +96,9 @@ object BuildTools : Module(
         NONE, ANTI_AFK, LOGOUT
     }
 
+    val ignoredBlocks: List<Block>
+        get() = ignoreBlocks.mapNotNull { Block.getBlockFromName(it) }
+
     var defaultFillerMat: Block
         get() = Block.getBlockFromName(fillerMatSaved.value) ?: Blocks.NETHERRACK
         set(value) {

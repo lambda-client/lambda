@@ -8,6 +8,7 @@ import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.modules.client.BuildTools.ignoredBlocks
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.world.isReplaceable
@@ -18,6 +19,7 @@ import net.minecraft.util.math.BlockPos
 class BuildBlock(
     val blockPos: BlockPos,
     private val targetState: IBlockState,
+    private val respectIgnore: Boolean = false,
     override val maxAttempts: Int = 3,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
@@ -36,6 +38,8 @@ class BuildBlock(
                         ColorHolder(35, 188, 254)
                     ))
                 }
+                /* should be ignored */
+                respectIgnore && currentState.block in ignoredBlocks -> success()
                 /* only option left is breaking the block */
                 else -> {
                     toRender.add(RenderAABBActivity.Companion.RenderBlockPos(
@@ -59,6 +63,8 @@ class BuildBlock(
                     PlaceBlock(blockPos, targetState, doPending = true)
                 )
             }
+            /* should be ignored */
+            respectIgnore && currentState.block in ignoredBlocks -> success()
             /* only option left is breaking the block */
             else -> {
                 addSubActivities(
