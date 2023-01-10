@@ -8,7 +8,6 @@ import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.lang.Exception
 
 class ListenAndWait(
     private val message: String,

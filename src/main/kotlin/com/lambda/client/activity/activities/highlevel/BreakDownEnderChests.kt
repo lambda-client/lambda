@@ -1,11 +1,11 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
+import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots

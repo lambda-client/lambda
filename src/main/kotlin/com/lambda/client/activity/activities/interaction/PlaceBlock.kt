@@ -20,8 +20,6 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import net.minecraft.block.state.IBlockState
-import net.minecraft.init.Blocks
-import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult

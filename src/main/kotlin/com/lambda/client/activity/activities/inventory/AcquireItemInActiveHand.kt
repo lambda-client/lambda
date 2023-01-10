@@ -5,11 +5,9 @@ import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.hotbarSlots
-import net.minecraft.inventory.EntityEquipmentSlot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumHand
-import java.lang.Exception
 
 class AcquireItemInActiveHand(
     private val item: Item,

@@ -3,7 +3,6 @@ package com.lambda.client.activity.activities.types
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.util.text.MessageSendHelper
 
 interface TimeoutActivity {
     val timeout: Long
@@ -28,6 +27,6 @@ interface TimeoutActivity {
             }
         }
 
-        class TimeoutException(age: Long, timeout: Long): Exception("Exceeded maximum age ($age) of $timeout ms")
+        class TimeoutException(age: Long, timeout: Long) : Exception("Exceeded maximum age ($age) of $timeout ms")
     }
 }

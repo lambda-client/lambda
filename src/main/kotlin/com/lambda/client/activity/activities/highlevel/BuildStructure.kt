@@ -1,18 +1,14 @@
 package com.lambda.client.activity.activities.highlevel
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.multiply
 import net.minecraft.block.state.IBlockState
-import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 
 class BuildStructure(

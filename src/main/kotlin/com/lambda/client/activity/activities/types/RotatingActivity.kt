@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.types
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.util.math.Vec2f
 
