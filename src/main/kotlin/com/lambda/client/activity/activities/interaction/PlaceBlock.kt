@@ -101,7 +101,12 @@ class PlaceBlock(
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
-            is Wait -> if (doPending) owner.activityStatus = ActivityStatus.PENDING
+            is Wait -> {
+                if (doPending) {
+                    activityStatus = ActivityStatus.PENDING
+                    owner.activityStatus = ActivityStatus.PENDING
+                }
+            }
             else -> {
                 activityStatus = ActivityStatus.UNINITIALIZED
             }

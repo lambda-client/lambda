@@ -16,7 +16,7 @@ import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 
 class BuildBlock(
-    private val blockPos: BlockPos,
+    val blockPos: BlockPos,
     private val targetState: IBlockState,
     override val maxAttempts: Int = 3,
     override var usedAttempts: Int = 0,

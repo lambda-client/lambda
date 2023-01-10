@@ -19,7 +19,9 @@ class PlaceGoal(
     override val timeout: Long = 60000L
 ) : TimeoutActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        if (!isInBlockAABB(blockPos) && GoalNear(blockPos, 4).isInGoal(player.flooredPosition)) success()
+        getNeighbour(blockPos, attempts = 1, visibleSideCheck = true, range = 4.5f)?.let {
+            success()
+        }
     }
 
     init {
@@ -31,22 +33,15 @@ class PlaceGoal(
                 return@safeListener
             }
 
-            getNeighbour(blockPos, attempts = 1, visibleSideCheck = true, range = 4.95f)?.let {
+            getNeighbour(blockPos, attempts = 1, visibleSideCheck = true, range = 4.5f)?.let {
                 success()
             } ?: run {
-                getNeighbour(blockPos, attempts = 1, range = 4.95f)?.let {
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalNear(blockPos.offset(it.side), 2))
+                getNeighbour(blockPos, attempts = 1, range = 256f)?.let {
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalNear(blockPos.offset(it.side), 1))
                 } ?: run {
-                    val nearGoal = GoalNear(blockPos, 3)
+                    // ToDo: Scaffolding!
 
-                    if (!nearGoal.isInGoal(player.flooredPosition)) {
-                        BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(nearGoal)
-                        return@safeListener
-                    }
-
-//                    activityStatus = ActivityStatus.PENDING
-
-//                    failedWith(NoPathToPlaceFound())
+                    failedWith(NoPathToPlaceFound())
                 }
             }
         }
@@ -56,5 +51,5 @@ class PlaceGoal(
         return !world.checkNoEntityCollision(AxisAlignedBB(blockPos), null)
     }
 
-    class NoPathToPlaceFound : Exception("No path to place position found")
+    class NoPathToPlaceFound : Exception("No path to place position found (scaffolding not yet implemented)")
 }

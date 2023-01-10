@@ -77,22 +77,17 @@ object HighwayTools : Module(
         }
 
         onDisable {
-            runSafe {
-                ownedBuildStructure?.let {
-                    with(it) {
-                        success()
-                    }
-                }
-            }
+            ActivityManager.reset()
         }
     }
 
     private fun generateHighway(): HashMap<BlockPos, IBlockState> {
         val blueprint = hashMapOf<BlockPos, IBlockState>()
 
-        for (x in -maxReach.floorToInt() * 5..maxReach.floorToInt() * 5) {
+        for (x in -width..width) {
             val thisPos = originPosition.add(originDirection.directionVec.multiply(x))
             if (clearSpace) generateClear(blueprint, thisPos)
+
             if (structure == Structure.TUNNEL) {
                 if (cleanFloor) generateFloor(blueprint, thisPos)
                 if (cleanRightWall || cleanLeftWall) generateWalls(blueprint, thisPos)
@@ -105,13 +100,13 @@ object HighwayTools : Module(
 
         if (structure == Structure.TUNNEL && (!cleanFloor || backfill)) {
             if (originDirection.isDiagonal) {
-                for (x in 0..maxReach.floorToInt()) {
+                for (x in 0..width) {
                     val pos = originPosition.add(originDirection.directionVec.multiply(x))
                     blueprint[pos] = fillerState()
                     blueprint[pos.add(originDirection.clockwise(7).directionVec)] = fillerState()
                 }
             } else {
-                for (x in 0..maxReach.floorToInt()) {
+                for (x in 0..width) {
                     blueprint[originPosition.add(originDirection.directionVec.multiply(x))] = fillerState()
                 }
             }
