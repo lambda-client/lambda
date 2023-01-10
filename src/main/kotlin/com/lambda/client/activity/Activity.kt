@@ -81,12 +81,15 @@ abstract class Activity(private val isRoot: Boolean = false) {
             ActivityStatus.UNINITIALIZED -> {
                 initialize()
             }
-            ActivityStatus.PENDING, ActivityStatus.RUNNING -> {
+            ActivityStatus.RUNNING -> {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
                     && hasNoSubActivities
                     && this@Activity !is EndlessActivity
                     && this@Activity !is DelayedActivity
                 ) success()
+            }
+            ActivityStatus.PENDING -> {
+                //
             }
             ActivityStatus.FAILURE -> {
                 //
