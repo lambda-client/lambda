@@ -13,6 +13,7 @@ import com.lambda.client.util.MovementUtils.realSpeed
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageDetection
+import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.network.play.server.SPacketChat
@@ -42,6 +43,9 @@ object AntiAFK : Module(
     private val walk = setting("Walk", true)
     private val radius by setting("Radius", 64, 8..128, 8, { walk.value },fineStep = 1)
     private val allowBreak by setting("Allow Breaking Blocks", false, { walk.value })
+    private val setStartPos by setting("Set Start Pos", false, { walk.value })
+    private val startPos_x by setting("X", "0", { setStartPos && walk.value })
+    private val startPos_z by setting("Z", "0", { setStartPos && walk.value })
 
     private var startPos: BlockPos? = null
     private var squareStep = 0
@@ -50,7 +54,6 @@ object AntiAFK : Module(
     private val inputTimer = TickTimer(TimeUnit.MINUTES)
     private val actionTimer = TickTimer(TimeUnit.TICKS)
     private var nextActionDelay = 0
-
     override fun getHudInfo(): String {
         return if (inputTimeout == 0) ""
         else ((System.currentTimeMillis() - inputTimer.time) / 1000L).toString()
@@ -62,6 +65,13 @@ object AntiAFK : Module(
             if (!allowBreak) BaritoneUtils.settings?.allowBreak?.value = false
             inputTimer.reset()
             baritoneDisconnectOnArrival()
+            if(setStartPos) {
+                try {
+                    startPos = BlockPos(startPos_x.toInt(), 0, startPos_z.toInt())
+                } catch (ex: NumberFormatException) {
+                    sendChatMessage("[AntiAfk] Wrong start pos: start pos set with your position")
+                }
+            }
         }
 
         onDisable {
