@@ -10,6 +10,7 @@ import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
 import com.lambda.client.util.items.blockBlacklist
@@ -19,11 +20,14 @@ import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
+import com.lambda.client.util.world.isPlaceable
 import net.minecraft.block.state.IBlockState
+import net.minecraft.init.Blocks
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
 import net.minecraft.util.EnumHand
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
 class PlaceBlock(
@@ -47,12 +51,17 @@ class PlaceBlock(
             return
         }
 
+        if (!world.isPlaceable(blockPos, AxisAlignedBB(blockPos))) {
+            addSubActivities(BreakBlock(blockPos))
+            return
+        }
+
         if (player.getHeldItem(EnumHand.MAIN_HAND).item.block != targetState.block) {
             addSubActivities(AcquireItemInActiveHand(targetState.block.item))
             return
         }
 
-        getNeighbour(blockPos, attempts = 1, visibleSideCheck = true, range = 4.95f)?.let {
+        getNeighbour(blockPos, attempts = 1, visibleSideCheck = true, range = BuildTools.maxReach)?.let {
             val placedAtBlock = world.getBlockState(it.pos).block
 
             renderActivity.color = ColorHolder(11, 66, 89)
@@ -75,7 +84,13 @@ class PlaceBlock(
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
 
-            if (doPending) addSubActivities(Wait(45L))
+            if (doPending) {
+                if (BuildTools.placeDelay == 0) {
+                    owner.activityStatus = ActivityStatus.PENDING
+                } else {
+                    addSubActivities(Wait(BuildTools.placeDelay * 50L))
+                }
+            }
         } ?: run {
             addSubActivities(PlaceGoal(blockPos))
 //            failedWith(NoNeighbourException(blockPos))
@@ -88,12 +103,6 @@ class PlaceBlock(
                 && it.packet.blockPosition == blockPos
                 && it.packet.blockState.block == targetState.block // TODO: Calculate correct resulting state of placed block to enable rotation checks
             ) {
-                if (doPending) {
-                    with(owner) {
-                        success()
-                    }
-                }
-
                 success()
             }
         }
@@ -103,7 +112,6 @@ class PlaceBlock(
         when (childActivity) {
             is Wait -> {
                 if (doPending) {
-                    activityStatus = ActivityStatus.PENDING
                     owner.activityStatus = ActivityStatus.PENDING
                 }
             }

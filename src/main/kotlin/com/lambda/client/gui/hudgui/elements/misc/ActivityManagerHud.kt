@@ -23,14 +23,16 @@ internal object ActivityManagerHud: LabelHud(
 
         if (startTime == 0L) startTime = System.currentTimeMillis()
 
-        displayText.add("Runtime:", primaryColor)
-        displayText.addLine(DurationFormatUtils.formatDuration(System.currentTimeMillis() - startTime, "HH:mm:ss,SSS"), secondaryColor)
-        displayText.add("Amount:", primaryColor)
-        displayText.add(ActivityManager.allSubActivities.size.toString(), secondaryColor)
-        displayText.add("Current:", primaryColor)
-        displayText.addLine(ActivityManager.currentActivity.activityName, secondaryColor)
+        with(ActivityManager) {
+            displayText.add("Runtime:", primaryColor)
+            displayText.addLine(DurationFormatUtils.formatDuration(System.currentTimeMillis() - startTime, "HH:mm:ss,SSS"), secondaryColor)
+            displayText.add("Amount:", primaryColor)
+            displayText.add(ActivityManager.allSubActivities.size.toString(), secondaryColor)
+            displayText.add("Current:", primaryColor)
+            displayText.addLine(getCurrentActivity().activityName, secondaryColor)
 
-        ActivityManager.appendInfo(displayText, primaryColor, secondaryColor)
+            appendInfo(displayText, primaryColor, secondaryColor)
+        }
 
         val sync = ListenerManager.listenerMap.keys.filterIsInstance<Activity>()
         val async = ListenerManager.asyncListenerMap.keys.filterIsInstance<Activity>()

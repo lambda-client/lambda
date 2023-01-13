@@ -7,6 +7,7 @@ import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.player.InventoryManager
 import com.lambda.client.util.BaritoneUtils
+import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.item.EntityItem
@@ -26,9 +27,7 @@ class PickUpEntityItem(
                 return@safeListener
             }
 
-            val emptySlots = player.inventory.mainInventory.filter { it.isEmpty }
-
-            if (emptySlots.isNotEmpty()) {
+            if (player.inventorySlots.countEmpty() > 0) {
                 BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalBlock(entityItem.position))
                 return@safeListener
             }

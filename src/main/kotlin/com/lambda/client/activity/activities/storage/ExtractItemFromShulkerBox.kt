@@ -2,10 +2,7 @@ package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
-import com.lambda.client.activity.activities.interaction.BreakBlockWithTool
-import com.lambda.client.activity.activities.interaction.CloseContainer
-import com.lambda.client.activity.activities.interaction.OpenContainer
-import com.lambda.client.activity.activities.interaction.PlaceBlock
+import com.lambda.client.activity.activities.interaction.*
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.utils.getShulkerInventory
@@ -39,17 +36,6 @@ class ExtractItemFromShulkerBox(
 
         if (candidates.isEmpty()) {
             failedWith(NoShulkerBoxFoundExtractException(item))
-//            if (item != Blocks.OBSIDIAN.item) {
-//                failedWith(NoShulkerBoxFoundExtractException(item))
-//                return
-//            }
-
-//            if (owner?.owner !is PlaceBlock) return
-//
-//            addSubActivities(
-//                BreakDownEnderChests(maximumRepeats = 64),
-//                AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
-//            )
             return
         }
 
@@ -68,10 +54,10 @@ class ExtractItemFromShulkerBox(
             OpenContainer(childActivity.containerPos),
             PullItemsFromContainer(item, amount, predicateItem),
             CloseContainer(),
-            BreakBlockWithTool(childActivity.containerPos, collectDrops = true),
+            BreakBlock(childActivity.containerPos, collectDrops = true),
             AcquireItemInActiveHand(item, predicateItem, predicateSlot)
         )
     }
 
-    class NoShulkerBoxFoundExtractException(item: Item) : Exception("No shulker box was found containing ${item.registryName}")
+    class NoShulkerBoxFoundExtractException(val item: Item) : Exception("No shulker box was found containing ${item.registryName}")
 }

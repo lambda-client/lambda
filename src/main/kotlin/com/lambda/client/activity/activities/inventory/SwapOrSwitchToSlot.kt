@@ -22,7 +22,7 @@ class SwapOrSwitchToSlot(
                 ?: return
 
             addSubActivities(
-                SwapWithSlot(slot, slotTo),
+                SwapWithSlot(slot, slotTo.hotbarSlot),
                 SwitchToHotbarSlot(slotTo)
             )
         }

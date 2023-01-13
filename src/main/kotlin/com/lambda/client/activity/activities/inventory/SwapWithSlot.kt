@@ -8,9 +8,9 @@ import net.minecraft.inventory.Slot
 
 class SwapWithSlot(
     private val slotFrom: Slot,
-    private val slotTo: HotbarSlot
+    private val hotbarSlotTo: Int
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
-        addSubActivities(InventoryTransaction(player.openContainer.windowId, slotFrom.slotNumber, slotTo.hotbarSlot, ClickType.SWAP))
+        addSubActivities(InventoryTransaction(player.openContainer.windowId, slotFrom.slotNumber, hotbarSlotTo, ClickType.SWAP))
     }
 }

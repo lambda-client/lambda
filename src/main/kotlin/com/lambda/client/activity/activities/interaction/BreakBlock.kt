@@ -1,15 +1,21 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.inventory.SwapToBestTool
+import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RotatingActivity
 import com.lambda.client.activity.activities.types.TimeoutActivity
+import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
+import com.lambda.client.util.items.item
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
@@ -31,6 +37,7 @@ class BreakBlock(
     private val miningSpeedFactor: Float = 1.0f,
     private val collectDrops: Boolean = false,
     private val minCollectAmount: Int = 1,
+    private val doPending: Boolean = false,
     override var timeout: Long = 200L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
@@ -54,6 +61,11 @@ class BreakBlock(
             return
         }
 
+        if (player.getHeldItem(EnumHand.MAIN_HAND).item != Items.DIAMOND_PICKAXE) { // ToDo: get optimal tool
+            addSubActivities(AcquireItemInActiveHand(Items.DIAMOND_PICKAXE))
+            return
+        }
+
         initState = currentState
         drop = currentState.block.getItemDropped(currentState, Random(), 0)
 
@@ -61,36 +73,46 @@ class BreakBlock(
 
         ticksNeeded = ceil((1 / currentState.getPlayerRelativeBlockHardness(player, world, blockPos)) * miningSpeedFactor).toInt()
         timeout = ticksNeeded * 50L + 2000L
+
+        if (!(doPending && (ticksNeeded == 1 || player.capabilities.isCreativeMode))) return
+
+        getMiningSide(blockPos, BuildTools.maxReach)?.let { side ->
+            rotation = getRotationTo(getHitVec(blockPos, side))
+
+            playerController.onPlayerDamageBlock(blockPos, side)
+            mc.effectRenderer.addBlockHitEffects(blockPos, side)
+            player.swingArm(EnumHand.MAIN_HAND)
+
+            if (BuildTools.breakDelay == 0) {
+                owner.activityStatus = ActivityStatus.PENDING
+            } else {
+                addSubActivities(Wait(BuildTools.placeDelay * 50L))
+            }
+        }
     }
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
 
-            getMiningSide(blockPos)?.let { side ->
+            getMiningSide(blockPos, BuildTools.maxReach)?.let { side ->
                 rotation = getRotationTo(getHitVec(blockPos, side))
 
                 playerController.onPlayerDamageBlock(blockPos, side)
                 mc.effectRenderer.addBlockHitEffects(blockPos, side)
                 player.swingArm(EnumHand.MAIN_HAND)
 
-//                if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
-//                    playerController.onPlayerDestroyBlock(blockPos)
-//                    player.swingArm(EnumHand.MAIN_HAND)
-//                } else {
-//                    playerController.onPlayerDamageBlock(blockPos, side)
-//                    player.swingArm(EnumHand.MAIN_HAND)
-//                    // cancel onPlayerDestroy NoGhostBlocks
-//
-////                    if (ticksNeeded * 50L < System.currentTimeMillis() - creationTime) {
-////                        connection.sendPacket(CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, blockPos, side))
-////                        player.swingArm(EnumHand.MAIN_HAND)
-////                    } else {
-////                        player.swingArm(EnumHand.MAIN_HAND)
-////                    }
-//                }
+                if (doPending && (ticksNeeded == 1 || player.capabilities.isCreativeMode)) {
+                    if (BuildTools.breakDelay == 0) {
+                        owner.activityStatus = ActivityStatus.PENDING
+                    } else {
+                        addSubActivities(Wait(BuildTools.placeDelay * 50L - 5L))
+                    }
+                }
             } ?: run {
-                failedWith(ExceptionNoSurfaceExposed())
+                if (subActivities.filterIsInstance<BreakGoal>().isEmpty()) {
+                    addSubActivities(BreakGoal(blockPos))
+                }
             }
         }
 
@@ -116,15 +138,23 @@ class BreakBlock(
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
-        if (childActivity !is PickUpDrops) return
+        when (childActivity) {
+            is PickUpDrops -> {
+                success()
+            }
+            is Wait -> {
+                if (!doPending) return
 
-        success()
+                owner.activityStatus = ActivityStatus.PENDING
+            }
+            is AcquireItemInActiveHand -> {
+                activityStatus = ActivityStatus.UNINITIALIZED
+            }
+        }
     }
 
     override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
         playerController.resetBlockRemoving()
         return false
     }
-
-    class ExceptionNoSurfaceExposed : Exception("No block surface exposed to player")
 }

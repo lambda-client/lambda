@@ -31,14 +31,14 @@ object BuildTools : Module(
 //    })
 
     /* mining */
-    val breakDelay by setting("Break Delay", 1, 1..20, 1, { page == Page.MINING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
+    val breakDelay by setting("Break Delay", 1, 0..20, 1, { page == Page.MINING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
     val miningSpeedFactor by setting("Mining Speed Factor", 1.0f, 0.0f..2.0f, 0.01f, { page == Page.MINING }, description = "Factor to manipulate calculated mining speed")
     val interactionLimit by setting("Interaction Limit", 20, 1..100, 1, { page == Page.MINING }, description = "Set the interaction limit per second", unit = " interactions/s")
     val multiBreak by setting("Multi Break", true, { page == Page.MINING }, description = "Breaks multiple instant breaking blocks intersecting with view vector on the same tick")
     val packetFlood by setting("Packet Flood", false, { page == Page.MINING }, description = "Exploit for faster packet breaks. Sends START and STOP packet on same tick")
 
     /* placing */
-    val placeDelay by setting("Place Delay", 3, 1..20, 1, { page == Page.PLACING }, description = "Sets the delay ticks between placement tasks", unit = " ticks")
+    val placeDelay by setting("Place Delay", 1, 0..20, 1, { page == Page.PLACING }, description = "Sets the delay ticks between placement tasks", unit = " ticks")
     val illegalPlacements by setting("Illegal Placements", false, { page == Page.PLACING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     val scaffold by setting("Scaffold", true, { page == Page.PLACING }, description = "Tries to bridge / scaffold when stuck placing")
     val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.PLACING }, description = "EXPERIMENTAL: Attempts to find a support block for placing against", unit = " blocks")

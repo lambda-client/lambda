@@ -1,5 +1,6 @@
 package com.lambda.client.activity
 
+import akka.actor.dsl.Creators.Act
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.activity.activities.types.DelayedActivity
 import com.lambda.client.activity.activities.types.DelayedActivity.Companion.checkDelayed
@@ -55,14 +56,17 @@ abstract class Activity(private val isRoot: Boolean = false) {
         secondaryColor: ColorHolder
     ) {}
 
-    val activityName get() = this::class.simpleName ?: "Activity"
+    open fun SafeClientEvent.getCurrentActivity(): Activity {
+        subActivities.firstOrNull()?.let {
+            with(it) {
+                return getCurrentActivity()
+            }
+        } ?: return this@Activity
+    }
+
+    val activityName get() = this.javaClass.simpleName ?: "Activity"
 
     val age get() = if (creationTime != 0L) System.currentTimeMillis() - creationTime else 0L
-
-    val currentActivity: Activity get() =
-        subActivities.firstOrNull { it.activityStatus != ActivityStatus.PENDING }?.currentActivity
-            ?: subActivities.firstOrNull()?.currentActivity
-            ?: this
 
     val allSubActivities: List<Activity> get() = run {
         val activities = mutableListOf<Activity>()
@@ -88,12 +92,7 @@ abstract class Activity(private val isRoot: Boolean = false) {
                     && this@Activity !is DelayedActivity
                 ) success()
             }
-            ActivityStatus.PENDING -> {
-                //
-            }
-            ActivityStatus.FAILURE -> {
-                //
-            }
+            ActivityStatus.PENDING, ActivityStatus.FAILURE -> { }
         }
     }
 
@@ -162,9 +161,11 @@ abstract class Activity(private val isRoot: Boolean = false) {
         if (onChildFailure(childActivities, childException)) return true
 
         if (onFailure(childException)) return true
-        MessageSendHelper.sendErrorMessage("${childActivities.joinToString { it.activityName }}: ${childException.message}")
 
-        if (owner == ActivityManager) return false
+        if (owner.isRoot) {
+            MessageSendHelper.sendErrorMessage("Traceback: ${childException.javaClass.simpleName}: ${childException.message}\n    ${childActivities.joinToString(separator = "\n    ") { it.toString() }}")
+            return false
+        }
 
         childActivities.add(this@Activity)
         with(owner) {
@@ -196,8 +197,8 @@ abstract class Activity(private val isRoot: Boolean = false) {
     }
 
     enum class ActivityStatus {
-        UNINITIALIZED,
         RUNNING,
+        UNINITIALIZED,
         PENDING,
         FAILURE
     }
@@ -259,6 +260,14 @@ abstract class Activity(private val isRoot: Boolean = false) {
     }
 
     override fun toString(): String {
-        return "Name: ${javaClass.simpleName} State: $activityStatus SubActivities: $subActivities"
+        val properties = this::class.java.declaredFields.joinToString(separator = ", ", prefix = ", ") {
+            it.isAccessible = true
+            val name = it.name
+            val value = it.get(this)
+            "$name=$value"
+        }
+
+//        return "$activityName: [State=$activityStatus, Runtime=${DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS")}, SubActivities=${subActivities.size}$properties]"
+        return "$activityName: [State=$activityStatus, Runtime=${DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS")}, SubActivities=${subActivities.size}]"
     }
 }
