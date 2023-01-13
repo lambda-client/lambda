@@ -62,7 +62,6 @@ object AntiAFK : Module(
             if (!allowBreak) BaritoneUtils.settings?.allowBreak?.value = false
             inputTimer.reset()
             baritoneDisconnectOnArrival()
-            }
         }
 
         onDisable {
