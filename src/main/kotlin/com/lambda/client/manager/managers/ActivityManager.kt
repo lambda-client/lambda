@@ -39,7 +39,13 @@ object ActivityManager : Manager, Activity(true) {
             }
 
             repeat(allActivities.size * 2) {
-                updateCurrentActivity()
+                with(getCurrentActivity()) {
+                    BaritoneUtils.settings?.allowPlace?.value = false
+                    BaritoneUtils.settings?.allowBreak?.value = false
+                    BaritoneUtils.settings?.allowInventory?.value = false
+
+                    updateActivity()
+                }
             }
         }
 
@@ -55,18 +61,6 @@ object ActivityManager : Manager, Activity(true) {
             }
 
             renderer.render(true)
-        }
-    }
-
-    private fun SafeClientEvent.updateCurrentActivity() {
-        val currentActivity = getCurrentActivity()
-
-        with(currentActivity) {
-            BaritoneUtils.settings?.allowPlace?.value = false
-            BaritoneUtils.settings?.allowBreak?.value = false
-            BaritoneUtils.settings?.allowInventory?.value = false
-
-            updateActivity()
         }
     }
 

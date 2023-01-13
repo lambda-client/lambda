@@ -5,7 +5,6 @@ import com.lambda.client.activity.activities.inventory.QuickMoveSlot
 import com.lambda.client.activity.activities.inventory.SwapWithSlot
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.player.InventoryManager
-import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.getSlots
 import net.minecraft.item.Item
@@ -31,7 +30,7 @@ class PullItemsFromContainer( // ToDo: fix take for full inv
 
         val remainingSlots = if (amount == 0) toMoveSlots else toMoveSlots.take(amount)
 
-        val playerInventory = player.openContainer.getSlots(27 .. 62)
+        val playerInventory = player.openContainer.getSlots(27..62)
 
         remainingSlots.forEach { fromSlot ->
             if (playerInventory.countEmpty() > 0) {

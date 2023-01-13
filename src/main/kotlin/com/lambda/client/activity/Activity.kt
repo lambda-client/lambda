@@ -1,6 +1,5 @@
 package com.lambda.client.activity
 
-import akka.actor.dsl.Creators.Act
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.activity.activities.types.DelayedActivity
 import com.lambda.client.activity.activities.types.DelayedActivity.Companion.checkDelayed
@@ -13,22 +12,14 @@ import com.lambda.client.activity.activities.types.TimeoutActivity.Companion.che
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.gui.hudgui.elements.misc.ActivityManagerHud
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.MAX_DEPTH
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
-import com.lambda.client.util.text.capitalize
-import net.minecraft.entity.Entity
-import net.minecraft.item.ItemBlock
-import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.time.DurationFormatUtils
 import java.util.concurrent.ConcurrentLinkedDeque
-import kotlin.collections.ArrayDeque
 
 abstract class Activity(private val isRoot: Boolean = false) {
     val subActivities = ConcurrentLinkedDeque<Activity>()
@@ -68,15 +59,16 @@ abstract class Activity(private val isRoot: Boolean = false) {
 
     val age get() = if (creationTime != 0L) System.currentTimeMillis() - creationTime else 0L
 
-    val allSubActivities: List<Activity> get() = run {
-        val activities = mutableListOf<Activity>()
+    val allSubActivities: List<Activity>
+        get() = run {
+            val activities = mutableListOf<Activity>()
 
-        if (!isRoot) activities.add(this)
+            if (!isRoot) activities.add(this)
 
-        activities.addAll(subActivities.flatMap { it.allSubActivities })
+            activities.addAll(subActivities.flatMap { it.allSubActivities })
 
-        activities
-    }
+            activities
+        }
 
     val hasNoSubActivities get() = subActivities.isEmpty()
 
@@ -220,34 +212,34 @@ abstract class Activity(private val isRoot: Boolean = false) {
                 textComponent.add("Runtime", primaryColor)
                 textComponent.add(DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS"), secondaryColor)
             }
-            this::class.java.declaredFields.forEachIndexed { index, field ->
-                field.isAccessible = true
-                val name = field.name
-                val value = field.get(this)
-
-//                if (index.mod(6) == 0) {
-//                    textComponent.addLine("", primaryColor)
-//                    repeat(depth) {
-//                        textComponent.add("   ")
+//            this::class.java.declaredFields.forEachIndexed { index, field ->
+//                field.isAccessible = true
+//                val name = field.name
+//                val value = field.get(this)
+//
+////                if (index.mod(6) == 0) {
+////                    textComponent.addLine("", primaryColor)
+////                    repeat(depth) {
+////                        textComponent.add("   ")
+////                    }
+////                }
+//
+//                value?.let {
+//                    if (!ActivityManagerHud.anonymize
+//                        || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
+//                    ) {
+//                        textComponent.add(name.capitalize(), primaryColor)
+//                        when (value) {
+//                            is ItemBlock -> {
+//                                textComponent.add(value.block.localizedName, secondaryColor)
+//                            }
+//                            else -> {
+//                                textComponent.add(value.toString(), secondaryColor)
+//                            }
+//                        }
 //                    }
 //                }
-
-                value?.let {
-                    if (!ActivityManagerHud.anonymize
-                        || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
-                    ) {
-                        textComponent.add(name.capitalize(), primaryColor)
-                        when (value) {
-                            is ItemBlock -> {
-                                textComponent.add(value.block.localizedName, secondaryColor)
-                            }
-                            else -> {
-                                textComponent.add(value.toString(), secondaryColor)
-                            }
-                        }
-                    }
-                }
-            }
+//            }
         }
         addExtraInfo(textComponent, primaryColor, secondaryColor)
         textComponent.addLine("")

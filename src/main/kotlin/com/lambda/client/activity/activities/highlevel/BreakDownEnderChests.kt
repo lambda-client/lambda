@@ -8,7 +8,9 @@ import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.player.InventoryManager
-import com.lambda.client.util.items.*
+import com.lambda.client.util.items.allSlots
+import com.lambda.client.util.items.countItem
+import com.lambda.client.util.items.item
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
