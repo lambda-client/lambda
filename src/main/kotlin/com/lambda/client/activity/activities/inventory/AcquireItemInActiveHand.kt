@@ -4,7 +4,7 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.manager.managers.ActivityManager.addSubActivities
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.items.item
@@ -52,7 +52,7 @@ class AcquireItemInActiveHand(
         if (childException !is ExtractItemFromShulkerBox.NoShulkerBoxFoundExtractException) return false
 
         if (childException.item == Blocks.OBSIDIAN.item) {
-            addSubActivities(BreakDownEnderChests(maximumRepeats = 64))
+            addSubActivities(BreakDownEnderChests(maximumRepeats = BuildTools.breakDownCycles))
             return true
         }
 

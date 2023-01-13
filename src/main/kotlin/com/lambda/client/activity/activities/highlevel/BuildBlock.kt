@@ -29,6 +29,7 @@ class BuildBlock(
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : AttemptActivity, RenderAABBActivity, Activity() {
     var currentAction = Action.UNINIT
+
     enum class Action(val color: ColorHolder) {
         BREAK(ColorHolder(222, 0, 0)),
         PLACE(ColorHolder(35, 188, 254)),
@@ -69,7 +70,8 @@ class BuildBlock(
             /* is in desired state */
             currentState.block == targetState.block -> success()
             /* block needs to be placed */
-            targetState.block != Blocks.AIR && world.isPlaceable(blockPos, targetState.getCollisionBoundingBox(world, blockPos) ?: AxisAlignedBB(blockPos)) -> {
+            targetState.block != Blocks.AIR && world.isPlaceable(blockPos, targetState.getCollisionBoundingBox(world, blockPos)
+                ?: AxisAlignedBB(blockPos)) -> {
                 if (addActivities) {
                     addSubActivities(
                         PlaceBlock(blockPos, targetState, doPending = true)

@@ -3,7 +3,6 @@ package com.lambda.client.activity.activities.types
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.util.text.MessageSendHelper
 
 interface AttemptActivity {
     val maxAttempts: Int

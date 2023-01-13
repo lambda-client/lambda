@@ -2,7 +2,6 @@ package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.inventory.SwapToBestTool
 import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.activity.activities.types.AttemptActivity
@@ -15,7 +14,6 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
-import com.lambda.client.util.items.item
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener

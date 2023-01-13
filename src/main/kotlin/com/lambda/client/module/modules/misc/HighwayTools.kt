@@ -50,7 +50,7 @@ object HighwayTools : Module(
 
     private var ownedBuildStructure: BuildStructure? = null
 
-    private var material: Block
+    var material: Block
         get() = Block.getBlockFromName(materialSaved.value) ?: Blocks.OBSIDIAN
         set(value) {
             materialSaved.value = value.registryName.toString()
@@ -69,7 +69,7 @@ object HighwayTools : Module(
                     generateHighway(),
                     direction = originDirection,
                     offsetMove = BlockPos(originDirection.directionVec.multiply(offset)),
-                    maximumRepeats = 0,
+                    maximumRepeats = distance,
                     respectIgnore = true
                 ).let {
                     ownedBuildStructure = it
