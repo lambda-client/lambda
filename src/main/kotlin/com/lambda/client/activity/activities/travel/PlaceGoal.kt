@@ -5,7 +5,9 @@ import baritone.api.pathing.goals.GoalInverted
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.TimeoutActivity
+import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.threads.safeListener
@@ -37,6 +39,13 @@ class PlaceGoal(
                 success()
             } ?: run {
                 getNeighbour(blockPos, attempts = 1, range = 256f)?.let {
+                    val goalNear = GoalNear(blockPos, 3)
+
+                    if (!goalNear.isInGoal(player.flooredPosition)) {
+                        BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goalNear)
+                        return@safeListener
+                    }
+
                     BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalNear(blockPos.offset(it.side), 1))
                 } ?: run {
                     // ToDo: Scaffolding!
@@ -47,9 +56,8 @@ class PlaceGoal(
         }
     }
 
-    private fun SafeClientEvent.isInBlockAABB(blockPos: BlockPos): Boolean {
-        return !world.checkNoEntityCollision(AxisAlignedBB(blockPos), null)
-    }
+    private fun SafeClientEvent.isInBlockAABB(blockPos: BlockPos) =
+        !world.checkNoEntityCollision(AxisAlignedBB(blockPos), null)
 
     class NoPathToPlaceFound : Exception("No path to place position found (scaffolding not yet implemented)")
 }

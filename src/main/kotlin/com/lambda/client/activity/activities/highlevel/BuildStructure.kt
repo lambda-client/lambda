@@ -3,6 +3,9 @@ package com.lambda.client.activity.activities.highlevel
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RepeatingActivity
+import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.commons.extension.floorToInt
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
@@ -29,9 +32,11 @@ class BuildStructure(
             if (isInPadding(offsetPos)) return@forEach
             if (world.getBlockState(offsetPos).block == state.block) return@forEach
 
-            addSubActivities(
-                BuildBlock(offsetPos, state, respectIgnore)
-            )
+            val activity = BuildBlock(offsetPos, state, respectIgnore)
+
+            addSubActivities(activity)
+
+            LambdaEventBus.subscribe(activity)
         }
     }
 
@@ -42,11 +47,22 @@ class BuildStructure(
 //        }
     }
 
-    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
-        val sorted = subActivities.filterIsInstance<BuildBlock>().sortedBy { player.distanceTo(it.blockPos) }
-
-        subActivities.clear()
-        subActivities.addAll(sorted)
+    override fun SafeClientEvent.getCurrentActivity(): Activity {
+        subActivities
+            .filterIsInstance<BuildBlock>()
+            .sortedWith(
+                compareBy<BuildBlock> {
+                    it.activityStatus.ordinal
+                }.thenBy {
+                    it.currentAction.ordinal
+                }.thenBy {
+                    player.distanceTo(it.blockPos)
+                }
+            ).firstOrNull()?.let {
+                with(it) {
+                    return getCurrentActivity()
+                }
+            } ?: return this@BuildStructure
     }
 
     private fun SafeClientEvent.isInPadding(blockPos: BlockPos) = isBehindPos(player.flooredPosition, blockPos)

@@ -37,6 +37,7 @@ object HighwayTools : Module(
     private val cornerBlock by setting("Corner Block", false, { structure == Structure.HIGHWAY || (structure == Structure.TUNNEL && !backfill && width > 2) }, description = "If activated will break the corner in tunnel or place a corner while paving")
     private val railing by setting("Railing", true, { structure == Structure.HIGHWAY }, description = "Adds a railing/rim/border to the highway")
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { structure == Structure.HIGHWAY && railing }, description = "Sets height of railing", unit = " blocks")
+    private val offset by setting("Offset", 0, -10..10, 1, description = "Sets the offset of the structure", unit = " blocks")
 
     enum class Structure {
         HIGHWAY, TUNNEL
@@ -67,7 +68,7 @@ object HighwayTools : Module(
                 BuildStructure(
                     generateHighway(),
                     direction = originDirection,
-                    offsetMove = BlockPos(originDirection.directionVec),
+                    offsetMove = BlockPos(originDirection.directionVec.multiply(offset)),
                     maximumRepeats = 0,
                     respectIgnore = true
                 ).let {
@@ -85,7 +86,7 @@ object HighwayTools : Module(
     private fun generateHighway(): HashMap<BlockPos, IBlockState> {
         val blueprint = hashMapOf<BlockPos, IBlockState>()
 
-        for (x in -width..width) {
+        for (x in -5..5) {
             val thisPos = originPosition.add(originDirection.directionVec.multiply(x))
             if (clearSpace) generateClear(blueprint, thisPos)
 

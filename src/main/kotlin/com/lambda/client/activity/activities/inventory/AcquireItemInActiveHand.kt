@@ -1,10 +1,14 @@
 package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.hotbarSlots
+import com.lambda.client.util.items.item
+import net.minecraft.init.Blocks
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumHand
@@ -42,6 +46,25 @@ class AcquireItemInActiveHand(
         if (currentItem != item) {
             failedWith(Exception("Failed to move item ${item.registryName} to hotbar (current item: ${currentItem.registryName})"))
         }
+    }
+
+    override fun SafeClientEvent.onChildFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {
+        if (childException !is ExtractItemFromShulkerBox.NoShulkerBoxFoundExtractException) return false
+
+        if (childException.item == Blocks.OBSIDIAN.item) {
+            addSubActivities(BreakDownEnderChests(maximumRepeats = 64))
+            return true
+        }
+
+//        addSubActivities(ExtractItemFromEnderChest(item, 1, predicateItem, predicateSlot)) // ToDo: Add this
+
+        return false
+    }
+
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        if (childActivity !is BreakDownEnderChests) return
+
+        activityStatus = ActivityStatus.UNINITIALIZED
     }
 
     class NoItemFoundException(item: Item) : Exception("No ${item.registryName} found in inventory (shulkers are disabled)")

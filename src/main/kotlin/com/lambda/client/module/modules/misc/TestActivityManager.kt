@@ -107,20 +107,6 @@ object TestActivityManager : Module(
         false
     })
 
-    private val ctiectiectie by setting("Place break obby", false, consumer = { _, _->
-        runSafe {
-//            val origin = player.flooredPosition.add(Direction.fromEntity(player).directionVec)
-
-            val origin = player.flooredPosition
-
-            ActivityManager.addSubActivities(
-                PlaceBlock(origin, Blocks.OBSIDIAN.defaultState),
-                BreakBlock(origin)
-            )
-        }
-        false
-    })
-
     private val citectie by setting("Clear out", false, consumer = { _, _->
         runSafe {
             val structure = mutableMapOf<BlockPos, IBlockState>()

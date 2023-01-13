@@ -136,6 +136,15 @@ fun SafeClientEvent.getMiningSide(pos: BlockPos): EnumFacing? {
         .minByOrNull { eyePos.squareDistanceTo(getHitVec(pos, it)) }
 }
 
+fun SafeClientEvent.getMiningSide(pos: BlockPos, range: Float): EnumFacing? {
+    val eyePos = player.getPositionEyes(1.0f)
+
+    return getVisibleSides(pos)
+        .filter { !world.getBlockState(pos.offset(it)).isFullBox }
+        .filter { eyePos.distanceTo(getHitVec(pos, it)) < range }
+        .minByOrNull { eyePos.squareDistanceTo(getHitVec(pos, it)) }
+}
+
 fun SafeClientEvent.getClosestVisibleSide(pos: BlockPos): EnumFacing? {
     val eyePos = player.getPositionEyes(1.0f)
 

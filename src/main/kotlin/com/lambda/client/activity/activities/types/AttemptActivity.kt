@@ -1,5 +1,6 @@
 package com.lambda.client.activity.activities.types
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.text.MessageSendHelper
@@ -18,7 +19,7 @@ interface AttemptActivity {
                     failedWith(MaxAttemptsExceededException(usedAttempts, causeException))
                 } else {
                     usedAttempts++
-                    MessageSendHelper.sendErrorMessage("$activityName caused ${causeException::class.simpleName}: ${causeException.message}. Attempt $usedAttempts of $maxAttempts restarting...")
+                    LambdaMod.LOG.warn("$activityName caused ${causeException::class.simpleName}: ${causeException.message}. Attempt $usedAttempts of $maxAttempts restarting...")
                     subActivities.clear()
                     initialize()
                 }

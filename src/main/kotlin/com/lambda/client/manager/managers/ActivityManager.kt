@@ -24,7 +24,7 @@ object ActivityManager : Manager, Activity(true) {
 
             val allActivities = allSubActivities
 
-            val currentActivity = currentActivity
+            val currentActivity = getCurrentActivity()
 
             allActivities.filter { it.activityStatus == ActivityStatus.PENDING }.forEach {
                 with(it) {
@@ -34,7 +34,8 @@ object ActivityManager : Manager, Activity(true) {
 
             with(currentActivity) {
                 if (activityStatus == ActivityStatus.RUNNING
-                    || activityStatus == ActivityStatus.PENDING) updateTypesOnTick(currentActivity)
+                    || activityStatus == ActivityStatus.PENDING
+                ) updateTypesOnTick(currentActivity)
             }
 
             repeat(allActivities.size * 2) {
@@ -58,32 +59,18 @@ object ActivityManager : Manager, Activity(true) {
     }
 
     private fun SafeClientEvent.updateCurrentActivity() {
-        val currentActivity = currentActivity
+        val currentActivity = getCurrentActivity()
 
         with(currentActivity) {
             BaritoneUtils.settings?.allowPlace?.value = false
             BaritoneUtils.settings?.allowBreak?.value = false
             BaritoneUtils.settings?.allowInventory?.value = false
 
-//            if (currentActivity != lastActivity) {
-//                if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING) {
-////                if (lastActivity !is ActivityManager) {
-//                    LambdaEventBus.unsubscribe(lastActivity)
-//                    ListenerManager.unregister(lastActivity)
-//                }
-//
-//                LambdaEventBus.subscribe(currentActivity)
-//                BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
-//
-//                lastActivity = currentActivity
-//            }
-
             updateActivity()
         }
     }
 
     fun reset() {
-//        if (lastActivity !is ActivityManager && lastActivity.activityStatus != ActivityStatus.PENDING)
         ListenerManager.listenerMap.keys.filterIsInstance<Activity>().forEach {
             if (it is ActivityManager) return@forEach
             LambdaEventBus.unsubscribe(it)
