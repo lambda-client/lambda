@@ -11,9 +11,7 @@ import com.lambda.client.module.modules.client.BuildTools.ignoredBlocks
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
-import com.lambda.client.util.world.getMiningSide
-import com.lambda.client.util.world.getNeighbour
-import com.lambda.client.util.world.isPlaceable
+import com.lambda.client.util.world.*
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.AxisAlignedBB
@@ -28,7 +26,14 @@ class BuildBlock(
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : AttemptActivity, RenderAABBActivity, Activity() {
-    var currentAction = Action.UNINIT
+    var action = Action.UNINIT
+    var context = Context.NONE
+
+    enum class Context(val color: ColorHolder) {
+        RESTOCK(ColorHolder()),
+        LIQUID(ColorHolder()),
+        NONE(ColorHolder())
+    }
 
     enum class Action(val color: ColorHolder) {
         BREAK(ColorHolder(222, 0, 0)),
@@ -50,41 +55,40 @@ class BuildBlock(
     }
 
     init {
-        runSafe { updateState() }
+        runSafe { updateAction() }
 
         safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.START) return@safeListener
-
-            updateState()
+            updateAction()
         }
     }
 
     override fun SafeClientEvent.onInitialize() {
-        updateState(true)
+        updateAction(true)
     }
 
-    private fun SafeClientEvent.updateState(addActivities: Boolean = false) {
+    private fun SafeClientEvent.updateAction(addActivities: Boolean = false) {
+        val owner = owner
+
+        if (owner !is BuildStructure) return
+
         val currentState = world.getBlockState(blockPos)
 
         when {
             /* is in desired state */
-            currentState.block == targetState.block -> success()
+            currentState == targetState -> success()
             /* block needs to be placed */
-            targetState.block != Blocks.AIR && world.isPlaceable(blockPos, targetState.getCollisionBoundingBox(world, blockPos)
-                ?: AxisAlignedBB(blockPos)) -> {
+            currentState.isLiquid ||
+                (targetState != Blocks.AIR.defaultState && world.isPlaceable(blockPos, targetState.getCollisionBoundingBox(world, blockPos)
+                    ?: AxisAlignedBB(blockPos))) -> {
                 if (addActivities) {
                     addSubActivities(
-                        PlaceBlock(blockPos, targetState, doPending = true)
+                        PlaceBlock(blockPos, targetState, BuildTools.doPending)
                     )
                 } else {
-                    if (getNeighbour(blockPos, 1, BuildTools.maxReach, true) != null) {
-                        currentAction = Action.PLACE
-                    } else {
-                        getNeighbour(blockPos, 1, 256f, false)?.let {
-                            currentAction = Action.WRONG_POS_PLACE
-                        } ?: run {
-                            currentAction = Action.INVALID_PLACE
-                        }
+                    action = when {
+                        getNeighbour(blockPos, 1, BuildTools.maxReach, true) != null -> Action.PLACE
+                        getNeighbour(blockPos, 1, 256f, false) != null -> Action.WRONG_POS_PLACE
+                        else -> Action.INVALID_PLACE
                     }
                 }
             }
@@ -94,27 +98,23 @@ class BuildBlock(
             else -> {
                 if (addActivities) {
                     addSubActivities(
-                        BreakBlock(blockPos, doPending = true)
+                        BreakBlock(blockPos, BuildTools.doPending)
                     )
                 } else {
-                    getMiningSide(blockPos, BuildTools.maxReach)?.let {
-                        currentAction = Action.BREAK
-                    } ?: run {
-                        getMiningSide(blockPos)?.let {
-                            currentAction = Action.WRONG_POS_BREAK
-                        } ?: run {
-                            currentAction = Action.INVALID_BREAK
-                        }
+                    action = when {
+                        getMiningSide(blockPos, BuildTools.maxReach) != null -> Action.BREAK
+                        getMiningSide(blockPos) != null -> Action.WRONG_POS_BREAK
+                        else -> Action.INVALID_BREAK
                     }
                 }
             }
         }
 
         toRender.clear()
-        currentAction.addToRenderer(this@BuildBlock)
+        action.addToRenderer(this@BuildBlock)
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
-        activityStatus = ActivityStatus.UNINITIALIZED
+        status = Status.UNINITIALIZED
     }
 }

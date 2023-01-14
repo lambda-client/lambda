@@ -24,11 +24,11 @@ class BuildStructure(
     private var currentOffset = BlockPos.ORIGIN
 
     override fun SafeClientEvent.onInitialize() {
-        structure.asSequence().sortedBy { player.distanceTo(it.key) }.forEach { (pos, state) ->
+        structure.forEach { (pos, state) ->
             val offsetPos = pos.add(currentOffset)
 
             if (isInPadding(offsetPos)) return@forEach
-            if (world.getBlockState(offsetPos).block == state.block) return@forEach
+            if (world.getBlockState(offsetPos) == state) return@forEach
 
             val activity = BuildBlock(offsetPos, state, respectIgnore)
 
@@ -47,12 +47,15 @@ class BuildStructure(
 
     override fun SafeClientEvent.getCurrentActivity(): Activity {
         subActivities
+            .asSequence()
             .filterIsInstance<BuildBlock>()
             .sortedWith(
                 compareBy<BuildBlock> {
-                    it.activityStatus.ordinal
+                    it.status
                 }.thenBy {
-                    it.currentAction.ordinal
+                    it.context
+                }.thenBy {
+                    it.action
                 }.thenBy {
                     player.distanceTo(it.blockPos)
                 }
@@ -62,6 +65,29 @@ class BuildStructure(
                 }
             } ?: return this@BuildStructure
     }
+
+//    init {
+//        safeListener<TickEvent.ClientTickEvent> { event ->
+//            if (event.phase != TickEvent.Phase.START) return@safeListener
+//
+//            structure.forEach { (pos, state) ->
+//                val offsetPos = pos.add(currentOffset)
+//
+//                if (isInPadding(offsetPos)) return@forEach
+//
+//                val blockState = world.getBlockState(offsetPos)
+//
+//                if (blockState == state) return@forEach
+//                if (!blockState.isLiquid) return@forEach
+//
+//                val activity = BuildBlock(offsetPos, state, respectIgnore)
+//
+//                addSubActivities(activity)
+//
+//                LambdaEventBus.subscribe(activity)
+//            }
+//        }
+//    }
 
     private fun SafeClientEvent.isInPadding(blockPos: BlockPos) = isBehindPos(player.flooredPosition, blockPos)
 

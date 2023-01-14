@@ -1,21 +1,21 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.activity.activities.highlevel.BuildStructure
-import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.BuildTools.defaultFillerMat
-import com.lambda.client.module.modules.client.BuildTools.maxReach
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.Block
+import net.minecraft.block.BlockColored
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
+import net.minecraft.item.EnumDyeColor
 import net.minecraft.util.math.BlockPos
 
 object HighwayTools : Module(
@@ -38,6 +38,7 @@ object HighwayTools : Module(
     private val railing by setting("Railing", true, { structure == Structure.HIGHWAY }, description = "Adds a railing/rim/border to the highway")
     private val railingHeight by setting("Railing Height", 1, 1..4, 1, { structure == Structure.HIGHWAY && railing }, description = "Sets height of railing", unit = " blocks")
     private val offset by setting("Offset", 0, -10..10, 1, description = "Sets the offset of the structure", unit = " blocks")
+    private val rainbowMode by setting("Rainbow Mode", false, description = "Rainbow mode for the structure")
 
     enum class Structure {
         HIGHWAY, TUNNEL
@@ -145,10 +146,10 @@ object HighwayTools : Module(
                 if (!cornerBlock && width > 2 && originDirection.isDiagonal) blueprint[pos] = fillerState() // support block
                 val startHeight = if (cornerBlock && width > 2) 0 else 1
                 for (y in startHeight..railingHeight) {
-                    blueprint[pos.up(y)] = material.defaultState
+                    blueprint[pos.up(y)] = if (rainbowMode) getRainbowBlockState(pos.up(y)) else material.defaultState
                 }
             } else {
-                blueprint[pos] = material.defaultState
+                blueprint[pos] = if (rainbowMode) getRainbowBlockState(pos) else material.defaultState
             }
         }
     }
@@ -199,6 +200,23 @@ object HighwayTools : Module(
 
     fun printSettings() {
 
+    }
+
+    private fun getRainbowBlockState(pos: BlockPos): IBlockState {
+        val rainbowColors = listOf(
+            EnumDyeColor.PURPLE,
+            EnumDyeColor.BLUE,
+            EnumDyeColor.CYAN,
+            EnumDyeColor.LIME,
+            EnumDyeColor.YELLOW,
+            EnumDyeColor.ORANGE,
+            EnumDyeColor.RED
+        )
+
+        return Blocks.CONCRETE.defaultState.withProperty(
+            BlockColored.COLOR,
+            rainbowColors[(originPosition.subtract(pos).z + width / 2).mod(rainbowColors.size)]
+        )
     }
 
     private fun fillerState() = defaultFillerMat.defaultState

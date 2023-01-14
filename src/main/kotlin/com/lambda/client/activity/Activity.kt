@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 abstract class Activity(private val isRoot: Boolean = false) {
     val subActivities = ConcurrentLinkedDeque<Activity>()
-    var activityStatus = ActivityStatus.UNINITIALIZED
+    var status = Status.UNINITIALIZED
     private var creationTime = 0L
     var owner: Activity = ActivityManager
     var depth = 0
@@ -73,18 +73,18 @@ abstract class Activity(private val isRoot: Boolean = false) {
     val hasNoSubActivities get() = subActivities.isEmpty()
 
     fun SafeClientEvent.updateActivity() {
-        when (activityStatus) {
-            ActivityStatus.UNINITIALIZED -> {
+        when (status) {
+            Status.UNINITIALIZED -> {
                 initialize()
             }
-            ActivityStatus.RUNNING -> {
+            Status.RUNNING -> {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
                     && hasNoSubActivities
                     && this@Activity !is EndlessActivity
                     && this@Activity !is DelayedActivity
                 ) success()
             }
-            ActivityStatus.PENDING, ActivityStatus.FAILURE -> { }
+            Status.PENDING, Status.FAILURE -> { }
         }
     }
 
@@ -98,7 +98,7 @@ abstract class Activity(private val isRoot: Boolean = false) {
     fun SafeClientEvent.initialize() {
         val activity = this@Activity
 
-        activityStatus = ActivityStatus.RUNNING
+        status = Status.RUNNING
         creationTime = System.currentTimeMillis()
         onInitialize()
 
@@ -188,7 +188,7 @@ abstract class Activity(private val isRoot: Boolean = false) {
         addSubActivities(activities.toList())
     }
 
-    enum class ActivityStatus {
+    enum class Status {
         RUNNING,
         UNINITIALIZED,
         PENDING,
@@ -203,12 +203,13 @@ abstract class Activity(private val isRoot: Boolean = false) {
             ListenerManager.asyncListenerMap[this@Activity]?.let {
                 textComponent.add("ASYNC", secondaryColor)
             }
+
             textComponent.add("Name", primaryColor)
             textComponent.add("${javaClass.simpleName} ", secondaryColor)
             textComponent.add("State", primaryColor)
-            textComponent.add(activityStatus.name, secondaryColor)
+            textComponent.add(status.name, secondaryColor)
 
-            if (activityStatus == ActivityStatus.RUNNING) {
+            if (status == Status.RUNNING) {
                 textComponent.add("Runtime", primaryColor)
                 textComponent.add(DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS"), secondaryColor)
             }
@@ -243,6 +244,7 @@ abstract class Activity(private val isRoot: Boolean = false) {
         }
         addExtraInfo(textComponent, primaryColor, secondaryColor)
         textComponent.addLine("")
+//        subActivities.filter { !(it is BuildBlock && it.activityStatus == ActivityStatus.UNINITIALIZED) }.forEach {
         subActivities.forEach {
             repeat(depth) {
                 textComponent.add("   ")
@@ -260,6 +262,6 @@ abstract class Activity(private val isRoot: Boolean = false) {
         }
 
 //        return "$activityName: [State=$activityStatus, Runtime=${DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS")}, SubActivities=${subActivities.size}$properties]"
-        return "$activityName: [State=$activityStatus, Runtime=${DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS")}, SubActivities=${subActivities.size}]"
+        return "$activityName: [State=$status, Runtime=${DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS")}, SubActivities=${subActivities.size}]"
     }
 }
