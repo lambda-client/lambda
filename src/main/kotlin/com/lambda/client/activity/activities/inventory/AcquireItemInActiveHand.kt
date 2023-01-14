@@ -3,6 +3,7 @@ package com.lambda.client.activity.activities.inventory
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
+import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.items.allSlots
@@ -18,8 +19,10 @@ class AcquireItemInActiveHand(
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true },
     private val useShulkerBoxes: Boolean = true,
-    private val useEnderChest: Boolean = false
-) : Activity() {
+    private val useEnderChest: Boolean = false,
+    override val maxAttempts: Int = 3,
+    override var usedAttempts: Int = 0
+) : AttemptActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.hotbarSlots.firstOrNull { slot ->
             slot.stack.item == item && predicateItem(slot.stack)
@@ -64,7 +67,7 @@ class AcquireItemInActiveHand(
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         if (childActivity !is BreakDownEnderChests) return
 
-        activityStatus = ActivityStatus.UNINITIALIZED
+        status = Status.UNINITIALIZED
     }
 
     class NoItemFoundException(item: Item) : Exception("No ${item.registryName} found in inventory (shulkers are disabled)")

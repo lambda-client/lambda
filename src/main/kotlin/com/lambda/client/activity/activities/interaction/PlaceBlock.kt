@@ -11,6 +11,7 @@ import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.modules.client.BuildTools
+import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
 import com.lambda.client.util.items.blockBlacklist
@@ -21,7 +22,9 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
+import net.minecraft.block.BlockColored
 import net.minecraft.block.state.IBlockState
+import net.minecraft.item.EnumDyeColor
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
@@ -45,7 +48,7 @@ class PlaceBlock(
     ).also { toRender.add(it) }
 
     override fun SafeClientEvent.onInitialize() {
-        if (world.getBlockState(blockPos).block == targetState.block) {
+        if (world.getBlockState(blockPos) == targetState) {
             success()
             return
         }
@@ -55,7 +58,18 @@ class PlaceBlock(
             return
         }
 
-        if (player.getHeldItem(EnumHand.MAIN_HAND).item.block != targetState.block) {
+        if (targetState.block is BlockColored) {
+            targetState.properties.entries.firstOrNull { it.key == BlockColored.COLOR }?.let { entry ->
+                val meta = (entry.value as EnumDyeColor).metadata
+
+                if (player.getHeldItem(EnumHand.MAIN_HAND).metadata != meta) {
+                    addSubActivities(AcquireItemInActiveHand(targetState.block.item, predicateItem = {
+                        it.metadata == meta
+                    }))
+                    return
+                }
+            }
+        } else if (player.getHeldItem(EnumHand.MAIN_HAND).item.block != targetState.block) {
             addSubActivities(AcquireItemInActiveHand(targetState.block.item))
             return
         }
@@ -85,13 +99,13 @@ class PlaceBlock(
 
             if (doPending) {
                 if (BuildTools.placeDelay == 0) {
-                    owner.activityStatus = ActivityStatus.PENDING
+                    owner.status = Status.PENDING
                 } else {
                     addSubActivities(Wait(BuildTools.placeDelay * 50L))
                 }
             }
         } ?: run {
-            addSubActivities(PlaceGoal(blockPos))
+            if (autoPathing) addSubActivities(PlaceGoal(blockPos))
 //            failedWith(NoNeighbourException(blockPos))
         }
     }
@@ -100,7 +114,7 @@ class PlaceBlock(
         safeListener<PacketEvent.PostReceive> {
             if (it.packet is SPacketBlockChange
                 && it.packet.blockPosition == blockPos
-                && it.packet.blockState.block == targetState.block // TODO: Calculate correct resulting state of placed block to enable rotation checks
+                && it.packet.blockState == targetState
             ) {
                 success()
             }
@@ -111,11 +125,11 @@ class PlaceBlock(
         when (childActivity) {
             is Wait -> {
                 if (doPending) {
-                    owner.activityStatus = ActivityStatus.PENDING
+                    owner.status = Status.PENDING
                 }
             }
             else -> {
-                activityStatus = ActivityStatus.UNINITIALIZED
+                status = Status.UNINITIALIZED
             }
         }
     }

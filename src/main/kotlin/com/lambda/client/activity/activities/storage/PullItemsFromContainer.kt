@@ -4,7 +4,7 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.QuickMoveSlot
 import com.lambda.client.activity.activities.inventory.SwapWithSlot
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.module.modules.player.InventoryManager
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.getSlots
 import net.minecraft.item.Item
@@ -39,7 +39,7 @@ class PullItemsFromContainer( // ToDo: fix take for full inv
             }
 
             playerInventory.firstOrNull { slot ->
-                InventoryManager.ejectList.contains(slot.stack.item.registryName.toString())
+                BuildTools.ejectList.contains(slot.stack.item.registryName.toString())
             }?.let {
                 val firstHotbarSlot = player.openContainer.inventorySlots[54].slotNumber
 

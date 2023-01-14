@@ -7,7 +7,7 @@ import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.module.modules.player.InventoryManager
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countItem
 import com.lambda.client.util.items.item
@@ -22,7 +22,7 @@ class BreakDownEnderChests(
 ) : RepeatingActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         val freeSlots = player.allSlots.filter { slot ->
-            InventoryManager.ejectList.contains(slot.stack.item.registryName.toString()) || slot.stack.isEmpty
+            BuildTools.ejectList.contains(slot.stack.item.registryName.toString()) || slot.stack.isEmpty
         }
 
         if (freeSlots.isEmpty()) {

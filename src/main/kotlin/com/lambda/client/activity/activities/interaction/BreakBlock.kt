@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.highlevel.BuildBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.travel.PickUpDrops
@@ -12,6 +13,7 @@ import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.modules.client.BuildTools
+import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
 import com.lambda.client.util.math.RotationUtils.getRotationTo
@@ -19,23 +21,26 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
+import com.lambda.client.util.world.isLiquid
 import net.minecraft.block.material.Material
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
 import net.minecraft.network.play.server.SPacketBlockChange
+import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
+import kotlin.collections.ArrayDeque
 import kotlin.math.ceil
 
 class BreakBlock(
     private val blockPos: BlockPos,
-    private val miningSpeedFactor: Float = 1.0f,
-    private val collectDrops: Boolean = false,
-    private val minCollectAmount: Int = 1,
     private val doPending: Boolean = false,
+    private val collectDrops: Boolean = false,
+    private val miningSpeedFactor: Float = 1.0f,
+    private val minCollectAmount: Int = 1,
     override var timeout: Long = 200L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
@@ -60,9 +65,35 @@ class BreakBlock(
         }
 
         if (player.getHeldItem(EnumHand.MAIN_HAND).item != Items.DIAMOND_PICKAXE) { // ToDo: get optimal tool
+            val owner = owner
+
+            if (owner is BuildBlock) {
+                owner.context = BuildBlock.Context.RESTOCK
+            }
+
             addSubActivities(AcquireItemInActiveHand(Items.DIAMOND_PICKAXE))
             return
         }
+
+        var needToHandleLiquid = false
+
+        EnumFacing.values().forEach {
+            if (it == EnumFacing.DOWN) return@forEach
+
+            val neighbour = blockPos.offset(it)
+            if (world.getBlockState(neighbour).isLiquid) {
+                val owner = owner
+
+                if (owner is BuildBlock) {
+                    owner.context = BuildBlock.Context.LIQUID
+                }
+
+                addSubActivities(PlaceBlock(neighbour, BuildTools.defaultFillerMat.defaultState))
+                needToHandleLiquid = true
+            }
+        }
+
+        if (needToHandleLiquid) return
 
         initState = currentState
         drop = currentState.block.getItemDropped(currentState, Random(), 0)
@@ -72,7 +103,7 @@ class BreakBlock(
         ticksNeeded = ceil((1 / currentState.getPlayerRelativeBlockHardness(player, world, blockPos)) * miningSpeedFactor).toInt()
         timeout = ticksNeeded * 50L + 2000L
 
-        if (!(doPending && (ticksNeeded == 1 || player.capabilities.isCreativeMode))) return
+        if (!(ticksNeeded == 1 || player.capabilities.isCreativeMode)) return
 
         getMiningSide(blockPos, BuildTools.maxReach)?.let { side ->
             rotation = getRotationTo(getHitVec(blockPos, side))
@@ -82,9 +113,9 @@ class BreakBlock(
             player.swingArm(EnumHand.MAIN_HAND)
 
             if (BuildTools.breakDelay == 0) {
-                owner.activityStatus = ActivityStatus.PENDING
+                setBuildBlockOnPending()
             } else {
-                addSubActivities(Wait(BuildTools.placeDelay * 50L))
+                addSubActivities(Wait(BuildTools.placeDelay * 50L - 5L))
             }
         }
     }
@@ -92,6 +123,7 @@ class BreakBlock(
     init {
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
+            if (owner.status == Status.PENDING) return@safeListener
 
             getMiningSide(blockPos, BuildTools.maxReach)?.let { side ->
                 rotation = getRotationTo(getHitVec(blockPos, side))
@@ -102,13 +134,13 @@ class BreakBlock(
 
                 if (doPending && (ticksNeeded == 1 || player.capabilities.isCreativeMode)) {
                     if (BuildTools.breakDelay == 0) {
-                        owner.activityStatus = ActivityStatus.PENDING
+                        owner.status = Status.PENDING
                     } else {
                         addSubActivities(Wait(BuildTools.placeDelay * 50L - 5L))
                     }
                 }
             } ?: run {
-                if (subActivities.filterIsInstance<BreakGoal>().isEmpty()) {
+                if (autoPathing && subActivities.filterIsInstance<BreakGoal>().isEmpty()) {
                     addSubActivities(BreakGoal(blockPos))
                 }
             }
@@ -119,7 +151,7 @@ class BreakBlock(
                 && it.packet.blockPosition == blockPos
                 && it.packet.blockState.block == Blocks.AIR
             ) {
-                if (!collectDrops) {
+                if (!collectDrops || !autoPathing) {
                     success()
                     return@safeListener
                 }
@@ -140,19 +172,30 @@ class BreakBlock(
             is PickUpDrops -> {
                 success()
             }
-            is Wait -> {
-                if (!doPending) return
-
-                owner.activityStatus = ActivityStatus.PENDING
-            }
-            is AcquireItemInActiveHand -> {
-                activityStatus = ActivityStatus.UNINITIALIZED
+            is Wait -> setBuildBlockOnPending()
+            is AcquireItemInActiveHand, is PlaceBlock -> {
+                status = Status.UNINITIALIZED
             }
         }
+    }
+
+    override fun SafeClientEvent.onChildFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {
+        if (childException !is BreakGoal.NoPathToBreakFound) return false
+
+        if (owner !is BuildBlock) return false
+
+        owner.status = Status.UNINITIALIZED
+        return true
     }
 
     override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
         playerController.resetBlockRemoving()
         return false
+    }
+
+    private fun setBuildBlockOnPending() {
+        if (!doPending || owner !is BuildBlock) return
+
+        owner.status = Status.PENDING
     }
 }

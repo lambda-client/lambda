@@ -4,7 +4,6 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
-import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.modules.client.BuildTools
@@ -26,15 +25,15 @@ object ActivityManager : Manager, Activity(true) {
 
             val currentActivity = getCurrentActivity()
 
-            allActivities.filter { it.activityStatus == ActivityStatus.PENDING }.forEach {
+            allActivities.filter { it.status == Status.PENDING }.forEach {
                 with(it) {
                     updateTypesOnTick(it)
                 }
             }
 
             with(currentActivity) {
-                if (activityStatus == ActivityStatus.RUNNING
-                    || activityStatus == ActivityStatus.PENDING
+                if (status == Status.RUNNING
+                    || status == Status.PENDING
                 ) updateTypesOnTick(currentActivity)
             }
 

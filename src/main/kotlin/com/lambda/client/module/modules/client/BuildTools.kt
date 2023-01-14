@@ -21,6 +21,7 @@ object BuildTools : Module(
 
     /* behavior */
     val maxReach by setting("Max Reach", 4.9f, 1.0f..7.0f, 0.1f, { page == Page.BUILDING }, description = "Sets the range of the blueprint. Decrease when tasks fail!", unit = " blocks")
+    val autoPathing by setting("Auto Pathing", true, { page == Page.BUILDING }, description = "Automatically pathfind to the next block")
 //    val moveSpeed by setting("Packet Move Speed", 0.2, 0.0..1.0, 0.01, { page == Page.BEHAVIOR }, description = "Maximum player velocity per tick", unit = "m/t")
 //    val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR }, description = "Timeout for waiting for the server to try again", unit = " ticks")
 //    val maxRetries by setting("Max Task Retries", 3, 0..10, 1, { page == Page.BEHAVIOR }, description = "Maximum amount of timeouts for a task")
@@ -41,6 +42,7 @@ object BuildTools : Module(
     val placeDelay by setting("Place Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between placement tasks", unit = " ticks")
     val breakDownCycles by setting("Break Down", 64, 1..200, 1, { page == Page.BUILDING }, description = "", unit = " ender chests")
     val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
+    val doPending by setting("Do Pending", true, { page == Page.BUILDING }, description = "Do not wait for server to confirm action")
 //    val scaffold by setting("Scaffold", true, { page == Page.PLACING }, description = "Tries to bridge / scaffold when stuck placing")
 //    val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.PLACING }, description = "EXPERIMENTAL: Attempts to find a support block for placing against", unit = " blocks")
 
