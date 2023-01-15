@@ -1,7 +1,7 @@
 package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
-import com.lambda.client.event.events.PlayerTravelEvent;
+import com.lambda.client.event.events.PlayerEvent;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.MoverType;
@@ -23,7 +23,7 @@ public abstract class MixinEntityPlayer extends EntityLivingBase {
     public void travel(float strafe, float vertical, float forward, CallbackInfo info) {
         //noinspection ConstantConditions
         if (EntityPlayerSP.class.isAssignableFrom(this.getClass())) {
-            PlayerTravelEvent event = new PlayerTravelEvent();
+            PlayerEvent.Travel event = new PlayerEvent.Travel();
             LambdaEventBus.INSTANCE.post(event);
             if (event.getCancelled()) {
                 move(MoverType.SELF, motionX, motionY, motionZ);

@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.ColorHolder
@@ -31,7 +31,7 @@ object SelectionHighlight : Module(
     private val renderer = ESPRenderer()
 
     init {
-        safeListener<RenderWorldEvent> {
+        safeListener<CWorldEvent.RenderTickEvent> {
             val viewEntity = mc.renderViewEntity ?: player
             val eyePos = viewEntity.getPositionEyes(LambdaTessellator.pTicks())
             if (!world.isAirBlock(eyePos.toBlockPos())) return@safeListener

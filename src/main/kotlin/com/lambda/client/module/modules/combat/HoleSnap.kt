@@ -3,9 +3,9 @@ package com.lambda.client.module.modules.combat
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.commons.extension.toRadian
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerMoveEvent
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -52,7 +52,7 @@ object HoleSnap : Module(
             stuckTicks = 0
         }
 
-        safeListener<RenderWorldEvent>(1) {
+        safeListener<CWorldEvent.RenderTickEvent>(1) {
             holePos?.let {
                 if (player.flooredPosition == it) return@safeListener
 
@@ -83,7 +83,7 @@ object HoleSnap : Module(
             }
         }
 
-        safeAsyncListener<PlayerMoveEvent> {
+        safeAsyncListener<PlayerEvent.Move> {
             if (!player.isEntityAlive) return@safeAsyncListener
 
             val currentSpeed = player.speed

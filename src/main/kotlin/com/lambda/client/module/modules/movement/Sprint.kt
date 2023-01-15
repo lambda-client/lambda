@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerMoveEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
@@ -42,7 +42,7 @@ object Sprint : Module(
             }
         }
 
-        safeListener<PlayerMoveEvent> {
+        safeListener<PlayerEvent.Move> {
             if (instant && player.onGround && player.isSprinting && !player.isSneaking && isInputting) {
                 val speed = player.speed
                 val targetSpeed = applySpeedPotionEffects(0.2805)

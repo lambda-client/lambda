@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PlayerMoveEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.flooredPosition
@@ -36,7 +36,7 @@ object Anchor : Module(
             wasInHole = false
         }
 
-        safeListener<PlayerMoveEvent> {
+        safeListener<PlayerEvent.Move> {
             val isInHole = player.onGround && isHole(player.flooredPosition)
             val validPitch = !pitchTrigger || player.rotationPitch > pitch
 

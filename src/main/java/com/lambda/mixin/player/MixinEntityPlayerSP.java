@@ -1,8 +1,7 @@
 package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
-import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent;
-import com.lambda.client.event.events.PlayerMoveEvent;
+import com.lambda.client.event.events.PlayerEvent;
 import com.lambda.client.gui.mc.LambdaGuiBeacon;
 import com.lambda.client.manager.managers.MessageManager;
 import com.lambda.client.manager.managers.PlayerPacketManager;
@@ -89,7 +88,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         EntityPlayerSP player = Wrapper.getPlayer();
         if (player == null) return;
 
-        PlayerMoveEvent event = new PlayerMoveEvent(player);
+        PlayerEvent.Move event = new PlayerEvent.Move(player);
         LambdaEventBus.INSTANCE.post(event);
 
         if (event.isModified()) {
@@ -146,7 +145,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         boolean moving = isMoving(position);
         boolean rotating = isRotating(rotation);
 
-        OnUpdateWalkingPlayerEvent event = new OnUpdateWalkingPlayerEvent(moving, rotating, position, rotation);
+        PlayerEvent.UpdateWalking event = new PlayerEvent.UpdateWalking(moving, rotating, position, rotation);
         LambdaEventBus.INSTANCE.post(event);
 
         event = event.nextPhase();

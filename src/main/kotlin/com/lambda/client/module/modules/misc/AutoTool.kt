@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PlayerAttackEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -13,7 +13,6 @@ import com.lambda.client.util.items.*
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
-import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.Enchantments
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -38,8 +37,8 @@ object AutoTool : Module(
             if (shouldMoveBack || !switchBack.value) equipBestTool(world.getBlockState(it.pos))
         }
 
-        safeListener<PlayerAttackEvent> {
-            if (swapWeapon && it.entity is EntityLivingBase) equipBestWeapon(preferWeapon)
+        safeListener<PlayerEvent.Attack> {
+            if (swapWeapon) equipBestWeapon(preferWeapon)
         }
 
         safeListener<TickEvent.ClientTickEvent> {

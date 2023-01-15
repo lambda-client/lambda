@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.mixin.extension.playerPosLookPitch
 import com.lambda.client.mixin.extension.playerPosLookYaw
 import com.lambda.client.module.Category
@@ -116,7 +116,7 @@ object BoatFly : Module(
             }
         }
 
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             val ridingEntity = player.ridingEntity
             if (ridingEntity !is EntityBoat) return@safeListener
 

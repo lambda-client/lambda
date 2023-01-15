@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.combat
 import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerAttackEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.isInWeb
 import com.lambda.client.module.Category
@@ -58,8 +58,8 @@ object Criticals : Module(
             }
         }
 
-        safeListener<PlayerAttackEvent>(0) {
-            if (it.cancelled || attacking || it.entity !is EntityLivingBase || !canDoCriticals(true)) return@safeListener
+        safeListener<PlayerEvent.Attack>(0) {
+            if (it.cancelled || attacking || it.target !is EntityLivingBase || !canDoCriticals(true)) return@safeListener
 
             val cooldownReady = player.onGround && player.getCooledAttackStrength(0.5f) > 0.9f
 
@@ -103,14 +103,14 @@ object Criticals : Module(
         target = null
     }
 
-    private fun SafeClientEvent.jumpAndCancel(event: PlayerAttackEvent, cooldownReady: Boolean, motion: Double?) {
+    private fun SafeClientEvent.jumpAndCancel(event: PlayerEvent.Attack, cooldownReady: Boolean, motion: Double?) {
         if (cooldownReady && !delaying()) {
             player.jump()
             if (motion != null) player.motionY = motion
-            target = event.entity
+            target = event.target
 
             if (playerController.currentGameType != GameType.SPECTATOR) {
-                player.attackTargetEntityWithCurrentItem(event.entity)
+                player.attackTargetEntityWithCurrentItem(event.target)
                 player.resetCooldown()
             }
 

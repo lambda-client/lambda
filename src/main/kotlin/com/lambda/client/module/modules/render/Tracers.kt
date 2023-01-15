@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.commons.utils.MathUtils.convertRange
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.module.Category
@@ -65,7 +65,7 @@ object Tracers : Module(
     private val renderer = ESPRenderer()
 
     init {
-        listener<RenderWorldEvent> {
+        listener<CWorldEvent.RenderTickEvent> {
             renderer.aTracer = alpha
             renderer.thickness = thickness
             renderer.tracerOffset = yOffset

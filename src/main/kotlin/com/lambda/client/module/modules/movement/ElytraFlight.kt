@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.movement
 import com.lambda.client.commons.extension.toRadian
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.mixin.extension.boostedEntity
 import com.lambda.client.mixin.extension.playerPosLookPitch
@@ -148,7 +148,7 @@ object ElytraFlight : Module(
             }
         }
 
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             if (player.isSpectator) return@safeListener
             stateUpdate(it)
             if (elytraIsEquipped && elytraDurability > 1) {
@@ -178,7 +178,7 @@ object ElytraFlight : Module(
     /* End of Event Listeners */
 
     /* Generic Functions */
-    private fun SafeClientEvent.stateUpdate(event: PlayerTravelEvent) {
+    private fun SafeClientEvent.stateUpdate(event: PlayerEvent.Travel) {
         /* Elytra Check */
         val armorSlot = player.inventory.armorInventory[2]
         elytraIsEquipped = armorSlot.item == Items.ELYTRA
@@ -244,14 +244,14 @@ object ElytraFlight : Module(
     }
 
     /* Holds player in the air */
-    private fun SafeClientEvent.holdPlayer(event: PlayerTravelEvent) {
+    private fun SafeClientEvent.holdPlayer(event: PlayerEvent.Travel) {
         event.cancel()
         mc.timer.tickLength = 50.0f
         player.setVelocity(0.0, -0.01, 0.0)
     }
 
     /* Auto landing */
-    private fun SafeClientEvent.landing(event: PlayerTravelEvent) {
+    private fun SafeClientEvent.landing(event: PlayerEvent.Travel) {
         when {
             player.onGround -> {
                 sendChatMessage("$chatName Landed!")
@@ -291,7 +291,7 @@ object ElytraFlight : Module(
     }
 
     /* The best takeoff method <3 */
-    private fun SafeClientEvent.takeoff(event: PlayerTravelEvent) {
+    private fun SafeClientEvent.takeoff(event: PlayerEvent.Travel) {
         /* Pause Takeoff if server is lagging, player is in water/lava, or player is on ground */
         val timerSpeed = if (highPingOptimize) 400.0f else 200.0f
         val height = if (highPingOptimize) 0.0f else minTakeoffHeight
@@ -378,7 +378,7 @@ object ElytraFlight : Module(
     }
 
     /* Control Mode */
-    private fun SafeClientEvent.controlMode(event: PlayerTravelEvent) {
+    private fun SafeClientEvent.controlMode(event: PlayerEvent.Travel) {
         /* States and movement input */
         val currentSpeed = sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)
         val moveUp = if (!legacyLookBoost) player.movementInput.jump else player.rotationPitch < -10.0f && !isStandingStillH
@@ -470,7 +470,7 @@ object ElytraFlight : Module(
     }
 
     /* Packet Mode */
-    private fun SafeClientEvent.packetMode(event: PlayerTravelEvent) {
+    private fun SafeClientEvent.packetMode(event: PlayerEvent.Travel) {
         isPacketFlying = !player.onGround
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_FALL_FLYING))
 

@@ -7,7 +7,7 @@ import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerAttackEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -131,8 +131,8 @@ object Freecam : Module(
             if (it.packet.getEntityFromWorld(world) == player) it.cancel()
         }
 
-        safeListener<PlayerAttackEvent> {
-            if (it.entity == player) it.cancel()
+        safeListener<PlayerEvent.Attack> {
+            if (it.target == player) it.cancel()
         }
 
         safeListener<InputEvent.KeyInputEvent> {

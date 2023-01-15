@@ -77,7 +77,7 @@ object WaypointRender : Module(
     private val lockObject = Any()
 
     init {
-        safeListener<RenderWorldEvent> {
+        safeListener<CWorldEvent.RenderTickEvent> {
             if (waypointMap.isEmpty() || renderMode == RenderMode.RADAR) return@safeListener
 
             val renderer = ESPRenderer()

@@ -1,8 +1,8 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.events.BlockBreakEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.event.events.RenderOverlayEvent
-import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -49,7 +49,7 @@ object BreakingESP : Module(
     private var warningText = ""
 
     init {
-        safeListener<RenderWorldEvent> {
+        safeListener<CWorldEvent.RenderTickEvent> {
             val renderer = ESPRenderer()
             renderer.aFilled = if (filled) aFilled else 0
             renderer.aOutline = if (outline) aOutline else 0

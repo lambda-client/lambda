@@ -1,8 +1,8 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.event.Phase
-import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.event.events.RenderEntityEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
@@ -30,7 +30,7 @@ object PlayerPacketManager : Manager {
     private var clientSidePitch = Vec2f.ZERO
 
     init {
-        listener<OnUpdateWalkingPlayerEvent>(Int.MIN_VALUE) {
+        listener<PlayerEvent.UpdateWalking>(Int.MIN_VALUE) {
             if (it.phase != Phase.PERI || packetMap.isEmpty()) return@listener
 
             it.apply(packetMap.values.first())

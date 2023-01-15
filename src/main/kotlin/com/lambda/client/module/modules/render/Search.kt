@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.render
 
 import com.lambda.client.command.CommandManager
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
@@ -71,7 +71,7 @@ object Search : Module(
             }
         }
 
-        safeListener<RenderWorldEvent> {
+        safeListener<CWorldEvent.RenderTickEvent> {
             renderer.render(false)
 
             if (updateTimer.tick(updateDelay.toLong())) {

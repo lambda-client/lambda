@@ -1,7 +1,7 @@
 package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
-import com.lambda.client.event.events.PlayerAttackEvent;
+import com.lambda.client.event.events.PlayerEvent;
 import com.lambda.client.event.events.WindowClickEvent;
 import com.lambda.client.module.modules.player.AutoEat;
 import com.lambda.client.module.modules.player.TpsSync;
@@ -9,6 +9,7 @@ import com.lambda.client.util.TpsCalculator;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.item.ItemStack;
@@ -30,17 +31,14 @@ public class MixinPlayerControllerMP {
         return state.getPlayerRelativeBlockHardness(player, worldIn, pos) * (TpsSync.INSTANCE.isEnabled() ? (TpsCalculator.INSTANCE.getTickRate() / 20f) : 1);
     }
 
-    @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "attackEntity", at = @At("HEAD"))
     public void attackEntity(EntityPlayer playerIn, Entity targetEntity, CallbackInfo ci) {
         if (targetEntity == null) return;
-        PlayerAttackEvent event = new PlayerAttackEvent(targetEntity);
+        PlayerEvent.Attack event = new PlayerEvent.Attack((EntityLivingBase) targetEntity);
         LambdaEventBus.INSTANCE.post(event);
-        if (event.getCancelled()) {
-            ci.cancel();
-        }
     }
 
-    @Inject(method = "windowClick", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "windowClick", at = @At("HEAD"))
     public void onWindowClick(int windowId, int slotId, int mouseButton, ClickType type, EntityPlayer player, CallbackInfoReturnable<ItemStack> cir) {
         WindowClickEvent event = new WindowClickEvent(windowId, slotId, mouseButton, type);
         LambdaEventBus.INSTANCE.post(event);

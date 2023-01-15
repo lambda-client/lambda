@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.misc
 
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.event.events.ConnectionEvent
-import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.asyncListener
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.WaypointManager
@@ -93,7 +93,7 @@ object LogoutLogger : Module(
             if (clearEsp) loggedOutPlayers.clear()
         }
 
-        listener<RenderWorldEvent> {
+        listener<CWorldEvent.RenderTickEvent> {
             if (!esp) return@listener
 
             renderer.aFilled = espFilledAlpha

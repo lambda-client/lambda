@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.TickTimer
@@ -37,7 +37,7 @@ object VoidESP : Module(
     private val timer = TickTimer()
 
     init {
-        safeListener<RenderWorldEvent> {
+        safeListener<CWorldEvent.RenderTickEvent> {
             if (timer.tick(133L)) { // Avoid running this on a tick
                 updateRenderer()
             }

@@ -1,9 +1,8 @@
 package com.lambda.client.module.modules.movement
 
 import com.lambda.client.event.Phase
-import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.PacketManager
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
@@ -57,7 +56,7 @@ object Flight : Module(
             }
         }
 
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             when (mode) {
                 FlightMode.PACKET -> {
                     it.cancel()
@@ -116,7 +115,7 @@ object Flight : Module(
             }
         }
 
-        listener<OnUpdateWalkingPlayerEvent> {
+        listener<PlayerEvent.UpdateWalking> {
             if (it.phase != Phase.PRE || mode != FlightMode.PACKET) return@listener
             sendPlayerPacket {
                 cancelAll()

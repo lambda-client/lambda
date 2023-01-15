@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.module.Category
@@ -69,7 +69,7 @@ object AntiLevitation : Module(
             }
         }
 
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             if (!ready) return@safeListener
 
             if (mode == Mode.FLIGHT) {

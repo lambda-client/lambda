@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.FastUse
@@ -48,7 +48,7 @@ object Trajectories : Module(
             prevItemUseCount = player.itemInUseCount
         }
 
-        safeListener<RenderWorldEvent> {
+        safeListener<CWorldEvent.RenderTickEvent> {
             val type = getThrowingType(player.heldItemMainhand) ?: getThrowingType(player.heldItemOffhand)
             ?: return@safeListener
             val path = ArrayList<Vec3d>()

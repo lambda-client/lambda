@@ -2,9 +2,9 @@ package com.lambda.client.module.modules.render
 
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderRadarEvent
-import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
@@ -87,7 +87,7 @@ object NewChunks : Module(
             }
         }
 
-        safeListener<RenderWorldEvent> {
+        safeListener<CWorldEvent.RenderTickEvent> {
             if (renderMode == RenderMode.RADAR) return@safeListener
 
             val y = yOffset.toDouble() + if (relative) getInterpolatedPos(player, LambdaTessellator.pTicks()).y else 0.0

@@ -1,33 +1,38 @@
 package com.lambda.client.event
 
 import com.lambda.client.command.CommandManager
-import com.lambda.client.event.events.BaritoneCommandEvent
-import com.lambda.client.event.events.ConnectionEvent
-import com.lambda.client.event.events.RenderWorldEvent
-import com.lambda.client.event.events.ResolutionUpdateEvent
+import com.lambda.client.event.events.*
 import com.lambda.client.gui.mc.LambdaGuiChat
+import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.module.ModuleManager
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.text.MessageDetection
+import net.minecraft.item.ItemFood
 import net.minecraftforge.client.event.*
+import net.minecraftforge.event.entity.EntityJoinWorldEvent
+import net.minecraftforge.event.entity.living.LivingDeathEvent
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
 import net.minecraftforge.event.entity.player.PlayerInteractEvent
 import net.minecraftforge.event.world.BlockEvent
+import net.minecraftforge.event.world.ExplosionEvent
 import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent.PlayerTickEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
+
 
 internal object ForgeEventProcessor {
     private val mc = Wrapper.minecraft
     private var prevWidth = mc.displayWidth
     private var prevHeight = mc.displayHeight
+    private var prevFoodLevel = -1
 
     @SubscribeEvent
     fun onTick(event: TickEvent.ClientTickEvent) {
@@ -49,11 +54,25 @@ internal object ForgeEventProcessor {
     }
 
     @SubscribeEvent
+    fun onPlayerTick(event: PlayerTickEvent) {
+        if (event.player.foodStats.foodLevel != prevFoodLevel) {
+            if (prevFoodLevel == -1) {
+                prevFoodLevel = event.player.foodStats.foodLevel
+            } else {
+                prevFoodLevel = event.player.foodStats.foodLevel
+                val result = PlayerEvent.OnEatFinish(event.player)
+                LambdaEventBus.post(result)
+                prevFoodLevel = event.player.foodStats.foodLevel
+            }
+        }
+    }
+
+    @SubscribeEvent
     @Suppress("UNUSED_PARAMETER")
     fun onWorldRender(event: RenderWorldLastEvent) {
         ProjectionUtils.updateMatrix()
         LambdaTessellator.prepareGL()
-        LambdaEventBus.post(RenderWorldEvent())
+        LambdaEventBus.post(com.lambda.client.event.events.CWorldEvent.RenderTickEvent())
         LambdaTessellator.releaseGL()
     }
 
@@ -130,6 +149,12 @@ internal object ForgeEventProcessor {
 
     @SubscribeEvent
     fun onPlayerInteractEvent(event: PlayerInteractEvent) {
+        event.itemStack.let {
+            if (it.item is ItemFood) {
+                val result = PlayerEvent.OnEatStart(mc.player, it.item as ItemFood)
+                LambdaEventBus.post(result)
+            }
+        }
         LambdaEventBus.post(event)
     }
 
@@ -164,5 +189,46 @@ internal object ForgeEventProcessor {
     @SubscribeEvent
     fun onRenderFogColors(event: EntityViewRenderEvent.FogColors) {
         LambdaEventBus.post(event)
+    }
+
+    @SubscribeEvent
+    fun onEntityJoinWorld(event: EntityJoinWorldEvent) {
+        com.lambda.client.event.events.CWorldEvent.EntityCreate(event.entity).let {
+            LambdaEventBus.post(it)
+        }
+    }
+
+    @SubscribeEvent
+    fun onPlayerJoin(event: net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent) {
+        val result = com.lambda.client.event.events.CWorldEvent.Join(event.player)
+        LambdaEventBus.post(result)
+    }
+
+    @SubscribeEvent
+    fun onPlayerLeave(event: net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent) {
+        val result = com.lambda.client.event.events.CWorldEvent.Leave(event.player)
+        LambdaEventBus.post(result)
+    }
+
+    @SubscribeEvent
+    fun onEntityDeath(event: LivingDeathEvent) {
+        if (event.entity == CombatManager.target) {
+            val result = TargetEvent.Death(event.entity)
+            LambdaEventBus.post(result)
+        }
+        val result = com.lambda.client.event.events.CWorldEvent.EntityDestroy(event.entity)
+        LambdaEventBus.post(result)
+    }
+
+    @SubscribeEvent
+    fun onPreExplode(event: ExplosionEvent.Start) {
+        val result = com.lambda.client.event.events.CWorldEvent.PreExplosion(event.explosion)
+        LambdaEventBus.post(result)
+    }
+
+    @SubscribeEvent
+    fun onPostExplode(event: ExplosionEvent.Detonate) {
+        val result = com.lambda.client.event.events.CWorldEvent.PostExplosion(event.explosion)
+        LambdaEventBus.post(result)
     }
 }

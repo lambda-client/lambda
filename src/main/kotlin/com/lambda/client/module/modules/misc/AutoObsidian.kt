@@ -5,7 +5,7 @@ import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.BlockBreakEvent
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.CWorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.module.Category
@@ -144,7 +144,7 @@ object AutoObsidian : Module(
             }
         }
 
-        listener<RenderWorldEvent> {
+        listener<CWorldEvent.RenderTickEvent> {
             if (state != State.DONE) renderer.render(clear = false, cull = true)
         }
 

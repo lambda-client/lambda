@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.movement
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.mixin.extension.playerMoving
 import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
@@ -37,7 +37,7 @@ object Jesus : Module(
             BaritoneUtils.settings?.assumeWalkOnWater?.value = it
         }
 
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             if (mc.gameSettings.keyBindSneak.isKeyDown || player.fallDistance > 3.0f || !isInWater(player)) return@safeListener
 
             if (mode == Mode.DOLPHIN) {

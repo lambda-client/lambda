@@ -2,9 +2,8 @@ package com.lambda.client.module.modules.player
 
 import com.lambda.client.event.Phase
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
@@ -77,7 +76,7 @@ object Scaffold : Module(
             rubberBandTimer.reset()
         }
 
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || inactiveTicks > 5 || !isHoldingBlock) return@safeListener
             if (rubberBandTimer.tick(10, false)) {
                 if (shouldTower) player.motionY = 0.41999998688697815
@@ -95,7 +94,7 @@ object Scaffold : Module(
             && player.posY - floor(player.posY) <= 0.1
 
     init {
-        safeListener<OnUpdateWalkingPlayerEvent> { event ->
+        safeListener<PlayerEvent.UpdateWalking> { event ->
             if (event.phase != Phase.PRE) return@safeListener
 
             inactiveTicks++

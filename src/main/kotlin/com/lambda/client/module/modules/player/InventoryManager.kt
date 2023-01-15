@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.player
 
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -63,7 +63,7 @@ object InventoryManager : Module(
             unpauseBaritone()
         }
 
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             if (player.isSpectator || !pauseMovement || !isBaritonePaused) return@safeListener
             player.setVelocity(0.0, player.motionY, 0.0)
             it.cancel()

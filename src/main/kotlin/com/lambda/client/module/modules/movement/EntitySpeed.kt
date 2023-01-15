@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.steerEntity
@@ -20,7 +20,7 @@ object EntitySpeed : Module(
     private val antiStuck by setting("Anti Stuck", true)
 
     init {
-        safeListener<PlayerTravelEvent> {
+        safeListener<PlayerEvent.Travel> {
             player.ridingEntity?.let { entity ->
                 var tamper = false
                 val speed = when {
