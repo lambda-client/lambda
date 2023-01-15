@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.render
 
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.CWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderRadarEvent
 import com.lambda.client.module.Category
@@ -87,7 +87,7 @@ object NewChunks : Module(
             }
         }
 
-        safeListener<CWorldEvent.RenderTickEvent> {
+        safeListener<WorldEvent.RenderTickEvent> {
             if (renderMode == RenderMode.RADAR) return@safeListener
 
             val y = yOffset.toDouble() + if (relative) getInterpolatedPos(player, LambdaTessellator.pTicks()).y else 0.0

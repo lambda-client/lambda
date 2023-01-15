@@ -3,7 +3,7 @@ package com.lambda.client.module.modules.combat
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.commons.extension.toRadian
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.CWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.event.listener.listener
@@ -52,7 +52,7 @@ object HoleSnap : Module(
             stuckTicks = 0
         }
 
-        safeListener<CWorldEvent.RenderTickEvent>(1) {
+        safeListener<WorldEvent.RenderTickEvent>(1) {
             holePos?.let {
                 if (player.flooredPosition == it) return@safeListener
 

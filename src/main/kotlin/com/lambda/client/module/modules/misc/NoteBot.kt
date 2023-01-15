@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.CWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
@@ -330,7 +330,7 @@ object NoteBot : Module(
     }
 
     init {
-        listener<CWorldEvent.RenderTickEvent> {
+        listener<WorldEvent.RenderTickEvent> {
             if (noteBlocks.isNotEmpty() && clickedBlocks.isNotEmpty()) return@listener
 
             runSafe {

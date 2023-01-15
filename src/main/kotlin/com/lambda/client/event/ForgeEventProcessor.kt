@@ -72,7 +72,7 @@ internal object ForgeEventProcessor {
     fun onWorldRender(event: RenderWorldLastEvent) {
         ProjectionUtils.updateMatrix()
         LambdaTessellator.prepareGL()
-        LambdaEventBus.post(com.lambda.client.event.events.CWorldEvent.RenderTickEvent())
+        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.RenderTickEvent())
         LambdaTessellator.releaseGL()
     }
 
@@ -193,20 +193,20 @@ internal object ForgeEventProcessor {
 
     @SubscribeEvent
     fun onEntityJoinWorld(event: EntityJoinWorldEvent) {
-        com.lambda.client.event.events.CWorldEvent.EntityCreate(event.entity).let {
+        com.lambda.client.event.events.WorldEvent.EntityCreate(event.entity).let {
             LambdaEventBus.post(it)
         }
     }
 
     @SubscribeEvent
     fun onPlayerJoin(event: net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent) {
-        val result = com.lambda.client.event.events.CWorldEvent.Join(event.player)
+        val result = com.lambda.client.event.events.WorldEvent.Join(event.player)
         LambdaEventBus.post(result)
     }
 
     @SubscribeEvent
     fun onPlayerLeave(event: net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent) {
-        val result = com.lambda.client.event.events.CWorldEvent.Leave(event.player)
+        val result = com.lambda.client.event.events.WorldEvent.Leave(event.player)
         LambdaEventBus.post(result)
     }
 
@@ -216,19 +216,19 @@ internal object ForgeEventProcessor {
             val result = TargetEvent.Death(event.entity)
             LambdaEventBus.post(result)
         }
-        val result = com.lambda.client.event.events.CWorldEvent.EntityDestroy(event.entity)
+        val result = com.lambda.client.event.events.WorldEvent.EntityDestroy(event.entity)
         LambdaEventBus.post(result)
     }
 
     @SubscribeEvent
     fun onPreExplode(event: ExplosionEvent.Start) {
-        val result = com.lambda.client.event.events.CWorldEvent.PreExplosion(event.explosion)
+        val result = com.lambda.client.event.events.WorldEvent.PreExplosion(event.explosion)
         LambdaEventBus.post(result)
     }
 
     @SubscribeEvent
     fun onPostExplode(event: ExplosionEvent.Detonate) {
-        val result = com.lambda.client.event.events.CWorldEvent.PostExplosion(event.explosion)
+        val result = com.lambda.client.event.events.WorldEvent.PostExplosion(event.explosion)
         LambdaEventBus.post(result)
     }
 }
