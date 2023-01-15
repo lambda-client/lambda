@@ -10,7 +10,7 @@ import com.lambda.client.util.graphics.LambdaTessellator
 import net.minecraft.entity.Entity
 import net.minecraft.world.Explosion
 
-open class CWorldEvent {
+open class WorldEvent {
     class Join(val entity: Entity) : Event
 
     class Leave(val entity: Entity) : Event

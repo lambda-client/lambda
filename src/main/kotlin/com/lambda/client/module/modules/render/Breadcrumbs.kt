@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.CWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
@@ -57,7 +57,7 @@ object Breadcrumbs : Module(
             alphaMultiplier = 0f
         }
 
-        safeListener<CWorldEvent.RenderTickEvent> {
+        safeListener<WorldEvent.RenderTickEvent> {
             if ((mc.integratedServer == null && mc.currentServerData == null) || (isDisabled && !whileDisabled)) {
                 return@safeListener
             }

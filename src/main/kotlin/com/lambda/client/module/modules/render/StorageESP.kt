@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.CWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -73,7 +73,7 @@ object StorageESP : Module(
     private val renderer = ESPRenderer()
 
     init {
-        listener<CWorldEvent.RenderTickEvent> {
+        listener<WorldEvent.RenderTickEvent> {
             renderer.render(false)
         }
 

@@ -2,7 +2,7 @@ package com.lambda.client.module.modules.render
 
 import com.lambda.client.event.Phase
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.CWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.events.RenderEntityEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.*
@@ -94,7 +94,7 @@ object ESP : Module(
             }
         }
 
-        safeListener<CWorldEvent.RenderTickEvent>(69420) {
+        safeListener<WorldEvent.RenderTickEvent>(69420) {
             when (mode.value) {
                 ESPMode.BOX -> {
                     val renderer = ESPRenderer()
