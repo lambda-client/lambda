@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.AddCollisionBoxToListEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerMoveEvent
@@ -7,6 +8,8 @@ import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.mixin.extension.playerY
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.mixin.accessor.player.AccessorEntityPlayerSP
 import net.minecraft.block.Block
@@ -38,7 +41,7 @@ object Jesus : Module(
         DOLPHIN
     }
 
-    private val preventJump by setting("Prevent Jumping", false, { mode == Mode.SOLID || mode == Mode.STRICT }, description = "Prevent jumping when using jesus")
+    private val preventJump by setting("Prevent Jumping", false, { mode == Mode.SOLID || mode == Mode.STRICT }, description = "Prevent jumping when using Jesus")
 
     private val bb = AxisAlignedBB(-1.0, -1.0, -1.0, 0.0, 0.0, 0.0)
 
@@ -46,149 +49,144 @@ object Jesus : Module(
     private var fakeY = 0.0
 
     init {
-
         onDisable {
+            runSafe {
+                ticksEnabled = 0
+                var i = 0
 
-            ticksEnabled = 0
+                while (fakeY <= 0) {
+                    i++
+                    fakeY += .1
+                    connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + fakeY, player.posZ, false))
+                }
 
-            var i = 0
-            while (true) {
-                i++
-                fakeY += .1
-                if (fakeY > 0) break
-                mc.player.connection.sendPacket(CPacketPlayer.Position(mc.player.posX, mc.player.posY + fakeY, mc.player.posZ, false))
+                modifyTimer(50f * i)
+                fakeY = .0
             }
-
-            modifyTimer(50 * i.toFloat())
-
-            fakeY = .0
-
         }
 
         safeListener<ClientTickEvent> {
-
             if (it.phase == TickEvent.Phase.START)
                 ticksEnabled++
-
         }
 
         safeListener<AddCollisionBoxToListEvent> {
-
             if (mc.gameSettings.keyBindSneak.isKeyDown)
                 return@safeListener
 
             if ((mode == Mode.SOLID || mode == Mode.STRICT)
-                && mc.world.getBlockState(BlockPos(mc.player.positionVector.add(.0, -.1 + mc.player.motionY, .0))).material.isLiquid)
-                it.collisionBoxList.add(bb.offset(mc.player.posX, floor(mc.player.posY), mc.player.posZ))
-
+                && world.getBlockState(BlockPos(player.positionVector.add(.0, -.1 + player.motionY, .0))).material.isLiquid
+            ) {
+                it.collisionBoxList.add(bb.offset(player.posX, floor(player.posY), player.posZ))
+            }
         }
 
         safeListener<PlayerMoveEvent> { event ->
-
             (player as AccessorEntityPlayerSP).lcSetLastReportedY(-99.9)
 
-            if (mc.gameSettings.keyBindSneak.isKeyDown)
-                return@safeListener
+            if (mc.gameSettings.keyBindSneak.isKeyDown) return@safeListener
 
-            (mc.player as AccessorEntityPlayerSP).lcSetLastReportedY(-999.0)
+            (player as AccessorEntityPlayerSP).lcSetLastReportedY(-999.0)
 
-            if (mc.player.isInWater || mc.world.getBlockState(BlockPos(mc.player.positionVector)).material.isLiquid) event.y = (.11.also { mc.player.motionY = it })
+            if (player.isInWater || world.getBlockState(player.flooredPosition).material.isLiquid) {
+                event.y = (.11.also { player.motionY = it })
+            }
 
-            if (mc.player.onGround && !checkBlockCollisionNoLiquid(mc.player.entityBoundingBox.offset(.0, -.01, .0),
-                    listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA))) {
-
-                if (mode == Mode.DOLPHIN) {
-
-                    if (hypot(event.x, event.y) > .2873 * .9) {
-                        event.x *= .95
-                        event.z *= .95
+            if (player.onGround &&
+                !checkBlockCollisionNoLiquid(
+                    player.entityBoundingBox.offset(.0, -.01, .0),
+                    listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA)
+                )
+            ) {
+                when (mode) {
+                    Mode.DOLPHIN -> {
+                        if (hypot(event.x, event.y) > .2873 * .9) {
+                            event.x *= .95
+                            event.z *= .95
+                        }
                     }
-
-                } else if (mode == Mode.STRICT) {
-                    val lava = !checkBlockCollisionNoLiquid(mc.player.entityBoundingBox.offset(.0, -.01, .0), listOf(Blocks.AIR, Blocks.LAVA, Blocks.FLOWING_LAVA))
-                    // .38 is from lava liquid speed at max speed, 1.24 is from water liquid speed at max speed
-                    // because of the way "Lambda Client" handled its "PlayerMoveEvent" I have to use "magic numbers" to compensate
-                    event.x *= if (lava) .57 else 1.09
-                    event.z *= if (lava) .57 else 1.09
+                    Mode.STRICT -> {
+                        val lava = !checkBlockCollisionNoLiquid(
+                            player.entityBoundingBox.offset(.0, -.01, .0),
+                            listOf(Blocks.AIR, Blocks.LAVA, Blocks.FLOWING_LAVA)
+                        )
+                        // .38 is from lava liquid speed at max speed, 1.24 is from water liquid speed at max speed
+                        // because of the way "Lambda Client" handled its "PlayerMoveEvent" I have to use "magic numbers" to compensate
+                        event.x *= if (lava) .57 else 1.09
+                        event.z *= if (lava) .57 else 1.09
+                    }
+                    else -> { }
                 }
-
             }
         }
 
         safeListener<InputUpdateEvent> {
-
             if (preventJump &&
-                !checkBlockCollisionNoLiquid(mc.player.entityBoundingBox.offset(.0, -.01, .0),
-                    listOf<Block>(Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA))
-            )
-                it.movementInput.jump = false
-
+                !checkBlockCollisionNoLiquid(
+                    player.entityBoundingBox.offset(.0, -.01, .0),
+                    listOf(Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA)
+                )
+            ) it.movementInput.jump = false
         }
 
-        safeListener<PacketEvent.Send> {
+        safeListener<PacketEvent.Send> { event ->
+            if (event.packet !is CPacketPlayer) return@safeListener
 
-            if (it.packet is CPacketPlayer) {
-                if (mc.gameSettings.keyBindSneak.isKeyDown) {
-
-                    if (mode == Mode.STRICT)
-                        mc.player.posY -= fakeY
-
-                    fakeY = 0.0
-
-                    return@safeListener
-
-                }
-
-                val playerBB = mc.player.entityBoundingBox
-                if (mc.player.isInWater ||
-                    !mc.world.getBlockState(BlockPos(mc.player.positionVector.add(.0, -.1 + mc.player.motionY, .0))).material.isLiquid ||
-                    mc.world.getCollisionBoxes(mc.player, playerBB.offset(0.0, -.0001, 0.0)).isEmpty()) {
-                    fakeY = 0.0
-                    return@safeListener
-                }
-
-                val packet = it.packet
-
+            if (mc.gameSettings.keyBindSneak.isKeyDown) {
                 if (mode == Mode.STRICT) {
+                    player.posY -= fakeY
+                }
 
+                fakeY = 0.0
+                return@safeListener
+            }
+
+            val playerBB = player.entityBoundingBox
+            if (player.isInWater
+                || !world.getBlockState(BlockPos(player.positionVector.add(.0, -.1 + player.motionY, .0))).material.isLiquid
+                || world.getCollisionBoxes(player, playerBB.offset(0.0, -.0001, 0.0)).isEmpty()
+            ) {
+                fakeY = 0.0
+                return@safeListener
+            }
+
+            val packet = event.packet
+
+            when (mode) {
+                Mode.STRICT -> {
                     if ((-.4).coerceAtLeast(fakeY).also { fakeY = it } > -.4) {
-
                         fakeY -= .08
                         fakeY *= .98
                         packet.playerY += fakeY
-
-                    } else
+                    } else {
                         packet.playerY += fakeY - if (ticksEnabled % 2 == 0) .0 else -.00001
+                    }
 
-                    if (checkBlockCollisionNoLiquid(mc.player.entityBoundingBox.offset(.0, packet.playerY - mc.player.posY, .0), listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA)))
-                        packet.playerY = mc.player.posY
-
-                } else if (mode == Mode.SOLID) {
-
+                    if (checkBlockCollisionNoLiquid(player.entityBoundingBox.offset(.0, packet.playerY - player.posY, .0), listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA))) {
+                        packet.playerY = player.posY
+                    }
+                }
+                Mode.SOLID -> {
                     fakeY = 0.0
 
-                    if (ticksEnabled % 2 == 0)
-                        packet.playerY -= .001
+                    if (ticksEnabled % 2 == 0) packet.playerY -= .001
 
-                    if (checkBlockCollisionNoLiquid(mc.player.entityBoundingBox.offset(.0, packet.playerY - mc.player.posY, .0), listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA)))
-                        packet.playerY = mc.player.posY
+                    if (checkBlockCollisionNoLiquid(player.entityBoundingBox.offset(.0, packet.playerY - player.posY, .0), listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA))) {
+                        packet.playerY = player.posY
+                    }
                 }
-
+                else -> { }
             }
-
         }
 
         safeListener<PacketEvent.Receive> {
+            if (it.packet !is SPacketPlayerPosLook) return@safeListener
 
-            if (it.packet is SPacketPlayerPosLook)
-                fakeY = mc.player.posY - it.packet.y
-
+            fakeY = mc.player.posY - it.packet.y
         }
     }
 
-    // modified mc code
-    private fun checkBlockCollisionNoLiquid(bb: AxisAlignedBB, allowed: List<Block>): Boolean {
-
+    private fun SafeClientEvent.checkBlockCollisionNoLiquid(bb: AxisAlignedBB, allowed: List<Block>): Boolean {
         val minX = floor(bb.minX).toInt()
         val maxX = ceil(bb.maxX).toInt()
         val minY = floor(bb.minY).toInt()
@@ -201,21 +199,17 @@ object Jesus : Module(
         for (x in minX until maxX) {
             for (y in minY until maxY) {
                 for (z in minZ until maxZ) {
-
-                    val blockState = mc.world.getBlockState(mutableBlockPos.setPos(x, y, z))
+                    val blockState = world.getBlockState(mutableBlockPos.setPos(x, y, z))
 
                     if (!allowed.contains(blockState.block)) {
                         mutableBlockPos.release()
                         return true
                     }
-
                 }
             }
         }
 
         mutableBlockPos.release()
         return false
-
     }
-
 }
