@@ -5,6 +5,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.CriticalsUpdateWalkingEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerAttackEvent
+import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.mixin.extension.isInWeb
 import com.lambda.client.mixin.extension.playerIsOnGround
 import com.lambda.client.mixin.extension.playerMoving
@@ -32,6 +33,7 @@ object Criticals : Module(
     private val mode by setting("Mode", Mode.EDIT)
     private val jumpMotion by setting("Jump Motion", 0.25, 0.1..0.5, 0.01, { mode == Mode.MINI_JUMP }, fineStep = 0.001)
     private val attackFallDistance by setting("Attack Fall Distance", 0.1, 0.05..1.0, 0.05, { mode == Mode.MINI_JUMP || mode == Mode.JUMP })
+    private val strict by setting("Strict", true, visibility = { mode == Mode.PACKET })
 
     private enum class Mode(override val displayName: String) : DisplayEnum {
         PACKET("Packet"),
@@ -43,6 +45,7 @@ object Criticals : Module(
     private var delayTick = -1
     private var target: Entity? = null
     private var spoofedY = -1337.0
+    private var moveTick = 69
 
     override fun isActive(): Boolean {
         return isEnabled && !delaying()
@@ -66,30 +69,32 @@ object Criticals : Module(
 
         safeListener<PacketEvent.Send> {
             if (it.packet is CPacketAnimation
-                && mode != Mode.PACKET
+                && mode == Mode.MINI_JUMP || mode == Mode.JUMP
                 && delayTick > -1
             ) {
                 it.cancel()
                 return@safeListener
             }
 
-            if (it.packet is CPacketPlayer
-                && mode == Mode.EDIT
-            ) {
-                // the advantage of this is that it doesn't delay anything and doesn't send extra packets
-                if (player.onGround) {
-                    if (spoofedY <= 0) {
-                        spoofedY = .01
-                    } else {
-                        spoofedY -= .00001
+            if (it.packet is CPacketPlayer) {
+                if (mode == Mode.EDIT) {
+                    // the advantage of this is that it doesn't delay anything and doesn't send extra packets
+                    if (player.onGround) {
+                        if (spoofedY <= 0) {
+                            spoofedY = .01
+                        } else {
+                            spoofedY -= .00001
+                        }
+                    } else spoofedY = -1337.0
+
+                    it.packet.playerMoving = true
+                    it.packet.playerIsOnGround = false
+
+                    if (spoofedY >= 0) {
+                        it.packet.playerY += spoofedY
                     }
-                } else spoofedY = -1337.0
-
-                it.packet.playerMoving = true
-                it.packet.playerIsOnGround = false
-
-                if (spoofedY >= 0) {
-                    it.packet.playerY += spoofedY
+                } else if (mode == Mode.PACKET && strict && moveTick < 0) {
+                    it.cancel()
                 }
             }
         }
@@ -103,8 +108,19 @@ object Criticals : Module(
                 Mode.PACKET -> {
                     if (!cooldownReady) return@safeListener
 
-                    connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1, player.posZ, false))
-                    connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY, player.posZ, false))
+                    if (strict) {
+                        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.11, player.posZ, false))
+                        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1100013579, player.posZ, false))
+                        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 1.3579E-6, player.posZ, false))
+
+                        player.motionX = .0
+                        player.motionZ = .0
+
+                        moveTick = -3
+                    } else {
+                        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1, player.posZ, false))
+                        connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY, player.posZ, false))
+                    }
                 }
                 Mode.JUMP -> {
                     jumpAndCancel(it, cooldownReady, null)
@@ -113,6 +129,14 @@ object Criticals : Module(
                     jumpAndCancel(it, cooldownReady, jumpMotion)
                 }
                 else -> { }
+            }
+        }
+
+        safeListener<PlayerMoveEvent> {
+            if (++moveTick < 0) {
+                player.motionX = .0
+                player.motionY = .0
+                player.motionZ = .0
             }
         }
 
@@ -139,6 +163,7 @@ object Criticals : Module(
 
     private fun reset() {
         delayTick = -1
+        moveTick = 69
         target = null
     }
 
