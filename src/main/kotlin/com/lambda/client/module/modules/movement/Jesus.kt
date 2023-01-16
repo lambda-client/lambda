@@ -82,11 +82,11 @@ object Jesus : Module(
         }
 
         safeListener<PlayerMoveEvent> { event ->
-            (player as AccessorEntityPlayerSP).lcSetLastReportedY(-99.9)
+            (player as AccessorEntityPlayerSP).lcSetLastReportedPosY(-99.9)
 
             if (mc.gameSettings.keyBindSneak.isKeyDown) return@safeListener
 
-            (player as AccessorEntityPlayerSP).lcSetLastReportedY(-999.0)
+            (player as AccessorEntityPlayerSP).lcSetLastReportedPosY(-999.0)
 
             if (player.isInWater || world.getBlockState(player.flooredPosition).material.isLiquid) {
                 event.y = (.11.also { player.motionY = it })
