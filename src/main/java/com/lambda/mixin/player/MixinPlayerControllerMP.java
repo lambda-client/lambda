@@ -34,8 +34,10 @@ public class MixinPlayerControllerMP {
     @Inject(method = "attackEntity", at = @At("HEAD"))
     public void attackEntity(EntityPlayer playerIn, Entity targetEntity, CallbackInfo ci) {
         if (targetEntity == null) return;
-        PlayerEvent.Attack event = new PlayerEvent.Attack((EntityLivingBase) targetEntity);
-        LambdaEventBus.INSTANCE.post(event);
+        if (targetEntity instanceof EntityLivingBase) {
+            PlayerEvent.Attack event = new PlayerEvent.Attack((EntityLivingBase) targetEntity);
+            LambdaEventBus.INSTANCE.post(event);
+        }
     }
 
     @Inject(method = "windowClick", at = @At("HEAD"))
