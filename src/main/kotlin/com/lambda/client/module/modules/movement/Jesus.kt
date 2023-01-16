@@ -44,30 +44,21 @@ object Jesus : Module(
     private val preventJump by setting("Prevent Jumping", false, { mode == Mode.SOLID || mode == Mode.STRICT }, description = "Prevent jumping when using Jesus")
 
     private val bb = AxisAlignedBB(-1.0, -1.0, -1.0, 0.0, 0.0, 0.0)
+    private val liquids = listOf(Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA)
 
     private var ticksEnabled = 0
     private var fakeY = 0.0
 
     init {
         onDisable {
-            runSafe {
-                ticksEnabled = 0
-                var i = 0
-
-                while (fakeY <= 0) {
-                    i++
-                    fakeY += .1
-                    connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + fakeY, player.posZ, false))
-                }
-
-                modifyTimer(50f * i)
-                fakeY = .0
-            }
+            ticksEnabled = 0
+            fakeY = .0
         }
 
         safeListener<ClientTickEvent> {
-            if (it.phase == TickEvent.Phase.START)
-                ticksEnabled++
+            if (it.phase != TickEvent.Phase.START) return@safeListener
+
+            ticksEnabled++
         }
 
         safeListener<AddCollisionBoxToListEvent> {
@@ -95,7 +86,7 @@ object Jesus : Module(
             if (player.onGround &&
                 !checkBlockCollisionNoLiquid(
                     player.entityBoundingBox.offset(.0, -.01, .0),
-                    listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA)
+                    liquids + Blocks.AIR
                 )
             ) {
                 when (mode) {
@@ -115,17 +106,15 @@ object Jesus : Module(
                         event.x *= if (lava) .57 else 1.09
                         event.z *= if (lava) .57 else 1.09
                     }
-                    else -> { }
+
+                    else -> {}
                 }
             }
         }
 
         safeListener<InputUpdateEvent> {
             if (preventJump &&
-                !checkBlockCollisionNoLiquid(
-                    player.entityBoundingBox.offset(.0, -.01, .0),
-                    listOf(Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA)
-                )
+                fakeY != .0
             ) it.movementInput.jump = false
         }
 
@@ -162,7 +151,10 @@ object Jesus : Module(
                         packet.playerY += fakeY - if (ticksEnabled % 2 == 0) .0 else -.00001
                     }
 
-                    if (checkBlockCollisionNoLiquid(player.entityBoundingBox.offset(.0, packet.playerY - player.posY, .0), listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA))) {
+                    if (checkBlockCollisionNoLiquid(
+                            player.entityBoundingBox.offset(.0, packet.playerY - player.posY, .0),
+                            liquids + Blocks.AIR
+                    )) {
                         packet.playerY = player.posY
                     }
                 }
@@ -171,18 +163,22 @@ object Jesus : Module(
 
                     if (ticksEnabled % 2 == 0) packet.playerY -= .001
 
-                    if (checkBlockCollisionNoLiquid(player.entityBoundingBox.offset(.0, packet.playerY - player.posY, .0), listOf(Blocks.AIR, Blocks.WATER, Blocks.FLOWING_WATER, Blocks.LAVA, Blocks.FLOWING_LAVA))) {
+                    if (checkBlockCollisionNoLiquid(
+                        player.entityBoundingBox.offset(.0, packet.playerY - player.posY, .0),
+                        liquids + Blocks.AIR
+                    )) {
                         packet.playerY = player.posY
                     }
                 }
-                else -> { }
+
+                else -> {}
             }
         }
 
         safeListener<PacketEvent.Receive> {
             if (it.packet !is SPacketPlayerPosLook) return@safeListener
 
-            fakeY = mc.player.posY - it.packet.y
+            fakeY = player.posY - it.packet.y
         }
     }
 
