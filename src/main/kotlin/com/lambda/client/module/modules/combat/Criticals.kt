@@ -109,7 +109,6 @@ object Criticals : Module(
                     if (!cooldownReady) return@safeListener
 
                     if (strict) {
-
                         connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.11, player.posZ, false))
                         connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1100013579, player.posZ, false))
                         connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 1.3579E-6, player.posZ, false))
@@ -118,12 +117,9 @@ object Criticals : Module(
                         player.motionZ = .0
 
                         moveTick = -3
-
                     } else {
-
                         connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + 0.1, player.posZ, false))
                         connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY, player.posZ, false))
-
                     }
                 }
                 Mode.JUMP -> {
@@ -137,13 +133,11 @@ object Criticals : Module(
         }
 
         safeListener<PlayerMoveEvent> {
-
             if (++moveTick < 0) {
                 player.motionX = .0
                 player.motionY = .0
                 player.motionZ = .0
             }
-
         }
 
         safeListener<TickEvent.ClientTickEvent> { event ->
