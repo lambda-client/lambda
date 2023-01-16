@@ -19,7 +19,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoArmor : Module(
     name = "AutoArmor",
-    description = "Automatically equips armour",
+    description = "Automatically equips armor",
     category = Category.COMBAT,
     modulePriority = 500
 ) {
@@ -39,7 +39,7 @@ object AutoArmor : Module(
 
                 val armorType = item.armorType.index
 
-                // Skip if allowElytra is activated, item is chestplate and we have elytra equipped
+                // Skip if allowElytra is activated, item is chestplate, and we have elytra equipped
                 if (allowElytra && armorType == 2 && player.inventory.armorInventory[2].item == Items.ELYTRA) continue
                 val armorValue = getArmorValue(itemStack)
 
