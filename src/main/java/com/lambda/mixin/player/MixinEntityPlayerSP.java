@@ -51,6 +51,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Shadow private boolean serverSneakState;
     @Shadow private boolean prevOnGround;
     @Shadow private boolean autoJumpEnabled;
+    private OnUpdateWalkingPlayerEvent updateWalkingPlayerEvent = new OnUpdateWalkingPlayerEvent();
 
     public MixinEntityPlayerSP(World worldIn, GameProfile gameProfileIn) {
         super(worldIn, gameProfileIn);
@@ -149,33 +150,41 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         this.lastReportedPitch = serverSideRotation.getY();
     }
 
-    @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
-    private void onUpdateWalkingPlayerHead(CallbackInfo ci) {
-
+    @Inject(
+        method = "onUpdate",
+        at = @At(
+            // need to do this injection for future compatibility
+            // what's likely going on is future also is setting the player rotation values based on the event
+            // but those values are being taken from the updateWalkingPlayer method args rather than the field values
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/entity/EntityPlayerSP;onUpdateWalkingPlayer()V",
+            shift = At.Shift.BEFORE),
+        cancellable = true)
+    public void onUpdateWalkingPlayerInvoke(CallbackInfo ci)
+    {
         CriticalsUpdateWalkingEvent criticalsEditEvent = new CriticalsUpdateWalkingEvent();
         LambdaEventBus.INSTANCE.post(criticalsEditEvent);
-
         // Setup flags
         Vec3d position = new Vec3d(this.posX, this.getEntityBoundingBox().minY, this.posZ);
         Vec2f rotation = new Vec2f(this.rotationYaw, this.rotationPitch);
         boolean moving = isMoving(position);
         boolean rotating = isRotating(rotation);
 
-        OnUpdateWalkingPlayerEvent event = new OnUpdateWalkingPlayerEvent(moving, rotating, position, rotation);
-        LambdaEventBus.INSTANCE.post(event);
+        updateWalkingPlayerEvent = new OnUpdateWalkingPlayerEvent(moving, rotating, position, rotation);
+        LambdaEventBus.INSTANCE.post(updateWalkingPlayerEvent);
 
-        event = event.nextPhase();
-        LambdaEventBus.INSTANCE.post(event);
+        updateWalkingPlayerEvent = updateWalkingPlayerEvent.nextPhase();
+        LambdaEventBus.INSTANCE.post(updateWalkingPlayerEvent);
 
-        if (event.getCancelled()) {
+        if (updateWalkingPlayerEvent.getCancelled()) {
             ci.cancel();
 
-            if (!event.getCancelAll()) {
+            if (!updateWalkingPlayerEvent.getCancelAll()) {
                 // Copy flags from event
-                moving = event.isMoving();
-                rotating = event.isRotating();
-                position = event.getPosition();
-                rotation = event.getRotation();
+                moving = updateWalkingPlayerEvent.isMoving();
+                rotating = updateWalkingPlayerEvent.isRotating();
+                position = updateWalkingPlayerEvent.getPosition();
+                rotation = updateWalkingPlayerEvent.getRotation();
 
                 sendSprintPacket();
                 sendSneakPacket();
@@ -186,10 +195,24 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
 
             ++this.positionUpdateTicks;
             this.autoJumpEnabled = this.mc.gameSettings.autoJump;
+        } else {
+            this.posX = updateWalkingPlayerEvent.getPosition().x;
+            this.posY = updateWalkingPlayerEvent.getPosition().y;
+            this.posZ = updateWalkingPlayerEvent.getPosition().z;
+            this.rotationYaw = updateWalkingPlayerEvent.getRotation().getX();
+            this.rotationPitch = updateWalkingPlayerEvent.getRotation().getY();
         }
+    }
 
-        event = event.nextPhase();
+    @Inject(method = "onUpdateWalkingPlayer", at = @At("TAIL"))
+    private void onUpdateWalkingPlayerTail(CallbackInfo ci) {
+        final OnUpdateWalkingPlayerEvent event = updateWalkingPlayerEvent.nextPhase();
         LambdaEventBus.INSTANCE.post(event);
+        this.posX = event.getPosInitial().x;
+        this.posY = event.getPosInitial().y;
+        this.posZ = event.getPosInitial().z;
+        this.rotationYaw = event.getRotInitial().getX();
+        this.rotationPitch = event.getRotInitial().getY();
     }
 
     private void sendSprintPacket() {

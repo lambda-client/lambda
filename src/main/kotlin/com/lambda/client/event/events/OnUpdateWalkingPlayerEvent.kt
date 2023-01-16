@@ -9,16 +9,16 @@ import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 
-class OnUpdateWalkingPlayerEvent private constructor(
+class OnUpdateWalkingPlayerEvent constructor(
     moving: Boolean,
     rotating: Boolean,
-    position: Vec3d,
-    rotation: Vec2f,
-    override val phase: Phase
+    var position: Vec3d,
+    var rotation: Vec2f,
+    override var phase: Phase
 ) : Event, IMultiPhase<OnUpdateWalkingPlayerEvent>, Cancellable() {
 
-    var position = position; private set
-    var rotation = rotation; private set
+    val posInitial = position
+    val rotInitial = rotation
 
     var moving = moving
         @JvmName("isMoving") get
@@ -30,9 +30,11 @@ class OnUpdateWalkingPlayerEvent private constructor(
     var cancelAll = false; private set
 
     constructor(moving: Boolean, rotating: Boolean, position: Vec3d, rotation: Vec2f) : this(moving, rotating, position, rotation, Phase.PRE)
+    constructor() : this(false, false, Vec3d.ZERO, Vec2f.ZERO)
 
     override fun nextPhase(): OnUpdateWalkingPlayerEvent {
-        return OnUpdateWalkingPlayerEvent(moving, rotating, position, rotation, phase.next())
+        phase = phase.next()
+        return this
     }
 
     fun apply(packet: PlayerPacketManager.Packet) {
@@ -50,5 +52,4 @@ class OnUpdateWalkingPlayerEvent private constructor(
 
         this.cancelAll = packet.cancelAll
     }
-
 }
