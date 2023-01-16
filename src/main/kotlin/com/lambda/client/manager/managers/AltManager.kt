@@ -31,7 +31,7 @@ object AltManager : Manager {
     private val client = HttpClients.createDefault()
     private val type = object : TypeToken<MutableSet<Account>>() {}.type // JVM jank, read TypeToken javadocs
     private val scopes = BasicNameValuePair("scope", "XboxLive.signin offline_access")
-    private val clientId = BasicNameValuePair("client_id", "810b4a0d-7663-4e28-8680-24458240dee4") // TBD
+    private val clientId = BasicNameValuePair("client_id", "a70d663f-9055-4b98-b034-3c77062eead6") // TBD
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val mtx = Mutex()
 
@@ -185,7 +185,7 @@ object AltManager : Manager {
 
         val body = JsonObject().apply {
             add("Properties", inner)
-            addProperty("RelyingParty", "http://auth.xboxlive.com")
+            addProperty("RelyingParty", "https://auth.xboxlive.com")
             addProperty("TokenType", "JWT")
         }
 

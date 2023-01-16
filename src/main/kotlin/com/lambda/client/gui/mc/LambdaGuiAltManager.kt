@@ -18,7 +18,7 @@ class LambdaGuiAltManager(private val parent: GuiMultiplayer) : GuiScreen() {
     override fun initGui() {
         addButton(GuiButton(0, 0, height - 20, 50, 20, "Back"))
         addButton(GuiButton(1, width / 2 - 100, height / 2, "Login"))
-        addButton(GuiButton(2, width / 2 - 100, height / 2 + 350, "Cancel"))
+        addButton(GuiButton(2, width / 2 - 100, height / 2 + 100, "Cancel"))
 
         runBlocking { refreshButtons() }
     }
