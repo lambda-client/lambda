@@ -45,7 +45,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
     // Mouse
     private var lastEventButton = -1
-    private var lastClickPos = Vec2f(0.0f, 0.0f)
+    private var lastClickPos = Vec2f.ZERO
 
     // Searching
     protected var typedString = ""
@@ -198,6 +198,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
             }
         }
 
+        hoveredWindow?.onMouseInput(mousePos)
         super.handleMouseInput()
         updateSettingWindow()
     }
@@ -284,8 +285,6 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         drawTypedString()
 
         GlStateUtils.depth(false)
-
-        hoveredWindow?.onMouseInput(getRealMousePos())
     }
 
     private fun drawBackground(vertexHelper: VertexHelper, partialTicks: Float) {

@@ -4,7 +4,7 @@
 
 ![GitHub all releases](https://img.shields.io/github/downloads/lambda-client/lambda/total?color=seagreen)
 ![CodeFactor grade](https://img.shields.io/codefactor/grade/github/lambda-client/lambda?color=royalblue)
-![GitHub workflow status](https://img.shields.io/github/workflow/status/lambda-client/lambda/gradle_build?logo=gradle)
+![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/nightly_build.yml?branch=master&logo=gradle)
 [![Discord](https://img.shields.io/discord/834570721070022687?color=skyblue&logo=discord&logoColor=white)](https://discord.gg/QjfBxJzE5x)
 ![GitHub repo size](https://img.shields.io/github/repo-size/lambda-client/lambda)
 ![Lines of code](https://img.shields.io/tokei/lines/github/lambda-client/lambda?color=lightcoral&label=lines%20of%20code)
@@ -129,7 +129,7 @@ Test if the environment is set up correctly by building the client and running i
 ### Stargazers
 [![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
 
-## Thanks to
+## Thanks to...
 
 [![GitHub contributors](https://contrib.rocks/image?repo=lambda-client/lambda)](https://github.com/lambda-client/lambda/graphs/contributors)
 

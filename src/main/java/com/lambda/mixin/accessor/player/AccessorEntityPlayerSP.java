@@ -11,6 +11,6 @@ public interface AccessorEntityPlayerSP {
     void kbSetHandActive(boolean value);
 
     @Accessor("lastReportedPosY")
-    void lcSetLastReportedY(double value);
+    void lcSetLastReportedPosY(double value);
 
 }

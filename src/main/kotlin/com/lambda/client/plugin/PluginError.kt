@@ -7,6 +7,7 @@ import java.io.File
 internal enum class PluginError {
     HOT_RELOAD,
     DUPLICATE,
+    DEPRECATED,
     UNSUPPORTED,
     REQUIRED_PLUGIN,
     OUTDATED_PLUGIN,
@@ -22,6 +23,9 @@ internal enum class PluginError {
             }
             DUPLICATE -> {
                 log("Duplicate plugin $loader.")
+            }
+            DEPRECATED -> {
+                log("Plugin $loader is deprecated due to the presence of a newer version: $message")
             }
             UNSUPPORTED -> {
                 log("Unsupported plugin $loader. Minimum required Lambda version: ${loader.info.minApiVersion}")
@@ -46,7 +50,15 @@ internal enum class PluginError {
             }
         }
 
-        loader.file.renameTo(File("${loader.file.path}.disabled"))
+        // append .disabled to the file name
+        // if a file with the same name exists, append a number to the end
+        var disabledFile = File("${loader.file.path}.disabled")
+        var i = 1
+        while (disabledFile.exists()) {
+            disabledFile = File("${loader.file.path}.disabled$i")
+            i++
+        }
+        loader.file.renameTo(disabledFile)
     }
 
     fun log(message: String?, throwable: Throwable? = null) {

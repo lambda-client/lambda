@@ -2,6 +2,7 @@ package com.lambda.client.gui.hudgui
 
 import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.modules.client.HudEditor
 import com.lambda.client.setting.configs.AbstractConfig
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.TextComponent
@@ -29,6 +30,8 @@ abstract class AbstractLabelHud(
             if (it.phase != TickEvent.Phase.END) return@safeAsyncListener
             displayText.clear()
             updateText()
+
+            if (displayText.isEmpty() && HudEditor.isEnabled) displayText.addLine(name, primaryColor)
         }
     }
 
