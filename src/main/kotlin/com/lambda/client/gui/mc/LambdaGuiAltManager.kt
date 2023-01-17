@@ -54,7 +54,7 @@ class LambdaGuiAltManager(private val parent: GuiMultiplayer) : GuiScreen() {
     override fun drawDefaultBackground() {
         super.drawDefaultBackground()
 
-        drawCenteredString(mc.fontRenderer, msg, width / 2, height / 2 + 500, 0xFFFFFF)
+        drawCenteredString(mc.fontRenderer, msg, width / 2, height / 2 + 50, 0xFFFFFF)
     }
 
     override fun mouseClicked(mouseX: Int, mouseY: Int, mouseButton: Int) {
@@ -63,7 +63,7 @@ class LambdaGuiAltManager(private val parent: GuiMultiplayer) : GuiScreen() {
         if (mouseX !in (width / 2 - halfWidth)..(width / 2 + halfWidth)) {
             return
         }
-        if (mouseY !in (height / 2 + 500 - mc.fontRenderer.FONT_HEIGHT / 2)..(height / 2 + 500 + mc.fontRenderer.FONT_HEIGHT / 2)) {
+        if (mouseY !in (height / 2 + 50 - mc.fontRenderer.FONT_HEIGHT / 2)..(height / 2 + 50 + mc.fontRenderer.FONT_HEIGHT / 2)) {
             return
         }
 

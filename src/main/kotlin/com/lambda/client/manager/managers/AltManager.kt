@@ -185,7 +185,8 @@ object AltManager : Manager {
 
         val body = JsonObject().apply {
             add("Properties", inner)
-            addProperty("RelyingParty", "https://auth.xboxlive.com")
+            // This is xbox live auth semantics, no insecure requests are ever actually made, DO NOT change to https
+            addProperty("RelyingParty", "http://auth.xboxlive.com")
             addProperty("TokenType", "JWT")
         }
 
