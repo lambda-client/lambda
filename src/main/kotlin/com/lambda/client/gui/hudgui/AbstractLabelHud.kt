@@ -18,12 +18,13 @@ abstract class AbstractLabelHud(
     alwaysListening: Boolean,
     enabledByDefault: Boolean,
     config: AbstractConfig<out Nameable>,
+    separator: String = " ",
 ) : AbstractHudElement(name, alias, category, description, alwaysListening, enabledByDefault, config) {
 
     override val hudWidth: Float get() = displayText.getWidth() + 2.0f
     override val hudHeight: Float get() = displayText.getHeight(2)
 
-    protected val displayText = TextComponent()
+    protected val displayText = TextComponent(separator)
 
     init {
         safeAsyncListener<TickEvent.ClientTickEvent> {
