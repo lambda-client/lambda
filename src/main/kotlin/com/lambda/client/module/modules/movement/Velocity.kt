@@ -61,7 +61,7 @@ object Velocity : Module(
         }
 
         safeListener<PushOutOfBlocksEvent> {
-            if (block) it.cancel()
+            if (noPush && block) it.cancel()
         }
     }
 
