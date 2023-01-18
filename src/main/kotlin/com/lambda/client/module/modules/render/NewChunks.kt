@@ -41,6 +41,7 @@ object NewChunks : Module(
     description = "Highlights newly generated chunks",
     category = Category.RENDER
 ) {
+    private val inverse by setting("Inverse", false, description = "Highlights old chunks")
     private val relative by setting("Relative", false, description = "Renders the chunks at relative Y level to player")
     private val renderMode by setting("Render Mode", RenderMode.BOTH)
     private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
@@ -68,7 +69,7 @@ object NewChunks : Module(
 
     private var lastSetting = LastSetting()
     private var logWriter: PrintWriter? = null
-    private val chunks = ConcurrentHashMap<ChunkPos, Long>()
+    private val chunks = ConcurrentHashMap<ChunkPos, Pair<Long, Boolean>>()
     private val timer = TickTimer(TimeUnit.SECONDS)
 
     init {
@@ -90,7 +91,7 @@ object NewChunks : Module(
                 && timer.tick(5)
             ) {
                 val currentTime = System.currentTimeMillis()
-                chunks.values.removeIf { chunkAge -> currentTime - chunkAge > maxAge * 60 * 1000 }
+                chunks.values.removeIf { chunkInfo -> currentTime - chunkInfo.first > maxAge * 60 * 1000 }
             }
         }
 
@@ -104,7 +105,7 @@ object NewChunks : Module(
 
             val buffer = LambdaTessellator.buffer
 
-            chunks.filter { player.distanceTo(it.key) < range }.keys.forEach { chunkPos ->
+            chunks.filter { player.distanceTo(it.key) < range && it.value.second == inverse }.keys.forEach { chunkPos ->
                 buffer.begin(GL_LINE_LOOP, DefaultVertexFormats.POSITION_COLOR)
                 buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
                 buffer.pos(chunkPos.xEnd + 1.toDouble(), y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
@@ -147,7 +148,7 @@ object NewChunks : Module(
             if (it.chunkLines && chunkGridRects.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, chunkGridRects, 0.3f, chunkGridColor)
 
             val newChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
-            chunks.keys.forEach { chunk ->
+            chunks.filter { it.value.second == inverse }.keys.forEach { chunk ->
                 val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
                 val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
 
@@ -159,12 +160,14 @@ object NewChunks : Module(
         }
 
         safeListener<PacketEvent.PostReceive> { event ->
-            if (event.packet is SPacketChunkData
-                && !event.packet.isFullChunk
-            ) {
+            if (event.packet is SPacketChunkData) {
                 val chunkPos = ChunkPos(event.packet.chunkX, event.packet.chunkZ)
-                chunks[chunkPos] = System.currentTimeMillis()
-                if (saveNewChunks) saveNewChunk(chunkPos)
+                //NOTE: After receiving an "unloaded" SPacketChunkData, the server sends a "loaded" SPacketChunkData of the same chunk, so we
+                //      need to avoid overwriting the info from the former.
+                if (!chunks.containsKey(chunkPos)) {
+                    chunks[chunkPos] = Pair(System.currentTimeMillis(), event.packet.isFullChunk)
+                    if (saveNewChunks && chunks[chunkPos]!!.second == inverse) saveNewChunk(chunkPos)
+                }
             }
         }
 
