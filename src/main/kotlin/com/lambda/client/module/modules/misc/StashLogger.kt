@@ -27,9 +27,6 @@ import net.minecraft.util.math.ChunkPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
-import kotlin.collections.LinkedHashMap
 import kotlin.math.roundToInt
 
 object StashLogger : Module(
