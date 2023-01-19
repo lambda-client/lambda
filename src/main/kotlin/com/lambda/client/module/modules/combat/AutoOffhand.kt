@@ -9,6 +9,7 @@ import com.lambda.client.util.Bind
 import com.lambda.client.util.combat.CombatUtils.calcDamageFromMob
 import com.lambda.client.util.combat.CombatUtils.calcDamageFromPlayer
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
+import com.lambda.client.util.combat.CrystalUtils.calcCrystalDamage
 import com.lambda.client.util.items.*
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
@@ -189,8 +190,8 @@ object AutoOffhand : Module(
                     maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
                 }
                 crystal && entity is EntityEnderCrystal -> {
-                    val damage = CombatManager.crystalMap[entity] ?: continue
-                    maxDamage = max(damage.selfDamage, maxDamage)
+                    val self = calcCrystalDamage(CombatManager.placedCrystals.maxByOrNull { it.damage.selfDamage }?.entity, player)
+                    maxDamage = self.selfDamage
                 }
             }
         }
