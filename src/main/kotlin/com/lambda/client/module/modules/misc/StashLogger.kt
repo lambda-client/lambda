@@ -1,11 +1,13 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.movement.AutoWalk
 import com.lambda.client.util.BaritoneUtils
+import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.math.CoordinateConverter.asString
@@ -13,8 +15,10 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.onMainThread
 import com.lambda.client.util.threads.safeListener
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityMinecartChest
@@ -24,7 +28,13 @@ import net.minecraft.init.SoundEvents
 import net.minecraft.tileentity.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
+import net.minecraftforge.fml.common.FMLCommonHandler
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
@@ -36,6 +46,7 @@ object StashLogger : Module(
 ) {
     private val saveToWaypoints by setting("Save To Waypoints", true)
     private val logToChat by setting("Log To Chat", true)
+    private val logToFile by setting("Log To File", true, description = "Logs found stashes in \".minecraft/lambda/stash-logger/servername.json\"")
     private val playSound by setting("Play Sound", true)
     private val logChests by setting("Chests", true)
     private val chestDensity by setting("Min Chests", 5, 1..20, 1, { logChests })
@@ -76,7 +87,7 @@ object StashLogger : Module(
         }
     }
 
-    private suspend fun notification() {
+    private suspend fun SafeClientEvent.notification() {
         var found = false
 
         for (chunkStats in chunkData.values) {
@@ -96,10 +107,36 @@ object StashLogger : Module(
                 }
             }
 
-            if (logToChat) {
-                val positionString = center.asString()
-                val timeStr = SimpleDateFormat.getDateTimeInstance().format(Calendar.getInstance().time)
+            val positionString = center.asString()
+            val timeStr = SimpleDateFormat.getDateTimeInstance().format(Calendar.getInstance().time)
+            if (logToChat)
                 MessageSendHelper.sendChatMessage("$chatName Found $string at ($positionString) [$timeStr]")
+            if(logToFile) {
+                val fileName = mc.currentServerData?.serverIP ?: FMLCommonHandler.instance()?.minecraftServerInstance?.folderName
+                withContext(Dispatchers.IO) {
+                    val stashLoggerFolder = Files.createDirectory(Paths.get(FolderUtils.lambdaFolder + "stash-logger"))
+                    val file = File(stashLoggerFolder.toString() + "/${fileName}.json")
+                    val json = when {
+                        file.exists() -> {
+                            val jsonString = file.readText(Charsets.UTF_8)
+                            JSONObject(jsonString)
+                        }
+                        else -> JSONObject()
+                    }
+                    val stashesJson = when {
+                        json.has("stashes") -> json.getJSONArray("stashes")
+                        else -> JSONArray()
+                    }
+
+                    val stashJson = JSONObject()
+                    stashJson.put("date", timeStr)
+                    stashJson.put("location", positionString)
+                    stashJson.put("info", string)
+
+                    stashesJson.put(stashJson)
+                    json.put("stashes", stashesJson)
+                    file.writeText(json.toString(4))
+                };
             }
 
             found = true
