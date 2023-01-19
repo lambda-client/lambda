@@ -6,5 +6,6 @@ import com.lambda.client.util.graphics.VertexHelper
 class RenderRadarEvent(
     val vertexHelper: VertexHelper,
     val radius: Float,
-    val scale: Float
+    val scale: Float,
+    val chunkLines: Boolean
 ) : Event

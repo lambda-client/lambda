@@ -46,7 +46,9 @@ object PacketCancel : Module(
     private val CPacketCustomPayloadSetting by setting("CPacketCustomPayload", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
     private val CPacketEnchantItemSetting by setting("CPacketEnchantItem", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
     private val CPacketEntityActionSetting by setting("CPacketEntityAction", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
-    private val CPacketPlayerSetting by setting("CPacketPlayer", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private val CPacketPlayerPositionSetting by setting("CPacketPlayerPosition", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private val CPacketPlayerRotationSetting by setting("CPacketPlayerRotation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private val CPacketPlayerPositionRotationSetting by setting("CPacketPlayerPositionRotation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
     private val CPacketHeldItemChangeSetting by setting("CPacketHeldItemChange", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
     private val CPacketInputSetting by setting("CPacketInput", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
     private val CPacketPlaceRecipeSetting by setting("CPacketPlaceRecipe", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
@@ -176,7 +178,9 @@ object PacketCancel : Module(
                 is CPacketCustomPayload -> if (CPacketCustomPayloadSetting) it.cancel().also { numPackets++ }
                 is CPacketEnchantItem -> if (CPacketEnchantItemSetting) it.cancel().also { numPackets++ }
                 is CPacketEntityAction -> if (CPacketEntityActionSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayer -> if (CPacketPlayerSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayer.Position -> if (CPacketPlayerPositionSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayer.Rotation -> if (CPacketPlayerRotationSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayer.PositionRotation -> if (CPacketPlayerPositionRotationSetting) it.cancel().also { numPackets++ }
                 is CPacketHeldItemChange -> if (CPacketHeldItemChangeSetting) it.cancel().also { numPackets++ }
                 is CPacketInput -> if (CPacketInputSetting) it.cancel().also { numPackets++ }
                 is CPacketPlaceRecipe -> if (CPacketPlaceRecipeSetting) it.cancel().also { numPackets++ }

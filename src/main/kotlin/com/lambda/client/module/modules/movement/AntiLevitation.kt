@@ -18,24 +18,26 @@ import kotlin.math.sin
 
 object AntiLevitation : Module(
     name = "AntiLevitation",
-    description = "Removes levitation effect (boring) or abuse it (epic)",
+    description = "Abuses poor anticheat levitation checks",
     category = Category.MOVEMENT
 ) {
     private val mode by setting("Mode", Mode.LEGIT, description = "The AntiLevitation mode")
 
     /* Flight mode */
-    private val vertical by setting("Only Vertical", false, { mode == Mode.FLIGHT }, description = "doesn't apply extra speed when enabled")
-    private val yMotion by setting("Y Motion", 0.002f, 0.0f..0.02f, 0.001f, { mode == Mode.FLIGHT }, description = "The Y Motion that is applied when moving to bypass the anticheat")
-    private val speed by setting("Speed", 0.28f, 0.15f..0.3f, 0.005f, { !vertical && mode == Mode.FLIGHT }, description = "The speed you fly at")
-    private val timer by setting("Timer Boost", true, { !vertical && mode == Mode.FLIGHT }, description = "Use timer for a slight speed boost")
-    private val timerSpeed by setting("Timer Speed", 1.15f, 1.1f..1.2f, 0.01f, { timer && !vertical && mode == Mode.FLIGHT }, description = "The timer modifier")
+    private val vertical by setting("No Speed Enhancements", false, { mode == Mode.FLIGHT }, description = "Only influences vertical movement")
+    private val yMotion by setting("Moving Motion UP", 0.002f, 0.0f..0.02f, 0.001f, { mode == Mode.FLIGHT }, description = "The Y motion that is applied when moving horizontally to bypass the anticheat")
+    private val sneakMotion by setting("Downward Motion", 0.49f, 0.0f..0.7f, 0.01f, { mode == Mode.FLIGHT }, description = "The downward motion that is applied when pressing sneak")
+    private val speed by setting("Flying Speed", 0.28f, 0.15f..0.3f, 0.005f, { !vertical && mode == Mode.FLIGHT }, description = "The speed you fly at")
+    private val timer by setting("Timer Boost", true, { !vertical && mode == Mode.FLIGHT }, description = "Use timer for slightly faster speeds")
+    private val timerSpeed by setting("Timer Speed", 1.088f, 1.1f..1.2f, 0.01f, { timer && !vertical && mode == Mode.FLIGHT }, description = "The timer modifier")
 
     /* Legit mode */
-    private val legitYMotion by setting("Motion Up", 0.018f, 0.001f..0.1f, 0.001f, { mode == Mode.LEGIT }, description = "The Y Motion that is applied when moving to bypass the anticheat")
-    private val boost by setting("Sprint Boost", true, { mode == Mode.LEGIT }, description = "Gives you extra motion when control is pressed")
+    private val legitYMotion by setting("Legit Constant Motion UP", 0.018f, 0.001f..0.1f, 0.001f, { mode == Mode.LEGIT }, description = "The Y motion that is applied when moving horizontally to bypass the anticheat")
+    private val boost by setting("Sprint Strafe", true, { mode == Mode.LEGIT }, description = "Removes air friction when holding sprint")
+    private val legitSneakMotion by setting("Legit Sneak Motion", 0.005f, 0.001f..0.01f, 0.001f, { mode == Mode.LEGIT }, description = "The upward motion that is applied when pressing sneak")
 
     /* Jump motion (used by flight mode and legit mode) */
-    private val jumpMotion by setting("Jump Motion", 0.099f, 0.090f..0.10f, 0.001f, { mode == Mode.FLIGHT || mode == Mode.LEGIT }, description = "The Y Motion that is applied when you press space")
+    private val jumpMotion by setting("Jump Motion", 0.099f, 0.090f..0.20f, 0.001f, { mode == Mode.FLIGHT || mode == Mode.LEGIT }, description = "The upward motion that is applied when you press space")
 
     private var ready = false
 
@@ -78,10 +80,13 @@ object AntiLevitation : Module(
                     setSpeed(speed.toDouble())
                     if (timer && !vertical) modifyTimer(50.0f / timerSpeed)
                 } else {
+                    resetTimer()
                     player.motionY = 0.0
-                    /* Make the motion slowly become 0, so it flattens out smooth */
-                    player.motionX *= 0.8
-                    player.motionZ *= 0.8
+                    if (!vertical) {
+                        //TODO: figure out how to smooth out velocity equally
+                        player.motionX = 0.0
+                        player.motionZ = 0.0
+                    }
                 }
 
                 if (MovementUtils.isInputting || player.isMoving) {
@@ -89,13 +94,16 @@ object AntiLevitation : Module(
                 }
 
                 if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = jumpMotion.toDouble()
-                if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = -0.49
+                if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = -sneakMotion.toDouble()
             } else if (mode == Mode.LEGIT) {
                 /* Override vanilla motion with our own motion */
-                player.motionY = legitYMotion.toDouble()
+                if (mc.gameSettings.keyBindJump.isKeyDown) {
+                    player.motionY = jumpMotion.toDouble()
+                } else {
+                    player.motionY = legitYMotion.toDouble()
+                }
 
-                if (mc.gameSettings.keyBindJump.isKeyDown) player.motionY = jumpMotion.toDouble()
-                if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = 0.005
+                if (mc.gameSettings.keyBindSneak.isKeyDown) player.motionY = legitSneakMotion.toDouble()
 
                 if (mc.gameSettings.keyBindSprint.isKeyDown && player.isSprinting && boost) { //player must be sprinting so you can only boost when you press W
                     val yaw = calcMoveYaw()

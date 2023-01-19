@@ -15,6 +15,7 @@ import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
+import com.lambda.mixin.accessor.gui.AccessorGuiScreen
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
@@ -44,7 +45,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
     // Mouse
     private var lastEventButton = -1
-    private var lastClickPos = Vec2f(0.0f, 0.0f)
+    private var lastClickPos = Vec2f.ZERO
 
     // Searching
     protected var typedString = ""
@@ -88,15 +89,15 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         safeListener<TickEvent.ClientTickEvent> { event ->
             if (event.phase != TickEvent.Phase.START) return@safeListener
 
-            blurShader.shader?.let {
+            blurShader.shader?.let { shaderGroup ->
                 val multiplier = ClickGUI.blur * fadeMultiplier
-                for (shader in it.listShaders) {
+                shaderGroup.listShaders.forEach { shader ->
                     shader.shaderManager.getShaderUniform("multiplier")?.set(multiplier)
                 }
             }
 
             if (displayed.value || alwaysTicking) {
-                for (window in windowList) window.onTick()
+                windowList.forEach { it.onTick() }
             }
         }
 
@@ -140,10 +141,11 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
     open fun onDisplayed() {
         lastClickedWindow = null
         lastEventButton = -1
+        (this as AccessorGuiScreen).setEventButton(-1)
 
         displayed.value = true
 
-        for (window in windowList) window.onDisplayed()
+        windowList.forEach { it.onDisplayed() }
     }
 
     override fun initGui() {
@@ -153,7 +155,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         width = scaledResolution.scaledWidth + 16
         height = scaledResolution.scaledHeight + 16
 
-        for (window in windowList) window.onGuiInit()
+        windowList.forEach { it.onGuiInit() }
     }
 
     override fun onGuiClosed() {
@@ -165,7 +167,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
         displayed.value = false
 
-        for (window in windowList) window.onClosed()
+        windowList.forEach { it.onClosed() }
         updateSettingWindow()
     }
     // End of gui init
@@ -318,11 +320,10 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
     }
 
     private fun drawEachWindow(renderBlock: (WindowComponent) -> Unit) {
-        for (window in windowList) {
-            if (!window.visible) continue
+        windowList.filter { it.visible }.forEach {
             glPushMatrix()
-            glTranslatef(window.renderPosX, window.renderPosY, 0.0f)
-            renderBlock(window)
+            glTranslatef(it.renderPosX, it.renderPosY, 0.0f)
+            renderBlock(it)
             glPopMatrix()
         }
     }

@@ -1,6 +1,7 @@
 package com.lambda.mixin.player;
 
 import com.lambda.client.event.LambdaEventBus;
+import com.lambda.client.event.events.CollisionEvent;
 import com.lambda.client.event.events.PlayerEvent;
 import com.lambda.client.gui.mc.LambdaGuiBeacon;
 import com.lambda.client.manager.managers.MessageManager;
@@ -67,6 +68,15 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;displayGuiScreen(Lnet/minecraft/client/gui/GuiScreen;)V"))
     public void closeScreen(Minecraft minecraft, GuiScreen screen) {
         if (PortalChat.INSTANCE.isDisabled()) Wrapper.getMinecraft().displayGuiScreen(screen);
+    }
+
+    @Inject(method = "pushOutOfBlocks", at = @At("HEAD"), cancellable = true)
+    private void onPushOutOfBlocks(CallbackInfoReturnable<Boolean> callbackInfoReturnable) {
+        CollisionEvent.PushOut event = new CollisionEvent.PushOut();
+        LambdaEventBus.INSTANCE.post(event);
+        if (event.getCancelled()) {
+            callbackInfoReturnable.setReturnValue(false);
+        }
     }
 
     /**

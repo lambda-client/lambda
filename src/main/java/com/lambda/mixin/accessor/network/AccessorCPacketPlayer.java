@@ -28,7 +28,13 @@ public interface AccessorCPacketPlayer {
     @Accessor("moving")
     boolean getMoving();
 
+    @Accessor("moving")
+    void setMoving(boolean value);
+
     @Accessor("rotating")
     boolean getRotating();
+
+    @Accessor("rotating")
+    void setRotating(boolean value);
 
 }
