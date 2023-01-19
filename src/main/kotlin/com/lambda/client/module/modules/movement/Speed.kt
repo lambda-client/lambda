@@ -3,8 +3,7 @@ package com.lambda.client.module.modules.movement
 import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerMoveEvent
-import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.manager.managers.TimerManager.modifyTimer
 import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.mixin.extension.isInWeb
@@ -25,6 +24,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.settings.KeyBinding
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketPlayerPosLook
+import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.lang.Double.max
 import java.lang.Double.min
@@ -112,7 +112,7 @@ object Speed : Module(
             ) strafe()
         }
 
-        safeListener<PlayerMoveEvent> {
+        safeListener<PlayerEvent.Move> {
             when (mode.value) {
                 SpeedMode.STRAFE -> {
                     if (shouldStrafe()) {
@@ -178,6 +178,20 @@ object Speed : Module(
             phase = YPortPhase.WAITING
         }
 
+        safeListener<InputUpdateEvent> {
+            world.getBlockState(player.position.down()).let { state ->
+                state.block
+                if (mode.value == SpeedMode.YPORT
+                    && yPortStrict
+                    && !state.isFullBlock
+                    && !state.isFullCube
+                    && !state.material.isLiquid
+                ) {
+                    phase = YPortPhase.WAITING
+                }
+            }
+        }
+
         mode.listeners.add {
             runSafe { reset() }
         }
@@ -226,7 +240,7 @@ object Speed : Module(
         jumpTicks--
     }
 
-    private fun SafeClientEvent.handleBoost(event: PlayerMoveEvent) {
+    private fun SafeClientEvent.handleBoost(event: PlayerEvent.Move) {
         if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f
             || player.isInOrAboveLiquid
             || mc.gameSettings.keyBindJump.isKeyDown
