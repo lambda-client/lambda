@@ -53,7 +53,10 @@ object VectorUtils {
     private fun getBlockPosInSphere(center: Vec3d, radius: Float, offset: Vec3d): ArrayList<BlockPos> {
         val squaredRadius = radius.pow(2)
         val posList = ArrayList<BlockPos>()
-        for (x in getAxisRange(center.x, radius)) for (y in getAxisRange(center.y, radius)) for (z in getAxisRange(center.z, radius)) {
+        for (y in getAxisRange(center.y, radius)) for (z in getAxisRange(center.z, radius)) {
+            /* Basically, to save performance, we can use simple maths to find X */
+            val x = sqrt(squaredRadius - (y - center.y).pow(2) - (z - center.z).pow(2)) + center.x
+            
             /* Valid position check */
             val blockPos = BlockPos(x, y, z).add(offset.x, offset.y, offset.z)
             if (blockPos.distanceSqToCenter(center.x, center.y, center.z) > squaredRadius) continue
