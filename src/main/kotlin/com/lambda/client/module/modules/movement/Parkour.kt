@@ -1,11 +1,10 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.GuiColors
-import com.lambda.client.module.modules.render.Search.setting
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
@@ -47,7 +46,7 @@ object Parkour: Module(
             ) it.movementInput.jump = true
         }
 
-        listener<RenderWorldEvent> {
+        listener<WorldEvent.RenderTickEvent> {
             if (!esp) return@listener
 
             renderer.aFilled = espFilledAlpha
