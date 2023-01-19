@@ -1,8 +1,7 @@
 package com.lambda.mixin;
 
 import com.lambda.client.event.LambdaEventBus;
-import com.lambda.client.event.events.AddCollisionBoxToListEvent;
-import com.lambda.client.module.modules.movement.Jesus;
+import com.lambda.client.event.events.CollisionEvent;
 import com.lambda.client.module.modules.render.Xray;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockStateContainer;
@@ -31,7 +30,7 @@ public class MixinStateImplementation {
     public void addCollisionBoxToList(World worldIn, BlockPos pos, AxisAlignedBB entityBox, List<AxisAlignedBB> collidingBoxes, Entity entityIn, boolean isActualState, CallbackInfo ci) {
 
         if (entityIn instanceof EntityPlayerSP)
-            LambdaEventBus.INSTANCE.post(new AddCollisionBoxToListEvent(collidingBoxes));
+            LambdaEventBus.INSTANCE.post(new CollisionEvent.AddCollision(collidingBoxes));
 
     }
 
