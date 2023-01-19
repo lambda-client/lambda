@@ -41,27 +41,42 @@ object VectorUtils {
         return returnList
     }
 
+    fun getBlockPosInSphere(center: Vec3d, radius: Float, xOffset: Double = 0.0, yOffset: Double = 0.0, zOffset: Double = 0.0) =
+        getBlockPosInSphere(center, radius, Vec3d(xOffset, yOffset, zOffset))
+
     /**
-     * Get all block positions inside a sphere with given [radius]
-     *
      * @param center Center of the sphere
      * @param radius Radius of the sphere
+     * @param offset Offset of the sphere
      * @return block positions inside a sphere with given [radius]
      */
-    fun getBlockPosInSphere(center: Vec3d, radius: Float): ArrayList<BlockPos> {
+    private fun getBlockPosInSphere(center: Vec3d, radius: Float, offset: Vec3d): ArrayList<BlockPos> {
         val squaredRadius = radius.pow(2)
         val posList = ArrayList<BlockPos>()
         for (x in getAxisRange(center.x, radius)) for (y in getAxisRange(center.y, radius)) for (z in getAxisRange(center.z, radius)) {
             /* Valid position check */
-            val blockPos = BlockPos(x, y, z)
+            val blockPos = BlockPos(x, y, z).add(offset.x, offset.y, offset.z)
             if (blockPos.distanceSqToCenter(center.x, center.y, center.z) > squaredRadius) continue
             posList.add(blockPos)
         }
         return posList
     }
 
+    fun getBlocksInRange(center: Vec3d, minPos: Vec3d, maxPos: Vec3d): ArrayList<BlockPos> {
+        val posList = ArrayList<BlockPos>()
+        for (x in getAxisRangeIn(center.x, minPos.x, maxPos.x))
+            for (y in getAxisRangeIn(center.y, minPos.y, maxPos.y))
+                for (z in getAxisRangeIn(center.z, minPos.z, maxPos.z)) posList.add(BlockPos(x, y, z))
+        return posList
+    }
+
+
     private fun getAxisRange(d1: Double, d2: Float): IntRange {
         return IntRange((d1 - d2).floorToInt(), (d1 + d2).ceilToInt())
+    }
+
+    private fun getAxisRangeIn(center: Double, d1: Double, d2: Double): IntRange {
+        return IntRange((center + d1).floorToInt(), (center + d2).ceilToInt())
     }
 
     fun Vec2f.toViewVec(): Vec3d {
@@ -77,16 +92,17 @@ object VectorUtils {
         return Vec3d((sinYaw * cosPitch).toDouble(), sinPitch.toDouble(), (cosYaw * cosPitch).toDouble())
     }
 
-    fun Vec3d.toBlockPos(): BlockPos {
-        return BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
+    /* For some reasons the mixin for the getVisibleFacings absolutely wanted that */
+    fun toBlockPos(pos: Vec3d): BlockPos {
+        return pos.toBlockPos()
+    }
+
+    fun Vec3d.toBlockPos(xOffset: Double = 0.0, yOffset: Double = 0.0, zOffset: Double = 0.0): BlockPos {
+        return BlockPos(x.floorToInt() + xOffset, y.floorToInt() + yOffset, z.floorToInt() + zOffset)
     }
 
     fun Vec3i.toVec3d(): Vec3d {
         return toVec3d(0.0, 0.0, 0.0)
-    }
-
-    fun Vec3i.toVec3d(offSet: Vec3d): Vec3d {
-        return Vec3d(x + offSet.x, y + offSet.y, z + offSet.z)
     }
 
     fun Vec3i.toVec3d(xOffset: Double, yOffset: Double, zOffset: Double): Vec3d {
@@ -97,48 +113,29 @@ object VectorUtils {
         return toVec3dCenter(0.0, 0.0, 0.0)
     }
 
-    fun Vec3i.toVec3dCenter(offSet: Vec3d): Vec3d {
-        return Vec3d(x + 0.5 + offSet.x, y + 0.5 + offSet.y, z + 0.5 + offSet.z)
-    }
-
     fun Vec3i.toVec3dCenter(xOffset: Double, yOffset: Double, zOffset: Double): Vec3d {
         return Vec3d(x + 0.5 + xOffset, y + 0.5 + yOffset, z + 0.5 + zOffset)
     }
 
-    fun Vec3i.distanceTo(vec3i: Vec3i): Double {
-        val xDiff = vec3i.x - x
-        val yDiff = vec3i.y - y
-        val zDiff = vec3i.z - z
-        return sqrt((xDiff * xDiff + yDiff * yDiff + zDiff * zDiff).toDouble())
+    fun Vec3d.distanceTo(other: Vec3i): Double {
+        return this.distanceTo(other)
     }
 
-    fun Vec3d.distanceTo(vec3i: Vec3i): Double {
-        val xDiff = vec3i.x + 0.5 - x
-        val yDiff = vec3i.y + 0.5 - y
-        val zDiff = vec3i.z + 0.5 - z
-        return sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
+    fun Entity.distanceTo(pos: Vec3i): Double {
+        return this.position.distanceTo(pos)
     }
 
-    fun Entity.distanceTo(vec3i: Vec3i): Double {
-        val xDiff = vec3i.x + 0.5 - posX
-        val yDiff = vec3i.y + 0.5 - posY
-        val zDiff = vec3i.z + 0.5 - posZ
-        return sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
+    fun Entity.distanceTo(pos: Vec3d): Double {
+        return this.position.distanceTo(pos.toBlockPos())
     }
 
-    fun Entity.distanceTo(vec3d: Vec3d): Double {
-        val xDiff = vec3d.x - posX
-        val yDiff = vec3d.y - posY
-        val zDiff = vec3d.z - posZ
-        return sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
+    fun Vec3i.distanceTo(other: Vec3i): Double {
+        return sqrt((other.x - x).toDouble().pow(2) + (other.y - y).toDouble().pow(2) + (other.z - z).toDouble().pow(2))
     }
+
 
     fun Entity.distanceTo(chunkPos: ChunkPos): Double {
         return hypot(chunkPos.x * 16 + 8 - posX, chunkPos.z * 16 + 8 - posZ)
-    }
-
-    fun Vec3i.multiply(multiplier: Int): Vec3i {
-        return Vec3i(x * multiplier, y * multiplier, z * multiplier)
     }
 
     infix operator fun Vec3d.times(vec3d: Vec3d): Vec3d = Vec3d(x * vec3d.x, y * vec3d.y, z * vec3d.z)
