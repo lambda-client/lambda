@@ -10,6 +10,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.module.modules.combat.AutoLog.Reasons.*
 import com.lambda.client.util.EntityUtils.isFakeOrSelf
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
+import com.lambda.client.util.combat.CrystalUtils.calcCrystalDamage
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countItem
 import com.lambda.client.util.threads.safeListener
@@ -73,8 +74,8 @@ object AutoLog : Module(
     }
 
     private fun SafeClientEvent.checkCrystals(): Boolean {
-        val maxSelfDamage = CombatManager.crystalMap.values.maxOfOrNull { it.selfDamage } ?: 0.0f
-        return player.scaledHealth - maxSelfDamage < healthAmount
+        val self = calcCrystalDamage(CombatManager.placedCrystals.maxByOrNull { it.damage.selfDamage }?.entity, player)
+        return player.scaledHealth - self.selfDamage < healthAmount
     }
 
     private fun SafeClientEvent.checkCreeper(): Boolean {
