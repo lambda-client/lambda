@@ -3,6 +3,7 @@ package com.lambda.client.util.world
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.util.math.RotationUtils.getRotationTo
+import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.runSafeSuspend
 import kotlinx.coroutines.delay
@@ -133,6 +134,10 @@ fun SafeClientEvent.getMiningSide(pos: BlockPos): EnumFacing? {
     return getVisibleSides(pos)
         .filter { !world.getBlockState(pos.offset(it)).isFullBox }
         .minByOrNull { eyePos.squareDistanceTo(getHitVec(pos, it)) }
+}
+
+fun SafeClientEvent.getClosestVisibleSide(pos: Vec3d): EnumFacing? {
+    return getClosestVisibleSide(pos.toBlockPos())
 }
 
 fun SafeClientEvent.getClosestVisibleSide(pos: BlockPos): EnumFacing? {
