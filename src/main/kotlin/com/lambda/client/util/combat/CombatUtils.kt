@@ -26,7 +26,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.world.Explosion
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
-import kotlin.math.max
 import kotlin.math.round
 
 
@@ -96,8 +95,8 @@ object CombatUtils {
      * @param explosionType The strength of the explosion
      * @return The damage dealt by the explosion
      */
-    fun SafeClientEvent.calculateExplosion(pos: Vec3d, entity: EntityLivingBase, explosionType: ExplosionStrength): Double {
-        if (entity is EntityPlayer && entity.isCreative) return 0.0 // Return 0 directly if entity is a player and in creative mode
+    fun SafeClientEvent.calculateExplosion(pos: Vec3d, entity: EntityLivingBase?, explosionType: ExplosionStrength): Float {
+        if (entity is EntityPlayer && entity.isCreative || entity == null) return 0.0f // Return 0 directly if entity is a player and in creative mode or null
         val radius = getExplosionRadius(explosionType)
         val distance = entity.positionVector.distanceTo(pos) / radius
 
@@ -116,15 +115,15 @@ object CombatUtils {
      * @param damageIn The damage to reduce
      * @return The damage after blast reduction
      */
-    private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion, damageIn: Float): Double {
-        val armorValue = entity.totalArmorValue
+    private fun getBlastReduction(entity: EntityLivingBase, explosion: Explosion, damageIn: Float): Float {
+        val armorValue = entity.totalArmorValue.toFloat()
         val damageSource = DamageSource.causeExplosionDamage(explosion)
         val damage =
-            CombatRules.getDamageAfterAbsorb(damageIn, armorValue.toFloat(), getArmorToughness(entity)) *
+            CombatRules.getDamageAfterAbsorb(damageIn, armorValue, cachedArmorValues[entity]?.second ?: 0.0f) *
             getProtectionModifier(entity, damageSource) * // Apply protection modifier
             getResistanceReduction(entity) // Apply resistance reduction
 
-        return damage.coerceAtLeast(0.0f).toDouble()
+        return damage.coerceAtLeast(0.0f)
     }
 
     /**
@@ -143,7 +142,7 @@ object CombatUtils {
             .forEach { armor ->
                 val nbtTagList = armor.enchantmentTagList
 
-                nbtTagList.forEachIndexed { index, _ ->
+                for (index in 0 until nbtTagList.tagCount()) {
                     val compoundTag = nbtTagList.getCompoundTagAt(index)
 
                     val id = compoundTag.getInteger("id")
@@ -161,16 +160,13 @@ object CombatUtils {
     }
 
     /**
-     * @param entity The entity to calculate the armor thoughness from
-     * @return The armor thoughness of the entity
+     * @param durability The durability of the armor
+     * @param entity The entity to get the armor value from
+     * @return Whether the armor is under the durability threshold
      */
-    private fun getArmorToughness(entity: EntityLivingBase): Float {
-        // If the entity has no diamond armor, return 0. See https://minecraft.fandom.com/wiki/Armor#Armor_toughness
-        val armorPieces = entity.armorInventoryList.filter { !it.isEmpty && it.item is ItemArmor && (it.item as ItemArmor).armorMaterial == ItemArmor.ArmorMaterial.DIAMOND }
-        if (armorPieces.isEmpty()) return 0.0f
+    fun isArmorUnderThreshold(durability: Int, entity: EntityLivingBase): Boolean =
+        !entity.armorInventoryList.none { it.maxDamage - it.itemDamage <= durability }
 
-        return armorPieces.size * 2.0f
-    }
 
     fun SafeClientEvent.equipBestWeapon(preferWeapon: PreferWeapon = PreferWeapon.NONE, allowTool: Boolean = false) {
         player.hotbarSlots.filterByStack {
@@ -196,8 +192,7 @@ object CombatUtils {
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
-            for (entity in world.loadedEntityList) {
-                if (entity !is EntityLivingBase) continue
+            for (entity in world.loadedEntityList.filterIsInstance<EntityLivingBase>()) {
                 val armorValue = entity.totalArmorValue.toFloat()
                 val toughness = entity.getEntityAttribute(SharedMonsterAttributes.ARMOR_TOUGHNESS).attributeValue.toFloat()
 
