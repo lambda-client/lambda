@@ -1,10 +1,13 @@
 package com.lambda.client.module.modules.combat
 
 import com.lambda.client.commons.extension.ceilToInt
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.events.TargetEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.manager.managers.CombatManager.updateCrystalDamage
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.AutoEat
@@ -17,16 +20,9 @@ import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.combat.CombatUtils
-import com.lambda.client.util.combat.CrystalUtils
-import com.lambda.client.util.combat.CrystalUtils.calcCrystalDamage
-import com.lambda.client.util.combat.CrystalUtils.getPlacePos
 import com.lambda.client.util.graphics.*
-import com.lambda.client.util.items.blockBlacklist
 import com.lambda.client.util.math.RotationUtils.getRelativeRotation
 import com.lambda.client.util.math.Vec2d
-import com.lambda.client.util.math.VectorUtils.distanceTo
-import com.lambda.client.util.math.VectorUtils.toVec3d
-import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.isActiveOrFalse
 import com.lambda.client.util.threads.runSafeR
@@ -103,8 +99,7 @@ object CombatSetting : Module(
     private val resumeTimer = TickTimer(TimeUnit.SECONDS)
     private val jobMap = hashMapOf<(SafeClientEvent) -> Unit, Job?>(
         { it: SafeClientEvent -> it.updateTarget() } to null,
-        { it: SafeClientEvent -> it.updatePlacingList() } to null,
-        { it: SafeClientEvent -> it.updateCrystalList() } to null
+        { it: SafeClientEvent -> it.updateCrystalDamage() } to null
     )
 
     val pause
@@ -167,50 +162,15 @@ object CombatSetting : Module(
             overrideRange = if (it is KillAura) it.range else range
         }
 
-        getTargetList().let {
-            CombatManager.target = getTarget(it)
-        }
-    }
-
-    private fun SafeClientEvent.updatePlacingList() {
-        if (CrystalAura.isDisabled && CrystalBasePlace.isDisabled && CrystalESP.isDisabled && player.ticksExisted % 4 != 0) return
-        val target = CombatManager.target ?: return
-
-        val eyePos = player.getPositionEyes(1f) ?: Vec3d.ZERO
-        val cacheList = ArrayList<Pair<BlockPos, CombatManager.CrystalDamage>>()
-
-        for (pos in getPlacePos(target, player, 8f)) {
-            if (blockBlacklist.contains(world.getBlockState(pos).block)) continue
-            val dist = eyePos.distanceTo(pos.toVec3dCenter(0.0, 0.5, 0.0))
-            val damage = calcCrystalDamage(pos, target)
-            val selfDamage = calcCrystalDamage(pos, player)
-            cacheList.add(Pair(pos, CombatManager.CrystalDamage(damage, selfDamage, dist)))
-        }
-
-        CombatManager.placeMap = LinkedHashMap<BlockPos, CombatManager.CrystalDamage>(cacheList.size).apply {
-            putAll(cacheList.sortedWith(compareBy({ it.second.selfDamage }, { -it.second.targetDamage })).toMap())
-        }
-    }
-
-    /* Crystal damage calculation */
-    private fun SafeClientEvent.updateCrystalList() {
-        if (CrystalAura.isDisabled && CrystalESP.isDisabled && (player.ticksExisted - 2) % 4 != 0) return
-
-        val cacheList = ArrayList<Pair<EntityEnderCrystal, CombatManager.CrystalDamage>>()
-        val eyePos = player.getPositionEyes(1f)
-        val target = CombatManager.target
-
-        world.loadedEntityList
-            .filterIsInstance<EntityEnderCrystal>()
-            .filter { !it.isDead && it.distanceTo(eyePos) < 16.0f }
-            .forEach {
-                val damage = if (target != null) calcCrystalDamage(it, target) else 0.0f
-                val selfDamage = calcCrystalDamage(it, player)
-                cacheList.add(it to CombatManager.CrystalDamage(damage, selfDamage, it.distanceTo(eyePos)))
+        getTargetList().let { targets ->
+            getTarget(targets)?.let { target ->
+                if (target != CombatManager.target && CombatManager.target != null) {
+                    LambdaEventBus.post(TargetEvent.Switch(target))
+                }
+                LambdaEventBus.post(TargetEvent.Pre(target))
+                CombatManager.target = target
+                LambdaEventBus.post(TargetEvent.Post(target))
             }
-
-        CombatManager.crystalMap = LinkedHashMap<EntityEnderCrystal, CombatManager.CrystalDamage>(cacheList.size).apply {
-            putAll(cacheList.sortedWith(compareBy({ it.second.selfDamage }, { -it.second.targetDamage })).toMap())
         }
     }
 
@@ -225,7 +185,7 @@ object CombatSetting : Module(
     /* End of crystal damage calculation */
 
     /* Targeting */
-    private fun SafeClientEvent.getTargetList(): LinkedList<EntityLivingBase> {
+    fun SafeClientEvent.getTargetList(): LinkedList<EntityLivingBase> {
         val targetList = LinkedList<EntityLivingBase>()
         for (entity in getCacheList()) {
             if (!tamed
