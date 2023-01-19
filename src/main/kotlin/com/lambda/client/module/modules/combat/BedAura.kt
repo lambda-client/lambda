@@ -126,21 +126,19 @@ object BedAura : Module(
 
     private fun SafeClientEvent.updatePlaceMap() {
         val cacheMap = CombatManager.target?.let {
-            val posList = VectorUtils.getBlockPosInSphere(player.getPositionEyes(1f), range)
+            val posList = VectorUtils.getBlockPosInSphere(player.getPositionEyes(1f), range, 0.5, 1.0, 0.5)
             val damagePosMap = HashMap<Pair<Float, Float>, BlockPos>()
 
             for (pos in posList) {
-                val topSideVec = pos.toVec3d(0.5, 1.0, 0.5)
-                val rotation = getRotationTo(topSideVec)
+                val rotation = getRotationTo(pos.toVec3d())
                 val facing = EnumFacing.fromAngle(rotation.x.toDouble())
                 if (!canPlaceBed(pos)) continue
 
-                val targetDamage = calcCrystalDamage(pos.offset(facing), it)
-                if (targetDamage < minDamage) continue
+                val damage = calcCrystalDamage(pos.offset(facing).toVec3d(), it)
+                if (damage.targetDamage < minDamage) continue
 
-                val selfDamage = calcCrystalDamage(pos.offset(facing), player)
-                if (suicideMode || targetDamage > selfDamage && selfDamage <= maxSelfDamage) {
-                    damagePosMap[Pair(targetDamage, selfDamage)] = pos
+                if (suicideMode || damage.targetDamage > damage.selfDamage && damage.selfDamage <= maxSelfDamage) {
+                    damagePosMap[Pair(damage.targetDamage, damage.selfDamage)] = pos
                 }
             }
 
