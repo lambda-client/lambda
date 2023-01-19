@@ -168,7 +168,9 @@ open class Slider(
             RenderUtils2D.drawRectFilled(
                 vertexHelper,
                 posEnd = Vec2d(textWidth, textHeight).plus(4.0),
-                color = GuiColors.backGround.apply { a = (a * alpha).toInt() })
+                color = GuiColors.backGround.apply { a = (a * alpha).toInt() }
+            )
+
             if (ClickGUI.windowOutline) {
                 RenderUtils2D.drawRectOutline(
                     vertexHelper,

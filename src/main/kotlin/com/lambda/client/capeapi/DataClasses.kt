@@ -33,7 +33,7 @@ data class Cape(
         return this === other
             || other is Cape
             && other.capeUUID == capeUUID
-            && other.type == other.type
+            && other.type == type
     }
 
     override fun hashCode(): Int {

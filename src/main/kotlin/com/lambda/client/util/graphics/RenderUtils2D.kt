@@ -87,10 +87,57 @@ object RenderUtils2D {
         drawLineLoop(vertexHelper, vertices, lineWidth, color)
     }
 
+    fun drawRectOutlineList(vertexHelper: VertexHelper,
+                            rects: List<Pair<Vec2d, Vec2d>>,
+                            lineWidth: Float = 1f,
+                            color: ColorHolder) {
+        prepareGl()
+        glLineWidth(lineWidth)
+        vertexHelper.begin(GL_LINES)
+        rects.forEach {
+            val pos1 = it.first // Top left
+            val pos2 = Vec2d(it.second.x, it.first.y) // Top right
+            val pos3 = it.second // Bottom right
+            val pos4 = Vec2d(it.first.x, it.second.y) // Bottom left
+            vertexHelper.put(pos1, color)
+            vertexHelper.put(pos2, color)
+            vertexHelper.put(pos2, color)
+            vertexHelper.put(pos3, color)
+            vertexHelper.put(pos3, color)
+            vertexHelper.put(pos4, color)
+            vertexHelper.put(pos4, color)
+            vertexHelper.put(pos1, color)
+        }
+        vertexHelper.end()
+        releaseGl()
+        glLineWidth(1f)
+    }
+
     fun drawRectFilled(vertexHelper: VertexHelper, posBegin: Vec2d = Vec2d(0.0, 0.0), posEnd: Vec2d, color: ColorHolder) {
         val pos2 = Vec2d(posEnd.x, posBegin.y) // Top right
         val pos4 = Vec2d(posBegin.x, posEnd.y) // Bottom left
         drawQuad(vertexHelper, posBegin, pos2, posEnd, pos4, color)
+    }
+
+    fun drawRectFilledList(vertexHelper: VertexHelper,
+                           rects: List<Pair<Vec2d, Vec2d>>,
+                           color: ColorHolder) {
+        prepareGl()
+        vertexHelper.begin(GL_TRIANGLES)
+        rects.forEach {
+            val pos1 = it.first // Top left
+            val pos2 = Vec2d(it.second.x, it.first.y) // Top right
+            val pos3 = it.second // Bottom right
+            val pos4 = Vec2d(it.first.x, it.second.y) // Bottom left
+            vertexHelper.put(pos1, color)
+            vertexHelper.put(pos2, color)
+            vertexHelper.put(pos4, color)
+            vertexHelper.put(pos4, color)
+            vertexHelper.put(pos3, color)
+            vertexHelper.put(pos2, color)
+        }
+        vertexHelper.end()
+        releaseGl()
     }
 
     private fun drawQuad(vertexHelper: VertexHelper, pos1: Vec2d, pos2: Vec2d, pos3: Vec2d, pos4: Vec2d, color: ColorHolder) {

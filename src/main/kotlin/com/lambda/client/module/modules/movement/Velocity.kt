@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.event.events.CollisionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
@@ -31,6 +32,7 @@ object Velocity : Module(
     private val noPush by setting("No Push", true)
     private val entity by setting("Entity", true, { noPush })
     private val liquid by setting("Liquid", true, { noPush })
+    private val block by setting("Block", false, { noPush })
 
     init {
         safeListener<PacketEvent.Receive> {
@@ -56,6 +58,10 @@ object Velocity : Module(
                     }
                 }
             }
+        }
+
+        safeListener<CollisionEvent.PushOut> {
+            if (noPush && block) it.cancel()
         }
     }
 

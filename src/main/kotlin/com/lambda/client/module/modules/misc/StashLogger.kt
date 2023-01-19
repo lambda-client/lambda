@@ -25,6 +25,8 @@ import net.minecraft.tileentity.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.roundToInt
 
 object StashLogger : Module(
@@ -96,7 +98,8 @@ object StashLogger : Module(
 
             if (logToChat) {
                 val positionString = center.asString()
-                MessageSendHelper.sendChatMessage("$chatName Found $string at ($positionString) ")
+                val timeStr = SimpleDateFormat.getDateTimeInstance().format(Calendar.getInstance().time)
+                MessageSendHelper.sendChatMessage("$chatName Found $string at ($positionString) [$timeStr]")
             }
 
             found = true
