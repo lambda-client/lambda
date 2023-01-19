@@ -2,9 +2,9 @@ package com.lambda.client.module.modules.combat
 
 import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderOverlayEvent
-import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
@@ -66,7 +66,7 @@ object CrystalESP : Module(
         DAMAGE_ESP, CRYSTAL_ESP, CRYSTAL_ESP_COLOR
     }
 
-    private var placeMap = emptyMap<BlockPos, CombatManager.CrystalDamage>()
+    private var placeList = emptyList<CombatManager.Crystal>()
     private val renderCrystalMap = LinkedHashMap<BlockPos, Quad<Float, Float, Float, Float>>() // <Crystal, <Target Damage, Self Damage, Prev Progress, Progress>>
     private val pendingPlacing = LinkedHashMap<BlockPos, Long>()
 
@@ -94,32 +94,22 @@ object CrystalESP : Module(
     }
 
     private fun updateDamageESP() {
-        placeMap = if (damageESP) {
-            CombatManager.placeMap.filter { it.value.distance <= damageRange }
+        placeList = if (damageESP) {
+            CombatManager.placedCrystals.filter { it.damage.selfDistance <= damageRange }
         } else {
-            emptyMap()
+            emptyList()
         }
     }
 
     private fun updateCrystalESP() {
         if (crystalESP) {
-            val placeMap = CombatManager.placeMap
-            val crystalMap = CombatManager.crystalMap
+            val crystalSet = CombatManager.placedCrystals
             val cacheMap = HashMap<BlockPos, Quad<Float, Float, Float, Float>>()
 
-            // Removes after 1 second
             pendingPlacing.entries.removeIf { System.currentTimeMillis() - it.value > 1000L }
 
             if (!onlyOwn) {
-                for ((crystal, calculation) in crystalMap) {
-                    if (calculation.distance > crystalRange) continue
-                    cacheMap[crystal.position.down()] = Quad(calculation.targetDamage, calculation.selfDamage, 0.0f, 0.0f)
-                }
-            }
-
-            for (pos in pendingPlacing.keys) {
-                val damage = placeMap[pos] ?: continue
-                cacheMap[pos] = Quad(damage.targetDamage, damage.selfDamage, 0.0f, 0.0f)
+                cacheMap.putAll(crystalSet.filter { it.damage.selfDamage <= crystalRange }.associateBy({it.entity.position.down()},{ Quad(it.damage.targetDamage, it.damage.selfDamage, 0.0f, 0.0f)}))
             }
 
             val scale = 1.0f / animationScale
@@ -136,18 +126,19 @@ object CrystalESP : Module(
     }
 
     init {
-        listener<RenderWorldEvent> {
+        listener<WorldEvent.RenderTickEvent> {
             val renderer = ESPRenderer()
 
             /* Damage ESP */
-            if (damageESP && placeMap.isNotEmpty()) {
+            if (damageESP && placeList.isNotEmpty()) {
                 renderer.aFilled = 255
 
-                for ((pos, calculation) in placeMap) {
-                    val rgb = MathUtils.convertRange(calculation.targetDamage.toInt(), 0, 20, 127, 255)
-                    val a = MathUtils.convertRange(calculation.targetDamage.toInt(), 0, 20, minAlpha, maxAlpha)
+                placeList.forEach { crystal ->
+                    val damage = crystal.damage.targetDamage.toInt()
+                    val rgb = MathUtils.convertRange(damage, 0, 20, 127, 255)
+                    val a = MathUtils.convertRange(damage, 0, 20, minAlpha, maxAlpha)
                     val rgba = ColorHolder(rgb, rgb, rgb, a)
-                    renderer.add(pos, rgba)
+                    renderer.add(crystal.entity.position, rgba)
                 }
 
                 renderer.render(true)
