@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.combat
 
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
@@ -19,25 +19,19 @@ import com.lambda.client.util.items.block
 import com.lambda.client.util.items.firstBlock
 import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.math.RotationUtils.getRotationTo
-import com.lambda.client.util.math.VectorUtils
-import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
-import com.lambda.client.util.world.getNeighbour
-import com.lambda.client.util.world.hasNeighbour
-import com.lambda.client.util.world.isPlaceable
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
-import java.util.*
 
 @CombatManager.CombatModule
 object CrystalBasePlace : Module(
@@ -68,7 +62,7 @@ object CrystalBasePlace : Module(
             resetHotbar()
         }
 
-        listener<RenderWorldEvent> {
+        listener<WorldEvent.RenderTickEvent> {
             val clear = inactiveTicks >= 30
             renderer.render(clear)
         }
@@ -140,7 +134,7 @@ object CrystalBasePlace : Module(
     }
 
     private fun SafeClientEvent.getPlaceInfo(entity: EntityLivingBase): PlaceInfo? {
-        val cacheMap = TreeMap<Float, BlockPos>(compareByDescending { it })
+        /*val cacheMap = TreeMap<Float, BlockPos>(compareByDescending { it })
         val prediction = CombatSetting.getPrediction(entity)
         val eyePos = player.getPositionEyes(1.0f)
         val posList = VectorUtils.getBlockPosInSphere(eyePos, range)
@@ -163,7 +157,7 @@ object CrystalBasePlace : Module(
 
         for (pos in cacheMap.values) {
             return getNeighbour(pos, 1) ?: continue
-        }
+        }*/
         return null
     }
 
@@ -173,17 +167,11 @@ object CrystalBasePlace : Module(
         world.setBlockState(pos, Blocks.OBSIDIAN.defaultState)
 
         // Checks damage
-        val damage = calcCrystalDamage(pos, entity)
-        val selfDamage = calcCrystalDamage(pos, player)
+        val damage = calcCrystalDamage(pos.toVec3dCenter(0.5, 0.0, 0.0), entity)
 
         // Revert the block state before return
         world.setBlockState(pos, prevState)
 
-        return damage to selfDamage
+        return damage.targetDamage to damage.selfDamage
     }
-
-    private fun checkDamage(damage: Float, selfDamage: Float, maxCurrentDamage: Float) =
-        selfDamage < CrystalAura.maxSelfDamage &&
-            damage > CrystalAura.minDamage &&
-            (maxCurrentDamage < CrystalAura.minDamage || damage - maxCurrentDamage >= minDamageInc)
 }
