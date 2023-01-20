@@ -133,6 +133,10 @@ object Scaffold : Module(
         (value * 2.5 * maxRange).roundToInt().coerceAtMost(maxRange)
 
     private fun SafeClientEvent.swap(): Boolean {
+        if (player.heldItemMainhand.item is ItemBlock || player.heldItemOffhand.item is ItemBlock) {
+            inactiveTicks = 0;
+            return true;
+        }
         getBlockSlot()?.let { slot ->
             if (spoofHotbar) spoofHotbar(slot)
             else swapToSlot(slot)
