@@ -51,35 +51,35 @@ class PluginConfig(pluginName: String) : NameableConfig<IPluginClass>(
         } ?: emptyList()
     }
 
-    override fun <E : Enum<E>> IPluginClass.setting(name: String, value: E, visibility: () -> Boolean, consumer: (prev: E, input: E) -> E, description: String): EnumSetting<E> {
-        return setting(EnumSetting(name, value, visibility, consumer, description))
+    override fun <E : Enum<E>> IPluginClass.setting(name: String, value: E, visibility: () -> Boolean, consumer: (prev: E, input: E) -> E, description: String, unit: String, formatter: (E) -> String): EnumSetting<E> {
+        return setting(EnumSetting(name, value, visibility, consumer, description, unit, formatter))
     }
 
-    override fun IPluginClass.setting(name: String, value: Boolean, visibility: () -> Boolean, consumer: (prev: Boolean, input: Boolean) -> Boolean, description: String): BooleanSetting {
-        return setting(BooleanSetting(name, value, visibility, consumer, description))
+    override fun IPluginClass.setting(name: String, value: Boolean, visibility: () -> Boolean, consumer: (prev: Boolean, input: Boolean) -> Boolean, description: String, formatter: (Boolean) -> String): BooleanSetting {
+        return setting(BooleanSetting(name, value, visibility, consumer, description, formatter))
     }
 
-    override fun IPluginClass.setting(name: String, value: ColorHolder, hasAlpha: Boolean, visibility: () -> Boolean, description: String): ColorSetting {
-        return setting(ColorSetting(name, value, hasAlpha, visibility, description))
+    override fun IPluginClass.setting(name: String, value: ColorHolder, hasAlpha: Boolean, visibility: () -> Boolean, description: String, formatter: (ColorHolder) -> String): ColorSetting {
+        return setting(ColorSetting(name, value, hasAlpha, visibility, description, formatter))
     }
 
-    override fun IPluginClass.setting(name: String, value: String, visibility: () -> Boolean, consumer: (prev: String, input: String) -> String, description: String): StringSetting {
-        return setting(StringSetting(name, value, visibility, consumer, description))
+    override fun IPluginClass.setting(name: String, value: String, visibility: () -> Boolean, consumer: (prev: String, input: String) -> String, description: String, formatter: (String) -> String): StringSetting {
+        return setting(StringSetting(name, value, visibility, consumer, description, formatter))
     }
 
-    override fun IPluginClass.setting(name: String, value: Double, range: ClosedFloatingPointRange<Double>, step: Double, visibility: () -> Boolean, consumer: (prev: Double, input: Double) -> Double, description: String, unit: String, fineStep: Double): DoubleSetting {
-        return setting(DoubleSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
+    override fun IPluginClass.setting(name: String, value: Double, range: ClosedFloatingPointRange<Double>, step: Double, visibility: () -> Boolean, consumer: (prev: Double, input: Double) -> Double, description: String, unit: String, fineStep: Double, formatter: (Double) -> String): DoubleSetting {
+        return setting(DoubleSetting(name, value, range, step, visibility, consumer, description, unit, fineStep, formatter))
     }
 
-    override fun IPluginClass.setting(name: String, value: Float, range: ClosedFloatingPointRange<Float>, step: Float, visibility: () -> Boolean, consumer: (prev: Float, input: Float) -> Float, description: String, unit: String, fineStep: Float): FloatSetting {
-        return setting(FloatSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
+    override fun IPluginClass.setting(name: String, value: Float, range: ClosedFloatingPointRange<Float>, step: Float, visibility: () -> Boolean, consumer: (prev: Float, input: Float) -> Float, description: String, unit: String, fineStep: Float, formatter: (Float) -> String): FloatSetting {
+        return setting(FloatSetting(name, value, range, step, visibility, consumer, description, unit, fineStep, formatter))
     }
 
-    override fun IPluginClass.setting(name: String, value: Int, range: IntRange, step: Int, visibility: () -> Boolean, consumer: (prev: Int, input: Int) -> Int, description: String, unit: String, fineStep: Int): IntegerSetting {
-        return setting(IntegerSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
+    override fun IPluginClass.setting(name: String, value: Int, range: IntRange, step: Int, visibility: () -> Boolean, consumer: (prev: Int, input: Int) -> Int, description: String, unit: String, fineStep: Int, formatter: (Int) -> String): IntegerSetting {
+        return setting(IntegerSetting(name, value, range, step, visibility, consumer, description, unit, fineStep, formatter))
     }
 
-    override fun IPluginClass.setting(name: String, value: Bind, visibility: () -> Boolean, description: String): BindSetting {
-        return setting(BindSetting(name, value, visibility, description))
+    override fun IPluginClass.setting(name: String, value: Bind, visibility: () -> Boolean, description: String, formatter: (Bind) -> String): BindSetting {
+        return setting(BindSetting(name, value, visibility, description, formatter))
     }
 }

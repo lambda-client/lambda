@@ -9,8 +9,9 @@ class StringSetting(
     value: String,
     visibility: () -> Boolean = { true },
     consumer: (prev: String, input: String) -> String = { _, input -> input },
-    description: String = ""
-) : MutableSetting<String>(name, value, visibility, consumer, description, unit = "") {
+    description: String = "",
+    formatter: (String) -> String = { s -> s },
+    ) : MutableSetting<String>(name, value, visibility, consumer, description, formatter, unit = "") {
 
     override fun setValue(valueIn: String) {
         value = valueIn

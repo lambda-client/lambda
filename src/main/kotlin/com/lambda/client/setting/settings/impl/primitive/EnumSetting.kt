@@ -11,8 +11,9 @@ class EnumSetting<T : Enum<T>>(
     visibility: () -> Boolean = { true },
     consumer: (prev: T, input: T) -> T = { _, input -> input },
     description: String = "",
-    unit: String = ""
-) : MutableSetting<T>(name, value, visibility, consumer, description, unit) {
+    unit: String = "",
+    formatter: (T) -> String = { e -> "$e"},
+    ) : MutableSetting<T>(name, value, visibility, consumer, description, formatter, unit) {
 
     private val enumClass: Class<T> = value.declaringJavaClass
     val enumValues: Array<out T> = enumClass.enumConstants

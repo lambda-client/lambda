@@ -18,6 +18,7 @@ open class MutableSetting<T : Any>(
     override val visibility: () -> Boolean,
     consumer: (prev: T, input: T) -> T,
     override val description: String,
+    override val formatter: (T) -> String,
     override val unit: String
 ) : AbstractSetting<T>() {
 

@@ -30,7 +30,8 @@ interface SettingRegister<T : Any> {
         description: String = "",
         unit: String = "",
         fineStep: Int = step,
-    ) = setting(IntegerSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
+        formatter: (Int) -> String = { i -> "$i"},
+        ) = setting(IntegerSetting(name, value, range, step, visibility, consumer, description, unit, fineStep, formatter))
 
     /** Double Setting */
     fun T.setting(
@@ -43,7 +44,8 @@ interface SettingRegister<T : Any> {
         description: String = "",
         unit: String = "",
         fineStep: Double = step,
-    ) = setting(DoubleSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
+        formatter: (Double) -> String = { d -> "$d"},
+        ) = setting(DoubleSetting(name, value, range, step, visibility, consumer, description, unit, fineStep, formatter))
 
     /** Float Setting */
     fun T.setting(
@@ -56,15 +58,17 @@ interface SettingRegister<T : Any> {
         description: String = "",
         unit: String = "",
         fineStep: Float = step,
-    ) = setting(FloatSetting(name, value, range, step, visibility, consumer, description, unit, fineStep))
+        formatter: (Float) -> String = { f -> "$f"},
+        ) = setting(FloatSetting(name, value, range, step, visibility, consumer, description, unit, fineStep, formatter))
 
     /** Bind Setting */
     fun T.setting(
         name: String,
         value: Bind,
         visibility: () -> Boolean = { true },
-        description: String = ""
-    ) = setting(BindSetting(name, value, visibility, description))
+        description: String = "",
+        formatter: (Bind) -> String = { b -> "$b"},
+        ) = setting(BindSetting(name, value, visibility, description, formatter))
 
     /** Color Setting */
     fun T.setting(
@@ -72,8 +76,9 @@ interface SettingRegister<T : Any> {
         value: ColorHolder,
         hasAlpha: Boolean = true,
         visibility: () -> Boolean = { true },
-        description: String = ""
-    ) = setting(ColorSetting(name, value, hasAlpha, visibility, description))
+        description: String = "",
+        formatter: (ColorHolder) -> String = { c -> "$c"},
+        ) = setting(ColorSetting(name, value, hasAlpha, visibility, description, formatter))
 
     /** Boolean Setting */
     fun T.setting(
@@ -81,8 +86,9 @@ interface SettingRegister<T : Any> {
         value: Boolean,
         visibility: () -> Boolean = { true },
         consumer: (prev: Boolean, input: Boolean) -> Boolean = { _, input -> input },
-        description: String = ""
-    ) = setting(BooleanSetting(name, value, visibility, consumer, description))
+        description: String = "",
+        formatter: (Boolean) -> String = { b -> "$b"},
+        ) = setting(BooleanSetting(name, value, visibility, consumer, description, formatter))
 
     /** Enum Setting */
     fun <E : Enum<E>> T.setting(
@@ -90,8 +96,10 @@ interface SettingRegister<T : Any> {
         value: E,
         visibility: () -> Boolean = { true },
         consumer: (prev: E, input: E) -> E = { _, input -> input },
-        description: String = ""
-    ) = setting(EnumSetting(name, value, visibility, consumer, description))
+        description: String = "",
+        unit: String = "",
+        formatter: (E) -> String = { e -> "$e"},
+        ) = setting(EnumSetting(name, value, visibility, consumer, description, unit, formatter))
 
     /** String Setting */
     fun T.setting(
@@ -99,8 +107,9 @@ interface SettingRegister<T : Any> {
         value: String,
         visibility: () -> Boolean = { true },
         consumer: (prev: String, input: String) -> String = { _, input -> input },
-        description: String = ""
-    ) = setting(StringSetting(name, value, visibility, consumer, description))
+        description: String = "",
+        formatter: (String) -> String = { s -> s },
+        ) = setting(StringSetting(name, value, visibility, consumer, description, formatter))
     /* End of setting registering */
 
     fun <T : Any> AbstractSetting<T>.atValue(page: T): () -> Boolean = {

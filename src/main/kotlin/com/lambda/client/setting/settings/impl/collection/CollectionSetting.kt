@@ -3,14 +3,16 @@ package com.lambda.client.setting.settings.impl.collection
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.client.setting.settings.ImmutableSetting
+import com.lambda.client.util.color.ColorHolder
 
 class CollectionSetting<E : Any, T : MutableCollection<E>>(
     name: String,
     override val value: T,
     visibility: () -> Boolean = { true },
     description: String = "",
-    unit: String = ""
-) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description, unit), MutableCollection<E> by value {
+    unit: String = "",
+    formatter: (T) -> String = { c -> "$c"},
+    ) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description, formatter, unit), MutableCollection<E> by value {
 
     override val defaultValue: T = valueClass.newInstance()
     private val lockObject = Any()

@@ -11,8 +11,9 @@ class IntegerSetting(
     consumer: (prev: Int, input: Int) -> Int = { _, input -> input },
     description: String = "",
     unit: String = "",
-    fineStep: Int = step
-) : NumberSetting<Int>(name, value, range, step, visibility, consumer, description, unit, fineStep) {
+    fineStep: Int = step,
+    formatter: (Int) -> String = { i -> "$i"},
+    ) : NumberSetting<Int>(name, value, range, step, visibility, consumer, description, formatter, unit, fineStep) {
 
     init {
         consumers.add(0) { _, it ->

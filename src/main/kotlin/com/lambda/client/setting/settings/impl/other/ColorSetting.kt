@@ -8,5 +8,6 @@ class ColorSetting(
     value: ColorHolder,
     val hasAlpha: Boolean = true,
     visibility: () -> Boolean = { true },
-    description: String = ""
-) : MutableSetting<ColorHolder>(name, value, visibility, { _, input -> if (!hasAlpha) input.apply { a = 255 } else input }, description, unit = "")
+    description: String = "",
+    formatter: (ColorHolder) -> String = { c -> "$c"},
+    ) : MutableSetting<ColorHolder>(name, value, visibility, { _, input -> if (!hasAlpha) input.apply { a = 255 } else input }, description, formatter, unit = "")
