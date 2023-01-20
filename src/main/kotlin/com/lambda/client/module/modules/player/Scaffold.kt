@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.Phase
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
@@ -9,13 +10,11 @@ import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.EntityUtils.prevPosVector
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.util.items.HotbarSlot
-import com.lambda.client.util.items.firstItem
-import com.lambda.client.util.items.hotbarSlots
-import com.lambda.client.util.items.swapToSlot
+import com.lambda.client.util.items.*
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.threads.safeListener
@@ -36,6 +35,7 @@ object Scaffold : Module(
     category = Category.PLAYER,
     modulePriority = 500
 ) {
+    private val blockSelectionMode by setting("Block Selection Mode", ScaffoldBlockSelectionMode.ANY)
     private val tower by setting("Tower", true)
     private val spoofHotbar by setting("Spoof Hotbar", true)
     val safeWalk by setting("Safe Walk", true)
@@ -45,11 +45,26 @@ object Scaffold : Module(
     private val maxRange by setting("Max Range", 1, 0..3, 1)
     private val noGhost by setting("No Ghost Blocks", false)
 
+    val blockSelectionWhitelist = setting(CollectionSetting("BlockWhitelist", linkedSetOf("minecraft:obsidian"), { false }))
+    val blockSelectionBlacklist = setting(CollectionSetting("BlockBlacklist", linkedSetOf("minecraft:white_shulker_box", "minecraft:orange_shulker_box",
+        "minecraft:magenta_shulker_box", "minecraft:light_blue_shulker_box", "minecraft:yellow_shulker_box", "minecraft:lime_shulker_box",
+        "minecraft:pink_shulker_box", "minecraft:gray_shulker_box", "minecraft:silver_shulker_box", "minecraft:cyan_shulker_box",
+        "minecraft:purple_shulker_box", "minecraft:blue_shulker_box", "minecraft:brown_shulker_box", "minecraft:green_shulker_box",
+        "minecraft:red_shulker_box", "minecraft:black_shulker_box", "minecraft:crafting_table", "minecraft:dropper",
+        "minecraft:hopper", "minecraft:dispenser", "minecraft:ender_chest", "minecraft:furnace"),
+        { false }))
+
     private val placeTimer = TickTimer(TimeUnit.TICKS)
 
     private var lastHitVec: Vec3d? = null
     private var placeInfo: PlaceInfo? = null
     private var inactiveTicks = 69
+
+    private enum class ScaffoldBlockSelectionMode(override val displayName: String): DisplayEnum {
+        ANY("Any"),
+        WHITELIST("Whitelist"),
+        BLACKLIST("Blacklist")
+    }
 
     override fun isActive(): Boolean {
         return isEnabled && inactiveTicks <= 5
@@ -133,9 +148,28 @@ object Scaffold : Module(
         (value * 2.5 * maxRange).roundToInt().coerceAtMost(maxRange)
 
     private fun SafeClientEvent.swap(): Boolean {
-        if (player.heldItemMainhand.item is ItemBlock || player.heldItemOffhand.item is ItemBlock) {
-            inactiveTicks = 0;
-            return true;
+        // todo: refactor this into a function?
+        when (blockSelectionMode) {
+            ScaffoldBlockSelectionMode.ANY -> {
+                if (player.heldItemMainhand.item is ItemBlock || player.heldItemOffhand.item is ItemBlock) {
+                    inactiveTicks = 0;
+                    return true;
+                }
+            }
+            ScaffoldBlockSelectionMode.BLACKLIST -> {
+                if ((player.heldItemMainhand.item is ItemBlock && !blockSelectionBlacklist.contains(player.heldItemMainhand.item.block.registryName.toString()))
+                    || player.heldItemOffhand.item is ItemBlock && !blockSelectionBlacklist.contains(player.heldItemOffhand.item.block.registryName.toString())) {
+                    inactiveTicks = 0
+                    return true
+                }
+            }
+            ScaffoldBlockSelectionMode.WHITELIST -> {
+                if ((player.heldItemMainhand.item is ItemBlock && blockSelectionWhitelist.contains(player.heldItemMainhand.item.block.registryName.toString()))
+                    || player.heldItemOffhand.item is ItemBlock && blockSelectionWhitelist.contains(player.heldItemOffhand.item.block.registryName.toString())) {
+                    inactiveTicks = 0
+                    return true
+                }
+            }
         }
         getBlockSlot()?.let { slot ->
             if (spoofHotbar) spoofHotbar(slot)
@@ -148,6 +182,16 @@ object Scaffold : Module(
 
     private fun SafeClientEvent.getBlockSlot(): HotbarSlot? {
         playerController.syncCurrentPlayItem()
-        return player.hotbarSlots.firstItem<ItemBlock, HotbarSlot>()
+        return player.hotbarSlots.firstItem<ItemBlock, HotbarSlot> {
+            when (blockSelectionMode) {
+                ScaffoldBlockSelectionMode.BLACKLIST -> {
+                    return@firstItem !blockSelectionBlacklist.contains(it.item.block.registryName.toString())
+                }
+                ScaffoldBlockSelectionMode.WHITELIST -> {
+                    return@firstItem blockSelectionWhitelist.contains(it.item.block.registryName.toString())
+                }
+                else -> return@firstItem true
+            }
+        }
     }
 }
