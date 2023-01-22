@@ -19,6 +19,8 @@ open class WorldEvent {
 
     class EntityDestroy(val entity: Entity) : Event
 
+    class EntityUpdate(val entity: Entity) : Event
+
     class PreExplosion(val explosion: Explosion) : Event
 
     class PostExplosion(val explosion: Explosion) : Event
