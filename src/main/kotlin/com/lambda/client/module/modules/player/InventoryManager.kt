@@ -118,7 +118,9 @@ object InventoryManager : Module(
     }
 
     private fun SafeClientEvent.helpMendCheck() : Boolean {
-        return helpMend && (player.heldItemOffhand.itemDamage == 0 || EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, player.heldItemOffhand) == 0)
+        return helpMend
+            && (player.heldItemOffhand.itemDamage == 0
+                || EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, player.heldItemOffhand) == 0)
     }
 
     private fun SafeClientEvent.refillBuildingCheck(): Boolean {
@@ -165,10 +167,13 @@ object InventoryManager : Module(
     }
 
     private fun SafeClientEvent.helpMend() {
-        val chosenItemSlots = player.inventorySlots.filter{it.stack.item.equals(player.heldItemOffhand.item) && EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, it.stack) != 0 && it.stack.itemDamage != 0}
-        if (chosenItemSlots.isNotEmpty()) {
+        player.inventorySlots.filterByStack {
+            it.item == player.heldItemOffhand.item
+                && EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, it) != 0
+                && it.itemDamage != 0
+        }.firstOrNull()?.let {
             MessageSendHelper.sendChatMessage("$chatName Switching offhand to another item (Help Mend).")
-            moveToSlot(this@InventoryManager, chosenItemSlots[0], player.offhandSlot)
+            moveToSlot(this@InventoryManager, it, player.offhandSlot)
         }
     }
 
