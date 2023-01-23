@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.commons.utils.MathUtils
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
@@ -11,6 +12,7 @@ import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.module.modules.client.CustomFont
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Hud
+import com.lambda.client.module.modules.combat.TotemPopCounter
 import com.lambda.client.module.modules.misc.LogoutLogger
 import com.lambda.client.util.EnchantmentUtils
 import com.lambda.client.util.EntityUtils
@@ -60,7 +62,6 @@ object Nametags : Module(
     private val invisible by setting("Invisible", true, { page == Page.ENTITY_TYPE })
     private val range by setting("Range", 64, 0..256, 4, { page == Page.ENTITY_TYPE })
 
-    /* Content */
     private val line1left = setting("Line 1 Left", ContentType.NONE, { page == Page.CONTENT })
     private val line1center = setting("Line 1 Center", ContentType.NONE, { page == Page.CONTENT })
     private val line1right = setting("Line 1 Right", ContentType.NONE, { page == Page.CONTENT })
@@ -95,7 +96,7 @@ object Nametags : Module(
     }
 
     private enum class ContentType {
-        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE, ENTITY_ID
+        NONE, NAME, TYPE, TOTAL_HP, HP, ABSORPTION, PING, DISTANCE, ENTITY_ID, TOTEM_POP_COUNT
     }
 
     private val pingColorGradient = ColorGradient(
@@ -114,7 +115,7 @@ object Nametags : Module(
 
     private val line1Settings = arrayOf(line1left, line1center, line1right)
     private val line2Settings = arrayOf(line2left, line2center, line2right)
-    val entityMap = TreeMap<Entity, TextComponent>(compareByDescending { mc.player.getPositionEyes(1f).distanceTo(it.getPositionEyes(1f)) })
+    private val entityMap = TreeMap<Entity, TextComponent>(compareByDescending { mc.player.getPositionEyes(1f).distanceTo(it.getPositionEyes(1f)) })
     private val itemMap = TreeSet<ItemGroup>(compareByDescending { mc.player.getPositionEyes(1f).distanceTo(it.getCenter(1f)) })
 
     private var updateTick = 0
@@ -403,7 +404,7 @@ object Nametags : Module(
         }
     }
 
-    private fun getContent(contentType: ContentType, entity: Entity) = when (contentType) {
+    private fun SafeClientEvent.getContent(contentType: ContentType, entity: Entity) = when (contentType) {
         ContentType.NONE -> {
             null
         }
@@ -415,43 +416,55 @@ object Nametags : Module(
             TextComponent.TextElement(getEntityType(entity), GuiColors.text)
         }
         ContentType.TOTAL_HP -> {
-            if (entity !is EntityLivingBase) {
-                null
-            } else {
+            if (entity is EntityLivingBase) {
                 val totalHp = MathUtils.round(entity.health + entity.absorptionAmount, 1).toString()
                 TextComponent.TextElement(totalHp, getHpColor(entity))
+            } else {
+                null
             }
         }
         ContentType.HP -> {
-            if (entity !is EntityLivingBase) {
-                null
-            } else {
+            if (entity is EntityLivingBase) {
                 val hp = MathUtils.round(entity.health, 1).toString()
                 TextComponent.TextElement(hp, getHpColor(entity))
+            } else {
+                null
             }
         }
         ContentType.ABSORPTION -> {
-            if (entity !is EntityLivingBase || entity.absorptionAmount == 0f) {
-                null
-            } else {
+            if (entity is EntityLivingBase && entity.absorptionAmount != 0f) {
                 val absorption = MathUtils.round(entity.absorptionAmount, 1).toString()
                 TextComponent.TextElement(absorption, ColorHolder(234, 204, 32, GuiColors.text.a))
+            } else {
+                null
             }
         }
         ContentType.PING -> {
-            if (entity !is EntityOtherPlayerMP) {
-                null
+            if (entity is EntityOtherPlayerMP) {
+                connection.getPlayerInfo(entity.uniqueID)?.responseTime?.let {
+                    TextComponent.TextElement("${it}ms", pingColorGradient.get(it.toFloat()).apply { a = GuiColors.text.a })
+                }
             } else {
-                val ping = mc.connection?.getPlayerInfo(entity.uniqueID)?.responseTime ?: 0
-                TextComponent.TextElement("${ping}ms", pingColorGradient.get(ping.toFloat()).apply { a = GuiColors.text.a })
+                null
             }
         }
         ContentType.DISTANCE -> {
-            val dist = MathUtils.round(mc.player.getDistance(entity), 1).toString()
+            val dist = MathUtils.round(player.getDistance(entity), 1).toString()
             TextComponent.TextElement("${dist}m", GuiColors.text)
         }
         ContentType.ENTITY_ID -> {
             TextComponent.TextElement("ID: ${entity.entityId}", GuiColors.text)
+        }
+        ContentType.TOTEM_POP_COUNT -> {
+            // Note: The totem pop counting functionality is embedded in the TotemPopCounter module,
+            //       hence, it needs to be active in order for this to work.
+            if (entity is EntityOtherPlayerMP) {
+                if (TotemPopCounter.isDisabled) TotemPopCounter.enable()
+                val count = TotemPopCounter.popCountMap.getOrDefault(entity, 0)
+                TextComponent.TextElement("PT: $count", GuiColors.text)
+            } else {
+                null
+            }
         }
     }
 

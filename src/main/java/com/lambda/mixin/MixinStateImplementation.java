@@ -1,9 +1,12 @@
 package com.lambda.mixin;
 
+import com.lambda.client.event.LambdaEventBus;
+import com.lambda.client.event.events.AddCollisionBoxToListEvent;
 import com.lambda.client.module.modules.movement.Jesus;
 import com.lambda.client.module.modules.render.Xray;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -26,7 +29,10 @@ public class MixinStateImplementation {
 
     @Inject(method = "addCollisionBoxToList", at = @At("HEAD"))
     public void addCollisionBoxToList(World worldIn, BlockPos pos, AxisAlignedBB entityBox, List<AxisAlignedBB> collidingBoxes, Entity entityIn, boolean isActualState, CallbackInfo ci) {
-        Jesus.handleAddCollisionBoxToList(pos, block, entityIn, collidingBoxes);
+
+        if (entityIn instanceof EntityPlayerSP)
+            LambdaEventBus.INSTANCE.post(new AddCollisionBoxToListEvent(collidingBoxes));
+
     }
 
     @Inject(method = "shouldSideBeRendered", at = @At("HEAD"), cancellable = true)

@@ -9,10 +9,12 @@ import com.lambda.client.plugin.api.Plugin
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.text.MessageSendHelper
 import kotlinx.coroutines.Deferred
+import net.minecraft.launchwrapper.Launch
 import net.minecraft.util.text.TextFormatting
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import java.io.File
 import java.io.FileNotFoundException
+import java.util.jar.JarFile
 
 internal object PluginManager : AsyncLoader<List<PluginLoader>> {
     override var deferred: Deferred<List<PluginLoader>>? = null
@@ -79,6 +81,8 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
                 invalids.add(loader)
             }
 
+            if (invalids.contains(loader)) continue
+
             // Duplicate check
             if (loadedPluginLoader.contains(loader)) {
                 loadedPlugins.firstOrNull { loader.name == it.name }?.let { plugin ->
@@ -107,11 +111,15 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
                             PluginError.DUPLICATE.handleError(it)
                             invalids.add(it)
                         }
+
                         nowVersion > thenVersion -> {
                             upgradeLoader = true
+                            PluginError.DEPRECATED.handleError(it, loader.toString())
                             invalids.add(it)
                         }
+
                         else -> {
+                            PluginError.DEPRECATED.handleError(loader, it.toString())
                             invalids.add(loader)
                         }
                     }
@@ -162,9 +170,11 @@ internal object PluginManager : AsyncLoader<List<PluginLoader>> {
                     is ClassNotFoundException -> {
                         PluginError.CLASS_NOT_FOUND.handleError(loader, throwable = it)
                     }
+
                     is IllegalAccessException -> {
                         PluginError.ILLEGAL_ACCESS.handleError(loader, throwable = it)
                     }
+
                     else -> {
                         PluginError.OTHERS.handleError(loader, throwable = it)
                     }

@@ -15,6 +15,7 @@ import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
+import com.lambda.mixin.accessor.gui.AccessorGuiScreen
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
@@ -44,7 +45,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
     // Mouse
     private var lastEventButton = -1
-    private var lastClickPos = Vec2f(0.0f, 0.0f)
+    private var lastClickPos = Vec2f.ZERO
 
     // Searching
     protected var typedString = ""
@@ -140,6 +141,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
     open fun onDisplayed() {
         lastClickedWindow = null
         lastEventButton = -1
+        (this as AccessorGuiScreen).setEventButton(-1)
 
         displayed.value = true
 
@@ -196,6 +198,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
             }
         }
 
+        hoveredWindow?.onMouseInput(mousePos)
         super.handleMouseInput()
         updateSettingWindow()
     }
@@ -282,8 +285,6 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         drawTypedString()
 
         GlStateUtils.depth(false)
-
-        hoveredWindow?.onMouseInput(getRealMousePos())
     }
 
     private fun drawBackground(vertexHelper: VertexHelper, partialTicks: Float) {

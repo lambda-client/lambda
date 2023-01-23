@@ -19,10 +19,12 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoArmor : Module(
     name = "AutoArmor",
-    description = "Automatically equips armour",
+    description = "Automatically equips armor",
     category = Category.COMBAT,
     modulePriority = 500
 ) {
+    private val allowElytra by setting("Allow Elytra", false, description = "If activated it will not replace an equipped elytra with a chestplate")
+
     init {
         safeListener<TickEvent.ClientTickEvent> {
             // store slots and values of best armor pieces, initialize with currently equipped armor
@@ -37,8 +39,8 @@ object AutoArmor : Module(
 
                 val armorType = item.armorType.index
 
-                // Skip if item is chestplate and we have elytra equipped
-                if (armorType == 2 && player.inventory.armorInventory[2].item == Items.ELYTRA) continue
+                // Skip if allowElytra is activated, item is chestplate, and we have elytra equipped
+                if (allowElytra && armorType == 2 && player.inventory.armorInventory[2].item == Items.ELYTRA) continue
                 val armorValue = getArmorValue(itemStack)
 
                 if (armorValue > bestArmors[armorType].second) {

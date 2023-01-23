@@ -34,7 +34,7 @@ class LambdaCoreMod : IFMLLoadingPlugin {
         MixinBootstrap.init()
         Mixins.addConfigurations("mixins.lambda.json", "mixins.baritone.json")
 
-        PluginManager.getLoaders()
+        PluginManager.checkPluginLoaders(PluginManager.getLoaders())
             .filter { it.info.mixins.isNotEmpty() }
             .forEach {
                 logger.info("Initialised mixins of ${it.info.name}.")

@@ -41,7 +41,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         var posX = 0.0f
 
         Category.values().forEach { category ->
-            val window = ListWindow(category.displayName, posX, 0.0f, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI)
+            val window = ListWindow(category.displayName, posX, 0.0f, 90.0f, 300.0f, Component.SettingGroup.CLICK_GUI, drawHandle = true)
             windows.add(window)
 
             posX += 90.0f

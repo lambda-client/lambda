@@ -10,6 +10,7 @@ internal abstract class LabelHud(
     category: Category,
     description: String,
     alwaysListening: Boolean = false,
-    enabledByDefault: Boolean = false
-) : AbstractLabelHud(name, alias, category, description, alwaysListening, enabledByDefault, GuiConfig),
+    enabledByDefault: Boolean = false,
+    separator: String = " ",
+) : AbstractLabelHud(name, alias, category, description, alwaysListening, enabledByDefault, GuiConfig, separator),
     SettingRegister<Component> by GuiConfig

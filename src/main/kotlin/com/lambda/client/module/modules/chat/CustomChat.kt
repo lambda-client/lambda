@@ -9,7 +9,7 @@ import kotlin.math.min
 
 object CustomChat : Module(
     name = "CustomChat",
-    description = "Add a custom ending to your message!",
+    description = "Adds a custom ending to your message",
     category = Category.CHAT,
     showOnArray = false,
     modulePriority = 200

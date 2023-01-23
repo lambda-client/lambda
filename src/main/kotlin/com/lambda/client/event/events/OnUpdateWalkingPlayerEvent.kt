@@ -22,7 +22,6 @@ class OnUpdateWalkingPlayerEvent private constructor(
 
     var moving = moving
         @JvmName("isMoving") get
-        private set
 
     var rotating = rotating
         @JvmName("isRotating") get
