@@ -59,6 +59,7 @@ object Scaffold : Module(
     private var lastHitVec: Vec3d? = null
     private var placeInfo: PlaceInfo? = null
     private var inactiveTicks = 69
+    private var towerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
 
     private enum class ScaffoldBlockSelectionMode(override val displayName: String): DisplayEnum {
         ANY("Any"),
@@ -71,6 +72,11 @@ object Scaffold : Module(
     }
 
     init {
+
+        onEnable {
+            towerTimer.reset()
+        }
+
         onDisable {
             placeInfo = null
             inactiveTicks = 69
@@ -98,7 +104,12 @@ object Scaffold : Module(
                             placeBlock(pi, noGhost = false) // noGhost true usually causes problems and has no real benefit here
                             if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
                             mc.player.jump()
+                            if (towerTimer.tick(30)) {
+                                // reset pos back onto top block
+                                mc.player.motionY = -0.3
+                            }
                         } else {
+                            towerTimer.reset()
                             if (placeTimer.tick(delay, true)) {
                                 val shouldSneak = sneak && !player.isSneaking
                                 if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
