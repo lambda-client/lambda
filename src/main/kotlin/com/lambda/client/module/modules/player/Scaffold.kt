@@ -14,6 +14,7 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.MovementUtils.speed
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.color.ColorHolder
@@ -167,6 +168,7 @@ object Scaffold : Module(
     private val SafeClientEvent.shouldTower: Boolean
         get() = !player.onGround
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
+            && mc.player.speed < 0.1
 
     init {
         safeListener<ClientTickEvent> { event ->
