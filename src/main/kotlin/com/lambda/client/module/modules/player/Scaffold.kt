@@ -1,12 +1,10 @@
 package com.lambda.client.module.modules.player
 
 import com.lambda.client.LambdaMod
+import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.Phase
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
-import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.events.PlayerTravelEvent
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.*
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
@@ -14,6 +12,7 @@ import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
@@ -31,15 +30,12 @@ import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
-import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.floor
 
 /**
  * @see MixinEntity.moveInvokeIsSneakingPre
@@ -53,12 +49,12 @@ object Scaffold : Module(
 ) {
     private val page by setting("Page", Page.GENERAL)
 
+    private val blockSelectionMode by setting("Block Selection Mode", ScaffoldBlockSelectionMode.ANY)
     private val tower by setting("Tower", true, { page == Page.GENERAL })
     private val spoofHotbar by setting("Spoof Hotbar", true, { page == Page.GENERAL })
     val safeWalk by setting("Safe Walk", true, { page == Page.GENERAL })
     private val sneak by setting("Sneak", true, { page == Page.GENERAL })
     private val visibleSideCheck by setting("Visible side check", true, { page == Page.GENERAL })
-    private val sendOnGround by setting("Send onGround", true, { page == Page.GENERAL })
     private val delay by setting("Delay", 0, 0..10, 1, { page == Page.GENERAL }, unit = " ticks")
     private val timeout by setting("Timeout", 50, 1..40, 1, { page == Page.GENERAL }, unit = " ticks")
     private val attempts by setting("Placement Search Depth", 3, 0..7, 1, { page == Page.GENERAL })
@@ -71,20 +67,39 @@ object Scaffold : Module(
     private val thickness by setting("Outline Thickness", 2f, .25f..4f, .25f, { outline && page == Page.RENDER }, description = "Changes thickness of the outline")
     private val pendingBlockColor by setting("Pending Color", ColorHolder(0, 0, 255))
 
+    val blockSelectionWhitelist = setting(CollectionSetting("BlockWhitelist", linkedSetOf("minecraft:obsidian"), { false }))
+    val blockSelectionBlacklist = setting(CollectionSetting("BlockBlacklist", linkedSetOf("minecraft:white_shulker_box", "minecraft:orange_shulker_box",
+        "minecraft:magenta_shulker_box", "minecraft:light_blue_shulker_box", "minecraft:yellow_shulker_box", "minecraft:lime_shulker_box",
+        "minecraft:pink_shulker_box", "minecraft:gray_shulker_box", "minecraft:silver_shulker_box", "minecraft:cyan_shulker_box",
+        "minecraft:purple_shulker_box", "minecraft:blue_shulker_box", "minecraft:brown_shulker_box", "minecraft:green_shulker_box",
+        "minecraft:red_shulker_box", "minecraft:black_shulker_box", "minecraft:crafting_table", "minecraft:dropper",
+        "minecraft:hopper", "minecraft:dispenser", "minecraft:ender_chest", "minecraft:furnace"),
+        { false }))
+
     private enum class Page {
         GENERAL, RENDER
+    }
+
+    private enum class ScaffoldBlockSelectionMode(override val displayName: String): DisplayEnum {
+        ANY("Any"),
+        WHITELIST("Whitelist"),
+        BLACKLIST("Blacklist")
     }
 
     private var placeInfo: PlaceInfo? = null
     private val renderer = ESPRenderer()
 
     private val placeTimer = TickTimer(TimeUnit.TICKS)
-    private val rubberBandTimer = TickTimer(TimeUnit.TICKS)
-    private var lastPosVec = Vec3d.ZERO
+    private var towerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
 
     private val pendingBlocks = ConcurrentHashMap<BlockPos, PendingBlock>()
 
     init {
+
+        onEnable {
+            towerTimer.reset()
+        }
+
         onDisable {
             placeInfo = null
             pendingBlocks.clear()
@@ -93,7 +108,6 @@ object Scaffold : Module(
         safeListener<PacketEvent.Receive> { event ->
             when (val packet = event.packet) {
                 is SPacketPlayerPosLook -> {
-                    rubberBandTimer.reset()
                     pendingBlocks.forEach {
                         world.setBlockState(it.key, it.value.blockState)
                     }
@@ -103,11 +117,9 @@ object Scaffold : Module(
                     pendingBlocks[packet.blockPosition]?.let { pendingBlock ->
                         if (pendingBlock.block == packet.blockState.block) {
                             pendingBlocks.remove(packet.blockPosition)
-//                            LambdaMod.LOG.error("Confirmed: $pendingBlock")
                         } else {
                             // probably ItemStack emtpy
                             if (packet.blockState.block == Blocks.AIR) {
-                                rubberBandTimer.reset()
                                 pendingBlocks.forEach {
                                     world.setBlockState(it.key, it.value.blockState)
                                 }
@@ -122,18 +134,12 @@ object Scaffold : Module(
 
         safeListener<PlayerTravelEvent> {
             if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
-            if (rubberBandTimer.tick(10, false)) {
-                if (shouldTower) {
-                    if (sendOnGround && floor(lastPosVec.y) < floor(player.posY)) {
-                        connection.sendPacket(CPacketPlayer(true))
-                    }
-
-                    player.motionY = 0.41999998688697815
-
-                    lastPosVec = player.positionVector
+            if (shouldTower) {
+                mc.player.jump()
+                if (towerTimer.tick(30)) {
+                    // reset pos back onto top block
+                    mc.player.motionY = -0.3
                 }
-            } else if (player.fallDistance <= 2.0f) {
-                player.motionY = -0.169
             }
         }
 
@@ -147,6 +153,12 @@ object Scaffold : Module(
             }
 
             renderer.render(clear = true)
+        }
+
+        safeListener<PushOutOfBlocksEvent> {
+            if (tower) {
+                it.cancel()
+            }
         }
     }
 
@@ -176,9 +188,8 @@ object Scaffold : Module(
                         return@safeListener
                     }
                 }
-
-                if (rubberBandTimer.tick(10, false)) {
-                    swapAndPlace(placeInfo)
+                swap()?.let { block ->
+                    place(placeInfo, block)
                     sendPlayerPacket {
                         rotate(getRotationTo(placeInfo.hitVec))
                     }
@@ -193,34 +204,69 @@ object Scaffold : Module(
         }
     }
 
-    private fun SafeClientEvent.swapAndPlace(placeInfo: PlaceInfo) {
+    private fun SafeClientEvent.swap(): Block? {
+        when (blockSelectionMode) {
+            ScaffoldBlockSelectionMode.ANY -> {
+                if (player.heldItemMainhand.item is ItemBlock) {
+                    return player.heldItemMainhand.item.block
+                }
+                if (player.heldItemOffhand.item is ItemBlock) {
+                    return player.heldItemOffhand.item.block
+                }
+            }
+            ScaffoldBlockSelectionMode.BLACKLIST -> {
+                if (player.heldItemMainhand.item is ItemBlock && !blockSelectionBlacklist.contains(player.heldItemMainhand.item.block.registryName.toString())) {
+                    return player.heldItemMainhand.item.block
+                }
+                if (player.heldItemOffhand.item is ItemBlock && !blockSelectionBlacklist.contains(player.heldItemOffhand.item.block.registryName.toString())) {
+                    return player.heldItemOffhand.item.block
+                }
+            }
+            ScaffoldBlockSelectionMode.WHITELIST -> {
+                if (player.heldItemMainhand.item is ItemBlock && blockSelectionWhitelist.contains(player.heldItemMainhand.item.block.registryName.toString())) {
+                    return player.heldItemMainhand.item.block
+                }
+                if (player.heldItemOffhand.item is ItemBlock && blockSelectionWhitelist.contains(player.heldItemOffhand.item.block.registryName.toString())) {
+                    return player.heldItemOffhand.item.block
+                }
+            }
+        }
         getBlockSlot()?.let { slot ->
             if (spoofHotbar) spoofHotbar(slot)
             else swapToSlot(slot)
+            return slot.stack.item.block
+        }
+        return null
+    }
 
-            if (placeTimer.tick(delay.toLong())
-                && pendingBlocks.size < maxPending
-            ) {
-                val shouldSneak = sneak && !player.isSneaking
-                if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
+    private fun SafeClientEvent.place(placeInfo: PlaceInfo, blockToPlace: Block) {
+        if (placeTimer.tick(delay.toLong())
+            && pendingBlocks.size < maxPending
+        ) {
+            val shouldSneak = sneak && !player.isSneaking
+            if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
-                placeBlock(placeInfo)
+            placeBlock(placeInfo)
 
-                pendingBlocks[placeInfo.placedPos] = PendingBlock(placeInfo.placedPos, world.getBlockState(placeInfo.placedPos), slot.stack.item.block)
-                world.setBlockState(placeInfo.placedPos, Blocks.BARRIER.defaultState)
-//                LambdaMod.LOG.error("Placed: ${placeInfo.placedPos} ${slot.stack.item.block.localizedName}")
+            pendingBlocks[placeInfo.placedPos] = PendingBlock(placeInfo.placedPos, world.getBlockState(placeInfo.placedPos), blockToPlace)
+            world.setBlockState(placeInfo.placedPos, Blocks.BARRIER.defaultState)
 
-                if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
-            }
+            if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
         }
     }
 
     private fun SafeClientEvent.getBlockSlot(): HotbarSlot? {
         playerController.syncCurrentPlayItem()
-        return if (isUsableBlock(player.heldItemMainhand.item.block)) {
-            player.hotbarSlots[player.inventory.currentItem]
-        } else {
-            player.hotbarSlots.firstOrNull { isUsableBlock(it.stack.item.block) }
+        return player.hotbarSlots.firstItem<ItemBlock, HotbarSlot> {
+            when (blockSelectionMode) {
+                ScaffoldBlockSelectionMode.BLACKLIST -> {
+                    return@firstItem !blockSelectionBlacklist.contains(it.item.block.registryName.toString())
+                }
+                ScaffoldBlockSelectionMode.WHITELIST -> {
+                    return@firstItem blockSelectionWhitelist.contains(it.item.block.registryName.toString())
+                }
+                else -> return@firstItem true
+            }
         }
     }
 
@@ -234,6 +280,4 @@ object Scaffold : Module(
 
         val age get() = System.currentTimeMillis() - timestamp
     }
-
-    private fun isUsableBlock(block: Block) = InventoryManager.ejectList.contains(block.item.registryName.toString())
 }
