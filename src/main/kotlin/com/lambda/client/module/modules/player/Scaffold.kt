@@ -95,7 +95,6 @@ object Scaffold : Module(
     private val pendingBlocks = ConcurrentHashMap<BlockPos, PendingBlock>()
 
     init {
-
         onEnable {
             towerTimer.reset()
         }
@@ -125,7 +124,7 @@ object Scaffold : Module(
                                 }
                                 pendingBlocks.clear()
                             }
-                            LambdaMod.LOG.error("Other confirm: ${packet.blockPosition} ${packet.blockState.block}")
+                            LambdaMod.LOG.warn("[$chatName] Other confirm: ${packet.blockPosition} ${packet.blockState.block}")
                         }
                     }
                 }
@@ -135,10 +134,10 @@ object Scaffold : Module(
         safeListener<PlayerTravelEvent> {
             if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
             if (shouldTower) {
-                mc.player.jump()
+                player.jump()
                 if (towerTimer.tick(30)) {
                     // reset pos back onto top block
-                    mc.player.motionY = -0.3
+                    player.motionY = -0.3
                 }
             }
         }
@@ -176,7 +175,7 @@ object Scaffold : Module(
             pendingBlocks.values
                 .filter { it.age > timeout * 50L }
                 .forEach { pendingBlock ->
-                    LambdaMod.LOG.error("Timeout: ${pendingBlock.blockPos}")
+                    LambdaMod.LOG.warn("[$chatName] Timeout: ${pendingBlock.blockPos}")
                     pendingBlocks.remove(pendingBlock.blockPos)
                     world.setBlockState(pendingBlock.blockPos, pendingBlock.blockState)
                 }
@@ -184,7 +183,7 @@ object Scaffold : Module(
             placeInfo?.let { placeInfo ->
                 pendingBlocks[placeInfo.placedPos]?.let {
                     if (it.age < timeout * 50L) {
-                        LambdaMod.LOG.error("Age: ${it.age}")
+//                        LambdaMod.LOG.error("Age: ${it.age}")
                         return@safeListener
                     }
                 }
@@ -271,13 +270,11 @@ object Scaffold : Module(
     }
 
     private data class PendingBlock(
-        val timestamp: Long,
         val blockPos: BlockPos,
         val blockState: IBlockState,
-        val block: Block
+        val block: Block,
+        val timestamp: Long = System.currentTimeMillis()
     ) {
-        constructor(blockPos: BlockPos, blockState: IBlockState, block: Block) : this(System.currentTimeMillis(), blockPos, blockState, block)
-
         val age get() = System.currentTimeMillis() - timestamp
     }
 }
