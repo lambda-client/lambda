@@ -13,7 +13,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoRemount : Module(
     name = "AutoRemount",
-    description = "Automatically remounts your horse",
+    description = "Automatically remounts your ridable entity",
     category = Category.MOVEMENT
 ) {
     private val boat by setting("Boats", true)
