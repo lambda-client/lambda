@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-// TODO: Find a working fix of this for optifine
 @Mixin(ViewFrustum.class)
 public abstract class MixinViewFrustum {
     @Shadow public RenderChunk[] renderChunks;
