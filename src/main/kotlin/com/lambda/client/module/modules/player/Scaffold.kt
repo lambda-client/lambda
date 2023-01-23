@@ -7,6 +7,7 @@ import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
@@ -26,6 +27,7 @@ import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.placeBlock
 import com.lambda.mixin.entity.MixinEntity
 import net.minecraft.block.Block
+import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
@@ -58,8 +60,8 @@ object Scaffold : Module(
     private val strictDirection by setting("Strict Direction", false, { page == Page.GENERAL })
     private val delay by setting("Delay", 0, 0..10, 1, { page == Page.GENERAL }, unit = " ticks")
     private val timeout by setting("Timeout", 50, 1..40, 1, { page == Page.GENERAL }, unit = " ticks")
-    private val maxRange by setting("Max Range", 0, 0..3, 1, { page == Page.GENERAL })
-    private val maxPending by setting("Max Pending", 1, 0..2, 1, { page == Page.GENERAL })
+    private val maxRange by setting("Max Range", 1, 0..3, 1, { page == Page.GENERAL })
+    private val maxPending by setting("Max Pending", 2, 0..5, 1, { page == Page.GENERAL })
     private val below by setting("Max Tower Distance", 0.3, 0.0..2.0, 0.01, { page == Page.GENERAL })
     private val filled by setting("Filled", true, { page == Page.RENDER }, description = "Renders surfaces")
     private val outline by setting("Outline", true, { page == Page.RENDER }, description = "Renders outline")
@@ -91,8 +93,8 @@ object Scaffold : Module(
             when (val packet = event.packet) {
                 is SPacketPlayerPosLook -> {
                     rubberBandTimer.reset()
-                    pendingBlocks.keys.forEach {
-                        world.setBlockState(it, Blocks.AIR.defaultState)
+                    pendingBlocks.forEach {
+                        world.setBlockState(it.key, it.value.blockState)
                     }
                     pendingBlocks.clear()
                 }
@@ -127,7 +129,7 @@ object Scaffold : Module(
             }
         }
 
-        safeListener<RenderWorldEvent> {
+        listener<RenderWorldEvent> {
             renderer.aFilled = if (filled) alphaFilled else 0
             renderer.aOutline = if (outline) alphaOutline else 0
             renderer.thickness = thickness
@@ -156,7 +158,7 @@ object Scaffold : Module(
                 .forEach { pendingBlock ->
                     LambdaMod.LOG.error("Timeout: ${pendingBlock.blockPos}")
                     pendingBlocks.remove(pendingBlock.blockPos)
-                    world.setBlockState(pendingBlock.blockPos, Blocks.AIR.defaultState)
+                    world.setBlockState(pendingBlock.blockPos, pendingBlock.blockState)
                 }
 
             placeInfo?.let { placeInfo ->
@@ -195,8 +197,9 @@ object Scaffold : Module(
                 if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
                 placeBlock(placeInfo)
+
+                pendingBlocks[placeInfo.placedPos] = PendingBlock(placeInfo.placedPos, world.getBlockState(placeInfo.placedPos), slot.stack.item.block)
                 world.setBlockState(placeInfo.placedPos, Blocks.BARRIER.defaultState)
-                pendingBlocks[placeInfo.placedPos] = PendingBlock(placeInfo.placedPos, slot.stack.item.block)
 //                LambdaMod.LOG.error("Placed: ${placeInfo.placedPos} ${slot.stack.item.block.localizedName}")
 
                 if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
@@ -213,8 +216,13 @@ object Scaffold : Module(
         }
     }
 
-    private data class PendingBlock(val timestamp: Long, val blockPos: BlockPos, val block: Block) {
-        constructor(blockPos: BlockPos, block: Block) : this(System.currentTimeMillis(), blockPos, block)
+    private data class PendingBlock(
+        val timestamp: Long,
+        val blockPos: BlockPos,
+        val blockState: IBlockState,
+        val block: Block
+    ) {
+        constructor(blockPos: BlockPos, blockState: IBlockState, block: Block) : this(System.currentTimeMillis(), blockPos, blockState, block)
 
         val age get() = System.currentTimeMillis() - timestamp
     }
