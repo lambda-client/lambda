@@ -57,10 +57,11 @@ object Scaffold : Module(
     private val spoofHotbar by setting("Spoof Hotbar", true, { page == Page.GENERAL })
     val safeWalk by setting("Safe Walk", true, { page == Page.GENERAL })
     private val sneak by setting("Sneak", true, { page == Page.GENERAL })
-    private val strictDirection by setting("Strict Direction", false, { page == Page.GENERAL })
+    private val visibleSideCheck by setting("Visible side check", true, { page == Page.GENERAL })
+    private val sendOnGround by setting("Send onGround", true, { page == Page.GENERAL })
     private val delay by setting("Delay", 0, 0..10, 1, { page == Page.GENERAL }, unit = " ticks")
     private val timeout by setting("Timeout", 50, 1..40, 1, { page == Page.GENERAL }, unit = " ticks")
-    private val maxRange by setting("Max Range", 1, 0..3, 1, { page == Page.GENERAL })
+    private val attempts by setting("Placement Search Depth", 3, 0..7, 1, { page == Page.GENERAL })
     private val maxPending by setting("Max Pending", 2, 0..5, 1, { page == Page.GENERAL })
     private val below by setting("Max Tower Distance", 0.3, 0.0..2.0, 0.01, { page == Page.GENERAL })
     private val filled by setting("Filled", true, { page == Page.RENDER }, description = "Renders surfaces")
@@ -98,13 +99,20 @@ object Scaffold : Module(
                     }
                     pendingBlocks.clear()
                 }
-
                 is SPacketBlockChange -> {
                     pendingBlocks[packet.blockPosition]?.let { pendingBlock ->
                         if (pendingBlock.block == packet.blockState.block) {
                             pendingBlocks.remove(packet.blockPosition)
 //                            LambdaMod.LOG.error("Confirmed: $pendingBlock")
                         } else {
+                            // probably ItemStack emtpy
+                            if (packet.blockState.block == Blocks.AIR) {
+                                rubberBandTimer.reset()
+                                pendingBlocks.forEach {
+                                    world.setBlockState(it.key, it.value.blockState)
+                                }
+                                pendingBlocks.clear()
+                            }
                             LambdaMod.LOG.error("Other confirm: ${packet.blockPosition} ${packet.blockState.block}")
                         }
                     }
@@ -116,7 +124,7 @@ object Scaffold : Module(
             if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
             if (rubberBandTimer.tick(10, false)) {
                 if (shouldTower) {
-                    if (floor(lastPosVec.y) < floor(player.posY)) {
+                    if (sendOnGround && floor(lastPosVec.y) < floor(player.posY)) {
                         connection.sendPacket(CPacketPlayer(true))
                     }
 
@@ -181,7 +189,7 @@ object Scaffold : Module(
         safeListener<OnUpdateWalkingPlayerEvent> { event ->
             if (event.phase != Phase.PRE) return@safeListener
 
-            placeInfo = getNeighbour(player.flooredPosition.down(), maxRange, visibleSideCheck = strictDirection)
+            placeInfo = getNeighbour(player.flooredPosition.down(), attempts, visibleSideCheck = visibleSideCheck)
         }
     }
 
