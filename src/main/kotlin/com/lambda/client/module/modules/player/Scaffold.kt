@@ -121,14 +121,14 @@ object Scaffold : Module(
                         if (pendingBlock.block == packet.blockState.block) {
                             pendingBlocks.remove(packet.blockPosition)
                         } else {
-                            // probably ItemStack emtpy
+                            // probably ItemStack empty
                             if (packet.blockState.block == Blocks.AIR) {
                                 pendingBlocks.forEach {
                                     world.setBlockState(it.key, it.value.blockState)
                                 }
                                 pendingBlocks.clear()
                             }
-                            LambdaMod.LOG.warn("[$chatName] Other confirm: ${packet.blockPosition} ${packet.blockState.block}")
+                            LambdaMod.LOG.warn("$chatName Other confirm: ${packet.blockPosition} ${packet.blockState.block}")
                         }
                     }
                 }
@@ -136,13 +136,12 @@ object Scaffold : Module(
         }
 
         safeListener<PlayerTravelEvent> {
-            if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
-            if (shouldTower) {
-                player.jump()
-                if (towerTimer.tick(30)) {
-                    // reset pos back onto top block
-                    player.motionY = -0.3
-                }
+            if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock || !shouldTower) return@safeListener
+
+            player.jump()
+            if (towerTimer.tick(30)) {
+                // reset pos back onto top block
+                player.motionY = -0.3
             }
         }
 
@@ -159,9 +158,7 @@ object Scaffold : Module(
         }
 
         safeListener<PushOutOfBlocksEvent> {
-            if (tower) {
-                it.cancel()
-            }
+            if (tower) it.cancel()
         }
     }
 
@@ -181,7 +178,7 @@ object Scaffold : Module(
             pendingBlocks.values
                 .filter { it.age > timeout * 50L }
                 .forEach { pendingBlock ->
-                    LambdaMod.LOG.warn("[$chatName] Timeout: ${pendingBlock.blockPos}")
+                    LambdaMod.LOG.warn("$chatName Timeout: ${pendingBlock.blockPos}")
                     pendingBlocks.remove(pendingBlock.blockPos)
                     world.setBlockState(pendingBlock.blockPos, pendingBlock.blockState)
                 }
