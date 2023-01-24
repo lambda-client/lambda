@@ -51,7 +51,7 @@ object Scaffold : Module(
 ) {
     private val page by setting("Page", Page.GENERAL)
 
-    private val blockSelectionMode by setting("Block Selection Mode", ScaffoldBlockSelectionMode.ANY)
+    private val blockSelectionMode by setting("Block Selection Mode", ScaffoldBlockSelectionMode.ANY, { page == Page.GENERAL })
     private val tower by setting("Tower", true, { page == Page.GENERAL })
     private val spoofHotbar by setting("Spoof Hotbar", true, { page == Page.GENERAL })
     val safeWalk by setting("Safe Walk", true, { page == Page.GENERAL })
@@ -67,7 +67,7 @@ object Scaffold : Module(
     private val alphaFilled by setting("Alpha Filled", 26, 0..255, 1, { filled && page == Page.RENDER }, description = "Alpha for surfaces")
     private val alphaOutline by setting("Alpha Outline", 26, 0..255, 1, { outline && page == Page.RENDER }, description = "Alpha for outline")
     private val thickness by setting("Outline Thickness", 2f, .25f..4f, .25f, { outline && page == Page.RENDER }, description = "Changes thickness of the outline")
-    private val pendingBlockColor by setting("Pending Color", ColorHolder(0, 0, 255))
+    private val pendingBlockColor by setting("Pending Color", ColorHolder(0, 0, 255), visibility = { page == Page.RENDER })
 
     val blockSelectionWhitelist = setting(CollectionSetting("BlockWhitelist", linkedSetOf("minecraft:obsidian"), { false }))
     val blockSelectionBlacklist = setting(CollectionSetting("BlockBlacklist", linkedSetOf("minecraft:white_shulker_box", "minecraft:orange_shulker_box",
