@@ -29,6 +29,7 @@ import com.lambda.mixin.entity.MixinEntity
 import net.minecraft.block.Block
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
+import net.minecraft.item.Item
 import net.minecraft.item.ItemBlock
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
@@ -81,10 +82,12 @@ object Scaffold : Module(
         GENERAL, RENDER
     }
 
-    private enum class ScaffoldBlockSelectionMode(override val displayName: String): DisplayEnum {
-        ANY("Any"),
-        WHITELIST("Whitelist"),
-        BLACKLIST("Blacklist")
+    private enum class ScaffoldBlockSelectionMode(
+        override val displayName: String,
+        val filter: (Item) -> Boolean): DisplayEnum {
+        ANY("Any", { it is ItemBlock }),
+        WHITELIST("Whitelist", { it is ItemBlock && blockSelectionWhitelist.contains(it.registryName.toString()) }),
+        BLACKLIST("Blacklist", { it is ItemBlock && !blockSelectionBlacklist.contains(it.registryName.toString()) })
     }
 
     private var placeInfo: PlaceInfo? = null
@@ -169,6 +172,7 @@ object Scaffold : Module(
         get() = !player.onGround
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
             && mc.player.speed < 0.1
+            && getHeldScaffoldBlock() != null
 
     init {
         safeListener<ClientTickEvent> { event ->
@@ -185,7 +189,6 @@ object Scaffold : Module(
             placeInfo?.let { placeInfo ->
                 pendingBlocks[placeInfo.placedPos]?.let {
                     if (it.age < timeout * 50L) {
-//                        LambdaMod.LOG.error("Age: ${it.age}")
                         return@safeListener
                     }
                 }
@@ -206,32 +209,7 @@ object Scaffold : Module(
     }
 
     private fun SafeClientEvent.swap(): Block? {
-        when (blockSelectionMode) {
-            ScaffoldBlockSelectionMode.ANY -> {
-                if (player.heldItemMainhand.item is ItemBlock) {
-                    return player.heldItemMainhand.item.block
-                }
-                if (player.heldItemOffhand.item is ItemBlock) {
-                    return player.heldItemOffhand.item.block
-                }
-            }
-            ScaffoldBlockSelectionMode.BLACKLIST -> {
-                if (player.heldItemMainhand.item is ItemBlock && !blockSelectionBlacklist.contains(player.heldItemMainhand.item.block.registryName.toString())) {
-                    return player.heldItemMainhand.item.block
-                }
-                if (player.heldItemOffhand.item is ItemBlock && !blockSelectionBlacklist.contains(player.heldItemOffhand.item.block.registryName.toString())) {
-                    return player.heldItemOffhand.item.block
-                }
-            }
-            ScaffoldBlockSelectionMode.WHITELIST -> {
-                if (player.heldItemMainhand.item is ItemBlock && blockSelectionWhitelist.contains(player.heldItemMainhand.item.block.registryName.toString())) {
-                    return player.heldItemMainhand.item.block
-                }
-                if (player.heldItemOffhand.item is ItemBlock && blockSelectionWhitelist.contains(player.heldItemOffhand.item.block.registryName.toString())) {
-                    return player.heldItemOffhand.item.block
-                }
-            }
-        }
+        getHeldScaffoldBlock()?.let { return it }
         getBlockSlot()?.let { slot ->
             if (spoofHotbar) spoofHotbar(slot)
             else swapToSlot(slot)
@@ -256,19 +234,20 @@ object Scaffold : Module(
         }
     }
 
+    private fun SafeClientEvent.getHeldScaffoldBlock(): Block? {
+        playerController.syncCurrentPlayItem()
+        if (blockSelectionMode.filter(player.heldItemMainhand.item)) {
+            return player.heldItemMainhand.item.block
+        }
+        if (blockSelectionMode.filter(player.heldItemOffhand.item)) {
+            return player.heldItemOffhand.item.block
+        }
+        return null
+    }
+
     private fun SafeClientEvent.getBlockSlot(): HotbarSlot? {
         playerController.syncCurrentPlayItem()
-        return player.hotbarSlots.firstItem<ItemBlock, HotbarSlot> {
-            when (blockSelectionMode) {
-                ScaffoldBlockSelectionMode.BLACKLIST -> {
-                    return@firstItem !blockSelectionBlacklist.contains(it.item.block.registryName.toString())
-                }
-                ScaffoldBlockSelectionMode.WHITELIST -> {
-                    return@firstItem blockSelectionWhitelist.contains(it.item.block.registryName.toString())
-                }
-                else -> return@firstItem true
-            }
-        }
+        return player.hotbarSlots.firstItem<ItemBlock, HotbarSlot> { blockSelectionMode.filter(it.item) }
     }
 
     private data class PendingBlock(
