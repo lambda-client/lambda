@@ -136,12 +136,17 @@ object Scaffold : Module(
         }
 
         safeListener<PlayerTravelEvent> {
-            if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock || !shouldTower) return@safeListener
-
-            player.jump()
-            if (towerTimer.tick(30)) {
-                // reset pos back onto top block
-                player.motionY = -0.3
+            if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
+            if (player.isInWater || world.getBlockState(player.flooredPosition).material.isLiquid) {
+                mc.player.motionY = .11
+                return@safeListener
+            }
+            if (shouldTower) {
+                player.jump()
+                if (towerTimer.tick(30)) {
+                    // reset pos back onto top block
+                    player.motionY = -0.3
+                }
             }
         }
 
@@ -167,7 +172,6 @@ object Scaffold : Module(
 
     private val SafeClientEvent.shouldTower: Boolean
         get() = !player.onGround
-            && !player.isInWater
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
             && mc.player.speed < 0.1
             && (getHeldScaffoldBlock() != null || getBlockSlot() != null)
