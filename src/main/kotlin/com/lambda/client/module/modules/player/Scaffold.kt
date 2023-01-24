@@ -169,7 +169,7 @@ object Scaffold : Module(
         get() = !player.onGround
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
             && mc.player.speed < 0.1
-            && getHeldScaffoldBlock() != null
+            && (getHeldScaffoldBlock() != null || getBlockSlot() != null)
 
     init {
         safeListener<ClientTickEvent> { event ->
