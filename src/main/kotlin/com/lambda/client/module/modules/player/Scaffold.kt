@@ -167,6 +167,7 @@ object Scaffold : Module(
 
     private val SafeClientEvent.shouldTower: Boolean
         get() = !player.onGround
+            && !player.isInWater
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
             && mc.player.speed < 0.1
             && (getHeldScaffoldBlock() != null || getBlockSlot() != null)
