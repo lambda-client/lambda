@@ -215,6 +215,13 @@ object Scaffold : Module(
             else swapToSlot(slot)
             return slot.stack.item.block
         }
+        if (swapToBlockOrMove<Block>(this@Scaffold, { blockSelectionMode.filter(it.item) } )) {
+            getBlockSlot()?.let { slot ->
+                if (spoofHotbar) spoofHotbar(slot)
+                else swapToSlot(slot)
+                return slot.stack.item.block
+            }
+        }
         return null
     }
 
