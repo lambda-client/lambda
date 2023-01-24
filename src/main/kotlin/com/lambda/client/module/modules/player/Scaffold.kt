@@ -138,10 +138,8 @@ object Scaffold : Module(
         safeListener<PlayerTravelEvent> {
             if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
             if (player.isInWater || world.getBlockState(player.flooredPosition).material.isLiquid) {
-                mc.player.motionY = .11
-                return@safeListener
-            }
-            if (shouldTower) {
+                player.motionY = .11
+            } else if (shouldTower) {
                 player.jump()
                 if (towerTimer.tick(30)) {
                     // reset pos back onto top block
