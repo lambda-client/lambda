@@ -74,7 +74,7 @@ object Scaffold : Module(
     private val pendingBlockColor by setting("Pending Color", ColorHolder(0, 0, 255), visibility = { page == Page.RENDER })
 
     val blockSelectionWhitelist = setting(CollectionSetting("BlockWhitelist", linkedSetOf("minecraft:obsidian"), { false }))
-    val blockSelectionBlacklist = setting(CollectionSetting("BlockBlacklist", shulkerList.map { it.registryName.toString() }.toMutableSet(), { false }))
+    val blockSelectionBlacklist = setting(CollectionSetting("BlockBlacklist", blockBlacklist.map { it.registryName.toString() }.toMutableSet(), { false }))
 
     private enum class Page {
         GENERAL, RENDER
