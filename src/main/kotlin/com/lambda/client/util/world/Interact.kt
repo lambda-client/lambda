@@ -275,8 +275,7 @@ private suspend fun SafeClientEvent.doPlace(
  */
 fun SafeClientEvent.placeBlock(
     placeInfo: PlaceInfo,
-    hand: EnumHand = EnumHand.MAIN_HAND,
-    noGhost: Boolean = true
+    hand: EnumHand = EnumHand.MAIN_HAND
 ) {
     if (!world.isPlaceable(placeInfo.placedPos)) return
 
@@ -289,7 +288,6 @@ fun SafeClientEvent.placeBlock(
     val blockState = block.getStateForPlacement(world, placeInfo.pos, placeInfo.side, placeInfo.hitVecOffset.x.toFloat(), placeInfo.hitVecOffset.y.toFloat(), placeInfo.hitVecOffset.z.toFloat(), metaData, player, EnumHand.MAIN_HAND)
     val soundType = blockState.block.getSoundType(blockState, world, placeInfo.pos, player)
     world.playSound(player, placeInfo.pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
-    if (!noGhost) world.setBlockState(placeInfo.placedPos, blockState)
 }
 
 fun PlaceInfo.toPlacePacket(hand: EnumHand) =

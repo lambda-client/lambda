@@ -57,7 +57,7 @@ object Scaffold : Module(
     private val spoofHotbar by setting("Spoof Hotbar", true, { page == Page.GENERAL })
     val safeWalk by setting("Safe Walk", true, { page == Page.GENERAL })
     private val useNoFall by setting("No Fall", false, { page == Page.GENERAL })
-    private val sneak by setting("Sneak", true, { page == Page.GENERAL })
+    private val descendOnSneak by setting("Descend on sneak", true, { page == Page.GENERAL })
     private val visibleSideCheck by setting("Visible side check", true, { page == Page.GENERAL })
     private val delay by setting("Delay", 0, 0..10, 1, { page == Page.GENERAL }, unit = " ticks")
     private val timeout by setting("Timeout", 50, 1..40, 1, { page == Page.GENERAL }, unit = " ticks")
@@ -99,36 +99,34 @@ object Scaffold : Module(
     private val towerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
     private val waterTowerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
     private val posLookTimer: TickTimer = TickTimer(TimeUnit.TICKS)
-    private var noFall = false
-    private var fallMode = NoFall.Mode.CATCH
-    private var down = false
+    private var oldNoFall = false
+    private var oldFallMode = NoFall.Mode.CATCH
+    private var goDown = false
 
     private val pendingBlocks = ConcurrentHashMap<BlockPos, PendingBlock>()
 
     init {
         onEnable {
             towerTimer.reset()
-            if (useNoFall) {
-                noFall = NoFall.isEnabled
-                fallMode = NoFall.mode
 
-                NoFall.mode = NoFall.Mode.CATCH
-                NoFall.enable()
-            }
+            if (!useNoFall) return@onEnable
+
+            oldNoFall = NoFall.isEnabled
+            oldFallMode = NoFall.mode
+
+            NoFall.mode = NoFall.Mode.CATCH
+            NoFall.enable()
         }
 
         onDisable {
             placeInfo = null
             pendingBlocks.clear()
 
-            if (useNoFall) {
-                if (!noFall) {
-                    NoFall.disable()
-                }
-                if (fallMode != NoFall.mode) {
-                    NoFall.mode = fallMode
-                }
-            }
+            if (!useNoFall) return@onDisable
+            if (!oldNoFall) NoFall.disable()
+
+            NoFall.mode = oldFallMode
+            oldNoFall = false
         }
 
         safeListener<PacketEvent.Receive> { event ->
@@ -225,34 +223,27 @@ object Scaffold : Module(
         safeListener<OnUpdateWalkingPlayerEvent> { event ->
             if (event.phase != Phase.PRE) return@safeListener
 
-            val origin = if (down) {
-                down = false
+            val origin = if (goDown && descendOnSneak) {
+                goDown = false
                 player.flooredPosition.down(2)
             } else {
                 player.flooredPosition.down()
             }
 
-            val placePos = if (origin.y > 256) {
-                BlockPos(origin.x, 256, origin.z)
-            } else {
-                origin
-            }
-
-            placeInfo = getNeighbour(placePos, attempts, visibleSideCheck = visibleSideCheck)
+            placeInfo = getNeighbour(
+                BlockPos(origin.x, origin.y.coerceIn(0..256), origin.z),
+                attempts,
+                visibleSideCheck = visibleSideCheck
+            )
         }
 
         safeListener<InputUpdateEvent> {
-            if (it.movementInput.sneak) {
-                down = true
-                it.movementInput.sneak = false
-                // reset to original speed
-                it.movementInput.moveForward /= 0.3f
-                it.movementInput.moveStrafe /= 0.3f
+            if (!descendOnSneak || !it.movementInput.sneak) return@safeListener
 
-                // reduce our speed a bit to help with placements
-                it.movementInput.moveForward *= 0.6f
-                it.movementInput.moveStrafe *= 0.6f
-            }
+            goDown = true
+            it.movementInput.sneak = false
+            it.movementInput.moveStrafe *= 5f
+            it.movementInput.moveForward *= 5f
         }
     }
 
@@ -277,15 +268,16 @@ object Scaffold : Module(
         if (placeTimer.tick(delay.toLong())
             && pendingBlocks.size < maxPending
         ) {
-            val shouldSneak = sneak && !player.isSneaking
-            if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
+            val isBlacklisted = world.getBlockState(placeInfo.pos).block in blockBlacklist
+
+            if (isBlacklisted) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
             placeBlock(placeInfo)
 
+            if (isBlacklisted) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
+
             pendingBlocks[placeInfo.placedPos] = PendingBlock(placeInfo.placedPos, world.getBlockState(placeInfo.placedPos), blockToPlace)
             world.setBlockState(placeInfo.placedPos, Blocks.BARRIER.defaultState)
-
-            if (shouldSneak) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
         }
     }
 
