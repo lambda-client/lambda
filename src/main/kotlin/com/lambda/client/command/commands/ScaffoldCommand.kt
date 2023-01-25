@@ -2,28 +2,20 @@ package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.module.modules.player.Scaffold
+import com.lambda.client.util.items.shulkerList
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
-import net.minecraft.init.Blocks
 
 object ScaffoldCommand : ClientCommand(
     name = "scaffold",
     description = "Manage scaffold whitelist/blacklist"
 ) {
-    private val allShulkerBoxes = listOf(Blocks.WHITE_SHULKER_BOX, Blocks.ORANGE_SHULKER_BOX,
-        Blocks.MAGENTA_SHULKER_BOX, Blocks.LIGHT_BLUE_SHULKER_BOX, Blocks.YELLOW_SHULKER_BOX,
-        Blocks.LIME_SHULKER_BOX, Blocks.PINK_SHULKER_BOX, Blocks.GRAY_SHULKER_BOX, Blocks.SILVER_SHULKER_BOX,
-        Blocks.CYAN_SHULKER_BOX, Blocks.PURPLE_SHULKER_BOX, Blocks.BLUE_SHULKER_BOX, Blocks.BROWN_SHULKER_BOX,
-        Blocks.GREEN_SHULKER_BOX, Blocks.RED_SHULKER_BOX, Blocks.BLACK_SHULKER_BOX)
-        .map { it.registryName.toString() }
-        .toList()
-
     init {
         literal("whitelist", "wl") {
             literal("add", "+") {
                 literal("shulker_box") {
                     execute("Add all shulker box types to whitelist") {
-                        Scaffold.blockSelectionWhitelist.editValue { whitelist -> allShulkerBoxes.forEach { whitelist.add(it) } }
+                        Scaffold.blockSelectionWhitelist.editValue { whitelist -> shulkerList.forEach { whitelist.add(it.localizedName) } }
                         MessageSendHelper.sendChatMessage("All shulker boxes have been added to whitelist")
                     }
                 }
@@ -42,7 +34,7 @@ object ScaffoldCommand : ClientCommand(
             literal("del", "-") {
                 literal("shulker_box") {
                     execute("Remove all shulker box types from whitelist") {
-                        Scaffold.blockSelectionWhitelist.editValue { whitelist -> allShulkerBoxes.forEach { whitelist.remove(it) } }
+                        Scaffold.blockSelectionWhitelist.editValue { whitelist -> shulkerList.forEach { whitelist.remove(it.localizedName) } }
                         MessageSendHelper.sendChatMessage("All shulker boxes have been removed from whitelist")
                     }
                 }
@@ -70,7 +62,7 @@ object ScaffoldCommand : ClientCommand(
             literal("add", "+") {
                 literal("shulker_box") {
                     execute("Add all shulker box types to blacklist") {
-                        Scaffold.blockSelectionBlacklist.editValue { blacklist -> allShulkerBoxes.forEach { blacklist.add(it) } }
+                        Scaffold.blockSelectionBlacklist.editValue { blacklist -> shulkerList.forEach { blacklist.add(it.localizedName) } }
                         MessageSendHelper.sendChatMessage("All shulker boxes have been added to blacklist")
                     }
                 }
@@ -89,7 +81,7 @@ object ScaffoldCommand : ClientCommand(
             literal("del", "-") {
                 literal("shulker_box") {
                     execute("Remove all shulker box types from blacklist") {
-                        Scaffold.blockSelectionBlacklist.editValue { blacklist -> allShulkerBoxes.forEach { blacklist.remove(it) } }
+                        Scaffold.blockSelectionBlacklist.editValue { blacklist -> shulkerList.forEach { blacklist.remove(it.localizedName) } }
                         MessageSendHelper.sendChatMessage("All shulker boxes have been removed from blacklist")
                     }
                 }
