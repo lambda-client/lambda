@@ -215,7 +215,7 @@ object Scaffold : Module(
             }
 
             val placePos = if (origin.y > 256) {
-                BlockPos(origin.x, 256, player.flooredPosition.z)
+                BlockPos(origin.x, 256, origin.z)
             } else {
                 origin
             }
