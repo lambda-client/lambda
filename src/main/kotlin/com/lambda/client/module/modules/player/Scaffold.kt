@@ -245,6 +245,13 @@ object Scaffold : Module(
             if (it.movementInput.sneak) {
                 down = true
                 it.movementInput.sneak = false
+                // reset to original speed
+                it.movementInput.moveForward /= 0.3f
+                it.movementInput.moveStrafe /= 0.3f
+
+                // reduce our speed a bit to help with placements
+                it.movementInput.moveForward *= 0.6f
+                it.movementInput.moveStrafe *= 0.6f
             }
         }
     }
