@@ -268,7 +268,7 @@ object Scaffold : Module(
         if (placeTimer.tick(delay.toLong())
             && pendingBlocks.size < maxPending
         ) {
-            val isBlacklisted = isPlaceBlockBlacklisted(placeInfo)
+            val isBlacklisted = blockToPlace in blockBlacklist
 
             if (isBlacklisted) connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
 
@@ -279,13 +279,6 @@ object Scaffold : Module(
             pendingBlocks[placeInfo.placedPos] = PendingBlock(placeInfo.placedPos, world.getBlockState(placeInfo.placedPos), blockToPlace)
             world.setBlockState(placeInfo.placedPos, Blocks.BARRIER.defaultState)
         }
-    }
-
-    private fun SafeClientEvent.isPlaceBlockBlacklisted(placeInfo: PlaceInfo): Boolean {
-        pendingBlocks[placeInfo.placedPos]?.let {
-            return it.block in blockBlacklist
-        }
-        return world.getBlockState(placeInfo.pos).block in blockBlacklist
     }
 
     private fun SafeClientEvent.getHeldScaffoldBlock(): Block? {
