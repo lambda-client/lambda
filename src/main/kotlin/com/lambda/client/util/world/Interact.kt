@@ -271,7 +271,7 @@ private suspend fun SafeClientEvent.doPlace(
 }
 
 /**
- * Place block with optional desync / ghost block
+ * Placing block without desync
  */
 fun SafeClientEvent.placeBlock(
     placeInfo: PlaceInfo,
@@ -290,5 +290,5 @@ fun SafeClientEvent.placeBlock(
     world.playSound(player, placeInfo.pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
 }
 
-fun PlaceInfo.toPlacePacket(hand: EnumHand) =
-    CPacketPlayerTryUseItemOnBlock(this.pos, this.side, hand, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+private fun PlaceInfo.toPlacePacket(hand: EnumHand) =
+    CPacketPlayerTryUseItemOnBlock(pos, side, hand, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
