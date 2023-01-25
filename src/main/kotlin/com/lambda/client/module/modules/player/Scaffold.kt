@@ -192,7 +192,7 @@ object Scaffold : Module(
         get() = !player.onGround
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
             && world.getCollisionBoxes(player, player.entityBoundingBox).isEmpty()
-            && mc.player.speed < 0.1
+            && player.speed < 0.1
             && (getHeldScaffoldBlock() != null || getBlockSlot() != null)
 
     init {
