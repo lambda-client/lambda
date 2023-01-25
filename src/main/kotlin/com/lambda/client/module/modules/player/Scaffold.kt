@@ -95,17 +95,31 @@ object Scaffold : Module(
 
     private val placeTimer = TickTimer(TimeUnit.TICKS)
     private var towerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
+    private var noFall = false
+    private var fallMode = NoFall.Mode.CATCH
 
     private val pendingBlocks = ConcurrentHashMap<BlockPos, PendingBlock>()
 
     init {
         onEnable {
             towerTimer.reset()
+            noFall = NoFall.isEnabled
+            fallMode = NoFall.mode
+
+            NoFall.mode = NoFall.Mode.CATCH
+            NoFall.enable()
         }
 
         onDisable {
             placeInfo = null
             pendingBlocks.clear()
+
+            if (!noFall) {
+                NoFall.disable()
+            }
+            if (fallMode != NoFall.mode) {
+                NoFall.mode = fallMode
+            }
         }
 
         safeListener<PacketEvent.Receive> { event ->
@@ -117,27 +131,14 @@ object Scaffold : Module(
                     pendingBlocks.clear()
                 }
                 is SPacketBlockChange -> {
-                    pendingBlocks[packet.blockPosition]?.let { pendingBlock ->
-                        if (pendingBlock.block == packet.blockState.block) {
-                            pendingBlocks.remove(packet.blockPosition)
-                        } else {
-                            // probably ItemStack empty
-                            if (packet.blockState.block == Blocks.AIR) {
-                                pendingBlocks.forEach {
-                                    world.setBlockState(it.key, it.value.blockState)
-                                }
-                                pendingBlocks.clear()
-                            }
-                            LambdaMod.LOG.warn("$chatName Other confirm: ${packet.blockPosition} ${packet.blockState.block}")
-                        }
-                    }
+                    pendingBlocks.remove(packet.blockPosition)
                 }
             }
         }
 
         safeListener<PlayerTravelEvent> {
             if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
-            if (player.isInWater || world.getBlockState(player.flooredPosition).material.isLiquid) {
+            if (player.isInWater || player.isInLava) {
                 player.motionY = .11
             } else if (shouldTower) {
                 player.jump()
@@ -171,7 +172,7 @@ object Scaffold : Module(
     private val SafeClientEvent.shouldTower: Boolean
         get() = !player.onGround
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
-            && mc.player.speed < 0.1
+            && player.speed < 0.1
             && (getHeldScaffoldBlock() != null || getBlockSlot() != null)
 
     init {
@@ -204,7 +205,13 @@ object Scaffold : Module(
         safeListener<OnUpdateWalkingPlayerEvent> { event ->
             if (event.phase != Phase.PRE) return@safeListener
 
-            placeInfo = getNeighbour(player.flooredPosition.down(), attempts, visibleSideCheck = visibleSideCheck)
+            val placePos = if (player.flooredPosition.y > 256) {
+                BlockPos(player.flooredPosition.x, 256, player.flooredPosition.z)
+            } else {
+                player.flooredPosition.down()
+            }
+
+            placeInfo = getNeighbour(placePos, attempts, visibleSideCheck = visibleSideCheck)
         }
     }
 
