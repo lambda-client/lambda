@@ -60,9 +60,9 @@ object Scaffold : Module(
     private val descendOnSneak by setting("Descend on sneak", true, { page == Page.GENERAL })
     private val visibleSideCheck by setting("Visible side check", true, { page == Page.GENERAL })
     private val delay by setting("Delay", 0, 0..10, 1, { page == Page.GENERAL }, unit = " ticks")
-    private val timeout by setting("Timeout", 50, 1..40, 1, { page == Page.GENERAL }, unit = " ticks")
+    private val timeout by setting("Timeout", 15, 1..40, 1, { page == Page.GENERAL }, unit = " ticks")
     private val attempts by setting("Placement Search Depth", 3, 0..7, 1, { page == Page.GENERAL })
-    private val maxPending by setting("Max Pending", 2, 0..5, 1, { page == Page.GENERAL })
+    private val maxPending by setting("Max Pending", 3, 0..10, 1, { page == Page.GENERAL })
     private val below by setting("Max Tower Distance", 0.3, 0.0..2.0, 0.01, { page == Page.GENERAL })
     private val filled by setting("Filled", true, { page == Page.RENDER }, description = "Renders surfaces")
     private val outline by setting("Outline", true, { page == Page.RENDER }, description = "Renders outline")
@@ -190,6 +190,7 @@ object Scaffold : Module(
         get() = !player.onGround
             && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, -below, 0.0)).isNotEmpty()
             && world.getCollisionBoxes(player, player.entityBoundingBox).isEmpty()
+            && !player.capabilities.isFlying
             && player.speed < 0.1
             && (getHeldScaffoldBlock() != null || getBlockSlot() != null)
 
@@ -238,7 +239,10 @@ object Scaffold : Module(
         }
 
         safeListener<InputUpdateEvent> {
-            if (!descendOnSneak || !it.movementInput.sneak) return@safeListener
+            if (!descendOnSneak
+                || !it.movementInput.sneak
+                || player.capabilities.isFlying
+            ) return@safeListener
 
             goDown = true
             it.movementInput.sneak = false
