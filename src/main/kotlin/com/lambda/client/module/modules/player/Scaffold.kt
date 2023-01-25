@@ -286,7 +286,7 @@ object Scaffold : Module(
             return it.block in blockBlacklist
         }
         val worldBlockState = world.getBlockState(placeInfo.pos).block
-        return worldBlockState in blockBlacklist || worldBlockState == Blocks.BARRIER
+        return worldBlockState in blockBlacklist
     }
 
     private fun SafeClientEvent.getHeldScaffoldBlock(): Block? {
