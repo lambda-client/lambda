@@ -35,6 +35,7 @@ import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 import net.minecraft.util.math.BlockPos
+import net.minecraftforge.client.event.InputUpdateEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent
 import java.util.concurrent.ConcurrentHashMap
@@ -97,6 +98,7 @@ object Scaffold : Module(
     private var towerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
     private var noFall = false
     private var fallMode = NoFall.Mode.CATCH
+    private var down = false
 
     private val pendingBlocks = ConcurrentHashMap<BlockPos, PendingBlock>()
 
@@ -205,13 +207,27 @@ object Scaffold : Module(
         safeListener<OnUpdateWalkingPlayerEvent> { event ->
             if (event.phase != Phase.PRE) return@safeListener
 
-            val placePos = if (player.flooredPosition.y > 256) {
-                BlockPos(player.flooredPosition.x, 256, player.flooredPosition.z)
+            val origin = if (down) {
+                down = false
+                player.flooredPosition.down(2)
             } else {
                 player.flooredPosition.down()
             }
 
+            val placePos = if (origin.y > 256) {
+                BlockPos(origin.x, 256, player.flooredPosition.z)
+            } else {
+                origin
+            }
+
             placeInfo = getNeighbour(placePos, attempts, visibleSideCheck = visibleSideCheck)
+        }
+
+        safeListener<InputUpdateEvent> {
+            if (it.movementInput.sneak) {
+                down = true
+                it.movementInput.sneak = false
+            }
         }
     }
 
