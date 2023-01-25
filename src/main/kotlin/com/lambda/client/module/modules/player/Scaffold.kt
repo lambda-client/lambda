@@ -285,8 +285,7 @@ object Scaffold : Module(
         pendingBlocks[placeInfo.placedPos]?.let {
             return it.block in blockBlacklist
         }
-        val worldBlockState = world.getBlockState(placeInfo.pos).block
-        return worldBlockState in blockBlacklist
+        return world.getBlockState(placeInfo.pos).block in blockBlacklist
     }
 
     private fun SafeClientEvent.getHeldScaffoldBlock(): Block? {
