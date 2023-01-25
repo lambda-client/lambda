@@ -12,6 +12,7 @@ import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.player.Scaffold.isUsableItem
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.MovementUtils.speed
@@ -24,6 +25,7 @@ import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
+import com.lambda.client.util.world.isFullBox
 import com.lambda.client.util.world.placeBlock
 import com.lambda.mixin.entity.MixinEntity
 import net.minecraft.block.Block
@@ -87,9 +89,9 @@ object Scaffold : Module(
     private enum class ScaffoldBlockSelectionMode(
         override val displayName: String,
         val filter: (Item) -> Boolean): DisplayEnum {
-        ANY("Any", { it is ItemBlock }),
-        WHITELIST("Whitelist", { it is ItemBlock && blockSelectionWhitelist.contains(it.registryName.toString()) }),
-        BLACKLIST("Blacklist", { it is ItemBlock && !blockSelectionBlacklist.contains(it.registryName.toString()) })
+        ANY("Any", { it.isUsableItem() }),
+        WHITELIST("Whitelist", { blockSelectionWhitelist.contains(it.registryName.toString()) && it.isUsableItem() }),
+        BLACKLIST("Blacklist", { !blockSelectionBlacklist.contains(it.registryName.toString()) && it.isUsableItem() })
     }
 
     private var placeInfo: PlaceInfo? = null
@@ -316,4 +318,6 @@ object Scaffold : Module(
     ) {
         val age get() = System.currentTimeMillis() - timestamp
     }
+
+    private fun Item.isUsableItem() = this is ItemBlock && block.defaultState.isFullBox
 }
