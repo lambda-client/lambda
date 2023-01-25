@@ -56,6 +56,7 @@ object Scaffold : Module(
     private val tower by setting("Tower", true, { page == Page.GENERAL })
     private val spoofHotbar by setting("Spoof Hotbar", true, { page == Page.GENERAL })
     val safeWalk by setting("Safe Walk", true, { page == Page.GENERAL })
+    private val useNoFall by setting("No Fall", false, { page == Page.GENERAL })
     private val sneak by setting("Sneak", true, { page == Page.GENERAL })
     private val visibleSideCheck by setting("Visible side check", true, { page == Page.GENERAL })
     private val delay by setting("Delay", 0, 0..10, 1, { page == Page.GENERAL }, unit = " ticks")
@@ -95,7 +96,9 @@ object Scaffold : Module(
     private val renderer = ESPRenderer()
 
     private val placeTimer = TickTimer(TimeUnit.TICKS)
-    private var towerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
+    private val towerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
+    private val waterTowerTimer: TickTimer = TickTimer(TimeUnit.TICKS)
+    private val posLookTimer: TickTimer = TickTimer(TimeUnit.TICKS)
     private var noFall = false
     private var fallMode = NoFall.Mode.CATCH
     private var down = false
@@ -105,22 +108,26 @@ object Scaffold : Module(
     init {
         onEnable {
             towerTimer.reset()
-            noFall = NoFall.isEnabled
-            fallMode = NoFall.mode
+            if (useNoFall) {
+                noFall = NoFall.isEnabled
+                fallMode = NoFall.mode
 
-            NoFall.mode = NoFall.Mode.CATCH
-            NoFall.enable()
+                NoFall.mode = NoFall.Mode.CATCH
+                NoFall.enable()
+            }
         }
 
         onDisable {
             placeInfo = null
             pendingBlocks.clear()
 
-            if (!noFall) {
-                NoFall.disable()
-            }
-            if (fallMode != NoFall.mode) {
-                NoFall.mode = fallMode
+            if (useNoFall) {
+                if (!noFall) {
+                    NoFall.disable()
+                }
+                if (fallMode != NoFall.mode) {
+                    NoFall.mode = fallMode
+                }
             }
         }
 
@@ -131,6 +138,7 @@ object Scaffold : Module(
                         world.setBlockState(it.key, it.value.blockState)
                     }
                     pendingBlocks.clear()
+                    posLookTimer.reset()
                 }
                 is SPacketBlockChange -> {
                     pendingBlocks.remove(packet.blockPosition)
@@ -139,14 +147,23 @@ object Scaffold : Module(
         }
 
         safeListener<PlayerTravelEvent> {
-            if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock) return@safeListener
-            if (player.isInWater || player.isInLava) {
+            if (!tower || !mc.gameSettings.keyBindJump.isKeyDown || !isHoldingBlock || !posLookTimer.tick(15, false)) {
+                towerTimer.reset()
+                return@safeListener
+            }
+            if (player.isInWater || world.getBlockState(player.flooredPosition).material.isLiquid) {
                 player.motionY = .11
+                towerTimer.reset()
+                waterTowerTimer.reset()
             } else if (shouldTower) {
-                player.jump()
-                if (towerTimer.tick(30)) {
-                    // reset pos back onto top block
-                    player.motionY = -0.3
+                if (waterTowerTimer.tick(5, false)) {
+                    player.jump()
+                    if (towerTimer.tick(30)) {
+                        // reset pos back onto top block
+                        player.motionY = -0.3
+                    }
+                } else {
+                    towerTimer.reset()
                 }
             }
         }
