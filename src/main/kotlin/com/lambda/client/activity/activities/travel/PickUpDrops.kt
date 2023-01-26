@@ -15,7 +15,9 @@ class PickUpDrops(
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val drops = world.loadedEntityList.filterIsInstance<EntityItem>().filter {
-            it.item.item == item && player.distanceTo(it.positionVector) < maxRange && predicate(it.item)
+            it.item.item == item
+                && player.distanceTo(it.positionVector) < maxRange
+                && predicate(it.item)
         }
 
         if (drops.isEmpty() || drops.sumOf { it.item.count } < minAmount) {

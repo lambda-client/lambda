@@ -43,6 +43,7 @@ object BuildTools : Module(
     val breakDownCycles by setting("Break Down", 64, 1..200, 1, { page == Page.BUILDING }, description = "", unit = " ender chests")
     val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     val doPending by setting("Do Pending", true, { page == Page.BUILDING }, description = "Do not wait for server to confirm action")
+    val executionCountPerTick by setting("Executions Per Tick", 100, 0..200, 1, { page == Page.BUILDING }, description = "How many tasks to execute per tick")
 //    val scaffold by setting("Scaffold", true, { page == Page.PLACING }, description = "Tries to bridge / scaffold when stuck placing")
 //    val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.PLACING }, description = "EXPERIMENTAL: Attempts to find a support block for placing against", unit = " blocks")
 
