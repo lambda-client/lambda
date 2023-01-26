@@ -86,8 +86,10 @@ class PlaceBlock(
             rotation = getRotationTo(it.hitVec)
 
 //            connection.sendPacket(it.toPlacePacket(EnumHand.MAIN_HAND))
-            if (playerController.processRightClickBlock(player, world, it.pos, it.side, it.hitVec, EnumHand.MAIN_HAND) != EnumActionResult.SUCCESS) {
-                failedWith(ProcessRightClickException())
+            val result = playerController.processRightClickBlock(player, world, it.pos, it.side, it.hitVec, EnumHand.MAIN_HAND)
+
+            if (result != EnumActionResult.SUCCESS) {
+                failedWith(ProcessRightClickException(result))
                 return
             }
 
@@ -135,5 +137,5 @@ class PlaceBlock(
     }
 
     class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for (${blockPos.asString()}) found")
-    class ProcessRightClickException : Exception("Processing right click failed")
+    class ProcessRightClickException(result: EnumActionResult) : Exception("Processing right click failed with result $result")
 }

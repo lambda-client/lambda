@@ -34,7 +34,7 @@ class PickUpEntityItem(
 
             if (subActivities.filterIsInstance<DumpSlot>().isNotEmpty()) return@safeListener
 
-            player.openContainer.inventorySlots.firstOrNull() { slot ->
+            player.inventorySlots.firstOrNull() { slot ->
                 BuildTools.ejectList.contains(slot.stack.item.registryName.toString())
             }?.let { slot ->
                 addSubActivities(DumpSlot(slot))

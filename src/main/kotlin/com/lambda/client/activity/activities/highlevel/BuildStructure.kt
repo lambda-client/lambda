@@ -57,7 +57,7 @@ class BuildStructure(
                 }.thenBy {
                     it.action
                 }.thenBy {
-                    player.distanceTo(it.blockPos)
+                    player.getPositionEyes(1f).distanceTo(it.blockPos)
                 }
             ).firstOrNull()?.let {
                 with(it) {

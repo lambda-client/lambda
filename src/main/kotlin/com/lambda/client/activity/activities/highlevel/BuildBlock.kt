@@ -82,7 +82,7 @@ class BuildBlock(
                     ?: AxisAlignedBB(blockPos))) -> {
                 if (addActivities) {
                     addSubActivities(
-                        PlaceBlock(blockPos, targetState, BuildTools.doPending)
+                        PlaceBlock(blockPos, if (currentState.isLiquid) BuildTools.defaultFillerMat.defaultState else targetState, BuildTools.doPending)
                     )
                 } else {
                     action = when {
@@ -116,5 +116,12 @@ class BuildBlock(
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         status = Status.UNINITIALIZED
+    }
+
+    override fun SafeClientEvent.onChildFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {
+        if (childException !is BreakBlock.NoExposedSideFound) return false
+
+        status = Status.UNINITIALIZED
+        return true
     }
 }

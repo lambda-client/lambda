@@ -140,8 +140,12 @@ class BreakBlock(
                     }
                 }
             } ?: run {
-                if (autoPathing && subActivities.filterIsInstance<BreakGoal>().isEmpty()) {
-                    addSubActivities(BreakGoal(blockPos))
+                getMiningSide(blockPos)?.let {
+                    if (autoPathing && subActivities.filterIsInstance<BreakGoal>().isEmpty()) {
+                        addSubActivities(BreakGoal(blockPos))
+                    }
+                } ?: run {
+                    failedWith(NoExposedSideFound())
                 }
             }
         }
@@ -198,4 +202,6 @@ class BreakBlock(
 
         owner.status = Status.PENDING
     }
+
+    class NoExposedSideFound : Exception("No exposed side found")
 }

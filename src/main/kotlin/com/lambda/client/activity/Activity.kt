@@ -21,7 +21,7 @@ import com.lambda.client.util.text.MessageSendHelper
 import org.apache.commons.lang3.time.DurationFormatUtils
 import java.util.concurrent.ConcurrentLinkedDeque
 
-abstract class Activity(private val isRoot: Boolean = false) {
+abstract class Activity(val isRoot: Boolean = false) {
     val subActivities = ConcurrentLinkedDeque<Activity>()
     var status = Status.UNINITIALIZED
     private var creationTime = 0L

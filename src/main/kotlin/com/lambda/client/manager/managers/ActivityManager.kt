@@ -7,6 +7,7 @@ import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.modules.client.BuildTools
+import com.lambda.client.module.modules.client.BuildTools.executionCountPerTick
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.threads.safeListener
@@ -15,7 +16,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 object ActivityManager : Manager, Activity(true) {
     private val renderer = ESPRenderer()
     const val MAX_DEPTH = 25
-    private var lastActivity: Activity = this
 
     init {
         safeListener<TickEvent.ClientTickEvent> { event ->
@@ -37,7 +37,7 @@ object ActivityManager : Manager, Activity(true) {
                 ) updateTypesOnTick(currentActivity)
             }
 
-            repeat(allActivities.size * 2) {
+            repeat(executionCountPerTick) {
                 with(getCurrentActivity()) {
                     BaritoneUtils.settings?.allowPlace?.value = false
                     BaritoneUtils.settings?.allowBreak?.value = false
@@ -65,18 +65,16 @@ object ActivityManager : Manager, Activity(true) {
 
     fun reset() {
         ListenerManager.listenerMap.keys.filterIsInstance<Activity>().forEach {
-            if (it is ActivityManager) return@forEach
+            if (it.isRoot) return@forEach
             LambdaEventBus.unsubscribe(it)
             ListenerManager.unregister(it)
         }
         ListenerManager.asyncListenerMap.keys.filterIsInstance<Activity>().forEach {
-            if (it is ActivityManager) return@forEach
+            if (it.isRoot) return@forEach
             LambdaEventBus.unsubscribe(it)
             ListenerManager.unregister(it)
         }
         BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
         subActivities.clear()
-
-        lastActivity = ActivityManager
     }
 }
