@@ -1,6 +1,6 @@
 package com.lambda.mixin.world;
 
-import com.lambda.client.module.modules.movement.Avoid;
+import com.lambda.client.module.modules.movement.Prevent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockCactus;
@@ -23,11 +23,12 @@ public class MixinGetCollisionBB {
 
     @Inject(method = "getCollisionBoundingBox", at = @At("HEAD"), cancellable = true)
     private void getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos, CallbackInfoReturnable<AxisAlignedBB> cir) {
-        if (mc.world != null && Avoid.INSTANCE.isEnabled()) {
+        if (mc.world != null && Prevent.INSTANCE.isEnabled()) {
             Block checkBlock = getBlock(pos);
-            if ((checkBlock.equals(Blocks.FIRE) && Avoid.INSTANCE.getFire()) ||
-                (checkBlock.equals(Blocks.CACTUS) && Avoid.INSTANCE.getCactus()) ||
-                ((!mc.world.isBlockLoaded(pos, false) || pos.getY() < 0) && Avoid.INSTANCE.getUnloaded())) {
+            if ((checkBlock.equals(Blocks.FIRE) && Prevent.INSTANCE.getFire()) ||
+                (checkBlock.equals(Blocks.CACTUS) && Prevent.INSTANCE.getCactus()) ||
+                (!mc.world.isBlockLoaded(pos, false) && Prevent.INSTANCE.getUnloaded()) ||
+                (pos.getY() < 0 && Prevent.INSTANCE.getVoid())) {
                 cir.cancel();
                 cir.setReturnValue(Block.FULL_BLOCK_AABB);
             }

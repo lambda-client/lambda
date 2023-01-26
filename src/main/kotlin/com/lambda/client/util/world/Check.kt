@@ -107,4 +107,6 @@ fun SafeClientEvent.hasNeighbour(pos: BlockPos): Boolean {
  */
 fun World.isPlaceable(pos: BlockPos, ignoreSelfCollide: Boolean = false) =
     this.getBlockState(pos).isReplaceable
-        && this.checkNoEntityCollision(AxisAlignedBB(pos), if (ignoreSelfCollide) Wrapper.player else null)
+        && checkNoEntityCollision(AxisAlignedBB(pos), if (ignoreSelfCollide) Wrapper.player else null)
+        && worldBorder.contains(pos)
+        && !isOutsideBuildHeight(pos)

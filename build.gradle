@@ -5,7 +5,7 @@ buildscript {
         maven { url = 'https://repo.spongepowered.org/maven/' }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:4.+'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:5.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
         classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
     }
@@ -25,6 +25,9 @@ group project.modGroup
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
     options.encoding = 'UTF-8'
+    // Disables Gradle build caching for this task
+    // If build caching is enabled this can cause the refmap to not be built and included
+    outputs.upToDateWhen { false }
 }
 
 compileKotlin.kotlinOptions {
@@ -184,7 +187,8 @@ shadowJar {
     configurations = [project.configurations.jarLibs]
     relocate 'kotlin', 'com.lambda.shadow.kotlin'
     relocate 'kotlinx', 'com.lambda.shadow.kotlinx'
-    finalizedBy 'reobfShadowJar'
+    finalizedBy 'configureReobfTaskForReobfShadowJar', 'reobfShadowJar'
+    mustRunAfter 'jar'
 }
 
 reobf {

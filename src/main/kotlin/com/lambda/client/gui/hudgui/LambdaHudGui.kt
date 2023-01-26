@@ -3,7 +3,6 @@ package com.lambda.client.gui.hudgui
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.AbstractLambdaGui
-import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.gui.hudgui.component.HudButton
 import com.lambda.client.gui.hudgui.window.HudSettingWindow
 import com.lambda.client.gui.rgui.Component
@@ -14,6 +13,7 @@ import com.lambda.client.module.modules.client.HudEditor
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.math.Vec2f
+import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl.GL11.*
@@ -26,20 +26,13 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
 
     init {
         var posX = 0.0f
-        var posY = 0.0f
-        val screenWidth = LambdaClickGui.mc.displayWidth / ClickGUI.getScaleFactorFloat()
 
-        for (category in AbstractHudElement.Category.values()) {
+        AbstractHudElement.Category.values().forEach { category ->
             val window = ListWindow(category.displayName, posX, 0.0f, 90.0f, 300.0f, Component.SettingGroup.HUD_GUI)
             windowList.add(window)
             hudWindows[category] = window
 
             posX += 90.0f
-
-            if (posX > screenWidth) {
-                posX = 0.0f
-                posY += 100.0f
-            }
         }
 
         listener<InputEvent.KeyInputEvent> {
@@ -47,22 +40,21 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
 
             if (eventKey == Keyboard.KEY_NONE || Keyboard.isKeyDown(Keyboard.KEY_F3)) return@listener
 
-            for (child in windowList) {
-                if (child !is AbstractHudElement) continue
-                if (!child.bind.isDown(eventKey)) continue
-                child.visible = !child.visible
-            }
+            windowList
+                .filterIsInstance<AbstractHudElement>()
+                .filter { it.bind.isDown(eventKey) }
+                .forEach { it.visible = !it.visible }
         }
     }
 
     internal fun register(hudElement: AbstractHudElement) {
         val button = HudButton(hudElement)
-        hudWindows[hudElement.category]!!.add(button)
+        hudWindows[hudElement.category]?.add(button)
         windowList.add(hudElement)
     }
 
     internal fun unregister(hudElement: AbstractHudElement) {
-        hudWindows[hudElement.category]!!.children.removeIf { it is HudButton && it.hudElement == hudElement }
+        hudWindows[hudElement.category]?.children?.removeIf { it is HudButton && it.hudElement == hudElement }
         windowList.remove(hudElement)
     }
 
@@ -98,27 +90,26 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
     }
 
     private fun setHudButtonVisibility(function: (HudButton) -> Boolean) {
-        windowList.filterIsInstance<ListWindow>().forEach {
-            for (child in it.children) {
-                if (child !is HudButton) continue
-                child.visible = function(child)
+        windowList.filterIsInstance<ListWindow>().forEach { window ->
+            window.children.filterIsInstance<HudButton>().forEach { button ->
+                button.visible = function(button)
             }
         }
     }
 
     init {
-        listener<RenderOverlayEvent>(0) {
-            if (mc?.world == null || mc?.player == null || mc?.currentScreen == this || mc?.gameSettings?.showDebugInfo != false) return@listener
+        safeListener<RenderOverlayEvent>(0) {
+            if (Hud.isDisabled) return@safeListener
 
             val vertexHelper = VertexHelper(GlStateUtils.useVbo())
             GlStateUtils.rescaleLambda()
 
-            if (Hud.isEnabled) {
-                for (window in windowList) {
-                    if (window !is AbstractHudElement || !window.visible) continue
+            windowList
+                .filterIsInstance<AbstractHudElement>()
+                .filter { it.visible }
+                .forEach { window ->
                     renderHudElement(vertexHelper, window)
                 }
-            }
 
             GlStateUtils.rescaleMc()
             GlStateUtils.depth(true)

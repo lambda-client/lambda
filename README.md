@@ -4,7 +4,7 @@
 
 ![GitHub all releases](https://img.shields.io/github/downloads/lambda-client/lambda/total?color=seagreen)
 ![CodeFactor grade](https://img.shields.io/codefactor/grade/github/lambda-client/lambda?color=royalblue)
-![GitHub workflow status](https://img.shields.io/github/workflow/status/lambda-client/lambda/gradle_build?logo=gradle)
+![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/nightly_build.yml?branch=master&logo=gradle)
 [![Discord](https://img.shields.io/discord/834570721070022687?color=skyblue&logo=discord&logoColor=white)](https://discord.gg/QjfBxJzE5x)
 ![GitHub repo size](https://img.shields.io/github/repo-size/lambda-client/lambda)
 ![Lines of code](https://img.shields.io/tokei/lines/github/lambda-client/lambda?color=lightcoral&label=lines%20of%20code)
@@ -19,6 +19,10 @@ Find our plugins [here](https://github.com/lambda-plugins).
     <a href="https://github.com/lambda-client/lambda/releases/download/3.2.1/lambda-3.2.1.jar"><img alt="lambda-3.2.1.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.2.1.png" width="70%" height="70%"></a>
 </p>
 
+<div align="center">
+  <a href="https://discord.gg/QjfBxJzE5x"><img src="https://invidget.switchblade.xyz/QjfBxJzE5x" alt="Link to the lambda discord server https://discord.gg/QjfBxJzE5x"></a>
+</div>
+
 ## Installation
 1. Install Minecraft 1.12.2
 2. Install the latest Forge for 1.12.2 [(download)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
@@ -32,14 +36,14 @@ How do I...
 <details>
   <summary>... open the ClickGUI?</summary>
 
-> Press `Y`
+> Press `Y`.
 
 </details>
 
 <details>
   <summary>... execute a command?</summary>
 
-> Use the ingame chat with the prefix `;`
+> Use the ingame chat with the prefix `;`.
 
 </details>
 
@@ -55,15 +59,15 @@ How do I...
 <details>
   <summary>... export KAMI blue config to Lambda?</summary>
 
-> Rename `.minecraft/kamiblue` to `.minecraft/lambda`
-> Note that this might cause stability issues.
+> Rename `.minecraft/kamiblue` to `.minecraft/lambda`.
+> Please note that this might cause stability issues.
 
 </details>
 
 <details>
   <summary>... fix most crashes on startup?</summary>
 
-> Possibly you have multiple mods loaded. Forge loads mods in alphabetical order, so you can change the name of the Mod jar to make it load earlier or later. Add for example an exclamation mark to lambda jar to make it load first.
+> You may have multiple mods loaded. Forge loads mods in alphabetical order, so you can change the name of the Mod jar to make it load earlier or later. Add for example an exclamation mark to lambda jar to make it load first.
 > If you got `Error: java.lang.IllegalAccessError: tried to access field net.minecraft.util.math.Vec3i.field_177962_a from class baritone.k` remove the `-noverify` tag from your arguments.
 
 </details>
@@ -72,21 +76,21 @@ How do I...
   <summary>... fix problems with Gradle?</summary>
 
 > Make sure you have a Java 8 JDK installed and in your PATH.
-We recommend using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) distribution of OpenJDK 
+We advise using the [Temurin](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/) distribution of OpenJDK.
 
 </details>
 
 <details>
   <summary>... reset the ClickGUI scale?</summary>
 
-> Run the command `;set clickgui scale 100`
+> Run the command `;set clickgui scale 100`.
 
 </details>
 
 <details>
   <summary>... crashing with liteloader?</summary>
 
-> Use liteloader as a forge mod, it is available [here](https://jenkins.liteloader.com/view/1.12.2/job/LiteLoader%201.12.2/lastSuccessfulBuild/artifact/build/libs/liteloader-1.12.2-SNAPSHOT-release.jar)
+> Use liteloader as a forge mod, it is available [here](https://jenkins.liteloader.com/view/1.12.2/job/LiteLoader%201.12.2/lastSuccessfulBuild/artifact/build/libs/liteloader-1.12.2-SNAPSHOT-release.jar).
 </details>
 
 <p align="center">
@@ -102,27 +106,32 @@ Clone the repository to your local machine. Use the link of either your fork or 
 git clone https://github.com/lambda-client/lambda
 ```
 
-Run `setupWorkspace.sh` to initialize the environment. 
-With terminal on Linux or [Git Bash](https://gitforwindows.org/) for Windows
+Run `setupWorkspace.sh` to initialize the environment.
+Use your terminal on Linux or [Git Bash](https://gitforwindows.org/) for Windows.
 ```
 ./setupWorkspace.sh
 ```
 
 ### Setup IDE
 
-In this guide we will use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as IDE.
+In this guide we will use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as our IDE.
 1. Open the project from `File > Open...`
 2. Let the IDE collect dependencies and index the code.
 3. Goto `File > Project Structure... > SDKs` and make sure an SDK for Java 8 is installed and selected, if not download
-   it [here](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/)
+   one [here](https://adoptium.net/?variant=openjdk8&jvmVariant=hotspot/).
 
 ### Gradle build
 
-Test if the environment is set up correctly by building the client and run it inside IDE using the Gradle tab on the right side of the IDE.
+Test if the environment is set up correctly by building the client and running it inside the IDE using the Gradle tab on the right side of the IDE.
 1. Go to `lambda > Tasks > build > runClient` in the Gradle tab and run the client.
-2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`
+2. To build the client as a jar run `lambda > Tasks > build > build`. Gradle will create a new directory called `build`. The final built jar will be in `build/libs`.
 
-## Thanks to
+### Stargazers
+[![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
+
+## Thanks to...
+
+[![GitHub contributors](https://contrib.rocks/image?repo=lambda-client/lambda)](https://github.com/lambda-client/lambda/graphs/contributors)
 
 [zeroeightysix](https://github.com/zeroeightysix) for the original [KAMI](https://github.com/zeroeightysix/KAMI)
 
@@ -132,10 +141,5 @@ Test if the environment is set up correctly by building the client and run it in
 
 [MinecraftForge](https://github.com/MinecraftForge) for [Forge](https://github.com/MinecraftForge/MinecraftForge)
 
-Our [contributors](https://github.com/lambda-client/lambda/graphs/contributors) ❤️
-
-### Stargazers
-[![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
-
 > ### Disclaimer
-> This software does not contain any copyrighted Minecraft code. This is a Forge utility mod, Only meant for use in anarchy environments. Do not use without permission of server administration.
+> This software does not contain any copyrighted Minecraft code. This is a Forge utility mod, only meant for use in anarchy environments. Do not use without permission of server administration.

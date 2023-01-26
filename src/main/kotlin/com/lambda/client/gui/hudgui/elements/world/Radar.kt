@@ -28,6 +28,7 @@ internal object Radar : HudElement(
     description = "Shows entities and new chunks"
 ) {
     private val zoom by setting("Zoom", 3f, 1f..10f, 0.1f)
+    private val chunkLines by setting("Chunk Lines", true)
 
     private val players = setting("Players", true)
     private val passive = setting("Passive Mobs", false)
@@ -45,7 +46,7 @@ internal object Radar : HudElement(
 
         runSafe {
             drawBorder(vertexHelper)
-            post(RenderRadarEvent(vertexHelper, radius, zoom)) // Let other modules display radar elements
+            post(RenderRadarEvent(vertexHelper, radius, zoom, chunkLines)) // Let other modules display radar elements
             drawEntities(vertexHelper)
             drawLabels()
         }

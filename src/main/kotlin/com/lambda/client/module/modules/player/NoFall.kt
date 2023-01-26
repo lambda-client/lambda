@@ -27,12 +27,12 @@ object NoFall : Module(
     category = Category.PLAYER
 ) {
     private val distance by setting("Distance", 3, 1..10, 1)
-    private val mode by setting("Mode", Mode.CATCH)
+    var mode by setting("Mode", Mode.CATCH)
     private val fallModeSetting by setting("Fall", FallMode.PACKET, { mode == Mode.FALL })
     private val catchModeSetting by setting("Catch", CatchMode.MOTION, { mode == Mode.CATCH })
     private val voidOnly by setting("Void Only", false, { mode == Mode.CATCH })
 
-    private enum class Mode {
+    enum class Mode {
         FALL, CATCH
     }
 

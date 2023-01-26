@@ -89,29 +89,21 @@ object ChestStealer : Module(
         runSafe {
             if (isEnabled && isContainerOpen()) {
                 if (button.id == 696969) {
-                    val str = if (stealing) {
-                        "Stop"
-                    } else {
-                        "Steal"
-                    }
+                    val name = if (stealing) "Stop" else "Steal"
 
                     button.x = left + size + 2
                     button.y = top + 2
                     button.enabled = canSteal() and !storing
                     button.visible = true
-                    button.displayString = str
+                    button.displayString = name
                 } else if (button.id == 420420) {
-                    val str = if (storing) {
-                        "Stop"
-                    } else {
-                        "Store"
-                    }
+                    val name = if (storing) "Stop" else "Store"
 
                     button.x = left + size + 2
                     button.y = top + 24
                     button.enabled = canStore() and !stealing
                     button.visible = true
-                    button.displayString = str
+                    button.displayString = name
                 }
             } else {
                 button.visible = false

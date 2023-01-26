@@ -43,7 +43,7 @@ public abstract class MixinMinecraft {
     private boolean handActive = false;
     private boolean isHittingBlock = false;
 
-    @Shadow(aliases = "func_147116_af") // Fixes weird prod meme in some cases??
+    @Shadow
     protected abstract void clickMouse();
 
     @ModifyVariable(method = "displayGuiScreen", at = @At("HEAD"), argsOnly = true)

@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
 
 object BossStack : Module(
     name = "BossStack",
-    description = "Modify the boss health GUI to take up less space",
+    description = "Modifies the boss health GUI to take up less space",
     category = Category.RENDER
 ) {
     private val mode by setting("Mode", BossStackMode.STACK)

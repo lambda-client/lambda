@@ -35,7 +35,7 @@ object DiscordRPC : Module(
     private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION) // state left
     private val line2Right by setting("Line 2 Right", LineInfo.HEALTH) // state right
     private val coordsConfirm by setting("Coords Confirm", false, { showCoordsConfirm() })
-    private val delay by setting("Update Delay", 5, 1..60, 1, unit = " s")
+    private val delay by setting("Update Delay", 200, 200..2000, 1, unit = "ms")
 
     private enum class LineInfo {
         VERSION, WORLD, DIMENSION, USERNAME, HEALTH, HUNGER, SERVER_IP, COORDS, SPEED, HELD_ITEM, FPS, TPS, NONE
@@ -46,8 +46,8 @@ object DiscordRPC : Module(
     private var initialised = false
     private val rpcBuilder = RichPresence.Builder()
         .setLargeImage("default", "https://github.com/lambda-client/lambda/")
-    private val timer = TickTimer(TimeUnit.SECONDS)
-    private val job = BackgroundJob("Discord RPC", { delay * 1000L }) { updateRPC() }
+    private val timer = TickTimer(TimeUnit.MILLISECONDS)
+    private val job = BackgroundJob("Discord RPC", { delay * 200L }) { updateRPC() }
 
     init {
         onEnable {

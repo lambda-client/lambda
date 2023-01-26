@@ -1,14 +1,17 @@
 package com.lambda.client.gui.rgui
 
 import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.module.modules.client.ClickGUI.gridSize
 import com.lambda.client.setting.GuiConfig.setting
 import com.lambda.client.setting.configs.AbstractConfig
 import com.lambda.client.util.graphics.AnimationUtils
 import com.lambda.client.util.graphics.font.HAlign
 import com.lambda.client.util.graphics.font.VAlign
 import com.lambda.client.util.math.Vec2f
+import org.lwjgl.input.Keyboard
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 open class WindowComponent(
     name: String,
@@ -106,7 +109,12 @@ open class WindowComponent(
             else -> null
         }
 
-        val centerSplitterVCenter = if (draggableHeight != height && horizontalSide == HAlign.CENTER) 2.5 else min(15.0, preDragSize.x / 3.0)
+        val centerSplitterVCenter = if (draggableHeight != height && horizontalSide == HAlign.CENTER) {
+            2.5
+        } else {
+            min(15.0, preDragSize.x / 3.0)
+        }
+
         val verticalSide = when (relativeClickPos.y) {
             in -2.0..centerSplitterVCenter -> VAlign.TOP
             in centerSplitterVCenter..preDragSize.y - centerSplitterV -> VAlign.CENTER
@@ -114,30 +122,28 @@ open class WindowComponent(
             else -> null
         }
 
+        if (horizontalSide == null || verticalSide == null) return
+
         val draggedDist = mousePos.minus(clickPos)
 
-        if (horizontalSide != null && verticalSide != null) {
-            if (resizable && !minimized && (horizontalSide != HAlign.CENTER || verticalSide != VAlign.CENTER)) {
-                handleResizeX(horizontalSide, draggedDist)
-                handleResizeY(verticalSide, draggedDist)
+        if (resizable && !minimized && (horizontalSide != HAlign.CENTER || verticalSide != VAlign.CENTER)) {
+            handleResizeX(horizontalSide, draggedDist)
+            handleResizeY(verticalSide, draggedDist)
 
-                onResize()
-            } else if (draggableHeight == height || relativeClickPos.y <= draggableHeight) {
-                posX = (preDragPos.x + draggedDist.x).coerceIn(1.0f, mc.displayWidth - width - 1.0f)
-                posY = (preDragPos.y + draggedDist.y).coerceIn(1.0f, mc.displayHeight - height - 1.0f)
+            onResize()
+        } else if (draggableHeight == height || relativeClickPos.y <= draggableHeight) {
+            posX = roundOnGrid(preDragPos.x + draggedDist.x).coerceIn(.0f, mc.displayWidth - width)
+            posY = roundOnGrid(preDragPos.y + draggedDist.y).coerceIn(.0f, mc.displayHeight - height)
 
-                onReposition()
-            } else {
-                // TODO
-            }
+            onReposition()
         }
     }
 
     private fun handleResizeX(horizontalSide: HAlign, draggedDist: Vec2f) {
         when (horizontalSide) {
             HAlign.LEFT -> {
-                val draggedX = max(draggedDist.x, 1.0f - preDragPos.x)
-                var newWidth = max(preDragSize.x - draggedX, minWidth)
+                val draggedX = max(roundOnGrid(draggedDist.x), 1.0f - preDragPos.x)
+                var newWidth = max(roundOnGrid(preDragSize.x - draggedX), minWidth)
 
                 if (maxWidth != -1.0f) newWidth = min(newWidth, maxWidth)
                 newWidth = min(newWidth, scaledDisplayWidth - 2.0f)
@@ -147,8 +153,8 @@ open class WindowComponent(
                 posX += prevWidth - newWidth
             }
             HAlign.RIGHT -> {
-                val draggedX = min(draggedDist.x, preDragPos.x + preDragSize.x - 1.0f)
-                var newWidth = max(preDragSize.x + draggedX, minWidth)
+                val draggedX = min(roundOnGrid(draggedDist.x), preDragPos.x + preDragSize.x - 1.0f)
+                var newWidth = max(roundOnGrid(preDragSize.x + draggedX), minWidth)
 
                 if (maxWidth != -1.0f) newWidth = min(newWidth, maxWidth)
                 newWidth = min(newWidth, scaledDisplayWidth - posX - 2.0f)
@@ -156,7 +162,7 @@ open class WindowComponent(
                 width = newWidth
             }
             else -> {
-                // Nothing lol
+                // Ignored
             }
         }
     }
@@ -164,8 +170,8 @@ open class WindowComponent(
     private fun handleResizeY(verticalSide: VAlign, draggedDist: Vec2f) {
         when (verticalSide) {
             VAlign.TOP -> {
-                val draggedY = max(draggedDist.y, 1.0f - preDragPos.y)
-                var newHeight = max(preDragSize.y - draggedY, minHeight)
+                val draggedY = max(roundOnGrid(draggedDist.y), 1.0f - preDragPos.y)
+                var newHeight = max(roundOnGrid(preDragSize.y - draggedY), minHeight)
 
                 if (maxHeight != -1.0f) newHeight = min(newHeight, maxHeight)
                 newHeight = min(newHeight, scaledDisplayHeight - 2.0f)
@@ -175,19 +181,25 @@ open class WindowComponent(
                 posY += prevHeight - newHeight
             }
             VAlign.BOTTOM -> {
-                val draggedY = min(draggedDist.y, preDragPos.y + preDragSize.y - 1.0f)
-                var newHeight = max(preDragSize.y + draggedY, minHeight)
+                val draggedY = min(roundOnGrid(draggedDist.y), preDragPos.y + preDragSize.y - 1.0f)
+                var newHeight = max(roundOnGrid(preDragSize.y + draggedY), minHeight)
 
                 if (maxHeight != -1.0f) newHeight = min(newHeight, maxHeight)
                 newHeight = min(newHeight, scaledDisplayHeight - posY - 2.0f)
 
                 height = newHeight
             }
-            else -> {
-                // Nothing lol
+            VAlign.CENTER -> {
+                // Ignored
             }
         }
     }
+
+    private fun roundOnGrid(delta: Float) =
+        if (gridSize == .0f
+            || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
+            || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)
+        ) delta else (delta / gridSize).roundToInt() * gridSize
 
     fun isInWindow(mousePos: Vec2f): Boolean {
         return visible && mousePos.x in preDragPos.x - 2.0f..preDragPos.x + preDragSize.x + 2.0f

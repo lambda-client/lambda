@@ -10,6 +10,7 @@ import com.lambda.client.util.color.DyeColors
 import com.lambda.client.util.color.HueCycler
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.threads.safeAsyncListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -38,6 +39,8 @@ object StorageESP : Module(
     private val dispenser by setting("Dispenser", false, { page == Page.TYPE })
     private val hopper by setting("Hopper", false, { page == Page.TYPE })
     private val cart by setting("Minecart", false, { page == Page.TYPE })
+    private val infinite by setting("Infinite Range", true) // To avoid a hard to control range slider
+    private val range by setting("Range", 64, 8..512, 1, { page == Page.TYPE && !infinite }, unit = " blocks")
 
     /* Color settings */
     private val colorChest by setting("Chest Color", DyeColors.ORANGE, { page == Page.COLOR })
@@ -105,6 +108,7 @@ object StorageESP : Module(
 
     private fun SafeClientEvent.updateTileEntities(list: MutableList<Triple<AxisAlignedBB, ColorHolder, Int>>) {
         for (tileEntity in world.loadedTileEntityList.toList()) {
+            if (!infinite && player.distanceTo(tileEntity.pos) > range) continue
             if (!checkTileEntityType(tileEntity)) continue
 
             val box = world.getBlockState(tileEntity.pos).getSelectedBoundingBox(world, tileEntity.pos) ?: continue
@@ -150,6 +154,7 @@ object StorageESP : Module(
 
     private fun SafeClientEvent.updateEntities(list: MutableList<Triple<AxisAlignedBB, ColorHolder, Int>>) {
         for (entity in world.loadedEntityList.toList()) {
+            if (!infinite && player.getDistance(entity) > range) continue
             if (!checkEntityType(entity)) continue
 
             val box = entity.renderBoundingBox ?: continue
