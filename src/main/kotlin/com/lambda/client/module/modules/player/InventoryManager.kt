@@ -12,8 +12,11 @@ import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.items.*
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.gui.inventory.GuiContainer
+import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.init.Enchantments
 import net.minecraft.inventory.Slot
 import net.minecraft.item.ItemStack
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -43,10 +46,11 @@ object InventoryManager : Module(
     private val fullOnly by setting("Only At Full", false, { autoEject })
     private val pauseMovement by setting("Pause Movement", true)
     private val delay by setting("Delay Ticks", 1, 0..20, 1, unit = " ticks")
+    private val helpMend by setting("Help Mend", false, description = "Helps mending items by replacing the offhand item with low HP items of the same type")
     val ejectList = setting(CollectionSetting("Eject List", defaultEjectList))
 
     enum class State {
-        IDLE, SAVING_ITEM, REFILLING_BUILDING, REFILLING, EJECTING
+        IDLE, SAVING_ITEM, HELPING_MEND, REFILLING_BUILDING, REFILLING, EJECTING
     }
 
     private var currentState = State.IDLE
@@ -78,6 +82,7 @@ object InventoryManager : Module(
 
             when (currentState) {
                 State.SAVING_ITEM -> saveItem()
+                State.HELPING_MEND -> helpMend()
                 State.REFILLING_BUILDING -> refillBuilding()
                 State.REFILLING -> refill()
                 State.EJECTING -> eject()
@@ -91,6 +96,7 @@ object InventoryManager : Module(
     private fun SafeClientEvent.setState() {
         currentState = when {
             saveItemCheck() -> State.SAVING_ITEM
+            helpMendCheck() -> State.HELPING_MEND
             refillBuildingCheck() -> State.REFILLING_BUILDING
             refillCheck() -> State.REFILLING
             ejectCheck() -> State.EJECTING
@@ -109,6 +115,12 @@ object InventoryManager : Module(
     /* State checks */
     private fun SafeClientEvent.saveItemCheck(): Boolean {
         return itemSaver && checkDamage(player.heldItemMainhand)
+    }
+
+    private fun SafeClientEvent.helpMendCheck() : Boolean {
+        return helpMend
+            && (player.heldItemOffhand.itemDamage == 0
+                || EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, player.heldItemOffhand) == 0)
     }
 
     private fun SafeClientEvent.refillBuildingCheck(): Boolean {
@@ -151,6 +163,17 @@ object InventoryManager : Module(
             else -> {
                 player.dropItem(false)
             }
+        }
+    }
+
+    private fun SafeClientEvent.helpMend() {
+        player.inventorySlots.filterByStack {
+            it.item == player.heldItemOffhand.item
+                && EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, it) != 0
+                && it.itemDamage != 0
+        }.firstOrNull()?.let {
+            MessageSendHelper.sendChatMessage("$chatName Switching offhand to another item (Help Mend).")
+            moveToSlot(this@InventoryManager, it, player.offhandSlot)
         }
     }
 

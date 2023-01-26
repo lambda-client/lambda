@@ -4,7 +4,11 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.mixin.extension.boostedEntity
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.movement.ElytraFlight
 import com.lambda.client.util.threads.safeListener
+import com.lambda.mixin.accessor.AccessorEntityFireworkRocket
+import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityFireworkRocket
 import net.minecraft.network.play.server.SPacketPlayerPosLook
 
@@ -22,4 +26,15 @@ object ElytraFix : Module(
             }
         }
     }
+
+    fun shouldWork(entity: EntityLivingBase) = EntityPlayerSP::class.java.isAssignableFrom(entity.javaClass)
+        && ElytraFlight.isEnabled
+        && ElytraFlight.mode.value == ElytraFlight.ElytraFlightMode.VANILLA
+
+    fun shouldModify(entity: EntityLivingBase) = shouldWork(entity)
+        && entity.world.loadedEntityList
+        .filterIsInstance<AccessorEntityFireworkRocket>()
+        .any {
+            it.boostedEntity.equals(entity)
+        }
 }
