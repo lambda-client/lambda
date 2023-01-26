@@ -24,17 +24,17 @@ object Step : Module(
     modulePriority = 201
 ) {
 
-    private val mode by setting("Mode", Mode.NORMAL)
-    val strict by setting("Strict", false)
-    val upStep = setting("Step Height", 2.5f, 1f..2.5f, .5f, { !strict })
+    private val mode by setting("Mode", Mode.NCP, description = "Anticheat step bypass")
+    val strict by setting("Strict", false, description = "Bypass the new UpdatedNCP step checks")
+    val upStep = setting("Step Height", 2.5f, 1f..2.5f, .5f, { !strict }, description = "How high to step")
 
     private enum class Mode {
-        VANILLA, NORMAL
+        NCP, VANILLA
     }
 
     var playerY = 0.0
     var timering = false
-    
+
     init {
 
         upStep.valueListeners.add { _, _ ->
