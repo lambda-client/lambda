@@ -37,7 +37,7 @@ object AutoOffhand : Module(
     private val type by setting("Type", Type.TOTEM)
 
     // Totem
-    private val hpThreshold by setting("Hp Threshold", 5f, 1f..20f, 0.5f, { type == Type.TOTEM })
+    private val hpThreshold by setting("Hp Threshold", 5f, 1f..36f, 0.5f, { type == Type.TOTEM })
     private val bindTotem by setting("Bind Totem", Bind(), { type == Type.TOTEM })
     private val checkDamage by setting("Check Damage", true, { type == Type.TOTEM })
     private val mob by setting("Mob", true, { type == Type.TOTEM && checkDamage })

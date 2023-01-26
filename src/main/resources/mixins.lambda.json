@@ -47,6 +47,7 @@
     "gui.MixinGuiIngameMenu",
     "gui.MixinGuiInventory",
     "gui.MixinGuiMainMenu",
+    "gui.MixinGuiMultiplayer",
     "gui.MixinGuiNewChat",
     "gui.MixinGuiPlayerTabOverlay",
     "gui.MixinGuiScreen",

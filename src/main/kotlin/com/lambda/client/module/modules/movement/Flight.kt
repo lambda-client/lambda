@@ -232,8 +232,8 @@ object Flight : Module(
                         return@safeListener
 
                     val yaw = calcMoveYaw()
-                    player.motionX -= sin(yaw) * speed
-                    player.motionZ += cos(yaw) * speed
+                    player.motionX = -sin(yaw) * speed
+                    player.motionZ = cos(yaw) * speed
 
                 }
                 FlightMode.VANILLA -> {

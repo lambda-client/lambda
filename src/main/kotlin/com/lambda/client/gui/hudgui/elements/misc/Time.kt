@@ -7,7 +7,8 @@ import com.lambda.client.util.TimeUtils
 internal object Time : LabelHud(
     name = "Time",
     category = Category.MISC,
-    description = "System date and time"
+    description = "System date and time",
+    separator = "",
 ) {
 
     private val showDate = setting("Show Date", true)
@@ -17,8 +18,15 @@ internal object Time : LabelHud(
     private val timeUnit = setting("Time Unit", TimeUtils.TimeUnit.H12, { showTime.value })
 
     override fun SafeClientEvent.updateText() {
-        if (showDate.value) displayText.addLine(TimeUtils.getDate(dateFormat.value))
-        if (showTime.value) displayText.addLine(TimeUtils.getTime(timeFormat.value, timeUnit.value))
+        if (showDate.value) {
+            val date = TimeUtils.getDate(dateFormat.value)
+            date.forEach { displayText.add(it.toString(), if (it.isDigit()) primaryColor else secondaryColor) }
+            displayText.addLine("")
+        }
+        if (showTime.value) {
+            val time = TimeUtils.getTime(timeFormat.value, timeUnit.value)
+            time.forEach { displayText.add(it.toString(), if (it.isDigit()) primaryColor else secondaryColor) }
+        }
     }
 
 }

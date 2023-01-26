@@ -147,7 +147,7 @@ class TextComponent(private val separator: String = " ") {
                 val color = textElement.color.clone()
                 color.a = (color.a * alpha).toInt()
                 FontRenderAdapter.drawString(textElement.text, drawShadow = drawShadow, color = color, customFont = customFont, scale = textElement.scale)
-                val adjustedSeparator = if (separator == " " && customFont) "  " else " "
+                val adjustedSeparator = " ".repeat(if (customFont && separator != "") max(separator.length * 1, 1) else separator.length)
                 glTranslatef(FontRenderAdapter.getStringWidth(textElement.text + adjustedSeparator, customFont = customFont), 0f, 0f)
             }
 
@@ -155,7 +155,7 @@ class TextComponent(private val separator: String = " ") {
         }
 
         fun getWidth(customFont: Boolean = FontRenderAdapter.useCustomFont): Float {
-            val adjustedSeparator = if (separator == " " && customFont) "  " else " "
+            val adjustedSeparator = " ".repeat(if (customFont && separator != "") max(separator.length * 1, 1) else separator.length)
             val string = textElementList.joinToString(separator = adjustedSeparator)
             return FontRenderAdapter.getStringWidth(string, customFont = customFont)
         }

@@ -84,18 +84,23 @@ private fun SafeClientEvent.getNeighbour(
     sides: Array<EnumFacing>,
     toIgnore: HashSet<Pair<BlockPos, EnumFacing>>
 ): PlaceInfo? {
-    for (side in sides) {
-        val result = checkNeighbour(eyePos, pos, side, range, visibleSideCheck, true, toIgnore)
-        if (result != null) return result
+    if (!world.isPlaceable(pos)) return null
+
+    sides.forEach { side ->
+        checkNeighbour(eyePos, pos, side, range, visibleSideCheck, true, toIgnore)?.let {
+            return it
+        }
     }
 
-    if (attempts > 1) {
-        for (side in sides) {
-            val newPos = pos.offset(side)
-            if (!world.isPlaceable(newPos, AxisAlignedBB(newPos))) continue
+    if (attempts < 2) return null
 
-            return getNeighbour(eyePos, newPos, attempts - 1, range, visibleSideCheck, sides, toIgnore)
-                ?: continue
+    sides.forEach { posSide ->
+        val newPos = pos.offset(posSide)
+        if (!world.isPlaceable(newPos)) return@forEach
+        if (eyePos.distanceTo(newPos.toVec3dCenter()) > range + 1) return@forEach
+
+        getNeighbour(eyePos, newPos, attempts - 1, range, visibleSideCheck, sides, toIgnore)?.let {
+            return it
         }
     }
 
@@ -295,5 +300,5 @@ fun SafeClientEvent.placeBlock(
     world.playSound(player, placeInfo.pos, soundType.placeSound, SoundCategory.BLOCKS, (soundType.getVolume() + 1.0f) / 2.0f, soundType.getPitch() * 0.8f)
 }
 
-fun PlaceInfo.toPlacePacket(hand: EnumHand) =
-    CPacketPlayerTryUseItemOnBlock(this.pos, this.side, hand, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
+private fun PlaceInfo.toPlacePacket(hand: EnumHand) =
+    CPacketPlayerTryUseItemOnBlock(pos, side, hand, hitVecOffset.x.toFloat(), hitVecOffset.y.toFloat(), hitVecOffset.z.toFloat())
