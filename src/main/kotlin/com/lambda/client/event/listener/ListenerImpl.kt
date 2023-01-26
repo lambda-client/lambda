@@ -16,8 +16,8 @@ const val DEFAULT_PRIORITY = 0
  * @param T type of the target event
  * @param function action to perform when this listener gets called by event bus
  */
-inline fun <reified T : Any> Any.asyncListener(noinline function: suspend (T) -> Unit) {
-    this.asyncListener(T::class.java, function)
+inline fun <reified T : Any> Any.asyncListener(noinline predicates: (T) -> Boolean = { true }, noinline function: suspend (T) -> Unit) {
+    this.asyncListener(T::class.java, predicates, function)
 }
 
 /**
@@ -28,8 +28,8 @@ inline fun <reified T : Any> Any.asyncListener(noinline function: suspend (T) ->
  * @param clazz class of the target event
  * @param function action to perform when this listener gets called by event bus
  */
-fun <T : Any> Any.asyncListener(clazz: Class<T>, function: suspend (T) -> Unit) {
-    ListenerManager.register(this, AsyncListener(this, clazz, function))
+fun <T : Any> Any.asyncListener(clazz: Class<T>, predicates: (T) -> Boolean = { true }, function: suspend (T) -> Unit) {
+    ListenerManager.register(this, AsyncListener(this, clazz, predicates, function))
 }
 
 /**
@@ -39,8 +39,8 @@ fun <T : Any> Any.asyncListener(clazz: Class<T>, function: suspend (T) -> Unit) 
  * @param priority priority of this listener when calling by event bus
  * @param function action to perform when this listener gets called by event bus
  */
-inline fun <reified T : Any> Any.listener(priority: Int = DEFAULT_PRIORITY, noinline function: (T) -> Unit) {
-    this.listener(priority, T::class.java, function)
+inline fun <reified T : Any> Any.listener(priority: Int = DEFAULT_PRIORITY, noinline predicates: (T) -> Boolean = { true }, noinline function: (T) -> Unit) {
+    this.listener(priority, T::class.java, predicates, function)
 }
 
 /**
@@ -51,8 +51,8 @@ inline fun <reified T : Any> Any.listener(priority: Int = DEFAULT_PRIORITY, noin
  * @param priority priority of this listener when calling by event bus
  * @param function action to perform when this listener gets called by event bus
  */
-fun <T : Any> Any.listener(priority: Int = DEFAULT_PRIORITY, clazz: Class<T>, function: (T) -> Unit) {
-    ListenerManager.register(this, Listener(this, clazz, priority, function))
+fun <T : Any> Any.listener(priority: Int = DEFAULT_PRIORITY, clazz: Class<T>, predicates: (T) -> Boolean = { true }, function: (T) -> Unit) {
+    ListenerManager.register(this, Listener(this, clazz, priority, predicates, function))
 }
 
 /**
@@ -62,8 +62,9 @@ fun <T : Any> Any.listener(priority: Int = DEFAULT_PRIORITY, clazz: Class<T>, fu
 class AsyncListener<T : Any>(
     owner: Any,
     override val eventClass: Class<T>,
-    override val function: suspend (T) -> Unit
-) : AbstractListener<T, suspend (T) -> Unit>(owner) {
+    override val predicates: (T) -> Boolean = { true },
+    override val function: suspend (T) -> Unit,
+) : AbstractListener<T, suspend (T) -> Unit>(owner, predicates) {
     override val priority: Int = DEFAULT_PRIORITY
 }
 
@@ -74,7 +75,8 @@ class Listener<T : Any>(
     owner: Any,
     override val eventClass: Class<T>,
     override val priority: Int,
-    override val function: (T) -> Unit
-) : AbstractListener<T, (T) -> Unit>(owner)
+    override val predicates: (T) -> Boolean = { true },
+    override val function: (T) -> Unit,
+) : AbstractListener<T, (T) -> Unit>(owner, predicates)
 
 

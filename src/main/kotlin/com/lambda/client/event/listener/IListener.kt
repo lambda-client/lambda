@@ -32,4 +32,9 @@ interface IListener<E : Any, F> : Comparable<IListener<*, *>> {
      */
     val id: Int
 
+    /**
+     * The predicates to check
+     */
+    val predicates: (E) -> Boolean
+
 }

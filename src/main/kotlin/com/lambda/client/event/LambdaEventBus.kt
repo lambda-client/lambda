@@ -46,7 +46,8 @@ object LambdaEventBus : AbstractAsyncEventBus() {
             if (isProfilerEvent) Wrapper.minecraft.profiler.startSection(it.ownerName)
 
             @Suppress("UNCHECKED_CAST") // IDE meme
-            (it as Listener<Any>).function.invoke(event)
+            (it as Listener<Any>)
+            if (it.predicates(event)) it.function.invoke(event)
 
             if (isProfilerEvent) Wrapper.minecraft.profiler.endSection()
         }
@@ -58,9 +59,10 @@ object LambdaEventBus : AbstractAsyncEventBus() {
         if (listeners.isNotEmpty()) {
             runBlocking {
                 listeners.forEach {
+                    @Suppress("UNCHECKED_CAST") // IDE meme
+                    (it as AsyncListener<Any>)
                     launch(Dispatchers.Default) {
-                        @Suppress("UNCHECKED_CAST") // IDE meme
-                        (it as AsyncListener<Any>).function.invoke(event)
+                        it.function.invoke(event)
                     }
                 }
             }

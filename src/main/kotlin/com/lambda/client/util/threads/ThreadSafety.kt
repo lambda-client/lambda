@@ -6,20 +6,20 @@ import com.lambda.client.event.listener.DEFAULT_PRIORITY
 import com.lambda.client.event.listener.Listener
 import kotlinx.coroutines.CompletableDeferred
 
-inline fun <reified T : Any> Any.safeAsyncListener(noinline function: suspend SafeClientEvent.(T) -> Unit) {
-    this.safeAsyncListener(T::class.java, function)
+inline fun <reified T : Any> Any.safeAsyncListener(noinline predicates: (T) -> Boolean = { true }, noinline function: suspend SafeClientEvent.(T) -> Unit) {
+    this.safeAsyncListener(T::class.java, predicates, function)
 }
 
-fun <T : Any> Any.safeAsyncListener(clazz: Class<T>, function: suspend SafeClientEvent.(T) -> Unit) {
-    ListenerManager.register(this, AsyncListener(this, clazz) { runSafeSuspend { function(it) } })
+fun <T : Any> Any.safeAsyncListener(clazz: Class<T>, predicates: (T) -> Boolean = { true }, function: suspend SafeClientEvent.(T) -> Unit) {
+    ListenerManager.register(this, AsyncListener(this, clazz, predicates) { runSafeSuspend { function(it) } })
 }
 
-inline fun <reified T : Any> Any.safeListener(priority: Int = DEFAULT_PRIORITY, noinline function: SafeClientEvent.(T) -> Unit) {
-    this.safeListener(priority, T::class.java, function)
+inline fun <reified T : Any> Any.safeListener(priority: Int = DEFAULT_PRIORITY, noinline predicates: (T) -> Boolean = { true }, noinline function: SafeClientEvent.(T) -> Unit) {
+    this.safeListener(priority, T::class.java, predicates, function)
 }
 
-fun <T : Any> Any.safeListener(priority: Int = DEFAULT_PRIORITY, clazz: Class<T>, function: SafeClientEvent.(T) -> Unit) {
-    ListenerManager.register(this, Listener(this, clazz, priority) { runSafe { function(it) } })
+fun <T : Any> Any.safeListener(priority: Int = DEFAULT_PRIORITY, clazz: Class<T>, predicates: (T) -> Boolean = { true }, function: SafeClientEvent.(T) -> Unit) {
+    ListenerManager.register(this, Listener(this, clazz, priority, predicates) { runSafe { function(it) } })
 }
 
 fun ClientEvent.toSafe() =

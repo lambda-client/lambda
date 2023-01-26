@@ -5,7 +5,7 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KProperty
 
-abstract class AbstractListener<E : Any, F>(owner: Any) : IListener<E, F> {
+abstract class AbstractListener<E : Any, F>(owner: Any, override val predicates: (E) -> Boolean) : IListener<E, F> {
     final override val id: Int = listenerId.getAndIncrement()
     final override val owner: Any? by WeakReference(owner)
     final override val ownerName: String = if (owner is Nameable) owner.name else owner.javaClass.simpleName
