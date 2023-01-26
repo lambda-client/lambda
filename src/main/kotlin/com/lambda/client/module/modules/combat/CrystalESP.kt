@@ -7,6 +7,7 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.manager.managers.CrystalManager
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -66,7 +67,7 @@ object CrystalESP : Module(
         DAMAGE_ESP, CRYSTAL_ESP, CRYSTAL_ESP_COLOR
     }
 
-    private var placeList = emptyList<CombatManager.Crystal>()
+    private var placeList = emptyList<CrystalManager.Crystal>()
     private val renderCrystalMap = LinkedHashMap<BlockPos, Quad<Float, Float, Float, Float>>() // <Crystal, <Target Damage, Self Damage, Prev Progress, Progress>>
     private val pendingPlacing = LinkedHashMap<BlockPos, Long>()
 
@@ -95,7 +96,7 @@ object CrystalESP : Module(
 
     private fun updateDamageESP() {
         placeList = if (damageESP) {
-            CombatManager.placedCrystals.filter { it.damage.selfDistance <= damageRange }
+            CrystalManager.placedCrystals.filter { it.info.damage.selfDistance <= damageRange }
         } else {
             emptyList()
         }
@@ -103,13 +104,13 @@ object CrystalESP : Module(
 
     private fun updateCrystalESP() {
         if (crystalESP) {
-            val crystalSet = CombatManager.placedCrystals
+            val crystalSet = CrystalManager.placedCrystals
             val cacheMap = HashMap<BlockPos, Quad<Float, Float, Float, Float>>()
 
             pendingPlacing.entries.removeIf { System.currentTimeMillis() - it.value > 1000L }
 
             if (!onlyOwn) {
-                cacheMap.putAll(crystalSet.filter { it.damage.selfDamage <= crystalRange }.associateBy({it.entity.position.down()},{ Quad(it.damage.targetDamage, it.damage.selfDamage, 0.0f, 0.0f)}))
+                cacheMap.putAll(crystalSet.filter { it.info.damage.selfDamage <= crystalRange }.associateBy({it.entity.position.down()},{ Quad(it.info.damage.targetDamage, it.info.damage.selfDamage, 0.0f, 0.0f)}))
             }
 
             val scale = 1.0f / animationScale
@@ -134,7 +135,7 @@ object CrystalESP : Module(
                 renderer.aFilled = 255
 
                 placeList.forEach { crystal ->
-                    val damage = crystal.damage.targetDamage.toInt()
+                    val damage = crystal.info.damage.targetDamage.toInt()
                     val rgb = MathUtils.convertRange(damage, 0, 20, 127, 255)
                     val a = MathUtils.convertRange(damage, 0, 20, minAlpha, maxAlpha)
                     val rgba = ColorHolder(rgb, rgb, rgb, a)

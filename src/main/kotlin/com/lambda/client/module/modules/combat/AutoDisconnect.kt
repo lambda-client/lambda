@@ -4,6 +4,7 @@ import com.lambda.client.commons.utils.MathUtils
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.mc.LambdaGuiDisconnected
 import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.manager.managers.CrystalManager
 import com.lambda.client.manager.managers.FriendManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -74,7 +75,7 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeClientEvent.checkCrystals(): Boolean {
-        val self = calcCrystalDamage(CombatManager.placedCrystals.maxByOrNull { it.damage.selfDamage }?.entity, player)
+        val self = calcCrystalDamage(CrystalManager.placedCrystals.maxByOrNull { it.info.damage.selfDamage }?.entity, player)
         return player.scaledHealth - self.selfDamage < healthAmount
     }
 

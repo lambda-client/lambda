@@ -5,7 +5,10 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.CrystalEvent
 import com.lambda.client.event.events.PlayerEvent
 import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.manager.managers.CrystalManager
+import com.lambda.client.manager.managers.HotbarManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
+import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.module.Category
@@ -44,40 +47,40 @@ object CrystalAura : Module(
 
     private val page by setting("Page", Page.GENERAL)
 
-    // General
-
-    val noSuicide by setting("No Suicide", 6.0f, 0.0f..20.0f, 0.1f, { page == Page.GENERAL })
-    val swingMode by setting("Swing Mode", SwingMode.CLIENT, { page == Page.GENERAL })
+    /* General */
+    val noSuicide by setting("No Suicide", 6.0f, 0.0f..20.0f, 0.1f, { page == Page.GENERAL }, description = "Minimum health threshold to stop")
+    val swingMode by setting("Swing Mode", SwingMode.CLIENT, { page == Page.GENERAL }, description = "Swing mode")
 
     /* Place page 1 */
-    val doPlace by setting("Place", true, { page == Page.PLACE_ONE })
-    val placeRange by setting("Place Range", 5.0f, 0.0f..6.0f, 0.1f, { page == Page.PLACE_ONE })
-    val placeThroughWalls by setting("Place Through Walls", true, { page == Page.PLACE_ONE })
-    val placeThroughWallsRange by setting("Place Through Walls Range", 4.0f, 0.0f..6.0f, 0.1f, { placeThroughWalls && page == Page.PLACE_ONE })
-    val autoSwap by setting("Auto Swap", true, { page == Page.PLACE_ONE })
-    val spoofHotbar by setting("Spoof Hotbar", false, { page == Page.PLACE_ONE })
+    val doPlace by setting("Place", true, { page == Page.PLACE_ONE }, description = "Whether or not it should place")
+    val placeRotate by setting("Rotate", true, { page == Page.PLACE_ONE }, description = "Whether or not the player should rotate to place")
+    val placeRange by setting("Place Range", 5.0f, 1.0f..6.0f, 0.1f, { page == Page.PLACE_ONE }, description = "The range at which it should place")
+    val placeRangeOffset by setting("Place Range Offset", 0.6f, 0.6f..2.0f, 0.1f, { page == Page.PLACE_ONE }, description = "The place offset related to the player")
+    val placeThroughWalls by setting("Place Through Walls", true, { page == Page.PLACE_ONE }, description = "Whether or not it should place through walls")
+    val placeThroughWallsRange by setting("Place Through Walls Range", 4.0f, 0.0f..6.0f, 0.1f, { placeThroughWalls && page == Page.PLACE_ONE }, description = "The range at which it should place through walls")
+    val autoSwap by setting("Auto Swap", true, { page == Page.PLACE_ONE }, description = "Automatically swap to crystals")
+    val spoofHotbar by setting("Spoof Hotbar", false, { page == Page.PLACE_ONE }, description = "Spoofs your hotbar server side")
 
     /* Place page 2 */
-    val placeMinDamage by setting("Place Min Damage", 5.0f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO })
-    val placeMinDistance by setting("Place Min Distance", 0.0f, 0.0f..5.0f, 0.1f, { page == Page.PLACE_TWO })
-    val placeMaxSelfDamage by setting("Place Max Self Damage", 5.0f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO })
-    val placeMinSelfDistance by setting("Place Min Self Distance", 0.0f, 0.0f..5.0f, 0.1f, { page == Page.PLACE_TWO })
+    val placeMinDistance by setting("Place Min Distance", 0.0f, 0.0f..5.0f, 0.1f, { page == Page.PLACE_TWO }, description = "Minimum distance to place")
+    val placeMinSelfDistance by setting("Place Min Self Distance", 0.0f, 0.0f..5.0f, 0.1f, { page == Page.PLACE_TWO }, description = "Minimum distance to place from self")
+    val placeMinDamage by setting("Place Min Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO }, description = "Minimum damage to place")
+    val placeMaxSelfDamage by setting("Place Max Self Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO }, description = "Maximum self damage to place")
 
     /* Explode page 1 */
-    val antiWeakness by setting("Anti Weakness", true, { page == Page.EXPLODE_ONE })
+    val antiWeakness by setting("Anti Weakness", true, { page == Page.EXPLODE_ONE }, description = "Uses a tool for exploding")
 
     /* Explode page 2 */
-    val doExplode by setting("Explode", true, { page == Page.EXPLODE_TWO })
-    val explodeDelay by setting("Explode Delay", 1, 1..10, 1, { page == Page.EXPLODE_TWO })
-    val explodeRange by setting("Explode Range", 5.0f, 0.0f..6.0f, 0.1f, { page == Page.EXPLODE_TWO })
-    val explodeMinDamage by setting("Explode Min Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.EXPLODE_TWO })
-    val explodeMaxSelfDamage by setting("Explode Max Self Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.EXPLODE_TWO })
-
-
+    val doExplode by setting("Explode", true, { page == Page.EXPLODE_TWO }, description = "Whether or not it should explode")
+    val explodeRotate by setting("Rotate", true, { page == Page.EXPLODE_TWO }, description = "Whether or not the player should rotate to explode")
+    val explodeRange by setting("Explode Range", 5.0f, 1.0f..6.0f, 0.1f, { page == Page.EXPLODE_TWO }, description = "The range at which it should explode")
+    val explodeMinDistance by setting("Explode Min Distance", 0f, 0.0f..5.0f, 0.1f, { page == Page.EXPLODE_TWO }, description = "Minimum distance to explode")
+    val explodeMinSelfDistance by setting("Explode Min Self Distance", 0f, 0.0f..5.0f, 0.1f, { page == Page.EXPLODE_TWO }, description = "Minimum distance to explode from self")
+    val explodeMinDamage by setting("Explode Min Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.EXPLODE_TWO }, description = "Minimum damage to explode")
+    val explodeMaxSelfDamage by setting("Explode Max Self Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.EXPLODE_TWO }, description = "Maximum self damage to explode")
 
     private var timer = TickTimer(TimeUnit.TICKS)
     private var lastLookAt: Vec3d? = null
-    private var hitTimer = 0
 
     var inactiveTicks = 20; private set
 
@@ -88,7 +91,6 @@ object CrystalAura : Module(
 
         onDisable {
             timer.reset(-69420L)
-            hitTimer = 0
             inactiveTicks = 10
             lastLookAt = null
             resetHotbar()
@@ -99,14 +101,13 @@ object CrystalAura : Module(
         }
 
         safeListener<CrystalEvent.BreakEvent> {
-            if (hitTimer < explodeDelay) return@safeListener
             explode(it.target)
         }
 
         safeListener<PlayerEvent.UpdateWalking> {
-            if (!CombatManager.isOnTopPriority(CrystalAura) || CombatSetting.pause) return@safeListener
+            if (!CombatManager.isOnTopPriority(CrystalAura) || CombatSetting.pause || it.phase != Phase.PRE) return@safeListener
 
-            if (it.phase == Phase.PRE && inactiveTicks <= 20 && lastLookAt != null) {
+            if (inactiveTicks <= 20 && lastLookAt != null && explodeRotate) {
                 sendPlayerPacket {
                     rotate(getLastRotation())
                 }
@@ -116,7 +117,6 @@ object CrystalAura : Module(
         safeListener<TickEvent.ClientTickEvent>(3000) {
             if (it.phase == TickEvent.Phase.START) {
                 inactiveTicks++
-                hitTimer++
             }
 
             if (it.phase == TickEvent.Phase.END) {
@@ -133,14 +133,16 @@ object CrystalAura : Module(
 
 
     /* Placing */
-    private fun SafeClientEvent.place(destination: Vec3d) {
+    fun SafeClientEvent.place(destination: Vec3d) {
         if (!hasCrystalInHand()) swapToCrystal()
         placeCrystal(destination, getHand())
     }
 
     private fun SafeClientEvent.placeCrystal(position: Vec3d, hand: EnumHand) {
-        sendPlayerPacket {
-            rotate(getRotationTo(position))
+        if (placeRotate) {
+            sendPlayerPacket {
+                rotate(getRotationTo(position))
+            }
         }
         sendPacketDirect(getPlacePacket(position, hand))
         sendPacketDirect(CPacketAnimation(hand))
@@ -148,7 +150,7 @@ object CrystalAura : Module(
 
     private fun SafeClientEvent.getPlacePacket(pos: Vec3d, hand: EnumHand): CPacketPlayerTryUseItemOnBlock {
         val side = getClosestVisibleSide(pos) ?: EnumFacing.UP
-        return CPacketPlayerTryUseItemOnBlock(pos.toBlockPos(0.5, 1.0, 0.5), side, hand, 0.5f, 0.5f, 0.5f)
+        return CPacketPlayerTryUseItemOnBlock(pos.toBlockPos(), side, hand, 0.5f, 0.5f, 0.5f)
     }
 
     /* End of placing */
@@ -156,7 +158,7 @@ object CrystalAura : Module(
 
     /* Exploding */
 
-    private fun SafeClientEvent.explode(crystal: CombatManager.Crystal) {
+    fun SafeClientEvent.explode(crystal: CrystalManager.Crystal) {
         if (!preExplode()) return
         explodeDirect(crystal, CPacketUseEntity(crystal.entity))
     }
@@ -172,8 +174,7 @@ object CrystalAura : Module(
         return true
     }
 
-    private fun SafeClientEvent.explodeDirect(crystal: CombatManager.Crystal, packet: CPacketUseEntity) {
-        hitTimer = 0
+    private fun SafeClientEvent.explodeDirect(crystal: CrystalManager.Crystal, packet: CPacketUseEntity) {
         inactiveTicks = 0
         lastLookAt = crystal.entity.positionVector
         sendPacketDirect(packet)
@@ -230,6 +231,6 @@ object CrystalAura : Module(
     }
 
     private enum class Page {
-        GENERAL, FORCE_PLACE, PLACE_ONE, PLACE_TWO, EXPLODE_ONE, EXPLODE_TWO
+        GENERAL, PLACE_ONE, PLACE_TWO, EXPLODE_ONE, EXPLODE_TWO
     }
 }

@@ -7,7 +7,8 @@ import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.events.TargetEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
-import com.lambda.client.manager.managers.CombatManager.updateCrystalDamage
+import com.lambda.client.manager.managers.CrystalManager.updateCrystals
+import com.lambda.client.manager.managers.CrystalManager.updatePlaceList
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.AutoEat
@@ -31,15 +32,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.passive.AbstractHorse
 import net.minecraft.entity.passive.EntityTameable
 import net.minecraft.item.ItemFood
 import net.minecraft.item.ItemPickaxe
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.*
 import java.util.*
@@ -99,7 +96,8 @@ object CombatSetting : Module(
     private val resumeTimer = TickTimer(TimeUnit.SECONDS)
     private val jobMap = hashMapOf<(SafeClientEvent) -> Unit, Job?>(
         { it: SafeClientEvent -> it.updateTarget() } to null,
-        { it: SafeClientEvent -> it.updateCrystalDamage() } to null
+        { it: SafeClientEvent -> it.updateCrystals() } to null,
+        { it: SafeClientEvent -> it.updatePlaceList() } to null,
     )
 
     val pause

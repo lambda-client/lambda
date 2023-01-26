@@ -126,7 +126,7 @@ object BedAura : Module(
 
     private fun SafeClientEvent.updatePlaceMap() {
         val cacheMap = CombatManager.target?.let {
-            val posList = VectorUtils.getBlockPosInSphere(player.getPositionEyes(1f), range, 0.5, 1.0, 0.5)
+            val posList = VectorUtils.getBlockPosInSphere(player.getPositionEyes(1f), range)
             val damagePosMap = HashMap<Pair<Float, Float>, BlockPos>()
 
             for (pos in posList) {

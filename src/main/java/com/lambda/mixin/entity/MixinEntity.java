@@ -1,7 +1,5 @@
 package com.lambda.mixin.entity;
 
-import com.lambda.client.event.LambdaEventBus;
-import com.lambda.client.event.events.WorldEvent;
 import com.lambda.client.module.modules.movement.SafeWalk;
 import com.lambda.client.module.modules.movement.Velocity;
 import com.lambda.client.module.modules.player.Freecam;
@@ -53,7 +51,7 @@ public abstract class MixinEntity {
 
     @Inject(method = "onUpdate", at = @At("HEAD"))
     public void onUpdate(CallbackInfo ci) {
-        WorldEvent.EntityUpdate event = new WorldEvent.EntityUpdate((Entity) (Object) this);
-        LambdaEventBus.INSTANCE.post(event);
+        /*WorldEvent.EntityUpdate event = new WorldEvent.EntityUpdate((Entity) (Object) this);
+        LambdaEventBus.INSTANCE.post(event);*/
     }
 }

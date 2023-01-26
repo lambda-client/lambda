@@ -40,6 +40,13 @@ class MotionTracker(targetIn: Entity?, private val trackLength: Int = 20) {
     }
 
     /**
+     * Get if the entity moved in the last n ticks
+     */
+    fun hasMoved(ticksBehind: Int): Boolean {
+        return motionLog.takeLast(ticksBehind).any { it != Vec3d.ZERO }
+    }
+
+    /**
      * Calculate the actual motion of given entity
      *
      * @param entity The entity for motion calculation

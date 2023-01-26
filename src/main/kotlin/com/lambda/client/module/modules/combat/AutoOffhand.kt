@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.combat
 import com.lambda.client.commons.extension.next
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.manager.managers.CrystalManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Bind
@@ -197,7 +198,7 @@ object AutoOffhand : Module(
                     maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
                 }
                 crystal && entity is EntityEnderCrystal -> {
-                    val self = calcCrystalDamage(CombatManager.placedCrystals.maxByOrNull { it.damage.selfDamage }?.entity, player)
+                    val self = calcCrystalDamage(CrystalManager.placedCrystals.maxByOrNull { it.info.damage.selfDamage }?.entity, player)
                     maxDamage = self.selfDamage
                 }
             }

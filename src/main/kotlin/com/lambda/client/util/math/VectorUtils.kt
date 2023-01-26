@@ -41,45 +41,25 @@ object VectorUtils {
         return returnList
     }
 
-    fun getBlockPosInSphere(center: Vec3d, radius: Float, xOffset: Double = 0.0, yOffset: Double = 0.0, zOffset: Double = 0.0) =
-        getBlockPosInSphere(center, radius, Vec3d(xOffset, yOffset, zOffset))
-
     /**
      * @param center Center of the sphere
      * @param radius Radius of the sphere
-     * @param offset Offset of the sphere
      * @return block positions inside a sphere with given [radius]
      */
-    private fun getBlockPosInSphere(center: Vec3d, radius: Float, offset: Vec3d): ArrayList<BlockPos> {
+    fun getBlockPosInSphere(center: Vec3d, radius: Float): ArrayList<BlockPos> {
         val squaredRadius = radius.pow(2)
         val posList = ArrayList<BlockPos>()
-        for (y in getAxisRange(center.y, radius)) for (z in getAxisRange(center.z, radius)) {
-            /* Basically, to save performance, we can use simple maths to find X */
-            val x = sqrt(squaredRadius - (y - center.y).pow(2) - (z - center.z).pow(2)) + center.x
-            
+        for (x in getAxisRange(center.x, radius)) for (y in getAxisRange(center.y, radius)) for (z in getAxisRange(center.z, radius)) {
             /* Valid position check */
-            val blockPos = BlockPos(x, y, z).add(offset.x, offset.y, offset.z)
+            val blockPos = BlockPos(x, y, z)
             if (blockPos.distanceSqToCenter(center.x, center.y, center.z) > squaredRadius) continue
             posList.add(blockPos)
         }
         return posList
     }
 
-    fun getBlocksInRange(center: Vec3d, minPos: Vec3d, maxPos: Vec3d): ArrayList<BlockPos> {
-        val posList = ArrayList<BlockPos>()
-        for (x in getAxisRangeIn(center.x, minPos.x, maxPos.x))
-            for (y in getAxisRangeIn(center.y, minPos.y, maxPos.y))
-                for (z in getAxisRangeIn(center.z, minPos.z, maxPos.z)) posList.add(BlockPos(x, y, z))
-        return posList
-    }
-
-
     private fun getAxisRange(d1: Double, d2: Float): IntRange {
         return IntRange((d1 - d2).floorToInt(), (d1 + d2).ceilToInt())
-    }
-
-    private fun getAxisRangeIn(center: Double, d1: Double, d2: Double): IntRange {
-        return IntRange((center + d1).floorToInt(), (center + d2).ceilToInt())
     }
 
     fun Vec2f.toViewVec(): Vec3d {
@@ -101,7 +81,7 @@ object VectorUtils {
     }
 
     fun Vec3d.toBlockPos(xOffset: Double = 0.0, yOffset: Double = 0.0, zOffset: Double = 0.0): BlockPos {
-        return BlockPos(x.floorToInt() + xOffset, y.floorToInt() + yOffset, z.floorToInt() + zOffset)
+        return BlockPos(x + xOffset, y + yOffset, z + zOffset)
     }
 
     fun Vec3i.toVec3d(): Vec3d {
@@ -121,7 +101,7 @@ object VectorUtils {
     }
 
     fun Vec3d.distanceTo(other: Vec3i): Double {
-        return this.distanceTo(other)
+        return this.toBlockPos().distanceTo(other)
     }
 
     fun Entity.distanceTo(pos: Vec3i): Double {
@@ -133,7 +113,10 @@ object VectorUtils {
     }
 
     fun Vec3i.distanceTo(other: Vec3i): Double {
-        return sqrt((other.x - x).toDouble().pow(2) + (other.y - y).toDouble().pow(2) + (other.z - z).toDouble().pow(2))
+        val xDiff = other.x - x
+        val yDiff = other.y - y
+        val zDiff = other.z - z
+        return sqrt((xDiff * xDiff + yDiff * yDiff + zDiff * zDiff).toDouble())
     }
 
 
