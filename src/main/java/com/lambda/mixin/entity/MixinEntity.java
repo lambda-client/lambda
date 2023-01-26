@@ -55,8 +55,8 @@ public abstract class MixinEntity {
         ViewLock.handleTurn(casted, yaw, pitch, ci);
     }
 
-    // this is after we handle XZ movement
-    @Inject(method = "move", at = @At(value = "FIELD", target = "net/minecraft/entity/Entity.onGround:Z", ordinal = 1))
+    // these mixins are for step module before and after the step calculations are performed
+    @Inject(method = "move", at = @At(value = "FIELD", target = "net/minecraft/entity/Entity.stepHeight:F", ordinal = 3, shift = At.Shift.BEFORE))
     private void preStep(MoverType type, double x, double y, double z, CallbackInfo ci) {
 
         EntityPlayerSP player = Minecraft.getMinecraft().player;
@@ -76,18 +76,7 @@ public abstract class MixinEntity {
 
     }
 
-
-    // we want the seventh setEntityBoudingBox call and execute the mixin after it's called
-    /*
-     Then, shalt thou count to seven. No more.
-     No less. Seven shalt be the number thou shalt count,
-     and the number of the counting shall be seven.
-     Eight shalt thou not count,
-     nor either count thou Six,
-     excepting that thou then proceed to Seven.
-     Nine is right out.
-    */
-    @Inject(method = "move", at = @At(value = "INVOKE", target = "net/minecraft/entity/Entity.setEntityBoundingBox(Lnet/minecraft/util/math/AxisAlignedBB;)V", ordinal = 7, shift = At.Shift.AFTER))
+    @Inject(method = "move", at = @At(value = "INVOKE", target = "net/minecraft/entity/Entity.resetPositionToBB ()V", ordinal = 1, shift = At.Shift.BEFORE))
     private void postStep(MoverType type, double x, double y, double z, CallbackInfo ci) {
 
         EntityPlayerSP player = Minecraft.getMinecraft().player;

@@ -5,7 +5,6 @@ import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.Minecraft
@@ -27,7 +26,7 @@ object Step : Module(
 
     private val mode by setting("Mode", Mode.NORMAL)
     val strict by setting("Strict", false)
-    val upStep = setting("Step Height", 1f, 1f..2.5f, 2.5f, { !strict })
+    val upStep = setting("Step Height", 2.5f, 1f..2.5f, .5f, { !strict })
 
     private enum class Mode {
         VANILLA, NORMAL
@@ -50,10 +49,12 @@ object Step : Module(
         }
 
         safeListener<ClientTickEvent> {
+
             if (!timering)
                 resetTimer()
-            else
-                timering = !timering
+
+            timering = false
+
         }
 
     }
@@ -76,10 +77,13 @@ object Step : Module(
         if (mode == Mode.VANILLA)
             return
 
+        val height = bb.minY - playerY
+
+        if (height < .6)
+            return
+
         val player = Minecraft.getMinecraft().player
         val connection = Minecraft.getMinecraft().connection?:return
-
-        val height = bb.minY - playerY
 
         val values = ArrayList<Double>()
 
@@ -91,17 +95,16 @@ object Step : Module(
         if (strict && height > .6)
             values.add(height)
 
-        var i = 0
+        var i = 1
 
         for (v in values) {
 
             connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + v, player.posZ, false))
             i++
-            MessageSendHelper.sendChatMessage("$i $v")
 
         }
 
-        modifyTimer(50f * (i + 1))
+        modifyTimer(50f * i)
         timering = true
 
     }
