@@ -3,7 +3,6 @@ package com.lambda.client.util.world
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
-import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.AxisAlignedBB
@@ -106,8 +105,8 @@ fun SafeClientEvent.hasNeighbour(pos: BlockPos): Boolean {
  *
  * @return true playing is not colliding with [pos] and there is block below it
  */
-fun World.isPlaceable(pos: BlockPos, targetBoundingBox: AxisAlignedBB, ignoreSelfCollide: Boolean = false) =
+fun World.isPlaceable(pos: BlockPos, targetBoundingBox: AxisAlignedBB = AxisAlignedBB(pos), ignoreSelfCollide: Boolean = false) =
     this.getBlockState(pos).isReplaceable
-        && checkNoEntityCollision(AxisAlignedBB(pos), if (ignoreSelfCollide) Wrapper.player else null)
+        && checkNoEntityCollision(targetBoundingBox, if (ignoreSelfCollide) Wrapper.player else null)
         && worldBorder.contains(pos)
         && !isOutsideBuildHeight(pos)
