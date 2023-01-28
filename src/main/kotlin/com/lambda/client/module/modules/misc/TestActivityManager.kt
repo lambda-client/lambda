@@ -154,19 +154,19 @@ object TestActivityManager : Module(
 
     private val schematicBuild by setting("Build Schematic", false, consumer = { _, _ ->
         runSafe {
-            schematicBuildActivity(true)
+            schematicBuildActivity(false)
         }
         false
     })
 
     private val schematicBuildSkipAir by setting("Build Schematic (Skip Air)", false, consumer = { _, _ ->
         runSafe {
-            schematicBuildActivity(false)
+            schematicBuildActivity(true)
         }
         false
     })
 
-    private fun schematicBuildActivity(buildAir: Boolean) {
+    private fun schematicBuildActivity(skipAir: Boolean) {
         if (LambdaSchematicaHelper.isSchematicaPresent) {
             LambdaSchematicaHelper.loadedSchematic?.let { schematic ->
                 val structure = mutableMapOf<BlockPos, IBlockState>()
@@ -176,7 +176,7 @@ object TestActivityManager : Module(
                             val blockPos = BlockPos(x, y, z)
                             if (!schematic.inSchematic(blockPos)) continue // probably not necessary to check
                             val desiredBlockState = schematic.desiredState(blockPos)
-                            if (desiredBlockState.block == Blocks.AIR && buildAir) continue
+                            if (desiredBlockState.block == Blocks.AIR && skipAir) continue
                             structure[blockPos] = desiredBlockState
                         }
                     }
