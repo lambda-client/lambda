@@ -3,10 +3,13 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
-import com.lambda.client.activity.activities.highlevel.*
-import com.lambda.client.activity.activities.interaction.*
-import com.lambda.client.activity.activities.inventory.DumpInventory
+import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
+import com.lambda.client.activity.activities.highlevel.BuildStructure
+import com.lambda.client.activity.activities.highlevel.ReachXPLevel
+import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
+import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
@@ -24,7 +27,8 @@ import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
 import com.lambda.client.util.math.VectorUtils
-import com.lambda.client.util.math.VectorUtils.multiply
+import com.lambda.client.util.schematic.LambdaSchematicaHelper
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockHorizontal
 import net.minecraft.block.BlockShulkerBox
@@ -38,7 +42,7 @@ import net.minecraft.util.math.BlockPos
 
 object TestActivityManager : Module(
     name = "TestActivityManager",
-    description = "",
+    description = "a",
     category = Category.MISC
 ) {
     private val a by setting("Get any Dia Pickaxe", false, consumer = { _, _->
@@ -147,6 +151,48 @@ object TestActivityManager : Module(
         }
         false
     })
+
+    private val schematicBuild by setting("Build Schematic", false, consumer = { _, _ ->
+        runSafe {
+            schematicBuildActivity(true)
+        }
+        false
+    })
+
+    private val schematicBuildSkipAir by setting("Build Schematic (Skip Air)", false, consumer = { _, _ ->
+        runSafe {
+            schematicBuildActivity(false)
+        }
+        false
+    })
+
+    private fun schematicBuildActivity(buildAir: Boolean) {
+        if (LambdaSchematicaHelper.isSchematicaPresent) {
+            LambdaSchematicaHelper.loadedSchematic?.let { schematic ->
+                val structure = mutableMapOf<BlockPos, IBlockState>()
+                for (y in schematic.getOrigin().y..schematic.getOrigin().y + schematic.heightY()) {
+                    for (x in schematic.getOrigin().x..schematic.getOrigin().x + schematic.widthX()) {
+                        for (z in schematic.getOrigin().z..schematic.getOrigin().z + schematic.lengthZ()) {
+                            val blockPos = BlockPos(x, y, z)
+                            if (!schematic.inSchematic(blockPos)) continue // probably not necessary to check
+                            val desiredBlockState = schematic.desiredState(blockPos)
+                            if (desiredBlockState.block == Blocks.AIR && buildAir) continue
+                            structure[blockPos] = desiredBlockState
+                        }
+                    }
+                }
+                // potentially beeg log
+//                LambdaMod.LOG.info("Building structure $structure")
+                ActivityManager.addSubActivities(
+                    BuildStructure(structure)
+                )
+            } ?: run {
+                MessageSendHelper.sendChatMessage("No schematic is loaded")
+            }
+        } else {
+            MessageSendHelper.sendChatMessage("Schematica is not present")
+        }
+    }
 
     private val ctirsgn by setting("Throw", false, consumer = { _, _->
         runSafe {
