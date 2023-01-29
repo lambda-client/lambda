@@ -33,7 +33,9 @@ object Flight : Module(
     modulePriority = 500
 ) {
     // non packet
-    private val mode by setting("Mode", FlightMode.PACKET)
+    private val mode by setting("Mode", FlightMode.PACKET).also {
+        it.listeners.add { if (it.value == FlightMode.PACKET) sendRubberbandPacket() }
+    }
     private val speed by setting("Speed", 1.0f, 0f..10f, 0.1f, { mode != FlightMode.PACKET })
     private val glideSpeed by setting("Glide Speed", 0.05, 0.0..0.3, 0.001, { mode != FlightMode.PACKET })
 
@@ -82,11 +84,8 @@ object Flight : Module(
         }
 
         onEnable {
-            runSafeR {
-                val position = CPacketPlayer.Position(.0, .0, .0, true)
-                filter.add(position)
-                connection.sendPacket(position)
-            } ?: disable()
+            if (mode != FlightMode.PACKET) return@onEnable
+            sendRubberbandPacket()
         }
 
         safeListener<PlayerMoveEvent> {
@@ -296,5 +295,13 @@ object Flight : Module(
                 filter.remove(it.packet)
 
         }
+    }
+    
+    private fun sendRubberbandPacket(){
+        runSafeR {
+            val position = CPacketPlayer.Position(.0, .0, .0, true)
+            filter.add(position)
+            connection.sendPacket(position)
+        } ?: disable()
     }
 }
