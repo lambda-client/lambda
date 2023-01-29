@@ -25,7 +25,6 @@ import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.sin
 
-
 object Flight : Module(
     name = "Flight",
     description = "Makes the player fly",
@@ -33,7 +32,10 @@ object Flight : Module(
     modulePriority = 500
 ) {
     // non packet
-    private val mode by setting("Mode", FlightMode.PACKET)
+    private val mode by setting("Mode", FlightMode.PACKET).also {
+        it.listeners.add { if (it.value == FlightMode.PACKET) sendRubberbandPacket() }
+    }
+
     private val speed by setting("Speed", 1.0f, 0f..10f, 0.1f, { mode != FlightMode.PACKET })
     private val glideSpeed by setting("Glide Speed", 0.05, 0.0..0.3, 0.001, { mode != FlightMode.PACKET })
 
@@ -83,12 +85,8 @@ object Flight : Module(
 
         onEnable {
             if (mode != FlightMode.PACKET) return@onEnable
-            
-            runSafeR {
-                val position = CPacketPlayer.Position(.0, .0, .0, true)
-                filter.add(position)
-                connection.sendPacket(position)
-            } ?: disable()
+
+            sendRubberbandPacket()
         }
 
         safeListener<PlayerMoveEvent> {
@@ -193,8 +191,8 @@ object Flight : Module(
 
                         //region sending
 
-                        val boundsPacket = CPacketPlayer.Position(player.posX + moveVec.x, player.posY + moveVec.y + yOffset, player.posZ + moveVec.z, true)
                         val movePacket = CPacketPlayer.Position(player.posX + moveVec.x, player.posY + moveVec.y, player.posZ + moveVec.z, true)
+                        val boundsPacket = CPacketPlayer.Position(player.posX + moveVec.x, player.posY + moveVec.y + yOffset, player.posZ + moveVec.z, true)
 
                         filter.add(movePacket)
                         filter.add(boundsPacket)
@@ -234,8 +232,8 @@ object Flight : Module(
                         return@safeListener
 
                     val yaw = calcMoveYaw()
-                    player.motionX = -sin(yaw) * speed
-                    player.motionZ = cos(yaw) * speed
+                    player.motionX -= sin(yaw) * speed
+                    player.motionZ += cos(yaw) * speed
 
                 }
                 FlightMode.VANILLA -> {
@@ -298,5 +296,13 @@ object Flight : Module(
                 filter.remove(it.packet)
 
         }
+    }
+
+    private fun sendRubberbandPacket(){
+        runSafeR {
+            val position = CPacketPlayer.Position(.0, .0, .0, true)
+            filter.add(position)
+            connection.sendPacket(position)
+        } ?: disable()
     }
 }
