@@ -82,6 +82,8 @@ object Flight : Module(
         }
 
         onEnable {
+            if (mode != FlightMode.PACKET) return@onEnable
+            
             runSafeR {
                 val position = CPacketPlayer.Position(.0, .0, .0, true)
                 filter.add(position)
