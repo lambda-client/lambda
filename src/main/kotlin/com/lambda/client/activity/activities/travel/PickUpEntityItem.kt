@@ -27,7 +27,7 @@ class PickUpEntityItem(
                 return@safeListener
             }
 
-            if (player.openContainer.inventorySlots.countEmpty() > 0) {
+            if (player.inventorySlots.countEmpty() > 0) {
                 BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalBlock(entityItem.position))
                 return@safeListener
             }

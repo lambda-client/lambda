@@ -8,9 +8,10 @@ import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
-import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countItem
+import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
+import net.minecraft.block.BlockHorizontal
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
@@ -21,12 +22,12 @@ class BreakDownEnderChests(
     override var repeated: Int = 0
 ) : RepeatingActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        val freeSlots = player.allSlots.filter { slot ->
+        val freeSlots = player.inventorySlots.filter { slot ->
             BuildTools.ejectList.contains(slot.stack.item.registryName.toString()) || slot.stack.isEmpty
         }
 
         if (freeSlots.isEmpty()) {
-            if (player.allSlots.countItem(Blocks.OBSIDIAN.item) > 0) {
+            if (player.inventorySlots.countItem(Blocks.OBSIDIAN.item) > 0) {
                 addSubActivities(
                     StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
                 )

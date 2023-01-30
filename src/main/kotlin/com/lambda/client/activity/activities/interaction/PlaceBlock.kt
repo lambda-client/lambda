@@ -12,6 +12,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
+import com.lambda.client.module.modules.client.BuildTools.directionForce
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
 import com.lambda.client.util.items.blockBlacklist
@@ -23,22 +24,25 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
 import net.minecraft.block.BlockColored
+import net.minecraft.block.properties.PropertyDirection
 import net.minecraft.block.state.IBlockState
 import net.minecraft.item.EnumDyeColor
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
+import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
-import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
 class PlaceBlock(
     private val blockPos: BlockPos,
-    private val targetState: IBlockState, // TODO: Calculate correct resulting state of placed block to enable rotation checks
+    private val targetState: IBlockState,
     private val doPending: Boolean = false,
+    private val ignoreDirection: Boolean = false,
+    private val ignoreProperties: Boolean = false,
     override var rotation: Vec2f = Vec2f.ZERO,
     override val timeout: Long = 200L,
-    override val maxAttempts: Int = 8,
+    override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, Activity() {
@@ -47,45 +51,75 @@ class PlaceBlock(
         ColorHolder(35, 188, 254)
     ).also { toRender.add(it) }
 
+    private var spoofedDirection = false
+
     override fun SafeClientEvent.onInitialize() {
         if (world.getBlockState(blockPos) == targetState) {
             success()
             return
         }
 
-        if (!world.isPlaceable(blockPos, AxisAlignedBB(blockPos))) {
-            addSubActivities(BreakBlock(blockPos))
+        if (ignoreProperties && world.getBlockState(blockPos).block == targetState.block) {
+            success()
             return
         }
 
-        if (targetState.block is BlockColored) {
-            targetState.properties.entries.firstOrNull { it.key == BlockColored.COLOR }?.let { entry ->
-                val meta = (entry.value as EnumDyeColor).metadata
-
-                if (player.getHeldItem(EnumHand.MAIN_HAND).metadata != meta) {
-                    addSubActivities(AcquireItemInActiveHand(targetState.block.item, predicateItem = {
-                        it.metadata == meta
-                    }))
-                    return
-                }
+        if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
+            if (world.worldBorder.contains(blockPos)
+                && !world.isOutsideBuildHeight(blockPos)) {
+                addSubActivities(BreakBlock(blockPos))
+            } else {
+                failedWith(BlockOutsideOfWorldException(blockPos))
             }
-        } else if (player.getHeldItem(EnumHand.MAIN_HAND).item.block != targetState.block) {
+
+            return
+        }
+
+        targetState.properties.entries.firstOrNull { it.key is PropertyDirection }?.let { entry ->
+            val direction = (entry.value as EnumFacing).opposite
+
+            if (directionForce
+                && !ignoreDirection
+                && !spoofedDirection
+                && player.horizontalFacing != direction
+            ) {
+                addSubActivities(Rotate(Vec2f(direction.horizontalAngle, player.rotationPitch)))
+                return
+            }
+        }
+
+        targetState.properties.entries.firstOrNull { it.key == BlockColored.COLOR }?.let { entry ->
+            val meta = (entry.value as EnumDyeColor).metadata
+
+            if (player.getHeldItem(EnumHand.MAIN_HAND).metadata != meta) {
+                addSubActivities(AcquireItemInActiveHand(targetState.block.item, predicateItem = {
+                    it.metadata == meta
+                }))
+                return
+            }
+        }
+
+        if (player.getHeldItem(EnumHand.MAIN_HAND).item.block != targetState.block) {
             addSubActivities(AcquireItemInActiveHand(targetState.block.item))
             return
         }
 
-        getNeighbour(blockPos, attempts = 1, visibleSideCheck = true, range = BuildTools.maxReach)?.let {
-            val placedAtBlock = world.getBlockState(it.pos).block
+        getNeighbour(
+            blockPos,
+            attempts = BuildTools.placementSearch,
+            visibleSideCheck = BuildTools.illegalPlacements,
+            range = BuildTools.maxReach
+        )?.let {
+            val isBlacklisted = world.getBlockState(it.pos).block in blockBlacklist
 
             renderActivity.color = ColorHolder(11, 66, 89)
 
-            if (placedAtBlock in blockBlacklist) {
+            if (isBlacklisted) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
             }
 
             rotation = getRotationTo(it.hitVec)
 
-//            connection.sendPacket(it.toPlacePacket(EnumHand.MAIN_HAND))
             val result = playerController.processRightClickBlock(player, world, it.pos, it.side, it.hitVec, EnumHand.MAIN_HAND)
 
             if (result != EnumActionResult.SUCCESS) {
@@ -95,7 +129,7 @@ class PlaceBlock(
 
             player.swingArm(EnumHand.MAIN_HAND)
 
-            if (placedAtBlock in blockBlacklist) {
+            if (isBlacklisted) {
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
             }
 
@@ -107,8 +141,16 @@ class PlaceBlock(
                 }
             }
         } ?: run {
-            if (autoPathing) addSubActivities(PlaceGoal(blockPos))
-//            failedWith(NoNeighbourException(blockPos))
+            getNeighbour(
+                blockPos,
+                attempts = BuildTools.placementSearch,
+                visibleSideCheck = false,
+                range = 256f
+            )?.let {
+                if (autoPathing) addSubActivities(PlaceGoal(it.pos))
+            } ?: run {
+                failedWith(NoNeighbourException(blockPos))
+            }
         }
     }
 
@@ -116,9 +158,19 @@ class PlaceBlock(
         safeListener<PacketEvent.PostReceive> {
             if (it.packet is SPacketBlockChange
                 && it.packet.blockPosition == blockPos
-                && it.packet.blockState == targetState
+                && subActivities.isEmpty()
             ) {
-                success()
+                when {
+                    it.packet.blockState == targetState -> {
+                        success()
+                    }
+                    ignoreProperties && it.packet.blockState.block == targetState.block -> {
+                        success()
+                    }
+                    else -> {
+                        failedWith(UnexpectedBlockStateException(blockPos, targetState, it.packet.blockState))
+                    }
+                }
             }
         }
     }
@@ -130,6 +182,10 @@ class PlaceBlock(
                     owner.status = Status.PENDING
                 }
             }
+            is Rotate -> {
+                spoofedDirection = true
+                status = Status.UNINITIALIZED
+            }
             else -> {
                 status = Status.UNINITIALIZED
             }
@@ -138,4 +194,6 @@ class PlaceBlock(
 
     class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for (${blockPos.asString()}) found")
     class ProcessRightClickException(result: EnumActionResult) : Exception("Processing right click failed with result $result")
+    class UnexpectedBlockStateException(blockPos: BlockPos, expected: IBlockState, actual: IBlockState) : Exception("Unexpected block state at (${blockPos.asString()}) expected $expected but got $actual")
+    class BlockOutsideOfWorldException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
 }

@@ -34,6 +34,11 @@ object BlockData : Module(
                         val tag = NBTTagCompound().apply { tileEntity.writeToNBT(this) }
                         MessageSendHelper.sendChatMessage("""$chatName &6Block Tags:$tag""".trimIndent())
                     }
+
+                    if (blockState.properties.isNotEmpty()) {
+                        val properties = blockState.properties.entries.joinToString(", ") { "${it.key}=${it.value}" }
+                        MessageSendHelper.sendChatMessage("""$chatName &6Block Properties: $properties""".trimIndent())
+                    }
                 }
             }
         }

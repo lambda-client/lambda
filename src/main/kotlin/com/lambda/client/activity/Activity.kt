@@ -12,12 +12,18 @@ import com.lambda.client.activity.activities.types.TimeoutActivity.Companion.che
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.MAX_DEPTH
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
+import net.minecraft.entity.Entity
+import net.minecraft.item.ItemBlock
+import net.minecraft.util.math.AxisAlignedBB
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.time.DurationFormatUtils
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -154,7 +160,7 @@ abstract class Activity(val isRoot: Boolean = false) {
 
         if (onFailure(childException)) return true
 
-        if (owner.isRoot) {
+        if (this@Activity is ActivityManager) {
             MessageSendHelper.sendErrorMessage("Traceback: ${childException.javaClass.simpleName}: ${childException.message}\n    ${childActivities.joinToString(separator = "\n    ") { it.toString() }}")
             return false
         }
@@ -195,53 +201,57 @@ abstract class Activity(val isRoot: Boolean = false) {
         FAILURE
     }
 
-    fun appendInfo(textComponent: TextComponent, primaryColor: ColorHolder, secondaryColor: ColorHolder) {
+    fun appendInfo(textComponent: TextComponent, primaryColor: ColorHolder, secondaryColor: ColorHolder, details: Boolean) {
         if (this !is ActivityManager) {
             ListenerManager.listenerMap[this@Activity]?.let {
-                textComponent.add("SYNC", secondaryColor)
+                textComponent.add("SYNC", primaryColor)
             }
             ListenerManager.asyncListenerMap[this@Activity]?.let {
-                textComponent.add("ASYNC", secondaryColor)
+                textComponent.add("ASYNC", primaryColor)
             }
 
-            textComponent.add("Name", primaryColor)
-            textComponent.add("${javaClass.simpleName} ", secondaryColor)
-            textComponent.add("State", primaryColor)
-            textComponent.add(status.name, secondaryColor)
+            textComponent.add("Name", secondaryColor)
+            textComponent.add("${javaClass.simpleName} ", primaryColor)
+            textComponent.add("State", secondaryColor)
+            textComponent.add(status.name, primaryColor)
 
             if (status == Status.RUNNING) {
-                textComponent.add("Runtime", primaryColor)
-                textComponent.add(DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS"), secondaryColor)
+                textComponent.add("Runtime", secondaryColor)
+                textComponent.add(DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS"), primaryColor)
             }
-//            this::class.java.declaredFields.forEachIndexed { index, field ->
-//                field.isAccessible = true
-//                val name = field.name
-//                val value = field.get(this)
-//
-////                if (index.mod(6) == 0) {
-////                    textComponent.addLine("", primaryColor)
-////                    repeat(depth) {
-////                        textComponent.add("   ")
-////                    }
-////                }
-//
-//                value?.let {
-//                    if (!ActivityManagerHud.anonymize
-//                        || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
-//                    ) {
-//                        textComponent.add(name.capitalize(), primaryColor)
-//                        when (value) {
-//                            is ItemBlock -> {
-//                                textComponent.add(value.block.localizedName, secondaryColor)
-//                            }
-//                            else -> {
-//                                textComponent.add(value.toString(), secondaryColor)
-//                            }
+
+            if (details) {
+                this::class.java.declaredFields.forEachIndexed { index, field ->
+                    field.isAccessible = true
+                    val name = field.name
+                    val value = field.get(this)
+
+//                    if (index.mod(6) == 0) {
+//                        textComponent.addLine("", primaryColor)
+//                        repeat(depth) {
+//                            textComponent.add("   ")
 //                        }
 //                    }
-//                }
-//            }
+
+                    value?.let {
+                        if (!ActivityManagerHud.anonymize
+                            || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
+                        ) {
+                            textComponent.add(name.capitalize(), primaryColor)
+                            when (value) {
+                                is ItemBlock -> {
+                                    textComponent.add(value.block.localizedName, secondaryColor)
+                                }
+                                else -> {
+                                    textComponent.add(value.toString(), secondaryColor)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+
         addExtraInfo(textComponent, primaryColor, secondaryColor)
         textComponent.addLine("")
 //        subActivities.filter { !(it is BuildBlock && it.activityStatus == ActivityStatus.UNINITIALIZED) }.forEach {
@@ -249,7 +259,7 @@ abstract class Activity(val isRoot: Boolean = false) {
             repeat(depth) {
                 textComponent.add("   ")
             }
-            it.appendInfo(textComponent, primaryColor, secondaryColor)
+            it.appendInfo(textComponent, primaryColor, secondaryColor, details)
         }
     }
 

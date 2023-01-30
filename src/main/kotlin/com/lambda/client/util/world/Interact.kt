@@ -84,7 +84,7 @@ private fun SafeClientEvent.getNeighbour(
     sides: Array<EnumFacing>,
     toIgnore: HashSet<Pair<BlockPos, EnumFacing>>
 ): PlaceInfo? {
-    if (!world.isPlaceable(pos)) return null
+    if (!world.isPlaceable(pos, AxisAlignedBB(pos))) return null
 
     sides.forEach { side ->
         checkNeighbour(eyePos, pos, side, range, visibleSideCheck, true, toIgnore)?.let {
@@ -96,7 +96,7 @@ private fun SafeClientEvent.getNeighbour(
 
     sides.forEach { posSide ->
         val newPos = pos.offset(posSide)
-        if (!world.isPlaceable(newPos)) return@forEach
+        if (!world.isPlaceable(newPos, AxisAlignedBB(newPos))) return@forEach
         if (eyePos.distanceTo(newPos.toVec3dCenter()) > range + 1) return@forEach
 
         getNeighbour(eyePos, newPos, attempts - 1, range, visibleSideCheck, sides, toIgnore)?.let {
