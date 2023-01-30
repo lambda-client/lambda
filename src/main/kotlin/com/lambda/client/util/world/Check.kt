@@ -3,7 +3,6 @@ package com.lambda.client.util.world
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
-import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.AxisAlignedBB

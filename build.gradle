@@ -118,6 +118,16 @@ dependencies {
     implementation configurations.jarLibs
 }
 
+sourceSets {
+    schematica_api {
+        compileClasspath += main.compileClasspath
+    }
+
+    main {
+        compileClasspath += schematica_api.output
+    }
+}
+
 mixin {
     defaultObfuscationEnv 'searge'
     sourceSets {
