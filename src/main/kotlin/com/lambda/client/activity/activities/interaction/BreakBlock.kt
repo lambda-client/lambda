@@ -42,7 +42,7 @@ class BreakBlock(
     private val miningSpeedFactor: Float = 1.0f,
     private val minCollectAmount: Int = 1,
     override var timeout: Long = 200L,
-    override val maxAttempts: Int = 8,
+    override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
     override var rotation: Vec2f = Vec2f.ZERO
@@ -124,6 +124,7 @@ class BreakBlock(
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
             if (owner.status == Status.PENDING) return@safeListener
+            if (subActivities.isNotEmpty()) return@safeListener
 
             getMiningSide(blockPos, BuildTools.maxReach)?.let { side ->
                 rotation = getRotationTo(getHitVec(blockPos, side))

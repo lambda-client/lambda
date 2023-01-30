@@ -24,16 +24,19 @@ class PlaceContainer(
             }
         }
 
-        addSubActivities(
-            PlaceBlock(containerPos, targetState)
-        )
+        addSubActivities(PlaceBlock(
+            containerPos,
+            targetState,
+            ignoreDirection = true,
+            ignoreProperties = true
+        ))
     }
 
     override fun SafeClientEvent.onChildFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {
         if (childActivities.firstOrNull() !is PlaceBlock) return false
-        if (childException !is PlaceBlock.NoNeighbourException) return false
 
-        checkAttempt(this@PlaceContainer, NoContainerPlacePositionFoundException())
+        checkAttempt(this@PlaceContainer, childException)
+        containerPos = BlockPos.ORIGIN
         return true
     }
 

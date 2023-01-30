@@ -81,8 +81,10 @@ class BuildBlock(
                 (targetState != Blocks.AIR.defaultState && world.isPlaceable(blockPos, targetState.getCollisionBoundingBox(world, blockPos)
                     ?: AxisAlignedBB(blockPos))) -> {
                 if (addActivities) {
+                    val trueTarget = if (currentState.isLiquid) BuildTools.defaultFillerMat.defaultState else targetState
+
                     addSubActivities(
-                        PlaceBlock(blockPos, if (currentState.isLiquid) BuildTools.defaultFillerMat.defaultState else targetState, BuildTools.doPending)
+                        PlaceBlock(blockPos, trueTarget, BuildTools.doPending)
                     )
                 } else {
                     action = when {

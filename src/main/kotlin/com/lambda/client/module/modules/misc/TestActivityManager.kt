@@ -8,8 +8,11 @@ import com.lambda.client.activity.activities.interaction.*
 import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
+import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
+import com.lambda.client.activity.activities.utils.Wait
+import com.lambda.client.commons.extension.next
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
@@ -21,13 +24,16 @@ import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
 import com.lambda.client.util.math.VectorUtils
+import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.runSafe
+import net.minecraft.block.BlockHorizontal
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
+import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
 
 object TestActivityManager : Module(
@@ -60,6 +66,26 @@ object TestActivityManager : Module(
         ActivityManager.addSubActivities(
             ExtractItemFromShulkerBox(Blocks.OBSIDIAN.item)
         )
+        false
+    })
+
+    private val eticiettie by setting("Direction shenanigans", false, consumer = { _, _->
+        runSafe {
+            var currentDirection = player.horizontalFacing
+            var position = player.flooredPosition.add(currentDirection.directionVec.multiply(2))
+
+            repeat(4) {
+                val targetState = Blocks.MAGENTA_GLAZED_TERRACOTTA.defaultState.withProperty(BlockHorizontal.FACING, currentDirection)
+
+                ActivityManager.addSubActivities(
+                    PlaceBlock(position, targetState)
+                )
+
+                currentDirection = currentDirection.rotateY()
+                position = position.add(currentDirection.directionVec)
+            }
+        }
+
         false
     })
 

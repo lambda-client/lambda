@@ -36,6 +36,10 @@ object BuildToolsCommand : ClientCommand(
                     }
                 }
             }
+
+            execute("Lists all ignored blocks") {
+                MessageSendHelper.sendChatMessage("Ignored blocks: ${BuildTools.ignoreBlocks.joinToString(", ")}")
+            }
         }
 
         literal("eject") {
@@ -64,6 +68,10 @@ object BuildToolsCommand : ClientCommand(
                     }
                 }
             }
+
+            execute("Lists all blocks in eject list") {
+                MessageSendHelper.sendChatMessage("Eject list: ${BuildTools.ejectList.joinToString(", ")}")
+            }
         }
 
         literal("food") {
@@ -72,6 +80,10 @@ object BuildToolsCommand : ClientCommand(
                     BuildTools.defaultFood = itemArg.value
                     MessageSendHelper.sendChatMessage("Set food item to &7${itemArg.value.registryName}&r.")
                 }
+            }
+
+            execute("Shows the food item") {
+                MessageSendHelper.sendChatMessage("Food item: &7${BuildTools.defaultFood.registryName}&r")
             }
         }
     }
