@@ -1,0 +1,48 @@
+package com.lambda.client.activity.activities.highlevel
+
+import com.lambda.client.activity.Activity
+import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.ActivityManager
+import com.lambda.client.util.math.Direction
+import com.lambda.client.util.schematic.LambdaSchematicaHelper
+import com.lambda.client.util.schematic.Schematic
+import com.lambda.client.util.text.MessageSendHelper
+import net.minecraft.block.state.IBlockState
+import net.minecraft.util.math.BlockPos
+
+class BuildSchematic(
+    private val schematic: Schematic,
+    private val direction: Direction = Direction.NORTH,
+    private val offsetMove: BlockPos = BlockPos.ORIGIN,
+) : Activity() {
+    override fun SafeClientEvent.onInitialize() {
+        if (!LambdaSchematicaHelper.isSchematicaPresent) {
+            failedWith(SchematicNotPresentException())
+            return
+        }
+
+        val structure = mutableMapOf<BlockPos, IBlockState>()
+
+        for (y in schematic.getOrigin().y..schematic.getOrigin().y + schematic.heightY()) {
+            for (x in schematic.getOrigin().x..schematic.getOrigin().x + schematic.widthX()) {
+                for (z in schematic.getOrigin().z..schematic.getOrigin().z + schematic.lengthZ()) {
+                    val blockPos = BlockPos(x, y, z)
+                    if (!schematic.inSchematic(blockPos)) continue
+                    structure[blockPos] = schematic.desiredState(blockPos)
+                }
+            }
+        }
+
+        MessageSendHelper.sendChatMessage("$activityName Building ${structure.size} blocks")
+
+        ActivityManager.addSubActivities(
+            BuildStructure(
+                structure,
+                direction,
+                offsetMove
+            )
+        )
+    }
+
+    private class SchematicNotPresentException : Exception("Schematica is not present")
+}

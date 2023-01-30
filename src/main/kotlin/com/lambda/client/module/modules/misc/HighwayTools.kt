@@ -74,6 +74,7 @@ object HighwayTools : Module(
                     direction = originDirection,
                     offsetMove = BlockPos(originDirection.directionVec.multiply(offset)),
                     maximumRepeats = distance,
+                    doPadding = true,
                     respectIgnore = true
                 ).let {
                     ownedBuildStructure = it

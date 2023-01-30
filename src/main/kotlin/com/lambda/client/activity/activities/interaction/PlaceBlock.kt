@@ -147,7 +147,7 @@ class PlaceBlock(
                 visibleSideCheck = false,
                 range = 256f
             )?.let {
-                if (autoPathing) addSubActivities(PlaceGoal(it.pos))
+                if (autoPathing) addSubActivities(PlaceGoal(blockPos))
             } ?: run {
                 failedWith(NoNeighbourException(blockPos))
             }
