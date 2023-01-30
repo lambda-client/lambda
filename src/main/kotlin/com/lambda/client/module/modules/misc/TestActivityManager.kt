@@ -154,44 +154,6 @@ object TestActivityManager : Module(
         false
     })
 
-    private val schematicBuild by setting("Build Schematic", false, consumer = { _, _ ->
-        schematicBuildActivity(false)
-        false
-    })
-
-    private val schematicBuildSkipAir by setting("Build Schematic (Skip Air)", false, consumer = { _, _ ->
-        schematicBuildActivity(true)
-        false
-    })
-
-    private fun schematicBuildActivity(skipAir: Boolean) {
-        if (LambdaSchematicaHelper.isSchematicaPresent) {
-            LambdaSchematicaHelper.loadedSchematic?.let { schematic ->
-                val structure = mutableMapOf<BlockPos, IBlockState>()
-                for (y in schematic.getOrigin().y..schematic.getOrigin().y + schematic.heightY()) {
-                    for (x in schematic.getOrigin().x..schematic.getOrigin().x + schematic.widthX()) {
-                        for (z in schematic.getOrigin().z..schematic.getOrigin().z + schematic.lengthZ()) {
-                            val blockPos = BlockPos(x, y, z)
-                            if (!schematic.inSchematic(blockPos)) continue // probably not necessary to check
-                            val desiredBlockState = schematic.desiredState(blockPos)
-                            if (desiredBlockState.block == Blocks.AIR && skipAir) continue
-                            structure[blockPos] = desiredBlockState
-                        }
-                    }
-                }
-                // potentially beeg log
-                LambdaMod.LOG.info("Building structure $structure")
-                ActivityManager.addSubActivities(
-                    BuildStructure(structure)
-                )
-            } ?: run {
-                MessageSendHelper.sendChatMessage("No schematic is loaded")
-            }
-        } else {
-            MessageSendHelper.sendChatMessage("Schematica is not present")
-        }
-    }
-
     private val ctirsgn by setting("Throw", false, consumer = { _, _->
         runSafe {
             ActivityManager.addSubActivities(
