@@ -18,6 +18,7 @@ class AcquireItemInActiveHand(
     private val item: Item,
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true },
+    private val metadata: Int? = null,
     private val useShulkerBoxes: Boolean = true,
     private val useEnderChest: Boolean = false,
     override val maxAttempts: Int = 3,
@@ -37,7 +38,7 @@ class AcquireItemInActiveHand(
                 if (useShulkerBoxes) {
                     addSubActivities(ExtractItemFromShulkerBox(item, 1, predicateItem, predicateSlot))
                 } else {
-                    failedWith(NoItemFoundException(item))
+                    failedWith(NoItemFoundException(item, metadata))
                 }
             }
         }
@@ -70,5 +71,5 @@ class AcquireItemInActiveHand(
         status = Status.UNINITIALIZED
     }
 
-    class NoItemFoundException(item: Item) : Exception("No ${item.registryName} found in inventory (shulkers are disabled)")
+    class NoItemFoundException(item: Item, metadata: Int?) : Exception("No ${item.registryName}${ metadata?.let { ":$it" } ?: "" } found in inventory (shulkers are disabled)")
 }
