@@ -2,6 +2,7 @@ package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.inventory.CreativeInventoryAction
 import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
@@ -27,6 +28,8 @@ import net.minecraft.block.BlockColored
 import net.minecraft.block.properties.PropertyDirection
 import net.minecraft.block.state.IBlockState
 import net.minecraft.item.EnumDyeColor
+import net.minecraft.item.ItemStack
+import net.minecraft.network.play.client.CPacketCreativeInventoryAction
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
@@ -42,7 +45,7 @@ class PlaceBlock(
     private val ignoreProperties: Boolean = false,
     override var rotation: Vec2f = Vec2f.ZERO,
     override val timeout: Long = 200L,
-    override val maxAttempts: Int = 5,
+    override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, Activity() {
@@ -92,15 +95,29 @@ class PlaceBlock(
             val meta = (entry.value as EnumDyeColor).metadata
 
             if (player.getHeldItem(EnumHand.MAIN_HAND).metadata != meta) {
-                addSubActivities(AcquireItemInActiveHand(targetState.block.item, predicateItem = {
-                    it.metadata == meta
-                }))
+                if (!player.capabilities.isCreativeMode) {
+                    addSubActivities(AcquireItemInActiveHand(targetState.block.item, metadata = meta, predicateItem = {
+                        it.metadata == meta
+                    }))
+                    return
+                }
+
+                val stack = ItemStack(targetState.block.item, 1, meta)
+
+                addSubActivities(CreativeInventoryAction(36 + player.inventory.currentItem, stack))
                 return
             }
         }
 
         if (player.getHeldItem(EnumHand.MAIN_HAND).item.block != targetState.block) {
-            addSubActivities(AcquireItemInActiveHand(targetState.block.item))
+            if (!player.capabilities.isCreativeMode) {
+                addSubActivities(AcquireItemInActiveHand(targetState.block.item))
+                return
+            }
+
+            val stack = ItemStack(targetState.block.item)
+
+            addSubActivities(CreativeInventoryAction(36 + player.inventory.currentItem, stack))
             return
         }
 
@@ -187,6 +204,7 @@ class PlaceBlock(
                 status = Status.UNINITIALIZED
             }
             else -> {
+                spoofedDirection = false
                 status = Status.UNINITIALIZED
             }
         }

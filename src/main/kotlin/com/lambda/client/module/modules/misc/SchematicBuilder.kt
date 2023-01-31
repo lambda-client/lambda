@@ -18,6 +18,7 @@ object SchematicBuilder : Module(
     alias = arrayOf("sb")
 ) {
     private val offset by setting("Offset", 0, -10..10, 1)
+    private val inLayers by setting("In Layers", true)
 
     private var ownedBuildStructure: BuildSchematic? = null
 
@@ -29,6 +30,7 @@ object SchematicBuilder : Module(
 
                     BuildSchematic(
                         schematic,
+                        inLayers,
                         direction,
                         BlockPos(direction.directionVec.multiply(offset))
                     ).let {

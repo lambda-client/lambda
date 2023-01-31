@@ -67,9 +67,9 @@ class BuildBlock(
     }
 
     private fun SafeClientEvent.updateAction(addActivities: Boolean = false) {
-        val owner = owner
+//        val owner = owner
 
-        if (owner !is BuildStructure) return
+//        if (owner !is BuildStructure) return
 
         val currentState = world.getBlockState(blockPos)
 

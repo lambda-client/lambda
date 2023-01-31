@@ -64,7 +64,9 @@ class BreakBlock(
             return
         }
 
-        if (player.getHeldItem(EnumHand.MAIN_HAND).item != Items.DIAMOND_PICKAXE) { // ToDo: get optimal tool
+        if (!player.capabilities.isCreativeMode
+            && player.getHeldItem(EnumHand.MAIN_HAND).item != Items.DIAMOND_PICKAXE
+        ) { // ToDo: get optimal tool
             val owner = owner
 
             if (owner is BuildBlock) {

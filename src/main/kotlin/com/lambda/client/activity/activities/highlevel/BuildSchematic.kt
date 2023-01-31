@@ -2,7 +2,6 @@ package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.schematic.LambdaSchematicaHelper
 import com.lambda.client.util.schematic.Schematic
@@ -12,6 +11,7 @@ import net.minecraft.util.math.BlockPos
 
 class BuildSchematic(
     private val schematic: Schematic,
+    private val inLayers: Boolean = true,
     private val direction: Direction = Direction.NORTH,
     private val offsetMove: BlockPos = BlockPos.ORIGIN,
 ) : Activity() {
@@ -24,18 +24,34 @@ class BuildSchematic(
         val structure = mutableMapOf<BlockPos, IBlockState>()
 
         for (y in schematic.getOrigin().y..schematic.getOrigin().y + schematic.heightY()) {
+            val layerStructure = mutableMapOf<BlockPos, IBlockState>()
+
             for (x in schematic.getOrigin().x..schematic.getOrigin().x + schematic.widthX()) {
                 for (z in schematic.getOrigin().z..schematic.getOrigin().z + schematic.lengthZ()) {
                     val blockPos = BlockPos(x, y, z)
                     if (!schematic.inSchematic(blockPos)) continue
-                    structure[blockPos] = schematic.desiredState(blockPos)
+                    layerStructure[blockPos] = schematic.desiredState(blockPos)
                 }
             }
+
+            structure.putAll(layerStructure)
+
+            if (!inLayers) continue
+
+            addSubActivities(
+                BuildStructure(
+                    layerStructure,
+                    direction,
+                    offsetMove
+                )
+            )
         }
 
         MessageSendHelper.sendChatMessage("$activityName Building ${structure.size} blocks")
 
-        ActivityManager.addSubActivities(
+        if (inLayers) return
+
+        addSubActivities(
             BuildStructure(
                 structure,
                 direction,
