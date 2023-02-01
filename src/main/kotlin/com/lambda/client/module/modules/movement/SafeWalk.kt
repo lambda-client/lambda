@@ -31,45 +31,35 @@ object SafeWalk : Module(
 
                 var x = event.x
                 var z = event.z
-                while (x != 0.0 && world.getCollisionBoxes(player, player.entityBoundingBox.offset(x, (-player.stepHeight).toDouble(), 0.0)).isEmpty()) {
-                    if (x < 0.05 && x >= -0.05) {
-                        x = 0.0
-                    } else if (x > 0.0) {
-                        x -= 0.05
-                    } else {
-                        x += 0.05
-                    }
+
+                var boundingBox = player.entityBoundingBox.offset(0.0, (-player.stepHeight).toDouble(), 0.0)
+
+                while (x != 0.0 && world.getCollisionBoxes(player, boundingBox.offset(x, 0.0, 0.0)).isEmpty()) {
+                    x = updateCoordinate(x)
                 }
-                while (z != 0.0 && world.getCollisionBoxes(player, player.entityBoundingBox.offset(0.0, (-player.stepHeight).toDouble(), z)).isEmpty()) {
-                    if (z < 0.05 && z >= -0.05) {
-                        z = 0.0
-                    } else if (z > 0.0) {
-                        z -= 0.05
-                    } else {
-                        z += 0.05
-                    }
+
+                boundingBox = boundingBox.offset(x, 0.0, 0.0)
+
+                while (z != 0.0 && world.getCollisionBoxes(player, boundingBox.offset(0.0, 0.0, z)).isEmpty()) {
+                    z = updateCoordinate(z)
                 }
-                while (x != 0.0 && z != 0.0 && world.getCollisionBoxes(player, player.entityBoundingBox.offset(x, (-player.stepHeight).toDouble(), z)).isEmpty()) {
-                    if (x < 0.05 && x >= -0.05) {
-                        x = 0.0
-                    } else if (x > 0.0) {
-                        x -= 0.05
-                    } else {
-                        x += 0.05
-                    }
-                    if (z < 0.05 && z >= -0.05) {
-                        z = 0.0
-                    } else if (z > 0.0) {
-                        z -= 0.05
-                    } else {
-                        z += 0.05
-                    }
-                }
+
                 event.x = x
                 event.z = z
             }
         }
     }
+
+    private fun updateCoordinate(coordinate: Double): Double {
+        return if (coordinate < 0.05 && coordinate >= -0.05) {
+            0.0
+        } else if (coordinate > 0.0) {
+            coordinate - 0.05
+        } else {
+            coordinate + 0.05
+        }
+    }
+
 
     private val isEdgeSafe: Boolean
         get() = runSafeR {
