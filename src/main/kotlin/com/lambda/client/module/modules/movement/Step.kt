@@ -8,6 +8,7 @@ import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.client.Minecraft
+import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent
@@ -32,11 +33,10 @@ object Step : Module(
         NCP, VANILLA
     }
 
-    var playerY = 0.0
-    var timering = false
+    private var playerY = 0.0
+    private var timing = false
 
     init {
-
         upStep.valueListeners.add { _, _ ->
             BaritoneUtils.settings?.assumeStep?.value = isEnabled
         }
@@ -49,64 +49,54 @@ object Step : Module(
         }
 
         safeListener<ClientTickEvent> {
+            if (!timing) resetTimer()
 
-            if (!timering)
-                resetTimer()
-
-            timering = false
-
+            timing = false
         }
-
     }
 
-    fun pre(bb : AxisAlignedBB) : Boolean {
-
-        val player = Minecraft.getMinecraft().player
-
-        if (player.ridingEntity != null)
-            player.ridingEntity!!.stepHeight = if (strict) 1f else upStep.value
+    fun pre(bb: AxisAlignedBB, player: EntityPlayerSP): Boolean {
+        player.ridingEntity?.let {
+            it.stepHeight = if (strict) 1f else upStep.value
+        }
 
         playerY = bb.minY
 
-        return player.isInWater || player.isInLava || !player.onGround || player.isOnLadder || player.movementInput.jump || player.fallDistance >= 0.1
-
+        return player.isInWater
+            || player.isInLava
+            || !player.onGround
+            || player.isOnLadder
+            || player.movementInput.jump
+            || player.fallDistance >= 0.1
     }
 
-    fun post(bb : AxisAlignedBB) {
-
-        if (mode == Mode.VANILLA)
-            return
+    fun post(bb: AxisAlignedBB, mc: Minecraft) {
+        if (mode == Mode.VANILLA) return
 
         val height = bb.minY - playerY
 
         if (height < .6)
             return
 
-        val player = Minecraft.getMinecraft().player
-        val connection = Minecraft.getMinecraft().connection?:return
+        val player = mc.player
+        val connection = mc.connection ?: return
 
         val values = ArrayList<Double>()
 
-        if (height > 2.019)         values.addAll(listOf(.425, .821, .699, .599, 1.022, 1.372, 1.652, 1.869, 2.019, 1.919))
-        else if (height > 1.5)      values.addAll(listOf(.42, .78, .63, .51, .9, 1.21, 1.45, 1.43))
-        else if (height > 1.015)    values.addAll(listOf(.42, .7532, 1.01, 1.093, 1.015))
-        else if (height > .6)       values.addAll(listOf(.42 * height, .7532 * height))
-
-        if (strict && height > .6)
-            values.add(height)
-
-        var i = 1
-
-        for (v in values) {
-
-            connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + v, player.posZ, false))
-            i++
-
+        when {
+            height > 2.019 -> values.addAll(listOf(.425, .821, .699, .599, 1.022, 1.372, 1.652, 1.869, 2.019, 1.919))
+            height > 1.5 -> values.addAll(listOf(.42, .78, .63, .51, .9, 1.21, 1.45, 1.43))
+            height > 1.015 -> values.addAll(listOf(.42, .7532, 1.01, 1.093, 1.015))
+            height > .6 -> values.addAll(listOf(.42 * height, .7532 * height))
         }
 
-        modifyTimer(50f * i)
-        timering = true
+        if (strict && height > .6) values.add(height)
 
+        values.forEach {
+            connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + it, player.posZ, false))
+        }
+
+        modifyTimer(50f * values.size)
+        timing = true
     }
-
 }

@@ -58,36 +58,29 @@ public abstract class MixinEntity {
     // these mixins are for step module before and after the step calculations are performed
     @Inject(method = "move", at = @At(value = "FIELD", target = "net/minecraft/entity/Entity.stepHeight:F", ordinal = 3, shift = At.Shift.BEFORE))
     private void preStep(MoverType type, double x, double y, double z, CallbackInfo ci) {
-
         EntityPlayerSP player = Minecraft.getMinecraft().player;
 
-        if (player == null)
-            return;
+        if (player == null) return;
 
-        if (entityId == player.getEntityId() && Step.INSTANCE.isEnabled()) {
-
-            if (Step.INSTANCE.pre(boundingBox))
-                return;
-
+        if (entityId == player.getEntityId()
+            && Step.INSTANCE.isEnabled()
+            && !Step.INSTANCE.pre(boundingBox, player)
+        ) {
             storedStepHeight = player.stepHeight;
             player.stepHeight = Step.INSTANCE.getStrict() ? 1.015f : Step.INSTANCE.getUpStep().getValue();
-
         }
-
     }
 
     @Inject(method = "move", at = @At(value = "INVOKE", target = "net/minecraft/entity/Entity.resetPositionToBB ()V", ordinal = 1, shift = At.Shift.BEFORE))
     private void postStep(MoverType type, double x, double y, double z, CallbackInfo ci) {
+        Minecraft mc = Minecraft.getMinecraft();
+        EntityPlayerSP player = mc.player;
 
-        EntityPlayerSP player = Minecraft.getMinecraft().player;
-
-        if (player == null || !Step.INSTANCE.isEnabled())
-            return;
+        if (player == null || !Step.INSTANCE.isEnabled()) return;
 
         if (entityId == player.getEntityId()) {
-            Step.INSTANCE.post(boundingBox);
+            Step.INSTANCE.post(boundingBox, mc);
         }
-
     }
 
 }
