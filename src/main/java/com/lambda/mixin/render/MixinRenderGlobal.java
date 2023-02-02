@@ -5,7 +5,10 @@ import com.lambda.client.event.events.BlockBreakEvent;
 import com.lambda.client.event.events.RenderEntityEvent;
 import com.lambda.client.module.modules.player.Freecam;
 import com.lambda.client.module.modules.render.SelectionHighlight;
+import com.lambda.client.util.Wrapper;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.RenderGlobal;
+import net.minecraft.client.renderer.ViewFrustum;
 import net.minecraft.client.renderer.culling.ICamera;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -15,6 +18,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(RenderGlobal.class)
@@ -49,5 +53,17 @@ public abstract class MixinRenderGlobal {
         }
 
         return playerPos;
+    }
+
+    @Redirect(method = "setupTerrain", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ViewFrustum;updateChunkPositions(DD)V"))
+    public void updateSetupTerrain(ViewFrustum viewFrustum, double viewEntityX, double viewEntityZ) {
+        if (Freecam.INSTANCE.isEnabled()) {
+            EntityPlayerSP player = Wrapper.getPlayer();
+            if (player != null) {
+                viewEntityX = player.posX;
+                viewEntityZ = player.posZ;
+            }
+        }
+        viewFrustum.updateChunkPositions(viewEntityX, viewEntityZ);
     }
 }

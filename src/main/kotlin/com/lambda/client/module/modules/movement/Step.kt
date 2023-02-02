@@ -1,150 +1,102 @@
 package com.lambda.client.module.modules.movement
 
-import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.event.listener.listener
-import com.lambda.client.manager.managers.PlayerPacketManager
-import com.lambda.client.mixin.extension.playerY
+import com.lambda.client.manager.managers.TimerManager.modifyTimer
+import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.combat.Surround.inHoleCheck
-import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.BaritoneUtils
-import com.lambda.client.util.Bind
-import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.client.Minecraft
+import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.network.play.client.CPacketPlayer
-import net.minecraftforge.fml.common.gameevent.InputEvent
-import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.lwjgl.input.Keyboard
+import net.minecraft.util.math.AxisAlignedBB
+import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent
+
 
 /**
- * The packet mode code is licensed under MIT and can be found here:
- * https://github.com/fr1kin/ForgeHax/blob/2011740/src/main/java/com/matt/forgehax/mods/StepMod.java
+ * @author Doogie13
+ * @since 20/09/2022
  */
 object Step : Module(
     name = "Step",
-    description = "Changes the vanilla behavior for stepping up blocks",
     category = Category.MOVEMENT,
-    modulePriority = 200
+    description = "Allows you to step up blocks",
+    modulePriority = 201
 ) {
-    private val mode by setting("Mode", Mode.PACKET)
-    private val upStep = setting("Up Step", true)
-    private val downStep = setting("Down Step", false)
-    private val entityStep by setting("Entities", true)
-    private val checkHole by setting("Check Hole", false)
-    private val height by setting("Height", 1.0f, 0.25f..2.0f, 0.25f)
-    private val downSpeed by setting("Down Speed", 0.2f, 0.0f..1.0f, 0.05f)
-    private val bindUpStep by setting("Bind Up Step", Bind())
-    private val bindDownStep by setting("Bind Down Step", Bind())
 
-    private const val defaultHeight = 0.6f
+    private val mode by setting("Mode", Mode.NCP, description = "Anticheat step bypass")
+    val strict by setting("Strict", false, description = "Bypass the new UpdatedNCP step checks")
+    val upStep = setting("Step Height", 2.5f, 1f..2.5f, .5f, { !strict }, description = "How high to step")
 
-    private val ignoredPackets = HashSet<CPacketPlayer>()
-    private var lastCollidedTick = 0
-    private var onGroundTick = 0
-
-    @Suppress("UNUSED")
     private enum class Mode {
-        VANILLA, PACKET
+        NCP, VANILLA
     }
 
+    private var playerY = 0.0
+    private var timing = false
+
     init {
+        upStep.valueListeners.add { _, _ ->
+            BaritoneUtils.settings?.assumeStep?.value = isEnabled
+        }
+
         onDisable {
+            resetTimer()
             runSafe {
-                player.apply {
-                    stepHeight = defaultHeight
-                    ridingEntity?.stepHeight = 1.0f
-                }
+                player.stepHeight = .6f
             }
-            ignoredPackets.clear()
         }
 
-        onToggle {
-            BaritoneUtils.settings?.assumeStep?.value = it && upStep.value
-        }
+        safeListener<ClientTickEvent> {
+            if (!timing) resetTimer()
 
-        listener<InputEvent.KeyInputEvent> {
-            val key = Keyboard.getEventKey()
-
-            if (bindUpStep.isDown(key)) {
-                upStep.value = !upStep.value
-                MessageSendHelper.sendChatMessage(upStep.toggleMsg())
-            }
-
-            if (bindDownStep.isDown(key)) {
-                downStep.value = !downStep.value
-                MessageSendHelper.sendChatMessage(downStep.toggleMsg())
-            }
+            timing = false
         }
     }
 
-    private fun BooleanSetting.toggleMsg() = "$chatName Turned ${this.name} ${if (this.value) "&aon" else "&coff"}&f!"
-
-    init {
-        safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.START || !shouldRunStep) return@safeListener
-            setStepHeight()
-            if (downStep.value && player.motionY <= 0.0 && player.ticksExisted - onGroundTick <= 3) downStep()
-            if (player.collidedHorizontally) lastCollidedTick = player.ticksExisted
-            if (player.onGround) onGroundTick = player.ticksExisted
-        }
-    }
-
-    private val SafeClientEvent.shouldRunStep: Boolean
-        get() = !mc.gameSettings.keyBindSneak.isKeyDown
-            && !player.isElytraFlying
-            && !player.capabilities.isFlying
-            && !player.isOnLadder
-            && !player.isInOrAboveLiquid
-            && (!checkHole || !inHoleCheck())
-
-    private fun SafeClientEvent.setStepHeight() {
-        player.stepHeight = if (upStep.value && player.onGround && player.collidedHorizontally) height else defaultHeight
+    fun pre(bb: AxisAlignedBB, player: EntityPlayerSP): Boolean {
         player.ridingEntity?.let {
-            it.stepHeight = if (entityStep && it.collidedHorizontally) height else 1.0f
+            it.stepHeight = if (strict) 1f else upStep.value
         }
+
+        playerY = bb.minY
+
+        return player.isInWater
+            || player.isInLava
+            || !player.onGround
+            || player.isOnLadder
+            || player.movementInput.jump
+            || player.fallDistance >= 0.1
     }
 
-    private fun SafeClientEvent.downStep() {
-        // Down step doesn't work for edge lower than 1 blocks anyways
-        val belowBB = player.entityBoundingBox.expand(0.0, -1.05, 0.0)
-        if (world.collidesWithAnyBlock(belowBB)) player.motionY -= downSpeed
-    }
+    fun post(bb: AxisAlignedBB, mc: Minecraft) {
+        if (mode == Mode.VANILLA) return
 
-    init {
-        safeListener<PacketEvent.Send> { event ->
-            if (!upStep.value || mode != Mode.PACKET || !shouldRunStep) return@safeListener
-            if (event.packet !is CPacketPlayer || event.packet !is CPacketPlayer.Position && event.packet !is CPacketPlayer.PositionRotation) return@safeListener
-            if (ignoredPackets.remove(event.packet)) return@safeListener
+        val height = bb.minY - playerY
 
-            val prevPos = PlayerPacketManager.prevServerSidePosition
-            if (player.ticksExisted - lastCollidedTick <= 5) getStepArray(event.packet.playerY - prevPos.y)?.let {
-                for (posY in it) {
-                    val packet = CPacketPlayer.Position(prevPos.x, prevPos.y + posY, prevPos.z, true)
-                    ignoredPackets.add(packet)
-                    connection.sendPacket(packet)
-                }
-            }
+        if (height < .6)
+            return
+
+        val player = mc.player
+        val connection = mc.connection ?: return
+
+        val values = ArrayList<Double>()
+
+        when {
+            height > 2.019 -> values.addAll(listOf(.425, .821, .699, .599, 1.022, 1.372, 1.652, 1.869, 2.019, 1.919))
+            height > 1.5 -> values.addAll(listOf(.42, .78, .63, .51, .9, 1.21, 1.45, 1.43))
+            height > 1.015 -> values.addAll(listOf(.42, .7532, 1.01, 1.093, 1.015))
+            height > .6 -> values.addAll(listOf(.42 * height, .7532 * height))
         }
-    }
 
-    private fun getStepArray(diff: Double) = when {
-        height >= diff && diff in 0.6..1.0 -> stepOne
-        height >= diff && diff in 1.0..1.5 -> stepOneHalf
-        height >= diff && diff in 1.5..2.0 -> stepTwo
-        else -> null
-    }
+        if (strict && height > .6) values.add(height)
 
-    private val stepOne = doubleArrayOf(0.41999, 0.75320)
-    private val stepOneHalf = doubleArrayOf(0.41999, 0.75320, 1.00133, 1.16611, 1.24919, 1.17079)
-    private val stepTwo = doubleArrayOf(0.42, 0.78, 0.63, 0.51, 0.90, 1.21, 1.45, 1.43)
-
-    init {
-        upStep.valueListeners.add { _, it ->
-            BaritoneUtils.settings?.assumeStep?.value = isEnabled && it
+        values.forEach {
+            connection.sendPacket(CPacketPlayer.Position(player.posX, player.posY + it, player.posZ, false))
         }
+
+        modifyTimer(50f * values.size)
+        timing = true
     }
 }

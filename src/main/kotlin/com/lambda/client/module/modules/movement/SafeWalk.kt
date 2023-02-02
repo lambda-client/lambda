@@ -1,42 +1,65 @@
 package com.lambda.client.module.modules.movement
 
+import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.Scaffold
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.VectorUtils.toVec3d
 import com.lambda.client.util.threads.runSafeR
-import com.lambda.mixin.entity.MixinEntity
+import com.lambda.client.util.threads.safeListener
 
-/**
- * @see MixinEntity.moveInvokeIsSneakingPre
- * @see MixinEntity.moveInvokeIsSneakingPost
- */
 object SafeWalk : Module(
     name = "SafeWalk",
     description = "Keeps you from walking off edges",
-    category = Category.MOVEMENT
+    category = Category.MOVEMENT,
+    alwaysListening = true
 ) {
-    private val checkFallDist by setting("Check Fall Distance", true, description = "Check fall distance from edge")
+    private val checkFallDist by setting("Safe Fall Allowed", false, description = "Check fall distance from edge")
 
     init {
-        onToggle {
-            BaritoneUtils.settings?.assumeSafeWalk?.value = it
+        safeListener<PlayerMoveEvent> { event ->
+            if ((isEnabled || (Scaffold.isEnabled && Scaffold.safeWalk))
+                && player.onGround
+                && !BaritoneUtils.isPathing
+                && if (checkFallDist) !isEdgeSafe else true) {
+                /**
+                 * Code here is from net.minecraft.Entity::move
+                 * Cannot do a mixin on this method's sneak section due to mixin compatibility issues with Future (and possibly other clients)
+                 */
+
+                var x = event.x
+                var z = event.z
+
+                var boundingBox = player.entityBoundingBox.offset(0.0, (-player.stepHeight).toDouble(), 0.0)
+
+                while (x != 0.0 && world.getCollisionBoxes(player, boundingBox.offset(x, 0.0, 0.0)).isEmpty()) {
+                    x = updateCoordinate(x)
+                }
+
+                boundingBox = boundingBox.offset(x, 0.0, 0.0)
+
+                while (z != 0.0 && world.getCollisionBoxes(player, boundingBox.offset(0.0, 0.0, z)).isEmpty()) {
+                    z = updateCoordinate(z)
+                }
+
+                event.x = x
+                event.z = z
+            }
         }
     }
 
-    @JvmStatic
-    fun shouldSafewalk(entityID: Int) =
-        (Wrapper.player?.let { !it.isSneaking && it.entityId == entityID } ?: false)
-            && (isEnabled || Scaffold.isEnabled && Scaffold.safeWalk)
-            && (!checkFallDist && !BaritoneUtils.isPathing || !isEdgeSafe)
-
-    @JvmStatic
-    fun setSneaking(state: Boolean) {
-        Wrapper.player?.movementInput?.sneak = state
+    private fun updateCoordinate(coordinate: Double): Double {
+        return if (coordinate < 0.05 && coordinate >= -0.05) {
+            0.0
+        } else if (coordinate > 0.0) {
+            coordinate - 0.05
+        } else {
+            coordinate + 0.05
+        }
     }
+
 
     private val isEdgeSafe: Boolean
         get() = runSafeR {
