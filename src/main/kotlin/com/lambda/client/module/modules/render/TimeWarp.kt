@@ -2,24 +2,28 @@ package com.lambda.client.module.modules.render
 
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.mixin.world.MixinWorld
 import java.text.SimpleDateFormat
 import java.util.*
 
-object ClientSideTime : Module(
-    name = "ClientSideTime",
+/**
+ * @see MixinWorld.onGetWorldTime
+ */
+object TimeWarp : Module(
+    name = "TimeWarp",
     description = "Change the client-side world time",
     category = Category.RENDER
 ) {
-    private val mode by setting("Mode", ClientSideTimeMode.TICKS)
-    private val time by setting("Time", 0, 0..24000, 600, { mode == ClientSideTimeMode.TICKS })
+    private val mode by setting("Mode", TimeWarpMode.TICKS)
+    private val time by setting("Time", 0, 0..24000, 600, { mode == TimeWarpMode.TICKS })
 
-    enum class ClientSideTimeMode {
+    enum class TimeWarpMode {
         REAL_WORLD_TIME, TICKS
     }
 
     @JvmStatic
     fun getUpdatedTime(): Long {
-        if (mode == ClientSideTimeMode.REAL_WORLD_TIME)
+        if (mode == TimeWarpMode.REAL_WORLD_TIME)
             return dateToMinecraftTime(Calendar.getInstance())
         return time.toLong()
     }
