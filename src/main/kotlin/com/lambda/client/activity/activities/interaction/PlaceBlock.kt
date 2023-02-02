@@ -24,7 +24,12 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
+import net.minecraft.block.BlockEndPortalFrame
+import net.minecraft.block.BlockEnderChest
 import net.minecraft.block.BlockGlazedTerracotta
+import net.minecraft.block.BlockPumpkin
+import net.minecraft.block.BlockRedstoneComparator
+import net.minecraft.block.BlockRedstoneDiode
 import net.minecraft.block.BlockSlab
 import net.minecraft.block.BlockSlab.EnumBlockHalf
 import net.minecraft.block.properties.PropertyDirection
@@ -85,8 +90,13 @@ class PlaceBlock(
         targetState.properties.entries.firstOrNull { it.key is PropertyDirection }?.let { entry ->
             var direction = entry.value as EnumFacing
 
-            direction = when (targetState) { // ToDo: Exhaust all block types
-                is BlockGlazedTerracotta -> direction.opposite
+            direction = when (targetState.block) {
+                is BlockEnderChest,
+                is BlockEndPortalFrame,
+                is BlockGlazedTerracotta,
+                is BlockPumpkin,
+                is BlockRedstoneComparator,
+                is BlockRedstoneDiode -> direction.opposite
                 else -> direction
             }
 
@@ -116,15 +126,15 @@ class PlaceBlock(
 
         /* check if item has required metadata (declares the type) */
         val heldItem = player.getHeldItem(EnumHand.MAIN_HAND)
-        val meta = targetState.block.getMetaFromState(targetState)
 
-        if (heldItem.item.block != targetState.block || meta != heldItem.metadata) {
+        @Suppress("DEPRECATION")
+        val stack = targetState.block.getItem(world, blockPos, targetState)
+
+        if (heldItem.item.block != targetState.block || stack.metadata != heldItem.metadata) {
             if (!player.capabilities.isCreativeMode) {
-                addSubActivities(AcquireItemInActiveHand(targetState.block.item, metadata = meta))
+                addSubActivities(AcquireItemInActiveHand(targetState.block.item, metadata = stack.metadata))
                 return
             }
-
-            val stack = ItemStack(targetState.block.item, 1, meta)
 
             addSubActivities(CreativeInventoryAction(36 + player.inventory.currentItem, stack))
             return
@@ -149,7 +159,15 @@ class PlaceBlock(
             }
 
             /* last check for placement state */
-            val resultingState = targetState.block.getStateForPlacement(world, it.pos, it.side, hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(), meta, player, EnumHand.MAIN_HAND)
+            val resultingState = targetState.block.getStateForPlacement(
+                world,
+                it.pos,
+                it.side,
+                hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(),
+                stack.metadata,
+                player,
+                EnumHand.MAIN_HAND
+            )
 
             if (resultingState != targetState && !spoofedDirection) {
                 failedWith(PlacementStateException(resultingState, targetState))
