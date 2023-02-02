@@ -1,6 +1,5 @@
 package com.lambda.mixin.entity;
 
-import com.lambda.client.module.modules.movement.SafeWalk;
 import com.lambda.client.module.modules.movement.Step;
 import com.lambda.client.module.modules.movement.Velocity;
 import com.lambda.client.module.modules.player.Freecam;
@@ -22,28 +21,11 @@ public abstract class MixinEntity {
     @Shadow private int entityId;
 
     @Shadow private AxisAlignedBB boundingBox;
-    private boolean modifiedSneaking = false;
     float storedStepHeight = -1;
 
     @Inject(method = "applyEntityCollision", at = @At("HEAD"), cancellable = true)
     public void applyEntityCollisionHead(Entity entityIn, CallbackInfo ci) {
         Velocity.handleApplyEntityCollision((Entity) (Object) this, entityIn, ci);
-    }
-
-    @Inject(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;isSneaking()Z", ordinal = 0, shift = At.Shift.BEFORE))
-    public void moveInvokeIsSneakingPre(MoverType type, double x, double y, double z, CallbackInfo ci) {
-        if (SafeWalk.shouldSafewalk(this.entityId)) {
-            modifiedSneaking = true;
-            SafeWalk.setSneaking(true);
-        }
-    }
-
-    @Inject(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;isSneaking()Z", ordinal = 0, shift = At.Shift.AFTER))
-    public void moveInvokeIsSneakingPost(MoverType type, double x, double y, double z, CallbackInfo ci) {
-        if (modifiedSneaking) {
-            modifiedSneaking = false;
-            SafeWalk.setSneaking(false);
-        }
     }
 
     // Makes the camera guy instead of original player turn around when we move mouse
