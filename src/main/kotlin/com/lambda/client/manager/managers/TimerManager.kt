@@ -21,8 +21,8 @@ object TimerManager : Manager {
 
     init {
         listener<RunGameLoopEvent.Start> {
-            if (timer.tick(5L)) {
-                val removeTime = System.currentTimeMillis() - 250L
+            if (timer.tick(6L)) {
+                val removeTime = System.currentTimeMillis() - 600L
                 modifications.values.removeIf { it.second < removeTime }
             }
 
