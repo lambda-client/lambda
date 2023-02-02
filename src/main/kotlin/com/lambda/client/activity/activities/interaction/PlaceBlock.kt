@@ -24,17 +24,21 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
+import net.minecraft.block.BlockButton
+import net.minecraft.block.BlockDoor.EnumDoorHalf
 import net.minecraft.block.BlockEndPortalFrame
 import net.minecraft.block.BlockEnderChest
 import net.minecraft.block.BlockGlazedTerracotta
+import net.minecraft.block.BlockPistonBase
 import net.minecraft.block.BlockPumpkin
 import net.minecraft.block.BlockRedstoneComparator
 import net.minecraft.block.BlockRedstoneDiode
 import net.minecraft.block.BlockSlab
 import net.minecraft.block.BlockSlab.EnumBlockHalf
+import net.minecraft.block.BlockStairs
+import net.minecraft.block.BlockTrapDoor
 import net.minecraft.block.properties.PropertyDirection
 import net.minecraft.block.state.IBlockState
-import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
@@ -91,6 +95,7 @@ class PlaceBlock(
             var direction = entry.value as EnumFacing
 
             direction = when (targetState.block) {
+                is BlockPistonBase,
                 is BlockEnderChest,
                 is BlockEndPortalFrame,
                 is BlockGlazedTerracotta,
@@ -111,15 +116,37 @@ class PlaceBlock(
         }
 
         /* half slab placement adjustments */
-        var half: EnumBlockHalf? = null
+        var blockHalf: EnumBlockHalf? = null
+        var doorHalf: BlockTrapDoor.DoorHalf? = null
+        var stairsHalf: BlockStairs.EnumHalf? = null
         val allowedSides = EnumFacing.VALUES.toMutableList()
 
         targetState.properties.entries.firstOrNull { it.key == BlockSlab.HALF }?.let { entry ->
-            half = entry.value as EnumBlockHalf
+            blockHalf = entry.value as EnumBlockHalf
 
-            when (half) {
+            when (blockHalf) {
                 EnumBlockHalf.BOTTOM -> allowedSides.remove(EnumFacing.UP)
                 EnumBlockHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
+                else -> {}
+            }
+        }
+
+        targetState.properties.entries.firstOrNull { it.key == BlockTrapDoor.HALF }?.let { entry ->
+            doorHalf = entry.value as BlockTrapDoor.DoorHalf
+
+            when (doorHalf) {
+                BlockTrapDoor.DoorHalf.BOTTOM -> allowedSides.remove(EnumFacing.UP)
+                BlockTrapDoor.DoorHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
+                else -> {}
+            }
+        }
+
+        targetState.properties.entries.firstOrNull { it.key == BlockStairs.HALF }?.let { entry ->
+            stairsHalf = entry.value as BlockStairs.EnumHalf
+
+            when (stairsHalf) {
+                BlockStairs.EnumHalf.BOTTOM -> allowedSides.remove(EnumFacing.UP)
+                BlockStairs.EnumHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
                 else -> {}
             }
         }
@@ -149,10 +176,28 @@ class PlaceBlock(
         )?.let {
             var hitVec = it.hitVec
 
-            half?.let { half ->
+            blockHalf?.let { half ->
                 if (it.side in EnumFacing.HORIZONTALS) {
                     hitVec = when (half) {
                         EnumBlockHalf.BOTTOM -> hitVec.add(0.0, -0.1, 0.0)
+                        else -> hitVec.add(0.0, 0.1, 0.0)
+                    }
+                }
+            }
+
+            doorHalf?.let { half ->
+                if (it.side in EnumFacing.HORIZONTALS) {
+                    hitVec = when (half) {
+                        BlockTrapDoor.DoorHalf.BOTTOM -> hitVec.add(0.0, -0.1, 0.0)
+                        else -> hitVec.add(0.0, 0.1, 0.0)
+                    }
+                }
+            }
+
+            stairsHalf?.let { half ->
+                if (it.side in EnumFacing.HORIZONTALS) {
+                    hitVec = when (half) {
+                        BlockStairs.EnumHalf.BOTTOM -> hitVec.add(0.0, -0.1, 0.0)
                         else -> hitVec.add(0.0, 0.1, 0.0)
                     }
                 }
