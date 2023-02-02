@@ -25,7 +25,6 @@ import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
 import net.minecraft.block.BlockButton
-import net.minecraft.block.BlockDoor.EnumDoorHalf
 import net.minecraft.block.BlockEndPortalFrame
 import net.minecraft.block.BlockEnderChest
 import net.minecraft.block.BlockGlazedTerracotta
@@ -79,6 +78,11 @@ class PlaceBlock(
         }
 
         /* check if block is placeable */
+//        if (!targetState.block.canPlaceBlockOnSide(world, blockPos, EnumFacing.UP)) {
+//            failedWith(BlockNotPlaceableException(blockPos))
+//            return
+//        }
+
         if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
             if (world.worldBorder.contains(blockPos)
                 && !world.isOutsideBuildHeight(blockPos)) {
@@ -90,20 +94,25 @@ class PlaceBlock(
             return
         }
 
+        var direction = EnumFacing.UP
+
         /* rotate block to right direction */
         targetState.properties.entries.firstOrNull { it.key is PropertyDirection }?.let { entry ->
-            var direction = entry.value as EnumFacing
+            direction = entry.value as EnumFacing
 
-            direction = when (targetState.block) {
-                is BlockPistonBase,
-                is BlockEnderChest,
-                is BlockEndPortalFrame,
-                is BlockGlazedTerracotta,
-                is BlockPumpkin,
-                is BlockRedstoneComparator,
-                is BlockRedstoneDiode -> direction.opposite
-                else -> direction
-            }
+            if (targetState.block is BlockButton) return@let
+
+            val blocksToOppositeDirection = listOf(
+                BlockPistonBase::class,
+                BlockEnderChest::class,
+                BlockEndPortalFrame::class,
+                BlockGlazedTerracotta::class,
+                BlockPumpkin::class,
+                BlockRedstoneComparator::class,
+                BlockRedstoneDiode::class
+            )
+
+            if (targetState.block::class in blocksToOppositeDirection) direction = direction.opposite
 
             if (directionForce
                 && !ignoreDirection
@@ -149,6 +158,11 @@ class PlaceBlock(
                 BlockStairs.EnumHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
                 else -> {}
             }
+        }
+
+        if (targetState.block is BlockButton) {
+            allowedSides.clear()
+            allowedSides.add(direction.opposite)
         }
 
         /* check if item has required metadata (declares the type) */
@@ -203,21 +217,24 @@ class PlaceBlock(
                 }
             }
 
-            /* last check for placement state */
-            val resultingState = targetState.block.getStateForPlacement(
-                world,
-                it.pos,
-                it.side,
-                hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(),
-                stack.metadata,
-                player,
-                EnumHand.MAIN_HAND
-            )
-
-            if (resultingState != targetState && !spoofedDirection) {
-                failedWith(PlacementStateException(resultingState, targetState))
-                return
-            }
+//            /* last check for placement state */ ToDo: this has currently too low accuracy
+//            val resultingState = targetState.block.getStateForPlacement(
+//                world,
+//                it.pos,
+//                it.side,
+//                hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(),
+//                stack.metadata,
+//                player,
+//                EnumHand.MAIN_HAND
+//            )
+//
+//            if (resultingState != targetState
+//                && !spoofedDirection
+//                && targetState.block !is BlockButton
+//            ) {
+//                failedWith(PlacementStateException(resultingState, targetState))
+//                return
+//            }
 
             val isBlacklisted = world.getBlockState(it.pos).block in blockBlacklist
 
