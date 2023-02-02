@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.threads.safeListener
@@ -11,8 +12,9 @@ import net.minecraft.util.EnumHand
 
 class CreativeInventoryAction(
     private val slot: Int,
-    private val stack: ItemStack
-) : Activity() {
+    private val stack: ItemStack,
+    override val timeout: Long = 600L
+) : TimeoutActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.setHeldItem(EnumHand.MAIN_HAND, stack)
         connection.sendPacket(CPacketCreativeInventoryAction(slot, stack))
