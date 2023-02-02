@@ -24,12 +24,12 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
-import net.minecraft.block.BlockColored
+import net.minecraft.block.BlockGlazedTerracotta
+import net.minecraft.block.BlockSlab
+import net.minecraft.block.BlockSlab.EnumBlockHalf
 import net.minecraft.block.properties.PropertyDirection
 import net.minecraft.block.state.IBlockState
-import net.minecraft.item.EnumDyeColor
 import net.minecraft.item.ItemStack
-import net.minecraft.network.play.client.CPacketCreativeInventoryAction
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
@@ -57,16 +57,19 @@ class PlaceBlock(
     private var spoofedDirection = false
 
     override fun SafeClientEvent.onInitialize() {
+        /* check if is done */
         if (world.getBlockState(blockPos) == targetState) {
             success()
             return
         }
 
+        /* less strict done check */
         if (ignoreProperties && world.getBlockState(blockPos).block == targetState.block) {
             success()
             return
         }
 
+        /* check if block is placeable */
         if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
             if (world.worldBorder.contains(blockPos)
                 && !world.isOutsideBuildHeight(blockPos)) {
@@ -78,8 +81,14 @@ class PlaceBlock(
             return
         }
 
+        /* rotate block to right direction */
         targetState.properties.entries.firstOrNull { it.key is PropertyDirection }?.let { entry ->
-            val direction = (entry.value as EnumFacing).opposite
+            var direction = entry.value as EnumFacing
+
+            direction = when (targetState) { // ToDo: Exhaust all block types
+                is BlockGlazedTerracotta -> direction.opposite
+                else -> direction
+            }
 
             if (directionForce
                 && !ignoreDirection
@@ -91,31 +100,31 @@ class PlaceBlock(
             }
         }
 
-        targetState.properties.entries.firstOrNull { it.key == BlockColored.COLOR }?.let { entry ->
-            val meta = (entry.value as EnumDyeColor).metadata
+        /* half slab placement adjustments */
+        var half: EnumBlockHalf? = null
+        val allowedSides = EnumFacing.VALUES.toMutableList()
 
-            if (player.getHeldItem(EnumHand.MAIN_HAND).metadata != meta) {
-                if (!player.capabilities.isCreativeMode) {
-                    addSubActivities(AcquireItemInActiveHand(targetState.block.item, metadata = meta, predicateItem = {
-                        it.metadata == meta
-                    }))
-                    return
-                }
+        targetState.properties.entries.firstOrNull { it.key == BlockSlab.HALF }?.let { entry ->
+            half = entry.value as EnumBlockHalf
 
-                val stack = ItemStack(targetState.block.item, 1, meta)
-
-                addSubActivities(CreativeInventoryAction(36 + player.inventory.currentItem, stack))
-                return
+            when (half) {
+                EnumBlockHalf.BOTTOM -> allowedSides.remove(EnumFacing.UP)
+                EnumBlockHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
+                else -> {}
             }
         }
 
-        if (player.getHeldItem(EnumHand.MAIN_HAND).item.block != targetState.block) {
+        /* check if item has required metadata (declares the type) */
+        val heldItem = player.getHeldItem(EnumHand.MAIN_HAND)
+        val meta = targetState.block.getMetaFromState(targetState)
+
+        if (heldItem.item.block != targetState.block || meta != heldItem.metadata) {
             if (!player.capabilities.isCreativeMode) {
-                addSubActivities(AcquireItemInActiveHand(targetState.block.item))
+                addSubActivities(AcquireItemInActiveHand(targetState.block.item, metadata = meta))
                 return
             }
 
-            val stack = ItemStack(targetState.block.item)
+            val stack = ItemStack(targetState.block.item, 1, meta)
 
             addSubActivities(CreativeInventoryAction(36 + player.inventory.currentItem, stack))
             return
@@ -125,8 +134,28 @@ class PlaceBlock(
             blockPos,
             attempts = BuildTools.placementSearch,
             visibleSideCheck = BuildTools.illegalPlacements,
-            range = BuildTools.maxReach
+            range = BuildTools.maxReach,
+            sides = allowedSides.toTypedArray()
         )?.let {
+            var hitVec = it.hitVec
+
+            half?.let { half ->
+                if (it.side in EnumFacing.HORIZONTALS) {
+                    hitVec = when (half) {
+                        EnumBlockHalf.BOTTOM -> hitVec.add(0.0, -0.1, 0.0)
+                        else -> hitVec.add(0.0, 0.1, 0.0)
+                    }
+                }
+            }
+
+            /* last check for placement state */
+            val resultingState = targetState.block.getStateForPlacement(world, it.pos, it.side, hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(), meta, player, EnumHand.MAIN_HAND)
+
+            if (resultingState != targetState && !spoofedDirection) {
+                failedWith(PlacementStateException(resultingState, targetState))
+                return
+            }
+
             val isBlacklisted = world.getBlockState(it.pos).block in blockBlacklist
 
             renderActivity.color = ColorHolder(11, 66, 89)
@@ -135,9 +164,9 @@ class PlaceBlock(
                 connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
             }
 
-            rotation = getRotationTo(it.hitVec)
+            rotation = getRotationTo(hitVec)
 
-            val result = playerController.processRightClickBlock(player, world, it.pos, it.side, it.hitVec, EnumHand.MAIN_HAND)
+            val result = playerController.processRightClickBlock(player, world, it.pos, it.side, hitVec, EnumHand.MAIN_HAND)
 
             if (result != EnumActionResult.SUCCESS) {
                 failedWith(ProcessRightClickException(result))
@@ -212,6 +241,7 @@ class PlaceBlock(
 
     class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for (${blockPos.asString()}) found")
     class ProcessRightClickException(result: EnumActionResult) : Exception("Processing right click failed with result $result")
+    class PlacementStateException(placementState: IBlockState, targetState: IBlockState) : Exception("Placement state $placementState does not match target state $targetState")
     class UnexpectedBlockStateException(blockPos: BlockPos, expected: IBlockState, actual: IBlockState) : Exception("Unexpected block state at (${blockPos.asString()}) expected $expected but got $actual")
     class BlockOutsideOfWorldException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
 }
