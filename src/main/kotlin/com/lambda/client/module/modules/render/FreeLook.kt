@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.MathHelper
@@ -25,10 +26,12 @@ object FreeLook : Module(
 
     init {
         onEnable {
-            thirdPersonBefore = mc.gameSettings.thirdPersonView
-            mc.gameSettings.thirdPersonView = 1;
-            cameraYaw = mc.player.rotationYaw + 180.0f
-            cameraPitch = mc.player.rotationPitch
+            runSafe {
+                thirdPersonBefore = mc.gameSettings.thirdPersonView
+                mc.gameSettings.thirdPersonView = 1;
+                cameraYaw = player.rotationYaw + 180.0f
+                cameraPitch = player.rotationPitch
+            }
         }
 
         onDisable {
@@ -36,26 +39,26 @@ object FreeLook : Module(
         }
 
         safeListener<EntityViewRenderEvent.CameraSetup> {
-            if (mc.gameSettings.thirdPersonView > 0) {
-                it.yaw = cameraYaw
-                it.pitch = cameraPitch
-            }
+            if (mc.gameSettings.thirdPersonView <= 0) return@safeListener
+
+            it.yaw = cameraYaw
+            it.pitch = cameraPitch
         }
 
         safeListener<InputUpdateEvent> {
-            if (arrowKeyYawAdjust) {
-                if (it.movementInput.leftKeyDown) {
-                    // shift cam and player rot left by x degrees
-                    updateYaw(-arrowKeyYawAdjustIncrement)
-                    it.movementInput.leftKeyDown = false
-                }
-                if (it.movementInput.rightKeyDown) {
-                    // shift cam and player rot right by x degrees
-                    updateYaw(arrowKeyYawAdjustIncrement)
-                    it.movementInput.rightKeyDown = false
-                }
-                it.movementInput.moveStrafe = 0.0f
+            if (!arrowKeyYawAdjust) return@safeListener
+
+            if (it.movementInput.leftKeyDown) {
+                // shift cam and player rot left by x degrees
+                updateYaw(-arrowKeyYawAdjustIncrement)
+                it.movementInput.leftKeyDown = false
             }
+            if (it.movementInput.rightKeyDown) {
+                // shift cam and player rot right by x degrees
+                updateYaw(arrowKeyYawAdjustIncrement)
+                it.movementInput.rightKeyDown = false
+            }
+            it.movementInput.moveStrafe = 0.0f
         }
     }
 
