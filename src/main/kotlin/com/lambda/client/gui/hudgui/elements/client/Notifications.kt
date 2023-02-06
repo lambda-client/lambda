@@ -1,10 +1,12 @@
 package com.lambda.client.gui.hudgui.elements.client
 
 import com.lambda.client.gui.hudgui.HudElement
+import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.graphics.font.HAlign
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeAsyncListener
@@ -68,20 +70,33 @@ internal object Notifications : HudElement(
 
         val currentTime = System.currentTimeMillis()
         val elapsedTime = currentTime - startTime
-        val timeout = (88 * elapsedTime) / duration
-        val timeoutBarWidth = if (timeout > 88) 88 else if (timeout < 0) 0 else timeout
+
+        val textWidth = FontRenderAdapter.getStringWidth(notification.text, 0.7f, true)
+        val width: Double = if(textWidth > 88) textWidth + 25.0 else 90.0
+        val clearWidth = width - 2
+
+        val timeout = (clearWidth * elapsedTime) / duration
+        val timeoutBarWidth = if (timeout > clearWidth) clearWidth else if (timeout < 0) 0 else timeout
+
+        val borderPosBegin = if(dockingH == HAlign.RIGHT) Vec2d(width, 0.0) else Vec2d(0.0, 0.0)
+        val borderPosEnd = if(dockingH == HAlign.RIGHT) Vec2d(clearWidth, 23.0) else Vec2d(2.0, 23.0)
+
+        val timeoutBarPosBegin = if(dockingH == HAlign.RIGHT) Vec2d(timeoutBarWidth.toDouble(), 23.0)
+        else Vec2d(2.0, 23.0)
+        val timeoutBarPosEnd = if(dockingH == HAlign.RIGHT) Vec2d(clearWidth, 22.0)
+        else Vec2d(clearWidth - timeoutBarWidth.toDouble(), 22.0)
 
         // Draw background
-        RenderUtils2D.drawRectFilled(vertexHelper, Vec2d.ZERO, Vec2d(90.0, 23.0), ColorHolder(0, 0, 0, 127))
+        RenderUtils2D.drawRectFilled(vertexHelper, Vec2d.ZERO, Vec2d(width, 23.0), GuiColors.backGround)
 
         // Draw timeout bar
-        RenderUtils2D.drawRectFilled(vertexHelper, Vec2d(timeoutBarWidth.toDouble(), 23.0), Vec2d(88.0, 22.0), color)
+        RenderUtils2D.drawRectFilled(vertexHelper, timeoutBarPosBegin, timeoutBarPosEnd, color)
 
-        // Draw right border
-        RenderUtils2D.drawRectFilled(vertexHelper, Vec2d(90.0, 0.0), Vec2d(88.0, 23.0), color)
+        // Draw border
+        RenderUtils2D.drawRectFilled(vertexHelper, borderPosBegin, borderPosEnd, color)
 
         // Draw text
-        FontRenderAdapter.drawString(notification.text, 10.0f, 9.0f, true, ColorHolder(), 0.6f, true)
+        FontRenderAdapter.drawString(notification.text, 10.0f, 10.5f, true, ColorHolder(), 0.7f, true)
     }
 
     fun addNotification(notification: Notification) {
