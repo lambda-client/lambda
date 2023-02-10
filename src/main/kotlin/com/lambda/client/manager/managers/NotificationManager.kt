@@ -1,9 +1,9 @@
 package com.lambda.client.manager.managers
 
-import com.lambda.client.gui.hudgui.elements.client.Notification
-import com.lambda.client.gui.hudgui.elements.client.NotificationType
-import com.lambda.client.gui.hudgui.elements.client.Notifications
 import com.lambda.client.manager.Manager
+import com.lambda.client.module.modules.client.Notifications
+import com.lambda.client.util.notifications.Notification
+import com.lambda.client.util.notifications.NotificationType
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
