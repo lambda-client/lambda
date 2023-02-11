@@ -71,11 +71,7 @@ object Notifications : Module(
 
     private fun drawNotification(vertexHelper: VertexHelper, notification: Notification) {
 
-        val color = when (notification.type) {
-            NotificationType.INFO -> ColorHolder(3, 169, 244)
-            NotificationType.WARNING -> ColorHolder(255, 255, 0)
-            NotificationType.ERROR -> ColorHolder(255, 0, 0)
-        }
+        val color = colorFromType(notification.type)
 
         val startTime = notification.startTime
         val duration = notification.duration
@@ -86,6 +82,8 @@ object Notifications : Module(
         val textScale = (notificationHeight / 16f).toFloat().coerceAtMost(1.0f)
         val textWidth = FontRenderAdapter.getStringWidth(notification.text, textScale, CustomFont.isEnabled)
         val textHeight = FontRenderAdapter.getFontHeight(textScale, CustomFont.isEnabled)
+        val textPosY = ((notificationHeight / 2.5) - (textHeight / 2)).toFloat()
+
         val width: Double = if(textWidth > 88) textWidth + 25.0 else 90.0
         val clearWidth = width - 2
 
@@ -110,7 +108,7 @@ object Notifications : Module(
         RenderUtils2D.drawRectFilled(vertexHelper, borderPosBegin, borderPosEnd, color)
 
         // Draw text
-        FontRenderAdapter.drawString(notification.text, 4.0f, ((notificationHeight / 2.5) - (textHeight / 2)).toFloat(), true, ColorHolder(), textScale, CustomFont.isEnabled)
+        FontRenderAdapter.drawString(notification.text, 4.0f, textPosY, true, ColorHolder(), textScale, CustomFont.isEnabled)
     }
     fun addNotification(notification: Notification) {
         if (mode == NotificationMode.CHAT || mode == NotificationMode.RENDER_AND_CHAT) {
@@ -119,5 +117,11 @@ object Notifications : Module(
         if (mode == NotificationMode.RENDER || mode == NotificationMode.RENDER_AND_CHAT) {
             notifications.add(notification)
         }
+    }
+
+    private fun colorFromType(notificationType: NotificationType): ColorHolder = when (notificationType) {
+        NotificationType.INFO -> ColorHolder(3, 169, 244)
+        NotificationType.WARNING -> ColorHolder(255, 255, 0)
+        NotificationType.ERROR -> ColorHolder(255, 0, 0)
     }
 }
