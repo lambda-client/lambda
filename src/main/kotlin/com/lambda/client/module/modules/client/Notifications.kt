@@ -79,7 +79,7 @@ object Notifications : Module(
         val currentTime = System.currentTimeMillis()
         val elapsedTime = currentTime - startTime
 
-        val textScale = (notificationHeight / 16f).toFloat().coerceAtMost(1.0f)
+        val textScale = (notificationHeight / 32f).toFloat().coerceAtMost(1.0f)
         val textWidth = FontRenderAdapter.getStringWidth(notification.text, textScale, CustomFont.isEnabled)
         val textHeight = FontRenderAdapter.getFontHeight(textScale, CustomFont.isEnabled)
         val textPosY = ((notificationHeight / 2.5) - (textHeight / 2)).toFloat()
