@@ -8,8 +8,10 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
+import net.minecraft.client.gui.GuiScreen
 import org.lwjgl.input.Keyboard
 import kotlin.math.max
+import kotlin.math.min
 
 class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0, setting.description, setting.visibility) {
 
@@ -63,6 +65,16 @@ class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0
         val typedChar = Keyboard.getEventCharacter()
         if (keyState) {
             when (keyCode) {
+                Keyboard.KEY_V, Keyboard.KEY_INSERT -> {
+                    if (!GuiScreen.isCtrlKeyDown() && keyCode != Keyboard.KEY_INSERT) return
+                    componentName = GuiScreen.getClipboardString().substring(0, min(GuiScreen.getClipboardString().length - 1, 256)).replace("\n", "")
+                    onStopListening(true)
+                }
+                Keyboard.KEY_C -> {
+                    if (!GuiScreen.isCtrlKeyDown()) return
+                    GuiScreen.setClipboardString(componentName)
+                    onStopListening(true)
+                }
                 Keyboard.KEY_RETURN -> {
                     onStopListening(true)
                 }
