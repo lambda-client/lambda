@@ -21,10 +21,10 @@ object NotificationManager : Manager {
     }
 
     fun registerNotification(message: String) {
-        pendingNotifications.add(Notification(message, NotificationType.INFO, 3000))
+        pendingNotifications.add(Notification(message, NotificationType.INFO))
     }
 
     fun registerNotification(message: String, type: NotificationType) {
-        pendingNotifications.add(Notification(message, type, 3000))
+        pendingNotifications.add(Notification(message, type))
     }
 }

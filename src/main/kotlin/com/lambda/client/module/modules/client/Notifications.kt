@@ -25,11 +25,19 @@ object Notifications : Module(
     alwaysListening = true,
     enabledByDefault = true
 ) {
-    private val mode by setting("Mode", NotificationMode.RENDER)
-    private val notificationHeight by setting("Notification Height", 15.0, 13.0..25.0, 1.0)
-    private val renderLocation by setting("Render Location", RenderLocation.BOTTOM_RIGHT)
-    private val horizontalPadding by setting("W Padding", 6f, 0f..40f, 1f)
-    private val verticalPadding by setting("H Padding", 15f, 0f..40f, 1f)
+    private val page by setting("Page", Page.GENERAL)
+
+    // General settings
+    private val mode by setting("Mode", NotificationMode.RENDER, { page == Page.GENERAL })
+    private val notificationHeight by setting("Notification Height", 15.0, 13.0..25.0, 1.0, { page == Page.GENERAL })
+    private val renderLocation by setting("Render Location", RenderLocation.BOTTOM_RIGHT, { page == Page.GENERAL })
+    private val horizontalPadding by setting("W Padding", 6f, 0f..40f, 1f, { page == Page.GENERAL })
+    private val verticalPadding by setting("H Padding", 15f, 0f..40f, 1f, { page == Page.GENERAL })
+
+    // Timeout settings
+    private val infoTimeout by setting("Info Timeout", 3000, 1000..10000, 100, { page == Page.TIMEOUT })
+    private val warningTimeout by setting("Warning Timeout", 4000, 1000..10000, 100, { page == Page.TIMEOUT })
+    private val errorTimeout by setting("Error Timeout", 7000, 1000..10000, 100, { page == Page.TIMEOUT })
 
     enum class RenderLocation(val renderDirection: Int) {
         BOTTOM_RIGHT(-1), TOP_RIGHT(1), TOP_LEFT(1)
@@ -37,6 +45,10 @@ object Notifications : Module(
 
     enum class NotificationMode {
         RENDER, CHAT, RENDER_AND_CHAT
+    }
+
+    private enum class Page {
+        GENERAL, TIMEOUT
     }
 
     private val notifications = mutableListOf<Notification>()
@@ -133,6 +145,12 @@ object Notifications : Module(
     }
 
     fun addNotification(notification: Notification) {
+        if (notification.duration == 0) when (notification.type) {
+            NotificationType.INFO -> notification.duration = infoTimeout
+            NotificationType.WARNING -> notification.duration = warningTimeout
+            NotificationType.ERROR -> notification.duration = errorTimeout
+        }
+
         if (mode == NotificationMode.CHAT || mode == NotificationMode.RENDER_AND_CHAT) {
             MessageSendHelper.sendChatMessage(notification.text)
         }
