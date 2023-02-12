@@ -82,21 +82,21 @@ object Notifications : Module(
         val textHeight = FontRenderAdapter.getFontHeight(textScale, CustomFont.isEnabled)
         val textPosY = ((notificationHeight / 2.5) - (textHeight / 2)).toFloat()
 
-        val width: Double = if(textWidth > 88) textWidth + 25.0 else 90.0
+        val width: Double = if (textWidth > 88) textWidth + 25.0 else 90.0
         val clearWidth = width - 2
 
         val timeout = (clearWidth * elapsedTime) / duration
         val timeoutBarWidth = if (timeout > clearWidth) clearWidth else if (timeout < 0) 0 else timeout
 
-        val borderPosBegin = if(renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(width, 0.0) else Vec2d(0.0, 0.0)
-        val borderPosEnd = if(renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(clearWidth, notificationHeight) else Vec2d(2.0, notificationHeight)
+        val borderPosBegin = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(width, 0.0) else Vec2d(0.0, 0.0)
+        val borderPosEnd = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(clearWidth, notificationHeight) else Vec2d(2.0, notificationHeight)
 
-        val timeoutBarPosBegin = if(renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(timeoutBarWidth.toDouble(), notificationHeight)
+        val timeoutBarPosBegin = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(timeoutBarWidth.toDouble(), notificationHeight)
         else Vec2d(2.0, notificationHeight)
-        val timeoutBarPosEnd = if(renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(clearWidth, notificationHeight - 1)
+        val timeoutBarPosEnd = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(clearWidth, notificationHeight - 1)
         else Vec2d(clearWidth - timeoutBarWidth.toDouble(), notificationHeight - 1)
 
-        val alpha: Int = when(elapsedTime) {
+        val alpha: Int = when (elapsedTime) {
             // "Fade in" alpha
             in 0..duration - 200 ->
                 ((255 * elapsedTime) / 200).toInt().coerceAtMost(255).coerceAtLeast(0)
@@ -106,13 +106,15 @@ object Notifications : Module(
                 val timeLeft = duration - elapsedTime
                 ((255 * timeLeft) / 200).toInt().coerceAtMost(255).coerceAtLeast(0)
             }
+
             else -> 0
         }
 
         val color = colorFromType(notification.type, alpha)
-        val backgroundColor: ColorHolder = when(alpha) {
+        val backgroundColor: ColorHolder = when (alpha) {
             in 0..GuiColors.backGround.a -> ColorHolder(GuiColors.backGround.r, GuiColors.backGround.g,
                 GuiColors.backGround.b, alpha)
+
             else -> GuiColors.backGround
         }
 
@@ -129,6 +131,7 @@ object Notifications : Module(
         FontRenderAdapter.drawString(notification.text, 4.0f, textPosY, true,
             ColorHolder(255, 255, 255, alpha), textScale, CustomFont.isEnabled)
     }
+
     fun addNotification(notification: Notification) {
         if (mode == NotificationMode.CHAT || mode == NotificationMode.RENDER_AND_CHAT) {
             MessageSendHelper.sendChatMessage(notification.text)
