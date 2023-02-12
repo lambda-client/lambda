@@ -100,12 +100,12 @@ object Notifications : Module(
         val timeout = (clearWidth * elapsedTime) / duration
         val timeoutBarWidth = if (timeout > clearWidth) clearWidth else if (timeout < 0) 0 else timeout
 
-        val borderPosBegin = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(width, 0.0) else Vec2d(0.0, 0.0)
-        val borderPosEnd = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(clearWidth, notificationHeight) else Vec2d(2.0, notificationHeight)
+        val borderPosBegin = if (renderLocation.name.contains("RIGHT")) Vec2d(width, 0.0) else Vec2d(0.0, 0.0)
+        val borderPosEnd = if (renderLocation.name.contains("RIGHT")) Vec2d(clearWidth, notificationHeight) else Vec2d(2.0, notificationHeight)
 
-        val timeoutBarPosBegin = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(timeoutBarWidth.toDouble(), notificationHeight)
+        val timeoutBarPosBegin = if (renderLocation.name.contains("RIGHT")) Vec2d(timeoutBarWidth.toDouble(), notificationHeight)
         else Vec2d(2.0, notificationHeight)
-        val timeoutBarPosEnd = if (renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(clearWidth, notificationHeight - 1)
+        val timeoutBarPosEnd = if (renderLocation.name.contains("RIGHT")) Vec2d(clearWidth, notificationHeight - 1)
         else Vec2d(clearWidth - timeoutBarWidth.toDouble(), notificationHeight - 1)
 
         val alpha: Int = when (elapsedTime) {
