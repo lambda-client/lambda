@@ -71,8 +71,6 @@ object Notifications : Module(
 
     private fun drawNotification(vertexHelper: VertexHelper, notification: Notification) {
 
-        val color = colorFromType(notification.type)
-
         val startTime = notification.startTime
         val duration = notification.duration
 
@@ -98,8 +96,28 @@ object Notifications : Module(
         val timeoutBarPosEnd = if(renderLocation == RenderLocation.BOTTOM_RIGHT) Vec2d(clearWidth, notificationHeight - 1)
         else Vec2d(clearWidth - timeoutBarWidth.toDouble(), notificationHeight - 1)
 
+        val alpha: Int = when(elapsedTime) {
+            // "Fade in" alpha
+            in 0..duration - 200 ->
+                ((255 * elapsedTime) / 200).toInt().coerceAtMost(255).coerceAtLeast(0)
+
+            // "Fade out" alpha
+            in duration - 200..duration -> {
+                val timeLeft = duration - elapsedTime
+                ((255 * timeLeft) / 200).toInt().coerceAtMost(255).coerceAtLeast(0)
+            }
+            else -> 0
+        }
+
+        val color = colorFromType(notification.type, alpha)
+        val backgroundColor: ColorHolder = when(alpha) {
+            in 0..GuiColors.backGround.a -> ColorHolder(GuiColors.backGround.r, GuiColors.backGround.g,
+                GuiColors.backGround.b, alpha)
+            else -> GuiColors.backGround
+        }
+
         // Draw background
-        RenderUtils2D.drawRectFilled(vertexHelper, Vec2d.ZERO, Vec2d(width, notificationHeight), GuiColors.backGround)
+        RenderUtils2D.drawRectFilled(vertexHelper, Vec2d.ZERO, Vec2d(width, notificationHeight), backgroundColor)
 
         // Draw timeout bar
         RenderUtils2D.drawRectFilled(vertexHelper, timeoutBarPosBegin, timeoutBarPosEnd, color)
@@ -108,7 +126,8 @@ object Notifications : Module(
         RenderUtils2D.drawRectFilled(vertexHelper, borderPosBegin, borderPosEnd, color)
 
         // Draw text
-        FontRenderAdapter.drawString(notification.text, 4.0f, textPosY, true, ColorHolder(), textScale, CustomFont.isEnabled)
+        FontRenderAdapter.drawString(notification.text, 4.0f, textPosY, true,
+            ColorHolder(255, 255, 255, alpha), textScale, CustomFont.isEnabled)
     }
     fun addNotification(notification: Notification) {
         if (mode == NotificationMode.CHAT || mode == NotificationMode.RENDER_AND_CHAT) {
@@ -119,9 +138,9 @@ object Notifications : Module(
         }
     }
 
-    private fun colorFromType(notificationType: NotificationType): ColorHolder = when (notificationType) {
-        NotificationType.INFO -> ColorHolder(3, 169, 244)
-        NotificationType.WARNING -> ColorHolder(255, 255, 0)
-        NotificationType.ERROR -> ColorHolder(255, 0, 0)
+    private fun colorFromType(notificationType: NotificationType, alpha: Int = 255): ColorHolder = when (notificationType) {
+        NotificationType.INFO -> ColorHolder(3, 169, 244, alpha)
+        NotificationType.WARNING -> ColorHolder(255, 255, 0, alpha)
+        NotificationType.ERROR -> ColorHolder(255, 0, 0, alpha)
     }
 }
