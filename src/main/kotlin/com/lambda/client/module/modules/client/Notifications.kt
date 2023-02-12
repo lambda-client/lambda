@@ -40,7 +40,7 @@ object Notifications : Module(
     private val errorTimeout by setting("Error Timeout", 7000, 1000..10000, 100, { page == Page.TIMEOUT })
 
     enum class RenderLocation(val renderDirection: Int) {
-        BOTTOM_RIGHT(-1), TOP_RIGHT(1), TOP_LEFT(1)
+        BOTTOM_RIGHT(-1), BOTTOM_LEFT(-1), TOP_RIGHT(1), TOP_LEFT(1)
     }
 
     enum class NotificationMode {
@@ -71,6 +71,7 @@ object Notifications : Module(
                 GlStateManager.pushMatrix()
                 when (renderLocation) {
                     RenderLocation.BOTTOM_RIGHT -> GL11.glTranslatef((scaledResolution.scaledWidth_double - horizontalPadding - 90).toFloat(), (scaledResolution.scaledHeight_double - verticalPadding - notificationHeight).toFloat(), 0f)
+                    RenderLocation.BOTTOM_LEFT -> GL11.glTranslatef(horizontalPadding, (scaledResolution.scaledHeight_double - verticalPadding - notificationHeight).toFloat(), 0f)
                     RenderLocation.TOP_RIGHT -> GL11.glTranslatef((scaledResolution.scaledWidth_double - horizontalPadding - 90).toFloat(), verticalPadding, 0f)
                     RenderLocation.TOP_LEFT -> GL11.glTranslatef(horizontalPadding, verticalPadding, 0f)
                 }
