@@ -27,7 +27,6 @@ class PlaceContainer(
         addSubActivities(PlaceBlock(
             containerPos,
             targetState,
-            ignoreDirection = true,
             ignoreProperties = true
         ))
     }

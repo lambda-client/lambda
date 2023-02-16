@@ -2,7 +2,6 @@ package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.inventory.CreativeInventoryAction
 import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
@@ -14,6 +13,7 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.module.modules.client.BuildTools.directionForce
+import com.lambda.client.module.modules.client.BuildTools.placeStrictness
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.block
 import com.lambda.client.util.items.blockBlacklist
@@ -24,32 +24,21 @@ import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
-import net.minecraft.block.BlockButton
-import net.minecraft.block.BlockEndPortalFrame
-import net.minecraft.block.BlockEnderChest
-import net.minecraft.block.BlockGlazedTerracotta
-import net.minecraft.block.BlockPistonBase
-import net.minecraft.block.BlockPumpkin
-import net.minecraft.block.BlockRedstoneComparator
-import net.minecraft.block.BlockRedstoneDiode
-import net.minecraft.block.BlockSlab
-import net.minecraft.block.BlockSlab.EnumBlockHalf
-import net.minecraft.block.BlockStairs
-import net.minecraft.block.BlockTrapDoor
-import net.minecraft.block.properties.PropertyDirection
+import net.minecraft.block.*
 import net.minecraft.block.state.IBlockState
+import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.IStringSerializable
 import net.minecraft.util.math.BlockPos
 
 class PlaceBlock(
     private val blockPos: BlockPos,
     private val targetState: IBlockState,
     private val doPending: Boolean = false,
-    private val ignoreDirection: Boolean = false,
     private val ignoreProperties: Boolean = false,
     override var rotation: Vec2f = Vec2f.ZERO,
     override val timeout: Long = 200L,
@@ -63,6 +52,20 @@ class PlaceBlock(
     ).also { toRender.add(it) }
 
     private var spoofedDirection = false
+
+    private enum class PlacementOffset {
+        TOP, NONE, BOTTOM
+    }
+
+    private val blocksToOppositeDirection = listOf(
+        BlockPistonBase::class,
+        BlockEnderChest::class,
+        BlockEndPortalFrame::class,
+        BlockGlazedTerracotta::class,
+        BlockPumpkin::class,
+        BlockRedstoneComparator::class,
+        BlockRedstoneDiode::class
+    )
 
     override fun SafeClientEvent.onInitialize() {
         /* check if is done */
@@ -94,28 +97,29 @@ class PlaceBlock(
             return
         }
 
-        var direction = EnumFacing.UP
+        val allowedSides = EnumFacing.VALUES.toMutableList()
+        var placementOffset = PlacementOffset.NONE
+
+//        var allowedRotations = targetState.block.getValidRotations(world, blockPos)?.toMutableSet()
 
         /* rotate block to right direction */
-        targetState.properties.entries.firstOrNull { it.key is PropertyDirection }?.let { entry ->
-            direction = entry.value as EnumFacing
+        targetState.properties.entries.firstOrNull { it.key.name == "facing" }?.let { entry ->
+            var direction = entry.value as EnumFacing
 
-            if (targetState.block is BlockButton) return@let
+            if (targetState.block is BlockButton) {
+                allowedSides.clear()
+                allowedSides.add(direction.opposite)
+                return@let
+            }
 
-            val blocksToOppositeDirection = listOf(
-                BlockPistonBase::class,
-                BlockEnderChest::class,
-                BlockEndPortalFrame::class,
-                BlockGlazedTerracotta::class,
-                BlockPumpkin::class,
-                BlockRedstoneComparator::class,
-                BlockRedstoneDiode::class
-            )
+//            BlockDirectional
+//            BlockHorizontal
+//            BlockTorch
+//            BlockLever
 
             if (targetState.block::class in blocksToOppositeDirection) direction = direction.opposite
 
             if (directionForce
-                && !ignoreDirection
                 && !spoofedDirection
                 && player.horizontalFacing != direction
             ) {
@@ -124,117 +128,96 @@ class PlaceBlock(
             }
         }
 
-        /* half slab placement adjustments */
-        var blockHalf: EnumBlockHalf? = null
-        var doorHalf: BlockTrapDoor.DoorHalf? = null
-        var stairsHalf: BlockStairs.EnumHalf? = null
-        val allowedSides = EnumFacing.VALUES.toMutableList()
+        targetState.properties.entries.firstOrNull { it.key.name == "half" }?.let { entry ->
+            val half = entry.value as IStringSerializable
+            placementOffset = when (half.name) {
+                "top" -> {
+                    allowedSides.remove(EnumFacing.DOWN)
+                    PlacementOffset.TOP
+                }
+                else -> {
+                    allowedSides.remove(EnumFacing.UP)
+                    PlacementOffset.BOTTOM
+                }
+            }
+        }
 
-        targetState.properties.entries.firstOrNull { it.key == BlockSlab.HALF }?.let { entry ->
-            blockHalf = entry.value as EnumBlockHalf
+        targetState.properties.entries.firstOrNull { it.key.name == "axis" }?.let { entry ->
+            val axis = entry.value as IStringSerializable
 
-            when (blockHalf) {
-                EnumBlockHalf.BOTTOM -> allowedSides.remove(EnumFacing.UP)
-                EnumBlockHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
+            when (axis.name) {
+                "x" -> allowedSides.removeIf { it.axis != EnumFacing.Axis.X }
+                "y" -> allowedSides.removeIf { it.axis != EnumFacing.Axis.Y }
+                "z" -> allowedSides.removeIf { it.axis != EnumFacing.Axis.Z }
                 else -> {}
             }
         }
 
-        targetState.properties.entries.firstOrNull { it.key == BlockTrapDoor.HALF }?.let { entry ->
-            doorHalf = entry.value as BlockTrapDoor.DoorHalf
-
-            when (doorHalf) {
-                BlockTrapDoor.DoorHalf.BOTTOM -> allowedSides.remove(EnumFacing.UP)
-                BlockTrapDoor.DoorHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
+        targetState.properties.entries.firstOrNull { it.key.name == "variant" }?.let { entry ->
+            when (entry.value) {
+                BlockQuartz.EnumType.LINES_X -> allowedSides.removeIf { it.axis != EnumFacing.Axis.X }
+                BlockQuartz.EnumType.LINES_Y -> allowedSides.removeIf { it.axis != EnumFacing.Axis.Y }
+                BlockQuartz.EnumType.LINES_Z -> allowedSides.removeIf { it.axis != EnumFacing.Axis.Z }
                 else -> {}
             }
-        }
-
-        targetState.properties.entries.firstOrNull { it.key == BlockStairs.HALF }?.let { entry ->
-            stairsHalf = entry.value as BlockStairs.EnumHalf
-
-            when (stairsHalf) {
-                BlockStairs.EnumHalf.BOTTOM -> allowedSides.remove(EnumFacing.UP)
-                BlockStairs.EnumHalf.TOP -> allowedSides.remove(EnumFacing.DOWN)
-                else -> {}
-            }
-        }
-
-        if (targetState.block is BlockButton) {
-            allowedSides.clear()
-            allowedSides.add(direction.opposite)
         }
 
         /* check if item has required metadata (declares the type) */
         val heldItem = player.getHeldItem(EnumHand.MAIN_HAND)
 
-        @Suppress("DEPRECATION")
-        val stack = targetState.block.getItem(world, blockPos, targetState)
-
-        if (heldItem.item.block != targetState.block || stack.metadata != heldItem.metadata) {
-            if (!player.capabilities.isCreativeMode) {
-                addSubActivities(AcquireItemInActiveHand(targetState.block.item, metadata = stack.metadata))
-                return
+        if (!ignoreProperties) {
+            val stack = if (targetState.block is BlockShulkerBox) {
+                ItemStack(targetState.block, 1, targetState.block.getMetaFromState(targetState))
+            } else {
+                @Suppress("DEPRECATION")
+                targetState.block.getItem(world, blockPos, targetState)
             }
 
-            addSubActivities(CreativeInventoryAction(36 + player.inventory.currentItem, stack))
-            return
+            if (heldItem.item.block != targetState.block || stack.metadata != heldItem.metadata) {
+                addSubActivities(AcquireItemInActiveHand(
+                    targetState.block.item,
+                    metadata = stack.metadata
+                ))
+                return
+            }
+        } else {
+            if (heldItem.item.block != targetState.block) {
+                addSubActivities(AcquireItemInActiveHand(targetState.block.item))
+                return
+            }
         }
 
         getNeighbour(
             blockPos,
             attempts = BuildTools.placementSearch,
-            visibleSideCheck = BuildTools.illegalPlacements,
+            visibleSideCheck = placeStrictness != BuildTools.PlacementStrictness.ANY,
             range = BuildTools.maxReach,
             sides = allowedSides.toTypedArray()
         )?.let {
-            var hitVec = it.hitVec
-
-            blockHalf?.let { half ->
-                if (it.side in EnumFacing.HORIZONTALS) {
-                    hitVec = when (half) {
-                        EnumBlockHalf.BOTTOM -> hitVec.add(0.0, -0.1, 0.0)
-                        else -> hitVec.add(0.0, 0.1, 0.0)
-                    }
-                }
+            val hitVec = when (placementOffset) {
+                PlacementOffset.TOP -> it.hitVec.add(0.0, 0.1, 0.0)
+                PlacementOffset.BOTTOM -> it.hitVec.add(0.0, -0.1, 0.0)
+                else -> it.hitVec
             }
 
-            doorHalf?.let { half ->
-                if (it.side in EnumFacing.HORIZONTALS) {
-                    hitVec = when (half) {
-                        BlockTrapDoor.DoorHalf.BOTTOM -> hitVec.add(0.0, -0.1, 0.0)
-                        else -> hitVec.add(0.0, 0.1, 0.0)
-                    }
-                }
-            }
+            /* last check for placement state */
+            val resultingState = targetState.block.getStateForPlacement(
+                world,
+                it.pos,
+                it.side,
+                hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(),
+                heldItem.metadata,
+                player,
+                EnumHand.MAIN_HAND
+            )
 
-            stairsHalf?.let { half ->
-                if (it.side in EnumFacing.HORIZONTALS) {
-                    hitVec = when (half) {
-                        BlockStairs.EnumHalf.BOTTOM -> hitVec.add(0.0, -0.1, 0.0)
-                        else -> hitVec.add(0.0, 0.1, 0.0)
-                    }
-                }
+            if (resultingState != targetState
+                && !spoofedDirection
+                && targetState.block !is BlockButton // ToDo: find out why buttons don't work with this
+            ) {
+                failedWith(PlacementStateException(resultingState, targetState))
+                return
             }
-
-//            /* last check for placement state */ ToDo: this has currently too low accuracy
-//            val resultingState = targetState.block.getStateForPlacement(
-//                world,
-//                it.pos,
-//                it.side,
-//                hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(),
-//                stack.metadata,
-//                player,
-//                EnumHand.MAIN_HAND
-//            )
-//
-//            if (resultingState != targetState
-//                && !spoofedDirection
-//                && targetState.block !is BlockButton
-//            ) {
-//                failedWith(PlacementStateException(resultingState, targetState))
-//                return
-//            }
 
             val isBlacklisted = world.getBlockState(it.pos).block in blockBlacklist
 
@@ -304,14 +287,14 @@ class PlaceBlock(
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
             is Wait -> {
-                if (doPending) {
-                    owner.status = Status.PENDING
-                }
+                if (doPending) owner.status = Status.PENDING
             }
+
             is Rotate -> {
                 spoofedDirection = true
                 status = Status.UNINITIALIZED
             }
+
             else -> {
                 spoofedDirection = false
                 status = Status.UNINITIALIZED
@@ -320,6 +303,7 @@ class PlaceBlock(
     }
 
     class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for (${blockPos.asString()}) found")
+    class BlockNotPlaceableException(targetState: IBlockState) : Exception("Block $targetState is not placeable")
     class ProcessRightClickException(result: EnumActionResult) : Exception("Processing right click failed with result $result")
     class PlacementStateException(placementState: IBlockState, targetState: IBlockState) : Exception("Placement state $placementState does not match target state $targetState")
     class UnexpectedBlockStateException(blockPos: BlockPos, expected: IBlockState, actual: IBlockState) : Exception("Unexpected block state at (${blockPos.asString()}) expected $expected but got $actual")

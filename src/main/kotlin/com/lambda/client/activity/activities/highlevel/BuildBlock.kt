@@ -35,6 +35,7 @@ class BuildBlock(
         NONE(ColorHolder())
     }
 
+    // ToDo: Update actions inside PlaceBlock and BreakBlock
     enum class Action(val color: ColorHolder) {
         BREAK(ColorHolder(222, 0, 0)),
         PLACE(ColorHolder(35, 188, 254)),

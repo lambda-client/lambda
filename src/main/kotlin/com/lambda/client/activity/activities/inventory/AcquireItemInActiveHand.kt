@@ -6,6 +6,7 @@ import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
+import com.lambda.client.module.modules.client.BuildTools.pickBlock
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.items.item
@@ -30,6 +31,14 @@ class AcquireItemInActiveHand(
         }?.let { hotbarSlot ->
             addSubActivities(SwitchToHotbarSlot(hotbarSlot))
         } ?: run {
+            if (pickBlock && player.capabilities.isCreativeMode) {
+                addSubActivities(CreativeInventoryAction(
+                    36 + player.inventory.currentItem,
+                    ItemStack(item, 1, metadata ?: 0)
+                ))
+                return
+            }
+
             player.allSlots.firstOrNull { slot ->
                 slot.stack.item == item && predicateItem(slot.stack)
             }?.let { slotFrom ->

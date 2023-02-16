@@ -2,6 +2,7 @@ package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
+import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.events.RenderWorldEvent
@@ -23,18 +24,16 @@ object ActivityManager : Manager, Activity(true) {
 
             val allActivities = allSubActivities
 
-            val currentActivity = getCurrentActivity()
-
             allActivities.filter { it.status == Status.PENDING }.forEach {
                 with(it) {
                     updateTypesOnTick(it)
                 }
             }
 
-            with(currentActivity) {
+            with(getCurrentActivity()) {
                 if (status == Status.RUNNING
                     || status == Status.PENDING
-                ) updateTypesOnTick(currentActivity)
+                ) updateTypesOnTick(this)
             }
 
             repeat(executionCountPerTick) {
@@ -44,6 +43,7 @@ object ActivityManager : Manager, Activity(true) {
                     BaritoneUtils.settings?.allowInventory?.value = false
 
                     updateActivity()
+                    checkRender()
                 }
             }
         }

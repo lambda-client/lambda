@@ -7,6 +7,8 @@ import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
 import com.lambda.client.activity.activities.highlevel.BuildStructure
 import com.lambda.client.activity.activities.highlevel.ReachXPLevel
 import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
+import com.lambda.client.activity.activities.interaction.PlaceBlock
+import com.lambda.client.activity.activities.interaction.Rotate
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.DumpInventory
@@ -26,11 +28,15 @@ import com.lambda.client.util.items.block
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
+import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.schematic.LambdaSchematicaHelper
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
+import net.minecraft.block.BlockDirectional
 import net.minecraft.block.BlockHorizontal
+import net.minecraft.block.BlockLog
+import net.minecraft.block.BlockQuartz
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
@@ -88,6 +94,25 @@ object TestActivityManager : Module(
                 currentDirection = currentDirection.rotateY()
                 position = position.add(currentDirection.directionVec)
             }
+        }
+
+        false
+    })
+
+    private val ctiectictiectie by setting("Button", false, consumer = { _, _->
+        runSafe {
+            val currentDirection = player.horizontalFacing
+
+//            val targetState = Blocks.QUARTZ_BLOCK.defaultState
+//                .withProperty(BlockQuartz.VARIANT, BlockQuartz.EnumType.LINES_X)
+
+            val targetState = Blocks.WOODEN_BUTTON.defaultState
+                .withProperty(BlockDirectional.FACING, EnumFacing.NORTH)
+
+            ActivityManager.addSubActivities(PlaceBlock(
+                player.flooredPosition.add(currentDirection.directionVec.multiply(2)),
+                targetState
+            ))
         }
 
         false
