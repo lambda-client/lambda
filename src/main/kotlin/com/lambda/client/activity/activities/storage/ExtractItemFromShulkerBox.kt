@@ -25,6 +25,7 @@ class ExtractItemFromShulkerBox(
 
         val candidates = mutableMapOf<Slot, Int>()
 
+        // ToDo: move to acquire item in active hand
         player.allSlots.forEach { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
                 val count = inventory.count { it.item == item && predicateItem(it) }

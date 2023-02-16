@@ -3,7 +3,6 @@ package com.lambda.client.module.modules.client
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
-import com.lambda.client.util.Bind
 import com.lambda.client.util.items.shulkerList
 import net.minecraft.block.Block
 import net.minecraft.init.Blocks
@@ -41,7 +40,9 @@ object BuildTools : Module(
     /* placing */
     val placeDelay by setting("Place Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between placement tasks", unit = " ticks")
     val breakDownCycles by setting("Break Down", 64, 1..200, 1, { page == Page.BUILDING }, description = "", unit = " ender chests")
-    val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
+    val pickBlock by setting("Pick Block Creative", true, { page == Page.BUILDING }, description = "Use pick block to place blocks when in creative mode")
+    val placeStrictness by setting("Placement Strictness", PlacementStrictness.DIRECTION, { page == Page.BUILDING }, description = "ANY: Allow all exposed surfaces. DIRECTION: Only allow surfaces in the direction of the player. VISIBLE: Only allow surfaces that are visible to the player.")
+//    val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
     val doPending by setting("Do Pending", true, { page == Page.BUILDING }, description = "Do not wait for server to confirm action")
     val executionCountPerTick by setting("Executions Per Tick", 100, 0..200, 1, { page == Page.BUILDING }, description = "How many tasks to execute per tick")
 //    val scaffold by setting("Scaffold", true, { page == Page.PLACING }, description = "Tries to bridge / scaffold when stuck placing")
@@ -99,6 +100,10 @@ object BuildTools : Module(
 
     enum class DisableMode {
         NONE, ANTI_AFK, LOGOUT
+    }
+
+    enum class PlacementStrictness {
+        ANY, DIRECTION, VISIBLE
     }
 
     val ignoredBlocks: List<Block>
