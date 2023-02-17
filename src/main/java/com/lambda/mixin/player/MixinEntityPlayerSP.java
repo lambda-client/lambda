@@ -24,6 +24,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.network.play.client.CPacketPlayer;
+import net.minecraft.util.MovementInput;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IInteractionObject;
 import net.minecraft.world.World;
@@ -36,6 +38,8 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Objects;
 
 @Mixin(value = EntityPlayerSP.class, priority = Integer.MAX_VALUE)
 public abstract class MixinEntityPlayerSP extends EntityPlayer {
@@ -51,6 +55,11 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Shadow private boolean serverSneakState;
     @Shadow private boolean prevOnGround;
     @Shadow private boolean autoJumpEnabled;
+    @Shadow public MovementInput movementInput;
+    @Shadow public float renderArmYaw;
+    @Shadow public float renderArmPitch;
+    @Shadow public float prevRenderArmYaw;
+    @Shadow public float prevRenderArmPitch;
 
     public MixinEntityPlayerSP(World worldIn, GameProfile gameProfileIn) {
         super(worldIn, gameProfileIn);
@@ -123,11 +132,78 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         }
     }
 
-    // We have to return true here so it would still update movement inputs from Baritone and send packets
-    @Inject(method = "isCurrentViewEntity", at = @At("RETURN"), cancellable = true)
-    protected void mixinIsCurrentViewEntity(CallbackInfoReturnable<Boolean> cir) {
-        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null) {
-            cir.setReturnValue(mc.getRenderViewEntity() == Freecam.INSTANCE.getCameraGuy());
+    // Cannot use an inject in isCurrentViewEntity due to rusherhack redirecting it here
+    @Inject(method = "onUpdateWalkingPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isCurrentViewEntity()Z"), cancellable = true)
+    protected void mixinUpdateWalkingPlayerCompat(CallbackInfo ci) {
+        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null && Objects.equals(this, mc.player)) {
+            ci.cancel();
+
+            // mc code copied as is
+            AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
+            double d0 = this.posX - this.lastReportedPosX;
+            double d1 = axisalignedbb.minY - this.lastReportedPosY;
+            double d2 = this.posZ - this.lastReportedPosZ;
+            double d3 = (double)(this.rotationYaw - this.lastReportedYaw);
+            double d4 = (double)(this.rotationPitch - this.lastReportedPitch);
+            ++this.positionUpdateTicks;
+            boolean flag2 = d0 * d0 + d1 * d1 + d2 * d2 > 9.0E-4D || this.positionUpdateTicks >= 20;
+            boolean flag3 = d3 != 0.0D || d4 != 0.0D;
+
+            if (this.isRiding())
+            {
+                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.motionX, -999.0D, this.motionZ, this.rotationYaw, this.rotationPitch, this.onGround));
+                flag2 = false;
+            }
+            else if (flag2 && flag3)
+            {
+                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.posX, axisalignedbb.minY, this.posZ, this.rotationYaw, this.rotationPitch, this.onGround));
+            }
+            else if (flag2)
+            {
+                this.connection.sendPacket(new CPacketPlayer.Position(this.posX, axisalignedbb.minY, this.posZ, this.onGround));
+            }
+            else if (flag3)
+            {
+                this.connection.sendPacket(new CPacketPlayer.Rotation(this.rotationYaw, this.rotationPitch, this.onGround));
+            }
+            else if (this.prevOnGround != this.onGround)
+            {
+                this.connection.sendPacket(new CPacketPlayer(this.onGround));
+            }
+
+            if (flag2)
+            {
+                this.lastReportedPosX = this.posX;
+                this.lastReportedPosY = axisalignedbb.minY;
+                this.lastReportedPosZ = this.posZ;
+                this.positionUpdateTicks = 0;
+            }
+
+            if (flag3)
+            {
+                this.lastReportedYaw = this.rotationYaw;
+                this.lastReportedPitch = this.rotationPitch;
+            }
+
+            this.prevOnGround = this.onGround;
+            this.autoJumpEnabled = this.mc.gameSettings.autoJump;
+        }
+    }
+
+    // Cannot use an inject in isCurrentViewEntity due to rusherhack redirecting it here
+    @Inject(method = "updateEntityActionState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isCurrentViewEntity()Z"), cancellable = true)
+    protected void mixinEntityActionState(CallbackInfo ci) {
+        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null && Objects.equals(this, mc.player)) {
+            ci.cancel();
+
+            // mc code copied as is
+            this.moveStrafing = this.movementInput.moveStrafe;
+            this.moveForward = this.movementInput.moveForward;
+            this.isJumping = this.movementInput.jump;
+            this.prevRenderArmYaw = this.renderArmYaw;
+            this.prevRenderArmPitch = this.renderArmPitch;
+            this.renderArmPitch = (float)((double)this.renderArmPitch + (double)(this.rotationPitch - this.renderArmPitch) * 0.5D);
+            this.renderArmYaw = (float)((double)this.renderArmYaw + (double)(this.rotationYaw - this.renderArmYaw) * 0.5D);
         }
     }
 
