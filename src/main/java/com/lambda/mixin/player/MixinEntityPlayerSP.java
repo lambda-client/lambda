@@ -66,9 +66,6 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     }
 
     @Shadow
-    protected abstract boolean isCurrentViewEntity();
-
-    @Shadow
     protected abstract void updateAutoJump(float p_189810_1_, float p_189810_2_);
 
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;closeScreen()V"))
@@ -137,52 +134,24 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     protected void mixinUpdateWalkingPlayerCompat(CallbackInfo ci) {
         if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null && Objects.equals(this, mc.player)) {
             ci.cancel();
-
-            // mc code copied as is
-            AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
-            double d0 = this.posX - this.lastReportedPosX;
-            double d1 = axisalignedbb.minY - this.lastReportedPosY;
-            double d2 = this.posZ - this.lastReportedPosZ;
-            double d3 = (double)(this.rotationYaw - this.lastReportedYaw);
-            double d4 = (double)(this.rotationPitch - this.lastReportedPitch);
+            // we need to perform the same actions as what is in the mc method
             ++this.positionUpdateTicks;
-            boolean flag2 = d0 * d0 + d1 * d1 + d2 * d2 > 9.0E-4D || this.positionUpdateTicks >= 20;
-            boolean flag3 = d3 != 0.0D || d4 != 0.0D;
-
-            if (this.isRiding())
-            {
-                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.motionX, -999.0D, this.motionZ, this.rotationYaw, this.rotationPitch, this.onGround));
-                flag2 = false;
-            }
-            else if (flag2 && flag3)
-            {
-                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.posX, axisalignedbb.minY, this.posZ, this.rotationYaw, this.rotationPitch, this.onGround));
-            }
-            else if (flag2)
-            {
-                this.connection.sendPacket(new CPacketPlayer.Position(this.posX, axisalignedbb.minY, this.posZ, this.onGround));
-            }
-            else if (flag3)
-            {
-                this.connection.sendPacket(new CPacketPlayer.Rotation(this.rotationYaw, this.rotationPitch, this.onGround));
-            }
-            else if (this.prevOnGround != this.onGround)
-            {
-                this.connection.sendPacket(new CPacketPlayer(this.onGround));
-            }
-
-            if (flag2)
-            {
-                this.lastReportedPosX = this.posX;
-                this.lastReportedPosY = axisalignedbb.minY;
-                this.lastReportedPosZ = this.posZ;
+            final AxisAlignedBB boundingBox = this.getEntityBoundingBox();
+            final Vec3d pos = new Vec3d(this.posX, boundingBox.minY, this.posZ);
+            final Vec2f rot = new Vec2f(this.rotationYaw, this.rotationPitch);
+            final boolean isMoving = isMoving(pos);
+            final boolean isRotating = isRotating(rot);
+            sendPlayerPacket(isMoving, isRotating, pos, rot);
+            if (isMoving) {
+                this.lastReportedPosX = pos.x;
+                this.lastReportedPosY = pos.y;
+                this.lastReportedPosZ = pos.z;
                 this.positionUpdateTicks = 0;
             }
 
-            if (flag3)
-            {
-                this.lastReportedYaw = this.rotationYaw;
-                this.lastReportedPitch = this.rotationPitch;
+            if (isRotating) {
+                this.lastReportedYaw = rot.getX();
+                this.lastReportedPitch = rot.getY();
             }
 
             this.prevOnGround = this.onGround;
@@ -196,14 +165,14 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null && Objects.equals(this, mc.player)) {
             ci.cancel();
 
-            // mc code copied as is
+            // we need to perform the same actions as what is in the mc method
             this.moveStrafing = this.movementInput.moveStrafe;
             this.moveForward = this.movementInput.moveForward;
             this.isJumping = this.movementInput.jump;
             this.prevRenderArmYaw = this.renderArmYaw;
             this.prevRenderArmPitch = this.renderArmPitch;
-            this.renderArmPitch = (float)((double)this.renderArmPitch + (double)(this.rotationPitch - this.renderArmPitch) * 0.5D);
-            this.renderArmYaw = (float)((double)this.renderArmYaw + (double)(this.rotationYaw - this.renderArmYaw) * 0.5D);
+            this.renderArmPitch = this.renderArmPitch + (this.rotationPitch - this.renderArmPitch) * 0.5f;
+            this.renderArmYaw = this.renderArmYaw + (this.rotationYaw - this.renderArmYaw) * 0.5f;
         }
     }
 
@@ -227,6 +196,8 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
     private void onUpdateWalkingPlayerHead(CallbackInfo ci) {
+        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null
+            && Objects.equals(this, Freecam.INSTANCE.getCameraGuy())) return;
 
         CriticalsUpdateWalkingEvent criticalsEditEvent = new CriticalsUpdateWalkingEvent();
         LambdaEventBus.INSTANCE.post(criticalsEditEvent);
@@ -295,8 +266,6 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     }
 
     private void sendPlayerPacket(boolean moving, boolean rotating, Vec3d position, Vec2f rotation) {
-        if (!this.isCurrentViewEntity()) return;
-
         if (this.isRiding()) {
             this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.motionX, -999.0D, this.motionZ, rotation.getX(), rotation.getY(), onGround));
             moving = false;
