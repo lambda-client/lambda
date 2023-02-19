@@ -8,6 +8,8 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.schematic.LambdaSchematicaHelper
+import com.lambda.client.util.schematic.LambdaSchematicaHelper.isSchematicaPresent
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.util.math.BlockPos
 
@@ -25,6 +27,12 @@ object SchematicBuilder : Module(
     init {
         onEnable {
             runSafe {
+                if (!isSchematicaPresent) {
+                    MessageSendHelper.sendErrorMessage("$chatName Schematica is not loaded / installed!")
+                    disable()
+                    return@runSafe
+                }
+
                 LambdaSchematicaHelper.loadedSchematic?.let { schematic ->
                     val direction = Direction.fromEntity(player)
 
