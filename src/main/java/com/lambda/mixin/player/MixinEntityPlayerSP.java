@@ -44,6 +44,11 @@ import java.util.Objects;
 @Mixin(value = EntityPlayerSP.class, priority = Integer.MAX_VALUE)
 public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Shadow @Final public NetHandlerPlayClient connection;
+    @Shadow public MovementInput movementInput;
+    @Shadow public float renderArmYaw;
+    @Shadow public float renderArmPitch;
+    @Shadow public float prevRenderArmYaw;
+    @Shadow public float prevRenderArmPitch;
     @Shadow protected Minecraft mc;
     @Shadow private double lastReportedPosX;
     @Shadow private double lastReportedPosY;
@@ -55,11 +60,6 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Shadow private boolean serverSneakState;
     @Shadow private boolean prevOnGround;
     @Shadow private boolean autoJumpEnabled;
-    @Shadow public MovementInput movementInput;
-    @Shadow public float renderArmYaw;
-    @Shadow public float renderArmPitch;
-    @Shadow public float prevRenderArmYaw;
-    @Shadow public float prevRenderArmPitch;
 
     public MixinEntityPlayerSP(World worldIn, GameProfile gameProfileIn) {
         super(worldIn, gameProfileIn);
@@ -95,7 +95,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     public void onDisplayGUIChest(IInventory chestInventory, CallbackInfo ci) {
         if (BeaconSelector.INSTANCE.isEnabled()) {
             if (chestInventory instanceof IInteractionObject && "minecraft:beacon".equals(((IInteractionObject) chestInventory).getGuiID())) {
-                Minecraft.getMinecraft().displayGuiScreen(new LambdaGuiBeacon(this.inventory, chestInventory));
+                Minecraft.getMinecraft().displayGuiScreen(new LambdaGuiBeacon(inventory, chestInventory));
                 ci.cancel();
             }
         }
@@ -110,11 +110,11 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         LambdaEventBus.INSTANCE.post(event);
 
         if (event.isModified()) {
-            double prevX = this.posX;
-            double prevZ = this.posZ;
+            double prevX = posX;
+            double prevZ = posZ;
 
             super.move(type, event.getX(), event.getY(), event.getZ());
-            this.updateAutoJump((float) (this.posX - prevX), (float) (this.posZ - prevZ));
+            updateAutoJump((float) (posX - prevX), (float) (posZ - prevZ));
 
             ci.cancel();
         }
@@ -135,27 +135,27 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null && Objects.equals(this, mc.player)) {
             ci.cancel();
             // we need to perform the same actions as what is in the mc method
-            ++this.positionUpdateTicks;
-            final AxisAlignedBB boundingBox = this.getEntityBoundingBox();
-            final Vec3d pos = new Vec3d(this.posX, boundingBox.minY, this.posZ);
-            final Vec2f rot = new Vec2f(this.rotationYaw, this.rotationPitch);
+            ++positionUpdateTicks;
+            final AxisAlignedBB boundingBox = getEntityBoundingBox();
+            final Vec3d pos = new Vec3d(posX, boundingBox.minY, posZ);
+            final Vec2f rot = new Vec2f(rotationYaw, rotationPitch);
             final boolean isMoving = isMoving(pos);
             final boolean isRotating = isRotating(rot);
             sendPlayerPacket(isMoving, isRotating, pos, rot);
             if (isMoving) {
-                this.lastReportedPosX = pos.x;
-                this.lastReportedPosY = pos.y;
-                this.lastReportedPosZ = pos.z;
-                this.positionUpdateTicks = 0;
+                lastReportedPosX = pos.x;
+                lastReportedPosY = pos.y;
+                lastReportedPosZ = pos.z;
+                positionUpdateTicks = 0;
             }
 
             if (isRotating) {
-                this.lastReportedYaw = rot.getX();
-                this.lastReportedPitch = rot.getY();
+                lastReportedYaw = rot.getX();
+                lastReportedPitch = rot.getY();
             }
 
-            this.prevOnGround = this.onGround;
-            this.autoJumpEnabled = this.mc.gameSettings.autoJump;
+            prevOnGround = onGround;
+            autoJumpEnabled = mc.gameSettings.autoJump;
         }
     }
 
@@ -166,13 +166,13 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
             ci.cancel();
 
             // we need to perform the same actions as what is in the mc method
-            this.moveStrafing = this.movementInput.moveStrafe;
-            this.moveForward = this.movementInput.moveForward;
-            this.isJumping = this.movementInput.jump;
-            this.prevRenderArmYaw = this.renderArmYaw;
-            this.prevRenderArmPitch = this.renderArmPitch;
-            this.renderArmPitch = this.renderArmPitch + (this.rotationPitch - this.renderArmPitch) * 0.5f;
-            this.renderArmYaw = this.renderArmYaw + (this.rotationYaw - this.renderArmYaw) * 0.5f;
+            moveStrafing = movementInput.moveStrafe;
+            moveForward = movementInput.moveForward;
+            isJumping = movementInput.jump;
+            prevRenderArmYaw = renderArmYaw;
+            prevRenderArmPitch = renderArmPitch;
+            renderArmPitch = renderArmPitch + (rotationPitch - renderArmPitch) * 0.5f;
+            renderArmYaw = renderArmYaw + (rotationYaw - renderArmYaw) * 0.5f;
         }
     }
 
@@ -186,12 +186,12 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         Vec3d serverSidePos = PlayerPacketManager.INSTANCE.getServerSidePosition();
         Vec2f serverSideRotation = PlayerPacketManager.INSTANCE.getPrevServerSideRotation();
 
-        this.lastReportedPosX = serverSidePos.x;
-        this.lastReportedPosY = serverSidePos.y;
-        this.lastReportedPosZ = serverSidePos.z;
+        lastReportedPosX = serverSidePos.x;
+        lastReportedPosY = serverSidePos.y;
+        lastReportedPosZ = serverSidePos.z;
 
-        this.lastReportedYaw = serverSideRotation.getX();
-        this.lastReportedPitch = serverSideRotation.getY();
+        lastReportedYaw = serverSideRotation.getX();
+        lastReportedPitch = serverSideRotation.getY();
     }
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
@@ -203,8 +203,8 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         LambdaEventBus.INSTANCE.post(criticalsEditEvent);
 
         // Setup flags
-        Vec3d position = new Vec3d(this.posX, this.getEntityBoundingBox().minY, this.posZ);
-        Vec2f rotation = new Vec2f(this.rotationYaw, this.rotationPitch);
+        Vec3d position = new Vec3d(posX, getEntityBoundingBox().minY, posZ);
+        Vec2f rotation = new Vec2f(rotationYaw, rotationPitch);
         boolean moving = isMoving(position);
         boolean rotating = isRotating(rotation);
 
@@ -228,11 +228,11 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
                 sendSneakPacket();
                 sendPlayerPacket(moving, rotating, position, rotation);
 
-                this.prevOnGround = onGround;
+                prevOnGround = onGround;
             }
 
-            ++this.positionUpdateTicks;
-            this.autoJumpEnabled = this.mc.gameSettings.autoJump;
+            ++positionUpdateTicks;
+            autoJumpEnabled = mc.gameSettings.autoJump;
         }
 
         event = event.nextPhase();
@@ -240,62 +240,59 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     }
 
     private void sendSprintPacket() {
-        boolean sprinting = this.isSprinting();
+        boolean sprinting = isSprinting();
 
-        if (sprinting != this.serverSprintState) {
+        if (sprinting != serverSprintState) {
             if (sprinting) {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SPRINTING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SPRINTING));
             } else {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SPRINTING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SPRINTING));
             }
-            this.serverSprintState = sprinting;
+            serverSprintState = sprinting;
         }
     }
 
     private void sendSneakPacket() {
-        boolean sneaking = this.isSneaking();
+        boolean sneaking = isSneaking();
 
-        if (sneaking != this.serverSneakState) {
+        if (sneaking != serverSneakState) {
             if (sneaking) {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SNEAKING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SNEAKING));
             } else {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SNEAKING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SNEAKING));
             }
-            this.serverSneakState = sneaking;
+            serverSneakState = sneaking;
         }
     }
 
     private void sendPlayerPacket(boolean moving, boolean rotating, Vec3d position, Vec2f rotation) {
-        if (this.isRiding()) {
-            this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.motionX, -999.0D, this.motionZ, rotation.getX(), rotation.getY(), onGround));
+        if (isRiding()) {
+            connection.sendPacket(new CPacketPlayer.PositionRotation(motionX, -999.0D, motionZ, rotation.getX(), rotation.getY(), onGround));
             moving = false;
         } else if (moving && rotating) {
-            this.connection.sendPacket(new CPacketPlayer.PositionRotation(position.x, position.y, position.z, rotation.getX(), rotation.getY(), onGround));
+            connection.sendPacket(new CPacketPlayer.PositionRotation(position.x, position.y, position.z, rotation.getX(), rotation.getY(), onGround));
         } else if (moving) {
-            this.connection.sendPacket(new CPacketPlayer.Position(position.x, position.y, position.z, onGround));
+            connection.sendPacket(new CPacketPlayer.Position(position.x, position.y, position.z, onGround));
         } else if (rotating) {
-            this.connection.sendPacket(new CPacketPlayer.Rotation(rotation.getX(), rotation.getY(), onGround));
-        } else if (this.prevOnGround != onGround) {
-            this.connection.sendPacket(new CPacketPlayer(onGround));
+            connection.sendPacket(new CPacketPlayer.Rotation(rotation.getX(), rotation.getY(), onGround));
+        } else if (prevOnGround != onGround) {
+            connection.sendPacket(new CPacketPlayer(onGround));
         }
 
-        if (moving) {
-            this.positionUpdateTicks = 0;
-        }
+        if (moving) positionUpdateTicks = 0;
     }
 
     private boolean isMoving(Vec3d position) {
-        double xDiff = position.x - this.lastReportedPosX;
-        double yDiff = position.y - this.lastReportedPosY;
-        double zDiff = position.z - this.lastReportedPosZ;
+        double xDiff = position.x - lastReportedPosX;
+        double yDiff = position.y - lastReportedPosY;
+        double zDiff = position.z - lastReportedPosZ;
 
-        return this.positionUpdateTicks >= 20 || xDiff * xDiff + yDiff * yDiff + zDiff * zDiff > 9.0E-4D;
+        return positionUpdateTicks >= 20 || xDiff * xDiff + yDiff * yDiff + zDiff * zDiff > 9.0E-4D;
     }
 
     private boolean isRotating(Vec2f rotation) {
-        double yawDiff = rotation.getX() - this.lastReportedYaw;
-        double pitchDiff = rotation.getY() - this.lastReportedPitch;
-
+        double yawDiff = rotation.getX() - lastReportedYaw;
+        double pitchDiff = rotation.getY() - lastReportedPitch;
         return yawDiff != 0.0D || pitchDiff != 0.0D;
     }
 }
