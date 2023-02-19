@@ -36,9 +36,9 @@ object ViewLock : Module(
     private val specificPitch by setting("Specific Pitch", 0.0f, -90.0f..90.0f, 1.0f, { mode == Mode.TRADITIONAL && page == Page.PITCH && !autoPitch.value && pitch })
     private val pitchSlice = setting("Pitch Slice", 5, 2..32, 1, { mode == Mode.TRADITIONAL && page == Page.PITCH && autoPitch.value && pitch })
     
-    private val xCoord by setting("X coordinate", "")
-    private val yCoord by setting("Y coordinate", "")
-    private val zCoord by setting("Z coordinate", "")
+    private val xCoord by setting("X coordinate", "", { mode == Mode.COORDS })
+    private val yCoord by setting("Y coordinate", "", { mode == Mode.COORDS })
+    private val zCoord by setting("Z coordinate", "", { mode == Mode.COORDS })
 
     private enum class Page {
         YAW, PITCH
