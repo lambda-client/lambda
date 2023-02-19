@@ -4,6 +4,7 @@ import com.lambda.client.module.modules.movement.Step;
 import com.lambda.client.module.modules.movement.Velocity;
 import com.lambda.client.module.modules.player.Freecam;
 import com.lambda.client.module.modules.player.ViewLock;
+import com.lambda.client.module.modules.render.FreeLook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
@@ -33,6 +34,7 @@ public abstract class MixinEntity {
     public void turn(float yaw, float pitch, CallbackInfo ci) {
         Entity casted = (Entity) (Object) this;
 
+        if (FreeLook.handleTurn(casted, yaw, pitch, ci)) return;
         if (Freecam.handleTurn(casted, yaw, pitch, ci)) return;
         ViewLock.handleTurn(casted, yaw, pitch, ci);
     }

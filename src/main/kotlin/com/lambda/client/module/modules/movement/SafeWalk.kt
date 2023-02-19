@@ -32,7 +32,7 @@ object SafeWalk : Module(
                 var x = event.x
                 var z = event.z
 
-                var boundingBox = player.entityBoundingBox.offset(0.0, (-player.stepHeight).toDouble(), 0.0)
+                var boundingBox = player.entityBoundingBox.offset(0.0, -.6, 0.0)
 
                 while (x != 0.0 && world.getCollisionBoxes(player, boundingBox.offset(x, 0.0, 0.0)).isEmpty()) {
                     x = updateCoordinate(x)

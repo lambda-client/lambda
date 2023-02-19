@@ -16,7 +16,7 @@ Customize your experience, and improve your efficiency!
 Find our plugins [here](https://github.com/lambda-plugins).
 
 <p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/3.2.1/lambda-3.2.1.jar"><img alt="lambda-3.2.1.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.2.1.png" width="70%" height="70%"></a>
+    <a href="https://github.com/lambda-client/lambda/releases/download/3.3.0/lambda-3.3.0.jar"><img alt="lambda-3.3.0.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.3.0.png" width="70%" height="70%"></a>
 </p>
 
 <div align="center">
