@@ -36,7 +36,10 @@ import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockDirectional
 import net.minecraft.block.BlockHorizontal
 import net.minecraft.block.BlockLog
+import net.minecraft.block.BlockPistonBase
+import net.minecraft.block.BlockPurpurSlab
 import net.minecraft.block.BlockQuartz
+import net.minecraft.block.BlockRotatedPillar
 import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper

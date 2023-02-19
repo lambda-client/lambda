@@ -7,9 +7,7 @@ import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.pickBlock
-import com.lambda.client.util.items.allSlots
-import com.lambda.client.util.items.hotbarSlots
-import com.lambda.client.util.items.item
+import com.lambda.client.util.items.*
 import net.minecraft.init.Blocks
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -19,7 +17,7 @@ class AcquireItemInActiveHand(
     private val item: Item,
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true },
-    private val metadata: Int? = null,
+    private val metadata: Int = 0,
     private val useShulkerBoxes: Boolean = true,
     private val useEnderChest: Boolean = false,
     override val maxAttempts: Int = 3,
@@ -27,20 +25,19 @@ class AcquireItemInActiveHand(
 ) : AttemptActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         player.hotbarSlots.firstOrNull { slot ->
-            slot.stack.item == item && predicateItem(slot.stack)
+            slot.stack.item == item && predicateItem(slot.stack) && metadata == slot.stack.metadata
         }?.let { hotbarSlot ->
             addSubActivities(SwitchToHotbarSlot(hotbarSlot))
         } ?: run {
             if (pickBlock && player.capabilities.isCreativeMode) {
                 addSubActivities(CreativeInventoryAction(
-                    36 + player.inventory.currentItem,
-                    ItemStack(item, 1, metadata ?: 0)
+                    ItemStack(item, 1, metadata)
                 ))
                 return
             }
 
             player.allSlots.firstOrNull { slot ->
-                slot.stack.item == item && predicateItem(slot.stack)
+                slot.stack.item == item && predicateItem(slot.stack) && metadata == slot.stack.metadata
             }?.let { slotFrom ->
                 addSubActivities(SwapOrSwitchToSlot(slotFrom, predicateSlot))
             } ?: run {

@@ -34,6 +34,7 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.IStringSerializable
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 
 class PlaceBlock(
     private val blockPos: BlockPos,
@@ -53,8 +54,10 @@ class PlaceBlock(
 
     private var spoofedDirection = false
 
-    private enum class PlacementOffset {
-        TOP, NONE, BOTTOM
+    private enum class PlacementOffset(val offset: Vec3d) {
+        UPPER(Vec3d(0.0, 0.1, 0.0)),
+        CENTER(Vec3d.ZERO),
+        LOWER(Vec3d(0.0, -0.1, 0.0))
     }
 
     private val blocksToOppositeDirection = listOf(
@@ -98,11 +101,10 @@ class PlaceBlock(
         }
 
         val allowedSides = EnumFacing.VALUES.toMutableList()
-        var placementOffset = PlacementOffset.NONE
+        var placementOffset = PlacementOffset.CENTER
 
 //        var allowedRotations = targetState.block.getValidRotations(world, blockPos)?.toMutableSet()
 
-        /* rotate block to right direction */
         targetState.properties.entries.firstOrNull { it.key.name == "facing" }?.let { entry ->
             var direction = entry.value as EnumFacing
 
@@ -119,6 +121,7 @@ class PlaceBlock(
 
             if (targetState.block::class in blocksToOppositeDirection) direction = direction.opposite
 
+            /* rotate block to right direction if possible */
             if (directionForce
                 && !spoofedDirection
                 && player.horizontalFacing != direction
@@ -133,11 +136,11 @@ class PlaceBlock(
             placementOffset = when (half.name) {
                 "top" -> {
                     allowedSides.remove(EnumFacing.DOWN)
-                    PlacementOffset.TOP
+                    PlacementOffset.UPPER
                 }
                 else -> {
                     allowedSides.remove(EnumFacing.UP)
-                    PlacementOffset.BOTTOM
+                    PlacementOffset.LOWER
                 }
             }
         }
@@ -153,6 +156,7 @@ class PlaceBlock(
             }
         }
 
+        /* quartz is special snowflake */
         targetState.properties.entries.firstOrNull { it.key.name == "variant" }?.let { entry ->
             when (entry.value) {
                 BlockQuartz.EnumType.LINES_X -> allowedSides.removeIf { it.axis != EnumFacing.Axis.X }
@@ -194,30 +198,26 @@ class PlaceBlock(
             range = BuildTools.maxReach,
             sides = allowedSides.toTypedArray()
         )?.let {
-            val hitVec = when (placementOffset) {
-                PlacementOffset.TOP -> it.hitVec.add(0.0, 0.1, 0.0)
-                PlacementOffset.BOTTOM -> it.hitVec.add(0.0, -0.1, 0.0)
-                else -> it.hitVec
-            }
+            val hitVec = it.hitVec.add(placementOffset.offset)
 
-            /* last check for placement state */
-            val resultingState = targetState.block.getStateForPlacement(
-                world,
-                it.pos,
-                it.side,
-                hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(),
-                heldItem.metadata,
-                player,
-                EnumHand.MAIN_HAND
-            )
-
-            if (resultingState != targetState
-                && !spoofedDirection
-                && targetState.block !is BlockButton // ToDo: find out why buttons don't work with this
-            ) {
-                failedWith(PlacementStateException(resultingState, targetState))
-                return
-            }
+//            /* last check for placement state */
+//            val resultingState = targetState.block.getStateForPlacement(
+//                world,
+//                it.pos,
+//                it.side,
+//                hitVec.x.toFloat(), hitVec.y.toFloat(), hitVec.z.toFloat(),
+//                heldItem.metadata,
+//                player,
+//                EnumHand.MAIN_HAND
+//            )
+//
+//            if (resultingState != targetState
+//                && !spoofedDirection
+//                && targetState.block !is BlockButton // ToDo: find out why buttons don't work with this
+//            ) {
+//                failedWith(PlacementStateException(resultingState, targetState))
+//                return
+//            }
 
             val isBlacklisted = world.getBlockState(it.pos).block in blockBlacklist
 
