@@ -7,6 +7,7 @@ import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.ActivityManager.getCurrentActivity
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
@@ -67,19 +68,42 @@ class BuildStructure(
             .asSequence()
             .sortedWith(
                 compareBy<Activity> {
-                    it.status
+                    with(it) {
+                        getCurrentActivity().status
+                    }
                 }.thenBy {
-                    if (it is BuildActivity) it.context else 0
+                    val current = deepestBuildActivity(it)
+
+                    if (current is BuildActivity) {
+                        current.context
+                    } else 0
                 }.thenBy {
-                    if (it is BuildActivity) it.action else 0
+                    val current = deepestBuildActivity(it)
+
+                    if (current is BuildActivity) {
+                        current.action
+                    } else 0
                 }.thenBy {
-                    if (it is BuildActivity) player.getPositionEyes(1f).distanceTo(it.hitVec) else 0.0
+                    val current = deepestBuildActivity(it)
+
+                    if (current is BuildActivity) {
+                        player.getPositionEyes(1f).distanceTo(current.hitVec)
+                    } else 0.0
                 }
             ).firstOrNull()?.let {
                 with(it) {
                     return getCurrentActivity()
                 }
             } ?: return this@BuildStructure
+    }
+
+    /* BreakBlocks that are boxed in a PlaceBlock are considered in the sequence */
+    private fun SafeClientEvent.deepestBuildActivity(activity: Activity): Activity {
+        activity.subActivities
+            .filterIsInstance<BuildActivity>()
+            .firstOrNull()?.let {
+                return deepestBuildActivity(it as Activity)
+        } ?: return activity
     }
 
     private fun SafeClientEvent.isInPadding(blockPos: BlockPos) = isBehindPos(player.flooredPosition, blockPos)
