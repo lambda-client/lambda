@@ -19,6 +19,7 @@ import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
 import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.text.capitalize
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemBlock
 import net.minecraft.util.math.AxisAlignedBB
@@ -90,7 +91,6 @@ abstract class Activity(val isRoot: Boolean = false) {
                     && this@Activity !is DelayedActivity
                 ) success()
             }
-            Status.PENDING, Status.FAILURE -> { }
         }
     }
 
@@ -196,9 +196,7 @@ abstract class Activity(val isRoot: Boolean = false) {
 
     enum class Status {
         RUNNING,
-        UNINITIALIZED,
-        PENDING,
-        FAILURE
+        UNINITIALIZED
     }
 
     fun appendInfo(textComponent: TextComponent, primaryColor: ColorHolder, secondaryColor: ColorHolder, details: Boolean) {

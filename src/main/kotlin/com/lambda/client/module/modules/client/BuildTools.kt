@@ -32,7 +32,7 @@ object BuildTools : Module(
 
     /* mining */
     val breakDelay by setting("Break Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
-//    val miningSpeedFactor by setting("Mining Speed Factor", 1.0f, 0.0f..2.0f, 0.01f, { page == Page.MINING }, description = "Factor to manipulate calculated mining speed")
+    val miningSpeedFactor by setting("Mining Speed Factor", 1.0f, 0.0f..2.0f, 0.01f, { page == Page.BUILDING }, description = "Factor to manipulate calculated mining speed")
 //    val interactionLimit by setting("Interaction Limit", 20, 1..100, 1, { page == Page.MINING }, description = "Set the interaction limit per second", unit = " interactions/s")
 //    val multiBreak by setting("Multi Break", true, { page == Page.MINING }, description = "Breaks multiple instant breaking blocks intersecting with view vector on the same tick")
 //    val packetFlood by setting("Packet Flood", false, { page == Page.MINING }, description = "Exploit for faster packet breaks. Sends START and STOP packet on same tick")

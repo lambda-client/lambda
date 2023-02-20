@@ -7,7 +7,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class Rotate(
-    override var rotation: Vec2f
+    override var rotation: Vec2f? = null,
 ) : RotatingActivity, Activity() {
     init {
         safeListener<TickEvent.ClientTickEvent> {

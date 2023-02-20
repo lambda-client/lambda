@@ -1,15 +1,19 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.RenderAABBActivity
+import com.lambda.client.activity.activities.interaction.BreakBlock
+import com.lambda.client.activity.activities.interaction.PlaceBlock
+import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.RepeatingActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
-import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.multiply
+import jdk.nashorn.internal.ir.annotations.Ignore
 import net.minecraft.block.state.IBlockState
+import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 
 class BuildStructure(
@@ -17,26 +21,41 @@ class BuildStructure(
     private val direction: Direction = Direction.NORTH,
     private val offsetMove: BlockPos = BlockPos.ORIGIN,
     private val doPadding: Boolean = false,
-    private val respectIgnore: Boolean = false,
-    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
     override val maximumRepeats: Int = 1,
     override var repeated: Int = 0,
-) : RepeatingActivity, RenderAABBActivity, Activity() {
+) : RepeatingActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
 
     override fun SafeClientEvent.onInitialize() {
-        structure.forEach { (pos, state) ->
-            val offsetPos = pos.add(currentOffset)
+        val activities = mutableListOf<Activity>()
 
-            if (doPadding && isInPadding(offsetPos)) return@forEach
-            if (world.getBlockState(offsetPos) == state) return@forEach
+        structure.forEach { (pos, targetState) ->
+            val blockPos = pos.add(currentOffset)
+            val currentState = world.getBlockState(blockPos)
 
-            val activity = BuildBlock(offsetPos, state, respectIgnore)
-
-            addSubActivities(activity)
-
-            LambdaEventBus.subscribe(activity)
+            when {
+                /* is in padding */
+                doPadding && isInPadding(blockPos) -> return@forEach
+                /* is in desired state */
+                currentState == targetState -> return@forEach
+                /* block needs to be placed */
+                targetState != Blocks.AIR.defaultState -> {
+                    activities.add(PlaceBlock(
+                        blockPos, targetState
+                    ))
+                }
+                /* only option left is breaking the block */
+                else -> {
+                    activities.add(BreakBlock(blockPos))
+                }
+            }
         }
+
+        activities.forEach {
+            LambdaEventBus.subscribe(it)
+        }
+
+        addSubActivities(activities)
     }
 
     override fun SafeClientEvent.onSuccess() {
@@ -46,16 +65,15 @@ class BuildStructure(
     override fun SafeClientEvent.getCurrentActivity(): Activity {
         subActivities
             .asSequence()
-            .filterIsInstance<BuildBlock>()
             .sortedWith(
-                compareBy<BuildBlock> {
+                compareBy<Activity> {
                     it.status
                 }.thenBy {
-                    it.context
+                    if (it is BuildActivity) it.context else 0
                 }.thenBy {
-                    it.action
+                    if (it is BuildActivity) it.action else 0
                 }.thenBy {
-                    player.getPositionEyes(1f).distanceTo(it.blockPos)
+                    if (it is BuildActivity) player.getPositionEyes(1f).distanceTo(it.hitVec) else 0.0
                 }
             ).firstOrNull()?.let {
                 with(it) {
