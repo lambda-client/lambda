@@ -5,6 +5,7 @@ import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.activities.types.*
 import com.lambda.client.activity.activities.utils.Wait
+import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.module.modules.client.BuildTools
@@ -125,7 +126,12 @@ class PlaceBlock(
         if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
             if (world.worldBorder.contains(blockPos)
                 && !world.isOutsideBuildHeight(blockPos)) {
-                if (subActivities.isEmpty()) addSubActivities(BreakBlock(blockPos))
+                if (subActivities.isNotEmpty()) return
+
+                renderActivity.color = ColorHolder(0, 0, 0, 0)
+                val breakBlock = BreakBlock(blockPos)
+                addSubActivities(breakBlock)
+                LambdaEventBus.subscribe(breakBlock)
             } else {
                 failedWith(BlockOutsideOfWorldException(blockPos))
             }
@@ -166,7 +172,7 @@ class PlaceBlock(
             }
         }
 
-        /* quartz is special snowflake */
+        /* quartz is a special snowflake */
         targetState.properties.entries.firstOrNull { it.key.name == "variant" }?.let { entry ->
             when (entry.value) {
                 BlockQuartz.EnumType.LINES_X -> allowedSides.removeIf { it.axis != EnumFacing.Axis.X }
@@ -175,6 +181,11 @@ class PlaceBlock(
                 else -> {}
             }
         }
+
+//        /* check if block is replaceable */
+//        allowedSides.removeIf {
+//            !targetState.block.canPlaceBlockOnSide(world, blockPos, it.opposite)
+//        }
 
         getNeighbour(
             blockPos,
@@ -208,11 +219,6 @@ class PlaceBlock(
     }
 
     private fun SafeClientEvent.checkPlace(placeInfo: PlaceInfo) {
-//        if (!targetState.block.canPlaceBlockOnSide(world, blockPos, EnumFacing.UP)) {
-//            failedWith(BlockNotPlaceableException(blockPos))
-//            return
-//        }
-
         /* check if item has required metadata (declares the type) */
         val heldItemStack = player.getHeldItem(EnumHand.MAIN_HAND)
         val optimalStack = if (targetState.block is BlockShulkerBox) {
@@ -307,15 +313,10 @@ class PlaceBlock(
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
-//            is Wait -> {
-//                if (doPending) owner.status = Status.PENDING
-//            }
-
             is Rotate -> {
                 spoofedDirection = true
                 status = Status.UNINITIALIZED
             }
-
             else -> {
                 spoofedDirection = false
                 status = Status.UNINITIALIZED
