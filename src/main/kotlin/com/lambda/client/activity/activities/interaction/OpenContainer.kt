@@ -19,7 +19,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class OpenContainer(
     private val containerPos: BlockPos,
-    override var rotation: Vec2f = Vec2f.ZERO,
+    override var rotation: Vec2f? = null,
     override val timeout: Long = 1000L,
     override val maxAttempts: Int = 3,
     override var usedAttempts: Int = 0,

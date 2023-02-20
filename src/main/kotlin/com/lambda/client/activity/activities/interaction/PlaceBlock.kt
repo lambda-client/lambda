@@ -3,13 +3,10 @@ package com.lambda.client.activity.activities.interaction
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
-import com.lambda.client.activity.activities.types.AttemptActivity
-import com.lambda.client.activity.activities.types.RenderAABBActivity
-import com.lambda.client.activity.activities.types.RotatingActivity
-import com.lambda.client.activity.activities.types.TimeoutActivity
+import com.lambda.client.activity.activities.types.*
 import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.module.modules.client.BuildTools.directionForce
@@ -19,38 +16,44 @@ import com.lambda.client.util.items.blockBlacklist
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
+import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
+import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
 import net.minecraft.block.*
 import net.minecraft.block.state.IBlockState
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
-import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.IStringSerializable
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class PlaceBlock(
     private val blockPos: BlockPos,
     private val targetState: IBlockState,
-    private val doPending: Boolean = false,
     private val ignoreProperties: Boolean = false,
-    override var rotation: Vec2f = Vec2f.ZERO,
+    private val ignoreFacing: Boolean = false,
+    override var rotation: Vec2f? = null,
     override val timeout: Long = 200L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
-    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
-) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, Activity() {
+    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
+    override var context: BuildActivity.BuildContext = BuildActivity.BuildContext.NONE,
+    override var action: BuildActivity.BuildAction = BuildActivity.BuildAction.UNINIT,
+    override var hitVec: Vec3d = Vec3d.ZERO
+) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, BuildActivity, Activity() {
+    private var placeInfo: PlaceInfo? = null
+    private var spoofedDirection = false
+
     private val renderActivity = RenderAABBActivity.Companion.RenderBlockPos(
         blockPos,
-        ColorHolder(35, 188, 254)
+        action.color
     ).also { toRender.add(it) }
-
-    private var spoofedDirection = false
 
     private enum class PlacementOffset(val offset: Vec3d) {
         UPPER(Vec3d(0.0, 0.1, 0.0)),
@@ -67,33 +70,49 @@ class PlaceBlock(
         BlockRedstoneDiode::class,
     )
 
-    override fun SafeClientEvent.onInitialize() {
-        /* check if is done */
-        if (world.getBlockState(blockPos) == targetState) {
-            success()
-            return
-        }
+    init {
+        runSafe { updateState() }
 
-        /* less strict done check */
-        if (ignoreProperties && world.getBlockState(blockPos).block == targetState.block) {
-            success()
-            return
-        }
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.START) return@safeListener
 
-        /* check if block is placeable */
-//        if (!targetState.block.canPlaceBlockOnSide(world, blockPos, EnumFacing.UP)) {
-//            failedWith(BlockNotPlaceableException(blockPos))
-//            return
-//        }
+            updateState()
 
-        if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
-            if (world.worldBorder.contains(blockPos)
-                && !world.isOutsideBuildHeight(blockPos)) {
-                addSubActivities(BreakBlock(blockPos))
-            } else {
-                failedWith(BlockOutsideOfWorldException(blockPos))
+            if (status != Status.RUNNING
+                || context == BuildActivity.BuildContext.PENDING
+                || subActivities.isNotEmpty()
+            ) return@safeListener
+
+            when (action) {
+                BuildActivity.BuildAction.PLACE -> {
+                    placeInfo?.let { placeInfo ->
+                        checkPlace(placeInfo)
+                    }
+                }
+                BuildActivity.BuildAction.WRONG_POS_PLACE -> {
+                    if (autoPathing) addSubActivities(PlaceGoal(blockPos))
+                }
+                else -> {
+                    // ToDo: place neighbours
+                    failedWith(NoNeighbourException(blockPos))
+                }
             }
+        }
+    }
 
+    override fun SafeClientEvent.onInitialize() {
+        updateState()
+
+        placeInfo?.let {
+            checkPlace(it)
+        }
+    }
+
+    private fun SafeClientEvent.updateState() {
+        val blockState = world.getBlockState(blockPos)
+        if (blockState == targetState || (ignoreProperties && blockState.block == targetState.block)) {
+            ActivityManagerHud.totalBlocksPlaced++
+            success()
             return
         }
 
@@ -103,28 +122,11 @@ class PlaceBlock(
 //        var allowedRotations = targetState.block.getValidRotations(world, blockPos)?.toMutableSet()
 
         targetState.properties.entries.firstOrNull { it.key.name == "facing" }?.let { entry ->
-            var direction = entry.value as EnumFacing
+            val direction = entry.value as EnumFacing
 
             if (targetState.block is BlockButton) {
                 allowedSides.clear()
                 allowedSides.add(direction.opposite)
-                return@let
-            }
-
-//            BlockDirectional
-//            BlockHorizontal
-//            BlockTorch
-//            BlockLever
-
-            if (targetState.block::class in blocksToOppositeDirection) direction = direction.opposite
-
-            /* rotate block to right direction if possible */
-            if (directionForce
-                && !spoofedDirection
-                && player.horizontalFacing != direction
-            ) {
-                addSubActivities(Rotate(Vec2f(direction.horizontalAngle, player.rotationPitch)))
-                return
             }
         }
 
@@ -163,6 +165,55 @@ class PlaceBlock(
             }
         }
 
+        getNeighbour(
+            blockPos,
+            attempts = BuildTools.placementSearch,
+            visibleSideCheck = placeStrictness != BuildTools.PlacementStrictness.ANY,
+            range = BuildTools.maxReach,
+            sides = allowedSides.toTypedArray()
+        )?.let {
+            placeInfo = it
+            action = BuildActivity.BuildAction.PLACE
+            hitVec = it.hitVec.add(placementOffset.offset)
+            rotation = getRotationTo(hitVec)
+        } ?: run {
+            getNeighbour(
+                blockPos,
+                attempts = BuildTools.placementSearch,
+                visibleSideCheck = false,
+                range = 256f,
+                sides = allowedSides.toTypedArray()
+            )?.let {
+                action = BuildActivity.BuildAction.WRONG_POS_PLACE
+                hitVec = it.hitVec.add(placementOffset.offset)
+            } ?: run {
+                action = BuildActivity.BuildAction.INVALID_PLACE
+                hitVec = Vec3d.ZERO
+            }
+            placeInfo = null
+            rotation = null
+        }
+
+        renderActivity.color = action.color
+    }
+
+    private fun SafeClientEvent.checkPlace(placeInfo: PlaceInfo) {
+//        if (!targetState.block.canPlaceBlockOnSide(world, blockPos, EnumFacing.UP)) {
+//            failedWith(BlockNotPlaceableException(blockPos))
+//            return
+//        }
+
+        /* check if block is placeable */
+        if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
+            if (world.worldBorder.contains(blockPos)
+                && !world.isOutsideBuildHeight(blockPos)) {
+                addSubActivities(BreakBlock(blockPos))
+            } else {
+                failedWith(BlockOutsideOfWorldException(blockPos))
+            }
+            return
+        }
+
         /* check if item has required metadata (declares the type) */
         val heldItemStack = player.getHeldItem(EnumHand.MAIN_HAND)
         val optimalStack = if (targetState.block is BlockShulkerBox) {
@@ -175,6 +226,8 @@ class PlaceBlock(
         if (heldItemStack.item != optimalStack.item
             || (!ignoreProperties && optimalStack.metadata != heldItemStack.metadata)
         ) {
+            context = BuildActivity.BuildContext.RESTOCK
+
             addSubActivities(AcquireItemInActiveHand(
                 optimalStack.item,
                 metadata = optimalStack.metadata
@@ -182,16 +235,27 @@ class PlaceBlock(
             return
         }
 
-        getNeighbour(
-            blockPos,
-            attempts = BuildTools.placementSearch,
-            visibleSideCheck = placeStrictness != BuildTools.PlacementStrictness.ANY,
-            range = BuildTools.maxReach,
-            sides = allowedSides.toTypedArray()
-        )?.let {
-            val hitVec = it.hitVec.add(placementOffset.offset)
+        targetState.properties.entries.firstOrNull { it.key.name == "facing" }?.let { entry ->
+            var direction = entry.value as EnumFacing
 
-//            /* last check for placement state */
+//            BlockDirectional
+//            BlockHorizontal
+//            BlockTorch
+//            BlockLever
+
+            if (targetState.block::class in blocksToOppositeDirection) direction = direction.opposite
+
+            /* rotate block to right direction if possible */
+            if (directionForce
+                && !spoofedDirection
+                && player.horizontalFacing != direction
+            ) {
+                addSubActivities(Rotate(Vec2f(direction.horizontalAngle, player.rotationPitch)))
+                return
+            }
+        }
+
+        /* last check for placement state */
 //            val resultingState = targetState.block.getStateForPlacement(
 //                world,
 //                it.pos,
@@ -210,76 +274,41 @@ class PlaceBlock(
 //                return
 //            }
 
-            val isBlacklisted = world.getBlockState(it.pos).block in blockBlacklist
-
-            renderActivity.color = ColorHolder(11, 66, 89)
-
-            if (isBlacklisted) {
-                connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
-            }
-
-            rotation = getRotationTo(hitVec)
-
-            val result = playerController.processRightClickBlock(player, world, it.pos, it.side, hitVec, EnumHand.MAIN_HAND)
-
-            if (result != EnumActionResult.SUCCESS) {
-                failedWith(ProcessRightClickException(result))
-                return
-            }
-
-            player.swingArm(EnumHand.MAIN_HAND)
-
-            if (isBlacklisted) {
-                connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
-            }
-
-            if (doPending) {
-                if (BuildTools.placeDelay == 0) {
-                    owner.status = Status.PENDING
-                } else {
-                    addSubActivities(Wait(BuildTools.placeDelay * 50L))
-                }
-            }
-        } ?: run {
-            getNeighbour(
-                blockPos,
-                attempts = BuildTools.placementSearch,
-                visibleSideCheck = false,
-                range = 256f
-            )?.let {
-                if (autoPathing) addSubActivities(PlaceGoal(blockPos))
-            } ?: run {
-                failedWith(NoNeighbourException(blockPos))
-            }
-        }
+        doPlace(placeInfo)
     }
 
-    init {
-        safeListener<PacketEvent.PostReceive> {
-            if (it.packet is SPacketBlockChange
-                && it.packet.blockPosition == blockPos
-                && subActivities.isEmpty()
-            ) {
-                when {
-                    it.packet.blockState == targetState -> {
-                        success()
-                    }
-                    ignoreProperties && it.packet.blockState.block == targetState.block -> {
-                        success()
-                    }
-                    else -> {
-                        failedWith(UnexpectedBlockStateException(blockPos, targetState, it.packet.blockState))
-                    }
-                }
-            }
+    private fun SafeClientEvent.doPlace(placeInfo: PlaceInfo) {
+        val isBlacklisted = world.getBlockState(placeInfo.pos).block in blockBlacklist
+
+        renderActivity.color = ColorHolder(11, 66, 89)
+
+        if (isBlacklisted) {
+            connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
         }
+
+        val result = playerController.processRightClickBlock(player, world, placeInfo.pos, placeInfo.side, hitVec, EnumHand.MAIN_HAND)
+
+        if (result != EnumActionResult.SUCCESS) {
+            failedWith(ProcessRightClickException(result))
+            return
+        }
+
+        player.swingArm(EnumHand.MAIN_HAND)
+
+        if (isBlacklisted) {
+            connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
+        }
+
+        if (BuildTools.placeDelay != 0) addSubActivities(Wait(BuildTools.placeDelay * 50L))
+
+        context = BuildActivity.BuildContext.PENDING
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
-            is Wait -> {
-                if (doPending) owner.status = Status.PENDING
-            }
+//            is Wait -> {
+//                if (doPending) owner.status = Status.PENDING
+//            }
 
             is Rotate -> {
                 spoofedDirection = true
@@ -296,7 +325,6 @@ class PlaceBlock(
     class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for (${blockPos.asString()}) found")
     class BlockNotPlaceableException(targetState: IBlockState) : Exception("Block $targetState is not placeable")
     class ProcessRightClickException(result: EnumActionResult) : Exception("Processing right click failed with result $result")
-    class PlacementStateException(placementState: IBlockState, targetState: IBlockState) : Exception("Placement state $placementState does not match target state $targetState")
     class UnexpectedBlockStateException(blockPos: BlockPos, expected: IBlockState, actual: IBlockState) : Exception("Unexpected block state at (${blockPos.asString()}) expected $expected but got $actual")
     class BlockOutsideOfWorldException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
 }

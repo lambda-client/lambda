@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.highlevel.BuildStructure
 import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt

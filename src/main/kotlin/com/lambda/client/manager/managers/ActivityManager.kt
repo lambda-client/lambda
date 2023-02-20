@@ -1,6 +1,7 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
 import com.lambda.client.event.LambdaEventBus
@@ -24,17 +25,16 @@ object ActivityManager : Manager, Activity(true) {
 
             val allActivities = allSubActivities
 
-            allActivities.filter { it.status == Status.PENDING }.forEach {
-                with(it) {
-                    updateTypesOnTick(it)
+            allActivities
+                .filter { it.status == Status.RUNNING }
+                .forEach {
+                    if (it is BuildActivity && it.context == BuildActivity.BuildContext.PENDING) {
+                        return@forEach
+                    }
+                    with(it) {
+                        updateTypesOnTick(it)
+                    }
                 }
-            }
-
-            with(getCurrentActivity()) {
-                if (status == Status.RUNNING
-                    || status == Status.PENDING
-                ) updateTypesOnTick(this)
-            }
 
             repeat(executionCountPerTick) {
                 with(getCurrentActivity()) {

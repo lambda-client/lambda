@@ -11,7 +11,6 @@ import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.items.countItem
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
-import net.minecraft.block.BlockHorizontal
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments

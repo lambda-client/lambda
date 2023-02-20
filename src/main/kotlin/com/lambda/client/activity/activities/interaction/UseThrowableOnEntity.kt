@@ -15,7 +15,7 @@ class UseThrowableOnEntity(
     private val targetEntity: Entity,
     private val amount: Int = 1,
     private val useHand: EnumHand = EnumHand.MAIN_HAND,
-    override var rotation: Vec2f = Vec2f.ZERO,
+    override var rotation: Vec2f? = null,
 ) : RotatingActivity, Activity() {
     private var used = 0
 

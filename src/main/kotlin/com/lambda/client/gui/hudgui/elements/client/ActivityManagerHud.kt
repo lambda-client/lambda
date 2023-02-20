@@ -24,13 +24,24 @@ internal object ActivityManagerHud: LabelHud(
 
         if (startTime == 0L) startTime = System.currentTimeMillis()
 
+        val runTimeMS = System.currentTimeMillis() - startTime
+        val runTimeS = (runTimeMS + 1) / 1000.0
+
         with(ActivityManager) {
             displayText.add("Runtime", secondaryColor)
-            displayText.addLine(DurationFormatUtils.formatDuration(System.currentTimeMillis() - startTime, "HH:mm:ss,SSS"), primaryColor)
+            displayText.addLine(DurationFormatUtils.formatDuration(runTimeMS, "HH:mm:ss,SSS"), primaryColor)
             displayText.add("Amount", secondaryColor)
             displayText.add(ActivityManager.allSubActivities.size.toString(), primaryColor)
             displayText.add("Current", secondaryColor)
-            displayText.addLine(getCurrentActivity().activityName, primaryColor)
+            displayText.add(getCurrentActivity().activityName, primaryColor)
+            displayText.add("Total Placed", secondaryColor)
+            displayText.add(totalBlocksPlaced.toString(), primaryColor)
+            displayText.add("Total Broken", secondaryColor)
+            displayText.add(totalBlocksBroken.toString(), primaryColor)
+            displayText.add("Place/s", secondaryColor)
+            displayText.add("%.2f".format(totalBlocksPlaced / runTimeS), primaryColor)
+            displayText.add("Break/s", secondaryColor)
+            displayText.addLine("%.2f".format(totalBlocksBroken / runTimeS), primaryColor)
 
             appendInfo(displayText, primaryColor, secondaryColor, details)
         }
@@ -45,4 +56,9 @@ internal object ActivityManagerHud: LabelHud(
             if (async.isNotEmpty()) displayText.addLine("ASYNC ${async.map { it::class.simpleName }}")
         }
     }
+
+    // STATS?
+
+    var totalBlocksPlaced = 0
+    var totalBlocksBroken = 0
 }
