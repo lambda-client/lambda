@@ -14,7 +14,7 @@ object Xray : Module(
 ) {
     private val defaultVisibleList = linkedSetOf("minecraft:diamond_ore", "minecraft:iron_ore", "minecraft:gold_ore", "minecraft:portal", "minecraft:cobblestone")
 
-    val visibleList = setting(CollectionSetting("Visible List", defaultVisibleList, { false }))
+    val visibleList = setting(CollectionSetting("Visible List", defaultVisibleList, String::class.java, { false }))
 
     @JvmStatic
     fun shouldReplace(state: IBlockState): Boolean {
