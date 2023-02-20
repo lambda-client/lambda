@@ -200,10 +200,10 @@ class BreakBlock(
             playerController.onPlayerDamageBlock(blockPos, side)
         }
 
-        if (!successDamage) {
-            failedWith(BlockBreakingException())
-            return
-        }
+//        if (!successDamage) {
+//            failedWith(BlockBreakingException())
+//            return
+//        }
 
         mc.effectRenderer.addBlockHitEffects(blockPos, side)
         player.swingArm(EnumHand.MAIN_HAND)

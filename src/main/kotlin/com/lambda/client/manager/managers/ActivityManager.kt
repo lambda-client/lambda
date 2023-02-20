@@ -26,11 +26,8 @@ object ActivityManager : Manager, Activity(true) {
             val allActivities = allSubActivities
 
             allActivities
-                .filter { it.status == Status.RUNNING }
+                .filter { it.status == Status.RUNNING && it.subActivities.isEmpty() }
                 .forEach {
-                    if (it is BuildActivity && it.context == BuildActivity.BuildContext.PENDING) {
-                        return@forEach
-                    }
                     with(it) {
                         updateTypesOnTick(it)
                     }

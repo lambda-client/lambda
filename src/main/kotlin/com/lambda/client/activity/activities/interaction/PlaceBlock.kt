@@ -121,6 +121,17 @@ class PlaceBlock(
 
 //        var allowedRotations = targetState.block.getValidRotations(world, blockPos)?.toMutableSet()
 
+        /* check if block is placeable */
+        if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
+            if (world.worldBorder.contains(blockPos)
+                && !world.isOutsideBuildHeight(blockPos)) {
+                if (subActivities.isEmpty()) addSubActivities(BreakBlock(blockPos))
+            } else {
+                failedWith(BlockOutsideOfWorldException(blockPos))
+            }
+            return
+        }
+
         targetState.properties.entries.firstOrNull { it.key.name == "facing" }?.let { entry ->
             val direction = entry.value as EnumFacing
 
@@ -175,7 +186,6 @@ class PlaceBlock(
             placeInfo = it
             action = BuildActivity.BuildAction.PLACE
             hitVec = it.hitVec.add(placementOffset.offset)
-            rotation = getRotationTo(hitVec)
         } ?: run {
             getNeighbour(
                 blockPos,
@@ -202,17 +212,6 @@ class PlaceBlock(
 //            failedWith(BlockNotPlaceableException(blockPos))
 //            return
 //        }
-
-        /* check if block is placeable */
-        if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
-            if (world.worldBorder.contains(blockPos)
-                && !world.isOutsideBuildHeight(blockPos)) {
-                addSubActivities(BreakBlock(blockPos))
-            } else {
-                failedWith(BlockOutsideOfWorldException(blockPos))
-            }
-            return
-        }
 
         /* check if item has required metadata (declares the type) */
         val heldItemStack = player.getHeldItem(EnumHand.MAIN_HAND)
@@ -285,6 +284,8 @@ class PlaceBlock(
         if (isBlacklisted) {
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
         }
+
+        rotation = getRotationTo(hitVec)
 
         val result = playerController.processRightClickBlock(player, world, placeInfo.pos, placeInfo.side, hitVec, EnumHand.MAIN_HAND)
 
