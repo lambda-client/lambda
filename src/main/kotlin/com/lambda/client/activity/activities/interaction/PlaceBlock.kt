@@ -15,9 +15,7 @@ import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.module.modules.client.BuildTools.directionForce
 import com.lambda.client.module.modules.client.BuildTools.placeStrictness
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.items.block
 import com.lambda.client.util.items.blockBlacklist
-import com.lambda.client.util.items.item
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
@@ -26,7 +24,6 @@ import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
 import net.minecraft.block.*
 import net.minecraft.block.state.IBlockState
-import net.minecraft.item.ItemBlockSpecial
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
@@ -36,7 +33,6 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.IStringSerializable
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.fml.common.asm.transformers.ItemBlockSpecialTransformer
 
 class PlaceBlock(
     private val blockPos: BlockPos,
@@ -67,7 +63,8 @@ class PlaceBlock(
         BlockEnderChest::class,
         BlockEndPortalFrame::class,
         BlockGlazedTerracotta::class,
-        BlockPumpkin::class
+        BlockPumpkin::class,
+        BlockRedstoneDiode::class,
     )
 
     override fun SafeClientEvent.onInitialize() {
@@ -167,20 +164,20 @@ class PlaceBlock(
         }
 
         /* check if item has required metadata (declares the type) */
-        val heldItem = player.getHeldItem(EnumHand.MAIN_HAND)
-        val stack = if (targetState.block is BlockShulkerBox) {
+        val heldItemStack = player.getHeldItem(EnumHand.MAIN_HAND)
+        val optimalStack = if (targetState.block is BlockShulkerBox) {
             ItemStack(targetState.block, 1, targetState.block.getMetaFromState(targetState))
         } else {
             @Suppress("DEPRECATION")
             targetState.block.getItem(world, blockPos, targetState)
         }
 
-        if (heldItem.item != stack.item
-            || (!ignoreProperties && stack.metadata != heldItem.metadata)
+        if (heldItemStack.item != optimalStack.item
+            || (!ignoreProperties && optimalStack.metadata != heldItemStack.metadata)
         ) {
             addSubActivities(AcquireItemInActiveHand(
-                stack.item,
-                metadata = stack.metadata
+                optimalStack.item,
+                metadata = optimalStack.metadata
             ))
             return
         }
