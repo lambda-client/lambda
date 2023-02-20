@@ -26,6 +26,7 @@ import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isPlaceable
 import net.minecraft.block.*
 import net.minecraft.block.state.IBlockState
+import net.minecraft.item.ItemBlockSpecial
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
 import net.minecraft.network.play.server.SPacketBlockChange
@@ -35,6 +36,7 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.IStringSerializable
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraftforge.fml.common.asm.transformers.ItemBlockSpecialTransformer
 
 class PlaceBlock(
     private val blockPos: BlockPos,
@@ -65,9 +67,7 @@ class PlaceBlock(
         BlockEnderChest::class,
         BlockEndPortalFrame::class,
         BlockGlazedTerracotta::class,
-        BlockPumpkin::class,
-        BlockRedstoneComparator::class,
-        BlockRedstoneDiode::class
+        BlockPumpkin::class
     )
 
     override fun SafeClientEvent.onInitialize() {
@@ -168,27 +168,21 @@ class PlaceBlock(
 
         /* check if item has required metadata (declares the type) */
         val heldItem = player.getHeldItem(EnumHand.MAIN_HAND)
-
-        if (!ignoreProperties) {
-            val stack = if (targetState.block is BlockShulkerBox) {
-                ItemStack(targetState.block, 1, targetState.block.getMetaFromState(targetState))
-            } else {
-                @Suppress("DEPRECATION")
-                targetState.block.getItem(world, blockPos, targetState)
-            }
-
-            if (heldItem.item.block != targetState.block || stack.metadata != heldItem.metadata) {
-                addSubActivities(AcquireItemInActiveHand(
-                    targetState.block.item,
-                    metadata = stack.metadata
-                ))
-                return
-            }
+        val stack = if (targetState.block is BlockShulkerBox) {
+            ItemStack(targetState.block, 1, targetState.block.getMetaFromState(targetState))
         } else {
-            if (heldItem.item.block != targetState.block) {
-                addSubActivities(AcquireItemInActiveHand(targetState.block.item))
-                return
-            }
+            @Suppress("DEPRECATION")
+            targetState.block.getItem(world, blockPos, targetState)
+        }
+
+        if (heldItem.item != stack.item
+            || (!ignoreProperties && stack.metadata != heldItem.metadata)
+        ) {
+            addSubActivities(AcquireItemInActiveHand(
+                stack.item,
+                metadata = stack.metadata
+            ))
+            return
         }
 
         getNeighbour(
