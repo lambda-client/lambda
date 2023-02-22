@@ -5,7 +5,6 @@ import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.activity.activities.types.*
-import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
@@ -30,7 +29,6 @@ import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import java.nio.channels.AcceptPendingException
 import java.util.*
 import kotlin.math.ceil
 
@@ -46,11 +44,14 @@ class BreakBlock(
     override var context: BuildActivity.BuildContext = BuildActivity.BuildContext.NONE,
     override var action: BuildActivity.BuildAction = BuildActivity.BuildAction.UNINIT,
     override var hitVec: Vec3d = Vec3d.ZERO
-) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderAABBActivity, BuildActivity, Activity() {
+) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
     private var side: EnumFacing? = null
     private var ticksNeeded = 0
     private var initState = Blocks.AIR.defaultState
     private var drop: Item = Items.AIR
+    override var earliestFinish: Long
+        get() = BuildTools.breakDelay.toLong()
+        set(_) {}
 
     private val renderActivity = RenderAABBActivity.Companion.RenderBlockPos(
         blockPos, action.color
@@ -64,10 +65,10 @@ class BreakBlock(
 
             updateState()
 
-            if (status != Status.RUNNING
-                || context == BuildActivity.BuildContext.PENDING
-                || subActivities.isNotEmpty()
-            ) return@safeListener
+//            if (status != Status.RUNNING
+//                || context == BuildActivity.BuildContext.PENDING
+//                || subActivities.isNotEmpty()
+//            ) return@safeListener
 
             when (action) {
                 BuildActivity.BuildAction.BREAKING, BuildActivity.BuildAction.BREAK -> {
@@ -82,7 +83,7 @@ class BreakBlock(
                 }
                 else -> {
                     // ToDo: break nearby blocks
-                    failedWith(NoExposedSideFound())
+//                    failedWith(NoExposedSideFound())
                 }
             }
         }
@@ -93,19 +94,7 @@ class BreakBlock(
                 || it.packet.blockState.block != Blocks.AIR
             ) return@safeListener
 
-            if (!collectDrops || !autoPathing) {
-                ActivityManagerHud.totalBlocksBroken++
-                success()
-                return@safeListener
-            }
-
-            renderActivity.color = ColorHolder(252, 3, 207)
-
-            if (drop.block == Blocks.AIR) return@safeListener
-
-            addSubActivities(
-                PickUpDrops(drop, minAmount = minCollectAmount)
-            )
+            finish()
         }
     }
 
@@ -117,15 +106,27 @@ class BreakBlock(
         }
     }
 
-    private fun SafeClientEvent.updateState() {
-        val currentState = world.getBlockState(blockPos)
+    override fun SafeClientEvent.onCancel() {
+        playerController.resetBlockRemoving()
+    }
 
-        if (world.isAirBlock(blockPos) || currentState.block in BuildTools.ignoredBlocks) {
+    private fun SafeClientEvent.finish() {
+        if (!collectDrops || !autoPathing) {
             ActivityManagerHud.totalBlocksBroken++
             success()
             return
         }
 
+        renderActivity.color = ColorHolder(252, 3, 207)
+
+        if (drop.block == Blocks.AIR) return
+
+        addSubActivities(
+            PickUpDrops(drop, minAmount = minCollectAmount)
+        )
+    }
+
+    private fun SafeClientEvent.updateState() {
         getMiningSide(blockPos, BuildTools.maxReach)?.let {
             action = BuildActivity.BuildAction.BREAK
             hitVec = getHitVec(blockPos, it)
@@ -205,12 +206,11 @@ class BreakBlock(
 //            return
 //        }
 
-        mc.effectRenderer.addBlockHitEffects(blockPos, side)
         player.swingArm(EnumHand.MAIN_HAND)
 
-        if (BuildTools.breakDelay != 0) addSubActivities(Wait(BuildTools.breakDelay * 50L - 5L))
-
-        if (ticksNeeded == 1 || isCreative) context = BuildActivity.BuildContext.PENDING
+        if (ticksNeeded == 1 || isCreative) {
+            context = BuildActivity.BuildContext.PENDING
+        }
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
@@ -219,7 +219,6 @@ class BreakBlock(
                 ActivityManagerHud.totalBlocksBroken++
                 success()
             }
-//            is Wait -> setBuildBlockOnPending()
             is AcquireItemInActiveHand, is PlaceBlock -> {
                 status = Status.UNINITIALIZED
             }

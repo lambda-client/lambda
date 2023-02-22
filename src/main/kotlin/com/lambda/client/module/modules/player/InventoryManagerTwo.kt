@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.player
 
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.storage.OpenShulkerFromSlot
+import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.events.WindowClickEvent
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
@@ -11,9 +12,12 @@ import com.lambda.client.util.items.item
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.BlockEnderChest
 import net.minecraft.block.BlockShulkerBox
+import net.minecraft.client.gui.inventory.GuiChest
+import net.minecraft.client.gui.inventory.GuiShulkerBox
 import net.minecraft.init.Blocks
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemShulkerBox
+import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object InventoryManagerTwo : Module(
@@ -22,6 +26,7 @@ object InventoryManagerTwo : Module(
     category = Category.PLAYER
 ) {
     private val placedShulkerBoxes = ArrayDeque<OpenShulkerFromSlot>(mutableListOf())
+    private val currentlyOpen: OpenShulkerFromSlot? = null
 
     init {
         safeListener<WindowClickEvent> {
@@ -73,7 +78,7 @@ object InventoryManagerTwo : Module(
             val cloned = ArrayDeque(placedShulkerBoxes)
 
             cloned.forEachIndexed { index, openShulker ->
-                if (index == 0) return@forEachIndexed
+                if (index == 0 || openShulker.containerPos == BlockPos.ORIGIN) return@forEachIndexed
                 placedShulkerBoxes.remove(openShulker)
 
                 val currentBlock = world.getBlockState(openShulker.containerPos).block
@@ -86,20 +91,20 @@ object InventoryManagerTwo : Module(
             }
         }
 
-//        safeListener<GuiEvent.Closed> {
-//            if (!(it.screen is GuiShulkerBox || it.screen is GuiChest)) return@safeListener
-//
-//            placedShulkerBoxes.firstOrNull()?.let { openShulkerFromSlot ->
-//                placedShulkerBoxes.remove(openShulkerFromSlot)
-//
-//                val currentBlock = world.getBlockState(openShulkerFromSlot.containerPos).block
-//
-//                if (!(currentBlock is BlockShulkerBox || currentBlock is BlockEnderChest)) return@safeListener
-//
-//                ActivityManager.addSubActivities(
-//                    BreakBlock(openShulkerFromSlot.containerPos, collectDrops = true)
-//                )
-//            }
-//        }
+        safeListener<GuiEvent.Closed> {
+            if (!(it.screen is GuiShulkerBox || it.screen is GuiChest)) return@safeListener
+
+            placedShulkerBoxes.firstOrNull()?.let { openShulkerFromSlot ->
+                placedShulkerBoxes.remove(openShulkerFromSlot)
+
+                val currentBlock = world.getBlockState(openShulkerFromSlot.containerPos).block
+
+                if (!(currentBlock is BlockShulkerBox || currentBlock is BlockEnderChest)) return@safeListener
+
+                ActivityManager.addSubActivities(
+                    BreakBlock(openShulkerFromSlot.containerPos, collectDrops = true)
+                )
+            }
+        }
     }
 }

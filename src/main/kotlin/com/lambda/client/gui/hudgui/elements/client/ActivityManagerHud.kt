@@ -33,7 +33,7 @@ internal object ActivityManagerHud: LabelHud(
             displayText.add("Amount", secondaryColor)
             displayText.add(ActivityManager.allSubActivities.size.toString(), primaryColor)
             displayText.add("Current", secondaryColor)
-            displayText.add(getCurrentActivity().activityName, primaryColor)
+            displayText.addLine(getCurrentActivity().activityName, primaryColor)
             displayText.add("Total Placed", secondaryColor)
             displayText.add(totalBlocksPlaced.toString(), primaryColor)
             displayText.add("Total Broken", secondaryColor)

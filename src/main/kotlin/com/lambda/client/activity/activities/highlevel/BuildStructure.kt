@@ -5,17 +5,18 @@ import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.RepeatingActivity
+import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.manager.managers.ActivityManager.getCurrentActivity
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.Wrapper
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
-import jdk.nashorn.internal.ir.annotations.Ignore
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
+import java.util.concurrent.PriorityBlockingQueue
 
 class BuildStructure(
     private val structure: Map<BlockPos, IBlockState>,
@@ -26,6 +27,7 @@ class BuildStructure(
     override var repeated: Int = 0,
 ) : RepeatingActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
+    override val subActivities = PriorityBlockingQueue(100, buildComparator())
 
     override fun SafeClientEvent.onInitialize() {
         val activities = mutableListOf<Activity>()
@@ -63,42 +65,28 @@ class BuildStructure(
         currentOffset = currentOffset.add(offsetMove)
     }
 
-    override fun SafeClientEvent.getCurrentActivity(): Activity {
-        subActivities
-            .asSequence()
-            .sortedWith(
-                compareBy<Activity> {
-                    with(it) {
-                        getCurrentActivity().status
-                    }
-                }.thenBy {
-                    val current = deepestBuildActivity(it)
+    private fun buildComparator() = compareBy<Activity> {
+        val current = deepestBuildActivity(it)
 
-                    if (current is BuildActivity) {
-                        current.context
-                    } else 0
-                }.thenBy {
-                    val current = deepestBuildActivity(it)
+        if (current is BuildActivity) {
+            current.context
+        } else 0
+    }.thenBy {
+        val current = deepestBuildActivity(it)
 
-                    if (current is BuildActivity) {
-                        current.action
-                    } else 0
-                }.thenBy {
-                    val current = deepestBuildActivity(it)
+        if (current is BuildActivity) {
+            current.action
+        } else 0
+    }.thenBy {
+        val current = deepestBuildActivity(it)
 
-                    if (current is BuildActivity) {
-                        player.getPositionEyes(1f).distanceTo(current.hitVec)
-                    } else 0.0
-                }
-            ).firstOrNull()?.let {
-                with(it) {
-                    return getCurrentActivity()
-                }
-            } ?: return this@BuildStructure
+        if (current is BuildActivity) {
+            Wrapper.player?.getPositionEyes(1f)?.distanceTo(current.hitVec) ?: 0.0
+        } else 0.0
     }
 
     /* BreakBlocks that are boxed in a PlaceBlock are considered in the sequence */
-    private fun SafeClientEvent.deepestBuildActivity(activity: Activity): Activity {
+    private fun deepestBuildActivity(activity: Activity): Activity {
         activity.subActivities
             .filterIsInstance<BuildActivity>()
             .firstOrNull()?.let {

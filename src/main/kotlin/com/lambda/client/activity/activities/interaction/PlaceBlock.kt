@@ -241,6 +241,8 @@ class PlaceBlock(
         }
 
         targetState.properties.entries.firstOrNull { it.key.name == "facing" }?.let { entry ->
+            if (ignoreProperties || ignoreFacing) return@let
+
             var direction = entry.value as EnumFacing
 
 //            BlockDirectional
