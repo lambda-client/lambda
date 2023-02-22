@@ -21,7 +21,7 @@ object ViewLock : Module(
     category = Category.PLAYER,
     alias = arrayOf("YawLock", "PitchLock")
 ) {
-    private val mode by setting("Mode", Mode.COORDS)
+    private val mode by setting("Mode", Mode.TRADITIONAL)
     private val page by setting("Page", Page.YAW, { mode == Mode.TRADITIONAL })
 
     private val yaw by setting("Yaw", true, { mode == Mode.TRADITIONAL && page == Page.YAW })
