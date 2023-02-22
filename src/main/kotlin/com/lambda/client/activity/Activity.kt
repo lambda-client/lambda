@@ -1,6 +1,7 @@
 package com.lambda.client.activity
 
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
+import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.DelayedActivity
 import com.lambda.client.activity.activities.types.DelayedActivity.Companion.checkDelayed
 import com.lambda.client.activity.activities.types.EndlessActivity
@@ -26,10 +27,10 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.time.DurationFormatUtils
-import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.PriorityBlockingQueue
 
 abstract class Activity(val isRoot: Boolean = false) {
-    val subActivities = ConcurrentLinkedDeque<Activity>()
+    open val subActivities = PriorityBlockingQueue<Activity>(15, compareBy { it.status })
     var status = Status.UNINITIALIZED
     private var creationTime = 0L
     var owner: Activity = ActivityManager
@@ -47,6 +48,8 @@ abstract class Activity(val isRoot: Boolean = false) {
     open fun SafeClientEvent.onFailure(exception: Exception): Boolean = false
 
     open fun SafeClientEvent.onChildFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean = false
+
+    open fun SafeClientEvent.onCancel() {}
 
     open fun addExtraInfo(
         textComponent: TextComponent,
@@ -155,6 +158,27 @@ abstract class Activity(val isRoot: Boolean = false) {
         ActivityManager.reset()
     }
 
+    fun SafeClientEvent.cancel() {
+        val activity = this@Activity
+
+        subActivities.forEach {
+            with(it) {
+                cancel()
+            }
+        }
+
+        LambdaEventBus.unsubscribe(activity)
+        ListenerManager.unregister(activity)
+
+        with(owner) {
+            subActivities.remove(activity)
+        }
+
+        onCancel()
+
+        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
+    }
+
     private fun SafeClientEvent.childFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {
         if (onChildFailure(childActivities, childException)) return true
 
@@ -218,6 +242,16 @@ abstract class Activity(val isRoot: Boolean = false) {
                 textComponent.add(DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS"), primaryColor)
             }
 
+            if (this is BuildActivity) {
+                textComponent.add("Context", secondaryColor)
+                textComponent.add(context.name, primaryColor)
+                textComponent.add("Action", secondaryColor)
+                textComponent.add(action.name, primaryColor)
+            }
+
+            textComponent.add("Hash", secondaryColor)
+            textComponent.add(hashCode().toString(), primaryColor)
+
             if (details) {
                 this::class.java.declaredFields.forEachIndexed { index, field ->
                     field.isAccessible = true
@@ -253,7 +287,9 @@ abstract class Activity(val isRoot: Boolean = false) {
         addExtraInfo(textComponent, primaryColor, secondaryColor)
         textComponent.addLine("")
 //        subActivities.filter { !(it is BuildBlock && it.activityStatus == ActivityStatus.UNINITIALIZED) }.forEach {
-        subActivities.forEach {
+        val sortedList = subActivities.toTypedArray().sortedWith(subActivities.comparator())
+
+        sortedList.forEach {
             repeat(depth) {
                 textComponent.add("   ")
             }

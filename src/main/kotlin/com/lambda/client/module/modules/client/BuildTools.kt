@@ -31,7 +31,8 @@ object BuildTools : Module(
 //    })
 
     /* mining */
-    val breakDelay by setting("Break Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
+    val breakDelay by setting("Break Delay", 50, 0..1000, 5, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ms")
+    val maxPending by setting("Max Pending", 1, 1..100, 1, { page == Page.BUILDING }, description = "Sets the maximum amount of pending break tasks")
     val miningSpeedFactor by setting("Mining Speed Factor", 1.0f, 0.0f..2.0f, 0.01f, { page == Page.BUILDING }, description = "Factor to manipulate calculated mining speed")
 //    val interactionLimit by setting("Interaction Limit", 20, 1..100, 1, { page == Page.MINING }, description = "Set the interaction limit per second", unit = " interactions/s")
 //    val multiBreak by setting("Multi Break", true, { page == Page.MINING }, description = "Breaks multiple instant breaking blocks intersecting with view vector on the same tick")

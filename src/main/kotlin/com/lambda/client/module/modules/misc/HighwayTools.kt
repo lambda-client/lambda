@@ -87,7 +87,13 @@ object HighwayTools : Module(
         }
 
         onDisable {
-            ActivityManager.reset()
+            runSafe {
+                ownedBuildStructure?.let {
+                    with(it) {
+                        cancel()
+                    }
+                }
+            }
         }
     }
 
