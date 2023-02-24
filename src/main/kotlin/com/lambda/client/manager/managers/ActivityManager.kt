@@ -4,6 +4,7 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
+import com.lambda.client.activity.activities.types.TimedActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.events.RenderWorldEvent
@@ -33,15 +34,26 @@ object ActivityManager : Manager, Activity(true) {
                     }
                 }
 
+            var lastActivity: Activity? = null
+
             repeat(executionCountPerTick) {
-                with(getCurrentActivity()) {
+                val current = getCurrentActivity()
+
+                with(current) {
                     BaritoneUtils.settings?.allowPlace?.value = false
                     BaritoneUtils.settings?.allowBreak?.value = false
                     BaritoneUtils.settings?.allowInventory?.value = false
 
+                    // ToDo: Find a working way to guarantee specific age of activity
+                    (lastActivity as? TimedActivity)?.let {
+                        if (age < it.earliestFinish) return@repeat
+                    }
+
                     updateActivity()
                     checkRender()
                 }
+
+                lastActivity = current
             }
         }
 

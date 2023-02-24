@@ -57,7 +57,7 @@ abstract class Activity(val isRoot: Boolean = false) {
         secondaryColor: ColorHolder
     ) {}
 
-    open fun SafeClientEvent.getCurrentActivity(): Activity {
+    open fun getCurrentActivity(): Activity {
         subActivities.firstOrNull()?.let {
             with(it) {
                 return getCurrentActivity()
@@ -286,10 +286,8 @@ abstract class Activity(val isRoot: Boolean = false) {
 
         addExtraInfo(textComponent, primaryColor, secondaryColor)
         textComponent.addLine("")
-//        subActivities.filter { !(it is BuildBlock && it.activityStatus == ActivityStatus.UNINITIALIZED) }.forEach {
-        val sortedList = subActivities.toTypedArray().sortedWith(subActivities.comparator())
 
-        sortedList.forEach {
+        subActivities.forEach {
             repeat(depth) {
                 textComponent.add("   ")
             }

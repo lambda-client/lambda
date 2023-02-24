@@ -11,8 +11,8 @@ interface BuildActivity {
     enum class BuildContext(val color: ColorHolder) {
         RESTOCK(ColorHolder()),
         LIQUID(ColorHolder()),
-        NONE(ColorHolder()),
-        PENDING(ColorHolder())
+        NONE(ColorHolder(0, 0, 0, 0)),
+        PENDING(ColorHolder(11, 11, 175))
     }
 
     enum class BuildAction(val color: ColorHolder) {
