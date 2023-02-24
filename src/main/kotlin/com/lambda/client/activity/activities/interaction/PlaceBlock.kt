@@ -4,15 +4,14 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.activities.types.*
-import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.module.modules.client.BuildTools.directionForce
 import com.lambda.client.module.modules.client.BuildTools.placeStrictness
-import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.items.blockBlacklist
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
@@ -21,11 +20,12 @@ import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
-import com.lambda.client.util.world.isPlaceable
+import com.lambda.client.util.world.isReplaceable
 import net.minecraft.block.*
 import net.minecraft.block.state.IBlockState
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
+import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumActionResult
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
@@ -33,6 +33,7 @@ import net.minecraft.util.IStringSerializable
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import kotlin.properties.Delegates
 
 class PlaceBlock(
     private val blockPos: BlockPos,
@@ -44,16 +45,32 @@ class PlaceBlock(
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
-    override var context: BuildActivity.BuildContext = BuildActivity.BuildContext.NONE,
-    override var action: BuildActivity.BuildAction = BuildActivity.BuildAction.UNINIT,
     override var hitVec: Vec3d = Vec3d.ZERO
-) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, BuildActivity, Activity() {
+) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
     private var placeInfo: PlaceInfo? = null
+    private var breakFirst = false
     private var spoofedDirection = false
 
-    private val renderActivity = RenderAABBActivity.Companion.RenderBlockPos(
-        blockPos,
-        action.color
+    override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, _, new ->
+        renderContext.color = new.color
+        if (owner.subActivities.remove(this)) owner.subActivities.add(this)
+    }
+
+    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.UNINIT) { _, _, new ->
+        renderAction.color = new.color
+        if (owner.subActivities.remove(this)) owner.subActivities.add(this)
+    }
+
+    override var earliestFinish: Long
+        get() = BuildTools.placeDelay.toLong()
+        set(_) {}
+
+    private val renderContext = RenderAABBActivity.Companion.RenderBlockPos(
+        blockPos, context.color
+    ).also { toRender.add(it) }
+
+    private val renderAction = RenderAABBActivity.Companion.RenderBlockPos(
+        blockPos, action.color
     ).also { toRender.add(it) }
 
     private enum class PlacementOffset(val offset: Vec3d) {
@@ -72,31 +89,30 @@ class PlaceBlock(
     )
 
     init {
-        runSafe { updateState() }
+        runSafe {
+            if (!world.worldBorder.contains(blockPos) || world.isOutsideBuildHeight(blockPos)) {
+                // ToDo: add support for placing blocks outside of world border
+                failedWith(BlockOutsideOfBoundsException(blockPos))
+            }
+            updateState()
+        }
 
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
 
             updateState()
+        }
 
-            if (status != Status.RUNNING
-                || context == BuildActivity.BuildContext.PENDING
-                || subActivities.isNotEmpty()
-            ) return@safeListener
+        safeListener<PacketEvent.PostReceive> {
+            if (it.packet !is SPacketBlockChange || it.packet.blockPosition != blockPos) return@safeListener
 
-            when (action) {
-                BuildActivity.BuildAction.PLACE -> {
-                    placeInfo?.let { placeInfo ->
-                        checkPlace(placeInfo)
-                    }
-                }
-                BuildActivity.BuildAction.WRONG_POS_PLACE -> {
-                    if (autoPathing) addSubActivities(PlaceGoal(blockPos))
-                }
-                else -> {
-                    // ToDo: place neighbours
-                    failedWith(NoNeighbourException(blockPos))
-                }
+            if (it.packet.blockState == targetState
+                || (ignoreProperties && it.packet.blockState.block == targetState.block)
+            ) {
+                ActivityManagerHud.totalBlocksPlaced++
+                success()
+            } else {
+                failedWith(UnexpectedBlockStateException(blockPos, targetState, it.packet.blockState))
             }
         }
     }
@@ -104,37 +120,33 @@ class PlaceBlock(
     override fun SafeClientEvent.onInitialize() {
         updateState()
 
-        placeInfo?.let {
-            checkPlace(it)
+        when (action) {
+            BuildActivity.BuildAction.PLACE -> {
+                placeInfo?.let { placeInfo ->
+                    checkPlace(placeInfo)
+                }
+            }
+            BuildActivity.BuildAction.WRONG_POS_PLACE -> {
+                if (autoPathing) addSubActivities(PlaceGoal(blockPos))
+            }
+            else -> {
+                // ToDo: place neighbours
+//                failedWith(NoNeighbourException(blockPos))
+            }
         }
     }
 
     private fun SafeClientEvent.updateState() {
-        val blockState = world.getBlockState(blockPos)
-        if (blockState == targetState || (ignoreProperties && blockState.block == targetState.block)) {
-            ActivityManagerHud.totalBlocksPlaced++
-            success()
-            return
-        }
-
         val allowedSides = EnumFacing.VALUES.toMutableList()
         var placementOffset = PlacementOffset.CENTER
 
 //        var allowedRotations = targetState.block.getValidRotations(world, blockPos)?.toMutableSet()
 
-        /* check if block is placeable */
-        if (!world.isPlaceable(blockPos, targetState.getSelectedBoundingBox(world, blockPos))) {
-            if (world.worldBorder.contains(blockPos)
-                && !world.isOutsideBuildHeight(blockPos)) {
-                if (subActivities.isNotEmpty()) return
-
-                renderActivity.color = ColorHolder(0, 0, 0, 0)
-                val breakBlock = BreakBlock(blockPos)
-                addSubActivities(breakBlock)
-                LambdaEventBus.subscribe(breakBlock)
-            } else {
-                failedWith(BlockOutsideOfWorldException(blockPos))
-            }
+        if (!world.getBlockState(blockPos).isReplaceable && !breakFirst) {
+            breakFirst = true
+            val breakBlock = BreakBlock(blockPos)
+            addSubActivities(breakBlock)
+            LambdaEventBus.subscribe(breakBlock)
             return
         }
 
@@ -194,8 +206,8 @@ class PlaceBlock(
             range = BuildTools.maxReach,
             sides = allowedSides.toTypedArray()
         )?.let {
-            placeInfo = it
             action = BuildActivity.BuildAction.PLACE
+            placeInfo = it
             hitVec = it.hitVec.add(placementOffset.offset)
         } ?: run {
             getNeighbour(
@@ -214,8 +226,6 @@ class PlaceBlock(
             placeInfo = null
             rotation = null
         }
-
-        renderActivity.color = action.color
     }
 
     private fun SafeClientEvent.checkPlace(placeInfo: PlaceInfo) {
@@ -237,6 +247,13 @@ class PlaceBlock(
                 optimalStack.item,
                 metadata = optimalStack.metadata
             ))
+            return
+        }
+
+        /* check if no entity collides */
+        if (!world.checkNoEntityCollision(targetState.getSelectedBoundingBox(world, blockPos), player)) {
+            // ToDo: this only handles the case where the player is inside the block
+            addSubActivities(PlaceGoal(blockPos))
             return
         }
 
@@ -287,8 +304,6 @@ class PlaceBlock(
     private fun SafeClientEvent.doPlace(placeInfo: PlaceInfo) {
         val isBlacklisted = world.getBlockState(placeInfo.pos).block in blockBlacklist
 
-        renderActivity.color = ColorHolder(11, 66, 89)
-
         if (isBlacklisted) {
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
         }
@@ -307,8 +322,6 @@ class PlaceBlock(
         if (isBlacklisted) {
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
         }
-
-        if (BuildTools.placeDelay != 0) addSubActivities(Wait(BuildTools.placeDelay * 50L))
 
         context = BuildActivity.BuildContext.PENDING
     }
@@ -330,5 +343,5 @@ class PlaceBlock(
     class BlockNotPlaceableException(targetState: IBlockState) : Exception("Block $targetState is not placeable")
     class ProcessRightClickException(result: EnumActionResult) : Exception("Processing right click failed with result $result")
     class UnexpectedBlockStateException(blockPos: BlockPos, expected: IBlockState, actual: IBlockState) : Exception("Unexpected block state at (${blockPos.asString()}) expected $expected but got $actual")
-    class BlockOutsideOfWorldException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
+    class BlockOutsideOfBoundsException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
 }

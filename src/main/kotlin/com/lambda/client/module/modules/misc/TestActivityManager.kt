@@ -3,10 +3,7 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
-import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
-import com.lambda.client.activity.activities.highlevel.BuildStructure
-import com.lambda.client.activity.activities.highlevel.ReachXPLevel
-import com.lambda.client.activity.activities.highlevel.SurroundWithObsidian
+import com.lambda.client.activity.activities.highlevel.*
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.interaction.Rotate
@@ -115,6 +112,19 @@ object TestActivityManager : Module(
                 BreakBlock(pos),
                 PlaceBlock(pos, targetState),
                 BreakBlock(pos)
+            )
+        }
+        false
+    })
+
+    private val ectiectctiectiei by setting("World Eater", false, consumer = { _, _->
+        runSafe {
+            val currentDirection = player.horizontalFacing
+            val pos1 = player.flooredPosition.add(currentDirection.directionVec.multiply(2))
+            val pos2 = player.flooredPosition.add(currentDirection.directionVec.multiply(10)).down(3)
+
+            ActivityManager.addSubActivities(
+                WorldEater(pos1, pos2)
             )
         }
         false
