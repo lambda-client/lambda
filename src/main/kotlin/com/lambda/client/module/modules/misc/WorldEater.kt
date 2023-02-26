@@ -14,6 +14,7 @@ import com.lambda.client.util.schematic.LambdaSchematicaHelper
 import com.lambda.client.util.schematic.LambdaSchematicaHelper.isSchematicaPresent
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
+import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
 
 object WorldEater : Module(
@@ -25,6 +26,8 @@ object WorldEater : Module(
     private val size by setting("Size", 10, 1..100, 1)
     private val depth by setting("Depth", 3, 1..100, 1)
     private val layerSize by setting("Layers size", 1, 1..6, 1)
+    private val sliceSize by setting("Slice size", 1, 1..6, 1)
+    private val sliceDirection by setting("Slice direction", EnumFacing.NORTH)
 
     private var ownedBuildStructure: BreakArea? = null
 

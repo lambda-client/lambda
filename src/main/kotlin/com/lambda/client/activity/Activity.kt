@@ -165,14 +165,14 @@ abstract class Activity(val isRoot: Boolean = false) {
     fun SafeClientEvent.cancel() {
         val activity = this@Activity
 
+        LambdaEventBus.unsubscribe(activity)
+        ListenerManager.unregister(activity)
+
         subActivities.forEach {
             with(it) {
                 cancel()
             }
         }
-
-        LambdaEventBus.unsubscribe(activity)
-        ListenerManager.unregister(activity)
 
         with(owner) {
             subActivities.remove(activity)

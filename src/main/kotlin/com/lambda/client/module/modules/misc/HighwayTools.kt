@@ -28,7 +28,7 @@ object HighwayTools : Module(
     private val structure by setting("Structure", Structure.HIGHWAY, description = "Choose the structure")
     private val width by setting("Width", 6, 1..50, 1, description = "Sets the width of blueprint", unit = " blocks")
     private val height by setting("Height", 4, 2..10, 1, description = "Sets height of blueprint", unit = " blocks")
-    private val offset by setting("Offset", 0, -10..10, 1, description = "Sets the offset of the structure", unit = " blocks")
+    private val offset by setting("Offset", 3, -10..10, 1, description = "Sets the offset of the structure", unit = " blocks")
     private val rainbowMode by setting("Rainbow Mode", false, description = "Rainbow highway uwu")
 
     private val backfill by setting("Backfill", false, { structure == Structure.TUNNEL }, description = "Fills the tunnel behind you")
