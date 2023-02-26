@@ -11,9 +11,10 @@ import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.items.block
+import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
@@ -27,7 +28,6 @@ import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.ceil
@@ -42,21 +42,20 @@ class BreakBlock(
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
     override var rotation: Vec2f? = null,
-    override var hitVec: Vec3d = Vec3d.ZERO
+    override var distance: Double = 1337.0,
 ) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
     private var side: EnumFacing? = null
     private var ticksNeeded = 0
-    private var initState = Blocks.AIR.defaultState
     private var drop: Item = Items.AIR
 
-    override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, _, new ->
+    override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, old, new ->
+        if (old == new) return@observable
         renderContext.color = new.color
-        if (owner.subActivities.remove(this)) owner.subActivities.add(this)
     }
 
-    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.UNINIT) { _, _, new ->
+    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.UNINIT) { _, old, new ->
+        if (old == new) return@observable
         renderAction.color = new.color
-        if (owner.subActivities.remove(this)) owner.subActivities.add(this)
     }
 
     override var earliestFinish: Long
@@ -72,14 +71,35 @@ class BreakBlock(
     ).also { toRender.add(it) }
 
     init {
-        runSafe { updateState() }
+        runSafe {
+            if (!world.worldBorder.contains(blockPos) || world.isOutsideBuildHeight(blockPos)) {
+                // ToDo: add support for placing blocks outside of world border
+                failedWith(BlockOutsideOfBoundsException(blockPos))
+                return@runSafe
+            }
+
+            val currentState = world.getBlockState(blockPos)
+
+            // ToDo: doesn't work for some reason
+            if (currentState.block in BuildTools.ignoredBlocks) {
+                success()
+                return@runSafe
+            }
+
+            drop = currentState.block.getItemDropped(currentState, Random(), 0)
+
+            updateState()
+        }
 
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
 
             updateState()
 
-            if (action != BuildActivity.BuildAction.BREAKING) return@safeListener
+            if (action != BuildActivity.BuildAction.BREAKING
+                || subActivities.isNotEmpty()
+                || status == Status.UNINITIALIZED
+            ) return@safeListener
 
             side?.let { side ->
                 checkBreak(side)
@@ -120,15 +140,13 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.finish() {
-        if (!collectDrops || !autoPathing) {
+        if (!collectDrops || !autoPathing || drop == Items.AIR) {
             ActivityManagerHud.totalBlocksBroken++
             success()
             return
         }
 
         renderAction.color = ColorHolder(252, 3, 207)
-
-        if (drop.block == Blocks.AIR) return
 
         addSubActivities(
             PickUpDrops(drop, minAmount = minCollectAmount)
@@ -140,16 +158,16 @@ class BreakBlock(
             if (action != BuildActivity.BuildAction.BREAKING) {
                 action = BuildActivity.BuildAction.BREAK
             }
-            hitVec = getHitVec(blockPos, it)
+            distance = player.distanceTo(getHitVec(blockPos, it))
             side = it
             rotation = getRotationTo(getHitVec(blockPos, it))
         } ?: run {
             getMiningSide(blockPos)?.let {
                 action = BuildActivity.BuildAction.WRONG_POS_BREAK
-                hitVec = getHitVec(blockPos, it)
+                distance = player.distanceTo(getHitVec(blockPos, it))
             } ?: run {
                 action = BuildActivity.BuildAction.INVALID_BREAK
-                hitVec = Vec3d.ZERO
+                distance = 1337.0
             }
             playerController.resetBlockRemoving()
             side = null
@@ -160,7 +178,6 @@ class BreakBlock(
     private fun SafeClientEvent.checkBreak(side: EnumFacing) {
         val currentState = world.getBlockState(blockPos)
 
-        initState = currentState
         drop = currentState.block.getItemDropped(currentState, Random(), 0)
 
         if (!player.capabilities.isCreativeMode
@@ -193,30 +210,16 @@ class BreakBlock(
 
         if (needToHandleLiquid) return
 
-        doBreak(side)
-    }
+        if (!world.isAirBlock(blockPos) && playerController.onPlayerDamageBlock(blockPos, side)) {
+            if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
+                context = BuildActivity.BuildContext.PENDING
+            } else {
+                action = BuildActivity.BuildAction.BREAKING
+            }
 
-    private fun SafeClientEvent.doBreak(side: EnumFacing) {
-        val isCreative = player.capabilities.isCreativeMode
-
-        val successDamage = if (ticksNeeded == 1 || isCreative) {
-            context = BuildActivity.BuildContext.PENDING
-            connection.sendPacket(CPacketPlayerDigging(
-                CPacketPlayerDigging.Action.START_DESTROY_BLOCK, blockPos, side
-            ))
-            playerController.onPlayerDestroyBlock(blockPos)
-        } else {
-            action = BuildActivity.BuildAction.BREAKING
-            renderAction.color = action.color
-            playerController.onPlayerDamageBlock(blockPos, side)
+            mc.effectRenderer.addBlockHitEffects(blockPos, side)
+            player.swingArm(EnumHand.MAIN_HAND)
         }
-
-//        if (!successDamage) {
-//            failedWith(BlockBreakingException())
-//            return
-//        }
-
-        player.swingArm(EnumHand.MAIN_HAND)
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
@@ -240,4 +243,5 @@ class BreakBlock(
 
     class NoExposedSideFound : Exception("No exposed side found")
     class BlockBreakingException : Exception("Block breaking failed")
+    class BlockOutsideOfBoundsException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
 }

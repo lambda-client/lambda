@@ -16,19 +16,18 @@ import net.minecraft.item.ItemStack
 
 class ExtractItemFromShulkerBox(
     private val item: Item,
+    private var metadata: Int? = null,
     private val amount: Int = 0, // 0 = all
     private val predicateItem: (ItemStack) -> Boolean = { true },
     private val predicateSlot: (ItemStack) -> Boolean = { true }
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
-//        if (player.inventorySlots.item)
-
         val candidates = mutableMapOf<Slot, Int>()
 
         // ToDo: move to acquire item in active hand
         player.allSlots.forEach { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
-                val count = inventory.count { it.item == item && predicateItem(it) }
+                val count = inventory.count { it.item == item && predicateItem(it) && (metadata == null || metadata == it.metadata) }
 
                 if (count > 0) candidates[slot] = count
             }
@@ -52,7 +51,7 @@ class ExtractItemFromShulkerBox(
 
         addSubActivities(
             OpenContainer(childActivity.containerPos),
-            PullItemsFromContainer(item, amount, predicateItem),
+            PullItemsFromContainer(item, metadata, amount, predicateItem),
             CloseContainer(),
             BreakBlock(childActivity.containerPos, collectDrops = true),
             AcquireItemInActiveHand(item, predicateItem, predicateSlot)

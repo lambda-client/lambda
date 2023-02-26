@@ -11,6 +11,7 @@ import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getHitVecOffset
+import net.minecraft.block.BlockContainer
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
@@ -25,6 +26,13 @@ class OpenContainer(
     override var usedAttempts: Int = 0,
 ) : RotatingActivity, TimeoutActivity, AttemptActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
+        val currentState = world.getBlockState(containerPos)
+
+        if (currentState.block !is BlockContainer) {
+            failedWith(BlockNotContainerException(currentState))
+            return
+        }
+
         val diff = player.getPositionEyes(1f).subtract(containerPos.toVec3dCenter())
         val normalizedVec = diff.normalize()
 
@@ -62,4 +70,6 @@ class OpenContainer(
             }
         }
     }
+
+    class BlockNotContainerException(blockState: Any) : Exception("Block $blockState is not a container")
 }

@@ -1,5 +1,6 @@
 package com.lambda.client.activity
 
+import com.lambda.client.activity.activities.highlevel.BuildStructure
 import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.DelayedActivity
@@ -27,10 +28,11 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.time.DurationFormatUtils
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.PriorityBlockingQueue
 
 abstract class Activity(val isRoot: Boolean = false) {
-    open val subActivities = PriorityBlockingQueue<Activity>(15, compareBy { it.status })
+    val subActivities = ConcurrentLinkedDeque<Activity>()
     var status = Status.UNINITIALIZED
     private var creationTime = 0L
     var owner: Activity = ActivityManager
@@ -205,9 +207,9 @@ abstract class Activity(val isRoot: Boolean = false) {
             return
         }
 
-        activities.forEach {
-            it.owner = this
-            it.depth = depth + 1
+        activities.forEach { activity ->
+            activity.owner = this
+            activity.depth = depth + 1
         }
         subActivities.addAll(activities)
 
@@ -287,7 +289,13 @@ abstract class Activity(val isRoot: Boolean = false) {
         addExtraInfo(textComponent, primaryColor, secondaryColor)
         textComponent.addLine("")
 
-        subActivities.forEach {
+        val acti = if (this is BuildStructure) {
+            subActivities.sortedWith(buildComparator())
+        } else {
+            subActivities
+        }
+
+        acti.forEach {
             repeat(depth) {
                 textComponent.add("   ")
             }
