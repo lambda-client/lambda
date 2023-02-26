@@ -2,6 +2,7 @@ package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.activity.activities.types.*
@@ -11,6 +12,7 @@ import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
@@ -22,12 +24,13 @@ import com.lambda.client.util.world.getMiningSide
 import com.lambda.client.util.world.isLiquid
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
+import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
-import net.minecraft.network.play.client.CPacketPlayerDigging
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
+import net.minecraftforge.common.ForgeHooks
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.ceil
@@ -37,7 +40,7 @@ class BreakBlock(
     private val blockPos: BlockPos,
     private val collectDrops: Boolean = false,
     private val minCollectAmount: Int = 1,
-    override var timeout: Long = 200L,
+    override var timeout: Long = 200L, // ToDo: Reset timeouted breaks
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
@@ -53,7 +56,7 @@ class BreakBlock(
         renderContext.color = new.color
     }
 
-    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.UNINIT) { _, old, new ->
+    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.NONE) { _, old, new ->
         if (old == new) return@observable
         renderAction.color = new.color
     }
@@ -86,7 +89,7 @@ class BreakBlock(
                 return@runSafe
             }
 
-            drop = currentState.block.getItemDropped(currentState, Random(), 0)
+            drop = currentState.block.getItemDropped(currentState, Random(), 0) ?: Items.AIR
 
             updateState()
         }
@@ -178,17 +181,39 @@ class BreakBlock(
     private fun SafeClientEvent.checkBreak(side: EnumFacing) {
         val currentState = world.getBlockState(blockPos)
 
-        drop = currentState.block.getItemDropped(currentState, Random(), 0)
+        drop = currentState.block.getItemDropped(currentState, Random(), 0) ?: Items.AIR
 
         if (!player.capabilities.isCreativeMode
-//            && currentState.block.isToolEffective("pickaxe", currentState)
-            && player.getHeldItem(EnumHand.MAIN_HAND).item != Items.DIAMOND_PICKAXE
-        ) { // ToDo: get optimal tool
-            context = BuildActivity.BuildContext.RESTOCK
+            && !ForgeHooks.isToolEffective(world, blockPos, player.heldItemMainhand)
+            && currentState.block.getHarvestTool(currentState) != null
+        ) {
+            val topTools = player
+                .allSlots
+                .filter {
+                    ForgeHooks.isToolEffective(world, blockPos, it.stack)
+                }
 
-            addSubActivities(AcquireItemInActiveHand(Items.DIAMOND_PICKAXE))
+            topTools.maxByOrNull { it.stack.getDestroySpeed(currentState) }?.let {
+                addSubActivities(SwapOrSwitchToSlot(it))
+            } ?: run {
+                currentState.block.getHarvestTool(currentState)?.let {  harvestTool ->
+                    context = BuildActivity.BuildContext.RESTOCK
+
+                    // ToDo: add support for lower tools
+                    val item = when (harvestTool) {
+                        "pickaxe" -> Items.DIAMOND_PICKAXE
+                        "axe" -> Items.DIAMOND_AXE
+                        else -> Items.DIAMOND_SHOVEL
+                    }
+
+                    addSubActivities(AcquireItemInActiveHand(item))
+                }
+            }
             return
         }
+
+        // ToDo: 1. currentState.material.isToolNotRequired (if drop is needed it should check if tool has sufficient harvest level)
+        // ToDo: 2. ForgeHooks.canHarvestBlock(currentState.block, player, world, blockPos)
 
         ticksNeeded = ceil((1 / currentState
             .getPlayerRelativeBlockHardness(player, world, blockPos)) * BuildTools.miningSpeedFactor).toInt()
@@ -231,6 +256,7 @@ class BreakBlock(
             is AcquireItemInActiveHand, is PlaceBlock -> {
                 status = Status.UNINITIALIZED
                 context = BuildActivity.BuildContext.NONE
+                action = BuildActivity.BuildAction.NONE
                 updateState()
             }
         }

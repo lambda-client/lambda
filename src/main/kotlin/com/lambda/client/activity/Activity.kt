@@ -115,8 +115,10 @@ abstract class Activity(val isRoot: Boolean = false) {
 
         LambdaEventBus.subscribe(activity)
 
-//        with(owner) {
-//            onChildInitialize(activity)
+//        if (!owner.isRoot) {
+//            with(owner) {
+//                onChildInitialize(activity)
+//            }
 //        }
 
         checkRotating(activity)

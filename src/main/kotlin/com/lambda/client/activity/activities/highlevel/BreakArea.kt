@@ -1,15 +1,22 @@
 package com.lambda.client.activity.activities.highlevel
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.color.ColorHolder
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.BlockPos
 
-class WorldEater(
+class BreakArea(
     private val pos1: BlockPos,
-    private val pos2: BlockPos
-) : Activity() {
+    private val pos2: BlockPos,
+    private val layerSize: Int = 1,
+    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(
+        RenderAABBActivity.Companion.RenderBlockPos(pos1, ColorHolder(255, 0, 255)),
+        RenderAABBActivity.Companion.RenderBlockPos(pos2, ColorHolder(0, 255, 0))
+    )
+) : RenderAABBActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         val minX = minOf(pos1.x, pos2.x)
         val minY = minOf(pos1.y, pos2.y)
@@ -18,7 +25,9 @@ class WorldEater(
         val maxY = maxOf(pos1.y, pos2.y)
         val maxZ = maxOf(pos1.z, pos2.z)
 
-        (minY..maxY).reversed().forEach { y ->
+        val layers = (minY..maxY).reversed()
+
+        layers.forEach { y ->
             val structure = mutableMapOf<BlockPos, IBlockState>()
 
             (minX..maxX).forEach { x ->
@@ -27,9 +36,11 @@ class WorldEater(
                 }
             }
 
-            addSubActivities(
-                BuildStructure(structure)
-            )
+            if (y.mod(layerSize) == 0 || y == layers.last) {
+                addSubActivities(
+                    BuildStructure(structure)
+                )
+            }
         }
     }
 }

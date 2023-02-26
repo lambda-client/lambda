@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.types
 
 import com.lambda.client.util.color.ColorHolder
-import net.minecraft.util.math.Vec3d
 
 interface BuildActivity {
     var context: BuildContext
@@ -23,6 +22,6 @@ interface BuildActivity {
         WRONG_POS_PLACE(ColorHolder(20, 108, 145)),
         INVALID_BREAK(ColorHolder(46, 0, 0)),
         INVALID_PLACE(ColorHolder(11, 55, 74)),
-        UNINIT(ColorHolder(11, 11, 11))
+        NONE(ColorHolder(11, 11, 11))
     }
 }
