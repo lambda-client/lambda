@@ -1,7 +1,6 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.highlevel.BuildStructure
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.activities.types.*
@@ -44,7 +43,7 @@ class PlaceBlock(
     private val ignoreFacing: Boolean = false,
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
-    override val timeout: Long = 200L,
+    override val timeout: Long = 200L, // ToDo: Reset timeouted placements
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
@@ -57,7 +56,7 @@ class PlaceBlock(
         renderContext.color = new.color
     }
 
-    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.UNINIT) { _, old, new ->
+    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.NONE) { _, old, new ->
         if (old == new) return@observable
         renderAction.color = new.color
     }

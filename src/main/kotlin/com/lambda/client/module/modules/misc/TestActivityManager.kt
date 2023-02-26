@@ -1,51 +1,27 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.LambdaMod
-import com.lambda.client.activity.activities.example.ProbablyFailing
 import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.*
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.PlaceBlock
-import com.lambda.client.activity.activities.interaction.Rotate
-import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
-import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.inventory.DumpInventory
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
-import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
-import com.lambda.client.activity.activities.utils.Wait
-import com.lambda.client.commons.extension.next
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.MovementUtils.centerPlayer
-import com.lambda.client.util.items.block
-import com.lambda.client.util.items.countEmpty
-import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.items.item
-import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils
-import com.lambda.client.util.schematic.LambdaSchematicaHelper
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockDirectional
 import net.minecraft.block.BlockHorizontal
-import net.minecraft.block.BlockLog
-import net.minecraft.block.BlockPistonBase
-import net.minecraft.block.BlockPurpurSlab
-import net.minecraft.block.BlockQuartz
-import net.minecraft.block.BlockRotatedPillar
-import net.minecraft.block.BlockShulkerBox
 import net.minecraft.block.state.IBlockState
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
-import net.minecraft.init.Enchantments
-import net.minecraft.init.Items
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
 
@@ -114,19 +90,6 @@ object TestActivityManager : Module(
                 BreakBlock(pos),
                 PlaceBlock(pos, targetState),
                 BreakBlock(pos)
-            )
-        }
-        false
-    })
-
-    private val ectiectctiectiei by setting("World Eater", false, consumer = { _, _->
-        runSafe {
-            val currentDirection = player.horizontalFacing
-            val pos1 = player.flooredPosition.add(currentDirection.directionVec.multiply(2))
-            val pos2 = player.flooredPosition.add(currentDirection.directionVec.multiply(10)).down(3)
-
-            ActivityManager.addSubActivities(
-                WorldEater(pos1, pos2)
             )
         }
         false
