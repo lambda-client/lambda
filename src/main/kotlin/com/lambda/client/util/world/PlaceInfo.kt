@@ -9,6 +9,6 @@ class PlaceInfo(
     val side: EnumFacing,
     val dist: Double,
     val hitVecOffset: Vec3d,
-    val hitVec: Vec3d,
+    var hitVec: Vec3d,
     val placedPos: BlockPos
 )

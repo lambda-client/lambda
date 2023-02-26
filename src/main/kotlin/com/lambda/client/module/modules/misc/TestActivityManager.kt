@@ -14,6 +14,7 @@ import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
+import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
 import com.lambda.client.activity.activities.utils.Wait
 import com.lambda.client.commons.extension.next
 import com.lambda.client.manager.managers.ActivityManager
@@ -213,4 +214,15 @@ object TestActivityManager : Module(
         ActivityManager.reset()
         false
     })
+
+    init {
+        onToggle {
+            runSafe {
+                with(ActivityManager.getCurrentActivity()) {
+                    updateActivity()
+                    checkRender()
+                }
+            }
+        }
+    }
 }

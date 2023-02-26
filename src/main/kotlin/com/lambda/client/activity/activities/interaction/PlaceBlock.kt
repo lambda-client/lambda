@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.highlevel.BuildStructure
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.activities.types.*
@@ -16,6 +17,7 @@ import com.lambda.client.util.items.blockBlacklist
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
@@ -41,24 +43,23 @@ class PlaceBlock(
     private val ignoreProperties: Boolean = false,
     private val ignoreFacing: Boolean = false,
     override var rotation: Vec2f? = null,
+    override var distance: Double = 1337.0,
     override val timeout: Long = 200L,
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
-    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
-    override var hitVec: Vec3d = Vec3d.ZERO
+    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
     private var placeInfo: PlaceInfo? = null
-    private var breakFirst = false
     private var spoofedDirection = false
 
-    override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, _, new ->
+    override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, old, new ->
+        if (old == new) return@observable
         renderContext.color = new.color
-        if (owner.subActivities.remove(this)) owner.subActivities.add(this)
     }
 
-    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.UNINIT) { _, _, new ->
+    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.UNINIT) { _, old, new ->
+        if (old == new) return@observable
         renderAction.color = new.color
-        if (owner.subActivities.remove(this)) owner.subActivities.add(this)
     }
 
     override var earliestFinish: Long
@@ -94,6 +95,7 @@ class PlaceBlock(
                 // ToDo: add support for placing blocks outside of world border
                 failedWith(BlockOutsideOfBoundsException(blockPos))
             }
+
             updateState()
         }
 
@@ -142,8 +144,11 @@ class PlaceBlock(
 
 //        var allowedRotations = targetState.block.getValidRotations(world, blockPos)?.toMutableSet()
 
-        if (!world.getBlockState(blockPos).isReplaceable && !breakFirst) {
-            breakFirst = true
+        val currentState = world.getBlockState(blockPos)
+
+        if (!currentState.isReplaceable && currentState != targetState
+            && subActivities.filterIsInstance<BreakBlock>().isEmpty()
+        ) {
             val breakBlock = BreakBlock(blockPos)
             addSubActivities(breakBlock)
             LambdaEventBus.subscribe(breakBlock)
@@ -207,8 +212,9 @@ class PlaceBlock(
             sides = allowedSides.toTypedArray()
         )?.let {
             action = BuildActivity.BuildAction.PLACE
+            it.hitVec = it.hitVec.add(placementOffset.offset)
+            distance = player.distanceTo(it.hitVec)
             placeInfo = it
-            hitVec = it.hitVec.add(placementOffset.offset)
         } ?: run {
             getNeighbour(
                 blockPos,
@@ -218,10 +224,10 @@ class PlaceBlock(
                 sides = allowedSides.toTypedArray()
             )?.let {
                 action = BuildActivity.BuildAction.WRONG_POS_PLACE
-                hitVec = it.hitVec.add(placementOffset.offset)
+                distance = player.distanceTo(it.hitVec.add(placementOffset.offset))
             } ?: run {
                 action = BuildActivity.BuildAction.INVALID_PLACE
-                hitVec = Vec3d.ZERO
+                distance = 1337.0
             }
             placeInfo = null
             rotation = null
@@ -308,9 +314,16 @@ class PlaceBlock(
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_SNEAKING))
         }
 
-        rotation = getRotationTo(hitVec)
+        rotation = getRotationTo(placeInfo.hitVec)
 
-        val result = playerController.processRightClickBlock(player, world, placeInfo.pos, placeInfo.side, hitVec, EnumHand.MAIN_HAND)
+        val result = playerController.processRightClickBlock(
+            player,
+            world,
+            placeInfo.pos,
+            placeInfo.side,
+            placeInfo.hitVec,
+            EnumHand.MAIN_HAND
+        )
 
         if (result != EnumActionResult.SUCCESS) {
             failedWith(ProcessRightClickException(result))

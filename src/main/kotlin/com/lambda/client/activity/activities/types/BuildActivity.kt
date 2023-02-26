@@ -6,7 +6,7 @@ import net.minecraft.util.math.Vec3d
 interface BuildActivity {
     var context: BuildContext
     var action: BuildAction
-    var hitVec: Vec3d
+    var distance: Double
 
     enum class BuildContext(val color: ColorHolder) {
         RESTOCK(ColorHolder()),

@@ -44,7 +44,7 @@ class AcquireItemInActiveHand(
                 addSubActivities(SwapOrSwitchToSlot(slotFrom, predicateSlot))
             } ?: run {
                 if (useShulkerBoxes) {
-                    addSubActivities(ExtractItemFromShulkerBox(item, 1, predicateItem, predicateSlot))
+                    addSubActivities(ExtractItemFromShulkerBox(item, metadata, 1, predicateItem, predicateSlot))
                 } else {
                     failedWith(NoItemFoundException(item, metadata))
                 }
