@@ -6,12 +6,15 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.color.ColorHolder
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
+import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
 
 class BreakArea(
     private val pos1: BlockPos,
     private val pos2: BlockPos,
     private val layerSize: Int = 1,
+    private val sliceSize: Int = 1,
+    private val sliceDirection: EnumFacing = EnumFacing.NORTH,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(
         RenderAABBActivity.Companion.RenderBlockPos(pos1, ColorHolder(255, 0, 255)),
         RenderAABBActivity.Companion.RenderBlockPos(pos2, ColorHolder(0, 255, 0))

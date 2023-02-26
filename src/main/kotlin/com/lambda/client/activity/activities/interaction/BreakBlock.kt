@@ -9,6 +9,7 @@ import com.lambda.client.activity.activities.types.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
+import com.lambda.client.mixin.extension.blockHitDelay
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.color.ColorHolder
@@ -24,7 +25,6 @@ import com.lambda.client.util.world.getMiningSide
 import com.lambda.client.util.world.isLiquid
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
-import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
@@ -183,20 +183,15 @@ class BreakBlock(
 
         drop = currentState.block.getItemDropped(currentState, Random(), 0) ?: Items.AIR
 
-        if (!player.capabilities.isCreativeMode
-            && !ForgeHooks.isToolEffective(world, blockPos, player.heldItemMainhand)
-            && currentState.block.getHarvestTool(currentState) != null
-        ) {
-            val topTools = player
-                .allSlots
-                .filter {
+        currentState.block.getHarvestTool(currentState)?.let { harvestTool ->
+            if (!player.capabilities.isCreativeMode
+                && !ForgeHooks.isToolEffective(world, blockPos, player.heldItemMainhand)
+            ) {
+                player.allSlots.filter {
                     ForgeHooks.isToolEffective(world, blockPos, it.stack)
-                }
-
-            topTools.maxByOrNull { it.stack.getDestroySpeed(currentState) }?.let {
-                addSubActivities(SwapOrSwitchToSlot(it))
-            } ?: run {
-                currentState.block.getHarvestTool(currentState)?.let {  harvestTool ->
+                }.maxByOrNull { it.stack.getDestroySpeed(currentState) }?.let {
+                    addSubActivities(SwapOrSwitchToSlot(it))
+                } ?: run {
                     context = BuildActivity.BuildContext.RESTOCK
 
                     // ToDo: add support for lower tools
@@ -208,8 +203,8 @@ class BreakBlock(
 
                     addSubActivities(AcquireItemInActiveHand(item))
                 }
+                return
             }
-            return
         }
 
         // ToDo: 1. currentState.material.isToolNotRequired (if drop is needed it should check if tool has sufficient harvest level)
@@ -234,6 +229,7 @@ class BreakBlock(
             }
 
         if (needToHandleLiquid) return
+        playerController.blockHitDelay = 0
 
         if (!world.isAirBlock(blockPos) && playerController.onPlayerDamageBlock(blockPos, side)) {
             if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {

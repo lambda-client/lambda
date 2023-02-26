@@ -31,8 +31,8 @@ object BuildTools : Module(
 //    })
 
     /* mining */
-    val breakDelay by setting("Break Delay", 50, 0..1000, 5, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ms")
-    val maxPending by setting("Max Pending", 1, 1..100, 1, { page == Page.BUILDING }, description = "Sets the maximum amount of pending break tasks")
+    val breakDelay by setting("Break Delay", 1, 0..20, 5, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
+//    val maxPending by setting("Max Pending", 1, 1..100, 1, { page == Page.BUILDING }, description = "Sets the maximum amount of pending break tasks")
     val miningSpeedFactor by setting("Mining Speed Factor", 1.0f, 0.0f..2.0f, 0.01f, { page == Page.BUILDING }, description = "Factor to manipulate calculated mining speed")
 //    val interactionLimit by setting("Interaction Limit", 20, 1..100, 1, { page == Page.MINING }, description = "Set the interaction limit per second", unit = " interactions/s")
 //    val multiBreak by setting("Multi Break", true, { page == Page.MINING }, description = "Breaks multiple instant breaking blocks intersecting with view vector on the same tick")
@@ -44,10 +44,10 @@ object BuildTools : Module(
     val pickBlock by setting("Pick Block Creative", true, { page == Page.BUILDING }, description = "Use pick block to place blocks when in creative mode")
     val placeStrictness by setting("Placement Strictness", PlacementStrictness.DIRECTION, { page == Page.BUILDING }, description = "ANY: Allow all exposed surfaces. DIRECTION: Only allow surfaces in the direction of the player. VISIBLE: Only allow surfaces that are visible to the player.")
 //    val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
-    val doPending by setting("Do Pending", true, { page == Page.BUILDING }, description = "Do not wait for server to confirm action")
-    val executionCountPerTick by setting("Executions Per Tick", 100, 0..200, 1, { page == Page.BUILDING }, description = "How many tasks to execute per tick")
+//    val doPending by setting("Do Pending", true, { page == Page.BUILDING }, description = "Do not wait for server to confirm action")
+    val executionCountPerTick by setting("Executions Per Tick", 20, 0..100, 1, { page == Page.BUILDING }, description = "How many tasks to execute per tick")
 //    val scaffold by setting("Scaffold", true, { page == Page.PLACING }, description = "Tries to bridge / scaffold when stuck placing")
-    val placementSearch by setting("Place Deep Search", 2, 1..4, 1, { page == Page.BUILDING }, description = "EXPERIMENTAL: Attempts to find a support block for placing against", unit = " blocks")
+    val placementSearch by setting("Place Deep Search", 1, 1..4, 1, { page == Page.BUILDING }, description = "EXPERIMENTAL: Attempts to find a support block for placing against", unit = " blocks")
     val directionForce by setting("Block Direction Exploit", true, { page == Page.BUILDING }, description = "EXPLOIT: Forces the direction of the block to be placed")
 
     /* storage management */

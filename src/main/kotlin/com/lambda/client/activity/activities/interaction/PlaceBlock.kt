@@ -1,5 +1,6 @@
 package com.lambda.client.activity.activities.interaction
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
@@ -50,6 +51,7 @@ class PlaceBlock(
 ) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
     private var placeInfo: PlaceInfo? = null
     private var spoofedDirection = false
+    private var breakFirst = false
 
     override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, old, new ->
         if (old == new) return@observable
@@ -105,14 +107,16 @@ class PlaceBlock(
         }
 
         safeListener<PacketEvent.PostReceive> {
-            if (it.packet !is SPacketBlockChange || it.packet.blockPosition != blockPos) return@safeListener
+            if (it.packet !is SPacketBlockChange
+                || it.packet.blockPosition != blockPos
+            ) return@safeListener
 
             if (it.packet.blockState == targetState
                 || (ignoreProperties && it.packet.blockState.block == targetState.block)
             ) {
                 ActivityManagerHud.totalBlocksPlaced++
                 success()
-            } else {
+            } else if (!breakFirst) {
                 failedWith(UnexpectedBlockStateException(blockPos, targetState, it.packet.blockState))
             }
         }
@@ -146,11 +150,12 @@ class PlaceBlock(
         val currentState = world.getBlockState(blockPos)
 
         if (!currentState.isReplaceable && currentState != targetState
-            && subActivities.filterIsInstance<BreakBlock>().isEmpty()
+            && !breakFirst
         ) {
             val breakBlock = BreakBlock(blockPos)
             addSubActivities(breakBlock)
             LambdaEventBus.subscribe(breakBlock)
+            breakFirst = true
             return
         }
 
@@ -302,6 +307,8 @@ class PlaceBlock(
 //                failedWith(PlacementStateException(resultingState, targetState))
 //                return
 //            }
+
+        breakFirst = false
 
         doPlace(placeInfo)
     }
