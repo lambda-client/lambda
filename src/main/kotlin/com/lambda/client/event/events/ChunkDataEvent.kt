@@ -6,6 +6,4 @@ import net.minecraft.world.chunk.Chunk
 /**
  * Event emitted when chunk data is read
  */
-class ChunkDataEvent(val isFullChunk: Boolean, val chunk: Chunk): Event {
-
-}
+class ChunkDataEvent(val isFullChunk: Boolean, val chunk: Chunk): Event

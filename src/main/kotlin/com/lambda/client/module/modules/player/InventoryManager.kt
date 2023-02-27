@@ -47,7 +47,7 @@ object InventoryManager : Module(
     private val pauseMovement by setting("Pause Movement", true)
     private val delay by setting("Delay Ticks", 1, 0..20, 1, unit = " ticks")
     private val helpMend by setting("Help Mend", false, description = "Helps mending items by replacing the offhand item with low HP items of the same type")
-    val ejectList = setting(CollectionSetting("Eject List", defaultEjectList, String::class.java))
+    val ejectList = setting(CollectionSetting("Eject List", defaultEjectList))
 
     enum class State {
         IDLE, SAVING_ITEM, HELPING_MEND, REFILLING_BUILDING, REFILLING, EJECTING

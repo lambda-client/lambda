@@ -37,7 +37,7 @@ object SearchCommand : ClientCommand(
                         addBlock(blockName)
                     }
                 }
-                int("dimension") {dimArg ->
+                int("dimension") { dimArg ->
                     execute("Add a block to dimension filter") {
                         val blockName = blockArg.value.registryName.toString()
                         val dim = dimArg.value

@@ -7,7 +7,6 @@ import com.lambda.client.setting.settings.ImmutableSetting
 class CollectionSetting<E : Any, T : MutableCollection<E>>(
     name: String,
     override val value: T,
-    entryType: Class<E>,
     visibility: () -> Boolean = { true },
     description: String = "",
     unit: String = ""
@@ -15,7 +14,7 @@ class CollectionSetting<E : Any, T : MutableCollection<E>>(
 
     override val defaultValue: T = valueClass.newInstance()
     private val lockObject = Any()
-    private val type = TypeToken.getArray(entryType).type
+    private val type = value::class.java.componentType
     val editListeners = ArrayList<() -> Unit>()
 
     init {
