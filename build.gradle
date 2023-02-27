@@ -61,6 +61,7 @@ minecraft {
 
 configurations {
     jarLibs
+    onlyJarLibs
     // Force choosing the correct nightly build because Mac OS chooses an invalid one
     all {
         resolutionStrategy {
@@ -109,10 +110,10 @@ dependencies {
     compileOnly 'org.jetbrains:annotations:23.0.0'
 
     // This Baritone will NOT be included in the jar
-    implementation 'com.github.cabaletta:baritone:1.2.14'
+    implementation "com.github.rfresh2.baritone:baritone-deobf:d0ce0d1678"
 
     // This Baritone WILL be included in the jar
-    jarLibs 'cabaletta:baritone-api:1.2'
+    onlyJarLibs 'com.github.cabaletta.baritone:baritone-api:v1.2.17'
 
     // Add everything in jarLibs to implementation (compile)
     implementation configurations.jarLibs
@@ -184,7 +185,7 @@ shadowJar {
             'kotlin/**/*.kotlin_metadata',
             'kotlin/**/*.kotlin_builtins',
             'META-INF/*.version'
-    configurations = [project.configurations.jarLibs]
+    configurations = [project.configurations.jarLibs, project.configurations.onlyJarLibs]
     relocate 'kotlin', 'com.lambda.shadow.kotlin'
     relocate 'kotlinx', 'com.lambda.shadow.kotlinx'
     finalizedBy 'configureReobfTaskForReobfShadowJar', 'reobfShadowJar'
