@@ -46,7 +46,7 @@ object PacketLogger : Module(
     private val ignoreTimeUpdates by setting("Ignore Time Updates", false, description = "Ignore time update packets.")
     private val openLogFolder by setting("Open Log Folder...", false, consumer = { _, _ ->
         FolderUtils.openFolder(FolderUtils.packetLogFolder)
-        true
+        false
     })
 
     private val fileTimeFormatter = DateTimeFormatter.ofPattern("HH-mm-ss_SSS")

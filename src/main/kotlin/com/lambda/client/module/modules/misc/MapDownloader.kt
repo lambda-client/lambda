@@ -39,7 +39,7 @@ internal object MapDownloader : Module(
     private val saveDelay by setting("Save delay", 0.2, 0.1..2.0, 0.1, unit = " s")
     private val openImageFolder = setting("Open Image Folder...", false, consumer = { _, _ ->
         FolderUtils.openFolder(FolderUtils.mapImagesFolder)
-        true
+        false
     })
     private val pendingHashes = mutableSetOf<String>()
     private var existingHashes = mutableSetOf<String>()
