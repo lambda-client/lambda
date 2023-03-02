@@ -8,6 +8,7 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.module.modules.client.Hud
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
@@ -59,9 +60,9 @@ object Search : Module(
     private val filled by setting("Filled", true)
     private val outline by setting("Outline", true)
     private val tracer by setting("Tracer", true)
-    private val entitySearchColor by setting("Entity Search Color", ColorHolder(155, 144, 255), visibility = { entitySearch })
+    private val entitySearchColor by setting("Entity Search Color", Hud.secondaryColor, visibility = { entitySearch })
     private val autoBlockColor by setting("Block Search Auto Color", true)
-    private val customBlockColor by setting("Block Search Custom Color", ColorHolder(155, 144, 255), visibility = { !autoBlockColor })
+    private val customBlockColor by setting("Block Search Custom Color", Hud.secondaryColor, visibility = { !autoBlockColor })
     private val aFilled by setting("Filled Alpha", 31, 0..255, 1, { filled })
     private val aOutline by setting("Outline Alpha", 127, 0..255, 1, { outline })
     private val aTracer by setting("Tracer Alpha", 200, 0..255, 1, { tracer })
@@ -145,26 +146,28 @@ object Search : Module(
             // fully loaded into the world. Chunk load is handled on a separate thread in mc code.
             // i.e. world.getChunk(x, z) can and will return an empty chunk in the packet event
             defaultScope.launch {
-                val foundBlocksInChunk = findBlocksInChunk(it.chunk)
-                foundBlocksInChunk.forEach { block -> foundBlockMap[block.first] = block.second }
+                findBlocksInChunk(it.chunk)
+                    .forEach { block -> foundBlockMap[block.first] = block.second }
             }
         }
 
         safeListener<PacketEvent.Receive> {
-            if (it.packet is SPacketMultiBlockChange) {
-                it.packet.changedBlocks.forEach { changedBlock -> handleBlockChange(changedBlock.pos, changedBlock.blockState) }
-            }
-            if (it.packet is SPacketBlockChange) {
-                handleBlockChange(it.packet.blockPosition, it.packet.getBlockState())
+            when (it.packet) {
+                is SPacketMultiBlockChange -> {
+                    it.packet.changedBlocks
+                        .forEach { changedBlock -> handleBlockChange(changedBlock.pos, changedBlock.blockState) }
+                }
+
+                is SPacketBlockChange -> {
+                    handleBlockChange(it.packet.blockPosition, it.packet.getBlockState())
+                }
             }
         }
 
         safeListener<ConnectionEvent.Disconnect> {
-            if (isEnabled) {
-                blockRenderer.clear()
-                entityRenderer.clear()
-                foundBlockMap.clear()
-            }
+            blockRenderer.clear()
+            entityRenderer.clear()
+            foundBlockMap.clear()
         }
     }
 
@@ -176,19 +179,25 @@ object Search : Module(
     }
 
     private fun SafeClientEvent.searchLoadedEntities() {
-        val renderList = world.getLoadedEntityList()
+        val renderList = world.loadedEntityList
+            .asSequence()
             .filter {
-                val entityName: String? = EntityList.getKey(it)?.path
-                if (entityName != null) entitySearchList.contains(entityName) else false
+                EntityList.getKey(it)?.path?.let { entityName ->
+                    entitySearchList.contains(entityName)
+                } ?: false
             }
             .filter {
-                val entityName: String = EntityList.getKey(it)?.path!!
-                val dims = entitySearchDimensionFilter.value.find { dimFilter -> dimFilter.searchKey == entityName }?.dim
-                dims?.contains(player.dimension) ?: true
+                EntityList.getKey(it)?.path?.let { entityName ->
+                    entitySearchDimensionFilter.value.find { dimFilter -> dimFilter.searchKey == entityName }?.dim
+                }?.contains(player.dimension) ?: true
             }
-            .sortedBy { it.distanceTo(player.getPositionEyes(1f)) }
+            .sortedBy {
+                it.distanceTo(player.getPositionEyes(1f))
+            }
             .take(maximumEntities)
-            .filter { it.distanceTo(player.getPositionEyes(1f)) < range }
+            .filter {
+                it.distanceTo(player.getPositionEyes(1f)) < range
+            }
             .toMutableList()
         entityRenderer.clear()
         renderList.forEach { entityRenderer.add(it, entitySearchColor) }
@@ -203,13 +212,13 @@ object Search : Module(
         if (blockSearchJob?.isActive != true) {
             blockSearchJob = defaultScope.launch {
                 for (x in chunkPos1.x..chunkPos2.x) for (z in chunkPos1.z..chunkPos2.z) {
-                    if (!this.isActive) return@launch
+                    if (!isActive) return@launch
                     runSafe {
                         val chunk = world.getChunk(x, z)
                         if (!chunk.isLoaded) return@runSafe
 
-                        findBlocksInChunk(chunk).forEach {
-                            pair -> foundBlockMap[pair.first] = pair.second
+                        findBlocksInChunk(chunk).forEach { pair ->
+                            foundBlockMap[pair.first] = pair.second
                         }
                     }
                 }
@@ -230,27 +239,38 @@ object Search : Module(
         val playerPos = player.position
         // unload rendering on block pos > range
         foundBlockMap
-            .filter { playerPos.distanceTo(it.key) > max(mc.gameSettings.renderDistanceChunks * 16, range) }
+            .filter {
+                playerPos.distanceTo(it.key) > max(mc.gameSettings.renderDistanceChunks * 16, range)
+            }
             .map { it.key }
             .forEach { foundBlockMap.remove(it) }
 
         val renderList = foundBlockMap
-            .filterNot {
-                !(blockSearchDimensionFilter.value
-                    .find { dimFilter -> dimFilter.searchKey == it.value.block.registryName.toString() }
-                    ?.dim?.contains(player.dimension) ?: true)
+            .filter {
+                blockSearchDimensionFilter.value
+                    .find {
+                        dimFilter -> dimFilter.searchKey == it.value.block.registryName.toString()
+                    }?.dim?.contains(player.dimension) ?: true
             }
-            .map { (player.getPositionEyes(1f).distanceTo(it.key) to it.key) }
+            .map {
+                player.getPositionEyes(1f).distanceTo(it.key) to it.key
+            }
             .filter { it.first < range }
             .take(maximumBlocks)
             .flatMap { pair ->
                 foundBlockMap[pair.second]?.let { bb ->
-                    return@flatMap listOf(Triple(bb.getSelectedBoundingBox(world, pair.second), getBlockColor(pair.second, bb), GeometryMasks.Quad.ALL))
+                    return@flatMap listOf(
+                        Triple(bb.getSelectedBoundingBox(world, pair.second),
+                            getBlockColor(pair.second, bb),
+                            GeometryMasks.Quad.ALL
+                        )
+                    )
                 } ?: run {
                     return@flatMap emptyList()
                 }
             }
             .toMutableList()
+
         blockRenderer.replaceAll(renderList)
     }
 
@@ -274,7 +294,7 @@ object Search : Module(
         for (y in yRange) for (x in xRange) for (z in zRange) {
             val pos = BlockPos(x, y, z)
             val blockState = chunk.getBlockState(pos)
-            if (searchQuery(blockState, pos)) blocks.add((pos to blockState))
+            if (searchQuery(blockState, pos)) blocks.add(pos to blockState)
         }
         return blocks
     }
@@ -283,9 +303,9 @@ object Search : Module(
         val block = state.block
         if (block == Blocks.AIR) return false
         return (blockSearchList.contains(block.registryName.toString())
-                && blockSearchDimensionFilter.value.find { dimFilter ->
-                    dimFilter.searchKey == block.registryName.toString() }
-                    ?.dim?.contains(player.dimension) ?: true)
+            && blockSearchDimensionFilter.value.find { dimFilter ->
+                dimFilter.searchKey == block.registryName.toString()
+            }?.dim?.contains(player.dimension) ?: true)
             || isIllegalBedrock(state, pos)
             || isIllegalWater(state)
     }
