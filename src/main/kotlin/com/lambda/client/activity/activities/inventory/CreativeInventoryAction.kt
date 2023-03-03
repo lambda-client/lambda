@@ -4,7 +4,10 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
+import kotlinx.coroutines.launch
 import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketCreativeInventoryAction
 import net.minecraft.network.play.server.SPacketSetSlot
@@ -21,7 +24,13 @@ class CreativeInventoryAction(
 
     init {
         safeListener<PacketEvent.PostReceive> {
-            if (it.packet is SPacketSetSlot) success()
+            if (it.packet !is SPacketSetSlot) return@safeListener
+
+            defaultScope.launch {
+                onMainThreadSafe {
+                    success()
+                }
+            }
         }
     }
 }

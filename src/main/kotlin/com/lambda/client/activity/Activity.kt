@@ -28,11 +28,9 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.time.DurationFormatUtils
-import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.concurrent.PriorityBlockingQueue
 
 abstract class Activity(val isRoot: Boolean = false) {
-    val subActivities = ConcurrentLinkedDeque<Activity>()
+    val subActivities = ArrayDeque<Activity>()
     var status = Status.UNINITIALIZED
     private var creationTime = 0L
     var owner: Activity = ActivityManager
@@ -200,7 +198,7 @@ abstract class Activity(val isRoot: Boolean = false) {
         return false
     }
 
-    fun Activity.addSubActivities(activities: List<Activity>) {
+    fun Activity.addSubActivities(activities: List<Activity>, subscribe: Boolean = false) {
         if (activities.isEmpty()) return
 
         if (depth > MAX_DEPTH) {
@@ -212,14 +210,16 @@ abstract class Activity(val isRoot: Boolean = false) {
         activities.forEach { activity ->
             activity.owner = this
             activity.depth = depth + 1
+            if (subscribe) LambdaEventBus.subscribe(activity)
         }
+
         subActivities.addAll(activities)
 
 //        LambdaMod.LOG.info("${System.currentTimeMillis()} Added ${activities.size} sub activities to $name")
     }
 
-    fun Activity.addSubActivities(vararg activities: Activity) {
-        addSubActivities(activities.toList())
+    fun Activity.addSubActivities(vararg activities: Activity, subscribe: Boolean = false) {
+        addSubActivities(activities.toList(), subscribe)
     }
 
     enum class Status {
