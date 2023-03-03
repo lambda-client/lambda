@@ -97,10 +97,10 @@ object WaypointManager : Manager {
     }
 
     fun remove(pos: BlockPos, currentDimension: Boolean = false): Boolean {
-        val waypoint = get(pos, currentDimension)
-        val removed = waypoints.remove(waypoint)
-        LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.REMOVE, waypoint))
-        return removed
+        return get(pos, currentDimension)?.let { waypoint ->
+            LambdaEventBus.post(WaypointUpdateEvent(WaypointUpdateEvent.Type.REMOVE, waypoint))
+            waypoints.remove(waypoint)
+        } ?: false
     }
 
     fun remove(id: Int): Boolean {

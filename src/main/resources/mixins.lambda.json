@@ -51,6 +51,7 @@
     "gui.MixinGuiNewChat",
     "gui.MixinGuiPlayerTabOverlay",
     "gui.MixinGuiScreen",
+    "network.MixinNetHandlerPlayClient",
     "network.MixinNetworkManager",
     "optifine.MixinConfig",
     "player.MixinEntityPlayer",
