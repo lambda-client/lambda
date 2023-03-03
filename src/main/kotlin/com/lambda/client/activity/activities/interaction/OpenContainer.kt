@@ -5,18 +5,22 @@ import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.RotatingActivity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getHitVecOffset
+import kotlinx.coroutines.launch
 import net.minecraft.block.BlockContainer
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
+import net.minecraft.network.play.server.SPacketWindowItems
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
-import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class OpenContainer(
     private val containerPos: BlockPos,
@@ -46,25 +50,11 @@ class OpenContainer(
     }
 
     init {
-//        safeListener<PacketEvent.PostReceive> {
-//            when (it.packet) {
-//                is SPacketWindowItems -> {
-//                    success()
-//                    LambdaMod.LOG.info(it.packet.itemStacks.size)
-//                    it.packet.itemStacks.forEach { stack ->
-//                        LambdaMod.LOG.info(stack.displayName)
-//                    }
-//                    LambdaMod.LOG.info(player.openContainer.inventorySlots.size)
-//                    player.openContainer.inventorySlots.forEach { slot ->
-//                        LambdaMod.LOG.info(slot.stack.displayName)
-//                    }
-//                }
-//            }
-//        }
+        safeListener<PacketEvent.PostReceive> {
+            if (it.packet !is SPacketWindowItems) return@safeListener
 
-        safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase == TickEvent.Phase.END) {
-                if (player.openContainer.inventorySlots.size == 63) {
+            defaultScope.launch {
+                onMainThreadSafe {
                     success()
                 }
             }

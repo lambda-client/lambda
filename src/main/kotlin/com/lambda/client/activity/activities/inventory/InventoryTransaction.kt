@@ -5,7 +5,10 @@ import com.lambda.client.activity.activities.types.AttemptActivity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
+import kotlinx.coroutines.launch
 import net.minecraft.inventory.ClickType
 import net.minecraft.inventory.Container
 import net.minecraft.item.ItemStack
@@ -61,17 +64,21 @@ class InventoryTransaction(
                 || packet.actionNumber != transactionId
             ) return@safeListener
 
-            if (!packet.wasAccepted()) {
-                failedWith(DeniedException(packet.actionNumber))
-                return@safeListener
-            }
+            defaultScope.launch {
+                onMainThreadSafe {
+                    if (!packet.wasAccepted()) {
+                        failedWith(DeniedException(packet.actionNumber))
+                        return@onMainThreadSafe
+                    }
 
-            getContainerOrNull(packet.windowId)?.let { container ->
-                container.slotClick(slot, mouseButton, type, player)
-                success()
+                    getContainerOrNull(packet.windowId)?.let { container ->
+                        container.slotClick(slot, mouseButton, type, player)
+                        success()
 //                LambdaMod.LOG.info("Accepted packet: ${it.packet.javaClass.simpleName} $transactionId")
-            } ?: run {
-                failedWith(ContainerOutdatedException(packet.windowId))
+                    } ?: run {
+                        failedWith(ContainerOutdatedException(packet.windowId))
+                    }
+                }
             }
         }
     }

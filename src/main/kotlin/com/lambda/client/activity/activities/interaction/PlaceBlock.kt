@@ -18,11 +18,14 @@ import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
 import com.lambda.client.util.world.getNeighbour
 import com.lambda.client.util.world.isReplaceable
+import kotlinx.coroutines.launch
 import net.minecraft.block.*
 import net.minecraft.block.state.IBlockState
 import net.minecraft.item.ItemStack
@@ -111,13 +114,18 @@ class PlaceBlock(
                 || it.packet.blockPosition != blockPos
             ) return@safeListener
 
-            if (it.packet.blockState == targetState
-                || (ignoreProperties && it.packet.blockState.block == targetState.block)
-            ) {
-                ActivityManagerHud.totalBlocksPlaced++
-                success()
-            } else if (!breakFirst) {
-                failedWith(UnexpectedBlockStateException(blockPos, targetState, it.packet.blockState))
+            defaultScope.launch {
+                onMainThreadSafe {
+                    if (it.packet.blockState == targetState
+                        || (ignoreProperties && it.packet.blockState.block == targetState.block)
+                    ) {
+                        ActivityManagerHud.totalBlocksPlaced++
+
+                        success()
+                    } else if (!breakFirst) {
+//                        failedWith(UnexpectedBlockStateException(blockPos, targetState, it.packet.blockState))
+                    }
+                }
             }
         }
     }
@@ -149,13 +157,16 @@ class PlaceBlock(
 
         val currentState = world.getBlockState(blockPos)
 
-        if (!currentState.isReplaceable && currentState != targetState
+        if (!currentState.isReplaceable
+            && currentState != targetState
+            && context != BuildActivity.BuildContext.PENDING
             && !breakFirst
         ) {
-            val breakBlock = BreakBlock(blockPos)
-            addSubActivities(breakBlock)
-            LambdaEventBus.subscribe(breakBlock)
             breakFirst = true
+            addSubActivities(
+                BreakBlock(blockPos),
+                subscribe = true
+            )
             return
         }
 

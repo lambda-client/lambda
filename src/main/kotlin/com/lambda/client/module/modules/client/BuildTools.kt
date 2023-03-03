@@ -31,7 +31,7 @@ object BuildTools : Module(
 //    })
 
     /* mining */
-    val breakDelay by setting("Break Delay", 1, 0..20, 5, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
+    val breakDelay by setting("Break Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
 //    val maxPending by setting("Max Pending", 1, 1..100, 1, { page == Page.BUILDING }, description = "Sets the maximum amount of pending break tasks")
     val miningSpeedFactor by setting("Mining Speed Factor", 1.0f, 0.0f..2.0f, 0.01f, { page == Page.BUILDING }, description = "Factor to manipulate calculated mining speed")
 //    val interactionLimit by setting("Interaction Limit", 20, 1..100, 1, { page == Page.MINING }, description = "Set the interaction limit per second", unit = " interactions/s")
@@ -149,8 +149,8 @@ object BuildTools : Module(
         "minecraft:cobblestone"
     )
 
-    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, { false }))
-    val ejectList = setting(CollectionSetting("Eject List", defaultEjectList))
+    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, String::class.java, { false }))
+    val ejectList = setting(CollectionSetting("Eject List", defaultEjectList, String::class.java, { false }))
     private val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
     private val food = setting("FoodItem", "minecraft:golden_apple", { false })
     private val tool = setting("ToolItem", "minecraft:diamond_pickaxe", { false })

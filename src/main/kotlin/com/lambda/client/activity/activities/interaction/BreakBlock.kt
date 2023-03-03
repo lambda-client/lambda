@@ -18,11 +18,11 @@ import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.distanceTo
-import com.lambda.client.util.threads.runSafe
-import com.lambda.client.util.threads.safeListener
+import com.lambda.client.util.threads.*
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
 import com.lambda.client.util.world.isLiquid
+import kotlinx.coroutines.launch
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
@@ -115,7 +115,11 @@ class BreakBlock(
                 || it.packet.blockState.block != Blocks.AIR
             ) return@safeListener
 
-            finish()
+            defaultScope.launch {
+                onMainThreadSafe {
+                    finish()
+                }
+            }
         }
     }
 
@@ -229,10 +233,10 @@ class BreakBlock(
             }
 
         if (needToHandleLiquid) return
-        playerController.blockHitDelay = 0
 
         if (!world.isAirBlock(blockPos) && playerController.onPlayerDamageBlock(blockPos, side)) {
             if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
+                playerController.blockHitDelay = 0
                 context = BuildActivity.BuildContext.PENDING
             } else {
                 action = BuildActivity.BuildAction.BREAKING

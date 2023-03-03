@@ -49,11 +49,7 @@ class BuildStructure(
             }
         }
 
-        activities.forEach {
-            LambdaEventBus.subscribe(it)
-        }
-
-        addSubActivities(activities)
+        addSubActivities(activities, subscribe = true)
     }
 
     override fun SafeClientEvent.onSuccess() {
