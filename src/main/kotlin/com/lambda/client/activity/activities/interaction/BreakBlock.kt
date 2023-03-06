@@ -13,7 +13,7 @@ import com.lambda.client.mixin.extension.blockHitDelay
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.items.allSlots
+import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
@@ -23,14 +23,17 @@ import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
 import com.lambda.client.util.world.isLiquid
 import kotlinx.coroutines.launch
+import net.minecraft.block.state.IBlockState
+import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
+import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
-import net.minecraftforge.common.ForgeHooks
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.math.ceil
@@ -40,7 +43,11 @@ class BreakBlock(
     private val blockPos: BlockPos,
     private val collectDrops: Boolean = false,
     private val minCollectAmount: Int = 1,
-    override var timeout: Long = 200L, // ToDo: Reset timeouted breaks
+    private val forceSilk: Boolean = false,
+    private val forceNoSilk: Boolean = false,
+    private val forceFortune: Boolean = false,
+    private val forceNoFortune: Boolean = false,
+    override var timeout: Long = 200L, // ToDo: Reset timeouted breaks blockstates
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
@@ -49,7 +56,7 @@ class BreakBlock(
 ) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
     private var side: EnumFacing? = null
     private var ticksNeeded = 0
-    private var drop: Item = Items.AIR
+    private var drops: Item = Items.AIR
 
     override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, old, new ->
         if (old == new) return@observable
@@ -89,8 +96,7 @@ class BreakBlock(
                 return@runSafe
             }
 
-            drop = currentState.block.getItemDropped(currentState, Random(), 0) ?: Items.AIR
-
+            updateDrops(currentState)
             updateState()
         }
 
@@ -99,13 +105,17 @@ class BreakBlock(
 
             updateState()
 
+            if (context != BuildActivity.BuildContext.PENDING
+                && world.getBlockState(blockPos) == Blocks.AIR.defaultState
+            ) success()
+
             if (action != BuildActivity.BuildAction.BREAKING
                 || subActivities.isNotEmpty()
                 || status == Status.UNINITIALIZED
             ) return@safeListener
 
             side?.let { side ->
-                checkBreak(side)
+                tryBreak(side)
             }
         }
 
@@ -129,7 +139,7 @@ class BreakBlock(
         when (action) {
             BuildActivity.BuildAction.BREAKING, BuildActivity.BuildAction.BREAK -> {
                 side?.let { side ->
-                    checkBreak(side)
+                    tryBreak(side)
                 }
             }
             BuildActivity.BuildAction.WRONG_POS_BREAK -> {
@@ -147,16 +157,17 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.finish() {
-        if (!collectDrops || !autoPathing || drop == Items.AIR) {
+        if (!collectDrops || !autoPathing || drops == Items.AIR) {
             ActivityManagerHud.totalBlocksBroken++
             success()
             return
         }
 
         renderAction.color = ColorHolder(252, 3, 207)
+        context = BuildActivity.BuildContext.NONE
 
         addSubActivities(
-            PickUpDrops(drop, minAmount = minCollectAmount)
+            PickUpDrops(drops, minAmount = minCollectAmount)
         )
     }
 
@@ -182,57 +193,17 @@ class BreakBlock(
         }
     }
 
-    private fun SafeClientEvent.checkBreak(side: EnumFacing) {
+    private fun SafeClientEvent.tryBreak(side: EnumFacing) {
+        if (checkLiquids() || !hasOptimalTool()) return
+
         val currentState = world.getBlockState(blockPos)
 
-        drop = currentState.block.getItemDropped(currentState, Random(), 0) ?: Items.AIR
-
-        currentState.block.getHarvestTool(currentState)?.let { harvestTool ->
-            if (!player.capabilities.isCreativeMode
-                && !ForgeHooks.isToolEffective(world, blockPos, player.heldItemMainhand)
-            ) {
-                player.allSlots.filter {
-                    ForgeHooks.isToolEffective(world, blockPos, it.stack)
-                }.maxByOrNull { it.stack.getDestroySpeed(currentState) }?.let {
-                    addSubActivities(SwapOrSwitchToSlot(it))
-                } ?: run {
-                    context = BuildActivity.BuildContext.RESTOCK
-
-                    // ToDo: add support for lower tools
-                    val item = when (harvestTool) {
-                        "pickaxe" -> Items.DIAMOND_PICKAXE
-                        "axe" -> Items.DIAMOND_AXE
-                        else -> Items.DIAMOND_SHOVEL
-                    }
-
-                    addSubActivities(AcquireItemInActiveHand(item))
-                }
-                return
-            }
-        }
-
-        // ToDo: 1. currentState.material.isToolNotRequired (if drop is needed it should check if tool has sufficient harvest level)
-        // ToDo: 2. ForgeHooks.canHarvestBlock(currentState.block, player, world, blockPos)
+        // ToDo: add silk touch support
+        updateDrops(currentState)
 
         ticksNeeded = ceil((1 / currentState
             .getPlayerRelativeBlockHardness(player, world, blockPos)) * BuildTools.miningSpeedFactor).toInt()
         timeout = ticksNeeded * 50L + 2000L
-
-        var needToHandleLiquid = false
-
-        EnumFacing.values()
-            .filter { it != EnumFacing.UP }
-            .map { blockPos.offset(it) }
-            .filter { world.getBlockState(it).isLiquid }
-            .forEach {
-                val placeActivity = PlaceBlock(it, BuildTools.defaultFillerMat.defaultState)
-                placeActivity.context = BuildActivity.BuildContext.LIQUID
-
-                addSubActivities(placeActivity)
-                needToHandleLiquid = true
-            }
-
-        if (needToHandleLiquid) return
 
         if (!world.isAirBlock(blockPos) && playerController.onPlayerDamageBlock(blockPos, side)) {
             if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
@@ -247,13 +218,101 @@ class BreakBlock(
         }
     }
 
+    // ToDo: 1. currentState.material.isToolNotRequired (if drop is needed it should check if tool has sufficient harvest level)
+    // ToDo: 2. ForgeHooks.canHarvestBlock(currentState.block, player, world, blockPos)
+    private fun SafeClientEvent.hasOptimalTool(): Boolean {
+        if (player.capabilities.isCreativeMode) return true
+
+        val currentState = world.getBlockState(blockPos)
+        val currentDestroySpeed = player.heldItemMainhand.getDestroySpeed(currentState)
+
+        player.inventorySlots.maxByOrNull { it.stack.getDestroySpeed(currentState) }?.let {
+            if (it.stack.getDestroySpeed(currentState) > currentDestroySpeed
+//                && it.stack != player.heldItemMainhand
+//                && (!getSilkDrop || EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it.stack) > 0)
+            ) {
+                context = BuildActivity.BuildContext.RESTOCK
+
+                addSubActivities(SwapOrSwitchToSlot(it))
+                return false
+            }
+        }
+
+        val availableTools = mutableListOf<Item>()
+
+        if (BuildTools.usePickaxe) availableTools.add(Items.DIAMOND_PICKAXE)
+        if (BuildTools.useShovel) availableTools.add(Items.DIAMOND_SHOVEL)
+        if (BuildTools.useAxe) availableTools.add(Items.DIAMOND_AXE)
+        if (BuildTools.useShears) availableTools.add(Items.SHEARS)
+        if (BuildTools.useSword) availableTools.add(Items.DIAMOND_SWORD)
+
+        availableTools.maxByOrNull { tool ->
+            tool.getDestroySpeed(ItemStack(tool), currentState)
+        }?.let { tool ->
+            val selectedSpeed = tool.getDestroySpeed(ItemStack(tool), currentState)
+
+            if (selectedSpeed > currentDestroySpeed) {
+                context = BuildActivity.BuildContext.RESTOCK
+
+                addSubActivities(AcquireItemInActiveHand(
+                    tool,
+//                    predicateItem = {
+//                        EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
+//                    }
+                ))
+                return false
+            }
+
+            if (selectedSpeed == 1.0f
+                && player.heldItemMainhand.isItemStackDamageable
+            ) {
+                player.inventorySlots.firstOrNull { !it.stack.isItemStackDamageable }?.let {
+                    context = BuildActivity.BuildContext.RESTOCK
+
+                    addSubActivities(SwapOrSwitchToSlot(it))
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+
+    private fun SafeClientEvent.checkLiquids(): Boolean {
+        var foundLiquid = false
+
+        EnumFacing.values()
+            .filter { it != EnumFacing.UP }
+            .map { blockPos.offset(it) }
+            .filter { world.getBlockState(it).isLiquid }
+            .forEach {
+                // ToDo: Don't add if exists
+                PlaceBlock(it, BuildTools.defaultFillerMat.defaultState).apply {
+                    context = BuildActivity.BuildContext.LIQUID
+                    addSubActivities(this)
+                }
+
+                foundLiquid = true
+            }
+
+        return foundLiquid
+    }
+
+    private fun SafeClientEvent.updateDrops(currentState: IBlockState) {
+        drops = currentState.block.getItemDropped(
+            currentState,
+            Random(),
+            EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, player.heldItemMainhand)
+        ) ?: Items.AIR
+    }
+
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
             is PickUpDrops -> {
                 ActivityManagerHud.totalBlocksBroken++
                 success()
             }
-            is AcquireItemInActiveHand, is PlaceBlock -> {
+            else -> {
                 status = Status.UNINITIALIZED
                 context = BuildActivity.BuildContext.NONE
                 action = BuildActivity.BuildAction.NONE

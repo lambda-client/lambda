@@ -2,7 +2,7 @@ package com.lambda.client.activity.activities.travel
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import baritone.api.pathing.goals.GoalNear
+import baritone.process.BuilderProcess.GoalBreak
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
@@ -20,8 +20,9 @@ class BreakGoal(
     override val timeout: Long = 60000L
 ) : TimeoutActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        if (isInBlockAABB(blockPos)
-            && GoalNear(blockPos, 3).isInGoal(player.flooredPosition)) success()
+        if (!isInBlockAABB(blockPos.up())
+            && getMiningSide(blockPos, BuildTools.maxReach) != null
+        ) success()
     }
 
     init {
@@ -36,10 +37,10 @@ class BreakGoal(
             getMiningSide(blockPos, BuildTools.maxReach)?.let {
                 success()
             } ?: run {
-                val goalNear = GoalNear(blockPos, 3)
+                val goalBreak = GoalBreak(blockPos)
 
-                if (!goalNear.isInGoal(player.flooredPosition)) {
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goalNear)
+                if (!goalBreak.isInGoal(player.flooredPosition)) {
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goalBreak)
                     return@safeListener
                 }
 

@@ -66,6 +66,12 @@ object BuildTools : Module(
 //    val leastFood by setting("Least Food", 1, 0..64, 1, { page == Page.STORAGE_MANAGEMENT && manageFood && storageManagement }, description = "How many food items are saved")
 //    val preferEnderChests by setting("Prefer Ender Chests", false, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Prevent using raw material shulkers")
 
+    val usePickaxe by setting("Force Pickaxe", true, { page == Page.TOOLS }, description = "Use pickaxe to mine blocks")
+    val useAxe by setting("Force Axe", true, { page == Page.TOOLS }, description = "Use axe to mine blocks")
+    val useShovel by setting("Force Shovel", true, { page == Page.TOOLS }, description = "Use shovel to mine blocks")
+    val useSword by setting("Force Sword", true, { page == Page.TOOLS }, description = "Use sword to mine blocks")
+    val useShears by setting("Force Shears", true, { page == Page.TOOLS }, description = "Use shears to mine blocks")
+
     /* render */
 //    val info by setting("Show Info", true, { page == Page.RENDER }, description = "Prints session stats in chat")
 //    val goalRender by setting("Baritone Goal", false, { page == Page.RENDER }, description = "Renders the baritone goal")
@@ -92,7 +98,7 @@ object BuildTools : Module(
 //    val proxyCommand by setting("Proxy Command", "/dc", { page == Page.MISC && disableMode == DisableMode.LOGOUT && usingProxy }, description = "Command to be sent to log out")
 
     private enum class Page {
-        BUILDING, RENDER
+        BUILDING, TOOLS, RENDER
     }
 
     enum class DebugLevel {
